@@ -20,18 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-/*
- * Start Simple!
- * Initially filter is limited to selecting rows where the passed in option was selected
- */
-public class SqlWhereClause {
-	public String qType;
-	public String lang;
-	public int qId;
-	public int oId;
-	public String oValue;
-	public String qText;
-	public int qInteger;
-	public long qStartDate;
-	public long qEndDate;
+public class MediaResponse {
+	public ArrayList<MediaItem> files = null;
+	//public int surveyId;
 }
