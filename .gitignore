@@ -6,7 +6,6 @@ fieldManager/build
 surveyMobileAPI/build/classes/.gitignore
 koboToolboxApi/.gitignore
 
-aws.properties
 subscribers/target/
 
 build/css.orig
@@ -28,12 +27,6 @@ local.properties
 
 .idea/
 workspace.xml
-
-# Properties
-aws.properties
-
-monitor.sh
-manage.sh
 
 # enketo 
 smapServer/WebContent/build/css.orig
