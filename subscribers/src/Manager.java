@@ -45,7 +45,7 @@ public class Manager {
 			subscriberType = args[2];	
 		}
 		
-		System.out.println("Starting subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
+		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 4;
 		
 		while(true) {

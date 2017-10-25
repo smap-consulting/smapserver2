@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>surveyKPI</name>
+	<name>surveyKPI-P</name>
 	<comment></comment>
 	<projects>
 		<project>sdDAL</project>
 		<project>sdDataAccess</project>
-		<project>aws</project>
 		<project>notifications</project>
 		<project>grammars</project>
 	</projects>
