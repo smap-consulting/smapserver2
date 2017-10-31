@@ -44,6 +44,7 @@ import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Geometry;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.NotifyDetails;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.Task;
@@ -439,8 +440,7 @@ public class MyAssignments extends Application {
 					"o.ft_sync_incomplete, " +
 					"o.ft_odk_style_menus, " +
 					"o.ft_review_final, " +
-					"o.ft_send_wifi, " +
-					"o.ft_send_wifi_cell " +
+					"o.ft_send, " +
 					"from organisation o, users u " +
 					"where u.o_id = o.id " +
 					"and u.ident = ?;");
@@ -456,8 +456,9 @@ public class MyAssignments extends Application {
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
 				tr.settings.ft_review_final = resultSet.getBoolean(5);
-				tr.settings.ft_send_wifi = resultSet.getBoolean(6);
-				tr.settings.ft_send_wifi_cell = resultSet.getBoolean(7);
+				tr.settings.ft_send = resultSet.getString(6);
+				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
+				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
 				tr.settings.ft_location_trigger = GeneralUtilityMethods.isBusinessServer(request.getServerName());
 			}
 
