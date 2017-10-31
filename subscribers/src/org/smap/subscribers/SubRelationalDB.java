@@ -360,7 +360,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 	
 	/*
-	 * Apply notifications
+	 * Apply auto update changes
 	 */
 	private void applyAutoUpdates(Survey survey, String server, String remoteUser) {
 
