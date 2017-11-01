@@ -39,7 +39,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/gson-2.1.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL"/>
 	<classpathentry kind="lib" path="lib/javax.mail.jar"/>
 	<classpathentry kind="lib" path="lib/antlr-2.7.6.jar">
 		<attributes>
@@ -51,5 +50,6 @@
 			<attribute name="owner.project.facets" value="java"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
