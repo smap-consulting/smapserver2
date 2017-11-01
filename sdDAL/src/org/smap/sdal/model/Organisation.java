@@ -34,8 +34,7 @@ public class Organisation {
 	public boolean ft_sync_incomplete;
 	public boolean ft_odk_style_menus;
 	public boolean ft_review_final;
-	public boolean ft_send_wifi;
-	public boolean ft_send_wifi_cell;
+	public String ft_send;
 	public String changed_by;
 	public String changed_ts;
 	public String admin_email;
@@ -61,5 +60,24 @@ public class Organisation {
 		}
 
 		return email;
+	}
+	
+	// Support old phones that use a boolean value for ft_send_wifi
+	static public boolean get_ft_send_wifi_cell(String send) {
+		boolean v = false;
+		if(send != null && send.equals("cell")) {
+			v = true;
+		}
+		return v;	
+	}
+	
+	// Support old phones that use a boolean value for ft_send_wifi
+	static public boolean get_ft_send_wifi(String send) {
+		boolean v = false;
+		if(send != null && send.equals("wifi")) {
+			v = true;
+		}
+		return v;
+		
 	}
 }

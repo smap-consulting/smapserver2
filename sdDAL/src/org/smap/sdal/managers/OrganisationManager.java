@@ -78,8 +78,7 @@ public class OrganisationManager {
 				" website = ?, " +
 				" locale = ?, " +
 				" timezone = ?, " +
-				" ft_send_wifi = ?, " +
-				" ft_send_wifi_cell = ?, " +
+				" ft_send = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -113,11 +112,10 @@ public class OrganisationManager {
 			pstmt.setString(22, o.website);
 			pstmt.setString(23, o.locale);
 			pstmt.setString(24, o.timeZone);
-			pstmt.setBoolean(25, o.ft_send_wifi);
-			pstmt.setBoolean(26, o.ft_send_wifi_cell);
+			pstmt.setString(25, o.ft_send);
 			
-			pstmt.setString(27, userIdent);
-			pstmt.setInt(28, o.id);
+			pstmt.setString(26, userIdent);
+			pstmt.setInt(27, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();

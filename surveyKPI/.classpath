@@ -67,9 +67,9 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 8 [1.8.0_45]"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/grammars-P"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

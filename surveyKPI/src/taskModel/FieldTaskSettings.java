@@ -7,6 +7,7 @@ public class FieldTaskSettings {
 	public boolean ft_sync_incomplete;
 	public boolean ft_odk_style_menus;
 	public boolean ft_review_final;
-	public boolean ft_send_wifi;
-	public boolean ft_send_wifi_cell;
+	public boolean ft_send_wifi;			// deprecated
+	public boolean ft_send_wifi_cell;	// deprecated
+	public String ft_send;
 }

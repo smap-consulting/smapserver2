@@ -104,8 +104,7 @@ public class OrganisationList extends Application {
 					+ "ft_sync_incomplete,"
 					+ "ft_odk_style_menus,"
 					+ "ft_review_final,"
-					+ "ft_send_wifi,"
-					+ "ft_send_wifi_cell,"
+					+ "ft_send as ft_send,"
 					+ "changed_by, "
 					+ "changed_ts," 
 					+ "admin_email, "
@@ -122,7 +121,7 @@ public class OrganisationList extends Application {
 					+ "order by name asc;";			
 						
 			pstmt = connectionSD.prepareStatement(sql);
-			log.info("SQL: " + sql);
+			log.info("Get organisation list: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			
 			while(resultSet.next()) {
@@ -142,8 +141,7 @@ public class OrganisationList extends Application {
 				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
 				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
 				org.ft_review_final = resultSet.getBoolean("ft_review_final");
-				org.ft_send_wifi = resultSet.getBoolean("ft_send_wifi");
-				org.ft_send_wifi_cell = resultSet.getBoolean("ft_send_wifi_cell");
+				org.ft_send = resultSet.getString("ft_send");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
