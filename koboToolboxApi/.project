@@ -3,7 +3,7 @@
 	<name>koboToolboxApi-P</name>
 	<comment></comment>
 	<projects>
-		<project>sdDAL</project>
+		<project>sdDAL-P</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

@@ -57,7 +57,6 @@ import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.sun.org.apache.bcel.internal.generic.LMUL;
 
 public class GeneralUtilityMethods {
 

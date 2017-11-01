@@ -3,8 +3,8 @@
 	<name>surveyMobileAPI-P</name>
 	<comment></comment>
 	<projects>
-		<project>sdDAL</project>
-		<project>sdDataAccess</project>
+		<project>sdDAL-P</project>
+		<project>sdDataAccess-P</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

@@ -3,6 +3,7 @@
 	<name>sdDAL-P</name>
 	<comment></comment>
 	<projects>
+		<project>amazon</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

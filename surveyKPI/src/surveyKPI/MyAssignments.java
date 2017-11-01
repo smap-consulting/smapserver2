@@ -440,7 +440,7 @@ public class MyAssignments extends Application {
 					"o.ft_sync_incomplete, " +
 					"o.ft_odk_style_menus, " +
 					"o.ft_review_final, " +
-					"o.ft_send, " +
+					"o.ft_send " +
 					"from organisation o, users u " +
 					"where u.o_id = o.id " +
 					"and u.ident = ?;");

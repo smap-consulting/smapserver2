@@ -33,11 +33,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="lib" path="lib/slf4j-nop-1.6.4.jar"/>
-	<classpathentry kind="con" path="org.eclipse.jst.server.core.container/org.eclipse.jst.server.tomcat.runtimeTarget/Apache Tomcat v7.0">
-		<attributes>
-			<attribute name="owner.project.facets" value="jst.utility"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry kind="lib" path="lib/gson-2.1.jar"/>
 	<classpathentry kind="lib" path="lib/javax.mail.jar"/>
 	<classpathentry kind="lib" path="lib/antlr-2.7.6.jar">
@@ -45,11 +40,8 @@
 			<attribute name="org.eclipse.jst.component.dependency" value="../"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 8 [1.8.0_45]">
-		<attributes>
-			<attribute name="owner.project.facets" value="java"/>
-		</attributes>
-	</classpathentry>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="con" path="org.eclipse.jst.server.core.container/org.eclipse.jst.server.tomcat.runtimeTarget/Apache Tomcat v7.0"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

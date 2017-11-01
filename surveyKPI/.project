@@ -3,10 +3,10 @@
 	<name>surveyKPI-P</name>
 	<comment></comment>
 	<projects>
-		<project>sdDAL</project>
-		<project>sdDataAccess</project>
-		<project>notifications</project>
-		<project>grammars</project>
+		<project>sdDAL-P</project>
+		<project>sdDataAccess-P</project>
+		<project>grammars-P</project>
+		<project>amazon</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

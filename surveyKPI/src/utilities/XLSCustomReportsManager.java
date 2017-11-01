@@ -27,9 +27,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -43,27 +40,18 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.CustomReportsManager;
-import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
-import org.smap.sdal.model.CustomReportItem;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.LQASGroup;
 import org.smap.sdal.model.LQASItem;
 import org.smap.sdal.model.LQASdataItem;
 import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnMarkup;
-import org.smap.sdal.model.TaskFeature;
-import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.Role;
-
-import model.LotCell;
-import model.LotRow;
 
 public class XLSCustomReportsManager {
 	
