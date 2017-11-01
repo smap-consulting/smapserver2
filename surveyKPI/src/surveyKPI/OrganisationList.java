@@ -99,7 +99,7 @@ public class OrganisationList extends Application {
 					+ "allow_facebook, "
 					+ "allow_twitter, "
 					+ "can_edit, "
-					+ "ft_delete_submitted,"
+					+ "ft_delete,"
 					+ "ft_send_trail,"
 					+ "ft_sync_incomplete,"
 					+ "ft_odk_style_menus,"
@@ -136,7 +136,7 @@ public class OrganisationList extends Application {
 				org.allow_facebook = resultSet.getBoolean("allow_facebook");
 				org.allow_twitter = resultSet.getBoolean("allow_twitter"); 
 				org.can_edit = resultSet.getBoolean("can_edit");
-				org.ft_delete_submitted = resultSet.getBoolean("ft_delete_submitted");
+				org.ft_delete = resultSet.getString("ft_delete");
 				org.ft_send_trail = resultSet.getBoolean("ft_send_trail");
 				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
 				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");

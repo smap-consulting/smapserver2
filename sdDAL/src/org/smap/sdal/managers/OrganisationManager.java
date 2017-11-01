@@ -63,7 +63,7 @@ public class OrganisationManager {
 				" allow_facebook = ?, " +
 				" allow_twitter = ?, " +
 				" can_edit = ?, " +
-				" ft_delete_submitted = ?, " +
+				" ft_delete = ?, " +
 				" ft_send_trail = ?, " +
 				" ft_sync_incomplete = ?, " +
 				" ft_odk_style_menus = ?, " +
@@ -97,7 +97,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(7, o.allow_facebook);
 			pstmt.setBoolean(8, o.allow_twitter);
 			pstmt.setBoolean(9, o.can_edit);
-			pstmt.setBoolean(10, o.ft_delete_submitted);
+			pstmt.setString(10, o.ft_delete);
 			pstmt.setBoolean(11, o.ft_send_trail);
 			pstmt.setBoolean(12, o.ft_sync_incomplete);
 			pstmt.setBoolean(13, o.ft_odk_style_menus);
@@ -164,7 +164,7 @@ public class OrganisationManager {
 				"company_address, " +
 				"company_phone, " +
 				"company_email, " +
-				"allow_email, allow_facebook, allow_twitter, can_edit, ft_delete_submitted, ft_send_trail, " +
+				"allow_email, allow_facebook, allow_twitter, can_edit, ft_delete, ft_send_trail, " +
 				"ft_sync_incomplete, ft_odk_style_menus, ft_review_final, changed_by, admin_email, smtp_host, email_domain, email_user, email_password, " +
 				"email_port, default_email_content, website, locale, timezone, changed_ts) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";	
@@ -200,7 +200,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(7, o.allow_facebook);
 			pstmt.setBoolean(8, o.allow_twitter);
 			pstmt.setBoolean(9, o.can_edit);
-			pstmt.setBoolean(10, o.ft_delete_submitted);
+			pstmt.setString(10, o.ft_delete);
 			pstmt.setBoolean(11, o.ft_send_trail);
 			pstmt.setBoolean(12, o.ft_sync_incomplete);
 			pstmt.setBoolean(13, o.ft_odk_style_menus);

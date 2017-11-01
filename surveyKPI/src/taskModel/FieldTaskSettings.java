@@ -1,7 +1,8 @@
 package taskModel;
 
 public class FieldTaskSettings {
-	public boolean ft_delete_submitted;
+	public boolean ft_delete_submitted;	// deprecated
+	public String ft_delete;
 	public boolean ft_send_trail;
 	public boolean ft_location_trigger;
 	public boolean ft_sync_incomplete;

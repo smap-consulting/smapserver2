@@ -29,7 +29,7 @@ public class Organisation {
 	public boolean allow_facebook;
 	public boolean allow_twitter;
 	public boolean can_edit;
-	public boolean ft_delete_submitted;
+	public String ft_delete;
 	public boolean ft_send_trail;
 	public boolean ft_sync_incomplete;
 	public boolean ft_odk_style_menus;
@@ -62,7 +62,7 @@ public class Organisation {
 		return email;
 	}
 	
-	// Support old phones that use a boolean value for ft_send_wifi
+	// Support old versions of FT that use a boolean value for ft_send_wifi
 	static public boolean get_ft_send_wifi_cell(String send) {
 		boolean v = false;
 		if(send != null && send.equals("cell")) {
@@ -71,13 +71,21 @@ public class Organisation {
 		return v;	
 	}
 	
-	// Support old phones that use a boolean value for ft_send_wifi
+	// Support old versions of FT  that use a boolean value for ft_send_wifi
 	static public boolean get_ft_send_wifi(String send) {
 		boolean v = false;
 		if(send != null && send.equals("wifi")) {
 			v = true;
 		}
 		return v;
-		
+	}
+	
+	// Support old versions of FT  that use a boolean value for ft_delete_submitted
+	static public boolean get_ft_delete_submitted(String del) {
+		boolean v = false;
+		if(del != null && del.equals("on")) {
+			v = true;
+		}
+		return v;
 	}
 }
