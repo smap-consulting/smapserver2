@@ -104,7 +104,7 @@ public class OrganisationList extends Application {
 					+ "ft_sync_incomplete,"
 					+ "ft_odk_style_menus,"
 					+ "ft_review_final,"
-					+ "ft_send,"
+					+ "ft_send as ft_send,"
 					+ "changed_by, "
 					+ "changed_ts," 
 					+ "admin_email, "
@@ -121,7 +121,7 @@ public class OrganisationList extends Application {
 					+ "order by name asc;";			
 						
 			pstmt = connectionSD.prepareStatement(sql);
-			log.info("SQL: " + sql);
+			log.info("Get organisation list: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			
 			while(resultSet.next()) {
