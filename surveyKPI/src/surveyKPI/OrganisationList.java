@@ -40,6 +40,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.User;
@@ -64,10 +65,21 @@ import java.util.logging.Logger;
 @Path("/organisationList")
 public class OrganisationList extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ORG);
+	Authorise a = null;
+	Authorise aAdmin = null;
 
 	private static Logger log =
 			 Logger.getLogger(OrganisationList.class.getName());
+	
+	public OrganisationList() {
+		
+		a = new Authorise(null, Authorise.ORG);
+		
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		aAdmin = new Authorise(authorisations, null);
+	}
 	
 	@GET
 	@Produces("application/json")
@@ -76,7 +88,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ProjectList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
@@ -175,7 +187,7 @@ public class OrganisationList extends Application {
 		    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-ProjectList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-OrganisationList", connectionSD);
 		}
 
 		return response;
@@ -191,14 +203,6 @@ public class OrganisationList extends Application {
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
 		fileItemFactory.setSizeThreshold(1*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
@@ -312,6 +316,108 @@ public class OrganisationList extends Application {
 		return response;
 	}
 	
+	@GET
+	@Path("/device")
+	public Response getDeviceSettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		aAdmin.isAuthorised(connectionSD, request.getRemoteUser());
+		// End Authorisation
+		
+		String sql = "select ft_delete, ft_send_trail, ft_odk_style_menus,"
+				+ "ft_review_final, ft_send "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = connectionSD.prepareStatement(sql);	
+			pstmt.setString(1, request.getRemoteUser());
+					
+			log.info("Get organisation device details: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				DeviceSettings d = new DeviceSettings();
+				d.ft_delete = rs.getString(1);
+				d.ft_send_trail = rs.getBoolean(2);
+				d.ft_odk_style_menus = rs.getBoolean(3);
+				d.ft_review_final = rs.getBoolean(4);
+				d.ft_send = rs.getString(5);
+				
+				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+				String resp = gson.toJson(d);
+				response = Response.ok(resp).build();
+			} else {
+				response = Response.serverError().entity("not found").build();
+			}
+			
+			
+	
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}			
+		}
+		
+		return response;
+	}
+
+	
+	@POST
+	@Path("/device")
+	public Response updateDeviceSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) {
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		aAdmin.isAuthorised(connectionSD, request.getRemoteUser());
+		// End Authorisation
+		
+		String sql = "update organisation set " +
+			
+				" ft_delete = ?, " +
+				" ft_send_trail = ?, " +
+				" ft_odk_style_menus = ?, " +
+				" ft_review_final = ?, " +
+				" ft_send = ?, " +
+				" changed_by = ?, " + 
+				" changed_ts = now() " + 
+				" where " +
+				" id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			DeviceSettings d = new Gson().fromJson(settings, DeviceSettings.class);
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, d.ft_delete);
+			pstmt.setBoolean(2, d.ft_send_trail);
+			pstmt.setBoolean(3, d.ft_odk_style_menus);
+			pstmt.setBoolean(4, d.ft_review_final);
+			pstmt.setString(5, d.ft_send);
+			pstmt.setString(6, request.getRemoteUser());
+			pstmt.setString(7, request.getRemoteUser());
+					
+			log.info("Update organisation with device details: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			response = Response.ok().build();
+	
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}			
+		}
+		
+		return response;
+	}
 
 	
 	/*
@@ -322,14 +428,6 @@ public class OrganisationList extends Application {
 	public Response delOrganisation(@Context HttpServletRequest request, @FormParam("organisations") String organisations) { 
 		
 		Response response = null;
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
@@ -435,14 +533,6 @@ public class OrganisationList extends Application {
 			@FormParam("projects") String projects) { 
 		
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
