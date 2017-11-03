@@ -404,7 +404,6 @@ public class NotificationManager {
 			while(rsNotifications.next()) {
 				boolean writeToMonitor = true;
 				HashMap<String, String> sentEndPoints = new HashMap<> ();
-				log.info("++++++ Notification: " + rsNotifications.getString(1) + " " + rsNotifications.getString(2));
 				String target = rsNotifications.getString(1);
 				String notifyDetailsString = rsNotifications.getString(2);
 				String filter = rsNotifications.getString(3);

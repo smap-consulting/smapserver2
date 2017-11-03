@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.TaskManager;
@@ -51,6 +52,9 @@ import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Features;
 import org.smap.sdal.model.Geometry;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.TaskAddressSettings;
 
 import com.google.gson.Gson;
@@ -375,11 +379,18 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtTaskGroup = null;
 		PreparedStatement pstmtGetSurveyIdent = null;
 		PreparedStatement pstmtUniqueTg = null;
+		
+		SqlFrag frag = null;
 
 		try {
 			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
 			connectionSD.setAutoCommit(false);
 
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Create the task group if an existing task group was not specified
 			 */
@@ -520,7 +531,25 @@ public class AllAssignments extends Application {
 
 							QuestionInfo filterQuestion = null;
 							String filterSql = null;
-							if(as.filter != null && as.filter.qId > 0) {
+							/*
+							 * Check the filters
+							 * Advanced filter taked precedence
+							 * If that is not set then check simple filter
+							 */
+							if(as.filter != null && as.filter.advanced != null && as.filter.advanced.length() > 0) {
+								System.out.println("+++++ Using advanced filter: " + as.filter.advanced);
+								
+								StringBuffer filterQuery = new StringBuffer(" (");
+								frag = new SqlFrag();
+								frag.addSqlFragment(as.filter.advanced, localisation, false);
+								filterQuery.append(frag.sql);
+								filterQuery.append(")");
+								filterSql = filterQuery.toString();
+								log.info("Advanced filter: " + filterSql);
+								
+								System.out.println("Query clause: " + filterSql);
+								
+							} else if(as.filter != null && as.filter.qId > 0) {
 								String fValue = null;
 								String fValue2 = null;
 								filterQuestion = new QuestionInfo(sId, as.filter.qId, connectionSD, false, as.filter.lang, urlprefix);
@@ -653,6 +682,22 @@ public class AllAssignments extends Application {
 
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = connectionRel.prepareStatement(getTaskSql);	
+							
+							if(frag != null) {
+								int idx = 1;
+								for(SqlFragParam p : frag.params) {
+									if(p.type.equals("text")) {
+										pstmt.setString(idx++,  p.sValue);
+									} else if(p.type.equals("integer")) {
+										pstmt.setInt(idx++,  p.iValue);
+									} else if(p.type.equals("double")) {
+										pstmt.setDouble(idx++,  p.dValue);
+									} else {
+										throw new Exception("Unknown parameter type: " + p.type);
+									}
+								}
+							}
+							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							resultSet = pstmt.executeQuery();
 							while (resultSet.next()) {
