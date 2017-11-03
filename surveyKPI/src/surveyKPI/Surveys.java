@@ -167,12 +167,6 @@ public class Surveys extends Application {
 			@QueryParam("get_changes") boolean getChanges
 			) { 
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return Response.serverError().build();
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Surveys");	
@@ -965,5 +959,7 @@ public class Surveys extends Application {
 		}
 	 
 	}
+	
+	
 }
 

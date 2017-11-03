@@ -125,13 +125,6 @@ public class GetFile extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
 			@QueryParam("type") String type) throws Exception {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
 		
 		int uId = 0;
 		Response r = null;
@@ -172,6 +165,62 @@ public class GetFile extends Application {
 		return r;
 	}
 	
+	/*
+	 * Get template pdf file
+	 */
+	@GET
+	@Path("/surveyPdfTemplate/{sId}")
+	@Produces("application/x-download")
+	public Response getPdfTemplateFile (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			
+			@PathParam("sId") int sId) throws Exception {
+		
+		log.info("Get PDF Template File:  for survey: " + sId);
+		
+		Response r = null;
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("Get Survey File");
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation 
+		
+		try {
+			String basepath = GeneralUtilityMethods.getBasePath(request);
+			
+			// Ignore the provided filename, the the filename from the survey details
+			String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
+			String fileName = GeneralUtilityMethods.getSafeTemplateName(displayName);
+			fileName = fileName + "_template.pdf";
+			
+			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
+			String folderPath = basepath + "/templates/" + pId ;						
+			String filepath = folderPath + "/" + fileName;
+			
+			getFile(response, filepath, fileName);
+			
+			r = Response.ok("").build();
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Error getting file", e);
+			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
+		} finally {	
+			SDDataSource.closeConnection("Get Survey File", sd);	
+		}
+		
+		return r;
+	}
+	
+	/*
+	 * Get survey level resource file
+	 */
 	@GET
 	@Path("/survey/{sId}")
 	@Produces("application/x-download")
@@ -181,13 +230,6 @@ public class GetFile extends Application {
 			@PathParam("filename") String filename,
 			@PathParam("sId") int sId,
 			@QueryParam("linked") boolean linked) throws Exception {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
 		
 		log.info("Get File: " + filename + " for survey: " + sId);
 		
