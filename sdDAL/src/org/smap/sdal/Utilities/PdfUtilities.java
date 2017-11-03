@@ -44,14 +44,14 @@ public class PdfUtilities {
 			
 			log.info("Adding image to: " + fieldName);
 		} else {
-			
+	
 			String imageUrl = serverRoot + value;
 			try {
 				Rectangle targetPosition = pdfForm.getFieldPositions(fieldName).get(0).position;
-			    Font fontNormal = FontFactory.getFont("Courier", 8, Font.UNDERLINE, BaseColor.BLUE);
+				int page = pdfForm.getFieldPositions(fieldName).get(0).page;
 			    Anchor url = new Anchor("\uf08e", Symbols);
 			    url.setReference(imageUrl);
-			    ColumnText data = new ColumnText(stamper.getOverContent(1));
+			    ColumnText data = new ColumnText(stamper.getOverContent(page));
 			    data.setSimpleColumn(url, targetPosition.getLeft(), targetPosition.getBottom(), targetPosition.getRight(), targetPosition.getTop(), 0,0);
 			    data.go();
 			} catch (Exception e) {
