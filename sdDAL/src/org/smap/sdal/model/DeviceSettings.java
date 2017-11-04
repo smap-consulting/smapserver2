@@ -1,7 +1,5 @@
 package org.smap.sdal.model;
 
-import java.util.ArrayList;
-
 /*
 This file is part of SMAP.
 
@@ -18,21 +16,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
-*/
-
-/*
- * Start Simple!
- * Initially filter is limited to selecting rows where the passed in option was selected
  */
-public class SqlWhereClause {
-	public String qType;
-	public String lang;
-	public int qId;
-	public int oId;
-	public String oValue;
-	public String qText;
-	public int qInteger;
-	public long qStartDate;
-	public long qEndDate;
-	public String advanced;		// Advanced filter specification takes precedence
+
+public class DeviceSettings {
+	public String ft_delete;
+	public boolean ft_send_trail;
+	public boolean ft_odk_style_menus;
+	public boolean ft_review_final;
+	public String ft_send;
 }

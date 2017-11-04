@@ -434,8 +434,8 @@ public class MyAssignments extends Application {
 			 * Get the settings for the phone
 			 */
 			tr.settings = new FieldTaskSettings();
-			sql = new StringBuffer("SELECT " +
-					"o.ft_delete_submitted," +
+			sql = new StringBuffer("select " +
+					"o.ft_delete," +
 					"o.ft_send_trail, " +
 					"o.ft_sync_incomplete, " +
 					"o.ft_odk_style_menus, " +
@@ -451,7 +451,8 @@ public class MyAssignments extends Application {
 			resultSet = pstmtGetSettings.executeQuery();
 
 			if(resultSet.next()) {
-				tr.settings.ft_delete_submitted = resultSet.getBoolean(1);
+				tr.settings.ft_delete = resultSet.getString(1);
+				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete);
 				tr.settings.ft_send_trail = resultSet.getBoolean(2);
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
