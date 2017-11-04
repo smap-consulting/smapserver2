@@ -97,11 +97,12 @@ public class Data extends Application {
 	@Produces("application/json")
 	public Response getData(@Context HttpServletRequest request) { 
 
+		Response response = null;
+
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolBoxAPI-getData");
 		aSuper.isAuthorised(sd, request.getRemoteUser());
-
-		Response response = null;
+		
 
 		DataManager dm = new DataManager();
 		try {
@@ -145,6 +146,15 @@ public class Data extends Application {
 			) { 
 
 		Response response = null;
+		
+		try {
+			Class.forName("org.postgresql.Driver");	 
+		} catch (ClassNotFoundException e) {
+			log.info("Error: Can't find PostgreSQL JDBC Driver");
+			e.printStackTrace();
+			response = Response.serverError().build();
+			return response;
+		}
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records");
