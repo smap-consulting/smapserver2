@@ -1065,7 +1065,9 @@ public class PDFSurveyManager {
 				survey, 
 				question,
 				r.choices, 
-				languageIdx);
+				languageIdx,
+				record,
+				parentRecords);
 		setQuestionFormats(question.appearance, di);
 		di.fIdx = r.fIdx;
 		di.rec_number = recNumber;
@@ -1311,7 +1313,9 @@ public class PDFSurveyManager {
 			org.smap.sdal.model.Survey survey, 
 			org.smap.sdal.model.Question question,
 			ArrayList<Result> choiceResults,
-			int languageIdx) {
+			int languageIdx,
+			ArrayList<Result> record,
+			ArrayList<ArrayList<Result>> parentRecords) {
 
 		ArrayList<DisplayItem> diList = null;
 		if(choiceResults != null) {
@@ -1322,6 +1326,7 @@ public class PDFSurveyManager {
 				Label label = option.labels.get(languageIdx);
 				DisplayItem di = new DisplayItem();
 				di.text = label.text == null ? "" : label.text;
+				di.text = lookupReferenceValue(di.text, record, parentRecords);
 				di.name = r.name;
 				di.type = "choice";
 				di.isSet = r.isSet;
