@@ -825,7 +825,6 @@ public class SurveyTemplate {
 	 */
 	public void writeDatabase() throws Exception {
 		
-		// Start using plain old JDBC as we are migrating away from hibernate
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Write Database");
 		sd.setAutoCommit(false);
 		
