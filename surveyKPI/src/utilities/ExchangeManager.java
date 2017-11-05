@@ -609,7 +609,7 @@ public class ExchangeManager {
 								int iVal = 0;
 								try { iVal = Integer.parseInt(value);} catch (Exception e) {}
 								pstmtInsert.setInt(index++, iVal);
-							} else if(col.type.equals("decimal")) {
+							} else if(col.type.equals("decimal") || col.type.equals("range")) {
 								double dVal = 0.0;
 								try { dVal = Double.parseDouble(value);} catch (Exception e) {}
 								pstmtInsert.setDouble(index++, dVal);
