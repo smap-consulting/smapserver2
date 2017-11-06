@@ -1,7 +1,8 @@
 package org.smap.sdal.model;
 
 public class SqlFragParam {
-	public String type;		// text || sql || integer || double
+	private String type;			// text || sql || integer || double
+	
 	public String sValue;		// text || sql
 	public int iValue;			// integer
 	public double dValue;		// double
@@ -9,6 +10,14 @@ public class SqlFragParam {
 	void addTextParam(String v) {
 		type = "text";
 		sValue = v;
+	}
+	
+	public void setType(String v) {
+		type = v;
+	}
+	
+	public String getType() {
+		return type;
 	}
 	
 	String debug() {

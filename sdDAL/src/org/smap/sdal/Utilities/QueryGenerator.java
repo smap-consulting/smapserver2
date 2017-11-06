@@ -255,7 +255,7 @@ public class QueryGenerator {
 		}
 		
 		if(hasRbacFilter) {
-			paramCount = rm.setRbacParameters(pstmtConvert, rfArray, paramCount);
+			paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtConvert, rfArray, paramCount);
 		}
 		
 		sqlDesc.sql = pstmtConvert.toString();

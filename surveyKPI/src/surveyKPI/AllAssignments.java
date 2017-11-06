@@ -685,17 +685,7 @@ public class AllAssignments extends Application {
 							
 							if(frag != null) {
 								int idx = 1;
-								for(SqlFragParam p : frag.params) {
-									if(p.type.equals("text")) {
-										pstmt.setString(idx++,  p.sValue);
-									} else if(p.type.equals("integer")) {
-										pstmt.setInt(idx++,  p.iValue);
-									} else if(p.type.equals("double")) {
-										pstmt.setDouble(idx++,  p.dValue);
-									} else {
-										throw new Exception("Unknown parameter type: " + p.type);
-									}
-								}
+								idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
 							}
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());

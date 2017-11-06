@@ -456,26 +456,6 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Set the parameters for an array of sql fragments
-	 */
-	public int setRbacParameters(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index) throws SQLException {
-		int attribIdx = index;
-		for(SqlFrag rf : rfArray) {
-			for(int i = 0; i < rf.params.size(); i++) {
-				SqlFragParam p = rf.params.get(i);
-				if(p.type.equals("text")) {
-					pstmt.setString(attribIdx++, p.sValue);
-				} else if(p.type.equals("integer")) {
-					pstmt.setInt(attribIdx++,  p.iValue);
-				} else if(p.type.equals("double")) {
-					pstmt.setDouble(attribIdx++,  p.dValue);
-				}
-			}
-		}
-		return attribIdx;
-	}
-	
-	/*
 	 * Get the sql for a survey role column filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */

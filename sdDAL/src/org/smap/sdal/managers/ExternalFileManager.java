@@ -231,7 +231,7 @@ public class ExternalFileManager {
 				pstmtData = cRel.prepareStatement(sqlDef.sql);
 				int paramCount = 1;
 				if (sqlDef.hasRbacFilter) {
-					paramCount = rm.setRbacParameters(pstmtData, sqlDef.rfArray, paramCount);
+					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtData, sqlDef.rfArray, paramCount);
 				}
 				log.info("Get CSV data: " + pstmtData.toString());
 

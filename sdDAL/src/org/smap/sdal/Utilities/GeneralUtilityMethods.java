@@ -61,11 +61,11 @@ import com.google.gson.reflect.TypeToken;
 public class GeneralUtilityMethods {
 
 	private static Logger log = Logger.getLogger(GeneralUtilityMethods.class.getName());
-	
+
 	private static LogManager lm = new LogManager();		// Application log
 
 	private static int LENGTH_QUESTION_NAME = 45; // 63 max size of postgresql column names. Allow 10 chars for options
-													// + 2 chars for option separator
+	// + 2 chars for option separator
 	private static int LENGTH_QUESTION_RAND = 3;
 	private static int LENGTH_OPTION_NAME = 16;
 	private static int LENGTH_OPTION_RAND = 3;
@@ -98,7 +98,7 @@ public class GeneralUtilityMethods {
 
 			out = out.replace(" ", ""); // Remove spaces
 			out = out.replaceAll("[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]", "x"); // Remove special
-																									// characters ;
+			// characters ;
 
 			/*
 			 * Rename fields that are the same as postgres / sql reserved words
@@ -339,7 +339,7 @@ public class GeneralUtilityMethods {
 	static public File getPdfTemplate(String basePath, String displayName, int pId) {
 
 		String templateName = basePath + "/templates/" + pId + "/" + convertDisplayNameToFileName(displayName)
-				+ "_template.pdf";
+		+ "_template.pdf";
 
 		log.info("Attempt to get a pdf template with name: " + templateName);
 		File templateFile = new File(templateName);
@@ -1621,7 +1621,7 @@ public class GeneralUtilityMethods {
 
 			CSVFilter filter = new CSVFilter(cols, qAppearance); // Get a filter
 			ValueLabelCols vlc = getValueLabelCols(sd, qId, qName, cols); // Identify the columns in the CSV file that
-																			// have the value and label
+			// have the value and label
 
 			/*
 			 * Read the old and new data rows Only get the columns that are to be applied as
@@ -2496,11 +2496,11 @@ public class GeneralUtilityMethods {
 			int formParent, int f_id, String table_name, boolean includeRO, boolean includeParentKey,
 			boolean includeBad, boolean includeInstanceId, boolean includeOtherMeta, boolean includePreloads,
 			boolean includeInstanceName, boolean includeSurveyDuration, boolean superUser, boolean hxl, boolean audit)
-			throws SQLException {
+					throws SQLException {
 
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property
-																				// questions can be added first
+		// questions can be added first
 		boolean uptodateTable = false; // Set true if the results table has the latest meta data columns
 		TableColumn durationColumn = null;
 
@@ -2726,8 +2726,8 @@ public class GeneralUtilityMethods {
 					HashMap<String, String> uniqueColumns = new HashMap<String, String>();
 					while (rsMultiples.next()) {
 						String uk = question_column_name + "xx" + rsMultiples.getString(2); // Column name can be
-																							// randomised so don't use
-																							// it for uniqueness
+						// randomised so don't use
+						// it for uniqueness
 
 						if (uniqueColumns.get(uk) == null) {
 							uniqueColumns.put(uk, uk);
@@ -3866,7 +3866,7 @@ public class GeneralUtilityMethods {
 							filename = filename.substring(1, filename.length() - 1);
 
 							if (filename.startsWith("linked_s") || filename.startsWith("linked_s_pd_s")) { // Linked
-																											// survey
+								// survey
 								log.info(
 										"We have found a manifest link to " + filename + " calculate is: " + calculate);
 								refQuestions = getRefQuestionsSearch(criteria);
@@ -4575,9 +4575,9 @@ public class GeneralUtilityMethods {
 	public static String getSurveyRBAC() {
 		return "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
 				+ "(s.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User
-																																											// also
-																																											// has
-																																											// role
+				// also
+				// has
+				// role
 				+ ") ";
 	}
 
@@ -4901,40 +4901,30 @@ public class GeneralUtilityMethods {
 	}
 
 	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId) throws Exception {
-		
+
 		boolean testResult = false;
-		
+
 		StringBuffer filterQuery = new StringBuffer("select count(*) from ");
 		filterQuery.append(getTableOuterJoin(survey.forms, 0, null));
 		filterQuery.append(" where ");
 		filterQuery.append(getMainTable(survey.forms));
 		filterQuery.append(".instanceid = ?");
-		
+
 		// Add the filter
 		filterQuery.append(" and (");
 		SqlFrag frag = new SqlFrag();
 		frag.addSqlFragment(filter, localisation, false);
 		filterQuery.append(frag.sql);
 		filterQuery.append(")");
-		
+
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = cResults.prepareStatement(filterQuery.toString());
 			pstmt.setString(1, instanceId);
-			
+
 			int idx = 2;
-			for(SqlFragParam p : frag.params) {
-				if(p.type.equals("text")) {
-					pstmt.setString(idx++,  p.sValue);
-				} else if(p.type.equals("integer")) {
-					pstmt.setInt(idx++,  p.iValue);
-				} else if(p.type.equals("double")) {
-					pstmt.setDouble(idx++,  p.dValue);
-				} else {
-					throw new Exception("Unknown parameter type: " + p.type);
-				}
-			}
-			
+			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+
 			log.info("Evaluate Filter: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
@@ -4942,13 +4932,13 @@ public class GeneralUtilityMethods {
 					testResult = true;
 				}
 			}
-	
+
 		} catch(Exception e) { 
 			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
-		
+
 		System.out.println(" Test Result:  " + testResult);
 		return testResult;
 	}
@@ -4969,7 +4959,7 @@ public class GeneralUtilityMethods {
 	 */
 	private static String getTableOuterJoin(ArrayList<Form> forms, int parent, String parentTableName) {
 		StringBuffer out = new StringBuffer("");
-		
+
 		for (Form f : forms) {
 			if(f.parentform == parent) {
 				if(parent != 0) {
@@ -4987,7 +4977,38 @@ public class GeneralUtilityMethods {
 				out.append(getTableOuterJoin(forms, f.id, f.tableName));
 			}
 		}
-	
+
 		return out.toString();
 	}
+
+	/*
+	 * Set the parameters for an array of sql fragments
+	 */
+	public static int setArrayFragParams(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index) throws Exception {
+		for(SqlFrag rf : rfArray) {
+			index = setFragParams(pstmt, rf, index);
+		}
+		return index;
+	}
+
+	/*
+	 * Set the parameters for an array of sql fragments
+	 */
+	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index) throws Exception {
+		int attribIdx = index;
+		for(int i = 0; i < frag.params.size(); i++) {
+			SqlFragParam p = frag.params.get(i);
+			if(p.getType().equals("text")) {
+				pstmt.setString(attribIdx++, p.sValue);
+			} else if(p.getType().equals("integer")) {
+				pstmt.setInt(attribIdx++,  p.iValue);
+			} else if(p.getType().equals("double")) {
+				pstmt.setDouble(attribIdx++,  p.dValue);
+			} else {
+				throw new Exception("Unknown parameter type: " + p.getType());
+			}
+		}
+		return attribIdx;
+	}
 }
+

@@ -85,7 +85,7 @@ public class SqlFrag {
 			// Add the sql fragment
 			if(idx1 > 0) {
 				SqlFragParam p = new SqlFragParam();
-				p.type = "sql";
+				p.setType("sql");
 				p.sValue = in.substring(start, idx1);
 				tempParams.add(p);
 				addedChars = idx1;
@@ -95,7 +95,7 @@ public class SqlFrag {
 			idx2 = in.indexOf('\'', idx1 + 1);
 			if(idx2 > -1) {
 				SqlFragParam p = new SqlFragParam();
-				p.type = "text";
+				p.setType("text");
 				p.sValue = in.substring(idx1 + 1, idx2);	// Remove quotation marks
 				tempParams.add(p);
 				addedChars = idx2 + 1;							// Skip over quote
@@ -108,7 +108,7 @@ public class SqlFrag {
 		}
 		if(addedChars < in.length()) {
 			SqlFragParam p = new SqlFragParam();
-			p.type = "sql";
+			p.setType("sql");
 			p.sValue = in.substring(addedChars);
 			tempParams.add(p);
 		}
@@ -119,7 +119,7 @@ public class SqlFrag {
 		 */
 		for(int i = 0; i < tempParams.size(); i++) {
 			SqlFragParam p = tempParams.get(i);
-			if(p.type.equals("sql")) {
+			if(p.getType().equals("sql")) {
 				String [] token = p.sValue.split("[\\s]");  // Split on white space
 				for(int j = 0; j < token.length; j++) {
 					String s = sqlToken(token[j]);
@@ -128,7 +128,7 @@ public class SqlFrag {
 						sql.append(" " + s + " ");
 					}
 				}
-			} else if(p.type.equals("text")) {
+			} else if(p.getType().equals("text")) {
 				SqlFragParam px = new SqlFragParam();
 				px.addTextParam(p.sValue);
 				params.add(px);

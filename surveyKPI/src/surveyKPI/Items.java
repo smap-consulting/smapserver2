@@ -449,18 +449,7 @@ public class Items extends Application {
 				
 				// RBAC row filter
 				if(hasRbacRowFilter) {
-					for(SqlFrag rf : rfArray) {
-						for(int i = 0; i < rf.params.size(); i++) {
-							SqlFragParam p = rf.params.get(i);
-							if(p.type.equals("text")) {
-								pstmt.setString(attribIdx++, p.sValue);
-							} else if(p.type.equals("integer")) {
-								pstmt.setInt(attribIdx++,  p.iValue);
-							} else if(p.type.equals("double")) {
-								pstmt.setDouble(attribIdx++,  p.dValue);
-							}
-						}
-					}
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
 				}
 				
 				// dates
@@ -559,11 +548,11 @@ public class Items extends Application {
 					for(SqlFrag rf : rfArray) {
 						for(int i = 0; i < rf.params.size(); i++) {
 							SqlFragParam p = rf.params.get(i);
-							if(p.type.equals("text")) {
+							if(p.getType().equals("text")) {
 								pstmt.setString(attribIdx++, p.sValue);
-							} else if(p.type.equals("integer")) {
+							} else if(p.getType().equals("integer")) {
 								pstmt.setInt(attribIdx++,  p.iValue);
-							} else if(p.type.equals("double")) {
+							} else if(p.getType().equals("double")) {
 								pstmt.setDouble(attribIdx++,  p.dValue);
 							}
 						}

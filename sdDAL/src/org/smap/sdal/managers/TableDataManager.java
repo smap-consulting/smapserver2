@@ -137,7 +137,7 @@ public class TableDataManager {
 
 			// Add parameters in table column selections
 			if (columnSqlFrags.size() > 0) {
-				paramCount = rm.setRbacParameters(pstmt, columnSqlFrags, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, paramCount);
 			}
 			pstmt.setInt(paramCount++, start);
 			if (getParkey) {
@@ -150,7 +150,7 @@ public class TableDataManager {
 				pstmt.setString(paramCount++, hrk);
 			}
 			if (hasRbacFilter) {
-				paramCount = rm.setRbacParameters(pstmt, rfArray, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
 			}
 
 			log.info("Get data: " + pstmt.toString());

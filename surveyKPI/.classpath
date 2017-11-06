@@ -42,12 +42,6 @@
 			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/postgresql-8.4-701.jdbc4.jar">
-		<attributes>
-			<attribute name="org.eclipse.jst.component.dependency" value="/WEB-INF/lib"/>
-		</attributes>
-	</classpathentry>
-	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-codec-1.7.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-lang3-3.1.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-io-2.0.1.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/httpclient-4.3.3.jar"/>
@@ -71,5 +65,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/grammars-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
+	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/postgresql-42.1.4.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

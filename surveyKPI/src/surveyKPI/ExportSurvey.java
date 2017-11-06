@@ -907,7 +907,7 @@ public class ExportSurvey extends Application {
 			if(f.parkey != null) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
 			} else if(hasRbacFilter) {
-				paramCount = rm.setRbacParameters(pstmt, rfArray, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
 			}
 			log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
