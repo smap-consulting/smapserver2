@@ -321,7 +321,7 @@ public class Items extends Application {
 				
 				String sqlFilter = "";
 				if(start_key > 0) {
-					sqlFilter = tName + ".prikey > " +  start_key;
+					sqlFilter = tName + ".prikey < " +  start_key;
 					if(!bBad) {
 						sqlFilter += " and " + tName + "._bad = 'false'";
 					}
@@ -437,7 +437,7 @@ public class Items extends Application {
 					}
 				}
 				sql2.append(whereClause);
-				sql2.append(" order by " + tName + ".prikey " + sqlLimit +";");
+				sql2.append(" order by " + tName + ".prikey desc " + sqlLimit +";");
 				
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = connection.prepareStatement(sql2.toString());
@@ -532,9 +532,9 @@ public class Items extends Application {
 				
 				String maxRecordWhere = "";
 				if(whereClause.equals("")) {
-					maxRecordWhere = " where " + tName + ".prikey > " + maxRec;
+					maxRecordWhere = " where " + tName + ".prikey < " + maxRec;
 				} else {
-					maxRecordWhere = whereClause + " and " + tName + ".prikey > " + maxRec;
+					maxRecordWhere = whereClause + " and " + tName + ".prikey < " + maxRec;
 				}
 				// Determine if there are more records to be returned
 				sql = "SELECT count(*) FROM " + tables.getTablesSQL() + maxRecordWhere + ";";

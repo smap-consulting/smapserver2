@@ -56,12 +56,11 @@ public class XlsReader {
 		for(int i = 0; i <= lastCellNum; i++) {
             cell = row.getCell(i);
             if(cell != null) {
-                value = df.formatCellValue(cell);
-                if(value == null) {
-                	value = "";
-                }
-                values.add(value);
+                value = df.formatCellValue(cell);  
+            } else {
+            		value = "";
             }
+            values.add(value);
         }
 		
 		String[] vArray = new String[values.size()];
