@@ -128,7 +128,7 @@ public class SqlFrag {
 						sql.append(" " + s + " ");
 					}
 				}
-			} else if(p.getType().equals("text")) {
+			} else if(p.getType().equals("text") || p.getType().equals("date")) {
 				SqlFragParam px = new SqlFragParam();
 				px.addTextParam(p.sValue);
 				params.add(px);
@@ -173,6 +173,7 @@ public class SqlFrag {
 				token.equals(")") ||
 				token.equals("(") ||
 				token.equals("or") ||
+				token.equals("_upload_time") ||
 				token.equals("and") || 
 				token.equals("like") || 
 				token.equals("integer") || 

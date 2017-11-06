@@ -17,7 +17,14 @@ public class SqlFragParam {
 	}
 	
 	public String getType() {
-		return type;
+		String t = type;
+		
+		if(t.equals("text")) {
+			if(isDate(sValue)) {
+				t = "date";
+			} 
+		}
+		return t;
 	}
 	
 	String debug() {
@@ -25,6 +32,14 @@ public class SqlFragParam {
 			return type + " : " + sValue;
 		} else {
 			return "";
+		}
+	}
+	
+	boolean isDate(String t) {
+		if (t.matches("\\d{4}-\\d{2}-\\d{2}")) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 }

@@ -5004,6 +5004,8 @@ public class GeneralUtilityMethods {
 				pstmt.setInt(attribIdx++,  p.iValue);
 			} else if(p.getType().equals("double")) {
 				pstmt.setDouble(attribIdx++,  p.dValue);
+			} else if(p.getType().equals("date")) {
+				pstmt.setDate(attribIdx++,  java.sql.Date.valueOf(p.sValue));
 			} else {
 				throw new Exception("Unknown parameter type: " + p.getType());
 			}
