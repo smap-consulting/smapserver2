@@ -3150,7 +3150,6 @@ public class SurveyManager {
 				+ "q.soft_deleted, "
 				+ "q.autoplay,"
 				+ "q.accuracy,"
-				+ "q.linked_survey,"
 				+ "q.l_id "
 				+ "from question q,form f "
 				+ "where q.f_id = f.f_id "
@@ -3197,8 +3196,7 @@ public class SurveyManager {
 				q.soft_deleted = rsGetQuestions.getBoolean(23);
 				q.autoplay = rsGetQuestions.getString(24);
 				q.accuracy = rsGetQuestions.getString(25);
-				q.linked_survey = rsGetQuestions.getInt(26);
-				q.l_id = rsGetQuestions.getInt(27);
+				q.l_id = rsGetQuestions.getInt(26);
 				if(q.autoplay == null) {
 					q.autoplay = "none";
 				}

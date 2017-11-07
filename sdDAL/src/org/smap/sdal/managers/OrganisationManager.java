@@ -63,11 +63,6 @@ public class OrganisationManager {
 				" allow_facebook = ?, " +
 				" allow_twitter = ?, " +
 				" can_edit = ?, " +
-				" ft_delete = ?, " +
-				" ft_send_trail = ?, " +
-				" ft_sync_incomplete = ?, " +
-				" ft_odk_style_menus = ?, " +
-				" ft_review_final = ?, " +
 				" admin_email = ?, " +
 				" smtp_host = ?, " +
 				" email_domain = ?, " +
@@ -78,7 +73,6 @@ public class OrganisationManager {
 				" website = ?, " +
 				" locale = ?, " +
 				" timezone = ?, " +
-				" ft_send = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -97,25 +91,18 @@ public class OrganisationManager {
 			pstmt.setBoolean(7, o.allow_facebook);
 			pstmt.setBoolean(8, o.allow_twitter);
 			pstmt.setBoolean(9, o.can_edit);
-			pstmt.setString(10, o.ft_delete);
-			pstmt.setBoolean(11, o.ft_send_trail);
-			pstmt.setBoolean(12, o.ft_sync_incomplete);
-			pstmt.setBoolean(13, o.ft_odk_style_menus);
-			pstmt.setBoolean(14, o.ft_review_final);
-			pstmt.setString(15, o.admin_email);
-			pstmt.setString(16, o.smtp_host);
-			pstmt.setString(17, o.email_domain);
-			pstmt.setString(18, o.email_user);
-			pstmt.setString(19, o.email_password);
-			pstmt.setInt(20, o.email_port);
-			pstmt.setString(21, o.default_email_content);
-			pstmt.setString(22, o.website);
-			pstmt.setString(23, o.locale);
-			pstmt.setString(24, o.timeZone);
-			pstmt.setString(25, o.ft_send);
-			
-			pstmt.setString(26, userIdent);
-			pstmt.setInt(27, o.id);
+			pstmt.setString(10, o.admin_email);
+			pstmt.setString(11, o.smtp_host);
+			pstmt.setString(12, o.email_domain);
+			pstmt.setString(13, o.email_user);
+			pstmt.setString(14, o.email_password);
+			pstmt.setInt(15, o.email_port);
+			pstmt.setString(16, o.default_email_content);
+			pstmt.setString(17, o.website);
+			pstmt.setString(18, o.locale);
+			pstmt.setString(19, o.timeZone);
+			pstmt.setString(20, userIdent);
+			pstmt.setInt(21, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();

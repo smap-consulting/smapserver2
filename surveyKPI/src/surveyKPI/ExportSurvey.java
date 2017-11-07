@@ -909,7 +909,7 @@ public class ExportSurvey extends Application {
 			} else if(hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
 			}
-			log.info("Get data: " + pstmt.toString());
+			//log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			
 			while (resultSet.next()) {
@@ -1204,7 +1204,7 @@ public class ExportSurvey extends Application {
 				}
 			}
 		} else {
-			log.info("Ignoring invisible form: " + f.table_name);
+			//log.info("Ignoring invisible form: " + f.table_name);
 			// Proceed with any lower level forms
 			if(index < formList.size() - 1) {
 				appendToOutput(sd, outWriter, in , formList.get(index + 1), 
