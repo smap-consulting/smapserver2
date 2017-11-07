@@ -3,6 +3,8 @@ package surveyKPI;
 import java.sql.Connection;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -24,7 +26,11 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SqlFrag;
+
 import utilities.XLSResultsManager;
 
 /*
@@ -76,20 +82,9 @@ public class ExportSurveyXls extends Application {
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
+			@QueryParam("filter") String filter,
 			
 			@Context HttpServletResponse response) {
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    try {
-		    	response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-		    		"Survey: Error: Can't find PostgreSQL JDBC Driver");
-		    } catch (Exception ex) {
-		    	log.log(Level.SEVERE, "Exception", ex);
-		    }
-		}
 		
 		Response responseVal = null;
 		
@@ -112,6 +107,12 @@ public class ExportSurveyXls extends Application {
 		Connection connectionResults = null;
 		
 		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS");
 			
@@ -158,9 +159,10 @@ public class ExportSurveyXls extends Application {
 			response.setHeader("Content-type",  "application/vnd.ms-excel; charset=UTF-8");
 			
 			XLSResultsManager xr = new XLSResultsManager(filetype);
-		
+			
 			xr.createXLS(sd, 
 					connectionResults,
+					localisation,
 					request.getRemoteUser(),
 					sId, 
 					inc_id, 
@@ -176,12 +178,14 @@ public class ExportSurveyXls extends Application {
 					startDate,
 					endDate,
 					dateId,
-					superUser);
+					superUser,
+					filter);
 			
 			responseVal = Response.ok("").build();
 			
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
+			lm.writeLog(sd, sId, request.getRemoteUser(), "error", "Exporting survey to XLS: " + e.getMessage());
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");
 			// Return an OK status so the message gets added to the web page
 			// Prepend the message with "Error: ", this will be removed by the client

@@ -39,6 +39,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -56,6 +57,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
 import surveyKPI.ExportSurveyXls;
 
@@ -203,6 +205,7 @@ public class XLSResultsManager {
 	public void createXLS(
 			Connection sd, 
 			Connection connectionResults,
+			ResourceBundle localisation,
 			String user,
 			int sId,
 			int [] inc_id,
@@ -218,7 +221,8 @@ public class XLSResultsManager {
 			Date startDate, 
 			Date endDate, 
 			int dateId,
-			boolean superUser) throws Exception {
+			boolean superUser,
+			String filter) throws Exception {
 		
 		Sheet resultsSheet = wb.createSheet("survey");
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
@@ -546,6 +550,33 @@ public class XLSResultsManager {
 
 				}
 
+				/*
+				 * Validate the filter and convert to an SQL Fragment
+				 * 1. Verify that all columns are in the top level form (Only required for XLS style exports)
+				 */
+				SqlFrag filterFrag = null;
+				if(filter != null && filter.length() > 0) {
+
+					filterFrag = new SqlFrag();
+					filterFrag.addSqlFragment(filter, localisation, false);
+					
+					
+					for(String filterCol : filterFrag.columns) {
+						boolean valid = false;
+						for(TableColumn tc : topForm.columnList) {
+							if(filterCol.equals(tc.humanName)) {
+								valid = true;
+								break;
+							}
+						}
+						if(!valid) {
+							String msg = localisation.getString("inv_qn");
+							msg = msg.replace("%s1", filterCol);
+							throw new Exception(msg);
+						}
+					}
+				}
+				
 				// Write out the column headings
 				if(!language.equals("none")) {	// Add the questions / option labels if requested
 					createHeader(cols, resultsSheet, styles, true, false);
@@ -567,7 +598,8 @@ public class XLSResultsManager {
 						startDate, 
 						endDate, 
 						dateName,
-						dateForm);
+						dateForm,
+						filterFrag);
 	
 			
 			} finally {
@@ -979,7 +1011,8 @@ public class XLSResultsManager {
 			Date startDate,
 			Date endDate,
 			String dateName,
-			int dateForm) throws Exception {
+			int dateForm,
+			SqlFrag filterFrag) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
@@ -1001,6 +1034,13 @@ public class XLSResultsManager {
 			}
 		}
 		
+		// Add the advanced filter fragment
+		if(filterFrag != null) {
+			sql.append( " and (");
+			sql.append(filterFrag.sql);
+			sql.append(") ");
+		}
+		
 		if(f.parkey != null && !f.parkey.equals("0")) {
 			sql.append(" and parkey=?");
 		}
@@ -1018,6 +1058,10 @@ public class XLSResultsManager {
 					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
 				}
 			}
+			if(filterFrag != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
+			}
+			
 			if(f.parkey != null) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
 			}
@@ -1100,7 +1144,7 @@ public class XLSResultsManager {
 						nextForm.parkey = prikey;
 						getData(sd, connectionResults, formList, nextForm, split_locn, merge_select_multiple, choiceNames,
 								cols, resultsSheet, styles, embedImages, 
-								sId, startDate, endDate, dateName, dateForm);
+								sId, startDate, endDate, dateName, dateForm, null);
 					}
 				}
 				
