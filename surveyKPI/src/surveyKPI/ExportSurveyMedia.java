@@ -99,17 +99,6 @@ public class ExportSurveyMedia extends Application {
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    try {
-		    	responseVal = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    } catch (Exception ex) {
-		    	log.log(Level.SEVERE, "Exception", ex);
-		    }
-		}
-		
 		/*
 		 * Get the list of forms and surveys to be exported
 		 * Needs to be done prior to authorisation as it includes the list of surveys

@@ -152,8 +152,6 @@ public class ExportSurveyMisc extends Application {
 
 		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
 		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
-
-		System.out.println("Filter: " + filter);
 		
 		if(targetId != 0) {
 
