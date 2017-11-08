@@ -10,6 +10,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -28,8 +30,10 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
 
@@ -52,12 +56,12 @@ import org.smap.sdal.model.TableColumn;
  */
 @Path("/exportSurvey/{sId}/{filename}")
 public class ExportSurvey extends Application {
-	
+
 	Authorise a = new Authorise(null, Authorise.ANALYST);
-	
+
 	private static Logger log =
-			 Logger.getLogger(ExportSurvey.class.getName());
-	
+			Logger.getLogger(ExportSurvey.class.getName());
+
 	LogManager lm = new LogManager();		// Application log
 
 	private class RecordDesc {
@@ -65,7 +69,7 @@ public class ExportSurvey extends Application {
 		String parkey;
 		StringBuffer record;
 	}
-	
+
 	private class FormDesc {
 		String f_id;
 		String parent;
@@ -79,7 +83,7 @@ public class ExportSurvey extends Application {
 		ArrayList<RecordDesc> records = null;
 		ArrayList<FormDesc> children = null;
 		ArrayList<TableColumn> columnList = null;
-		
+
 		@SuppressWarnings("unused")
 		public void debugForm() {
 			System.out.println("Form=============");
@@ -91,16 +95,16 @@ public class ExportSurvey extends Application {
 			System.out.println("    flat:" + flat);
 			System.out.println("End Form=============");
 		}
-		
+
 		public void clearRecords() {
 			records = null;
-				if(children != null) {
+			if(children != null) {
 				for(int i = 0; i < children.size(); i++) {
 					children.get(i).clearRecords();
 				}
 			}
 		}
-		
+
 		public void addRecord(String prikey, String parkey, StringBuffer rec) {
 			if(records == null) {
 				records = new ArrayList<RecordDesc> ();
@@ -112,7 +116,7 @@ public class ExportSurvey extends Application {
 			rd.record = rec;
 			records.add(rd);
 		}
-		
+
 		// Used for debugging
 		@SuppressWarnings("unused")
 		public void printRecords(int spacing, boolean long_form) {
@@ -131,7 +135,7 @@ public class ExportSurvey extends Application {
 					}
 				}
 			}
-			
+
 			if(long_form && children != null) {
 				for(int i = 0; i < children.size(); i++) {
 					children.get(i).printRecords(spacing + 4, long_form);
@@ -142,7 +146,7 @@ public class ExportSurvey extends Application {
 
 	ArrayList<StringBuffer> parentRows = null;
 	HashMap<String, String> surveyNames = null;
-	
+
 	@GET
 	@Produces("application/x-download")
 	public void exportSurvey (@Context HttpServletRequest request, 
@@ -158,6 +162,7 @@ public class ExportSurvey extends Application {
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
+			@QueryParam("filter") String filter,
 
 			@Context HttpServletResponse response) {
 
@@ -165,25 +170,13 @@ public class ExportSurvey extends Application {
 		HashMap<String, String> selectMultipleColumnNames = new HashMap<String, String> ();
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
 		surveyNames = new HashMap<String, String> ();
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    try {
-		    	response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-		    		"Survey: Error: Can't find PostgreSQL JDBC Driver");
-		    } catch (Exception ex) {
-		    	log.log(Level.SEVERE, "Exception", ex);
-		    }
-		}
-		
+
 		// Set defaults
 		format = "xls";	// Default to XLS
-	
+
 		log.info("New export, format:" + format + " flat:" + flat + " split:" + split_locn + 
 				" forms:" + include_forms + " filename: " + filename + ", merge select: " + merge_select_multiple);
-		
+
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurvey");
 		boolean superUser = false;
@@ -194,9 +187,9 @@ public class ExportSurvey extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		
+
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS");
-		
+
 		String escapedFileName = null;
 		try {
 			escapedFileName = URLDecoder.decode(filename, "UTF-8");
@@ -209,16 +202,16 @@ public class ExportSurvey extends Application {
 
 		escapedFileName = escapedFileName + ".xls";
 		response.setHeader("Content-type",  "application/vnd.ms-excel; charset=UTF-8");
-	
+
 		response.setHeader("Content-Disposition", "attachment; filename=\"" + escapedFileName +"\"");	
 		response.setStatus(HttpServletResponse.SC_OK);
-		
+
 		if(language != null) {
 			language = language.replace("'", "''");	// Escape apostrophes
 		} else {
 			language = "none";
 		}
-		
+
 		/*
 		 * Get the list of forms to include in the output and their types (ie flat or pivot)
 		 */
@@ -239,49 +232,54 @@ public class ExportSurvey extends Application {
 							log.info("Invalid form argument in export: " + iForms[i]);
 						}
 					}
-					
+
 				}
 			}
 		}
-		
+
 		PrintWriter outWriter = null;
 		StringBuffer qName = new StringBuffer();
 		StringBuffer qText = new StringBuffer();
 
 		if(sId != 0) {
-			
+
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmt2 = null;
 			PreparedStatement pstmtSSC = null;
 			PreparedStatement pstmtQType = null;
 			Connection connectionResults = null;
 
-			
+
 			try {
-				
+
+				// Localisation
+				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+				Locale locale = new Locale(organisation.locale);
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 				// Prepare statement to get server side includes
 				String sqlSSC = "select ssc.name, ssc.function, ssc.type, ssc.units from ssc ssc, form f " +
 						" where f.f_id = ssc.f_id " +
 						" and f.table_name = ? " +
 						" order by ssc.id;";
 				pstmtSSC = sd.prepareStatement(sqlSSC);
-				
+
 				// Prepare the statement to get the question type and read only attribute
 				String sqlQType = "select q.qtype, q.readonly from question q, form f " +
 						" where q.f_id = f.f_id " +
 						" and f.table_name = ? " +
 						" and q.qname = ?;";
 				pstmtQType = sd.prepareStatement(sqlQType);
-					
+
 				// Create an output writer to incrementally download the spreadsheet
 				outWriter = response.getWriter();
-				
+
 				HashMap<String, FormDesc> forms = new HashMap<String, FormDesc> ();			// A description of each form in the survey
 				ArrayList <FormDesc> formList = new ArrayList<FormDesc> ();					// A list of all the forms
 				FormDesc topForm = null;
-							
+
 				connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
-				
+
 				/*
 				 * Get the tables / forms in this survey 
 				 */
@@ -293,7 +291,7 @@ public class ExportSurvey extends Application {
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, sId);
 				ResultSet resultSet = pstmt.executeQuery();
-				
+
 				while (resultSet.next()) {
 
 					FormDesc fd = new FormDesc();
@@ -324,13 +322,13 @@ public class ExportSurvey extends Application {
 						fd.maxRepeats = getMaxRepeats(sd, connectionResults, sId, Integer.parseInt(fd.f_id));
 					}
 				}
-				
+
 				/*
 				 * Put the forms into a list in top down order
 				 */
 				formList.add(topForm);		// The top level form
 				addChildren(topForm, forms, formList);
-					
+
 				/*
 				 * Add headers to output buffer 
 				 */
@@ -342,7 +340,7 @@ public class ExportSurvey extends Application {
 				outWriter.print("<title>");
 				outWriter.print(filename);
 				outWriter.print("</title>");
-				
+
 				outWriter.print("<style <!--table @page{} -->>");
 				outWriter.print("h1 {text-align:center; font-size: 2em; } ");
 				outWriter.print("h2 {font-size: 1.6em; } ");
@@ -368,14 +366,14 @@ public class ExportSurvey extends Application {
 				outWriter.print("</x:ExcelWorkbook>");
 				outWriter.print("</xml>");
 				outWriter.print("</head>");
-				
+
 				outWriter.print("<body>");
 				outWriter.print("<table><thead>");
 				if(topForm.visible) {
 					qName.append("<tr><th>prikey</th>");
 					qText.append("<tr><th></th>");
 				}
-				
+
 				/*
 				 * Add to each form description
 				 *  1) The maximum number of repeats (if the form is to be flattened)
@@ -408,8 +406,8 @@ public class ExportSurvey extends Application {
 							false,		// TODO add HXL export processing
 							false		// Don't include audit data
 							);
-						
-							
+
+
 					for(int k = 0; k < f.maxRepeats; k++) {
 						for(int j = 0; j < f.columnList.size(); j++) {
 
@@ -418,16 +416,16 @@ public class ExportSurvey extends Application {
 							String qType = c.type;
 							boolean ro = c.readonly;
 							String humanName = c.humanName;
-							
+
 							boolean isAttachment = false;
 							boolean isSelectMultiple = false;
 							String selectMultipleQuestionName = null;
 							String optionName = null;
-								
+
 							if(!exp_ro && ro) {
 								continue;			// Drop read only columns if they are not selected to be exported				
 							}
-								
+
 							if(qType.equals("image") || qType.equals("audio") || qType.equals("video")) {
 								isAttachment = true;
 							}
@@ -437,22 +435,22 @@ public class ExportSurvey extends Application {
 								selectMultipleQuestionName = c.question_name;
 								optionName = c.option_name;
 							}
-											
+
 							if(isSelectMultiple && merge_select_multiple) {
 								humanName = selectMultipleQuestionName;
-								
+
 								// Add the name of sql column to a look up table for the get data stage
 								selMultChoiceNames.put(name, optionName);
 							}
-							
+
 							if(qType.equals("dateTime")) {
 								humanName += " (GMT)";
 							}
-							
+
 							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
 								humanName += "(r " + (k + 1) + ")";
 							}
-							
+
 							// If the user has requested that select multiples be merged then we only want the question added once
 							boolean skipSelectMultipleOption = false;
 							if(isSelectMultiple && merge_select_multiple) {
@@ -463,7 +461,7 @@ public class ExportSurvey extends Application {
 									selectMultipleColumnNames.put(humanName, humanName);
 								}
 							}
-							
+
 							if(!name.equals("prikey") && !skipSelectMultipleOption) {	// Primary key is only added once for all the tables
 								if(f.visible) {	// Add column headings if the form is visible
 									qName.append(getContent(sd, humanName, true,false, name, qType, split_locn));
@@ -472,10 +470,10 @@ public class ExportSurvey extends Application {
 									}
 								}
 							}
-							
+
 							// Set the sql selection text for this column (Only need to do this once, not for every repeating record)
 							if(k == 0) {
-								
+
 								String selName = null;
 								if(c.isGeometry()) {
 									selName = "ST_AsTEXT(" + name + ") ";
@@ -483,32 +481,31 @@ public class ExportSurvey extends Application {
 								} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
 									selName = "timezone('UTC', " + name + ") as " + name;	
 								} else {
-									
+
 									if(isAttachment) {
 										selName = "'" + urlprefix + "' || " + name + " as " + name;
 									} else {
 										selName = name;
 									}
-									
+
 								}
-								
+
 								if(f.columns == null) {
 									f.columns = selName;
 								} else {
 									f.columns += "," + selName;
 								}
 								f.columnCount++;
-								
+
 								// Increment the column count if this is a geopoint question and the lat/lon are being split
 								if(c.isGeometry() && split_locn) {
 									if(geomType.equals("geopoint")) {
-										System.out.println("Add column for: " + geomType);
 										f.columnCount++;
 									}
 								}
 							}
 						}
-						
+
 						/*
 						 * Add the server side calculations
 						 */ 
@@ -525,7 +522,7 @@ public class ExportSurvey extends Application {
 							}
 
 							String colName = sscName + " (" + sscUnits + ")";
-							
+
 							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
 								colName += "_" + (k + 1);
 							}
@@ -536,22 +533,22 @@ public class ExportSurvey extends Application {
 									qText.append(getContent(sd, getQuestion(sd, sscName, sId, f, language, merge_select_multiple), true, false, sscName, sscType, split_locn));
 								}
 							}
-							
+
 							// Set the sql selection text for this column (Only need to do this once, not for every repeating record)
 							if(k == 0) {
-								
+
 								String selName = null;
-								
+
 								if(sscFn.equals("area")) {
-									
+
 									selName = "ST_Area(geography(the_geom), true)";
 									if(sscUnits.equals("hectares")) {
 										selName += " / 10000";
 									}
 									selName += " as \"" + colName + "\"";
-									
+
 								} else if (sscFn.equals("length")) {
-									
+
 									if(geomType.equals("geopolygon") || geomType.equals("geoshape")) {
 										selName = "ST_Length(geography(the_geom), true)";
 									} else {
@@ -561,23 +558,23 @@ public class ExportSurvey extends Application {
 										selName += " / 1000";
 									}
 									selName += " as \"" + colName + "\"";
-									
+
 								} else {
 									selName= sscName;
 								}
-					
+
 								if(f.columns == null) {
 									f.columns = selName;
 								} else {
 									f.columns += "," + selName;
 								}
-								
+
 								TableColumn tc = new TableColumn();
 								tc.name = selName;
 								tc.humanName = selName;
 								tc.type = sscType;
 								f.columnList.add(tc);
-								
+
 								f.columnCount++;
 							}
 
@@ -586,14 +583,41 @@ public class ExportSurvey extends Application {
 
 				}
 				qName.append("</tr>\n");
-				
+
 				if(!language.equals("none")) {	// Add the questions / option labels if requested
 					qText.append("</tr>\n");
 					outWriter.print(qText.toString().replace("&amp;", "&"));	// unescape ampersand for excel
 				} 
 				outWriter.print(qName.toString());
 				outWriter.print("</thead><tbody>");
-				
+
+				/*
+				 * Validate the filter and convert to an SQL Fragment
+				 * 1. Verify that all columns are in the top level form (Only required for XLS style exports)
+				 */
+				SqlFrag filterFrag = null;
+				if(filter != null && filter.length() > 0) {
+
+					filterFrag = new SqlFrag();
+					filterFrag.addSqlFragment(filter, localisation, false);
+
+
+					for(String filterCol : filterFrag.columns) {
+						boolean valid = false;
+						for(TableColumn tc : topForm.columnList) {
+							if(filterCol.equals(tc.humanName)) {
+								valid = true;
+								break;
+							}
+						}
+						if(!valid) {
+							String msg = localisation.getString("inv_qn");
+							msg = msg.replace("%s1", filterCol);
+							throw new Exception(msg);
+						}
+					}
+				}
+
 				/*
 				 * Add the data
 				 */
@@ -611,40 +635,40 @@ public class ExportSurvey extends Application {
 						startDate,
 						endDate,
 						dateId,
-						superUser);
+						superUser,
+						filterFrag);
 				outWriter.print("</tbody><table></body></html>");
-				
+
 				log.info("Content Type:" + response.getContentType());
 				log.info("Buffer Size:" + response.getBufferSize());
 				log.info("Flushing buffers");
 				outWriter.flush(); 
 				outWriter.close();
-			
-			} catch (SQLException e) {
-				log.log(Level.SEVERE, "SQL Error", e);
+
 			} catch (Exception e) {
+				lm.writeLog(sd, sId, request.getRemoteUser(), "error", "Exporting survey to XLS: " + e.getMessage());
 				log.log(Level.SEVERE, "Exception", e);
 			} finally {
-				
+
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 				try {if (pstmt2 != null) {pstmt2.close();	}} catch (SQLException e) {	}
 				try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
 				try {if (pstmtQType != null) {pstmtQType.close();	}} catch (SQLException e) {	}
-				
+
 				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
 				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
 			}
 		}
-		
+
 	}
-	
+
 	private int getMaxRepeats(Connection con, Connection results_con, int sId, int formId)  {
 		int maxRepeats = 1;
-		
+
 		String sql = "SELECT table_name, parentform FROM form" +
 				" WHERE s_id = ? " +
 				" AND f_id = ?;";	
-		
+
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGetCount = null;
 		try {
@@ -652,50 +676,50 @@ public class ExportSurvey extends Application {
 			ArrayList<String> tables = new ArrayList<String> ();
 			getTableHierarchy(pstmt, tables, sId, formId);
 			int numTables = tables.size();
-			
+
 			StringBuffer sqlBuf = new StringBuffer();
 			sqlBuf.append("select max(t.cnt)  from " +
 					"(select count(");
 			sqlBuf.append(tables.get(numTables - 1));
 			sqlBuf.append(".prikey) cnt " +
 					" from ");
-			
-			
+
+
 			for(int i = 0; i < numTables; i++) {
 				if(i > 0) {
 					sqlBuf.append(",");
 				}
 				sqlBuf.append(tables.get(i));
 			}
-			
+
 			// where clause
 			sqlBuf.append(" where ");
 			sqlBuf.append(tables.get(0));
 			sqlBuf.append("._bad='false'");
 			if(numTables > 1) {
 				for(int i = 0; i < numTables - 1; i++) {
-					
+
 					sqlBuf.append(" and ");
-					
+
 					sqlBuf.append(tables.get(i));
 					sqlBuf.append(".parkey = ");
 					sqlBuf.append(tables.get(i+1));
 					sqlBuf.append(".prikey");
 				}
 			}
-			
+
 			sqlBuf.append(" group by ");
 			sqlBuf.append(tables.get(numTables - 1));
 			sqlBuf.append(".prikey) AS t;");
-			
+
 			pstmtGetCount = results_con.prepareStatement(sqlBuf.toString());
 			ResultSet rsCount = pstmtGetCount.executeQuery();
 			if(rsCount.next()) {
 				maxRepeats = rsCount.getInt(1);
 			}
-			
-			
-			
+
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -704,9 +728,9 @@ public class ExportSurvey extends Application {
 		}
 		return maxRepeats;
 	}
-	
+
 	private void getTableHierarchy(PreparedStatement pstmt, ArrayList<String> tables, int sId, int formId) throws SQLException {
-		
+
 		pstmt.setInt(1, sId);
 		pstmt.setInt(2, formId);
 		ResultSet rs = pstmt.executeQuery();
@@ -715,7 +739,7 @@ public class ExportSurvey extends Application {
 			getTableHierarchy(pstmt, tables, sId, rs.getInt(2));
 		}
 	}
-	
+
 	/*
 	 * Return the text formatted for html or csv
 	 */
@@ -726,7 +750,7 @@ public class ExportSurvey extends Application {
 		if(out == null) {
 			out = "";
 		}
-		
+
 
 		if(head) {
 			if(split_locn && columnType != null && columnType.equals("geopoint")) {
@@ -741,30 +765,30 @@ public class ExportSurvey extends Application {
 				String coords [] = getLonLat(out);
 
 				if(coords.length > 1) {
-						out = "<td>" + coords[1] + "</td><td>" + coords[0] + "</td>"; 
-					} else {
-						out = "<td>" + StringEscapeUtils.escapeHtml3(out) + "</td><td>" + 
-								StringEscapeUtils.escapeHtml3(out) + "</td>";
-					}
-					
-				
+					out = "<td>" + coords[1] + "</td><td>" + coords[0] + "</td>"; 
+				} else {
+					out = "<td>" + StringEscapeUtils.escapeHtml3(out) + "</td><td>" + 
+							StringEscapeUtils.escapeHtml3(out) + "</td>";
+				}
+
+
 			} else if(split_locn && (out.startsWith("POLYGON") || out.startsWith("LINESTRING"))) {
-				
+
 				// Can't split linestrings and polygons, leave latitude and longitude as blank
 				out= "<td></td><td></td>";
-				
+
 			} else if(split_locn && columnType != null & columnType.equals("geopoint") ) {
 				// Geopoint that needs to be split but there is no data
 				out= "<td></td><td></td>";
 			} else if(out.startsWith("POINT")) {
 				String coords [] = getLonLat(out);
 				if(coords.length > 1) {
-				out = "<td>" + "<a href=\"http://www.openstreetmap.org/?mlat=" +
-						coords[1] +
-						"&mlon=" +
-						coords[0] +
-						"&zoom=14\">" +
-						out + "</a>" + "</td>";
+					out = "<td>" + "<a href=\"http://www.openstreetmap.org/?mlat=" +
+							coords[1] +
+							"&mlon=" +
+							coords[0] +
+							"&zoom=14\">" +
+							out + "</a>" + "</td>";
 				} else {
 					out = "<td>" + StringEscapeUtils.escapeHtml3(out) + "</td>"; 
 				}
@@ -774,10 +798,10 @@ public class ExportSurvey extends Application {
 				out = "<td>" + "<a href=\"https:" + out + "\">https:" + out + "</a></td>";
 			} else if(columnName.equals("_device")) {
 				out = "<td class='xl1'>" + StringEscapeUtils.escapeHtml3(out) + "</td>";
-					
+
 			} else if(columnName.equals("_complete")) {
 				out = (out.equals("f")) ? "<td>No</td>" : "<td>Yes</td>"; 
-					
+
 			} else if(columnName.equals("_s_id")) {
 				String displayName = surveyNames.get(out);
 				if(displayName == null) {
@@ -789,7 +813,7 @@ public class ExportSurvey extends Application {
 					surveyNames.put(out, displayName);
 				}
 				out = "<td>" + displayName + "</td>"; 
-					
+
 			} else if(columnType.equals("dateTime")) {
 				// Convert the timestamp to the excel format specified in the xl2 mso-format
 				int idx1 = out.indexOf('.');	// Drop the milliseconds
@@ -800,12 +824,12 @@ public class ExportSurvey extends Application {
 			} else {
 				out = "<td>" + StringEscapeUtils.escapeHtml3(out) + "</td>";
 			}
-			
+
 		}
-		
+
 		return out;
 	}
-	
+
 	/*
 	 * Get the longitude and latitude from a WKT POINT
 	 */
@@ -819,7 +843,7 @@ public class ExportSurvey extends Application {
 		}
 		return coords;
 	}
-	
+
 	/*
 	 * For each record in the top level table all records in other tables that
 	 * can link back to the top level record are retrieved.  These are then combined 
@@ -842,14 +866,15 @@ public class ExportSurvey extends Application {
 			Date startDate,
 			Date endDate,
 			int dateId,
-			boolean superUser) throws SQLException {
-		
+			boolean superUser,
+			SqlFrag filterFrag) throws SQLException {
+
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		boolean hasRbacFilter = false;
 		RoleManager rm = new RoleManager();
 		ArrayList<SqlFrag> rfArray = null;
-		
+
 		/*
 		 * Retrieve the data for this table
 		 */
@@ -859,7 +884,7 @@ public class ExportSurvey extends Application {
 		sql.append(" from ");
 		sql.append(f.table_name);
 		sql.append(" where _bad is false ");				
-		
+
 		String sqlRestrictToDateRange = null;
 		if(dateId != 0  && (f.parkey == null || f.parkey.equals("0"))) {	// Top level form with date filtering
 			String dateName = GeneralUtilityMethods.getColumnNameFromId(sd, sId, dateId);
@@ -869,8 +894,14 @@ public class ExportSurvey extends Application {
 				sql.append(sqlRestrictToDateRange);
 			}
 		}
-		
-		
+
+		// Add the advanced filter fragment
+		if(filterFrag != null) {
+			sql.append( " and (");
+			sql.append(filterFrag.sql);
+			sql.append(") ");
+		}
+
 		if(f.parkey != null && !f.parkey.equals("0")) {
 			sql.append(" and parkey=?");
 		} else {
@@ -887,13 +918,13 @@ public class ExportSurvey extends Application {
 				}
 			}
 		}
-			
+
 		sql.append(" order by prikey asc");	
-		
+
 		try {
 			pstmt = connectionResults.prepareStatement(sql.toString());
 			int paramCount = 1;
-			
+
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
 				if(startDate != null) {
@@ -903,6 +934,10 @@ public class ExportSurvey extends Application {
 					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
 				}
 			}
+
+			if(filterFrag != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
+			}
 			
 			if(f.parkey != null) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
@@ -911,34 +946,34 @@ public class ExportSurvey extends Application {
 			}
 			//log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-			
+
 			while (resultSet.next()) {
 
 				String prikey = resultSet.getString(1);
 				StringBuffer record = new StringBuffer();
-				
+
 				// If this is the top level form reset the current parents and add the primary key
 				if(f.parkey == null || f.parkey.equals("0")) {
 					f.clearRecords();
 					record.append(getContent(sd, prikey, false, true, "prikey", "key", split_locn));
 				}
-				
-				
+
+
 				// Add the other questions to the output record
 				String currentSelectMultipleQuestionName = null;
 				String multipleChoiceValue = null;
 				for(int i = 1; i < f.columnList.size(); i++) {
-					
+
 					TableColumn c = f.columnList.get(i);
 
 					String columnName = c.name;
 					String columnType = c.type;
 					String value = resultSet.getString(i + 1);
-					
+
 					if(value == null) {
 						value = "";	
 					}
-					
+
 					if(merge_select_multiple) {
 						String choice = choiceNames.get(columnName);
 						if(choice != null) {
@@ -953,12 +988,12 @@ public class ExportSurvey extends Application {
 							} else if (i == f.columnList.size() - 1) {
 								//  Its the end of the record		
 								multipleChoiceValue = updateMultipleChoiceValue(value, choice, multipleChoiceValue);
-								
+
 								record.append(getContent(sd, multipleChoiceValue, false, false, columnName, columnType, split_locn));
 							} else {
 								// A second select multiple directly after the first - write out the previous
 								record.append(getContent(sd, multipleChoiceValue, false, false, currentSelectMultipleQuestionName, "select", split_locn));
-								
+
 								// Restart process for the new select multiple
 								currentSelectMultipleQuestionName = selectMultipleQuestionName;
 								multipleChoiceValue = null;
@@ -968,7 +1003,7 @@ public class ExportSurvey extends Application {
 							if(currentSelectMultipleQuestionName != null) {
 								// Write out the previous multiple choice value before continuing with the non multiple choice value
 								record.append(getContent(sd, multipleChoiceValue, false, false, currentSelectMultipleQuestionName, "select", split_locn));
-								
+
 								// Restart Process
 								multipleChoiceValue = null;
 								currentSelectMultipleQuestionName = null;
@@ -980,7 +1015,7 @@ public class ExportSurvey extends Application {
 					}
 				}
 				f.addRecord(prikey, f.parkey, record);
-								
+
 				// Process child tables
 				if(f.children != null) {
 					for(int j = 0; j < f.children.size(); j++) {
@@ -1001,10 +1036,11 @@ public class ExportSurvey extends Application {
 								startDate,
 								endDate,
 								dateId,
-								superUser);
+								superUser,
+								null);
 					}
 				}
-				
+
 				/*
 				 * For each complete survey retrieved combine the results
 				 *  into a serial list that match the column headers. Where there are missing forms in the
@@ -1012,14 +1048,14 @@ public class ExportSurvey extends Application {
 				 *  with empty values.
 				 */
 				if(f.parkey == null || f.parkey.equals("0")) {
-					
+
 					//f.printRecords(4, true);
-					
+
 					appendToOutput(sd, outWriter, new StringBuffer(""), formList.get(0), formList, 0, null);
-					
+
 				}
 			}
-			
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
 		} catch (Exception e) {
@@ -1032,20 +1068,20 @@ public class ExportSurvey extends Application {
 				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
 			}
 		}
-		
+
 	}
-	
+
 	/*
 	 * 
 	 */
 	String updateMultipleChoiceValue(String dbValue, String choiceName, String currentValue) {
 		boolean isSet = false;
 		String newValue = currentValue;
-		
+
 		if(dbValue.equals("1")) {
 			isSet = true;
 		}
-		
+
 		if(isSet) {
 			if(currentValue == null) {
 				newValue = choiceName;
@@ -1053,15 +1089,15 @@ public class ExportSurvey extends Application {
 				newValue += " " + choiceName;
 			}
 		}
-		
+
 		return newValue;
 	}
-	
+
 	/*
 	 * Add the list of children to parent forms
 	 */
 	private void addChildren(FormDesc parentForm, HashMap<String, FormDesc> forms, ArrayList<FormDesc> formList) {
-		
+
 		for(FormDesc fd : forms.values()) {
 			if(fd.parent != null && fd.parent.equals(parentForm.f_id)) {
 				if(parentForm.children == null) {
@@ -1072,9 +1108,9 @@ public class ExportSurvey extends Application {
 				addChildren(fd,  forms, formList);
 			}
 		}
-		
+
 	}
-	
+
 	/*
 	 * Construct the output
 	 */
@@ -1085,15 +1121,15 @@ public class ExportSurvey extends Application {
 		if(f.records != null) {
 			number_records = f.records.size(); 
 		} 
-		
+
 		if(f.visible) {
-			
+
 			if(f.flat) {
 				StringBuffer newRec = new StringBuffer(in);
 				for(int i = 0; i < number_records; i++) {
 					newRec.append(f.records.get(i).record);
 				}
-				
+
 				log.info("flat------>" + f.table_name + "Number records: " + number_records);
 				// Pad up to max repeats
 				for(int i = number_records; i < f.maxRepeats; i++) {
@@ -1110,13 +1146,13 @@ public class ExportSurvey extends Application {
 				} else {
 					closeRecord(outWriter, newRec);
 				}
-				
+
 			} else {
 				boolean found_non_matching_record = false;
 				boolean hasMatchingRecord = false;
 				if(number_records == 0) {
 					if(index < formList.size() - 1) {
-						
+
 						/*
 						 * Add an empty record for this form
 						 */
@@ -1124,10 +1160,10 @@ public class ExportSurvey extends Application {
 						for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
 							newRec.append(getContent(sd, "", false, false, "", "empty", false));
 						}
-						
+
 						FormDesc nextForm = formList.get(index + 1);
 						String filter = null;
-						
+
 						appendToOutput(sd, outWriter, newRec , nextForm, formList, index + 1, filter);
 					} else {
 						closeRecord(outWriter, in);
@@ -1138,19 +1174,19 @@ public class ExportSurvey extends Application {
 					 */
 					for(int i = 0; i < number_records; i++) {
 						RecordDesc rd = f.records.get(i);
-						
+
 						if(parent == null || parent.equals("0") || parent.equals(rd.parkey)) {
 							hasMatchingRecord = true;
 						}
 					}
-					
+
 					for(int i = 0; i < number_records; i++) {
 						RecordDesc rd = f.records.get(i);
-						
+
 						if(parent == null || parent.equals("0") || parent.equals(rd.parkey)) {
 							StringBuffer newRec = new StringBuffer(in);
 							newRec.append(f.records.get(i).record);
-			
+
 							if(index < formList.size() - 1) {
 								/*
 								 * If the next form is a child of this one then pass the primary key of the current record
@@ -1176,7 +1212,7 @@ public class ExportSurvey extends Application {
 								found_non_matching_record = true;
 
 								if(index < formList.size() - 1) {
-									
+
 									/*
 									 * Add an empty record for this form
 									 */
@@ -1184,10 +1220,10 @@ public class ExportSurvey extends Application {
 									for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
 										newRec.append(getContent(sd, "", false, false, "", "empty", false));
 									}
-									
+
 									FormDesc nextForm = formList.get(index + 1);
 									String filter = null;
-									
+
 									appendToOutput(sd, outWriter, newRec , nextForm, formList, index + 1, filter);
 								} else {
 									/*
@@ -1213,9 +1249,9 @@ public class ExportSurvey extends Application {
 				closeRecord(outWriter, in);
 			}
 		}
-		
+
 	}
-	
+
 	/*
 	 * Close the record
 	 */
@@ -1225,7 +1261,7 @@ public class ExportSurvey extends Application {
 		outWriter.print(in.toString());
 		outWriter.print("</tr>");
 	}
-	
+
 	private String getQuestion(Connection conn, String colName, int sId, FormDesc form, String language, boolean merge_select_multiple) throws SQLException {
 		String questionText = "";
 		String qColName = null;
@@ -1234,7 +1270,7 @@ public class ExportSurvey extends Application {
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		int qId = -1;
-		
+
 		if(colName != null && language != null) {
 			// Split the column name into the question and option part
 			// Assume that double underscore is a unique separator
@@ -1245,9 +1281,9 @@ public class ExportSurvey extends Application {
 				qColName = colName.substring(0, idx);
 				optionColName = colName.substring(idx+2);
 			}
-			
+
 			String sql = null;
-	
+
 			sql = "SELECT t.value AS qtext, q.qtype AS qtype, q.q_id FROM question q, translation t" +
 					" WHERE q.f_id = ? " +
 					" AND q.qtext_id = t.text_id " +
@@ -1261,13 +1297,13 @@ public class ExportSurvey extends Application {
 			pstmt.setInt(3, sId);
 			pstmt.setString(4, qColName);
 			resultSet = pstmt.executeQuery();
-		
+
 			if (resultSet.next()) {
 				questionText = resultSet.getString("qtext");
 				qType = resultSet.getString("qtype");
 				qId = resultSet.getInt("q_id");
 			}
-			
+
 			// Get any option text
 			if(qType != null && qType.startsWith("select")) {
 				sql = "SELECT t.value AS otext, o.ovalue AS ovalue, o.column_name FROM option o, question q, translation t" +
@@ -1277,13 +1313,13 @@ public class ExportSurvey extends Application {
 						" AND t.language = ? " +
 						" AND t.s_id = ? " +
 						" ORDER BY o.seq ASC;";
-						
+
 				pstmt = conn.prepareStatement(sql);	 
 				pstmt.setInt(1, qId);
 				pstmt.setString(2, language);
 				pstmt.setInt(3, sId);
 				resultSet = pstmt.executeQuery();
-			
+
 				while (resultSet.next()) {
 					String name = resultSet.getString("ovalue");
 					String columnName = resultSet.getString("column_name").toLowerCase();
@@ -1299,16 +1335,16 @@ public class ExportSurvey extends Application {
 					}
 				}
 			}
-			
+
 		}
-		
+
 		try{
 			if(resultSet != null) {resultSet.close();};
 			if(pstmt != null) {pstmt.close();};
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
 		}
-		
+
 		return questionText;
 	}
 
