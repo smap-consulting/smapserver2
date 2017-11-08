@@ -26,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.managers.RoleManager;
@@ -48,6 +49,7 @@ public class QueryGenerator {
 	public static SqlDesc gen(
 			Connection connectionSD, 
 			Connection connectionResults, 
+			ResourceBundle localisation,
 			int sId, 
 			int fId, 
 			String language, 
@@ -67,7 +69,8 @@ public class QueryGenerator {
 			Date endDate,
 			int dateId,
 			boolean superUser,
-			QueryForm form) throws Exception {
+			QueryForm form,
+			String filter) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -156,6 +159,32 @@ public class QueryGenerator {
 			try {if (pstmtListLabels != null) {pstmtListLabels.close();}} catch (SQLException e) {}
 		}
 		
+		/*
+		 * Validate the filter and convert to an SQL Fragment
+		 */
+		SqlFrag filterFrag = null;
+		if(filter != null && filter.length() > 0) {
+
+			filterFrag = new SqlFrag();
+			filterFrag.addSqlFragment(filter, localisation, false);
+
+
+			for(String filterCol : filterFrag.columns) {
+				boolean valid = false;
+				for(String q : sqlDesc.humanNames) {
+					if(filterCol.equals(q)) {
+						valid = true;
+						break;
+					}
+				}
+				if(!valid) {
+					String msg = localisation.getString("inv_qn_misc");
+					msg = msg.replace("%s1", filterCol);
+					throw new Exception(msg);
+				}
+			}
+		}
+		
 		StringBuffer shpSqlBuf = new StringBuffer();
 		shpSqlBuf.append("select ");
 		if(add_record_uuid) {
@@ -213,6 +242,13 @@ public class QueryGenerator {
 			}
 		}
 		
+		// Add the advanced filter fragment
+		if(filterFrag != null) {
+			shpSqlBuf.append( " and (");
+			shpSqlBuf.append(filterFrag.sql);
+			shpSqlBuf.append(") ");
+		}
+		
 		// Add RBAC/Role Row Filter
 		boolean hasRbacFilter = false;
 		ArrayList<SqlFrag> rfArray = null;
@@ -252,6 +288,10 @@ public class QueryGenerator {
 			if(endDate != null) {
 				pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
 			}
+		}
+		
+		if(filterFrag != null) {
+			paramCount = GeneralUtilityMethods.setFragParams(pstmtConvert, filterFrag, paramCount);
 		}
 		
 		if(hasRbacFilter) {
@@ -555,6 +595,7 @@ public class QueryGenerator {
 					}
 					
 					sqlDesc.colNames.add(new ColDesc(name, type, qType, label, optionListLabels, needsReplace));
+					sqlDesc.humanNames.add(col.humanName);
 				}
 				
 				// Add the option labels to a hashmap to ensure they are unique

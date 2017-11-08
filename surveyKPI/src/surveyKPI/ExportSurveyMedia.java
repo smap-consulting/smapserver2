@@ -85,6 +85,7 @@ public class ExportSurveyMedia extends Application {
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("forms") String forms,
+			@QueryParam("filter") String filter,
 			@Context HttpServletResponse response
 			) {
 
@@ -216,6 +217,7 @@ public class ExportSurveyMedia extends Application {
 				// Get the SQL for this query
 				SqlDesc sqlDesc = QueryGenerator.gen(connectionSD, 
 						connectionResults,
+						localisation,
 						sId,
 						mediaQInfo.getFId(),
 						language, 
@@ -235,7 +237,8 @@ public class ExportSurveyMedia extends Application {
 						endDate,
 						dateId,
 						superUser,
-						startingForm);
+						startingForm,
+						filter);
 				
 				/*
 				 * 1. Create the target folder

@@ -175,6 +175,9 @@ public class SqlFrag {
 				token.equals("or") ||
 				token.equals("_upload_time") ||
 				token.equals("and") || 
+				token.equals("is") || 
+				token.equals("null") || 
+				token.equals("not") || 
 				token.equals("like") || 
 				token.equals("integer") || 
 				token.equals("current_date") ||
@@ -207,6 +210,7 @@ public class SqlFrag {
 			}
 			
 		}
+		
 		return out;
 	}
 	

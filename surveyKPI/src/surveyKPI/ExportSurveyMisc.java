@@ -69,14 +69,14 @@ import com.google.gson.reflect.TypeToken;
  */
 @Path("/exportSurveyMisc/{sId}/{filename}")
 public class ExportSurveyMisc extends Application {
-	
+
 	Authorise a = new Authorise(null, Authorise.ANALYST);
-	
+
 	private static Logger log =
-			 Logger.getLogger(ExportSurveyMisc.class.getName());
-	
+			Logger.getLogger(ExportSurveyMisc.class.getName());
+
 	LogManager lm = new LogManager();		// Application log
-	
+
 	/*
 	 * Export as:
 	 *    a) shape file
@@ -107,21 +107,21 @@ public class ExportSurveyMisc extends Application {
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
-			//@QueryParam("forms") String forms,
 			@QueryParam("query") boolean query,			// Set true if the value in sId is a query id rather than a survey id
+			@QueryParam("filter") String filter,
 			@Context HttpServletResponse response) {
 
 		ResponseBuilder builder = Response.ok();
 		Response responseVal = null;
 		ResourceBundle localisation = null;
-		
+
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
-		
+
 		log.info("userevent: " + request.getRemoteUser() + " Export " + targetId + " as a "+ format + " file to " + filename + " starting from form " + fId);
-		
+
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-				
-		
+
+
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
 		boolean superUser = false;
@@ -129,21 +129,9 @@ public class ExportSurveyMisc extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		
+
 		a.isAuthorised(connectionSD, request.getRemoteUser());
-		
-		/*
-		if(formList != null) {
-			HashMap<Integer, String> checkedSurveys = new HashMap<Integer, String> ();
-			for(int i = 0; i < formList.size(); i++) {
-				int survey = formList.get(i).sId;
-				if(checkedSurveys.get(new Integer(survey)) == null) {
-					a.isValidSurvey(connectionSD, request.getRemoteUser(), formList.get(i).sId, false, superUser);
-					checkedSurveys.put(new Integer(survey), "checked");
-				}
-			}
-		} else {
-		*/
+
 		if(query) {
 			a.isValidQuery(connectionSD, request.getRemoteUser(), targetId);
 		} else {
@@ -152,7 +140,7 @@ public class ExportSurveyMisc extends Application {
 		// End Authorisation
 
 		lm.writeLog(connectionSD, targetId, request.getRemoteUser(), "view", "Export as: " + format);
-		
+
 		String escapedFileName = null;
 		try {
 			escapedFileName = URLDecoder.decode(filename, "UTF-8");
@@ -161,22 +149,24 @@ public class ExportSurveyMisc extends Application {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
-		
+
 		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
 		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
 
+		System.out.println("Filter: " + filter);
+		
 		if(targetId != 0) {
-			
+
 			Connection connectionResults = null;
 			PreparedStatement pstmtDefLang = null;
 			PreparedStatement pstmtDefLang2 = null;
-			
+
 			try {
-		
+
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-						
+
 				/*
 				 * Get the name of the database
 				 */
@@ -211,7 +201,7 @@ public class ExportSurveyMisc extends Application {
 						}
 					}
 				}
-	
+
 				/*
 				 * Get the list of forms and surveys to be exported
 				 */
@@ -223,10 +213,11 @@ public class ExportSurveyMisc extends Application {
 					queryList = qm.getFormList(connectionSD, targetId, fId);		// Get a form list for this survey / form combo
 				}
 				QueryForm startingForm = qm.getQueryTree(connectionSD, queryList);	// Convert the query list into a tree
-				
+
 				// Get the SQL for this query
 				SqlDesc sqlDesc = QueryGenerator.gen(connectionSD, 
 						connectionResults,
+						localisation,
 						targetId,
 						fId,
 						language, 
@@ -246,11 +237,12 @@ public class ExportSurveyMisc extends Application {
 						endDate,
 						dateId,
 						superUser,
-						startingForm);
+						startingForm,
+						filter);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
-					
+
 				/*
 				 * Create a VRT file for VRT exports
 				 */
@@ -262,53 +254,53 @@ public class ExportSurveyMisc extends Application {
 					FileUtils.forceMkdir(new File(filepath));
 					File f = new File(filepath, sqlDesc.target_table + ".vrt");
 					StreamResult out = new StreamResult(f);
-						
-					// Create the document
-		    		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		    		DocumentBuilder b = dbf.newDocumentBuilder();    		
-		    		Document outputXML = b.newDocument(); 
 
-		    	 	Element rootElement = outputXML.createElement("OGRVRTDataSource");
-		    	 	outputXML.appendChild(rootElement); 
-			    	 	
-		    	 	Element layerElement = outputXML.createElement("OGRVRTLayer");
+					// Create the document
+					DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+					DocumentBuilder b = dbf.newDocumentBuilder();    		
+					Document outputXML = b.newDocument(); 
+
+					Element rootElement = outputXML.createElement("OGRVRTDataSource");
+					outputXML.appendChild(rootElement); 
+
+					Element layerElement = outputXML.createElement("OGRVRTLayer");
 					layerElement.setAttribute("name", sqlDesc.target_table);
-		    	 	rootElement.appendChild(layerElement);
-			    	 	
-		    	 	Element e = outputXML.createElement("SrcDataSource");
-		    	 	e.setAttribute("relativeToVrt", "1");
-		    	 	e.setTextContent(sqlDesc.target_table + ".csv");
-		    	 	layerElement.appendChild(e);
-		    	 	
-		    	 	e = outputXML.createElement("GeometryType");
-		    	 	e.setTextContent(sqlDesc.geometry_type);
-		    	 	layerElement.appendChild(e);
-			    	 	
-		    	 	e = outputXML.createElement("LayerSRS");
-		    	 	e.setTextContent("WGS84");
-		    	 	layerElement.appendChild(e);
-		    	 	
-		    	 	e = outputXML.createElement("GeometryField");
-		    	 	e.setAttribute("encoding", "WKT");	// WKB not supported by google maps
-		    	 	e.setAttribute("reportSrcColumn", "false");
-		    	 	e.setAttribute("field", "the_geom");
-		    	 	layerElement.appendChild(e);
-		    	 	
-		    	 	for(int i = 0; i < sqlDesc.colNames.size(); i++) {
-		    	 		ColDesc cd = sqlDesc.colNames.get(i);
-		    	 		if(!cd.name.equals("the_geom")) {
-			    	 		e = outputXML.createElement("Field");
-				    	 	e.setAttribute("name", cd.name);
-				    	 	e.setAttribute("src", cd.name);
-				    	 	e.setAttribute("type", cd.google_type);
-				    	 	layerElement.appendChild(e);
-		    	 		}
-		    	 	}
-			    	 	
-		        	Transformer transformer = TransformerFactory.newInstance().newTransformer();
-		        	transformer.setOutputProperty(OutputKeys.INDENT, "yes");
-		        	DOMSource source = new DOMSource(outputXML);
-		        	transformer.transform(source, out);
+					rootElement.appendChild(layerElement);
+
+					Element e = outputXML.createElement("SrcDataSource");
+					e.setAttribute("relativeToVrt", "1");
+					e.setTextContent(sqlDesc.target_table + ".csv");
+					layerElement.appendChild(e);
+
+					e = outputXML.createElement("GeometryType");
+					e.setTextContent(sqlDesc.geometry_type);
+					layerElement.appendChild(e);
+
+					e = outputXML.createElement("LayerSRS");
+					e.setTextContent("WGS84");
+					layerElement.appendChild(e);
+
+					e = outputXML.createElement("GeometryField");
+					e.setAttribute("encoding", "WKT");	// WKB not supported by google maps
+					e.setAttribute("reportSrcColumn", "false");
+					e.setAttribute("field", "the_geom");
+					layerElement.appendChild(e);
+
+					for(int i = 0; i < sqlDesc.colNames.size(); i++) {
+						ColDesc cd = sqlDesc.colNames.get(i);
+						if(!cd.name.equals("the_geom")) {
+							e = outputXML.createElement("Field");
+							e.setAttribute("name", cd.name);
+							e.setAttribute("src", cd.name);
+							e.setAttribute("type", cd.google_type);
+							layerElement.appendChild(e);
+						}
+					}
+
+					Transformer transformer = TransformerFactory.newInstance().newTransformer();
+					transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+					DOMSource source = new DOMSource(outputXML);
+					transformer.transform(source, out);
 
 				} else if(format.equals("stata")) {
 					/*
@@ -321,120 +313,120 @@ public class ExportSurveyMisc extends Application {
 					FileUtils.forceMkdir(new File(filepath));
 					File f = new File(filepath, sqlDesc.target_table + ".do");
 					PrintWriter w = new PrintWriter(f);
-						
+
 					w.println("* Created by Smap Server");
 					w.println("version 9");
 					w.println("import delimited "+  sqlDesc.target_table + ".csv, bindquote(strict) clear");
 					w.println("tempvar temp");
-							
-						// Write the label values
-						w.println("\n* Value Labels ");
-						w.println("#delimit ;");
-						Iterator it = labelListMap.entrySet().iterator();
-					    while (it.hasNext()) {
-					        Map.Entry m = (Map.Entry)it.next();
-					        ArrayList<OptionDesc> options = (ArrayList<OptionDesc>) m.getKey();
-					        String listName =  (String) m.getValue();
-					      
-					        w.println("label define " + listName);			       
-					        for(int i = 0; i < options.size(); i++) {
-					        	w.println("    " + options.get(i).num_value + " \"" + options.get(i).label + "\"");	 
-					        }
-					        w.println(";");
-					    }
-					    w.println("#delimit cr");
-					    
-					    // Define a label for select multiple questions which are 0 or 1
-					    w.println("\n* Define a label for select multiple questions");
-					    w.println("label define yesno 0 \"No\" 1 \"Yes\"");
-						    
-						// Write the variable commands
-						for(int i = 0; i < sqlDesc.colNames.size(); i++) {
-			    	 		ColDesc cd = sqlDesc.colNames.get(i);
-			    	 		w.println("\n* variable: " + cd.name);
-			    	 		log.info("Stata types: " + cd.db_type + " : " + cd.qType);
-				    	 	writeStataDataConversion(w, cd);
-				    	 	writeStataQuestionLabel(w,cd);
-				    	 	if(cd.qType != null && cd.qType.equals("select1")) {
-				    	 		String valueLabel = labelListMap.get(cd.optionLabels);
-				    	 		if(cd.needsReplace) {
-				    	 			writeStataEncodeString(w, cd, valueLabel);
-				    	 		}
-				    	 		w.println("label values " + cd.name + " " + valueLabel);
-				    	 	}
-				    	 	if(cd.qType != null && cd.qType.equals("select")) {
-				    	 		w.println("label values " + cd.name + " yesno");
-				    	 	}
-			    	 	}
-						
-						w.close();	
 
-					} else if(format.equals("spss")) {
-						/*
-						 * Create an SPSS "sps" file 
-						 */
-						log.info("Writing spss sps file: " + filepath + "/" + sqlDesc.target_table + ".sps");
+					// Write the label values
+					w.println("\n* Value Labels ");
+					w.println("#delimit ;");
+					Iterator it = labelListMap.entrySet().iterator();
+					while (it.hasNext()) {
+						Map.Entry m = (Map.Entry)it.next();
+						ArrayList<OptionDesc> options = (ArrayList<OptionDesc>) m.getKey();
+						String listName =  (String) m.getValue();
 
-						// Create the file
-						FileUtils.forceMkdir(new File(filepath));
-						File f = new File(filepath, sqlDesc.target_table + ".sps");
-						PrintWriter w = new PrintWriter(f);
-								
-						SpssManager spssm = new SpssManager();  
-						String sps = spssm.createSPS(
-								connectionSD,
-								request.getRemoteUser(),
-								language,
-								targetId);
-						
-						w.print('\ufeff');		// Write the UTF-8 BOM
-						w.print(sps);
-						w.close();	
-
+						w.println("label define " + listName);			       
+						for(int i = 0; i < options.size(); i++) {
+							w.println("    " + options.get(i).num_value + " \"" + options.get(i).label + "\"");	 
+						}
+						w.println(";");
 					}
-				
-					
+					w.println("#delimit cr");
+
+					// Define a label for select multiple questions which are 0 or 1
+					w.println("\n* Define a label for select multiple questions");
+					w.println("label define yesno 0 \"No\" 1 \"Yes\"");
+
+					// Write the variable commands
+					for(int i = 0; i < sqlDesc.colNames.size(); i++) {
+						ColDesc cd = sqlDesc.colNames.get(i);
+						w.println("\n* variable: " + cd.name);
+						log.info("Stata types: " + cd.db_type + " : " + cd.qType);
+						writeStataDataConversion(w, cd);
+						writeStataQuestionLabel(w,cd);
+						if(cd.qType != null && cd.qType.equals("select1")) {
+							String valueLabel = labelListMap.get(cd.optionLabels);
+							if(cd.needsReplace) {
+								writeStataEncodeString(w, cd, valueLabel);
+							}
+							w.println("label values " + cd.name + " " + valueLabel);
+						}
+						if(cd.qType != null && cd.qType.equals("select")) {
+							w.println("label values " + cd.name + " yesno");
+						}
+					}
+
+					w.close();	
+
+				} else if(format.equals("spss")) {
 					/*
-					 * Export the data 
+					 * Create an SPSS "sps" file 
 					 */
-					int code = 0;
-					String modifiedFormat = format;
-					if(format.equals("spss")) {
-						modifiedFormat = "stata";		// hack to generate a zip file with a csv file in it
+					log.info("Writing spss sps file: " + filepath + "/" + sqlDesc.target_table + ".sps");
+
+					// Create the file
+					FileUtils.forceMkdir(new File(filepath));
+					File f = new File(filepath, sqlDesc.target_table + ".sps");
+					PrintWriter w = new PrintWriter(f);
+
+					SpssManager spssm = new SpssManager();  
+					String sps = spssm.createSPS(
+							connectionSD,
+							request.getRemoteUser(),
+							language,
+							targetId);
+
+					w.print('\ufeff');		// Write the UTF-8 BOM
+					w.print(sps);
+					w.close();	
+
+				}
+
+
+				/*
+				 * Export the data 
+				 */
+				int code = 0;
+				String modifiedFormat = format;
+				if(format.equals("spss")) {
+					modifiedFormat = "stata";		// hack to generate a zip file with a csv file in it
+				}
+				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
+						database_name + " " +
+						sqlDesc.target_table + " " +
+						"\"" + sqlDesc.sql + "\" " +
+						filepath + 
+						" " + modifiedFormat +
+				" >> /var/log/tomcat7/survey.log 2>&1"});
+				code = proc.waitFor();
+
+				log.info("Process exitValue: " + code);
+
+				if(code == 0) {
+					File file = new File(filepath + ".zip");
+
+					if(file.exists()) {
+						builder = Response.ok(file);
+						if(format.equals("kml")) {
+							builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kmz\"");
+						} else {
+							builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".zip\"");
+						}
+						builder.header("Content-type","application/zip");
+						responseVal = builder.build();
+					} else {
+						throw new ApplicationException(localisation.getString("msg_no_data"));
 					}
-					Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
-							database_name + " " +
-							sqlDesc.target_table + " " +
-							"\"" + sqlDesc.sql + "\" " +
-        					filepath + 
-        					" " + modifiedFormat +
-        					" >> /var/log/tomcat7/survey.log 2>&1"});
-					code = proc.waitFor();
-					
-	                log.info("Process exitValue: " + code);
-	        		
-	                if(code == 0) {
-	                	File file = new File(filepath + ".zip");
-	                	
-	                	if(file.exists()) {
-			            	builder = Response.ok(file);
-			            	if(format.equals("kml")) {
-			              		builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kmz\"");
-			              	} else {
-			              		builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".zip\"");
-			              	}
-			            	builder.header("Content-type","application/zip");
-			            	responseVal = builder.build();
-	                	} else {
-	                		throw new ApplicationException(localisation.getString("msg_no_data"));
-	                	}
-		            	
-	                } else {
-	                	throw new ApplicationException("Error exporting file");
-	                }
-					
-				
-			
+
+				} else {
+					throw new ApplicationException("Error exporting file");
+				}
+
+
+
 			} catch (ApplicationException e) {
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				// Return an OK status so the message gets added to the web page
@@ -448,21 +440,21 @@ public class ExportSurveyMisc extends Application {
 
 				try {if (pstmtDefLang != null) {pstmtDefLang.close();}} catch (SQLException e) {}
 				try {if (pstmtDefLang2 != null) {pstmtDefLang2.close();}} catch (SQLException e) {}	
-				
+
 				SDDataSource.closeConnection("surveyKPI-ExportSurvey", connectionSD);
 				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
 			}
 		}
-		
+
 		return responseVal;
-		
+
 	}
-	
+
 	/*
 	 * Generate Stata do file commands to convert date/time/geometry fields to stata format
 	 */
 	void writeStataDataConversion(PrintWriter w, ColDesc cd) {
-		 if(cd.qType != null && cd.qType.equals("date")) {
+		if(cd.qType != null && cd.qType.equals("date")) {
 			w.println("generate double `temp' = date(" + cd.name + ", \"YMD\")");		// Convert to double
 			w.println("format %-tdCCYY-NN-DD `temp'");
 		} else if(cd.qType != null && cd.qType.equals("time")) {
@@ -478,13 +470,13 @@ public class ExportSurveyMisc extends Application {
 		} else {
 			return;		// Not a date / time / geometry question
 		}
-	 	
+
 		// rename the temp file created by the date functions 
 		w.println("move `temp' " + cd.name);										// Move to the location of the variable
 		w.println("drop " + cd.name);												// Remove the old variable
 		w.println("rename `temp' " + cd.name);										// Rename the temporary variable
 	}
-	
+
 	void writeStataEncodeString(PrintWriter w, ColDesc cd, String valueLabel) {
 		w.println("capture {");			// Capture errors as if there is no data then there will be a type mismatch
 		for(int i = 0; i < cd.optionLabels.size(); i++) {
@@ -496,17 +488,17 @@ public class ExportSurveyMisc extends Application {
 		w.println("rename `temp' " + cd.name);										// Rename the temporary variable
 		w.println("}");
 	}
-	
+
 	void writeStataQuestionLabel(PrintWriter w, ColDesc cd) {
 		if(cd.label != null) {
 			w.println("label variable " + cd.name + " \"" + cd.label + "\"");			// Set the label
 		}
 	}
-	
-	
 
 
 
-	
+
+
+
 
 }

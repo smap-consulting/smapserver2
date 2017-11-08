@@ -16,6 +16,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -82,7 +84,8 @@ public class ExportSurveyThingsat extends Application {
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
-			@QueryParam("forms") String forms
+			@QueryParam("forms") String forms,
+			@QueryParam("filter") String filter
 			) throws IOException {
 
 		ResponseBuilder builder = Response.ok();
@@ -91,17 +94,6 @@ public class ExportSurveyThingsat extends Application {
 		log.info("userevent: " + request.getRemoteUser() + " Export " + sId + " as a thingsat file to " + filename + " starting from form " + fId);
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    try {
-		    	response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    } catch (Exception ex) {
-		    	log.log(Level.SEVERE, "Exception", ex);
-		    }
-		}
 		
 		/*
 		 * Get the list of forms and surveys to be exported
@@ -172,6 +164,10 @@ public class ExportSurveyThingsat extends Application {
 			
 			connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
 			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			
 			/*
 			 * Get the thingsat model
@@ -197,6 +193,7 @@ public class ExportSurveyThingsat extends Application {
 			 */
 			SqlDesc sqlDesc = QueryGenerator.gen(connectionSD, 
 					connectionResults,
+					localisation,
 					sId,
 					fId,
 					language, 
@@ -216,7 +213,8 @@ public class ExportSurveyThingsat extends Application {
 					endDate,
 					dateId,
 					superUser,
-					startingForm);
+					startingForm,
+					filter);
 			
 			pstmt = connectionResults.prepareStatement(sqlDesc.sql + ";");
 			ResultSet rs = pstmt.executeQuery();
