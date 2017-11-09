@@ -39,6 +39,7 @@ public class Question {
 	public String source_param;
 	public String calculation;
 	public String constraint;
+	public String chartdata;
 	public String constraint_msg;
 	public String required_msg;
 	public String relevant;
