@@ -1640,7 +1640,7 @@ public class SurveyTemplate {
 									String filename = criteria[0].trim();
 									filename = filename.substring(1, filename.length() -1);
 									filename += ".csv";
-									log.info("We have found a manifest link to " + filename);
+									//log.info("We have found a manifest link to " + filename);
 									
 									ChangeSet cs = new ChangeSet();
 									cs.changeType = "option";

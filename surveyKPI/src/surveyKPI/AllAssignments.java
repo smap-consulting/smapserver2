@@ -47,6 +47,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
@@ -386,6 +387,12 @@ public class AllAssignments extends Application {
 			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
 			connectionSD.setAutoCommit(false);
 
+			SurveyManager sm = new SurveyManager();
+			org.smap.sdal.model.Survey survey = null;
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
+					null, false, false, false, false, false, "real", false, superUser, 0, "geojson");
+			
 			// Localisation
 			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
 			Locale locale = new Locale(organisation.locale);
@@ -539,13 +546,19 @@ public class AllAssignments extends Application {
 							if(as.filter != null && as.filter.advanced != null && as.filter.advanced.length() > 0) {
 								System.out.println("+++++ Using advanced filter: " + as.filter.advanced);
 								
-								StringBuffer filterQuery = new StringBuffer(" (");
+								StringBuffer filterQuery = new StringBuffer(tableName);
+								filterQuery.append(".instanceid in ");
+								filterQuery.append(GeneralUtilityMethods.getFilterCheck(connectionSD, 
+										localisation, survey, as.filter.advanced));
+								filterSql = filterQuery.toString();
+								/*
 								frag = new SqlFrag();
 								frag.addSqlFragment(as.filter.advanced, localisation, false);
 								filterQuery.append(frag.sql);
 								filterQuery.append(")");
 								filterSql = filterQuery.toString();
 								log.info("Advanced filter: " + filterSql);
+								*/
 								
 								System.out.println("Query clause: " + filterSql);
 								
@@ -683,10 +696,10 @@ public class AllAssignments extends Application {
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = connectionRel.prepareStatement(getTaskSql);	
 							
-							if(frag != null) {
-								int idx = 1;
-								idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
-							}
+							//if(frag != null) {
+							//	int idx = 1;
+							//	idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+							//}
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							resultSet = pstmt.executeQuery();

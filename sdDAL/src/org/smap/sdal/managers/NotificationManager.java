@@ -73,7 +73,7 @@ public class NotificationManager {
 		String sql = "select f.id, f.s_id, f.enabled, " +
 				" f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user, " +
 				"f.target, s.display_name, f.notify_details, " +
-				"f.filter, f.remote_password,  " +
+				"f.filter, f.remote_password  " +
 				" from forward f, survey s " +
 				" where f.s_id = s.s_id " +
 				" and f.enabled = 'true' ";
