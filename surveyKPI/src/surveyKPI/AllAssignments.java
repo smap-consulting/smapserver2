@@ -540,27 +540,19 @@ public class AllAssignments extends Application {
 							String filterSql = null;
 							/*
 							 * Check the filters
-							 * Advanced filter taked precedence
+							 * Advanced filter takes precedence
 							 * If that is not set then check simple filter
 							 */
 							if(as.filter != null && as.filter.advanced != null && as.filter.advanced.length() > 0) {
-								System.out.println("+++++ Using advanced filter: " + as.filter.advanced);
+								log.info("+++++ Using advanced filter: " + as.filter.advanced);
 								
 								StringBuffer filterQuery = new StringBuffer(tableName);
 								filterQuery.append(".instanceid in ");
 								filterQuery.append(GeneralUtilityMethods.getFilterCheck(connectionSD, 
 										localisation, survey, as.filter.advanced));
 								filterSql = filterQuery.toString();
-								/*
-								frag = new SqlFrag();
-								frag.addSqlFragment(as.filter.advanced, localisation, false);
-								filterQuery.append(frag.sql);
-								filterQuery.append(")");
-								filterSql = filterQuery.toString();
-								log.info("Advanced filter: " + filterSql);
-								*/
 								
-								System.out.println("Query clause: " + filterSql);
+								log.info("Query clause: " + filterSql);
 								
 							} else if(as.filter != null && as.filter.qId > 0) {
 								String fValue = null;

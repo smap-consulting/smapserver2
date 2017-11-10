@@ -159,7 +159,7 @@ public class SqlFrag {
 				}
 			}
 			if(!columnNameCaptured) {
-				columns.add(name);
+				columns.add(out);
 			}
 		} else if (token.equals(">") ||
 				token.equals("<") ||

@@ -605,13 +605,13 @@ public class ExportSurvey extends Application {
 					for(String filterCol : filterFrag.columns) {
 						boolean valid = false;
 						for(TableColumn tc : topForm.columnList) {
-							if(filterCol.equals(tc.humanName)) {
+							if(filterCol.equals(tc.name)) {
 								valid = true;
 								break;
 							}
 						}
 						if(!valid) {
-							String msg = localisation.getString("inv_qn");
+							String msg = localisation.getString("inv_qn_misc");
 							msg = msg.replace("%s1", filterCol);
 							throw new Exception(msg);
 						}

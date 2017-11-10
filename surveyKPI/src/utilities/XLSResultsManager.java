@@ -58,6 +58,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 import surveyKPI.ExportSurveyXls;
 
@@ -222,7 +223,7 @@ public class XLSResultsManager {
 			Date endDate, 
 			int dateId,
 			boolean superUser,
-			String filter) throws Exception {
+			String results_filter) throws Exception {
 		
 		Sheet resultsSheet = wb.createSheet("survey");
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
@@ -244,6 +245,10 @@ public class XLSResultsManager {
 			PreparedStatement pstmtDateFilter = null;
 
 			try {
+				
+				SurveyManager sm = new SurveyManager();
+				org.smap.sdal.model.Survey survey = sm.getById(sd, connectionResults, request.getRemoteUser(), sId, true, basePath, 
+						null, false, false, false, false, false, "real", false, superUser, 0, "geojson");
 				
 				if(embedImages) {
 					basePath = GeneralUtilityMethods.getBasePath(request);
@@ -364,8 +369,8 @@ public class XLSResultsManager {
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
 							true,		// Include other meta data
-							true,		// Incude preloads
-							true,		// instancename
+							true,		// Include pre-loads
+							true,		// instance name
 							false,		// Survey Duration
 							superUser,
 							hxl,
@@ -552,25 +557,30 @@ public class XLSResultsManager {
 
 				/*
 				 * Validate the filter and convert to an SQL Fragment
-				 * 1. Verify that all columns are in the top level form (Only required for XLS style exports)
+				 * 1. Verify that all columns are in the list of forms
 				 */
 				SqlFrag filterFrag = null;
-				if(filter != null && filter.length() > 0) {
+				if(results_filter != null && results_filter.length() > 0) {
 
 					filterFrag = new SqlFrag();
-					filterFrag.addSqlFragment(filter, localisation, false);
+					filterFrag.addSqlFragment(results_filter, localisation, false);
 					
 					
 					for(String filterCol : filterFrag.columns) {
 						boolean valid = false;
-						for(TableColumn tc : topForm.columnList) {
-							if(filterCol.equals(tc.humanName)) {
-								valid = true;
+						for(FormDesc f : formList) {
+							for(TableColumn tc : f.columnList) {
+								if(filterCol.equals(tc.name)) {
+									valid = true;
+									break;
+								}
+							}
+							if(valid) {
 								break;
 							}
 						}
 						if(!valid) {
-							String msg = localisation.getString("inv_qn");
+							String msg = localisation.getString("inv_qn_misc");
 							msg = msg.replace("%s1", filterCol);
 							throw new Exception(msg);
 						}
@@ -589,7 +599,9 @@ public class XLSResultsManager {
 				/*
 				 * Add the data
 				 */
-				getData(sd, connectionResults, formList, topForm, split_locn, merge_select_multiple, selMultChoiceNames,
+				getData(sd, connectionResults, localisation,
+						survey,
+						formList, topForm, split_locn, merge_select_multiple, selMultChoiceNames,
 						cols,
 						resultsSheet,
 						styles,
@@ -599,7 +611,7 @@ public class XLSResultsManager {
 						endDate, 
 						dateName,
 						dateForm,
-						filterFrag);
+						results_filter);
 	
 			
 			} finally {
@@ -996,8 +1008,11 @@ public class XLSResultsManager {
 	 * 
 	 * The function is called recursively until the last table
 	 */
-	private void getData(Connection sd, 
+	private void getData(
+			Connection sd, 
 			Connection connectionResults, 
+			ResourceBundle localisation,
+			Survey survey,
 			ArrayList<FormDesc> formList, 
 			FormDesc f,
 			boolean split_locn, 
@@ -1012,7 +1027,7 @@ public class XLSResultsManager {
 			Date endDate,
 			String dateName,
 			int dateForm,
-			SqlFrag filterFrag) throws Exception {
+			String advanced_filter) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
@@ -1034,11 +1049,24 @@ public class XLSResultsManager {
 			}
 		}
 		
+		
 		// Add the advanced filter fragment
-		if(filterFrag != null) {
-			sql.append( " and (");
-			sql.append(filterFrag.sql);
-			sql.append(") ");
+		if(advanced_filter != null) {
+			
+			StringBuffer filterQuery = new StringBuffer(" and ");
+			filterQuery.append(f.table_name);
+			filterQuery.append(".instanceid in ");
+			filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, 
+					localisation, survey, advanced_filter));
+			sql.append(filterQuery.toString());
+			
+			log.info("++++  Filter Query clause: " + filterQuery.toString());
+			
+			
+			
+			//sql.append( " and (");
+			//sql.append(filterFrag.sql);
+			//sql.append(") ");
 		}
 		
 		if(f.parkey != null && !f.parkey.equals("0")) {
@@ -1058,9 +1086,9 @@ public class XLSResultsManager {
 					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
 				}
 			}
-			if(filterFrag != null) {
-				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
-			}
+			//if(filter != null) {
+			//	paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
+			//}
 			
 			if(f.parkey != null) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
@@ -1142,7 +1170,8 @@ public class XLSResultsManager {
 					for(int j = 0; j < f.children.size(); j++) {
 						FormDesc nextForm = f.children.get(j);
 						nextForm.parkey = prikey;
-						getData(sd, connectionResults, formList, nextForm, split_locn, merge_select_multiple, choiceNames,
+						getData(sd, connectionResults, localisation, survey,
+								formList, nextForm, split_locn, merge_select_multiple, choiceNames,
 								cols, resultsSheet, styles, embedImages, 
 								sId, startDate, endDate, dateName, dateForm, null);
 					}
@@ -1423,7 +1452,4 @@ public class XLSResultsManager {
 		}
 		return coords;
 	}
-	
- 
-
 }

@@ -1187,11 +1187,8 @@ public class SurveyManager {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			try {
-				pstmt.close();
-			} catch (Exception e) {
-				
-			}
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}};
+			if(pstmt2 != null) {try {pstmt2.close();} catch (Exception e) {}};
 		}
 		
 		return s;
