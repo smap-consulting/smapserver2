@@ -1217,6 +1217,9 @@ public class GeneralUtilityMethods {
 			}
 		}
 
+		if(hrk != null && hrk.trim().length() == 0) {
+			hrk = null;
+		}
 		return hrk;
 	}
 
@@ -3867,14 +3870,14 @@ public class GeneralUtilityMethods {
 
 							if (filename.startsWith("linked_s") || filename.startsWith("linked_s_pd_s")) { // Linked
 								// survey
-								log.info(
-										"We have found a manifest link to " + filename + " calculate is: " + calculate);
+								//log.info(
+								//		"We have found a manifest link to " + filename + " calculate is: " + calculate);
 								refQuestions = getRefQuestionsSearch(criteria);
 								manifestType = "linked";
 							} else {
 								filename += ".csv";
 								manifestType = "csv";
-								log.info("We have found a manifest file " + filename);
+								//log.info("We have found a manifest file " + filename);
 							}
 
 							updateManifest(mi, filename, refQuestions, manifestType);
@@ -4900,6 +4903,9 @@ public class GeneralUtilityMethods {
 		zos.close();
 	}
 
+	/*
+	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
+	 */
 	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId) throws Exception {
 
 		boolean testResult = false;
@@ -4939,8 +4945,45 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 
-		System.out.println(" Test Result:  " + testResult);
 		return testResult;
+	}
+	
+	/*
+	 * Return SQL that can be used to filter out records not matching a filter
+	 */
+	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter) throws Exception {
+
+		String resp = null;
+		
+		StringBuffer filterQuery = new StringBuffer("(select ");
+		filterQuery.append(getMainTable(survey.forms));
+		filterQuery.append(".instanceid from ");		
+		filterQuery.append(getTableOuterJoin(survey.forms, 0, null));
+		filterQuery.append(" where (");		
+
+		// Add the filter
+		SqlFrag frag = new SqlFrag();
+		frag.addSqlFragment(filter, localisation, false);
+		filterQuery.append(frag.sql);
+		filterQuery.append("))");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(filterQuery.toString());
+			int idx = 1;
+			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+
+			resp = pstmt.toString();
+
+		} catch(Exception e) { 
+			throw new Exception(e);
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+
+		log.info("Filter check sql: " + resp);
+		
+		return resp;
 	}
 
 	/*
