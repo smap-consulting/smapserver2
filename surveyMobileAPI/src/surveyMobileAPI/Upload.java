@@ -66,13 +66,6 @@ public class Upload extends Application {
 	private static Logger log =
 			 Logger.getLogger(Upload.class.getName());
 	
-	// Tell class loader about the root classes.  (needed as tomcat6 does not support servlet 3)
-	public Set<Class<?>> getClasses() {
-		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Upload.class);
-		return s;
-	}
-	
 	private static final String OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version";
 	private static final String OPEN_ROSA_VERSION = "1.0";
 	private static final String DATE_HEADER = "Date";
@@ -151,14 +144,6 @@ public class Upload extends Application {
 			throws IOException {
 	
 		Response response = null;
-		
-		// Authorisation - Access
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		}
 
 		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-Upload");
 		
