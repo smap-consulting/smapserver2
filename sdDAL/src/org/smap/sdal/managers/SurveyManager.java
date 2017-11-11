@@ -1598,19 +1598,20 @@ public class SurveyManager {
 		
 		PreparedStatement pstmtLangInsert = null;
 		PreparedStatement pstmtLangUpdate = null;
-		PreparedStatement pstmtOptionGet = null;
+		//PreparedStatement pstmtOptionGet = null;
 		PreparedStatement pstmtOptionInsert = null;
 		PreparedStatement pstmtMaxSeq = null;
 		PreparedStatement pstmtOptionUpdate = null;
 		PreparedStatement pstmtOptionDelete = null;
+		PreparedStatement pstmtTranslationDelete = null;
 		
 		try {
 			
 			// Create prepared statements
-			String sqlOptionGet = "select o.label_id from option o "
-					+ "where o.l_id = ? "
-					+ "and o.ovalue = ?;";
-			pstmtOptionGet = connectionSD.prepareStatement(sqlOptionGet);
+			//String sqlOptionGet = "select o.label_id from option o "
+			//		+ "where o.l_id = ? "
+			//		+ "and o.ovalue = ?;";
+			//pstmtOptionGet = connectionSD.prepareStatement(sqlOptionGet);
 			
 			String sqlOptionInsert = "insert into option  (o_id, l_id, seq, label_id, ovalue, externalfile, column_name, cascade_filters) "
 					+ "values(nextval('o_seq'), ?, ?, ?, ?, 'true', ?, ?);"; 			
@@ -1621,15 +1622,24 @@ public class SurveyManager {
 					+ "and ovalue = ?"; 			
 			pstmtOptionUpdate = connectionSD.prepareStatement(sqlOptionUpdate);
 			
+			String sqlTranslationDelete = "delete from translation "
+					+ "where s_id = ? "
+					+ "and text_id in (select text_id from option "
+					+ "where l_id = ? "
+					+ "and ovalue = ?"
+					+ "and ecternalfile)";
+			pstmtTranslationDelete = connectionSD.prepareStatement(sqlTranslationDelete);
+			
 			String sqlOptionDelete = "delete from option "
 					+ "where l_id = ? "
-					+ "and ovalue = ?"; 			
+					+ "and ovalue = ?"
+					+ "and externalfile"; 			
 			pstmtOptionDelete = connectionSD.prepareStatement(sqlOptionDelete);
 			
 			String sqlLangInsert = "insert into translation  (t_id, s_id, language, text_id, type, value) values(nextval('t_seq'), ?, ?, ?, ?, ?);"; 			
 			pstmtLangInsert = connectionSD.prepareStatement(sqlLangInsert);
 			
-			String sqlLangUpdate = "update translation  set value = ? where s_id = ? and text_id = ? and value != ?;"; 			
+			String sqlLangUpdate = "update translation  set value = ? where s_id = ? and text_id = ? and language = ? and value != ?;"; 			
 			pstmtLangUpdate = connectionSD.prepareStatement(sqlLangUpdate);		// Assumes all languages and types TODO
 			
 			String sqlMaxSeq = "select max(seq) from option where l_id = ?;";
@@ -1652,29 +1662,40 @@ public class SurveyManager {
 				}			
 				
 				// Get the text_id for this option
-				pstmtOptionGet.setInt(1, ci.option.l_id);
-				pstmtOptionGet.setString(2, ci.option.value);
+				//pstmtOptionGet.setInt(1, ci.option.l_id);
+				//pstmtOptionGet.setString(2, ci.option.value);
 				
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 				
 				if(ci.action.equals("delete")) {
+					pstmtTranslationDelete.setInt(1, sId);
+					pstmtTranslationDelete.setInt(2, ci.option.l_id);
+					pstmtTranslationDelete.setString(3, ci.option.value);
+					log.info(pstmtOptionDelete.toString());
+					pstmtTranslationDelete.executeUpdate();
+					
 					pstmtOptionDelete.setInt(1, ci.option.l_id);
 					pstmtOptionDelete.setString(2, ci.option.value);
 					log.info(pstmtOptionDelete.toString());
 					pstmtOptionDelete.executeUpdate();
 					
 				} else {
+					/*
 					rs = pstmtOptionGet.executeQuery();
 					if(rs.next()) {
 						
 						String text_id = rs.getString(1);
 						
-						pstmtLangUpdate.setString(1, ci.option.externalLabel);
-						pstmtLangUpdate.setInt(2, sId);
-						pstmtLangUpdate.setString(3, text_id);
-						pstmtLangUpdate.setString(4, ci.option.value);
-						// (debug) log.info("Update existing option label: " + pstmtLangUpdate.toString());
-						count = pstmtLangUpdate.executeUpdate();
+						int idx = 0;
+						for(String language : languages) {
+							pstmtLangUpdate.setString(1, ci.option.externalLabel.get(idx++));
+							pstmtLangUpdate.setInt(2, sId);
+							pstmtLangUpdate.setString(3, text_id);
+							pstmtLangUpdate.setString(4, language);
+							pstmtLangUpdate.setString(5, ci.option.value);
+							count = pstmtLangUpdate.executeUpdate();
+						}
+						// (debug) log.info("Update existing option label: " + pstmtLangUpdate.toString());						
 						
 						pstmtOptionUpdate.setString(1, gson.toJson(ci.option.cascade_filters));
 						pstmtOptionUpdate.setInt(2, ci.option.l_id);
@@ -1682,6 +1703,7 @@ public class SurveyManager {
 						pstmtOptionUpdate.executeUpdate();
 						
 					} else {
+					*/
 						
 						// Create a new option
 						
@@ -1703,15 +1725,16 @@ public class SurveyManager {
 						pstmtLangInsert.setInt(1, sId);
 						pstmtLangInsert.setString(3, text_id);
 						pstmtLangInsert.setString(4, "none");
-						pstmtLangInsert.setString(5, ci.option.externalLabel);
+						int idx = 0;
 						for(String language : languages) {
 							pstmtLangInsert.setString(2, language);
+							pstmtLangInsert.setString(5, ci.option.externalLabel.get(idx++));
 							// (debug) log.info("----------------------------- Insert new translation for option from file: " + pstmtLangInsert.toString());
 							count += pstmtLangInsert.executeUpdate();
 						}	
 						
 					}
-				}
+				//}
 				
 				if(logIndividualChangeSets) {
 					// Write the change log
@@ -1743,10 +1766,11 @@ public class SurveyManager {
 			try {if (pstmtLangInsert != null) {pstmtLangInsert.close();}} catch (SQLException e) {}
 			try {if (pstmtLangUpdate != null) {pstmtLangUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtOptionInsert != null) {pstmtOptionInsert.close();}} catch (SQLException e) {}
-			try {if (pstmtOptionGet != null) {pstmtOptionGet.close();}} catch (SQLException e) {}
+			//try {if (pstmtOptionGet != null) {pstmtOptionGet.close();}} catch (SQLException e) {}
 			try {if (pstmtMaxSeq != null) {pstmtMaxSeq.close();}} catch (SQLException e) {}
 			try {if (pstmtOptionUpdate != null) {pstmtOptionUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtOptionDelete != null) {pstmtOptionDelete.close();}} catch (SQLException e) {}
+			try {if (pstmtTranslationDelete != null) {pstmtTranslationDelete.close();}} catch (SQLException e) {}
 		}
 	}
 		

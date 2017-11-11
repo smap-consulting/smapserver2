@@ -17,7 +17,8 @@ public class Option {
 	public boolean externalFile;
 	public boolean published;
 	public ArrayList<Label> labels = new ArrayList<Label> ();
-	public String externalLabel;								// Only one label used for external files (TODO)
+	//public String externalLabel;								// Only one label used for external files (TODO)
+	public ArrayList<String> externalLabel = new ArrayList<String> ();
 	public String text_id;
 	public String path;
 	public HashMap<String, String> cascade_filters = null;
