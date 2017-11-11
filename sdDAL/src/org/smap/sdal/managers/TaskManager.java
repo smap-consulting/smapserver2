@@ -504,11 +504,8 @@ public class TaskManager {
 				 */
 				boolean fires = false;
 				String rule = null;
-				// 
-				if(as.update_results 
-						&& as.source_survey_id == as.target_survey_id) {
-					log.info("Rule not fired due to circular reference");
-				} else {
+				
+				if(as.update_results && as.source_survey_id != as.target_survey_id) {
 					if(as.filter != null) {
 						rule = testRule();		// TODO
 						if(rule != null) {
@@ -517,22 +514,14 @@ public class TaskManager {
 					} else {
 						fires = true;
 					}
+				} else {
+					log.info("Rule not fired");
 				}
+				
 				if(fires) {
 					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + sId);
-				} else {
-					log.info("rule did not fire");
-				}
-				if(fires) {
-					/*
-					 * Get data from new submission
-					 */
-					TaskInstanceData tid = getTaskInstanceData(sd, cResults, sId, instanceId);
-					
-					/*
-					 * Write to the database
-					 */
-					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, sId, tid, instanceId);
+					TaskInstanceData tid = getTaskInstanceData(sd, cResults, sId, instanceId); // Get data from new submission
+					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, sId, tid, instanceId);  // Write to the database
 				}
 			}
 		

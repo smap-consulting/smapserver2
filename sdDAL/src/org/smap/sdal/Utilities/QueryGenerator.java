@@ -171,7 +171,7 @@ public class QueryGenerator {
 
 			for(String filterCol : filterFrag.columns) {
 				boolean valid = false;
-				for(String q : sqlDesc.humanNames) {
+				for(String q : sqlDesc.names) {
 					if(filterCol.equals(q)) {
 						valid = true;
 						break;
@@ -595,7 +595,7 @@ public class QueryGenerator {
 					}
 					
 					sqlDesc.colNames.add(new ColDesc(name, type, qType, label, optionListLabels, needsReplace));
-					sqlDesc.humanNames.add(col.humanName);
+					sqlDesc.names.add(col.name);
 				}
 				
 				// Add the option labels to a hashmap to ensure they are unique
