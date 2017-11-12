@@ -5083,5 +5083,28 @@ public class GeneralUtilityMethods {
 		}
 		return attribIdx;
 	}
+	
+	/*
+	 * Return true if document synchronisation is enabled on this server
+	 */
+	public static boolean documentSyncEnabled(Connection sd) throws SQLException {
+		
+		boolean enabled = false;
+		String sql = "select_document_sync from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				enabled = rs.getBoolean(1);
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return enabled;
+	}
 }
 

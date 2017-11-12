@@ -826,6 +826,7 @@ public class SurveyTemplate {
 	public void writeDatabase() throws Exception {
 		
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Write Database");
+		log.info("Set autocommit false");
 		sd.setAutoCommit(false);
 		
 		JdbcSurveyManager sm = null;
@@ -1119,6 +1120,9 @@ public class SurveyTemplate {
 			try{sd.rollback();} catch(Exception ex) {}
 			throw e;
 		} finally {
+			
+			log.info("Set autocommit true");
+			sd.setAutoCommit(true);
 			if(sm != null) {sm.close();};
 			if(fm != null) {fm.close();};
 			if(qm != null) {qm.close();};

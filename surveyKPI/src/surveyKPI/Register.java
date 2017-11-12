@@ -81,16 +81,7 @@ public class Register extends Application {
 		
 		log.info("Registering a new user: " + rd.email);
 		
-	
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
-		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
 		
 		PreparedStatement pstmt = null;
 		try {
@@ -201,7 +192,7 @@ public class Register extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList", sd);
+			SDDataSource.closeConnection("surveyKPI-Register", sd);
 		}
 		
 		return response;

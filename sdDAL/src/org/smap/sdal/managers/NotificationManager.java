@@ -64,31 +64,47 @@ public class NotificationManager {
 	 * Get all Enabled notifications
 	 * Used by Subscriber to do forwarding
 	 */
-	public ArrayList<Notification> getEnabledNotifications(Connection sd, 
-			PreparedStatement pstmt, boolean forward_only) throws SQLException {
+	public ArrayList<Notification> getEnabledNotifications(
+			Connection sd, 
+			String target) throws SQLException {
 		
 		ArrayList<Notification> forwards = new ArrayList<Notification>();	// Results of request
 		
 		ResultSet resultSet = null;
-		String sql = "select f.id, f.s_id, f.enabled, " +
-				" f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user, " +
-				"f.target, s.display_name, f.notify_details, " +
-				"f.filter, f.remote_password  " +
-				" from forward f, survey s " +
-				" where f.s_id = s.s_id " +
-				" and f.enabled = 'true' ";
+		String sql = "select f.id, "
+				+ "f.s_id, "
+				+ "f.enabled, " +
+				" f.remote_s_id, "
+				+ "f.remote_s_name, "
+				+ "f.remote_host, "
+				+ "f.remote_user, "
+				+ "f.target, "
+				+ "s.display_name, "
+				+ "f.notify_details, "
+				+ "f.filter, "
+				+ "f.remote_password "
+				+ "from forward f, survey s "
+				+ "where f.s_id = s.s_id "
+				+ "and f.enabled = 'true' ";
+		PreparedStatement pstmt = null;
 		
-		if(forward_only) {
-			sql += " and f.target = 'forward' and f.remote_host is not null";
-		} else {
-			sql += " and f.target != 'forward'";
+		try {
+			if(target.equals("forward")) {
+				sql += " and f.target = 'forward' and f.remote_host is not null";
+			} else if(target.equals("message")) {
+				sql += " and (f.target = 'email' or f.target = 'sms')";
+			} else if(target.equals("document")) {
+				sql += " and f.target = 'document'";
+			}	
+			
+			pstmt = sd.prepareStatement(sql);	
+	
+			resultSet = pstmt.executeQuery();
+			addToList(resultSet, forwards, true);
+		} finally {
+			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		}
 		
-		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-		pstmt = sd.prepareStatement(sql);	
-
-		resultSet = pstmt.executeQuery();
-		addToList(resultSet, forwards, true);
 		return forwards;
 		
 	}
@@ -258,11 +274,12 @@ public class NotificationManager {
 		ArrayList<String> types = new ArrayList<>();
 		PreparedStatement pstmt = null;
 		
-		String sql = "select s.sms_url "
+		String sql = "select s.sms_url, s.document_sync "
 				+ "from server s";
 		
 		types.add("email");
 		types.add("forward");
+		
 		try {
 		
 			pstmt = sd.prepareStatement(sql);	 			
@@ -271,6 +288,9 @@ public class NotificationManager {
 				String smsUrl = rs.getString("sms_url");
 				if(smsUrl != null) {
 					types.add("sms");
+				}
+				if(rs.getBoolean("document_sync")) {
+					types.add("document");
 				}
 			}
 		} finally {
@@ -368,6 +388,7 @@ public class NotificationManager {
 					+ "from forward n "
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
+					+ "and n.target != 'document' "
 					+ "and n.enabled = 'true'";
 			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications);
 			
@@ -687,7 +708,7 @@ public class NotificationManager {
 						
 					} else {
 						status = "error";
-						error_details = "Invalid target" + target;
+						error_details = "Invalid target: " + target;
 						log.log(Level.SEVERE, "Error: Invalid target" + target);
 					}
 					

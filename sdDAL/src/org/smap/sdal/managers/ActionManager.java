@@ -324,6 +324,7 @@ public class ActionManager {
 			/*
 			 * Process each column
 			 */
+			log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
@@ -424,6 +425,7 @@ public class ActionManager {
 		} finally {
 
 			try {
+				log.info("Set autocommit true");
 				cResults.setAutoCommit(true);
 			} catch (Exception ex) {
 			}
