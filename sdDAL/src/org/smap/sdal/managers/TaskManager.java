@@ -435,6 +435,7 @@ public class TaskManager {
 
 		try {
 			
+			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			// Remove existing data
@@ -461,6 +462,7 @@ public class TaskManager {
 			sd.rollback();
 			throw(e);
 		} finally {
+			log.info("Set autocommit true");
 			sd.setAutoCommit(true);
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			try {if (pstmtDelete != null) {pstmtDelete.close();} } catch (SQLException e) {	}

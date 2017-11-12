@@ -88,7 +88,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList-getOrganisations");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
@@ -187,7 +187,7 @@ public class OrganisationList extends Application {
 		    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-OrganisationList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-getOrganisations", connectionSD);
 		}
 
 		return response;
@@ -205,14 +205,13 @@ public class OrganisationList extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 
 		FileItem logoItem = null;
 		String fileName = null;
 		String organisations = null;
-		PreparedStatement pstmt = null;
 		try {
 			/*
 			 * Parse the request
@@ -308,9 +307,7 @@ public class OrganisationList extends Application {
 			
 		} finally {
 			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-updateOrganisation", connectionSD);
 		}
 		
 		return response;
@@ -322,7 +319,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList-getDeviceSettings");
 		aAdmin.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
@@ -362,7 +359,8 @@ public class OrganisationList extends Application {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-getDeviceSettings", connectionSD);
 		}
 		
 		return response;
@@ -375,7 +373,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList-updateDeviceSettings");
 		aAdmin.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
@@ -413,7 +411,8 @@ public class OrganisationList extends Application {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}		
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-updateDeviceSettings", connectionSD);
 		}
 		
 		return response;
@@ -430,7 +429,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList-delOrganisation");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
@@ -515,14 +514,14 @@ public class OrganisationList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-delOrganisation", connectionSD);
 		}
 		
 		return response;
 	}
 	
 	/*
-	 * Change the orgnisation a user belongs to
+	 * Change the organisation a user belongs to
 	 */
 	@POST
 	@Path("/setOrganisation")
@@ -535,7 +534,7 @@ public class OrganisationList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList");
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OrganisationList-setOrganisation");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
@@ -623,13 +622,8 @@ public class OrganisationList extends Application {
 			
 		} catch (Exception ex) {
 			log.info(ex.getMessage());
-			response = Response.serverError().entity(ex.getMessage()).build();
-			
-			try{
-				connectionSD.rollback();
-			} catch(Exception e2) {
-				
-			}
+			response = Response.serverError().entity(ex.getMessage()).build();			
+			try{	connectionSD.rollback();	} catch(Exception e2) {}
 			
 		} finally {
 			
@@ -638,7 +632,7 @@ public class OrganisationList extends Application {
 			try {if (pstmt3 != null) {pstmt3.close();}	} catch (SQLException e) {}
 			try {if (pstmt4 != null) {pstmt4.close();}	} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-setOrganisation", connectionSD);
 		}
 		
 		return response;

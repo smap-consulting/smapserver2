@@ -349,14 +349,13 @@ public class TableManager {
 			//Class.forName(dbClass);	 
 
 			List<Form> forms = template.getAllForms();	
+			log.info("Set autocommit results false");
 			cResults.setAutoCommit(false);
 			for(Form form : forms) {		
 				writeTableStructure(form, sd, cResults, hasHrk);
 				cResults.commit();
 			}	
-			cResults.setAutoCommit(true);
-
-
+			
 
 		} catch (Exception e) {
 			if(cResults != null) {
@@ -372,7 +371,8 @@ public class TableManager {
 			}
 
 		} finally {
-			try {if (cResults != null) {cResults.setAutoCommit(true);}} catch (SQLException e) {}
+			log.info("Set autocommit results true");
+			try {cResults.setAutoCommit(true);} catch (SQLException e) {}
 		}		
 	}
 

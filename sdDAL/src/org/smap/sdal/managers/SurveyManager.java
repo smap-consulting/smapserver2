@@ -408,6 +408,7 @@ public class SurveyManager {
 		String tablename = null;
 		String existingSurvey = null;
 		int existingFormId = 0;
+		boolean sdAutoCommitSetFalse = false;
 		
 		String sql1 = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, based_on, shared_table, created)" +
 				" values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now());";
@@ -439,7 +440,11 @@ public class SurveyManager {
 					existingFormId = rsGetSource.getInt(2);
 				}
 			}
-			sd.setAutoCommit(false);
+			if(sd.getAutoCommit()) {
+				sdAutoCommitSetFalse = true;
+				log.info("Set autocommit sd false");
+				sd.setAutoCommit(false);
+			}			
 			
 			// 1 Create basic survey
 			pstmt = sd.prepareStatement(sql1, Statement.RETURN_GENERATED_KEYS);		
@@ -587,17 +592,20 @@ public class SurveyManager {
 			
 			lm.writeLog(sd, sId, user, "create survey", "Survey created in online editor");
 			sd.commit();
-			sd.setAutoCommit(true);
 
 		} catch (SQLException e) {
 			try{sd.rollback();} catch(Exception ex) {};
-			try{sd.setAutoCommit(true);} catch(Exception ex) {};
 			throw e;
 		} catch (Exception e) {
 			try{sd.rollback();} catch(Exception ex) {};
-			try{sd.setAutoCommit(true);} catch(Exception ex) {};
 			throw e;
 		} finally {
+			
+			if(sdAutoCommitSetFalse) {
+				log.info("Set autocommit sd true");
+				sdAutoCommitSetFalse = false;
+				try{sd.setAutoCommit(true);} catch(Exception ex) {};
+			}
 			
 			if(pstmt != null) try {pstmt.close();} catch(Exception e){};
 			if(pstmtGetSource != null) try {pstmtGetSource.close();} catch(Exception e){};
@@ -1211,7 +1219,7 @@ public class SurveyManager {
 		
 		int userId = -1;
 		ResultSet rs = null;
-		
+		boolean sdAutoCommitSetFalse = false;
 
 		PreparedStatement pstmtChangeLog = null;
 		PreparedStatement pstmt = null;
@@ -1230,7 +1238,11 @@ public class SurveyManager {
 			 */
 			userId = GeneralUtilityMethods.getUserId(connectionSD, ident);
 			
-			connectionSD.setAutoCommit(false);
+			if(connectionSD.getAutoCommit()) {
+				log.info("Set autocommit sd false");
+				sdAutoCommitSetFalse = true;
+				connectionSD.setAutoCommit(false);
+			}
 			
 			/*
 			 * Lock the survey
@@ -1329,7 +1341,11 @@ public class SurveyManager {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
 		} finally {
-			connectionSD.setAutoCommit(true);
+			if(sdAutoCommitSetFalse) {
+				log.info("Set autocommit sd true");
+				sdAutoCommitSetFalse = false;
+				connectionSD.setAutoCommit(true);
+			}
 			try {if (pstmtChangeLog != null) {pstmtChangeLog.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -2670,14 +2686,13 @@ public class SurveyManager {
 		    	} else {
 		    		pstmt.setInt(1, parentKey);
 		    	}
-		    	log.info("Retrieving results: " + pstmt.toString());
-		    	cResults.setAutoCommit(false);
+		    
 		    	if(utcOffset != 0) {
 		    		log.info("Time zone: " + pstmtUtcOffset.toString());
 		    		pstmtUtcOffset.execute();
 		    	}
 		    	resultSet = pstmt.executeQuery();
-		    	cResults.setAutoCommit(true);
+		   
     		}
 			
     		if (resultSet != null) {
@@ -2749,7 +2764,6 @@ public class SurveyManager {
     	} catch (SQLException e) {
     		throw e;
     	} finally {
-    		try {cResults.setAutoCommit(true);} catch(Exception e) {};
     		if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
     		if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
     		if(pstmtUtcOffset != null) try {pstmtUtcOffset.close();} catch(Exception e) {};
