@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -45,6 +46,11 @@ public class SpssManager {
 	private static Logger log =
 			 Logger.getLogger(SpssManager.class.getName());
 	
+	private ResourceBundle localisation;
+	
+	public SpssManager(ResourceBundle l) {
+		localisation = l;
+	}
 	/*
 	 * Call this function to create am SPSS variables file
 	 * Return a suggested name for the PDF file derived from the results
@@ -62,7 +68,7 @@ public class SpssManager {
 		}
 		
 		org.smap.sdal.model.Survey survey = null;
-		SurveyManager sm = new SurveyManager();
+		SurveyManager sm = new SurveyManager(localisation);
 		StringBuffer sps = new StringBuffer();
 		
 		try {

@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -106,8 +107,9 @@ public class SubRelationalDB extends Subscriber {
 	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath)  {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l)  {
 
+		localisation = l;
 		gBasePath = basePath;
 		gFilePath = filePath;
 		gAuditFilePath = auditFilePath;
@@ -152,7 +154,7 @@ public class SubRelationalDB extends Subscriber {
 			Class.forName(dbClassMeta);		 
 			connection = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
 			//Authorise a = new Authorise(null, Authorise.ENUM);
-			SurveyManager sm = new SurveyManager();
+			SurveyManager sm = new SurveyManager(localisation);
 			survey = sm.getSurveyId(connection, templateName);	// Get the survey from the templateName / ident
 
 			try {
@@ -687,7 +689,7 @@ public class SubRelationalDB extends Subscriber {
 				 * if they do not already exist 2) Check if this survey is a duplicate
 				 */
 				keys.duplicateKeys = new ArrayList<Integer>();
-				TableManager tm = new TableManager();
+				TableManager tm = new TableManager(localisation);
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					boolean tableCreated = tm.createTable(cRel, cMeta, tableName, sName, sId, 0);
 					boolean tableChanged = false;

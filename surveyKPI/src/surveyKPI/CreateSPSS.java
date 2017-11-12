@@ -20,6 +20,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,7 +85,11 @@ public class CreateSPSS extends Application {
 		Response response = null;
 		
 		try {
-			SpssManager spssm = new SpssManager();  
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SpssManager spssm = new SpssManager(localisation);  
 			String sps = spssm.createSPS(
 					connectionSD,
 					request.getRemoteUser(),

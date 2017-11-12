@@ -21,6 +21,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -114,7 +116,7 @@ public class ExportLQAS extends Application {
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to LQAS");
 		
 		Response responseVal = null;
-		SurveyManager sm = new SurveyManager();
+		
 		org.smap.sdal.model.Survey survey = null;
 		Connection cResults = ResultsDataSource.getConnection("createLQAS");
 		
@@ -126,7 +128,11 @@ public class ExportLQAS extends Application {
 		}
 		
 		try {
-			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			SurveyManager sm = new SurveyManager(localisation);
 			// Get the survey details
 			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, false, basePath, null, false, false, 
 					false, false, false, "real", false, superUser, 0, null);

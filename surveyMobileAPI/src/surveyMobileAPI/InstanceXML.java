@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -94,17 +96,21 @@ public class InstanceXML extends Application{
 		    return response;
 		}
 		
-		// Authorisation - Access
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		}
-		
 		String user = request.getRemoteUser();
 		
+		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection(connectionString);
-		SurveyManager sm = new SurveyManager();
+		
+		// Get the users locale
+		ResourceBundle localisation = null;
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		} catch (Exception e) {
+
+		}
+		
+		SurveyManager sm = new SurveyManager(localisation);
 		Survey survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 		a.isAuthorised(connectionSD, user);
 		boolean superUser = false;
@@ -123,7 +129,7 @@ public class InstanceXML extends Application{
 		// Extract the data
 		try {
 			
-           	SurveyTemplate template = new SurveyTemplate();
+           	SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 			
 			GetXForm xForm = new GetXForm();

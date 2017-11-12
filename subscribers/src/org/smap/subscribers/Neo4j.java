@@ -27,6 +27,7 @@ import java.net.URI;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.ResourceBundle;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -114,8 +115,9 @@ public class Neo4j extends Subscriber {
 	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime, 
-			String surveyNotes, String locationTrigger, String auditFilePath)  {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l)  {
 		
+		localisation = l;
 		gBasePath = basePath;
 		gFilePath = filePath;
 

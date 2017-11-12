@@ -388,16 +388,17 @@ public class AllAssignments extends Application {
 			log.info("Set autocommit sd false");
 			connectionSD.setAutoCommit(false);
 
-			SurveyManager sm = new SurveyManager();
+			// Localisation
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
 					null, false, false, false, false, false, "real", false, superUser, 0, "geojson");
 			
-			// Localisation
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
-			Locale locale = new Locale(organisation.locale);
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			/*
 			 * Create the task group if an existing task group was not specified
@@ -1244,7 +1245,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the results tables if they do not exist
 			 */
-			TableManager tm = new TableManager();
+			TableManager tm = new TableManager(localisation);
 			FormDesc topForm = formList.get(0);
 			boolean tableCreated = tm.createTable(results, sd, topForm.table_name, sIdent, sId, 0);
 			boolean tableChanged = false;

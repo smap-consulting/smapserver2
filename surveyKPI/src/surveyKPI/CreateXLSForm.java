@@ -20,6 +20,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -61,13 +63,6 @@ public class CreateXLSForm extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("sId") int sId,
 			@QueryParam("filetype") String filetype) throws Exception {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
 				
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("createXLSForm");	
@@ -80,7 +75,7 @@ public class CreateXLSForm extends Application {
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation 
 		
-		SurveyManager sm = new SurveyManager();
+
 		org.smap.sdal.model.Survey survey = null;
 		Connection cResults = ResultsDataSource.getConnection("createXLSForm");
 		
@@ -92,6 +87,11 @@ public class CreateXLSForm extends Application {
 		}
 		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			
 			// Get the survey details
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), 

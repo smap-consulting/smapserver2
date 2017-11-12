@@ -32,6 +32,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -70,7 +72,7 @@ public class Data_CSV extends Application {
 	private static Logger log = Logger.getLogger(Data_CSV.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
-
+	
 	// Tell class loader about the root classes. (needed as tomcat6 does not support
 	// servlet 3)
 	public Set<Class<?>> getClasses() {
@@ -105,8 +107,13 @@ public class Data_CSV extends Application {
 			filename = "forms.csv";
 		}
 
-		DataManager dm = new DataManager();
+		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			DataManager dm = new DataManager(localisation);
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, true);
 
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");

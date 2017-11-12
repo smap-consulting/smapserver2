@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 import java.util.Set;
 import java.util.Vector;
@@ -65,10 +66,12 @@ public class SurveyTemplate {
 	private int nextQuestionSeq = 0;
 	private int MAX_COLUMNS = 1600 - 20;		// Max number of columns in Postgres is 1600, allow for automcatically generated columns
 
+	private ResourceBundle localisation;
 	/*
 	 * Constructor
 	 */
-	public SurveyTemplate() {
+	public SurveyTemplate(ResourceBundle l) {
+		localisation = l;
 	}
 
 	public HashMap<String, HashMap<String, HashMap<String, Translation>>> getTranslations() {
@@ -1616,7 +1619,7 @@ public class SurveyTemplate {
 	 */
 	public void writeExternalChoices() {
 		
-		org.smap.sdal.managers.SurveyManager sm = new org.smap.sdal.managers.SurveyManager();
+		org.smap.sdal.managers.SurveyManager sm = new org.smap.sdal.managers.SurveyManager(localisation);
 		List<Question> questionList = new ArrayList<Question>(questions.values());
 		Connection connectionSD = org.smap.sdal.Utilities.SDDataSource.getConnection("fieldManager-SurveyTemplate");
 		Connection cResults = org.smap.sdal.Utilities.ResultsDataSource.getConnection("fieldManager-SurveyTemplate");
@@ -1659,6 +1662,9 @@ public class SurveyTemplate {
 	
 									org.smap.sdal.Utilities.GeneralUtilityMethods.getOptionsFromFile(
 										connectionSD,
+										localisation,
+										user,
+										survey.getId(),
 										cs.items,
 										file,
 										null,

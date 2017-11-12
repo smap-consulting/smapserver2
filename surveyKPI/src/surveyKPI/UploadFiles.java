@@ -86,8 +86,7 @@ public class UploadFiles extends Application {
 
 	private static Logger log =
 			Logger.getLogger(UploadFiles.class.getName());
-
-
+	
 	@POST
 	@Produces("application/json")
 	@Path("/media")
@@ -112,6 +111,11 @@ public class UploadFiles extends Application {
 		boolean superUser = false;
 
 		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Parse the request
 			 */
@@ -191,7 +195,7 @@ public class UploadFiles extends Application {
 
 						// Apply changes from CSV files to survey definition
 						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
-							applyCSVChanges(connectionSD, cResults, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
+							applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
 						}
 
 						if(getlist) {
@@ -245,10 +249,14 @@ public class UploadFiles extends Application {
 		// End Authorisation		
 
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String serverName = request.getServerName();
 
-			deleteFile(request, connectionSD, basePath, serverName, null, oId, filename, request.getRemoteUser());
+			deleteFile(request, connectionSD, localisation, basePath, serverName, null, oId, filename, request.getRemoteUser());
 
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
@@ -288,11 +296,14 @@ public class UploadFiles extends Application {
 		// End Authorisation		
 
 		try {
-
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String serverName = request.getServerName(); 
 
-			deleteFile(request, connectionSD, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
+			deleteFile(request, connectionSD, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
 
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
@@ -407,9 +418,18 @@ public class UploadFiles extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		Connection sd = null; 
+		
+		// Authorisation - Access
+		sd = SDDataSource.getConnection("Tasks-LocationUpload");
+		auth.isAuthorised(sd, request.getRemoteUser());
+		// End authorisation
 
 		try {
-
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Parse the request
 			 */
@@ -460,16 +480,7 @@ public class UploadFiles extends Application {
 				}
 			}
 
-			// Authorisation - Access
-			sd = SDDataSource.getConnection("Tasks-LocationUpload");
-			auth.isAuthorised(sd, request.getRemoteUser());
-			// End authorisation
-
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
-
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 
@@ -677,6 +688,7 @@ public class UploadFiles extends Application {
 	 */
 	private void applyCSVChanges(Connection connectionSD, 
 			Connection cResults,
+			ResourceBundle localisation,
 			String user, 
 			int sId, 
 			String csvFileName, 
@@ -689,12 +701,12 @@ public class UploadFiles extends Application {
 		 */
 		if(sId > 0) {  // TODO A specific survey has been requested
 
-			applyCSVChangesToSurvey(connectionSD, cResults, user, sId, csvFileName, csvFile, oldCsvFile);
+			applyCSVChangesToSurvey(connectionSD,  cResults, localisation, user, sId, csvFileName, csvFile, oldCsvFile);
 
 		} else {		// Organisational level
 
 			// Get all the surveys that reference this CSV file and are in the same organisation
-			SurveyManager sm = new SurveyManager();
+			SurveyManager sm = new SurveyManager(localisation);
 			ArrayList<Survey> surveys = sm.getByOrganisationAndExternalCSV(connectionSD, user,	csvFileName);
 			for(Survey s : surveys) {
 
@@ -709,7 +721,7 @@ public class UploadFiles extends Application {
 				}
 
 				try {
-					applyCSVChangesToSurvey(connectionSD, cResults, user, s.id, csvFileName, csvFile, oldCsvFile);
+					applyCSVChangesToSurvey(connectionSD, cResults, localisation, user, s.id, csvFileName, csvFile, oldCsvFile);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 					// Continue for other surveys
@@ -723,14 +735,15 @@ public class UploadFiles extends Application {
 	private void applyCSVChangesToSurvey(
 			Connection connectionSD, 
 			Connection cResults,
+			ResourceBundle localisation,
 			String user, 
 			int sId, 
 			String csvFileName,
 			File csvFile,
 			File oldCsvFile) throws Exception {
 
-		QuestionManager qm = new QuestionManager();
-		SurveyManager sm = new SurveyManager();
+		QuestionManager qm = new QuestionManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation);
 		ArrayList<org.smap.sdal.model.Question> questions = qm.getByCSV(connectionSD, sId, csvFileName);
 		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
 		
@@ -747,7 +760,8 @@ public class UploadFiles extends Application {
 				 */
 				if(csvFile != null) {
 					if(q.type.startsWith("select")) {		// Only add select multiples to ensure the column names are created
-						ChangeSet cs = qm.getCSVChangeSetForQuestion(connectionSD, csvFile, oldCsvFile, csvFileName, q);
+						ChangeSet cs = qm.getCSVChangeSetForQuestion(connectionSD, 
+								localisation, user, sId, csvFile, oldCsvFile, csvFileName, q);
 						if(cs.items.size() > 0) {
 							changes.add(cs);
 						}
@@ -780,6 +794,7 @@ public class UploadFiles extends Application {
 	private void deleteFile(
 			HttpServletRequest request, 
 			Connection sd, 
+			ResourceBundle localisation,
 			String basePath, 
 			String serverName, 
 			String sIdent, 
@@ -826,7 +841,7 @@ public class UploadFiles extends Application {
 				}
 				mediaInfo.setServer(request.getRequestURL().toString());
 				
-				applyCSVChanges(sd, null, user, sId, fileName, null, null, basePath, mediaInfo);
+				applyCSVChanges(sd, null, localisation, user, sId, fileName, null, null, basePath, mediaInfo);
 			}
 
 			f.delete();		

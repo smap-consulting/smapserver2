@@ -1,6 +1,7 @@
 package org.smap.server.utilities;
 
 import java.io.InputStream;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -33,6 +34,12 @@ public class PutXForm {
 		}
 	}
 	
+	private ResourceBundle localisation;
+	
+	public PutXForm(ResourceBundle l) {
+		localisation = l;
+	}
+	
     /*
      * Load the XForm into an object based model
      */
@@ -46,7 +53,7 @@ public class PutXForm {
 		Document surveyDocument = b.parse(is);
 		Element rootElement = surveyDocument.getDocumentElement();  
 		
-		template = new SurveyTemplate();
+		template = new SurveyTemplate(localisation);
 		template.createSurvey();
 		template.setUser(user);
 		template.setBasePath(basePath);

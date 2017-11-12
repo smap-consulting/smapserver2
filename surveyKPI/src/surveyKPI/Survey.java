@@ -57,6 +57,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.TimeZone;
 import java.util.logging.Level;
@@ -108,14 +110,6 @@ public class Survey extends Application {
 		ResponseBuilder builder = Response.ok();
 		Response response = null;
 
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-			return response;
-		}
-
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey-getSurveyDownload");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
@@ -127,6 +121,11 @@ public class Survey extends Application {
 
 		PreparedStatement pstmt = null;
 		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
 			String sourceName = null;
 			String display_name = null;
 			String fileBasePath = null;		// File path excluding extensions
@@ -184,7 +183,7 @@ public class Survey extends Application {
 				if(type.equals("codebook") || type.equals("xml")) {
 
 					try {
-						SurveyTemplate template = new SurveyTemplate();
+						SurveyTemplate template = new SurveyTemplate(localisation);
 						template.readDatabase(sId, false);
 						GetXForm xForm = new GetXForm();
 

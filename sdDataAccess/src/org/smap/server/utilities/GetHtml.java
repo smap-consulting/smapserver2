@@ -6,6 +6,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -51,6 +52,11 @@ public class GetHtml {
 
 	private static Logger log = Logger.getLogger(GetHtml.class.getName());
 
+	private ResourceBundle localisation;
+	
+	public GetHtml(ResourceBundle l) {
+		localisation = l;
+	}
 	/*
 	 * Get the Html as a string
 	 */
@@ -61,7 +67,7 @@ public class GetHtml {
 		// Get the base path
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		Connection sd = SDDataSource.getConnection("Get Html");
-		SurveyManager sm = new SurveyManager();
+		SurveyManager sm = new SurveyManager(localisation);
 
 		try {
 

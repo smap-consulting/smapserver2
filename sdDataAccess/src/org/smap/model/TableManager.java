@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.model.SurveyTemplate;
@@ -54,6 +55,8 @@ public class TableManager {
 	private static Logger log =
 			Logger.getLogger(TableManager.class.getName());
 
+	private ResourceBundle localisation;
+	
 	/*
 	 * Class to store information about geometry columns
 	 * Needed to support two phase creation of geometry columns in tables
@@ -72,6 +75,9 @@ public class TableManager {
 		}
 	}
 
+	public TableManager(ResourceBundle l) {
+		localisation = l;
+	}
 	/*
 	 * Create the table if it does not already exit in the database
 	 */
@@ -96,7 +102,7 @@ public class TableManager {
 				log.info("        Table Exists");
 			} else {
 				log.info("        Table does not exist");
-				SurveyTemplate template = new SurveyTemplate();   
+				SurveyTemplate template = new SurveyTemplate(localisation);   
 				template.readDatabase(sd, sName, false);	
 				writeAllTableStructures(sd, cResults, template);
 				tableCreated = true;

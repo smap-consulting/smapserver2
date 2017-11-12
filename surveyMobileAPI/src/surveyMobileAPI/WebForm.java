@@ -259,12 +259,6 @@ public class WebForm extends Application {
 		log.info("webForm:" + formIdent + " datakey:" + datakey + " datakeyvalue:" + datakeyvalue + "assignmentId:"
 				+ assignmentId);
 
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		}
-
 		Survey survey = null;
 		int orgId = 0;
 		String accessKey = null;
@@ -286,11 +280,20 @@ public class WebForm extends Application {
 			
 			// Authorisation
 			Connection connectionSD = SDDataSource.getConnection(requester);
+			
+			// Get the users locale
+			try {
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			} catch (Exception e) {
+
+			}
+			
 			if (isTemporaryUser) {
 				a.isValidTemporaryUser(connectionSD, userIdent);
 			}
 			a.isAuthorised(connectionSD, userIdent);
-			SurveyManager surveyManager = new SurveyManager();
+			SurveyManager surveyManager = new SurveyManager(localisation);
 			survey = surveyManager.getSurveyId(connectionSD, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				throw new NotFoundException();
@@ -308,11 +311,6 @@ public class WebForm extends Application {
 			try {
 				orgId = GeneralUtilityMethods.getOrganisationId(connectionSD, userIdent, 0);
 				accessKey = GeneralUtilityMethods.getNewAccessKey(connectionSD, userIdent, formIdent);
-
-				// Get the users locale
-				Locale locale = new Locale(
-						GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
-				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				manifestList = translationMgr.getManifestBySurvey(connectionSD, userIdent, survey.id, basePath, formIdent);
 				serverData = sm.getServer(connectionSD);
@@ -330,7 +328,7 @@ public class WebForm extends Application {
 		try {
 
 			// Get the XML of the Form
-			template = new SurveyTemplate();
+			template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, true);
 			String surveyClass = template.getSurveyClass();
 
@@ -616,7 +614,7 @@ public class WebForm extends Application {
 		// String transformed = transform(request, formXML,
 		// "/XSL/openrosa2html5form.xsl");
 
-		GetHtml getHtml = new GetHtml();
+		GetHtml getHtml = new GetHtml(localisation);
 		String html = getHtml.get(request, template.getSurvey().getId(), false, userIdent);
 
 		// Convert escaped XML into HTML
@@ -833,7 +831,7 @@ public class WebForm extends Application {
 			output.append("<div class='form-progress'></div>\n");
 
 			output.append("<span class='logo-wrapper'>\n");
-			output.append(addNoScriptWarning(localisation));
+			output.append(addNoScriptWarning());
 			output.append("<img class='banner_logo' src='/media/organisation/");
 			output.append(orgId);
 			output.append(
@@ -903,7 +901,7 @@ public class WebForm extends Application {
 		// Authorisation
 		if (user != null) {
 			a.isAuthorised(connectionSD, user);
-			SurveyManager sm = new SurveyManager();
+			SurveyManager sm = new SurveyManager(localisation);
 			survey = sm.getSurveyId(connectionSD, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				throw new NotFoundException();
@@ -926,7 +924,7 @@ public class WebForm extends Application {
 		try {
 
 			// Get the XML of the Form
-			SurveyTemplate template = new SurveyTemplate();
+			SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 
 			// template.printModel(); // debug
@@ -960,7 +958,7 @@ public class WebForm extends Application {
 		return response;
 	}
 
-	private String addNoScriptWarning(ResourceBundle localisation) {
+	private String addNoScriptWarning() {
 		StringBuffer output = new StringBuffer();
 		output.append("<noscript>");
 		output.append("<div>");

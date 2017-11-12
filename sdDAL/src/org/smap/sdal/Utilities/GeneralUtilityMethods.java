@@ -44,6 +44,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.Option;
@@ -1564,13 +1565,20 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get a list of options from an external file
 	 */
-	public static void getOptionsFromFile(Connection sd, ArrayList<ChangeItem> ciList, File csvFile, File oldCsvFile,
+	public static void getOptionsFromFile(
+			Connection sd, 
+			ResourceBundle localisation, 
+			String user,
+			int sId,
+			ArrayList<ChangeItem> ciList, 
+			File csvFile, 
+			File oldCsvFile,
 			String csvFileName, String qName, int l_id, int qId, String qType, String qAppearance) throws Exception {
 
 		// Store the value and label data for each row in here
 		class OptionItem {
 			public String value;
-			public ArrayList<String> label = new ArrayList<String> ();
+			public ArrayList<LanguageItem> label = new ArrayList<LanguageItem> ();
 			private String filterString;
 			public HashMap<String, String> filter;
 
@@ -1583,7 +1591,7 @@ public class GeneralUtilityMethods {
 					if(i == 0) {
 						value = data[vlc.value];
 					}
-					label.add(data[vlc.label]);
+					label.add(new LanguageItem(vlc.language, data[vlc.label]));
 				}
 				
 				filter = f;
@@ -1647,7 +1655,13 @@ public class GeneralUtilityMethods {
 			String cols[] = parser.parseLine(newLine);
 
 			CSVFilter filter = new CSVFilter(cols, qAppearance); // Get a filter
-			ArrayList<ValueLabelCols> vlcA = getValueLabelCols(sd, qId, qName, cols); // Identify the columns in the CSV file that
+			ValueLabelColsResp vlcA = getValueLabelCols(sd, qId, qName, cols); // Identify the columns in the CSV file that
+			if(vlcA.values.size() == 0) {
+				String msg = localisation.getString("ex_csv_nc");
+				msg.replace("%s1", qName);
+				lm.writeLog(sd, sId, user, "csv file", msg);
+				throw new Exception(msg);
+			}
 			// have the value and label
 
 			/*
@@ -1662,24 +1676,62 @@ public class GeneralUtilityMethods {
 				if(newLine != null) {
 					String[] data = parser.parseLine(newLine);
 					if (filter.isIncluded(data)) {
-						listNew.add(new OptionItem(data, vlcA, filter.GetCascadeFilter(data)));
+						listNew.add(new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data)));
 					}
 				}
 			}
 			
-			if (brOld != null) {
-				newLine = brOld.readLine(); // Jump past the header
-				while (newLine != null) {
+			// Compare with old values as long as there was not an error in reading the columns from the csv file
+			if(vlcA.error) {
+				// Force delete of existing choices
+				if (brOld != null) {
 					newLine = brOld.readLine(); // Jump past the header
-					if(newLine != null) {
-						String[] data = parser.parseLine(newLine);
-						if (filter.isIncluded(data)) {
-							listOld.add(new OptionItem(data, vlcA, filter.GetCascadeFilter(data)));
+					while (newLine != null) {
+						newLine = brOld.readLine(); // Jump past the header
+						if(newLine != null) {
+							String[] data = parser.parseLine(newLine);
+							if (filter.isIncluded(data)) {
+								ChangeItem c = new ChangeItem();
+								c.option = new Option();
+								c.option.l_id = l_id;
+								c.qName = qName; // Add for logging
+								c.fileName = csvFileName; // Add for logging
+								c.qType = qType;
+								c.option.value = data[vlcA.values.get(0).value];
+								c.action = "delete";
+
+								ciList.add(c);
+							}
+						}
+					}
+				}
+			} else {
+				// Get the old values so we can look for changes
+				if (brOld != null) {
+					newLine = brOld.readLine(); // Jump past the header
+					while (newLine != null) {
+						newLine = brOld.readLine(); // Jump past the header
+						if(newLine != null) {
+							String[] data = parser.parseLine(newLine);
+							if (filter.isIncluded(data)) {
+								listOld.add(new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data)));
+							}
 						}
 					}
 				}
 			}
 
+			// debug
+			log.info(" ======== New list: " + listNew.size());
+			for(int i = 0; i < listNew.size(); i++) {
+				log.info("    - " + listNew.get(i).value);
+			}
+			
+			log.info(" ======== Old list" + listOld.size());
+			for(int i = 0; i < listOld.size(); i++) {
+				log.info("    - " + listOld.get(i).value);
+			}
+			
 			/*
 			 * Create a list of items to add that are in the new list but not in the old
 			 * Create a list of items to remove that are in the old list but not in the new
@@ -1694,7 +1746,7 @@ public class GeneralUtilityMethods {
 			 * Do this first as presumably its possible that the new option could have identical identifiers to an 
 			 * option its replacing but with a different label
 			 */
-			log.info("There are " + listDel.size() + " items to delete");
+			System.out.println("There are " + listDel.size() + " items to delete");
 			for (OptionItem item : listDel) {
 
 				ChangeItem c = new ChangeItem();
@@ -1703,9 +1755,7 @@ public class GeneralUtilityMethods {
 				c.qName = qName; // Add for logging
 				c.fileName = csvFileName; // Add for logging
 				c.qType = qType;
-				c.option.externalLabel = item.label;
 				c.option.value = item.value;
-				c.option.cascade_filters = item.filter;
 				c.action = "delete";
 
 				ciList.add(c);
@@ -1715,7 +1765,7 @@ public class GeneralUtilityMethods {
 			/*
 			 * Add new items
 			 */
-			log.info("Adding " + listAdd.size() + " items");
+			System.out.println("Adding " + listAdd.size() + " items");
 			for (OptionItem item : listAdd) {
 
 				ChangeItem c = new ChangeItem();
@@ -1850,10 +1900,10 @@ public class GeneralUtilityMethods {
 	 * Return the columns in a CSV file that have the value and label for the given
 	 * question
 	 */
-	public static ArrayList<ValueLabelCols> getValueLabelCols(Connection sd, int qId, String qDisplayName, String[] cols)
+	public static ValueLabelColsResp getValueLabelCols(Connection sd, int qId, String qDisplayName, String[] cols)
 			throws Exception {
 
-		ArrayList<ValueLabelCols> resp = new ArrayList<ValueLabelCols> ();
+		ValueLabelColsResp resp = new ValueLabelColsResp();
 
 		if (cols == null) {
 			// No column in this CSV file so there are not going to be any matches
@@ -1873,13 +1923,14 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, qId);
 			log.info("Get value/label combos: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
+			
 			while (rs.next()) {
-				
+				boolean err = false;
 				ValueLabelCols vlc = new ValueLabelCols();
 				
 				String valueName = rs.getString(1);
 				String labelName = rs.getString(2);
-				String language = rs.getString(3);		// Ignore language - should be fine if we always read them in the same order
+				vlc.language = rs.getString(3);		
 				
 				vlc.value = -1;
 				vlc.label = -1;
@@ -1891,18 +1942,21 @@ public class GeneralUtilityMethods {
 						vlc.label = i;
 					}
 				}
+				
 				if (vlc.value == -1) {
 					String msg = "Column " + valueName + " not found in csv file for question " + qDisplayName;
 					lm.writeLog(sd, 0, "", "csv file", msg);
-					throw new Exception(msg);
-
+					err = true;
+					resp.error = true;
 				} else if (vlc.label == -1) {
+					err = true;
 					String msg = "Column " + labelName + " not found in csv file for question " + qDisplayName;
 					lm.writeLog(sd, 0, "", "csv file", msg);
-					throw new Exception(msg);
+					resp.error = true;
 				}
-				
-				resp.add(vlc);
+				if(!err) {
+					resp.values.add(vlc);
+				}
 			} 
 		} finally {
 			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {};

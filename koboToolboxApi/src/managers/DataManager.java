@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +22,10 @@ public class DataManager {
 	private static Logger log =
 			 Logger.getLogger(DataManager.class.getName());
 
+	private ResourceBundle localisation;
+	public DataManager(ResourceBundle l) {
+		localisation = l;
+	}
 	public ArrayList<DataEndPoint> getDataEndPoints(Connection sd, 
 			HttpServletRequest request,
 			boolean csv) throws SQLException {
@@ -31,7 +36,7 @@ public class DataManager {
 		 * Use existing survey manager call to get a list of surveys that the user can access
 		 */
 		ArrayList<Survey> surveys = null;	
-		SurveyManager sm = new SurveyManager();
+		SurveyManager sm = new SurveyManager(localisation);
 		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		surveys = sm.getSurveysAndForms(sd, request.getRemoteUser(), superUser);
 		

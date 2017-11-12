@@ -209,7 +209,7 @@ public class ManagedForms extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, am.sId);	// Get the table name of the top level form
-			TableManager tm = new TableManager();
+			TableManager tm = new TableManager(localisation);
 			
 			// 0. Ensure that the form data columns are fully published, don't add managed columns at this stage
 			String sIdent = null;

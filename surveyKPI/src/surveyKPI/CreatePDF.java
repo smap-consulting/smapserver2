@@ -21,6 +21,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -74,13 +76,6 @@ public class CreatePDF extends Application {
 			@QueryParam("filename") String filename,
 			@QueryParam("utcOffset") int utcOffset		// Offset in minutes
 			) throws Exception {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
 		
 		log.info("Create PDF from survey:" + sId + " for record: " + instanceId);
 		
@@ -103,8 +98,12 @@ public class CreatePDF extends Application {
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			PDFSurveyManager pm = new PDFSurveyManager();  
-			SurveyManager sm = new SurveyManager();
+			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), sId, true, basePath, 

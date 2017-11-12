@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.ResourceBundle;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -82,8 +83,9 @@ public class SmapForward extends Subscriber {
 	public void upload(SurveyInstance instance, InputStream xis, String remoteUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath) {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l) {
 		
+		localisation = l;
 		File tempFile = null;
 		final String changeIdXSLT = 
 				"<xsl:stylesheet version=\"1.0\" xmlns:xsl=\"http://www.w3.org/1999/XSL/Transform\">" +

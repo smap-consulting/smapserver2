@@ -25,6 +25,8 @@ import java.sql.Connection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -106,6 +108,11 @@ public class XFormData {
 
 		try {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String basePath = request.getServletContext().getInitParameter("au.com.smap.files");
 			if (basePath == null) {
 				basePath = "/smap";
@@ -134,7 +141,7 @@ public class XFormData {
 					log.info("Saved xml_submission file:" + saveDetails.fileName + " (FieldName: " + item.getFieldName()
 							+ ")");
 
-					SurveyTemplate template = new SurveyTemplate();
+					SurveyTemplate template = new SurveyTemplate(localisation);
 					template.readDatabase(sd, templateName, false);
 					template.extendInstance(sd, si, false);
 
@@ -200,7 +207,7 @@ public class XFormData {
 			}
 			log.info("####################### End of Saving everything to disk ##############################");
 
-			SurveyManager sm = new SurveyManager();
+			SurveyManager sm = new SurveyManager(localisation);
 			Survey survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key
 
 			if (survey.getDeleted()) {

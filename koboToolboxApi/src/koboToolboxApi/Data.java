@@ -30,6 +30,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -104,8 +106,13 @@ public class Data extends Application {
 		aSuper.isAuthorised(sd, request.getRemoteUser());
 		
 
-		DataManager dm = new DataManager();
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			DataManager dm = new DataManager(localisation);
+			
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, false);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();

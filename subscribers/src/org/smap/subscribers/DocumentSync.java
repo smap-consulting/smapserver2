@@ -21,6 +21,8 @@ package org.smap.subscribers;
 
 import java.io.InputStream;
 import java.util.Date;
+import java.util.ResourceBundle;
+
 import org.smap.model.SurveyInstance;
 import org.smap.server.entities.SubscriberEvent;
 
@@ -46,10 +48,10 @@ public class DocumentSync extends Subscriber {
 	public void upload(SurveyInstance instance, InputStream xis, String remoteUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath) {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l) {
 
 
-
+		localisation  = l;
 		System.out.println("++++++++++++++ Document Synchronisation");
 
 	}

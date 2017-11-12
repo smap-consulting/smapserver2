@@ -12,6 +12,9 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
+
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -23,10 +26,12 @@ import javax.xml.xpath.XPathFactory;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.model.Notification;
+import org.smap.sdal.model.Organisation;
 import org.smap.server.entities.HostUnreachableException;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
@@ -118,7 +123,7 @@ public class SubscriberBatch {
 			Class.forName(dbClassMeta);
 			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);	
 			cResults = DriverManager.getConnection(database, user, password);
-		
+			
 			uem = new JdbcUploadEventManager(sd);
 			pstmt = sd.prepareStatement(sqlUpdateStatus);
 			
@@ -185,6 +190,11 @@ public class SubscriberBatch {
 								InputStream is3 = null;
 								
 								try {
+									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, ue.getSurveyId());
+									Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, oId);
+									Locale locale = new Locale(organisation.locale);
+									ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+									
 									// Get the submitted results as an XML document
 									is = new FileInputStream(uploadFile);
 									
@@ -217,7 +227,7 @@ public class SubscriberBatch {
 								
 										// Get the template for this survey
 										String templateName = instance.getTemplateName();
-										SurveyTemplate template = new SurveyTemplate();
+										SurveyTemplate template = new SurveyTemplate(localisation);
 										
 										template.readDatabase(sd, templateName, false);					
 										template.extendInstance(sd, instance, true);	// Extend the instance with information from the template
@@ -235,7 +245,8 @@ public class SubscriberBatch {
 												ue.getUploadTime(),
 												ue.getSurveyNotes(),
 												ue.getLocationTrigger(),
-												ue.getAuditFilePath());	// Call the subscriber	
+												ue.getAuditFilePath(),
+												localisation);	// Call the subscriber	
 									
 									} else {
 										
