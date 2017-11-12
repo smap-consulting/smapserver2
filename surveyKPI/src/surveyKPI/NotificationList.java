@@ -132,7 +132,7 @@ public class NotificationList extends Application {
 		
 		// No Authorisation required
 		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-NotificationTypes");	
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-NotificationList-getTypes");	
 		
 		try {
 			NotificationManager fm = new NotificationManager();
@@ -147,7 +147,7 @@ public class NotificationList extends Application {
 		    response = Response.serverError().entity("No data available").build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-NotificationTypes", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-NotificationList-getTypes", connectionSD);
 			
 		}
 

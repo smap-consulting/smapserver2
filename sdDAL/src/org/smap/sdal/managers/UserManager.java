@@ -552,6 +552,7 @@ public class UserManager {
 			/*
 			 * Update user groups
 			 */
+			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			if(isOrgUser) {
 				sql = "delete from user_group where u_id = ?;";
@@ -627,6 +628,7 @@ public class UserManager {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			try{sd.rollback();} catch(Exception ex) {}
 		} finally {
+			log.info("Set autocommit true");
 			sd.setAutoCommit(true);
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertUserGroup != null) {pstmtInsertUserGroup.close();}} catch (SQLException e) {}

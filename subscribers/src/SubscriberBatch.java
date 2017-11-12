@@ -32,6 +32,7 @@ import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.entities.UploadEvent;
+import org.smap.subscribers.DocumentSync;
 import org.smap.subscribers.SmapForward;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
@@ -67,7 +68,7 @@ public class SubscriberBatch {
 	Document xmlConf = null;		
 	Connection sd = null;
 	Connection cResults;
-	PreparedStatement pstmt = null;
+	//PreparedStatement pstmt = null;
 	
 	
 	/**
@@ -89,6 +90,16 @@ public class SubscriberBatch {
 		String password = null;
 		JdbcUploadEventManager uem = null;
 		
+		String sqlUpdateStatus = "insert into subscriber_event ("
+				+ "se_id,"
+				+ "ue_id,"
+				+ "subscriber,"
+				+ "status,"
+				+ "reason,"
+				+ "dest) "
+				+ "values (nextval('se_seq'), ?, ?, ?, ?, ?);";
+		PreparedStatement pstmt = null;
+		
 		try {
 			db = dbf.newDocumentBuilder();
 			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
@@ -109,6 +120,7 @@ public class SubscriberBatch {
 			cResults = DriverManager.getConnection(database, user, password);
 		
 			uem = new JdbcUploadEventManager(sd);
+			pstmt = sd.prepareStatement(sqlUpdateStatus);
 			
 			/*
 			 * Get subscribers and their configuration
@@ -119,9 +131,12 @@ public class SubscriberBatch {
 			 */
 			List<Subscriber> subscribers = null;
 			if(subscriberType.equals("upload")) {
-				subscribers = init(sd, pstmt);		// Get subscribers 
+				subscribers = init(sd);		// Get subscribers 
 			} else if(subscriberType.equals("forward")) {
-				subscribers = initForward(sd, pstmt);		// Get subscribers 
+				subscribers = initForward(sd);		// Get subscribers 
+				if(GeneralUtilityMethods.documentSyncEnabled(sd)) {
+					subscribers.addAll(initDocument(sd));
+				}
 			} else {
 				System.out.println("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
 			}
@@ -144,9 +159,9 @@ public class SubscriberBatch {
 						
 						if(subscriberType.equals("upload")) {
 							uel = uem.getFailed(s.getSubscriberName());		// Get pending jobs
-						} else if(subscriberType.equals("forward")) {
+						} else if(subscriberType.equals("forward") || subscriberType.equals("document")) {
 							uel = uem.getFailedForward(s.getSubscriberName(), s.getSurveyId());		// Get pending jobs 
-						}
+						} 
 									
 						if(uel.isEmpty()) {
 							
@@ -270,26 +285,12 @@ public class SubscriberBatch {
 									//  unreachable events are logged but not otherwise recorded
 									if(se.getStatus() != null && !se.getStatus().equals("host_unreachable")) {
 										
-										String sqlUpdateStatus = "insert into subscriber_event ("
-												+ "se_id,"
-												+ "ue_id,"
-												+ "subscriber,"
-												+ "status,"
-												+ "reason,"
-												+ "dest) "
-												+ "values (nextval('se_seq'), ?, ?, ?, ?, ?);";
-										PreparedStatement pstmt = null;
-										try {
-											pstmt = sd.prepareStatement(sqlUpdateStatus);
-											pstmt.setInt(1, ue.getId());
-											pstmt.setString(2, se.getSubscriber());
-											pstmt.setString(3, se.getStatus());
-											pstmt.setString(4, se.getReason());
-											pstmt.setString(5, se.getDest());
-											pstmt.executeUpdate();
-										} finally {
-											if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-										}
+										pstmt.setInt(1, ue.getId());
+										pstmt.setString(2, se.getSubscriber());
+										pstmt.setString(3, se.getStatus());
+										pstmt.setString(4, se.getReason());
+										pstmt.setString(5, se.getDest());
+										pstmt.executeUpdate();
 		
 									} else if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
 										// If the host is unreachable then stop forwarding for 10 seconds
@@ -314,6 +315,8 @@ public class SubscriberBatch {
 								}
 							}
 						}
+					} else {
+						System.out.print('#');
 					}
 				}
 			}
@@ -469,7 +472,7 @@ public class SubscriberBatch {
 	/*
 	 * Create a Subscriber object for each subscriber
 	 */
-	public List<Subscriber> init(Connection connection, PreparedStatement pstmt) throws SQLException {
+	public List<Subscriber> init(Connection connection) throws SQLException {
 		File confDir = new File(confFilePath);
 		List<Subscriber> subscribers = new ArrayList<Subscriber> ();
 		
@@ -526,15 +529,16 @@ public class SubscriberBatch {
 	/*
 	 * Create a Subscriber object for each forwarding subscriber
 	 */
-	public List<Subscriber> initForward(Connection connection, PreparedStatement pstmt) throws SQLException {
+	public List<Subscriber> initForward(Connection connection) throws SQLException {
 		
 		List<Subscriber> subscribers = new ArrayList<Subscriber> ();
 		
-		// This type of subscriber is per link, that is 
-		// survey -> remote survey so create a subscriber object for each
-		// survey id and remote end point to be forwarded
+		/*
+		 * This type of subscriber is per link, that is 
+		 * survey -> remote survey so create a subscriber object for each
+		 */
 		NotificationManager fm = new NotificationManager();
-		ArrayList<Notification> forwards = fm.getEnabledNotifications(connection, pstmt, true);
+		ArrayList<Notification> forwards = fm.getEnabledNotifications(connection, "forward");
 		for(int i = 0; i < forwards.size(); i++) {
 			Notification f = forwards.get(i);
 			Subscriber sub = (Subscriber) new SmapForward();		
@@ -559,6 +563,30 @@ public class SubscriberBatch {
 				System.out.println("Error: Invalid host (" + remoteUrl + ") for survey " + sId);
 			}
 
+		}
+		return subscribers;
+	}
+	
+	/*
+	 * Create a Subscriber object for each forwarding subscriber
+	 */
+	public List<Subscriber> initDocument(Connection connection) throws SQLException {
+		
+		List<Subscriber> subscribers = new ArrayList<Subscriber> ();
+		
+		/*
+		 * This type of subscriber is per link, that is 
+		 * survey -> remote survey so create a subscriber object for each
+		 */
+		NotificationManager fm = new NotificationManager();
+		ArrayList<Notification> documents = fm.getEnabledNotifications(connection, "document");
+		for(int i = 0; i < documents.size(); i++) {
+			Notification f = documents.get(i);
+			
+			Subscriber sub = (Subscriber) new DocumentSync();		
+			sub.setSurveyId(f.s_id);
+			sub.setEnabled(true);
+			subscribers.add(sub);
 		}
 		return subscribers;
 	}

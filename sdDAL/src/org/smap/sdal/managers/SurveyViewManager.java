@@ -300,6 +300,7 @@ public class SurveyViewManager {
 			
 			if(viewId == 0 || count == 0) {
 				
+				log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				pstmtInsert = sd.prepareStatement(sqlInsert, Statement.RETURN_GENERATED_KEYS);
@@ -353,6 +354,7 @@ public class SurveyViewManager {
 			log.log(Level.SEVERE,"Error", e);
 			throw new Exception(e.getMessage());
 		} finally {
+			log.info("Set autocommit true");
 			try {sd.setAutoCommit(true);} catch (Exception e) {}
 			try {if (pstmtUpdateView != null) {pstmtUpdateView.close();}} catch (Exception e) {}
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (Exception e) {}

@@ -385,6 +385,7 @@ public class AllAssignments extends Application {
 
 		try {
 			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
+			log.info("Set autocommit sd false");
 			connectionSD.setAutoCommit(false);
 
 			SurveyManager sm = new SurveyManager();
@@ -990,6 +991,7 @@ public class AllAssignments extends Application {
 			pstmtInsert = connectionSD.prepareStatement(insertSQL);
 			pstmtUpdate = connectionSD.prepareStatement(updateSQL);
 			pstmtDelete = connectionSD.prepareStatement(deleteSQL);
+			log.info("Set autocommit sd false");
 			connectionSD.setAutoCommit(false);
 
 			for(int i = 0; i < aArray.size(); i++) {

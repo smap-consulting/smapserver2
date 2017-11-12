@@ -476,13 +476,18 @@ public class SubRelationalDB extends Subscriber {
 		Connection cMeta = null;
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
+		boolean resAutoCommitSetFalse = false;
 
 		try {
 			Class.forName(dbClass);	 
 			cResults = DriverManager.getConnection(database, user, password);
 			cMeta = DriverManager.getConnection(databaseMeta, user, password);
 
-			cResults.setAutoCommit(false);
+			if(cResults.getAutoCommit()) {
+				log.info("Set autocommit results false");
+				resAutoCommitSetFalse = true;
+				cResults.setAutoCommit(false);
+			}
 			//statement = cResults.createStatement();
 			IE topElement = instance.getTopElement();
 
@@ -581,7 +586,6 @@ public class SubRelationalDB extends Subscriber {
 			}
 
 			cResults.commit();
-			cResults.setAutoCommit(true);
 
 			/*
 			 * Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
@@ -594,7 +598,6 @@ public class SubRelationalDB extends Subscriber {
 
 					e.printStackTrace();
 					cResults.rollback();
-					cResults.setAutoCommit(true);
 					throw new SQLInsertException(e.getMessage());
 
 				} catch (SQLException ex) {
@@ -614,6 +617,12 @@ public class SubRelationalDB extends Subscriber {
 
 		} finally {
 
+			if(resAutoCommitSetFalse) {
+				log.info("Set autocommit results true");
+				resAutoCommitSetFalse = false;
+				try {cResults.setAutoCommit(true);} catch(Exception e) {}
+			}
+			
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
 			try {
 				if (cResults != null) {
@@ -1509,7 +1518,6 @@ public class SubRelationalDB extends Subscriber {
 						duplicateKeys.add(res.getInt(1));
 					}
 				}
-
 
 				String colTest2 = "select column_name from information_schema.columns " +
 						"where table_name = '" + tableName + "' and column_name = 'instanceid'";
