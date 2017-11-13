@@ -305,7 +305,8 @@ public class Data extends Application {
 					start_parkey,
 					superUser,
 					false,			// Return records greater than or equal to primary key
-					include_bad
+					include_bad,
+					null				// no custom filter
 					);
 			
 			if(pstmt != null) {
@@ -318,8 +319,7 @@ public class Data extends Application {
 						limit
 						);
 			}
-
-
+			
 			if(ja == null) {
 				ja = new JSONArray();
 			}

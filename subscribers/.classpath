@@ -24,5 +24,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/amazon"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
+	<classpathentry kind="lib" path="lib/jettison-1.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
