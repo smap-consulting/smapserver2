@@ -5175,5 +5175,31 @@ public class GeneralUtilityMethods {
 		
 		return enabled;
 	}
+	
+	/*
+	 * Get document server configuration
+	 */
+	public static HashMap<String, String> docServerConfig(Connection sd) throws SQLException {
+		
+		HashMap<String, String> config = new HashMap<> ();
+		String sql = "select doc_server, doc_server_user, doc_server_password from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				config.put("server", rs.getString(1));
+				config.put("user", rs.getString(2));
+				config.put("password", rs.getString(3));
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return config;
+	}
+	
 }
 

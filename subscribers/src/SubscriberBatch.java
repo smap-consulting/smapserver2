@@ -3,6 +3,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -11,6 +13,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -24,6 +27,21 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
@@ -141,7 +159,8 @@ public class SubscriberBatch {
 			// Default to english though we could get the locals from a server level setting
 			Locale locale = new Locale("en");
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
+			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+
 			/*
 			 * Get subscribers and their configuration
 			 * This is re-evaluated every time the batch job is run to allow
@@ -350,7 +369,6 @@ public class SubscriberBatch {
 
 				// Send any pending messages
 				MessagingManagerApply mma = new MessagingManagerApply();
-				String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
 				mma.applyOutbound(sd, serverName);
 
 				// Apply synchronisation
@@ -361,12 +379,12 @@ public class SubscriberBatch {
 
 				if(GeneralUtilityMethods.documentSyncEnabled(sd)) {
 					boolean haveSyncNotifications = false;
+					String urlprefix = "https://" + serverName + "/";	// Need to get server name for image processing
+					HashMap<String, String> docServerConfig = GeneralUtilityMethods.docServerConfig(sd);
 
-					String urlprefix = "https://" + "todo" + "/";	// Need to get server name for image processing
-					
 					String sqlNot = "select id, s_id, notify_details from forward where enabled = 'true' and target = 'document'";
 					PreparedStatement pstmtNot = sd.prepareStatement(sqlNot);
-					
+
 					String sqlMarkDone = "insert into sync (s_id, n_id, prikey) values(?, ?, ?)";
 					PreparedStatement pstmtMarkDone = cResults.prepareStatement(sqlMarkDone);
 					PreparedStatement pstmtRecord = null;
@@ -389,7 +407,7 @@ public class SubscriberBatch {
 								// Get the records that need synchronising
 								String prikeyFilter = "prikey not in (select prikey from sync where s_id = " + 
 										sId + " and n_id = " + nId + ")";	
-								
+
 								JSONArray ja = null;
 
 								boolean getParkey = false;	// For top level form TODO loop through forms
@@ -421,7 +439,7 @@ public class SubscriberBatch {
 									ReportConfig config = crm.get(sd, managedId, -1);
 									columns.addAll(config.columns);
 								}
-							
+
 								pstmt = tdm.getPreparedStatement(
 										sd, 
 										cResults,
@@ -448,7 +466,7 @@ public class SubscriberBatch {
 										);
 
 								// Set parameters for custom filter
-								
+
 								if(pstmt != null) {
 									log.info("Get sync records: " + pstmt.toString());
 									ja = tdm.getData(
@@ -460,23 +478,35 @@ public class SubscriberBatch {
 											0			// No limit
 											);
 								}
-								
+
 								if(ja == null) {
 									ja = new JSONArray();
 								}
-								
+
 								// Process each record
 								for(int i = 0; i < ja.length(); i++) {
 									JSONObject jo = (JSONObject) ja.get(i);
-									System.out.println("  Rec: " + ja.get(i));
-									
-									// 1. Send to server
-									
-									// 2. Mark as processed (if successful)
-									pstmtMarkDone.setInt(1,  sId);
-									pstmtMarkDone.setInt(2,  nId);
-									pstmtMarkDone.setInt(3, jo.getInt("prikey"));
-									pstmtMarkDone.executeUpdate();
+									log.info("  Rec: " + ja.get(i));
+
+									// 1. Add meta data to the record
+									// Organisation id
+
+									// 2. Send to server
+									String key = serverName + "_" + sId + "_" + jo.getString("prikey");
+									boolean success = putDocument("banana", "form", key, jo.toString(), 
+											docServerConfig.get("server"),
+											docServerConfig.get("user"),
+											docServerConfig.get("password"));
+
+									// 3. Mark as processed (if successful)
+									if(success) {
+										pstmtMarkDone.setInt(1,  sId);
+										pstmtMarkDone.setInt(2,  nId);
+										pstmtMarkDone.setInt(3, jo.getInt("prikey"));
+										pstmtMarkDone.executeUpdate();
+									} else {
+										break;  // Delay before continuing
+									}
 								}
 
 
@@ -809,5 +839,76 @@ public class SubscriberBatch {
 
 	}
 
+	private boolean putDocument(String index, String type, String key, String doc, String host_name, String user, String password) {
+		boolean success = true;
+
+		CloseableHttpClient httpclient = null;
+		ContentType ct = null;
+		HttpResponse response = null;
+		int responseCode = 0;
+		String responseReason = null;
+		int port = 9200;
+
+		try {
+			HttpHost target = new HttpHost(host_name, port, "http");
+			CredentialsProvider credsProvider = new BasicCredentialsProvider();
+			credsProvider.setCredentials(
+					new AuthScope(target.getHostName(), target.getPort()),
+					new UsernamePasswordCredentials(user, password));
+			httpclient = HttpClients.custom()
+					.setDefaultCredentialsProvider(credsProvider)
+					.build();
+
+			String url = "http://" + host_name + ":" + port + "/" + index + "/" + type + "/" + key;
+			HttpClientContext localContext = HttpClientContext.create();
+			HttpPut req = new HttpPut(URI.create(url));
+			
+			StringEntity params =new StringEntity(doc,"UTF-8");
+	        params.setContentType("application/json");
+	        req.addHeader("content-type", "application/json");
+	        req.addHeader("Accept-Encoding", "gzip,deflate,sdch");
+	        req.setEntity(params);
+			
+	        log.info("Submitting document: " + url);
+			response = httpclient.execute(target, req, localContext);
+			responseCode = response.getStatusLine().getStatusCode();
+			responseReason = response.getStatusLine().getReasonPhrase(); 
+			
+			// verify that the response was a 200, 201 or 202.
+			// If it wasn't, the submission has failed.
+			log.info("	Info: Response code: " + responseCode + " : " + responseReason);
+			if (responseCode != HttpStatus.SC_OK && responseCode != HttpStatus.SC_CREATED && responseCode != HttpStatus.SC_ACCEPTED) {      
+				log.info("	Error: upload to document server failed: " + responseReason);
+				success = false;		
+			} 
+
+		} catch (UnsupportedEncodingException e) {
+			success = false;
+			String msg = "UnsupportedCodingException:" + e.getMessage();
+			log.info("        " + msg);
+		} catch(ClientProtocolException e) {
+			success = false;
+			String msg = "ClientProtocolException:" + e.getMessage();
+			log.info("        " + msg);
+		} catch(IOException e) {
+			success = false;
+			String msg = "IOException:" + e.getMessage();
+			log.info("        " + msg);
+		} catch(IllegalArgumentException e) {
+			success = false;		
+			String msg = "IllegalArgumentException:" + e.getMessage();
+			log.info("        " + msg);
+		} finally {
+			try {
+				httpclient.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+
+		}
+
+		return success;
+	}
 
 }
