@@ -947,6 +947,8 @@ public class GetXForm {
 						questionElement.setAttribute("end", px1);
 					} else if(px0.equals("step")) {
 						questionElement.setAttribute("step", px1);
+					} else if(px0.equals("rows")) {
+						questionElement.setAttribute("rows", px1);
 					}
 				}
 			}

@@ -608,7 +608,23 @@ public class GetHtml {
 		/*
 		 * Input
 		 */
-		Element bodyElement = outputDoc.createElement("input");
+		Element bodyElement;
+		if(q.appearance == null) {
+			q.appearance = "";
+		}
+		if(q.parameters == null) {
+			q.parameters = "";
+		}
+		if(q.type.equals("string") && (q.appearance.contains("multiline") || q.parameters.contains("rows="))) {
+			bodyElement = outputDoc.createElement("textarea");
+			
+			String rp = getParameter(q.parameters, "rows");
+			if(rp != null) {
+				bodyElement.setAttribute("rows", rp);
+			}
+		} else {
+			bodyElement = outputDoc.createElement("input");
+		}
 		bodyElement.setAttribute("type", getInputType(q));
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
@@ -1181,6 +1197,24 @@ public class GetHtml {
 		}
 
 		return labelQ;
+	}
+	
+	private String getParameter(String pString, String pName) {
+		String p = null;
+		
+		if(pString != null) {
+			String [] params = pString.split(" ");
+			for(int i = 0; i < params.length; i++) {
+				String[] px = params[i].split("=");
+				if(px.length == 2) {
+					if(px[0].equals(pName)) {
+						p = px[1];
+						break;
+					}
+				}
+			}
+		}
+		return p;
 	}
 
 }
