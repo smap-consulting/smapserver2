@@ -105,7 +105,8 @@ public class ExchangeManager {
 			int sId,
 			HttpServletRequest request,
 			String dirPath,
-			boolean superUser) throws Exception {
+			boolean superUser,
+			boolean incMedia) throws Exception {
 		
 		wb = new SXSSFWorkbook(10);
 		Sheet sheet = null;
@@ -259,7 +260,8 @@ public class ExchangeManager {
 							dateForm,
 							basePath,
 							dirPath,
-							files);
+							files,
+							incMedia);
 					
 				}
  
@@ -829,7 +831,8 @@ public class ExchangeManager {
 			int dateForm,
 			String basePath,
 			String dirPath,
-			ArrayList<FileDescription> files) throws Exception {
+			ArrayList<FileDescription> files,
+			boolean incMedia) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
@@ -923,18 +926,20 @@ public class ExchangeManager {
 						}
 						
 						// Copy file to temporary zip folder
-						File source = new File(attachmentPath);
-						if (source.exists()) {
-							String newPath = dirPath + "/" + value;
-							File dest = new File(newPath);
-							try {
-								FileUtils.copyFile(source, dest);				
-								files.add(new FileDescription(value, newPath));
-							} catch (Exception e) {
-								log.info("Error: Failed to add file " + source + " to exchange export. " + e.getMessage());
+						if(incMedia) {
+							File source = new File(attachmentPath);
+							if (source.exists()) {
+								String newPath = dirPath + "/" + value;
+								File dest = new File(newPath);
+								try {
+									FileUtils.copyFile(source, dest);				
+									files.add(new FileDescription(value, newPath));
+								} catch (Exception e) {
+									log.info("Error: Failed to add file " + source + " to exchange export. " + e.getMessage());
+								}
+							} else {
+								log.info("Error: media file does not exist: " + attachmentPath);
 							}
-						} else {
-							log.info("Error: media file does not exist: " + attachmentPath);
 						}
 						
 					}

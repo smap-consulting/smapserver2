@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -55,20 +56,9 @@ public class SurveyExchange extends Application {
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
 			@PathParam("sId") int sId,
-			@PathParam("filename") String filename
+			@PathParam("filename") String filename,
+			@QueryParam("media") boolean media
 			) {
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    try {
-		    	response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-		    		"Survey: Error: Can't find PostgreSQL JDBC Driver");
-		    } catch (Exception ex) {
-		    	log.log(Level.SEVERE, "Exception", ex);
-		    }
-		}
 		
 		Response responseVal = null;
 		
@@ -114,7 +104,8 @@ public class SurveyExchange extends Application {
 					sId, 
 					request,
 					filePath,
-					superUser);
+					superUser,
+					media);
 			
 			System.out.println("Created "+ files.size() + "  exchange files");
 			
