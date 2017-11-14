@@ -350,13 +350,18 @@ public class TableManager {
 
 		String response = null;
 		boolean hasHrk = (template.getHrk() != null);
+		boolean resAutoCommitSetFalse = false;
 
 		try {
 			//Class.forName(dbClass);	 
 
 			List<Form> forms = template.getAllForms();	
-			log.info("Set autocommit results false");
-			cResults.setAutoCommit(false);
+			if(cResults.getAutoCommit()) {
+				log.info("Set autocommit results false");
+				resAutoCommitSetFalse = true;
+				cResults.setAutoCommit(false);
+			}
+			
 			for(Form form : forms) {		
 				writeTableStructure(form, sd, cResults, hasHrk);
 				cResults.commit();
@@ -377,8 +382,11 @@ public class TableManager {
 			}
 
 		} finally {
-			log.info("Set autocommit results true");
-			try {cResults.setAutoCommit(true);} catch (SQLException e) {}
+			if(resAutoCommitSetFalse) {
+				log.info("Set autocommit results true");
+				resAutoCommitSetFalse = false;
+				try {cResults.setAutoCommit(true);} catch(Exception e) {}
+			}
 		}		
 	}
 

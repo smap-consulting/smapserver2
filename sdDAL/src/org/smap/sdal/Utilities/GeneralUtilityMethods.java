@@ -1746,7 +1746,7 @@ public class GeneralUtilityMethods {
 			 * Do this first as presumably its possible that the new option could have identical identifiers to an 
 			 * option its replacing but with a different label
 			 */
-			System.out.println("There are " + listDel.size() + " items to delete");
+			log.info("There are " + listDel.size() + " items to delete");
 			for (OptionItem item : listDel) {
 
 				ChangeItem c = new ChangeItem();
@@ -1765,7 +1765,7 @@ public class GeneralUtilityMethods {
 			/*
 			 * Add new items
 			 */
-			System.out.println("Adding " + listAdd.size() + " items");
+			log.info("Adding " + listAdd.size() + " items");
 			for (OptionItem item : listAdd) {
 
 				ChangeItem c = new ChangeItem();

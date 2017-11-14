@@ -490,7 +490,6 @@ public class SubRelationalDB extends Subscriber {
 				resAutoCommitSetFalse = true;
 				cResults.setAutoCommit(false);
 			}
-			//statement = cResults.createStatement();
 			IE topElement = instance.getTopElement();
 
 			// Make sure the top element matched a form in the template

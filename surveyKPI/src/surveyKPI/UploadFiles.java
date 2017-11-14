@@ -112,10 +112,6 @@ public class UploadFiles extends Application {
 
 		try {
 			
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
 			/*
 			 * Parse the request
 			 */
@@ -150,6 +146,11 @@ public class UploadFiles extends Application {
 					// Authorisation - Access
 					connectionSD = SDDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
 					auth.isAuthorised(connectionSD, request.getRemoteUser());
+					
+					// Get the users locale
+					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+					ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+					
 					if(sId > 0) {
 						try {
 							superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
@@ -731,7 +732,6 @@ public class UploadFiles extends Application {
 	}
 
 
-
 	private void applyCSVChangesToSurvey(
 			Connection connectionSD, 
 			Connection cResults,
@@ -748,8 +748,14 @@ public class UploadFiles extends Application {
 		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
 		
 		String sql = "delete from option where l_id = ? and externalfile = 'true'";
-		PreparedStatement pstmt = null;
-		pstmt = connectionSD.prepareStatement(sql);
+		PreparedStatement pstmt = connectionSD.prepareStatement(sql);
+		
+		String sqlTranslationDelete = "delete from translation "
+				+ "where s_id = ? "
+				+ "and text_id in (select label_id from option "
+				+ "where l_id = ? "
+				+ "and externalfile = 'true')";
+		PreparedStatement pstmtTranslationDelete = connectionSD.prepareStatement(sqlTranslationDelete);
 
 		try {
 			// Create one change set per question
@@ -768,8 +774,14 @@ public class UploadFiles extends Application {
 					}
 				} else {
 					// File is being deleted just remove the external options for this questions
+					pstmtTranslationDelete.setInt(1, sId);
+					pstmtTranslationDelete.setInt(2, q.l_id);
+					log.info("Remove external option labels: " + pstmtTranslationDelete.toString());
+					pstmtTranslationDelete.executeUpdate();
+					
+					
 					pstmt.setInt(1, q.l_id);
-					log.info("REmove external options: " + pstmt.toString());
+					log.info("Remove external options: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 	

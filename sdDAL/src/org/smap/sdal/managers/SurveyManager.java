@@ -1621,30 +1621,17 @@ public class SurveyManager {
 			boolean logIndividualChangeSets) throws Exception {
 
 		PreparedStatement pstmtLangInsert = null;
-		//PreparedStatement pstmtLangUpdate = null;
-		//PreparedStatement pstmtOptionGet = null;
 		PreparedStatement pstmtOptionInsert = null;
 		PreparedStatement pstmtMaxSeq = null;
-		//PreparedStatement pstmtOptionUpdate = null;
 		PreparedStatement pstmtOptionDelete = null;
 		PreparedStatement pstmtTranslationDelete = null;
 
 		try {
 
-			// Create prepared statements
-			//String sqlOptionGet = "select o.label_id from option o "
-			//		+ "where o.l_id = ? "
-			//		+ "and o.ovalue = ?;";
-			//pstmtOptionGet = connectionSD.prepareStatement(sqlOptionGet);
-
+			
 			String sqlOptionInsert = "insert into option  (o_id, l_id, seq, label_id, ovalue, externalfile, column_name, cascade_filters) "
 					+ "values(nextval('o_seq'), ?, ?, ?, ?, 'true', ?, ?);"; 			
 			pstmtOptionInsert = connectionSD.prepareStatement(sqlOptionInsert);
-
-			//String sqlOptionUpdate = "update option  set cascade_filters = ? "
-			//		+ "where l_id = ? "
-			//		+ "and ovalue = ?"; 			
-			//pstmtOptionUpdate = connectionSD.prepareStatement(sqlOptionUpdate);
 
 			String sqlTranslationDelete = "delete from translation "
 					+ "where s_id = ? "
@@ -1663,13 +1650,9 @@ public class SurveyManager {
 			String sqlLangInsert = "insert into translation  (t_id, s_id, language, text_id, type, value) values(nextval('t_seq'), ?, ?, ?, ?, ?);"; 			
 			pstmtLangInsert = connectionSD.prepareStatement(sqlLangInsert);
 
-			//String sqlLangUpdate = "update translation  set value = ? where s_id = ? and text_id = ? and language = ? and value != ?;"; 			
-			//pstmtLangUpdate = connectionSD.prepareStatement(sqlLangUpdate);		// Assumes all languages and types TODO
-
 			String sqlMaxSeq = "select max(seq) from option where l_id = ?;";
 			pstmtMaxSeq = connectionSD.prepareStatement(sqlMaxSeq);
 
-			//ArrayList<String> languages = GeneralUtilityMethods.getLanguagesUsedInSurvey(connectionSD, sId);
 			int maxSeq = -1;
 			ResultSet rs = null;
 			int totalCount = 0;		// Total changes for this change set
@@ -1684,10 +1667,6 @@ public class SurveyManager {
 				if(rs.next()) {
 					maxSeq = rs.getInt(1);
 				}			
-
-				// Get the text_id for this option
-				//pstmtOptionGet.setInt(1, ci.option.l_id);
-				//pstmtOptionGet.setString(2, ci.option.value);
 
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
@@ -1720,22 +1699,30 @@ public class SurveyManager {
 					pstmtOptionInsert.setString(5, GeneralUtilityMethods.cleanName(ci.option.value, false, false, false) );
 					pstmtOptionInsert.setString(6, gson.toJson(ci.option.cascade_filters));
 
-					// (debug) log.info("===================== Insert new option from file: " + pstmtOptionInsert.toString());
+					// log.info("===================== Insert new option from file: " + pstmtOptionInsert.toString());
 					count = pstmtOptionInsert.executeUpdate();
-
+					
 					// Set label
 					pstmtLangInsert.setInt(1, sId);
 					pstmtLangInsert.setString(3, text_id);
 					pstmtLangInsert.setString(4, "none");
+					
 					for(LanguageItem li : ci.option.externalLabel) {
 						pstmtLangInsert.setString(2, li.language);
 						pstmtLangInsert.setString(5, li.text);
-						// (debug) log.info("----------------------------- Insert new translation for option from file: " + pstmtLangInsert.toString());
-						count += pstmtLangInsert.executeUpdate();
-					}	
+						// log.info("----------------------------- Insert new translation for option from file: " + pstmtLangInsert.toString());
+						
+						Savepoint sp = connectionSD.setSavepoint("label");
+						try {
+							pstmtLangInsert.executeUpdate();
+						} catch (Exception e) {
+							try {connectionSD.rollback(sp);}catch(Exception ex) {}
+							log.info("Error: " + e.getMessage());    // Non fatal error
+						}
+						connectionSD.releaseSavepoint(sp);
+					}
 
 				}
-				//}
 
 				if(logIndividualChangeSets) {
 					// Write the change log
