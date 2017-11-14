@@ -609,7 +609,13 @@ public class GetHtml {
 		 * Input
 		 */
 		Element bodyElement;
-		if(q.type.equals("string") && q.appearance.contains("multiline") || q.parameters.contains("rows=")) {
+		if(q.appearance == null) {
+			q.appearance = "";
+		}
+		if(q.parameters == null) {
+			q.parameters = "";
+		}
+		if(q.type.equals("string") && (q.appearance.contains("multiline") || q.parameters.contains("rows="))) {
 			bodyElement = outputDoc.createElement("textarea");
 			
 			String rp = getParameter(q.parameters, "rows");
