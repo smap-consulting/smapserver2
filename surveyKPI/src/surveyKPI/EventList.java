@@ -990,79 +990,74 @@ public class EventList extends Application {
 		// End Authorisation
 		
 		
-		JSONObject jo = new JSONObject();
+		JSONArray ja = new JSONArray();
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtSurvey = null;
-		
 
 		try {
 			
 			String sql = null;
-			String surveyIdent = null;
-			
-			/*
-			 * Get the latest survey version
-			 */
-			
-			sql = "select ident, display_name, version, s_id from survey where p_id = ?;";
-			pstmtSurvey = connectionSD.prepareStatement(sql);
-			pstmtSurvey.setInt(1, projectId);
-			ResultSet rs = pstmtSurvey.executeQuery();
-			JSONObject js = new JSONObject();
-			while(rs.next()) {
-				JSONObject jOneSurvey = new JSONObject();
-				jOneSurvey.put("name", rs.getString(2));
-				jOneSurvey.put("version", rs.getInt(3));
-				js.put(rs.getString(1), jOneSurvey);
-				
-				int surveyId = rs.getInt(4);
-				if(surveyId == sId) {
-					surveyIdent = rs.getString(1);
-				}
-			}
-			jo.put("all_surveys", js);
+			ResultSet rs = null;
 			
 			if(sId == -1) {
-				sql = "select u.ident, u.name, fd.device_id, fd.form_ident, fd.form_version " +
-						"from users u inner join user_project up on u.id = up.u_id " +
-						"inner join project p on up.p_id = p.id and p.id = ? " +
-						"left outer join form_downloads fd on fd.u_id = u.id " +
-						"and fd.form_ident in (select ident from survey where p_id = ?) " +
-						"order by u.name asc;";
+				sql = "select u.name, u.ident, s.display_name, s.version, fd.form_ident, fd.form_version, fd.device_id "
+						+ "from survey s inner join project p on s.p_id = p.id and p.id = ? "
+						+ "inner join user_project up on p.id = up.p_id "
+						+ "inner join users u on u.id = up.u_id "  
+						+ "left outer join form_downloads fd on fd.u_id = u.id "
+						+ "and fd.form_ident = s.ident "
+						+ "where u.temporary = 'false' "
+						+ "and s.deleted = 'false' "
+						+ "and s.blocked = 'false' "
+						+ "order by u.name, s.display_name asc";
+
 			} else {
-				sql = "select u.ident, u.name, fd.device_id, fd.form_ident, fd.form_version " +
-						"from users u inner join user_project up on u.id = up.u_id " +
-						"inner join project p on up.p_id = p.id and p.id = ? " +
-						"left outer join form_downloads fd on fd.u_id = u.id " +
-						"and fd.form_ident = ? " +
-						"order by u.name asc;";
+				sql = "select u.name, u.ident, s.display_name, s.version, fd.form_ident, fd.form_version, fd.device_id "
+						+ "from survey s inner join project p on s.p_id = p.id and p.id = ? "
+						+ "inner join user_project up on p.id = up.p_id "
+						+ "inner join users u on u.id = up.u_id "  
+						+ "left outer join form_downloads fd on fd.u_id = u.id "
+						+ "and fd.form_ident = s.ident "
+						+ "where u.temporary = 'false' "
+						+ "and s.deleted = 'false' "
+						+ "and s.blocked = 'false' "
+						+ "and s.s_id = ? "
+						+ "order by u.name, s.display_name asc";
+			
 			}
 			
 			pstmt = connectionSD.prepareStatement(sql);
 			if(sId == -1) {
 				pstmt.setInt(1, projectId);
-				pstmt.setInt(2, projectId);
 			} else {
 				pstmt.setInt(1, projectId);
-				pstmt.setString(2, surveyIdent);
+				pstmt.setInt(2, sId);
 			}
 			log.info("Get form downloads: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			
 	
-			JSONArray ja = new JSONArray();
 			while(rs.next()) {
 				JSONObject jr = new JSONObject();
 				
-				jr.put("u_ident", rs.getString(1));
-				jr.put("u_name", rs.getString(2));
-				jr.put("device_id", rs.getString(3));
-				jr.put("survey_ident", rs.getString(4));
-				jr.put("survey_version", rs.getInt(5));
+				jr.put("u_name", rs.getString(1));
+				jr.put("u_ident", rs.getString(2));
+				jr.put("survey_name", rs.getString(3));
+				jr.put("survey_version", rs.getString(4));
+				
+				String dl_survey = rs.getString(5);
+				if(dl_survey == null) {
+					jr.put("no_download", true);
+				}
+				
+				String dl_version = rs.getString(6);
+				jr.put("download_version", (dl_version != null) ? dl_version : "");
+				
+				String dl_device = rs.getString(7);
+				jr.put("device_id", (dl_device != null) ? dl_device : "");
+			
 				ja.put(jr);
 			}
 			
-			jo.put("forms", ja);
 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Exception", e); 
@@ -1071,12 +1066,12 @@ public class EventList extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtSurvey != null) {pstmtSurvey.close();}} catch (SQLException e) {}
+			//try {if (pstmtSurvey != null) {pstmtSurvey.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
 		}
 		
-		return jo.toString();
+		return ja.toString();
 	}
 
 }
