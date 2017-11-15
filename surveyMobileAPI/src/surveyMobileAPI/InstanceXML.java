@@ -87,15 +87,6 @@ public class InstanceXML extends Application{
 		
 		log.info("instanceXML: Survey=" + templateName + " priKey=" + priKey + " key=" + key + " keyval=" + keyval);
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
-		
 		String user = request.getRemoteUser();
 		
 		// Authorisation - Access

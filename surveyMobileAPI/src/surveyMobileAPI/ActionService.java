@@ -136,14 +136,6 @@ public class ActionService extends Application {
 
 		Response response = null;
 
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-			return response;
-		}
-
 		String sql = "delete from users where temporary and ident = ?";
 		PreparedStatement pstmt = null;
 
@@ -185,12 +177,6 @@ public class ActionService extends Application {
 		Response response = null;
 		StringBuffer outputString = new StringBuffer();
 		String requester = "surveyMobileAPI-getActionForm";
-
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		}
 
 		Connection sd = SDDataSource.getConnection(requester);
 		Connection cResults = ResultsDataSource.getConnection(requester);

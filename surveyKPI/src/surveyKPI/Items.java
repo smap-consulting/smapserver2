@@ -120,14 +120,7 @@ public class Items extends Application {
 		if(mustHaveGeom != null && mustHaveGeom.equals("no")) {
 			bMustHaveGeom = false;
 		}
-			
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
-		
+	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Items");
 		int sId = 0;
@@ -608,15 +601,7 @@ public class Items extends Application {
 			) { 
 		
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+	
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Items");
 		boolean superUser = false;

@@ -125,16 +125,7 @@ public class HtmlManifest extends Application{
 		Response response = null;
 		
 		log.info("htmlManifest: Survey=" + templateName);
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
-		
+	
 		String user = request.getRemoteUser();
 		Survey survey = null;
 		

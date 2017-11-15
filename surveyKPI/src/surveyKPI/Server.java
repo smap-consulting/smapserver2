@@ -56,14 +56,7 @@ public class Server extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getServerSettings() { 
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return Response.serverError().build();
-		}
-		
+
 		Response response = null;
 		Connection sd = SDDataSource.getConnection("SurveyKPI-getServerSettings");
 
@@ -97,15 +90,6 @@ public class Server extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    log.info("Error: Can't find PostgreSQL JDBC Driver");
-		    e.printStackTrace();
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SaveServerSettings");

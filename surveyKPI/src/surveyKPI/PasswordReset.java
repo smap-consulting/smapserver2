@@ -71,17 +71,6 @@ public class PasswordReset extends Application {
 	
 		Response response = null;
 
-				
-		// Get the Postgres driver
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
-
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-onetimelogon");
 		PreparedStatement pstmt = null;
 
@@ -184,14 +173,7 @@ public class PasswordReset extends Application {
 			@FormParam("passwordDetails") String passwordDetails) { 
 
 		Response response = null;
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    e.printStackTrace();
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+	
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-setPassword");
 		
 		PasswordDetails pd = new Gson().fromJson(passwordDetails, PasswordDetails.class);

@@ -283,14 +283,6 @@ public class NotificationList extends Application {
 		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
-		
 		Type type = new TypeToken<Notification>(){}.getType();
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		Notification n = gson.fromJson(notificationString, type);
@@ -366,14 +358,6 @@ public class NotificationList extends Application {
 		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
-		
 		Type type = new TypeToken<Notification>(){}.getType();
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		Notification n = gson.fromJson(notificationString, type);
@@ -441,14 +425,6 @@ public class NotificationList extends Application {
 		
 		ResponseBuilder builder = Response.ok();
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");

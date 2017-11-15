@@ -71,14 +71,7 @@ public class UsageReports extends Application {
 			@QueryParam("period") String period) throws Exception {
 
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());   // Service only available on business servers
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
-		
+
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("createPDF");	
 		a.isAuthorised(connectionSD, request.getRemoteUser());		

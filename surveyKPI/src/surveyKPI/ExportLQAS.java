@@ -91,13 +91,6 @@ public class ExportLQAS extends Application {
 			@PathParam("rId") int rId,
 			@QueryParam("sources") boolean showSources,
 			@QueryParam("filetype") String filetype) throws Exception {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
 				
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("createLQAS");	

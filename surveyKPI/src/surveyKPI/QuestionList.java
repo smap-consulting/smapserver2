@@ -73,13 +73,6 @@ public class QuestionList extends Application {
 			@QueryParam("single_type") String single_type,
 			@QueryParam("exc_read_only") boolean exc_read_only,
 			@QueryParam("exc_ssc") boolean exc_ssc) { 
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    e.printStackTrace();
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-QuestionList");
@@ -214,13 +207,7 @@ public class QuestionList extends Application {
 			@QueryParam("exc_read_only") boolean exc_read_only,
 			@QueryParam("exc_ssc") boolean exc_ssc) { 
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    e.printStackTrace();
-		    return Response.serverError().entity("Error: Can't find PostgreSQL JDBC Driver").build();
-		}
-		
+	
 		Response response = null;
 		
 		// Authorisation - Access
@@ -358,13 +345,6 @@ public class QuestionList extends Application {
 			@PathParam("sId") int sId,
 			@PathParam("language") String language,
 			@QueryParam("exc_read_only") boolean exc_read_only) { 
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    e.printStackTrace();
-		    return Response.serverError().entity("Error: Can't find PostgreSQL JDBC Driver").build();
-		}
 		
 		Response response = null;
 		
@@ -470,13 +450,6 @@ public class QuestionList extends Application {
 			@PathParam("language") String language,
 			@PathParam("form") int fId) { 
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    e.printStackTrace();
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
-		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-QuestionList");
 		boolean superUser = false;

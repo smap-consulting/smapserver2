@@ -104,15 +104,7 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
@@ -263,15 +255,7 @@ public class UserList extends Application {
 		Response response = null;
 		
 		log.info("userList for project: " + projectId);
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
@@ -486,14 +470,6 @@ public class UserList extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
 		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());

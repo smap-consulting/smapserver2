@@ -338,13 +338,6 @@ public class AllAssignments extends Application {
 		Response response = null;
 		ArrayList<TaskAddress> addressArray = null;
 
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("++++++++++++++++++++++++++++++++++++++ Assignment:" + settings);
 		AssignFromSurvey as = new Gson().fromJson(settings, AssignFromSurvey.class);
@@ -947,14 +940,6 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
@@ -1051,15 +1036,6 @@ public class AllAssignments extends Application {
 	public Response loadResultsFromFile(@Context HttpServletRequest request) { 
 
 		Response response = null;
-
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("Load results from file");
 
@@ -1393,15 +1369,6 @@ public class AllAssignments extends Application {
 		Response response = null;
 		String dbConnectionTitle = "surveyKPI-AllAssignments- Update task properties";
 
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
-
 		log.info("Updating task properties");	
 
 		// Authorisation - Access
@@ -1503,14 +1470,6 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
@@ -1607,14 +1566,6 @@ public class AllAssignments extends Application {
 			@PathParam("taskGroupId") int tg_id) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
@@ -1662,14 +1613,6 @@ public class AllAssignments extends Application {
 			) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");

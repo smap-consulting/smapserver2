@@ -782,14 +782,6 @@ public class Surveys extends Application {
 		Response response = null;
 		int version;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
-		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;

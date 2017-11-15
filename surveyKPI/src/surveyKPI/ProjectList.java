@@ -145,14 +145,6 @@ public class ProjectList extends Application {
 	public Response updateProject(@Context HttpServletRequest request, @FormParam("projects") String projects) { 
 		
 		Response response = null;
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		String user = request.getRemoteUser();
@@ -270,14 +262,6 @@ public class ProjectList extends Application {
 	public Response delProject(@Context HttpServletRequest request, @FormParam("projects") String projects) { 
 		
 		Response response = null;
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ProjectList");

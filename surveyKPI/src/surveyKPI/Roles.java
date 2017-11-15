@@ -84,14 +84,6 @@ public class Roles extends Application {
 
 		Response response = null;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
 		aSM.isAuthorised(sd, request.getRemoteUser());
@@ -128,14 +120,6 @@ public class Roles extends Application {
 	public Response updateRoles(@Context HttpServletRequest request, @FormParam("roles") String roles) { 
 		
 		Response response = null;
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-RoleList");
@@ -189,14 +173,6 @@ public class Roles extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-userList - delete roles");
 		aSM.isAuthorised(sd, request.getRemoteUser());
@@ -236,14 +212,6 @@ public class Roles extends Application {
 			) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
@@ -293,14 +261,6 @@ public class Roles extends Application {
 			) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		Role role = new Gson().fromJson(roleString, Role.class);
 		

@@ -117,13 +117,6 @@ public class CustomReports extends Application {
 		
 		Response response = null;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
@@ -177,18 +170,6 @@ public class CustomReports extends Application {
 			@Context HttpServletResponse response) { 
 		
 		Response responseVal = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-			 try {
-			    	response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-			    		"Survey: Error: Can't find PostgreSQL JDBC Driver");
-			  } catch (Exception ex) {
-			    	log.log(Level.SEVERE, "Exception", ex);
-			  }
-		}
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-ExportOversight");

@@ -1316,12 +1316,6 @@ public class GetXForm {
 
 		// Get database driver and connection to the results database
 
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		}
-
 		String requester = "GetXForm - getInstance";
 		cResults = ResultsDataSource.getConnection(requester);
 		sd = SDDataSource.getConnection(requester);

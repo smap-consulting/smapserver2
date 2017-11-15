@@ -66,13 +66,6 @@ public class QuestionDetail extends Application {
 			@PathParam("lang") String lang, 
 			@PathParam("qId") String qId) { 
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Error: Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
-
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Question");
 		a.isAuthorised(connectionSD, request.getRemoteUser());

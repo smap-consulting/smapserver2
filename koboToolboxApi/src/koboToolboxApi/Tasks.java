@@ -69,13 +69,6 @@ public class Tasks extends Application {
 		
 		Response response = null;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().build();
-		}
-		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("KoboToolBoxAPI - Tasks - Endpoints");
 		a.isAuthorised(sd, request.getRemoteUser());

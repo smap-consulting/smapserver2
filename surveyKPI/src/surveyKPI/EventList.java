@@ -79,13 +79,6 @@ public class EventList extends Application {
 			@QueryParam("is_forward") boolean is_forward,
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit) {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
 		
 		log.info("Get events, Project id: " + projectId + " Survey id: " + sName);
 		HashMap<Integer, String> surveyNames = new HashMap<Integer, String> ();
@@ -329,13 +322,6 @@ public class EventList extends Application {
 			@QueryParam("hide_success") boolean hideSuccess,
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit) {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
@@ -488,13 +474,6 @@ public class EventList extends Application {
 			@QueryParam("hide_errors") boolean hideErrors,
 			@QueryParam("hide_success") boolean hideSuccess
 			) {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
@@ -577,13 +556,6 @@ public class EventList extends Application {
 			@QueryParam("hide_upload_errors") boolean hideUploadErrors,
 			@QueryParam("groupby") String groupby,
 			@QueryParam("is_forward") boolean is_forward) {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
@@ -1001,12 +973,6 @@ public class EventList extends Application {
 			@PathParam("sName") String sName) {
 
 		int sId = -1;
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
 		
 		if(sName.equals("_all")) {
 			

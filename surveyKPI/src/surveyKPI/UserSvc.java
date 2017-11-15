@@ -83,15 +83,7 @@ public class UserSvc extends Application {
 	public Response getUserDetails(@Context HttpServletRequest request) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+
 		// Authorisation - Not required
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
@@ -124,15 +116,7 @@ public class UserSvc extends Application {
 	public Response getMyAlerts(@Context HttpServletRequest request) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+
 		// Authorisation - Not required
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
@@ -169,14 +153,6 @@ public class UserSvc extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Not Required
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 			
@@ -223,14 +199,6 @@ public class UserSvc extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Not Required
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
@@ -393,14 +361,6 @@ public class UserSvc extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024); // 5 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Not Required
 		
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
