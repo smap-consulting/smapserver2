@@ -129,8 +129,8 @@ public class QuestionList extends Application {
 				sqlst = "";
 			}
 			
-			sqlEnd = " ORDER BY f.table_name, q.seq;";
-			
+			//sqlEnd = " ORDER BY f.table_name, q.seq;";
+			sqlEnd = " ORDER BY q.qname asc";
 			
 			sql = sql1 + sqlro  + sqlst + sqlEnd;	
 			

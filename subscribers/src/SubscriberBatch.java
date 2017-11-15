@@ -326,9 +326,7 @@ public class SubscriberBatch {
 								}
 							}
 						}
-					} else {
-						System.out.print('#');
-					}
+					} 
 				}
 			}
 			
