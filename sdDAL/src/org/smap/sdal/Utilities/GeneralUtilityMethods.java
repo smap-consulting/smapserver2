@@ -2577,10 +2577,25 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return a list of results columns for a form
 	 */
-	public static ArrayList<TableColumn> getColumnsInForm(Connection sd, Connection cResults, int sId, String user,
-			int formParent, int f_id, String table_name, boolean includeRO, boolean includeParentKey,
-			boolean includeBad, boolean includeInstanceId, boolean includeOtherMeta, boolean includePreloads,
-			boolean includeInstanceName, boolean includeSurveyDuration, boolean superUser, boolean hxl, boolean audit)
+	public static ArrayList<TableColumn> getColumnsInForm(
+			Connection sd, 
+			Connection cResults, 
+			int sId, 
+			String user,
+			int formParent, 
+			int f_id, 
+			String table_name, 
+			boolean includeRO, 
+			boolean includeParentKey,
+			boolean includeBad, 
+			boolean includeInstanceId, 
+			boolean includeOtherMeta, 
+			boolean includePreloads,
+			boolean includeInstanceName, 
+			boolean includeSurveyDuration, 
+			boolean superUser,
+			boolean hxl,
+			boolean audit)
 					throws SQLException {
 
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
@@ -5144,7 +5159,7 @@ public class GeneralUtilityMethods {
 	public static boolean documentSyncEnabled(Connection sd) throws SQLException {
 		
 		boolean enabled = false;
-		String sql = "select_document_sync from server;";
+		String sql = "select document_sync from server;";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -5160,5 +5175,31 @@ public class GeneralUtilityMethods {
 		
 		return enabled;
 	}
+	
+	/*
+	 * Get document server configuration
+	 */
+	public static HashMap<String, String> docServerConfig(Connection sd) throws SQLException {
+		
+		HashMap<String, String> config = new HashMap<> ();
+		String sql = "select doc_server, doc_server_user, doc_server_password from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				config.put("server", rs.getString(1));
+				config.put("user", rs.getString(2));
+				config.put("password", rs.getString(3));
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return config;
+	}
+	
 }
 

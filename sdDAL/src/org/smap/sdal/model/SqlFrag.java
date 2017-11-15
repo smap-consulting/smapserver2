@@ -226,8 +226,10 @@ public class SqlFrag {
 				isText = false; // Contains a text fragment
 			} else if(in.contains("{")) {
 				isText = false; // Contains a column name
-			} else if(in.contains("()")) {
-				isText = false; // Contains a function without parameters such as now()
+			} else if(in.contains("(")) {
+				isText = false; // Contains a function possibly
+			} else if(in.contains("where") || in.contains("and")) {
+				isText = false; // Contains some sql reserved words
 			}
 		}
 		if(isText) {

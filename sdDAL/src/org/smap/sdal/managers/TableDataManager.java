@@ -11,6 +11,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.TableColumn;
 
 /*****************************************************************************
@@ -42,10 +43,29 @@ public class TableDataManager {
 	/*
 	 * Get the current columns
 	 */
-	public PreparedStatement getPreparedStatement(Connection sd, Connection cResults, ArrayList<TableColumn> columns,
-			String urlprefix, int sId, String table_name, int parkey, String hrk, String uIdent, String sort,
-			String dirn, boolean mgmt, boolean group, boolean isDt, int start, int limit, boolean getParkey,
-			int start_parkey, boolean superUser, boolean specificPrikey, String include_bad)
+	public PreparedStatement getPreparedStatement(
+			Connection sd, 
+			Connection cResults, 
+			ArrayList<TableColumn> columns,
+			String urlprefix, 
+			int sId, 
+			String table_name, 
+			int parkey, 
+			String hrk, 
+			String uIdent, 
+			String sort,
+			String dirn, 
+			boolean mgmt, 
+			boolean group, 
+			boolean isDt, 
+			int start, 
+			int limit, 
+			boolean getParkey,
+			int start_parkey, 
+			boolean superUser, 
+			boolean specificPrikey, 
+			String include_bad,
+			String customFilter)
 			throws SQLException, Exception {
 
 		StringBuffer columnSelect = new StringBuffer();
@@ -109,6 +129,12 @@ public class TableDataManager {
 					}
 				}
 			}
+			
+			// Add custom filter
+			if(customFilter != null) {
+				sqlSelect.append(" and ");
+				sqlSelect.append(customFilter);
+			}
 
 			StringBuffer sqlGetDataOrder = new StringBuffer("");
 			if (sort != null) {
@@ -162,9 +188,13 @@ public class TableDataManager {
 	/*
 	 * Get the data
 	 */
-	public JSONArray getData(PreparedStatement pstmt,
-			ArrayList<TableColumn> columns, String urlprefix, 
-			boolean group, boolean isDt, int limit)
+	public JSONArray getData(
+			PreparedStatement pstmt,
+			ArrayList<TableColumn> columns, 
+			String urlprefix, 
+			boolean group, 
+			boolean isDt, 
+			int limit)
 			throws SQLException, Exception {
 
 		ResultSet rs = null;

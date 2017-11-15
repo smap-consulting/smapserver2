@@ -329,7 +329,8 @@ public class Data_CSV extends Application {
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
 						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,
 						superUser, false, // Return records greater than or equal to primary key
-						include_bad);
+						include_bad,
+						null);
 
 				log.info("Get CSV data: " + pstmt.toString());
 				HashMap<String, Integer> auditData = null;
