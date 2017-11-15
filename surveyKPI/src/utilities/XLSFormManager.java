@@ -123,7 +123,7 @@ public class XLSFormManager {
 			
 			if(type == COL_TYPE) {
 						
-				if(q.type.equals("string") && q.calculation != null && q.calculation.trim().length() > 0) {
+				if(q.type.equals("string") && !q.visible) {		// By this point the type should be calculate anyway
 					value = "calculate";
 				} else if(q.readonly && q.type.equals("string")) {
 					value = "note";
@@ -142,11 +142,19 @@ public class XLSFormManager {
 			} else if(type == COL_NAME) {				
 				value = q.name;		
 				
-			} else if(type == COL_LABEL) {				
-				value = q.labels.get(labelIndex).text;
+			} else if(type == COL_LABEL) {
+				if(q.type.equals("calculate")) {
+					value = "";
+				} else {
+					value = q.labels.get(labelIndex).text;
+				}
 				
-			} else if(type == COL_HINT) {				
-				value = q.labels.get(labelIndex).hint;
+			} else if(type == COL_HINT) {	
+				if(q.type.equals("calculate")) {	
+					value = "";
+				} else {
+					value = q.labels.get(labelIndex).hint;
+				}
 				
 			} else if(type == COL_CHOICE_FILTER) {				
 				value = q.choice_filter;
