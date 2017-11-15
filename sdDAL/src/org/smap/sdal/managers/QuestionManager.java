@@ -10,6 +10,7 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -50,6 +51,11 @@ public class QuestionManager {
 	private static Logger log =
 			 Logger.getLogger(QuestionManager.class.getName());
 
+	private ResourceBundle localisation;
+	
+	public QuestionManager(ResourceBundle l) {
+		localisation = l;
+	}
 	/*
 	 * These functions are used when adding CSV files. 
 	 * They will add the choices from the CSV files to the survey definition
@@ -131,7 +137,7 @@ public class QuestionManager {
 	public void save(Connection sd, Connection cResults, int sId, ArrayList<Question> questions) throws Exception {
 		
 		String columnName = null;
-		SurveyManager sm = new SurveyManager();		// To apply survey level updates resulting from this question change
+		SurveyManager sm = new SurveyManager(localisation);		// To apply survey level updates resulting from this question change
 		
 		PreparedStatement pstmtInsertQuestion = null;
 		String sql = "insert into question (q_id, "
@@ -891,7 +897,7 @@ public class QuestionManager {
 					
 				}
 				
-				SurveyManager sm = new SurveyManager();
+				SurveyManager sm = new SurveyManager(localisation);
 				sm.removeUnusedSurveyManifests(sd, sId);
 				
 			}
@@ -1257,7 +1263,11 @@ public class QuestionManager {
 	/*
 	 * Get a changeset with option updates for a question from a CSV file
 	 */
-	public ChangeSet getCSVChangeSetForQuestion(Connection sd, 
+	public ChangeSet getCSVChangeSetForQuestion(
+			Connection sd, 
+			ResourceBundle localisation,
+			String user,
+			int sId,
 			File csvFile,
 			File oldCsvFile,
 			String csvFileName,
@@ -1271,6 +1281,9 @@ public class QuestionManager {
 		
 		GeneralUtilityMethods.getOptionsFromFile(
 				sd,
+				localisation,
+				user,
+				sId,
 				cs.items,
 				csvFile,
 				oldCsvFile,
@@ -1616,7 +1629,7 @@ public class QuestionManager {
 			pstmt.executeUpdate();
 			
 			// Update the survey manifest if this question references CSV files
-			SurveyManager sm = new SurveyManager();	
+			SurveyManager sm = new SurveyManager(localisation);	
 			pstmtGetQuestionsForManifest = sd.prepareStatement(sqlGetQuestionsForManifest);
 			pstmtGetQuestionsForManifest.setInt(1, existingFormId);
 			log.info("Getting questions that may affect manifest: " + pstmtGetQuestionsForManifest.toString());

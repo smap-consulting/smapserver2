@@ -44,6 +44,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.Option;
@@ -1564,21 +1565,36 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get a list of options from an external file
 	 */
-	public static void getOptionsFromFile(Connection sd, ArrayList<ChangeItem> ciList, File csvFile, File oldCsvFile,
+	public static void getOptionsFromFile(
+			Connection sd, 
+			ResourceBundle localisation, 
+			String user,
+			int sId,
+			ArrayList<ChangeItem> ciList, 
+			File csvFile, 
+			File oldCsvFile,
 			String csvFileName, String qName, int l_id, int qId, String qType, String qAppearance) throws Exception {
 
 		// Store the value and label data for each row in here
 		class OptionItem {
 			public String value;
-			public String label;
+			public ArrayList<LanguageItem> label = new ArrayList<LanguageItem> ();
 			private String filterString;
 			public HashMap<String, String> filter;
 
-			public OptionItem(String v, String l, HashMap<String, String> f) {
-				value = v;
-				label = l;
+			// data[vlc.value], data[vlc.label], filter.GetCascadeFilter(data)));
+			//public OptionItem(String v, String l, HashMap<String, String> f) {
+			public OptionItem(String[] data, ArrayList<ValueLabelCols> vlcA, HashMap<String, String> f) {
+				
+				for(int i = 0; i < vlcA.size(); i++) {
+					ValueLabelCols vlc = vlcA.get(i);
+					if(i == 0) {
+						value = data[vlc.value];
+					}
+					label.add(new LanguageItem(vlc.language, data[vlc.label]));
+				}
+				
 				filter = f;
-
 				filterString = "";
 				if (f != null) {
 					String fv = f.get("_smap_cascade");
@@ -1592,11 +1608,27 @@ public class GeneralUtilityMethods {
 
 				if ((o instanceof OptionItem) 
 						&& value.equals(((OptionItem) o).value) 
-						&& label.equals(((OptionItem) o).label) 
+						&& labelsUnchanged((OptionItem) o) 
 						&& filterString.equals(((OptionItem) o).filterString)) {
 					return true;
 				}
 				return false;
+			}
+			
+			private boolean labelsUnchanged(OptionItem oi) {
+				boolean unchanged = true;
+				
+				if(oi.label.size() != label.size()) {
+					unchanged = false;
+				} else {
+					for(int i = 0; i < label.size(); i++) {
+						if(!oi.label.get(i).equals(label.get(i))) {
+							unchanged = false;
+							break;
+						}
+					}
+				}
+				return unchanged;
 			}
 		}
 		;
@@ -1623,7 +1655,13 @@ public class GeneralUtilityMethods {
 			String cols[] = parser.parseLine(newLine);
 
 			CSVFilter filter = new CSVFilter(cols, qAppearance); // Get a filter
-			ValueLabelCols vlc = getValueLabelCols(sd, qId, qName, cols); // Identify the columns in the CSV file that
+			ValueLabelColsResp vlcA = getValueLabelCols(sd, qId, qName, cols); // Identify the columns in the CSV file that
+			if(vlcA.values.size() == 0) {
+				String msg = localisation.getString("ex_csv_nc");
+				msg.replace("%s1", qName);
+				lm.writeLog(sd, sId, user, "csv file", msg);
+				throw new Exception(msg);
+			}
 			// have the value and label
 
 			/*
@@ -1638,23 +1676,62 @@ public class GeneralUtilityMethods {
 				if(newLine != null) {
 					String[] data = parser.parseLine(newLine);
 					if (filter.isIncluded(data)) {
-						listNew.add(new OptionItem(data[vlc.value], data[vlc.label], filter.GetCascadeFilter(data)));
+						listNew.add(new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data)));
 					}
 				}
 			}
-			if (brOld != null) {
-				newLine = brOld.readLine(); // Jump past the header
-				while (newLine != null) {
+			
+			// Compare with old values as long as there was not an error in reading the columns from the csv file
+			if(vlcA.error) {
+				// Force delete of existing choices
+				if (brOld != null) {
 					newLine = brOld.readLine(); // Jump past the header
-					if(newLine != null) {
-						String[] data = parser.parseLine(newLine);
-						if (filter.isIncluded(data)) {
-							listOld.add(new OptionItem(data[vlc.value], data[vlc.label], filter.GetCascadeFilter(data)));
+					while (newLine != null) {
+						newLine = brOld.readLine(); // Jump past the header
+						if(newLine != null) {
+							String[] data = parser.parseLine(newLine);
+							if (filter.isIncluded(data)) {
+								ChangeItem c = new ChangeItem();
+								c.option = new Option();
+								c.option.l_id = l_id;
+								c.qName = qName; // Add for logging
+								c.fileName = csvFileName; // Add for logging
+								c.qType = qType;
+								c.option.value = data[vlcA.values.get(0).value];
+								c.action = "delete";
+
+								ciList.add(c);
+							}
+						}
+					}
+				}
+			} else {
+				// Get the old values so we can look for changes
+				if (brOld != null) {
+					newLine = brOld.readLine(); // Jump past the header
+					while (newLine != null) {
+						newLine = brOld.readLine(); // Jump past the header
+						if(newLine != null) {
+							String[] data = parser.parseLine(newLine);
+							if (filter.isIncluded(data)) {
+								listOld.add(new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data)));
+							}
 						}
 					}
 				}
 			}
 
+			// debug
+			log.info(" ======== New list: " + listNew.size());
+			for(int i = 0; i < listNew.size(); i++) {
+				log.info("    - " + listNew.get(i).value);
+			}
+			
+			log.info(" ======== Old list" + listOld.size());
+			for(int i = 0; i < listOld.size(); i++) {
+				log.info("    - " + listOld.get(i).value);
+			}
+			
 			/*
 			 * Create a list of items to add that are in the new list but not in the old
 			 * Create a list of items to remove that are in the old list but not in the new
@@ -1664,6 +1741,27 @@ public class GeneralUtilityMethods {
 			ArrayList<OptionItem> listDel = new ArrayList<OptionItem>(listOld);
 			listDel.removeAll(listNew);
 
+			/*
+			 * Delete Items 
+			 * Do this first as presumably its possible that the new option could have identical identifiers to an 
+			 * option its replacing but with a different label
+			 */
+			log.info("There are " + listDel.size() + " items to delete");
+			for (OptionItem item : listDel) {
+
+				ChangeItem c = new ChangeItem();
+				c.option = new Option();
+				c.option.l_id = l_id;
+				c.qName = qName; // Add for logging
+				c.fileName = csvFileName; // Add for logging
+				c.qType = qType;
+				c.option.value = item.value;
+				c.action = "delete";
+
+				ciList.add(c);
+
+			}
+			
 			/*
 			 * Add new items
 			 */
@@ -1680,27 +1778,6 @@ public class GeneralUtilityMethods {
 				c.option.value = item.value;
 				c.option.cascade_filters = item.filter;
 				c.action = "add";
-
-				ciList.add(c);
-
-			}
-
-			/*
-			 * Delete Items TODO
-			 */
-			log.info("There are " + listDel.size() + " items to delete");
-			for (OptionItem item : listDel) {
-
-				ChangeItem c = new ChangeItem();
-				c.option = new Option();
-				c.option.l_id = l_id;
-				c.qName = qName; // Add for logging
-				c.fileName = csvFileName; // Add for logging
-				c.qType = qType;
-				c.option.externalLabel = item.label;
-				c.option.value = item.value;
-				c.option.cascade_filters = item.filter;
-				c.action = "delete";
 
 				ciList.add(c);
 
@@ -1823,34 +1900,38 @@ public class GeneralUtilityMethods {
 	 * Return the columns in a CSV file that have the value and label for the given
 	 * question
 	 */
-	public static ValueLabelCols getValueLabelCols(Connection sd, int qId, String qDisplayName, String[] cols)
+	public static ValueLabelColsResp getValueLabelCols(Connection sd, int qId, String qDisplayName, String[] cols)
 			throws Exception {
 
-		ValueLabelCols vlc = new ValueLabelCols();
+		ValueLabelColsResp resp = new ValueLabelColsResp();
 
 		if (cols == null) {
 			// No column in this CSV file so there are not going to be any matches
-			log.info("No columns found in CSV file");
-			return vlc;
+			String msg = "No columns found in this csv file";
+			lm.writeLog(sd, 0, "", "csv file", msg);
+			throw new Exception(msg);
 		}
-		/*
-		 * Ignore language in the query, these values are codes and are (currently)
-		 * independent of language
-		 */
+		
 		PreparedStatement pstmt = null;
-		String sql = "SELECT o.ovalue, t.value " + "from option o, translation t, question q "
+		String sql = "SELECT o.ovalue, t.value, t.language " 
+				+ "from option o, translation t, question q "
 				+ "where o.label_id = t.text_id " + "and o.l_id = q.l_id " + "and q.q_id = ? "
-				+ "and externalfile ='false';";
+				+ "and externalfile ='false' order by t.language asc;";
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, qId);
 			log.info("Get value/label combos: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
+			
+			while (rs.next()) {
+				boolean err = false;
+				ValueLabelCols vlc = new ValueLabelCols();
+				
 				String valueName = rs.getString(1);
 				String labelName = rs.getString(2);
-
+				vlc.language = rs.getString(3);		
+				
 				vlc.value = -1;
 				vlc.label = -1;
 				for (int i = 0; i < cols.length; i++) {
@@ -1861,25 +1942,26 @@ public class GeneralUtilityMethods {
 						vlc.label = i;
 					}
 				}
+				
 				if (vlc.value == -1) {
 					String msg = "Column " + valueName + " not found in csv file for question " + qDisplayName;
 					lm.writeLog(sd, 0, "", "csv file", msg);
-					throw new Exception(msg);
-
+					err = true;
+					resp.error = true;
 				} else if (vlc.label == -1) {
+					err = true;
 					String msg = "Column " + labelName + " not found in csv file for question " + qDisplayName;
 					lm.writeLog(sd, 0, "", "csv file", msg);
-					throw new Exception(msg);
+					resp.error = true;
 				}
-			} else {
-				String msg = "The names of the columns to use in this csv file have not been set in question " + qDisplayName;
-				lm.writeLog(sd, 0, "", "csv file", msg);
-				throw new Exception(msg);
-			}
+				if(!err) {
+					resp.values.add(vlc);
+				}
+			} 
 		} finally {
 			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {};
 		}
-		return vlc;
+		return resp;
 	}
 
 	/*
@@ -2495,10 +2577,25 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return a list of results columns for a form
 	 */
-	public static ArrayList<TableColumn> getColumnsInForm(Connection sd, Connection cResults, int sId, String user,
-			int formParent, int f_id, String table_name, boolean includeRO, boolean includeParentKey,
-			boolean includeBad, boolean includeInstanceId, boolean includeOtherMeta, boolean includePreloads,
-			boolean includeInstanceName, boolean includeSurveyDuration, boolean superUser, boolean hxl, boolean audit)
+	public static ArrayList<TableColumn> getColumnsInForm(
+			Connection sd, 
+			Connection cResults, 
+			int sId, 
+			String user,
+			int formParent, 
+			int f_id, 
+			String table_name, 
+			boolean includeRO, 
+			boolean includeParentKey,
+			boolean includeBad, 
+			boolean includeInstanceId, 
+			boolean includeOtherMeta, 
+			boolean includePreloads,
+			boolean includeInstanceName, 
+			boolean includeSurveyDuration, 
+			boolean superUser,
+			boolean hxl,
+			boolean audit)
 					throws SQLException {
 
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
@@ -5062,7 +5159,7 @@ public class GeneralUtilityMethods {
 	public static boolean documentSyncEnabled(Connection sd) throws SQLException {
 		
 		boolean enabled = false;
-		String sql = "select_document_sync from server;";
+		String sql = "select document_sync from server;";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -5078,5 +5175,31 @@ public class GeneralUtilityMethods {
 		
 		return enabled;
 	}
+	
+	/*
+	 * Get document server configuration
+	 */
+	public static HashMap<String, String> docServerConfig(Connection sd) throws SQLException {
+		
+		HashMap<String, String> config = new HashMap<> ();
+		String sql = "select doc_server, doc_server_user, doc_server_password from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				config.put("server", rs.getString(1));
+				config.put("user", rs.getString(2));
+				config.put("password", rs.getString(3));
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return config;
+	}
+	
 }
 

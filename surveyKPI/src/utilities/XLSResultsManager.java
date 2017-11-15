@@ -191,7 +191,11 @@ public class XLSResultsManager {
 		}
 	}
 	
-	public XLSResultsManager(String type) {
+	private ResourceBundle localisation;
+	
+	public XLSResultsManager(String type, ResourceBundle l) {
+		localisation = l;
+		
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook();
 			isXLSX = false;
@@ -206,7 +210,6 @@ public class XLSResultsManager {
 	public void createXLS(
 			Connection sd, 
 			Connection connectionResults,
-			ResourceBundle localisation,
 			String user,
 			int sId,
 			int [] inc_id,
@@ -246,7 +249,7 @@ public class XLSResultsManager {
 
 			try {
 				
-				SurveyManager sm = new SurveyManager();
+				SurveyManager sm = new SurveyManager(localisation);
 				org.smap.sdal.model.Survey survey = sm.getById(sd, connectionResults, request.getRemoteUser(), sId, true, basePath, 
 						null, false, false, false, false, false, "real", false, superUser, 0, "geojson");
 				
@@ -599,7 +602,7 @@ public class XLSResultsManager {
 				/*
 				 * Add the data
 				 */
-				getData(sd, connectionResults, localisation,
+				getData(sd, connectionResults,
 						survey,
 						formList, topForm, split_locn, merge_select_multiple, selMultChoiceNames,
 						cols,
@@ -1011,7 +1014,6 @@ public class XLSResultsManager {
 	private void getData(
 			Connection sd, 
 			Connection connectionResults, 
-			ResourceBundle localisation,
 			Survey survey,
 			ArrayList<FormDesc> formList, 
 			FormDesc f,
@@ -1056,8 +1058,8 @@ public class XLSResultsManager {
 			StringBuffer filterQuery = new StringBuffer(" and ");
 			filterQuery.append(f.table_name);
 			filterQuery.append(".instanceid in ");
-			filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, 
-					localisation, survey, advanced_filter));
+			filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, localisation,
+					survey, advanced_filter));
 			sql.append(filterQuery.toString());
 			
 			log.info("++++  Filter Query clause: " + filterQuery.toString());
@@ -1170,7 +1172,7 @@ public class XLSResultsManager {
 					for(int j = 0; j < f.children.size(); j++) {
 						FormDesc nextForm = f.children.get(j);
 						nextForm.parkey = prikey;
-						getData(sd, connectionResults, localisation, survey,
+						getData(sd, connectionResults, survey,
 								formList, nextForm, split_locn, merge_select_multiple, choiceNames,
 								cols, resultsSheet, styles, embedImages, 
 								sId, startDate, endDate, dateName, dateForm, null);

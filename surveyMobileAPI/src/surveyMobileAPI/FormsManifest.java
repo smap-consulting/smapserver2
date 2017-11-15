@@ -29,6 +29,8 @@ import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -93,20 +95,24 @@ public class FormsManifest {
 		String protocol = "";
 		StringBuilder responseStr = new StringBuilder();
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormsManifest");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
-		SurveyManager sm = new SurveyManager();
-		Survey survey = sm.getSurveyId(connectionSD, key);	// Get the survey id from the templateName / key
+		
 		boolean superUser = false;
+		ResourceBundle localisation = null;
+		SurveyManager sm = null;
+		Survey survey = null;
+		
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			sm = new SurveyManager(localisation);
+			survey = sm.getSurveyId(connectionSD, key);	// Get the survey id from the templateName / key
 		} catch (Exception e) {
 		}
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), survey.id, false, superUser);	// Validate that the user can access this survey
@@ -120,6 +126,7 @@ public class FormsManifest {
 
 		PreparedStatement pstmt = null;
 		try {
+			
 			if(key == null) {
 				throw new Exception("Error: Missing Parameter key");
 			}			

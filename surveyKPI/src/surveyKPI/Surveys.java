@@ -62,6 +62,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -102,13 +104,6 @@ public class Surveys extends Application {
 			@QueryParam("projectId") int projectId
 			) { 
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return Response.serverError().build();
-		}
-		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Surveys");
 		if(getDeleted) {
@@ -123,8 +118,13 @@ public class Surveys extends Application {
 		
 		Response response = null;
 		PreparedStatement pstmt = null;
-		SurveyManager sm = new SurveyManager();
+		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 			
 			surveys = sm.getSurveys(connectionSD, pstmt,
@@ -186,9 +186,13 @@ public class Surveys extends Application {
 		
 		Response response = null;
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
-		SurveyManager sm = new SurveyManager();
+		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			SurveyManager sm = new SurveyManager(localisation);
 			survey = sm.getById(connectionSD, cResults,  request.getRemoteUser(), sId, 
 					true, 
 					basePath, 
@@ -239,13 +243,6 @@ public class Surveys extends Application {
 			@FormParam("shared_results") boolean sharedResults
 			) { 
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return Response.serverError().build();
-		}
-		
 		log.info("userevent: " + request.getRemoteUser() + " create new survey " + name + " (" + existing + "," + 
 				existingSurveyId + "," + existingFormId + ")");
 		
@@ -273,8 +270,13 @@ public class Surveys extends Application {
 		
 		Response response = null;
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
-		SurveyManager sm = new SurveyManager();
+
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			int sId = sm.createNewSurvey(connectionSD, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser());
 			// Get the survey details.  superUser set to true as this user just created the survey so they are effectively a super user for this survey and we can save a database call
 			survey = sm.getById(connectionSD, 
@@ -334,10 +336,14 @@ public class Surveys extends Application {
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		SurveyManager sm = new SurveyManager();
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			/*
 			 * Parse the request
 			 */
@@ -446,13 +452,6 @@ public class Surveys extends Application {
 			@FormParam("changes") String changesString
 			) { 
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    return Response.serverError().build();
-		}
-		
 		log.info("Save survey:" + sId + " : " + changesString);
 		
 		Type type = new TypeToken<ArrayList<ChangeSet>>(){}.getType();
@@ -497,7 +496,11 @@ public class Surveys extends Application {
 
 		try {
 	
-			SurveyManager sm = new SurveyManager();
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			ChangeResponse resp = sm.applyChangeSetArray(connectionSD, cResults, sId, request.getRemoteUser(), changes, true);
 			
 			// Add any options that this survey links to in an an external file
@@ -778,14 +781,6 @@ public class Surveys extends Application {
 		
 		Response response = null;
 		int version;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");

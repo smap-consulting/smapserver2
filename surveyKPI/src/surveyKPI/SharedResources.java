@@ -146,14 +146,6 @@ public class SharedResources extends Application {
 		Response response = null;
 		System.out.println("Map details:" + mapString);
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SharedResources");
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	
@@ -243,15 +235,7 @@ public class SharedResources extends Application {
 		
 		ResponseBuilder builder = Response.ok();
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
-		
+
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-DeleteMap");
 		orgLevelAuth.isAuthorised(sd, request.getRemoteUser());	

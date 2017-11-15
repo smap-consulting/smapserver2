@@ -98,15 +98,7 @@ public class Utility extends Application {
 			) { 
 
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Utility");
 		a.isAuthorised(sd, request.getRemoteUser());

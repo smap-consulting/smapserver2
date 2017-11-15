@@ -28,6 +28,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
@@ -36,6 +37,8 @@ import org.smap.sdal.managers.QuestionManager;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,13 +62,6 @@ public class SurveyResults extends Application {
 			
 			Response response = null;
 			
-			try {
-			    Class.forName("org.postgresql.Driver");	 
-			} catch (ClassNotFoundException e) {
-				log.log(Level.SEVERE, "Survey: Error: Can't find PostgreSQL JDBC Driver", e);
-			    return Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-			}
-			
 			// Authorisation - Access
 			Connection connectionSD = SDDataSource.getConnection("surveyKPI-SurveyResults");
 			a.isAuthorised(connectionSD, request.getRemoteUser());
@@ -87,6 +83,10 @@ public class SurveyResults extends Application {
 				PreparedStatement pstmtGetSoftDeletedQuestions = null;
 				Statement stmtRel = null;
 				try {
+					// Get the users locale
+					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+					ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+					
 					connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
 
 					// Delete tables associated with this survey
@@ -152,7 +152,7 @@ public class SurveyResults extends Application {
 					pstmtRemoveChangeset.executeUpdate();
 					
 					// Delete any soft deleted questions from the survey definitions
-					QuestionManager qm = new QuestionManager();
+					QuestionManager qm = new QuestionManager(localisation);
 					ArrayList<org.smap.sdal.model.Question> questions = new ArrayList<org.smap.sdal.model.Question> ();
 					pstmtGetSoftDeletedQuestions.setInt(1, sId);
 					ResultSet rs = pstmtGetSoftDeletedQuestions.executeQuery();

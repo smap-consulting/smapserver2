@@ -62,15 +62,7 @@ public class Languages extends Application {
 			@PathParam("sId") String sId) { 
 	
 		Response response = null;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    log.log(Level.SEVERE, "SQL Exception", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
+
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Languages");
 		a.isAuthorised(connectionSD, request.getRemoteUser());

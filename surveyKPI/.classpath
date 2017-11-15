@@ -50,7 +50,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/commons-fileupload-1.2.2.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/javax.mail.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/core-renderer.jar"/>
-	<classpathentry kind="lib" path="/sdDAL/Libraries/xmlworker-5.5.4.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/poi-3.13-20150929.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/poi-ooxml-3.13-20150929.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/poi-ooxml-schemas-3.13-20150929.jar"/>
@@ -66,5 +65,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/postgresql-42.1.4.jar"/>
+	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/sdDAL/Libraries/xmlworker-5.5.4.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

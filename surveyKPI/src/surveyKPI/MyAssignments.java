@@ -68,6 +68,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -206,6 +208,10 @@ public class MyAssignments extends Application {
 		int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, userName, 0);
 
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
 			StringBuffer sql = null;
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 
@@ -325,7 +331,7 @@ public class MyAssignments extends Application {
 			/*
 			 * Get the complete list of forms accessible by this user
 			 */
-			SurveyManager sm = new SurveyManager();
+			SurveyManager sm = new SurveyManager(localisation);
 			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(connectionSD, pstmt,
 					userName,
 					false, 

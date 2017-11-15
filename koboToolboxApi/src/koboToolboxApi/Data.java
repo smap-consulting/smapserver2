@@ -30,6 +30,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -104,8 +106,13 @@ public class Data extends Application {
 		aSuper.isAuthorised(sd, request.getRemoteUser());
 		
 
-		DataManager dm = new DataManager();
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			DataManager dm = new DataManager(localisation);
+			
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, false);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -146,15 +153,6 @@ public class Data extends Application {
 			) { 
 
 		Response response = null;
-		
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records");
@@ -298,7 +296,8 @@ public class Data extends Application {
 					start_parkey,
 					superUser,
 					false,			// Return records greater than or equal to primary key
-					include_bad
+					include_bad,
+					null				// no custom filter
 					);
 			
 			if(pstmt != null) {
@@ -311,8 +310,7 @@ public class Data extends Application {
 						limit
 						);
 			}
-
-
+			
 			if(ja == null) {
 				ja = new JSONArray();
 			}

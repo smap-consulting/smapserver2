@@ -329,14 +329,6 @@ public class Review extends Application {
 			@PathParam("sId") int sId,
 			@PathParam("language") String language,
 			@PathParam("qId") int qId) { 
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    log.log(Level.SEVERE, "SQL Exception", e);
-		    return Response.serverError().entity(e.getMessage()).build();
-
-		}
 		
 		log.info("===========getReferencedQuestion: " + sId + " : " + language + " : " + qId);
 		
@@ -490,16 +482,6 @@ public class Review extends Application {
 		Response response = null;
 		PreparedStatement  pstmt = null;
 
-				
-		// Get the Postgres driver
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Review");
 		boolean superUser = false;
@@ -589,16 +571,6 @@ public class Review extends Application {
 		Response response = null;
 		PreparedStatement  pstmt = null;
 
-				
-		// Get the Postgres driver
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Review");
 		boolean superUser = false;
@@ -718,15 +690,6 @@ public class Review extends Application {
 
 		Connection dConnection = null;
 				
-		// Get the Postgres driver
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Review");
 		boolean superUser = false;
@@ -1111,15 +1074,6 @@ public class Review extends Application {
 
 		Connection dConnection = null;
 				
-		// Get the Postgres driver
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			String msg = "Error: Can't find PostgreSQL JDBC Driver";
-			log.log(Level.SEVERE, msg, e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-		    return response;
-		}
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Results");
 		boolean superUser = false;

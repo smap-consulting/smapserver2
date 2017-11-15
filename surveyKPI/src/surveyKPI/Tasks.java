@@ -341,14 +341,7 @@ public class Tasks extends Application {
 	public Response getXLSLocationsService (@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
 			@QueryParam("filetype") String filetype) throws Exception {
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
-				
+	
 		Connection sd = SDDataSource.getConnection("createXLSTasks");	
 		// Authorisation - Access
 		a.isAuthorised(sd, request.getRemoteUser());
@@ -404,13 +397,6 @@ public class Tasks extends Application {
 			@QueryParam("tz") String tz,
 			@QueryParam("filetype") String filetype) throws Exception {
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    throw new Exception("Can't find PostgreSQL JDBC Driver");
-		}
-				
 		Connection sd = SDDataSource.getConnection("createXLSTasks");	
 		// Authorisation - Access
 
@@ -611,14 +597,6 @@ public class Tasks extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		String user = request.getRemoteUser();
 		log.info("TaskFeature:" + task);
 		
@@ -665,14 +643,6 @@ public class Tasks extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		String user = request.getRemoteUser();
 		log.info("Update task start: " + task);
 		
@@ -717,14 +687,6 @@ public class Tasks extends Application {
 		
 		Response response = null;
 
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
-		
 		String user = request.getRemoteUser();
 		
 		// Authorisation - Access

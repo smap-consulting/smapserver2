@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.subscribers;
 import java.io.InputStream;
 import java.util.Date;
+import java.util.ResourceBundle;
 
 import org.smap.model.SurveyInstance;
 import org.smap.server.entities.HostUnreachableException;
@@ -41,13 +42,14 @@ public abstract class Subscriber {
 	String password = null;
 	String host = null;
 	Document configurationDocument = null;
+	ResourceBundle localisation;
 
 	final int DUPLICATE_DROP = 1;
 	final int DUPLICATE_REPLACE = 2;
 	private int duplicatePolicy = DUPLICATE_DROP;
 	
 	Subscriber() {
-
+		
 	}
 
 	/*
@@ -61,7 +63,7 @@ public abstract class Subscriber {
 			SubscriberEvent se, String confFilePath, String formStatus, String basePath, String filePath,
 			String updateId, int ue_id, Date uploadTime, 
 			String surveyNotes, String locationTrigger,
-			String auditFilePath) throws HostUnreachableException;
+			String auditFilePath, ResourceBundle l) throws HostUnreachableException;
 
 	/*
 	 * Getters

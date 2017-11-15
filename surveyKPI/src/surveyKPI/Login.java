@@ -65,13 +65,6 @@ public class Login extends Application {
 			@QueryParam("form") String formIdent) {
 		
 		Response response = null;
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			// log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		 		
 		// No authorisation is required - the key is returned to the authenticated user
 		

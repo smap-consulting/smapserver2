@@ -947,6 +947,8 @@ public class GetXForm {
 						questionElement.setAttribute("end", px1);
 					} else if(px0.equals("step")) {
 						questionElement.setAttribute("step", px1);
+					} else if(px0.equals("rows")) {
+						questionElement.setAttribute("rows", px1);
 					}
 				}
 			}
@@ -1313,12 +1315,6 @@ public class GetXForm {
 		Form firstForm = template.getForm(firstFormRef);
 
 		// Get database driver and connection to the results database
-
-		try {
-			Class.forName("org.postgresql.Driver");
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		}
 
 		String requester = "GetXForm - getInstance";
 		cResults = ResultsDataSource.getConnection(requester);

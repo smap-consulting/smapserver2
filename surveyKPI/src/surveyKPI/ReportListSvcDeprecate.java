@@ -225,13 +225,6 @@ public class ReportListSvcDeprecate extends Application {
 			@PathParam("projectId") int projectId) {
 		Response response = null;
 		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-		    response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
 		String user = request.getRemoteUser();
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ReportListSvc");
@@ -326,13 +319,6 @@ public class ReportListSvcDeprecate extends Application {
 			@FormParam("report") String reportString) { 
 		
 		Response response = null;
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().build();
-		    return response;
-		}
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
@@ -685,15 +671,6 @@ public class ReportListSvcDeprecate extends Application {
 		log.info("Deleting report:" + ident);
 		
 		Response response;
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Can't find PostgreSQL JDBC Driver", e);
-			response = Response.serverError().entity("Survey: Error: Can't find PostgreSQL JDBC Driver").build();
-		    return response;
-		}
-		
 		
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
@@ -1123,13 +1100,6 @@ public class ReportListSvcDeprecate extends Application {
 	private Report getReportDetails(HttpServletRequest request, String ident, int maxwidth, int maxheight) {
 
 		Report aReport = new Report ();
-		
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE,"Error: Can't find PostgreSQL JDBC Driver", e);
-		    return null;
-		}
 
 		Connection connection = null; 
 		PreparedStatement pstmt = null;

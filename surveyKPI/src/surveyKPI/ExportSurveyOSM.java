@@ -141,20 +141,6 @@ public class ExportSurveyOSM extends Application {
 		ResponseBuilder builder = Response.ok();
 		String wayArray [] = null;
 		idcounter = -1;
-
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.log(Level.SEVERE, "Can't find PostgreSQL JDBC Driver", e);
-		    try {
-		    	String msg = "Error: Can't find PostgreSQL JDBC Driver";
-				log.log(Level.SEVERE, msg, e);
-		    	response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();
-			    return response;
-		    } catch (Exception ex) {
-		    	log.log(Level.SEVERE, "Exception", ex);
-		    }
-		}
 		
 		if(waylist != null) {
 			wayArray = waylist.split(",");

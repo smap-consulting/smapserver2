@@ -175,8 +175,4 @@ public class Question {
 		return type.startsWith("select");
 	}
 	
-	/*
-	 * Set the appearance
-	 */
-	
 }

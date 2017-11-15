@@ -51,14 +51,7 @@ public class OptionList extends Application {
 			@PathParam("sId") int sId, 
 			@PathParam("language") String language,
 			@PathParam("qId") int qId) { 
-			
-		try {
-		    Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-		    e.printStackTrace();
-		    return "Error: Can't find PostgreSQL JDBC Driver";
-		}
-		
+	
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-OptionList");
 		a.isAuthorised(connectionSD, request.getRemoteUser());

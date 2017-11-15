@@ -158,11 +158,10 @@ public class ExportSurveyXls extends Application {
 			GeneralUtilityMethods.setFilenameInResponse(filename + "." + filetype, response);
 			response.setHeader("Content-type",  "application/vnd.ms-excel; charset=UTF-8");
 			
-			XLSResultsManager xr = new XLSResultsManager(filetype);
+			XLSResultsManager xr = new XLSResultsManager(filetype, localisation);
 			
 			xr.createXLS(sd, 
 					connectionResults,
-					localisation,
 					request.getRemoteUser(),
 					sId, 
 					inc_id, 

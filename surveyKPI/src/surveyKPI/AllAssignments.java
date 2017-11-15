@@ -338,13 +338,6 @@ public class AllAssignments extends Application {
 		Response response = null;
 		ArrayList<TaskAddress> addressArray = null;
 
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("++++++++++++++++++++++++++++++++++++++ Assignment:" + settings);
 		AssignFromSurvey as = new Gson().fromJson(settings, AssignFromSurvey.class);
@@ -388,16 +381,17 @@ public class AllAssignments extends Application {
 			log.info("Set autocommit sd false");
 			connectionSD.setAutoCommit(false);
 
-			SurveyManager sm = new SurveyManager();
+			// Localisation
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
 					null, false, false, false, false, false, "real", false, superUser, 0, "geojson");
 			
-			// Localisation
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
-			Locale locale = new Locale(organisation.locale);
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			/*
 			 * Create the task group if an existing task group was not specified
@@ -946,14 +940,6 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
@@ -1050,15 +1036,6 @@ public class AllAssignments extends Application {
 	public Response loadResultsFromFile(@Context HttpServletRequest request) { 
 
 		Response response = null;
-
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("Load results from file");
 
@@ -1244,7 +1221,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the results tables if they do not exist
 			 */
-			TableManager tm = new TableManager();
+			TableManager tm = new TableManager(localisation);
 			FormDesc topForm = formList.get(0);
 			boolean tableCreated = tm.createTable(results, sd, topForm.table_name, sIdent, sId, 0);
 			boolean tableChanged = false;
@@ -1392,15 +1369,6 @@ public class AllAssignments extends Application {
 		Response response = null;
 		String dbConnectionTitle = "surveyKPI-AllAssignments- Update task properties";
 
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
-
 		log.info("Updating task properties");	
 
 		// Authorisation - Access
@@ -1502,14 +1470,6 @@ public class AllAssignments extends Application {
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
@@ -1606,14 +1566,6 @@ public class AllAssignments extends Application {
 			@PathParam("taskGroupId") int tg_id) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
@@ -1661,14 +1613,6 @@ public class AllAssignments extends Application {
 			) { 
 
 		Response response = null;
-		try {
-			Class.forName("org.postgresql.Driver");	 
-		} catch (ClassNotFoundException e) {
-			log.info("Error: Can't find PostgreSQL JDBC Driver");
-			e.printStackTrace();
-			response = Response.serverError().build();
-			return response;
-		}
 
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");

@@ -113,7 +113,6 @@ public class ExportSurveyMisc extends Application {
 
 		ResponseBuilder builder = Response.ok();
 		Response responseVal = null;
-		ResourceBundle localisation = null;
 
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 
@@ -163,7 +162,7 @@ public class ExportSurveyMisc extends Application {
 
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
-				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				/*
 				 * Get the name of the database
@@ -370,7 +369,7 @@ public class ExportSurveyMisc extends Application {
 					File f = new File(filepath, sqlDesc.target_table + ".sps");
 					PrintWriter w = new PrintWriter(f);
 
-					SpssManager spssm = new SpssManager();  
+					SpssManager spssm = new SpssManager(localisation);  
 					String sps = spssm.createSPS(
 							connectionSD,
 							request.getRemoteUser(),

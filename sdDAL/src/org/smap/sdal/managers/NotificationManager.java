@@ -439,7 +439,7 @@ public class NotificationManager {
 				 * Get survey details
 				 */
 				PDFSurveyManager pm = new PDFSurveyManager();
-				SurveyManager sm = new SurveyManager();
+				SurveyManager sm = new SurveyManager(localisation);
 				org.smap.sdal.model.Survey survey = null;
 				boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
 				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);

@@ -105,7 +105,8 @@ public class ExchangeManager {
 			int sId,
 			HttpServletRequest request,
 			String dirPath,
-			boolean superUser) throws Exception {
+			boolean superUser,
+			boolean incMedia) throws Exception {
 		
 		wb = new SXSSFWorkbook(10);
 		Sheet sheet = null;
@@ -259,7 +260,8 @@ public class ExchangeManager {
 							dateForm,
 							basePath,
 							dirPath,
-							files);
+							files,
+							incMedia);
 					
 				}
  
@@ -607,31 +609,41 @@ public class ExchangeManager {
 								}
 							} else if(col.type.equals("int")) {
 								int iVal = 0;
-								try { iVal = Integer.parseInt(value);} catch (Exception e) {}
+								if(notEmpty(value)) {
+									try { iVal = Integer.parseInt(value);} catch (Exception e) {}
+								}
 								pstmtInsert.setInt(index++, iVal);
 							} else if(col.type.equals("decimal") || col.type.equals("range")) {
 								double dVal = 0.0;
-								try { dVal = Double.parseDouble(value);} catch (Exception e) {}
+								if(notEmpty(value)) {
+									try { dVal = Double.parseDouble(value);} catch (Exception e) {}
+								}
 								pstmtInsert.setDouble(index++, dVal);
 							} else if(col.type.equals("boolean")) {
 								boolean bVal = false;
-								try { bVal = Boolean.parseBoolean(value);} catch (Exception e) {}
+								if(notEmpty(value)) {
+									try { bVal = Boolean.parseBoolean(value);} catch (Exception e) {}
+								}
 								pstmtInsert.setBoolean(index++, bVal);
 							} else if(col.type.equals("date")) {
 								Date dateVal = null;
-								try {
-									dateVal = Date.valueOf(value); 
-								} catch (Exception e) {
-									log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+								if(notEmpty(value)) {
+									try {
+										dateVal = Date.valueOf(value); 
+									} catch (Exception e) {
+										log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+									}
 								}
 								pstmtInsert.setDate(index++, dateVal);
 							} else if(col.type.equals("dateTime")) {
 								Timestamp tsVal = null;
-								try {
-									java.util.Date uDate = dateFormatDT.parse(value);
-									tsVal = new Timestamp(uDate.getTime());
-								} catch (Exception e) {
-									log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+								if(notEmpty(value)) {
+									try {
+										java.util.Date uDate = dateFormatDT.parse(value);
+										tsVal = new Timestamp(uDate.getTime());
+									} catch (Exception e) {
+										log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+									}
 								}
 								
 								pstmtInsert.setTimestamp(index++, tsVal);
@@ -640,19 +652,21 @@ public class ExchangeManager {
 								int hour = 0;
 								int minute = 0;
 								int second = 0;
-								try {
-									String [] tVals = value.split(":");
-									if(tVals.length > 0) {
-										hour = Integer.parseInt(tVals[0]);
+								if(notEmpty(value)) {
+									try {
+										String [] tVals = value.split(":");
+										if(tVals.length > 0) {
+											hour = Integer.parseInt(tVals[0]);
+										}
+										if(tVals.length > 1) {
+											minute = Integer.parseInt(tVals[1]);
+										}
+										if(tVals.length > 2) {
+											second = Integer.parseInt(tVals[2]);
+										}
+									} catch (Exception e) {
+										log.info("Error parsing datetime: " + value + " : " + e.getMessage());
 									}
-									if(tVals.length > 1) {
-										minute = Integer.parseInt(tVals[1]);
-									}
-									if(tVals.length > 2) {
-										second = Integer.parseInt(tVals[2]);
-									}
-								} catch (Exception e) {
-									log.info("Error parsing datetime: " + value + " : " + e.getMessage());
 								}
 								
 								Time tVal = new Time(hour, minute, second);
@@ -679,7 +693,9 @@ public class ExchangeManager {
 						}
 						
 						if(writeRecord) {
-							log.info("Inserting row: " + pstmtInsert.toString());
+							if(recordsWritten == 0) {
+								log.info("Inserting first record: " + pstmtInsert.toString());
+							}
 							pstmtInsert.executeUpdate();
 							ResultSet rs = pstmtInsert.getGeneratedKeys();
 							if(rs.next()) {
@@ -706,6 +722,8 @@ public class ExchangeManager {
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (Exception e) {}
 			try {if (pstmtDeleteExisting != null) {pstmtDeleteExisting.close();}} catch (Exception e) {}
 		}
+		
+		log.info("Records written: " + recordsWritten);
 		
 		return recordsWritten;
 	}
@@ -811,6 +829,13 @@ public class ExchangeManager {
 		
 	}
 	
+	private boolean notEmpty(String v) {
+		if(v == null || v.trim().length() == 0) {
+			return false;
+		} else {
+			return true;
+		}
+	}
 	/*
 	 * Write out the data
 	 */
@@ -829,7 +854,8 @@ public class ExchangeManager {
 			int dateForm,
 			String basePath,
 			String dirPath,
-			ArrayList<FileDescription> files) throws Exception {
+			ArrayList<FileDescription> files,
+			boolean incMedia) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
@@ -913,29 +939,32 @@ public class ExchangeManager {
 					
 					if(c.isAttachment() && value != null && value.trim().length() > 0) {
 						
-						// Path to attachment
-						String attachmentPath = basePath + "/" + value;
+						if(incMedia) {
+							// Path to attachment
+							String attachmentPath = basePath + "/" + value;
 						
-						// Get name
-						int idx = value.lastIndexOf('/');
-						if(idx > -1) {
-							value = value.substring(idx + 1);
-						}
-						
-						// Copy file to temporary zip folder
-						File source = new File(attachmentPath);
-						if (source.exists()) {
-							String newPath = dirPath + "/" + value;
-							File dest = new File(newPath);
-							try {
-								FileUtils.copyFile(source, dest);				
-								files.add(new FileDescription(value, newPath));
-							} catch (Exception e) {
-								log.info("Error: Failed to add file " + source + " to exchange export. " + e.getMessage());
+							// Get name
+							int idx = value.lastIndexOf('/');
+							if(idx > -1) {
+								value = value.substring(idx + 1);
 							}
-						} else {
-							log.info("Error: media file does not exist: " + attachmentPath);
-						}
+						
+							// Copy file to temporary zip folder
+
+							File source = new File(attachmentPath);
+							if (source.exists()) {
+								String newPath = dirPath + "/" + value;
+								File dest = new File(newPath);
+								try {
+									FileUtils.copyFile(source, dest);				
+									files.add(new FileDescription(value, newPath));
+								} catch (Exception e) {
+									log.info("Error: Failed to add file " + source + " to exchange export. " + e.getMessage());
+								}
+							} else {
+								log.info("Error: media file does not exist: " + attachmentPath);
+							}
+						} 
 						
 					}
 					

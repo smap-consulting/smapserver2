@@ -7,6 +7,14 @@ public class SqlFragParam {
 	public int iValue;			// integer
 	public double dValue;		// double
 	
+	public SqlFragParam() {
+		
+	}
+	
+	public SqlFragParam(String t) {
+		type = t;
+	}
+	
 	void addTextParam(String v) {
 		type = "text";
 		sValue = v;
