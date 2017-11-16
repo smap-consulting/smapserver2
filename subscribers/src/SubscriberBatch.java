@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -178,9 +179,7 @@ public class SubscriberBatch {
 			}
 
 			Date timeNow = new Date();
-			if(subscribers == null || subscribers.isEmpty()) {
-				System.out.println("No forwarding subscribers: " + timeNow.toString());
-			} else {
+			if(subscribers != null && !subscribers.isEmpty()) {
 
 				/*
 				 * Loop through each subscriber and then 
@@ -359,6 +358,8 @@ public class SubscriberBatch {
 						}
 					} 
 				}
+			} else {
+				System.out.print("#");
 			}
 
 			if(subscriberType.equals("forward")) {
@@ -385,7 +386,9 @@ public class SubscriberBatch {
 
 					String sqlMarkDone = "insert into sync (s_id, n_id, prikey) values(?, ?, ?)";
 					PreparedStatement pstmtMarkDone = cResults.prepareStatement(sqlMarkDone);
+					
 					PreparedStatement pstmtRecord = null;
+					PreparedStatement pstmtCheckNeed = null;
 
 					try {
 						ResultSet rs = pstmtNot.executeQuery();
@@ -399,111 +402,132 @@ public class SubscriberBatch {
 
 							Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
-							log.info("Synchronising notification " +nId + " on " + topForm.tableName);
 							if(GeneralUtilityMethods.tableExists(cResults, topForm.tableName)) {
 
 								// Get the records that need synchronising
 								String prikeyFilter = "prikey not in (select prikey from sync where s_id = " + 
 										sId + " and n_id = " + nId + ")";	
-
-								JSONArray ja = null;
-
-								boolean getParkey = false;	// For top level form TODO loop through forms
-								boolean mgmt = false;		// TODO get from notification
-								int managedId = 0;			// TODO get from notification
-								ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-										sd,
-										cResults,
-										sId,
-										null,		// No need for user - we are super user
-										topForm.parentform,
-										topForm.id,
-										topForm.tableName,
-										false,		// Don't include read only
-										getParkey,	// Include parent key if the form is not the top level form (fId is 0)
-										false,		// Don't include bad columns
-										true,		// include instance id
-										true,		// include other meta data
-										true,		// include preloads
-										true,		// include instancename
-										true,		// include survey duration
-										true,		// Super user
-										false,		// Don't include HXL
-										true			// include audit data
-										);
-
-								if(mgmt) {
-									CustomReportsManager crm = new CustomReportsManager ();
-									ReportConfig config = crm.get(sd, managedId, -1);
-									columns.addAll(config.columns);
+								
+								// Confirm we need to do this synchronisation
+								boolean syncRequired = false;
+								String sqlCheckNeed = "select count(*) from " + topForm.tableName + " where " + prikeyFilter;
+								pstmtCheckNeed = cResults.prepareStatement(sqlCheckNeed);
+								try {
+									ResultSet rsCN = pstmtCheckNeed.executeQuery();
+									if(rsCN.next()) {
+										if(rsCN.getInt(1) > 0) {
+											syncRequired = true;
+										}
+									}
+								} catch(Exception e) {
+									if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
+										// Ignore missing table it will presumably be added when there is data
+									} else {
+										log.log(Level.SEVERE, e.getMessage(), e);
+									}
 								}
-
-								pstmt = tdm.getPreparedStatement(
-										sd, 
-										cResults,
-										columns,
-										urlprefix,
-										sId,
-										topForm.tableName,
-										0,				// parkey ??
-										null,			// Not searching on HRK
-										null,			// No user ident, we are super user
-										null,			// No specific sort column
-										null,			// No specific sort direction
-										mgmt,
-										false,			// No grouping
-										false,			// Not data tables
-										0,				// Start from zero
-										0,				// No limit
-										getParkey,
-										0,	// Start from the beginning of the parent key
-										true,			// Super User
-										false,			// Return records greater than or equal to primary key
-										"none",			// Do not return bad records
-										prikeyFilter
-										);
-
-								// Set parameters for custom filter
-
-								if(pstmt != null) {
-									log.info("Get sync records: " + pstmt.toString());
-									ja = tdm.getData(
-											pstmt,
+								
+								if(syncRequired) {
+									log.info("Synchronising notification " +nId + " on " + topForm.tableName);
+									JSONArray ja = null;
+	
+									boolean getParkey = false;	// For top level form TODO loop through forms
+									boolean mgmt = false;		// TODO get from notification
+									int managedId = 0;			// TODO get from notification
+									ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
+											sd,
+											cResults,
+											sId,
+											null,		// No need for user - we are super user
+											topForm.parentform,
+											topForm.id,
+											topForm.tableName,
+											false,		// Don't include read only
+											getParkey,	// Include parent key if the form is not the top level form (fId is 0)
+											false,		// Don't include bad columns
+											true,		// include instance id
+											true,		// include other meta data
+											true,		// include preloads
+											true,		// include instancename
+											true,		// include survey duration
+											true,		// Super user
+											false,		// Don't include HXL
+											true			// include audit data
+											);
+	
+									if(mgmt) {
+										CustomReportsManager crm = new CustomReportsManager ();
+										ReportConfig config = crm.get(sd, managedId, -1);
+										columns.addAll(config.columns);
+									}
+	
+									pstmt = tdm.getPreparedStatement(
+											sd, 
+											cResults,
 											columns,
 											urlprefix,
-											false,		// No grouping for duplicate queries
-											false,		// Boolean not data tables
-											0			// No limit
+											sId,
+											topForm.tableName,
+											0,				// parkey ??
+											null,			// Not searching on HRK
+											null,			// No user ident, we are super user
+											null,			// No specific sort column
+											null,			// No specific sort direction
+											mgmt,
+											false,			// No grouping
+											false,			// Not data tables
+											0,				// Start from zero
+											0,				// No limit
+											getParkey,
+											0,	// Start from the beginning of the parent key
+											true,			// Super User
+											false,			// Return records greater than or equal to primary key
+											"none",			// Do not return bad records
+											prikeyFilter
 											);
-								}
-
-								if(ja == null) {
-									ja = new JSONArray();
-								}
-
-								// Process each record
-								for(int i = 0; i < ja.length(); i++) {
-									JSONObject jo = (JSONObject) ja.get(i);
-									log.info("  Rec: " + ja.get(i));
-
-									// 1. Add meta data to the record
-									// Organisation id
-
-									// 2. Send to server
-									String key = serverName + "_" + sId + "_" + jo.getString("prikey");
-									boolean success = putDocument("banana", "form", key, jo.toString(), 
-											docServerConfig.get("server"),
-											docServerConfig.get("user"),
-											docServerConfig.get("password"));
-
-									// 3. Mark as processed (if successful)
-									if(success) {
-										pstmtMarkDone.setInt(1,  sId);
-										pstmtMarkDone.setInt(2,  nId);
-										pstmtMarkDone.setInt(3, jo.getInt("prikey"));
-										pstmtMarkDone.executeUpdate();
-									} else {
-										break;  // Delay before continuing
+	
+									// Set parameters for custom filter
+	
+									if(pstmt != null) {
+										log.info("Get sync records: " + pstmt.toString());
+										ja = tdm.getData(
+												pstmt,
+												columns,
+												urlprefix,
+												false,		// No grouping for duplicate queries
+												false,		// Boolean not data tables
+												0			// No limit
+												);
+									}
+	
+									if(ja == null) {
+										ja = new JSONArray();
+									}
+	
+									// Process each record
+									for(int i = 0; i < ja.length(); i++) {
+										JSONObject jo = (JSONObject) ja.get(i);
+										log.info("  Rec: " + ja.get(i));
+	
+										// 1. Add meta data to the record
+										// Organisation id
+	
+										// 2. Send to server
+										String key = serverName + "_" + sId + "_" + jo.getString("prikey");
+										boolean success = putDocument("banana", "form", key, jo.toString(), 
+												docServerConfig.get("server"),
+												docServerConfig.get("user"),
+												docServerConfig.get("password"));
+	
+										// 3. Mark as processed (if successful)
+										if(success) {
+											pstmtMarkDone.setInt(1,  sId);
+											pstmtMarkDone.setInt(2,  nId);
+											pstmtMarkDone.setInt(3, jo.getInt("prikey"));
+											pstmtMarkDone.executeUpdate();
+										} else {
+											break;  // Delay before continuing
+										}
 									}
 								}
 
@@ -520,6 +544,7 @@ public class SubscriberBatch {
 						if(pstmtNot != null) {try {pstmtNot.close();} catch(Exception e) {}}
 						if(pstmtRecord != null) {try {pstmtRecord.close();} catch(Exception e) {}}
 						if(pstmtMarkDone != null) {try {pstmtMarkDone.close();} catch(Exception e) {}}
+						if(pstmtCheckNeed != null) {try {pstmtCheckNeed.close();} catch(Exception e) {}}
 					}
 				} else {
 					log.info("=== sync not enabled");
