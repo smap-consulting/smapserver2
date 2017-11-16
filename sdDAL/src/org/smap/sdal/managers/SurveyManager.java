@@ -1141,18 +1141,14 @@ public class SurveyManager {
 		ResultSet resultSet = null;
 		String sql = "select s.p_id, s.s_id, s.blocked, s.class, s.deleted, "
 				+ "s.display_name, s.key_policy, s.auto_updates, "
-				+ "s.managed_id "
+				+ "s.managed_id,"
+				+ "s.ident,"
+				+ "s.version "
 				+ "from survey s "
 				+ "where s.ident = ?";
 
-		String sql2 = "select s.p_id, s.s_id, s.blocked, s.class, s.deleted, "
-				+ "s.display_name, s.key_policy, s.auto_updates, "
-				+ "s.managed_id " 		// Hack due to issue with upgrade of a server where ident not set to survey id by default
-				+ "from survey s " 
-				+ "where s.s_id = ?";
 
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmt2 = null;
 		try {
 			pstmt = sd.prepareStatement(sql);	 			
 			pstmt.setString(1, key);			
@@ -1171,40 +1167,13 @@ public class SurveyManager {
 				s.key_policy = resultSet.getString(7);
 				s.autoUpdates = resultSet.getString(8);
 				s.managed_id = resultSet.getInt(9);
-
-
-			} else {	// Attempt to find the survey assuming the ident is the survey id
-				pstmt2 = sd.prepareStatement(sql2);	
-				int sId = 0;
-				try {
-					sId = Integer.parseInt(key);
-				} catch (Exception e) {
-
-				}
-				pstmt2.setInt(1, sId);
-
-				log.info("Find survey: " + pstmt2.toString());
-
-				resultSet = pstmt2.executeQuery();
-
-				if (resultSet.next()) {								
-					s = new Survey();
-					s.setPId(resultSet.getInt(1));
-					s.setId(resultSet.getInt(2));
-					s.setBlocked(resultSet.getBoolean(3));
-					s.surveyClass = resultSet.getString(4);
-					s.deleted = resultSet.getBoolean(5);
-					s.displayName = resultSet.getString(6);
-					s.key_policy = resultSet.getString(7);
-				} else {			
-					log.info("Error: survey not found");
-				}
+				s.ident = resultSet.getString(10);
+				s.version = resultSet.getInt(11);
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}};
-			if(pstmt2 != null) {try {pstmt2.close();} catch (Exception e) {}};
 		}
 
 		return s;

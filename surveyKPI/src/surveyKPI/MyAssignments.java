@@ -332,39 +332,12 @@ public class MyAssignments extends Application {
 					0,
 					superUser);
 			
-			/*
-			sql = new StringBuffer("SELECT " +
-					"s.s_id," +
-					"s.ident, " +
-					"s.version, " +
-					"s.display_name, " +
-					"p.name, " +
-					"p.id as pid, " +
-					"p.tasks_only as tasks_only " +
-					"from users u, survey s, user_project up, project p " +
-					"where u.id = up.u_id " +
-					"and s.p_id = up.p_id " +
-					"and p.id = up.p_id " +
-					"and s.deleted = 'false' " +
-					"and s.blocked = 'false'" +
-					"and u.ident = ? " +
-					"and p.o_id = ?");
-			
-			pstmtGetForms = connectionSD.prepareStatement(sql.toString());	
-			pstmtGetForms.setString(1, userName);
-			pstmtGetForms.setInt(2, oId);
-
-			log.info("Getting forms: " + pstmtGetForms.toString());
-			resultSet = pstmtGetForms.executeQuery();
-
-			*/
 			TranslationManager translationMgr = new TranslationManager();
 
 			tr.forms = new ArrayList<FormLocator> ();
-			//while(resultSet.next()) {
+			
 			for (org.smap.sdal.model.Survey survey : surveys) {
-				//int sId = resultSet.getInt("s_id");
-				//String sIdent = resultSet.getString("ident");
+				
 				boolean newManifestFile = false;
 
 				/*
@@ -405,12 +378,7 @@ public class MyAssignments extends Application {
 
 
 				FormLocator fl = new FormLocator();
-				//fl.ident = resultSet.getString("ident");
-				//fl.version = resultSet.getInt("version");
-				//fl.name = resultSet.getString("display_name");
-				//fl.project = resultSet.getString("name");
-				//fl.pid = resultSet.getInt("pid");
-				//fl.tasks_only = resultSet.getBoolean("tasks_only");
+				
 				fl.ident = survey.ident;
 				fl.version = survey.version;
 				fl.name = survey.displayName;
@@ -635,33 +603,6 @@ public class MyAssignments extends Application {
 			ResultSet rs = pstmtUser.executeQuery();
 			if(rs.next()) {
 				int userId = rs.getInt(1);
-
-				log.info("Updating downloaded forms for user " + userName + " with id " + userId + " and deviceId" + tr.deviceId);
-				sql = "delete from form_downloads where u_id = ? and device_id = ?;";
-				pstmtFormsDelete = connectionSD.prepareStatement(sql);
-				pstmtFormsDelete.setInt(1, userId);
-				pstmtFormsDelete.setString(2, tr.deviceId);
-
-				log.info("Delete existing form downloads: " + pstmtFormsDelete.toString());
-				pstmtFormsDelete.executeUpdate();
-
-				sql = "insert into form_downloads (" +
-						"u_id, " +
-						"device_id, " +
-						"form_ident, " +
-						"form_version, " +
-						"updated_time" +
-						") " +
-						"values(?, ?, ?, ?, now());";
-				pstmtForms = connectionSD.prepareStatement(sql);
-				pstmtForms.setInt(1, userId);
-				pstmtForms.setString(2, tr.deviceId);
-				for(FormLocator f : tr.forms) {
-					pstmtForms.setString(3, f.ident);
-					pstmtForms.setInt(4, f.version);
-					pstmtForms.executeUpdate();
-				}
-
 
 				/*
 				 * Record task information for any submitted tasks

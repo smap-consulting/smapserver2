@@ -385,10 +385,6 @@ public class WebForm extends Application {
 						survey.surveyClass, orgId, accessKey));
 			}
 
-			/*
-			 * TODO Fix issue with itemsets not having images. The best approach is probably
-			 * to replace XSL with POJ rather than attempting complex text replacement
-			 */
 			String respString = outputString.toString();
 			response = Response.status(Status.OK).entity(respString).build();
 
