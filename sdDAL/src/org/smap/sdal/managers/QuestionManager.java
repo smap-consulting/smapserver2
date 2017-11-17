@@ -658,11 +658,7 @@ public class QuestionManager {
 				log.info("Move question within same list: " + pstmtMoveWithin.toString());
 				count = pstmtMoveWithin.executeUpdate();
 			}
-			if(count == 0) {
-				String msg = "Warning: question " + q.name + " was not moved. It may already have been moved by someone else";
-				log.info(msg);
-				throw new Exception(msg);		// No matching value assume it has already been modified
-			}
+			
 			
 		} catch(SQLException e) {
 			
