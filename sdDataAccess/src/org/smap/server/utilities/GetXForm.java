@@ -805,7 +805,7 @@ public class GetXForm {
 				questionElement.setAttribute("jr:constraintMsg", constraintMsg);
 			}
 			
-			// Add parameters
+			// Add bind parameters
 			String parameters = q.getParameters();
 			if (parameters != null && parameters.trim().length() > 0) {
 				String[] pArray = parameters.split(" ");
@@ -932,7 +932,7 @@ public class GetXForm {
 			}
 		}
 		
-		// Add Parameters
+		// Add Body Parameters
 		String parameters = q.getParameters();
 		if (parameters != null && parameters.trim().length() > 0) {
 			String[] pArray = parameters.split(" ");
@@ -949,6 +949,10 @@ public class GetXForm {
 						questionElement.setAttribute("step", px1);
 					} else if(px0.equals("rows")) {
 						questionElement.setAttribute("rows", px1);
+					} else if(px0.equals("chart_type")) {
+						questionElement.setAttribute("chart_type", px1);
+					} else if(px0.equals("stacked")) {
+						questionElement.setAttribute("stacked", px1);
 					}
 				}
 			}

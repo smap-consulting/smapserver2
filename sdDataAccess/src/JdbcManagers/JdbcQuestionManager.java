@@ -61,6 +61,7 @@ public class JdbcQuestionManager {
 			+ "mandatory,"
 			+ "relevant,"
 			+ "calculate,"
+			+ "chartdata,"
 			+ "qconstraint,"
 			+ "constraint_msg,"
 			+ "required_msg,"
@@ -77,7 +78,7 @@ public class JdbcQuestionManager {
 			+ "dataType"
 			+ ") "
 			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtGetBySurveyId;
@@ -100,6 +101,7 @@ public class JdbcQuestionManager {
 			+ "mandatory,"
 			+ "relevant,"
 			+ "calculate,"
+			+ "chartdata,"
 			+ "qconstraint,"
 			+ "constraint_msg,"
 			+ "required_msg,"
@@ -153,11 +155,12 @@ public class JdbcQuestionManager {
 		pstmt.setBoolean(14, q.isMandatory());
 		pstmt.setString(15, q.getRelevant(false, null, xFormRoot));
 		pstmt.setString(16, q.getCalculate(false, null, xFormRoot));
-		pstmt.setString(17, q.getConstraint(false, null, xFormRoot));
-		pstmt.setString(18, q.getConstraintMsg()); // ok
-		pstmt.setString(19, q.getRequiredMsg());
-		pstmt.setString(20, q.getAppearance(false, null));
-		pstmt.setString(21, q.getParameters());
+		pstmt.setString(17, q.getChartDataString());
+		pstmt.setString(18, q.getConstraint(false, null, xFormRoot));
+		pstmt.setString(19, q.getConstraintMsg()); // ok
+		pstmt.setString(20, q.getRequiredMsg());
+		pstmt.setString(21, q.getAppearance(false, null));
+		pstmt.setString(22, q.getParameters());
 		
 		String nodeset = null;
 		String nodeset_value = null;
@@ -184,16 +187,16 @@ public class JdbcQuestionManager {
 			}
 			
 		}	
-		pstmt.setString(22, nodeset);
-		pstmt.setString(23, nodeset_value);
-		pstmt.setString(24, nodeset_label);
+		pstmt.setString(23, nodeset);
+		pstmt.setString(24, nodeset_value);
+		pstmt.setString(25, nodeset_label);
 		
-		pstmt.setString(25, q.getColumnName()); 
-		pstmt.setBoolean(26, q.isPublished());
-		pstmt.setInt(27, q.getListId());  
-		pstmt.setString(28, q.getAutoPlay());
-		pstmt.setString(29, q.getAccuracy());
-		pstmt.setString(30, q.getDataType());
+		pstmt.setString(26, q.getColumnName()); 
+		pstmt.setBoolean(27, q.isPublished());
+		pstmt.setInt(28, q.getListId());  
+		pstmt.setString(29, q.getAutoPlay());
+		pstmt.setString(30, q.getAccuracy());
+		pstmt.setString(31, q.getDataType());
 		
 		//log.info("Write question: " + pstmt.toString());
 		pstmt.executeUpdate();
@@ -258,20 +261,21 @@ public class JdbcQuestionManager {
 			q.setMandatory(rs.getBoolean(15));
 			q.setRelevant(rs.getString(16));
 			q.setCalculate(rs.getString(17));
-			q.setConstraint(rs.getString(18));
-			q.setConstraintMsg(rs.getString(19));
-			q.setRequiredMsg(rs.getString(20));
-			q.setAppearance(rs.getString(21));
-			q.setParameters(rs.getString(22));
-			q.setNodeset(rs.getString(23));
-			q.setNodesetValue(rs.getString(24));
-			q.setNodesetLabel(rs.getString(25));
-			q.setColumnName(rs.getString(26));
-			q.setPublished(rs.getBoolean(27));
-			q.setListId(rs.getInt(28));
-			q.setAutoPlay(rs.getString(29));
-			q.setAccuracy(rs.getString(30));
-			q.setDataType(rs.getString(31));
+			q.setChartDataString(rs.getString(18));
+			q.setConstraint(rs.getString(19));
+			q.setConstraintMsg(rs.getString(20));
+			q.setRequiredMsg(rs.getString(21));
+			q.setAppearance(rs.getString(22));
+			q.setParameters(rs.getString(23));
+			q.setNodeset(rs.getString(24));
+			q.setNodesetValue(rs.getString(25));
+			q.setNodesetLabel(rs.getString(26));
+			q.setColumnName(rs.getString(27));
+			q.setPublished(rs.getBoolean(28));
+			q.setListId(rs.getInt(29));
+			q.setAutoPlay(rs.getString(30));
+			q.setAccuracy(rs.getString(31));
+			q.setDataType(rs.getString(32));
 		
 			/*
 			 * If the list id exists then set the list name

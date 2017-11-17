@@ -737,7 +737,8 @@ public class SurveyManager {
 				+ "q.accuracy,"
 				+ "q.linked_target,"
 				+ "q.display_name,"
-				+ "q.f_id "
+				+ "q.f_id,"
+				+ "q.chartdata "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "where q.f_id = ? ";
@@ -908,6 +909,7 @@ public class SurveyManager {
 				q.linked_target = rsGetQuestions.getString(27);
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
+				q.chartdata = rsGetQuestions.getString(30);
 
 				if(q.autoplay == null) {
 					q.autoplay = "none";
@@ -1889,12 +1891,11 @@ public class SurveyManager {
 							ci.property.oldVal = "_force_update";
 						}
 					}
-
-					// If the property is choice_filter this is saved into the nodeset column in the question table
-					if(property.equals("choice_filter")) {
+					
+					if(property.equals("choice_filter")) {	// If the property is choice_filter this is saved into the nodeset column in the question table
 						property = "nodeset";
-					}
-
+					} 
+					
 					if((propertyType = GeneralUtilityMethods.columnType(sd, "question", property)) != null) {
 
 						// One for the case where the property has not been set before
