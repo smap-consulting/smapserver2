@@ -67,15 +67,15 @@ import utilities.XLSTaskManager;
  * Creates an XLS Form from the survey definition
  */
 
-@Path("/form")
-public class UploadForm extends Application {
+@Path("/survey/create")
+public class SurveyCreate extends Application {
 	
 	Authorise a = new Authorise(null, Authorise.ANALYST);
 	
 	LogManager lm = new LogManager();		// Application log
 	
 	private static Logger log =
-			 Logger.getLogger(UploadForm.class.getName());
+			 Logger.getLogger(SurveyCreate.class.getName());
 	
 	
 	
@@ -91,7 +91,7 @@ public class UploadForm extends Application {
 		
 		Response response = null;
 		
-		log.info("upload form -----------------------");
+		log.info("upload survey -----------------------");
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
 		String displayName = null;
