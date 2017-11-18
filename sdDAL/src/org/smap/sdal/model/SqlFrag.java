@@ -151,7 +151,7 @@ public class SqlFrag {
 		if(token.startsWith("${") && token.endsWith("}")) {
 			String name = token.substring(2, token.length() - 1);
 			boolean columnNameCaptured = false;
-			out = GeneralUtilityMethods.cleanName(name, true, true, true);
+			out = GeneralUtilityMethods.cleanName(name, true, true, false);
 			for(int i = 0; i < columns.size(); i++) {
 				if(columns.get(i).equals(name)) {
 					columnNameCaptured = true;
