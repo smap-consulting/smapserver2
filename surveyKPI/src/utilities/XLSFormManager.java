@@ -329,6 +329,11 @@ public class XLSFormManager {
 		outputStream.close();
 	}
 	
+	public void readXLSForm(OutputStream outputStream) throws IOException {
+		
+
+	}
+	
 	/*
 	 * Create a header row and set column widths
 	 */
