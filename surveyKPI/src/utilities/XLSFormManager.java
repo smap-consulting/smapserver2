@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 
 //import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -35,6 +36,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.Location;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
@@ -329,10 +331,10 @@ public class XLSFormManager {
 		outputStream.close();
 	}
 	
-	public void readXLSForm(OutputStream outputStream) throws IOException {
+	public void readXLSForm(InputStream inputStream, String type) throws Exception {
 		
-
 	}
+		
 	
 	/*
 	 * Create a header row and set column widths
