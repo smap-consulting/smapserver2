@@ -42,10 +42,8 @@ import org.smap.sdal.model.UserGroup;
 import com.google.gson.Gson;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -149,7 +147,7 @@ public class Register extends Application {
 					request.getServerName(),
 					rd.admin_name,
 					localisation);			 
-			
+
 			/*
 			 * 3. Create a default project
 			 */
@@ -169,6 +167,8 @@ public class Register extends Application {
 						"Register new organisation");
 			} catch (Exception e) {
 				// Don't fail on this step
+				log.log(Level.SEVERE, e.getMessage(), e);
+			} catch(NoClassDefFoundError e) {		// This should be fixed!
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			
