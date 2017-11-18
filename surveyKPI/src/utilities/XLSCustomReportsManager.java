@@ -120,13 +120,15 @@ public class XLSCustomReportsManager {
 			} else if(name.equals("parameters")) {
 				value = "";
 				int count = 0;
-				for(String k : props.parameters.keySet()) {
-					if(count++ > 0) {
-						value += " ";
+				if(props.parameters != null) {
+					for(String k : props.parameters.keySet()) {
+						if(count++ > 0) {
+							value += " ";
+						}
+						value += k;
+						value += "=";
+						value += props.parameters.get(k);
 					}
-					value += k;
-					value += "=";
-					value += props.parameters.get(k);
 				}
 			}
 			
