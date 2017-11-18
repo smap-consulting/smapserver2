@@ -188,13 +188,59 @@ public class SqlFrag {
 		} else if (token.equals("all")) {
 			out = "";
 		} else if (token.startsWith("{") && token.endsWith("}")) {	// Preserve {xx} syntax if xx is integer
+			out = "";
 			String content = token.substring(1, token.length() - 1);
-			try {
-				Integer iValue = Integer.parseInt(content);
-				out = "{" + iValue.toString() + "}";
-			} catch (Exception e) {
-				log.log(Level.SEVERE,"Error", e);
-			}	
+			
+			if(content != null) {
+				String [] contentArray = content.split("_");
+				String [] contentArray2 = content.split(":");
+				if(contentArray.length == 1 && contentArray2.length == 1) {
+					// simple integer assumed to be days
+					try {
+						Integer iValue = Integer.parseInt(contentArray[0]);
+						out = "'" + iValue.toString() + "'";
+					} catch (Exception e) {
+						log.log(Level.SEVERE,"Error", e);
+					}	
+				} else if(contentArray.length == 2) {
+					// 2 elements first of which must be an integer				
+					try {
+						Integer iValue = Integer.parseInt(contentArray[0]);
+							
+						out = "interval '" + iValue.toString() + " ";
+						if(contentArray[1].equals("day")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("days")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("hour")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("hours")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("minute")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("minutes")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("second")) {
+							out += contentArray[1] + "'";
+						} else if(contentArray[1].equals("seconds")) {
+							out += contentArray[1] + "'";
+						} else {
+							out = "";
+						}
+					} catch (Exception e) {
+						log.log(Level.SEVERE,"Error", e);
+					}	
+				} else if(contentArray2.length == 3) {
+					try {
+						Integer hValue = Integer.parseInt(contentArray2[0]);
+						Integer mValue = Integer.parseInt(contentArray2[1]);
+						Integer sValue = Integer.parseInt(contentArray2[2]);
+						out = " interval '" + content +"'";		// all looks good
+					} catch (Exception e) {
+						log.log(Level.SEVERE,"Error", e);
+					}
+				}
+			}
 		} else if (token.length() > 0) {
 			// Non text parameter, accept decimal or integer
 			try {
