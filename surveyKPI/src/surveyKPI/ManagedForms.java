@@ -225,7 +225,7 @@ public class ManagedForms extends Application {
 			
 			// 1. Check that the managed form is compatible with the survey
 			if(am.manageId > 0) {
-				String compatibleMsg = compatibleManagedForm(sd, localisation, am.sId, 
+				String compatibleMsg = compatibleManagedForm(sd, cResults, localisation, am.sId, 
 						am.manageId, request.getRemoteUser(), oId, superUser);
 				if(compatibleMsg != null) {
 					throw new Exception(localisation.getString("mf_nc") + " " + compatibleMsg);
@@ -279,7 +279,7 @@ public class ManagedForms extends Application {
 	 *  Also add details on the auto updates to the survey so that they can be readily applied on changes to that
 	 *  survey.
 	 */
-	private String compatibleManagedForm(Connection sd, ResourceBundle localisation, int sId, 
+	private String compatibleManagedForm(Connection sd, Connection cResults, ResourceBundle localisation, int sId, 
 			int managedId,
 			String user,
 			int oId,
@@ -297,17 +297,17 @@ public class ManagedForms extends Application {
 					
 				org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form		
 				ArrayList<TableColumn> formColumns = GeneralUtilityMethods.getColumnsInForm(sd, 
-						null,
+						cResults,
 						sId,
 						user,
 						0,
 						f.id, 
-						null, 
+						f.tableName, 
 						false, 
 						false, 
 						false, 
-						false, 
-						false,	// Don't include other meta data
+						true, 	// include instance id
+						true,	// Include other meta data
 						true,	// Include preloads
 						true,	// Include instancename
 						false,	// Include survey duration

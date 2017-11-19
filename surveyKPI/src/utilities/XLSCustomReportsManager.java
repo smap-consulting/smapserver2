@@ -531,6 +531,16 @@ public class XLSCustomReportsManager {
 				currentCol.calculation.add("END");
 			}
 		}
+		
+		// Final Validatation
+		
+		for(TableColumn col : config.columns) {
+			
+			// 1. Check for condition calculations without any corresponding contion entries
+			if(col.isCondition && col.calculation == null) {
+				throw new Exception(localisation.getString("mf_ncr") + ": " + col.name);
+			}
+		}
 	
 		return config;
 		

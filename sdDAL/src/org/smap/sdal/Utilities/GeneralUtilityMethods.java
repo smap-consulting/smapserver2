@@ -2625,9 +2625,12 @@ public class GeneralUtilityMethods {
 		}
 
 		// SQL to get the questions
-		String sqlQuestion1 = "select " + "qname, " + "qtype, " + "column_name, " + "q_id, " + "readonly, "
-				+ "source_param, " + "appearance, " + "display_name, " + "l_id " + "from question where f_id = ? "
-				+ "and source is not null " + "and published = 'true' " + "and soft_deleted = 'false' ";
+		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
+				+ "source_param, appearance, display_name, l_id " 
+				+ "from question where f_id = ? "
+				+ "and source is not null "
+				+ "and published = 'true' "
+				+ "and soft_deleted = 'false' ";
 
 		String sqlQuestion2 = colList.toString();
 		String sqlQuestion3 = "order by seq";
