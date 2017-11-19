@@ -64,6 +64,9 @@ public class SqlFrag {
 			}
 			conditions.add(in);
 		}
+		String charTokens = "=+-><";
+		in = GeneralUtilityMethods.addSurroundingWhiteSpace(in, charTokens.toCharArray());
+		in = GeneralUtilityMethods.addSurroundingWhiteSpace(in, new String[] {"<=", ">="});
 		
 		/*
 		 * This SQL Fragment may actually be text without quotes

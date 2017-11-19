@@ -1127,6 +1127,8 @@ public class XLSCustomReportsManager {
 		
 		HashMap<String, String> paramObj = null;
 		
+		// Remove any white space around the equal signs
+		parameters = GeneralUtilityMethods.removeSurroundingWhiteSpace(parameters, '=');
 		if(parameters != null) {
 			paramObj = new HashMap<String, String> ();
 			String [] params = parameters.split(" ");
