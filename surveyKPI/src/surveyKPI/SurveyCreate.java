@@ -1,5 +1,7 @@
 package surveyKPI;
 
+import java.io.IOException;
+
 /*
 This file is part of SMAP.
 
@@ -23,23 +25,18 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -50,21 +47,15 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.model.Location;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import utilities.XLSFormManager;
-import utilities.XLSTaskManager;
-
 /*
  * Creates an XLS Form from the survey definition
+ * curl -u neil -i -X POST -H "Content-Type: multipart/form-data" -F "projectId=1" -F "templateName=age" -F "tname=@x.xls" http://localhost/surveyKPI/survey/create/upload
  */
 
 @Path("/survey/create")
@@ -77,8 +68,17 @@ public class SurveyCreate extends Application {
 	private static Logger log =
 			 Logger.getLogger(SurveyCreate.class.getName());
 	
-	
-	
+	private class Message {
+		String status;
+		String host;
+		ArrayList<String> mesgArray;
+		String project;
+		String survey;
+		String fileName;
+		String administrator;
+		ArrayList<String> hints;
+		ArrayList<String> warnings;
+	}
 
 	/*
 	 * Upload a form
@@ -106,6 +106,7 @@ public class SurveyCreate extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
+		ArrayList<String> mesgArray = new ArrayList<String> ();
 		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
 
 		try {
@@ -175,7 +176,25 @@ public class SurveyCreate extends Application {
 				}
 			} 
 			
-			System.out.println("Uploading: " + uploadedFile.getName());
+			fileName = uploadedFile.getName();
+
+			// If the survey display name already exists on this server, for this project, then throw an error		
+			SurveyManager sm = new SurveyManager(localisation);
+			if(sm.surveyExists(sd, displayName, projectId)) {
+				mesgArray.add("$c_survey");
+				mesgArray.add(" '");
+				mesgArray.add(displayName);
+				mesgArray.add("' ");
+				mesgArray.add("$e_u_exists");
+				mesgArray.add(" '");
+				mesgArray.add(projectName);
+				mesgArray.add("'");
+
+				ArrayList<String> hints = new ArrayList<String>(); 
+				hints.add("$e_h_rename");
+
+				return getErrorResponse(request,  mesgArray, hints, warnings, serverName, projectName, displayName, fileName);
+			} 	
 			
 			
 		} catch(FileUploadException ex) {
@@ -191,5 +210,64 @@ public class SurveyCreate extends Application {
 		}
 		
 		return response;
+	}
+	
+	private Response getErrorResponse(HttpServletRequest request, 
+			ArrayList<String> mesgArray, 
+			ArrayList<String> hints, 
+			ArrayList<String> warnings,
+			String serverName, 
+			String projectName, 
+			String surveyName, 
+			String fileName) throws ServletException, IOException {
+
+		Connection connectionSD = SDDataSource.getConnection("fieldManager-Template Upload");
+		String admin_email = "administrator@smap.com.au";
+
+		// Get the email address of the organisational administrator
+		PreparedStatement pstmt = null;
+		try {
+			String sql = "select admin_email from organisation o, users u " +
+					"where o.id = u.o_id " +
+					"and u.ident = ?";
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, request.getRemoteUser());
+			log.info("Get admin email:" + pstmt.toString());
+
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String email = rs.getString(1);
+				if(email != null && email.trim().length() > 0) {
+					admin_email = email;
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
+			SDDataSource.closeConnection("fieldManager-Template Upload", connectionSD);
+		}
+
+		Message m = new Message();
+		if(mesgArray != null) {
+			m.status = "error";
+		} else {
+			m.status = "warning";
+		}
+		m.mesgArray = mesgArray;
+		m.host = serverName;
+		m.project = projectName;
+		m.survey = surveyName;
+		m.fileName = fileName;
+		m.administrator = admin_email;
+		m.hints = hints;
+		m.warnings = warnings;
+
+		log.info("Returning error response: " + m.toString());
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		return Response.ok(gson.toJson(m)).build();
+
+
 	}
 }
