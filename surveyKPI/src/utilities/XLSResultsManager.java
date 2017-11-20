@@ -1384,7 +1384,6 @@ public class XLSResultsManager {
 				}
 			}
 		} else {
-			log.info("Ignoring invisible form: " + f.table_name);
 			// Proceed with any lower level forms
 			if(index < formList.size() - 1) {
 				appendToOutput(sd,  in , formList.get(index + 1), 

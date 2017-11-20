@@ -5300,6 +5300,10 @@ public class GeneralUtilityMethods {
 							charInList = false;
 						} else if(i > 0 && in.charAt(i) == '=' && in.charAt(i-1) == '!' ) {
 							charInList = false;
+						} else if(i < in.length() && in.charAt(i) == '(' && in.charAt(i+1) == ')') {
+							charInList = false;
+						} else if(i > 0 && in.charAt(i) == ')' && in.charAt(i-1) == '(' ) {
+							charInList = false;
 						} else {
 							charInList = true;
 						}
