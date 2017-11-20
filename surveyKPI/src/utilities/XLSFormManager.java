@@ -270,17 +270,17 @@ public class XLSFormManager {
 		}
 
 		// Return the settings value for this column
-		public String getValue(Survey s) {
+		public String getValue() {
 			String value = "";
 
 			if(type == COL_DEFAULT_LANGUAGE) {			
-				value = s.def_lang;
+				value = survey.def_lang;
 
 			} else if(type == COL_STYLE) {			
-				value = s.surveyClass;
+				value = survey.surveyClass;
 
 			} else if(type == COL_INSTANCE_NAME) {			
-				value = s.instanceNameDefn;
+				value = survey.instanceNameDefn;
 
 			}else {
 				System.out.println("Unknown option type: " + type);
@@ -291,10 +291,15 @@ public class XLSFormManager {
 
 	}
 
+	/*
+	 * Globals
+	 */
 	Workbook wb = null;
 	int rowNumberSurvey = 1;		// Heading row is 0
 	int rowNumberChoices = 1;		// Heading row is 0
 	int rowNumberSettings = 1;		// Heading row is 0
+	
+	Survey survey = null;
 
 	public XLSFormManager(String type) {
 		if(type != null && type.equals("xls")) {
@@ -309,6 +314,8 @@ public class XLSFormManager {
 	 */
 	public void createXLSForm(OutputStream outputStream, Survey survey) throws IOException {
 
+		survey = this.survey;
+		
 		Sheet surveySheet = wb.createSheet("survey");
 		Sheet choicesSheet = wb.createSheet("choices");
 		Sheet settingsSheet = wb.createSheet("settings");
@@ -324,8 +331,8 @@ public class XLSFormManager {
 		HashMap<String, Integer> namedColumnIndexes = new HashMap<String, Integer> ();
 		HashMap<String, String> addedOptionLists = new HashMap<String, String> ();
 
-		ArrayList<Column> colsSurvey = getColumnsSurvey(survey, namedColumnIndexes);
-		ArrayList<Column> colsChoices = getColumnsChoices(survey);
+		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes);
+		ArrayList<Column> colsChoices = getColumnsChoices();
 		ArrayList<Column> colsSettings = getColumnsSettings();
 
 		// Write out the column headings
@@ -335,14 +342,14 @@ public class XLSFormManager {
 
 		// Write out questions
 		Form ff = survey.getFirstForm();
-		processFormForXLS(ff, survey, surveySheet, choicesSheet, styles, colsSurvey, 
+		processFormForXLS(ff, surveySheet, choicesSheet, styles, colsSurvey, 
 				colsChoices, 
 				filterIndexes,
 				addedOptionLists,
 				namedColumnIndexes);
 
 		// Write out survey settings
-		processSurveyForXLS(survey, settingsSheet, styles, colsSettings);
+		processSurveyForXLS(settingsSheet, styles, colsSettings);
 
 		wb.write(outputStream);
 		outputStream.close();
@@ -374,7 +381,6 @@ public class XLSFormManager {
 	 */
 	private void processFormForXLS(
 			Form form, 
-			org.smap.sdal.model.Survey survey,
 			Sheet surveySheet,
 			Sheet choicesSheet,
 			Map<String, CellStyle> styles,
@@ -413,7 +419,8 @@ public class XLSFormManager {
 					Form subForm = survey.getSubForm(form, q);
 					if( subForm != null) {
 
-						processFormForXLS(subForm, survey, surveySheet, choicesSheet, styles, 
+						processFormForXLS(subForm, 
+								surveySheet, choicesSheet, styles, 
 								colsSurvey, 
 								colsChoices,
 								filterIndexes,
@@ -428,7 +435,7 @@ public class XLSFormManager {
 						if(addedOptionLists.get(q.list_name) == null) {
 							OptionList ol = survey.optionLists.get(q.list_name);
 							if(ol != null) {		// option list is populated for questions that are not select TODO Fix
-								addChoiceList(survey, choicesSheet, ol, colsChoices, filterIndexes, styles, q.list_name);
+								addChoiceList(choicesSheet, ol, colsChoices, filterIndexes, styles, q.list_name);
 							}
 							addedOptionLists.put(q.list_name, q.list_name);	// Remember lists that have been added
 						}
@@ -442,8 +449,7 @@ public class XLSFormManager {
 	/*
 	 * Add a choice list
 	 */
-	private void addChoiceList(org.smap.sdal.model.Survey survey, 
-			Sheet sheet, 
+	private void addChoiceList(Sheet sheet, 
 			OptionList ol,
 			ArrayList<Column> cols, 
 			HashMap<String, Integer> filterIndexes,
@@ -537,8 +543,7 @@ public class XLSFormManager {
 	/*
 	 * Get the columns for the survey sheet
 	 */
-	private ArrayList<Column> getColumnsSurvey(org.smap.sdal.model.Survey survey,
-			HashMap<String, Integer> namedColumnIndexes) {
+	private ArrayList<Column> getColumnsSurvey(HashMap<String, Integer> namedColumnIndexes) {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -588,7 +593,7 @@ public class XLSFormManager {
 	/*
 	 * Get the columns for the choices sheet
 	 */
-	private ArrayList<Column> getColumnsChoices(org.smap.sdal.model.Survey survey) {
+	private ArrayList<Column> getColumnsChoices() {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -633,8 +638,7 @@ public class XLSFormManager {
 	 * write out the settings values
 	 */
 
-	private void processSurveyForXLS(
-			org.smap.sdal.model.Survey survey, Sheet settingsSheet, 
+	private void processSurveyForXLS(Sheet settingsSheet, 
 			Map<String, CellStyle> styles, 
 			ArrayList<Column>  colsSettings) {
 
@@ -643,98 +647,10 @@ public class XLSFormManager {
 			Column col = colsSettings.get(i);			
 			Cell cell = row.createCell(i);
 
-			cell.setCellValue(col.getValue(survey));
+			cell.setCellValue(col.getValue());
 		}
 
 	}
-
-
-	/*
-	 * =====================================================================
-	 * Load a survey template
-	 */
-
-	/*
-	 * Get a survey definition from an XLS file
-	 */
-	public Survey getSurvey(Connection sd, int oId, String type, 
-			InputStream inputStream, ResourceBundle localisation, boolean isSecurityManager) throws Exception {
-
-		ReportConfig config = new ReportConfig();
-		config.columns = new ArrayList<TableColumn> ();
-		Sheet surveySheet = null;
-		Sheet choicesSheet = null;
-		Sheet settingsSheet = null;
-		Row row = null;
-		int lastRowNum = 0;
-		HashMap<String, Integer> header = null;
-		
-		Survey survey = new Survey();
-
-
-		if(type != null && type.equals("xls")) {
-			wb = new HSSFWorkbook(inputStream);
-		} else {
-			wb = new XSSFWorkbook(inputStream);
-		}
-
-
-		surveySheet = wb.getSheet("survey");
-		if(surveySheet == null) {
-			throw new Exception("A worksheet called 'survey' not found");
-		}
-
-		if(surveySheet.getPhysicalNumberOfRows() > 0) {
-
-			lastRowNum = surveySheet.getLastRowNum();
-			boolean needHeader = true;
-			TableColumn currentCol = null;
-
-			try {
-
-				for(int j = 0; j <= lastRowNum; j++) {
-
-					row = surveySheet.getRow(j);
-
-					if(row != null) {
-						int lastCellNum = row.getLastCellNum();
-
-						if(needHeader) {
-
-						} else {
-
-
-						}
-
-					}
-
-				}
-			} finally {
-			}
-
-			
-		}
-
-		/*
-		 * Get the settings sheet
-		 */
-		settingsSheet = wb.getSheet("settings");
-		if(settingsSheet != null && settingsSheet.getPhysicalNumberOfRows() > 0) {
-			int lastSettingsRow = settingsSheet.getLastRowNum();
-			for(int j = 0; j <= lastSettingsRow; j++) {
-				row = settingsSheet.getRow(j);
-
-
-			}
-		}
-
-		return survey;
-
-
-	}
-
-
-
 
 
 }

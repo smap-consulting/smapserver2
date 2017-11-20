@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response;
 import model.MediaResponse;
 import utilities.XLSCustomReportsManager;
 import utilities.XLSFormManager;
+import utilities.XLSTemplateUploadManager;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
@@ -437,7 +438,8 @@ public class UploadFiles extends Application {
 		String projectName = null;
 		String fileName = null;
 		String type = null;			// xls or xlsx or xml
-		FileItem uploadedFile = null;
+		FileItem fileItem = null;
+		String user = request.getRemoteUser();
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -452,7 +454,9 @@ public class UploadFiles extends Application {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-												
+					
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			
 			/*
 			 * Parse the request
 			 */
@@ -510,12 +514,12 @@ public class UploadFiles extends Application {
 						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
 					}
 				} else {
-					uploadedFile = (FileItem) item;
+					fileItem = (FileItem) item;
 				}
 			} 
 			
 			// Get the file type from its extension
-			fileName = uploadedFile.getName();
+			fileName = fileItem.getName();
 			if(fileName.endsWith(".xlsx")) {
 				type = "xlsx";
 			} else if(fileName.endsWith(".xls")) {
@@ -531,7 +535,13 @@ public class UploadFiles extends Application {
 			if(sm.surveyExists(sd, displayName, projectId)) {
 				throw new ApplicationException("Survey " + displayName + " already exists in this project");
 			} else if(type.equals("xls") || type.equals("xlsx")) {
-				XLSFormManager fm = new XLSFormManager(type);
+				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(type);
+				tum.getSurvey(sd, 
+						oId, 
+						type, 
+						fileItem.getInputStream(), 
+						localisation, 
+						displayName);
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
