@@ -531,8 +531,7 @@ public class XLSCustomReportsManager {
 		}
 	
 		return config;
-		
-		
+			
 	}
 	
 	

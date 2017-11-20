@@ -1,5 +1,7 @@
 package surveyKPI;
 
+import javax.servlet.ServletException;
+
 /*
 This file is part of SMAP.
 
@@ -32,10 +34,13 @@ import javax.ws.rs.core.Response;
 
 import model.MediaResponse;
 import utilities.XLSCustomReportsManager;
+import utilities.XLSFormManager;
+
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
@@ -399,6 +404,155 @@ public class UploadFiles extends Application {
 		return response;		
 	}
 
+	private class Message {
+		String status;
+		String message;
+		String name;
+		
+		public Message(String status, String message, String name) {
+			this.status = status;
+			this.message = message;
+			this.name = name;
+		}
+	}
+	
+	/*
+	 * Upload a survey template
+	 * curl -u neil -i -X POST -H "Content-Type: multipart/form-data" -F "projectId=1" -F "templateName=age" -F "tname=@x.xls" http://localhost/surveyKPI/upload/surveytemplate
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/surveytemplate")
+	public Response uploadForm(
+			@Context HttpServletRequest request) {
+		
+		Response response = null;
+		
+		log.info("upload survey -----------------------");
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
+		String displayName = null;
+		int projectId = -1;
+		String surveyIdent = null;
+		String projectName = null;
+		String fileName = null;
+		String type = null;			// xls or xlsx or xml
+		FileItem uploadedFile = null;
+
+		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		ArrayList<String> mesgArray = new ArrayList<String> ();
+		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+												
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+			while(itr.hasNext()) {
+				
+				FileItem item = (FileItem) itr.next();
+
+				if(item.isFormField()) {
+					if(item.getFieldName().equals("templateName")) {
+						displayName = item.getString("utf-8");
+						if(displayName != null) {
+							displayName = displayName.trim();
+						}
+						log.info("Template: " + displayName);
+						
+						
+					} else if(item.getFieldName().equals("projectId")) {
+						projectId = Integer.parseInt(item.getString());
+						log.info("Template: " + projectId);
+						
+						// Authorisation - Access
+						if(projectId < 0) {
+							throw new Exception("No project selected");
+						} else {
+							auth.isAuthorised(sd, request.getRemoteUser());
+							auth.isValidProject(sd, request.getRemoteUser(), projectId);
+						}
+						// End Authorisation
+						
+						// Get the project name
+						PreparedStatement pstmt = null;
+						try {
+							String sql = "select name from project where id = ?;";
+							pstmt = sd.prepareStatement(sql);
+							pstmt.setInt(1, projectId);
+							ResultSet rs = pstmt.executeQuery();
+							if(rs.next()) {
+								projectName = rs.getString(1);
+							}
+						} catch (Exception e) {
+							e.printStackTrace();
+						} finally {
+							if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
+						}
+					} else if(item.getFieldName().equals("surveyIdent")) {
+						surveyIdent = item.getString();
+						if(surveyIdent != null) {
+							surveyIdent = surveyIdent.trim();
+						}
+						log.info("Survey Ident: " + surveyIdent);
+					
+					}else {
+						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
+					}
+				} else {
+					uploadedFile = (FileItem) item;
+				}
+			} 
+			
+			// Get the file type from its extension
+			fileName = uploadedFile.getName();
+			if(fileName.endsWith(".xlsx")) {
+				type = "xlsx";
+			} else if(fileName.endsWith(".xls")) {
+				type = "xls";
+			} else if(fileName.endsWith(".xml")) {
+				throw new ApplicationException("XML files not supported yet");
+			} else {
+				throw new ApplicationException("Unknown file type. Only xls, xlsx and xml are supported");
+			}
+
+			// If the survey display name already exists on this server, for this project, then throw an error		
+			SurveyManager sm = new SurveyManager(localisation);
+			if(sm.surveyExists(sd, displayName, projectId)) {
+				throw new ApplicationException("Survey " + displayName + " already exists in this project");
+			} else if(type.equals("xls") || type.equals("xlsx")) {
+				XLSFormManager fm = new XLSFormManager(type);
+			}
+			
+			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
+			
+		} catch(ApplicationException ex) {		
+			response = Response.ok(gson.toJson(new Message("error", ex.getMessage(), displayName))).build();
+		} catch(FileUploadException ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+	
+			SDDataSource.closeConnection("CreateXLSForm-uploadForm", sd);
+			
+		}
+		
+		return response;
+	}
+	
 	/*
 	 * Load oversight form
 	 */
