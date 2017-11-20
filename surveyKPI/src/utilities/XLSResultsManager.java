@@ -56,6 +56,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
@@ -602,9 +603,15 @@ public class XLSResultsManager {
 				/*
 				 * Add the data
 				 */
-				getData(sd, connectionResults,
+				getData(sd, 
+						connectionResults,
+						user,
 						survey,
-						formList, topForm, split_locn, merge_select_multiple, selMultChoiceNames,
+						formList, 
+						topForm, 
+						split_locn, 
+						merge_select_multiple, 
+						selMultChoiceNames,
 						cols,
 						resultsSheet,
 						styles,
@@ -614,6 +621,7 @@ public class XLSResultsManager {
 						endDate, 
 						dateName,
 						dateForm,
+						superUser,
 						results_filter);
 	
 			
@@ -1014,6 +1022,7 @@ public class XLSResultsManager {
 	private void getData(
 			Connection sd, 
 			Connection connectionResults, 
+			String user,
 			Survey survey,
 			ArrayList<FormDesc> formList, 
 			FormDesc f,
@@ -1029,12 +1038,15 @@ public class XLSResultsManager {
 			Date endDate,
 			String dateName,
 			int dateForm,
+			boolean superUser,
 			String advanced_filter) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
-		//ResultSetMetaData rsMetaData = null;
+		RoleManager rm = new RoleManager();
+		ArrayList<SqlFrag> rfArray = null;
+		boolean hasRbacFilter = false;
 		
 		/*
 		 * Retrieve the data for this table
@@ -1073,6 +1085,19 @@ public class XLSResultsManager {
 		
 		if(f.parkey != null && !f.parkey.equals("0")) {
 			sql.append(" and parkey=?");
+		} else {
+			// RBAC filter
+			if(!superUser) {
+				rfArray = rm.getSurveyRowFilter(sd, sId, user);
+				if(rfArray.size() > 0) {
+					String rFilter = rm.convertSqlFragsToSql(rfArray);
+					if(rFilter.length() > 0) {
+						sql.append(" and ");
+						sql.append(rFilter);
+						hasRbacFilter = true;
+					}
+				}
+			}
 		}
 		sql.append(" order by prikey asc");	
 		
@@ -1088,14 +1113,14 @@ public class XLSResultsManager {
 					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
 				}
 			}
-			//if(filter != null) {
-			//	paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
-			//}
 			
-			if(f.parkey != null) {
+			
+			if(f.parkey != null && !f.parkey.equals("0")) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
+			} else if(hasRbacFilter) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
 			}
-			log.info("Get data: " + pstmt.toString());
+			// log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			
 			while (resultSet.next()) {
@@ -1172,10 +1197,26 @@ public class XLSResultsManager {
 					for(int j = 0; j < f.children.size(); j++) {
 						FormDesc nextForm = f.children.get(j);
 						nextForm.parkey = prikey;
-						getData(sd, connectionResults, survey,
-								formList, nextForm, split_locn, merge_select_multiple, choiceNames,
-								cols, resultsSheet, styles, embedImages, 
-								sId, startDate, endDate, dateName, dateForm, null);
+						getData(sd, 
+								connectionResults, 
+								user, 
+								survey,
+								formList, 
+								nextForm, 
+								split_locn, 
+								merge_select_multiple, 
+								choiceNames,
+								cols, 
+								resultsSheet, 
+								styles, 
+								embedImages, 
+								sId, 
+								startDate, 
+								endDate, 
+								dateName, 
+								dateForm, 
+								superUser, 
+								null);
 					}
 				}
 				
