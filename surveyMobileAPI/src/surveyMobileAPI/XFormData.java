@@ -75,6 +75,8 @@ public class XFormData {
 
 	Authorise a = new Authorise(null, Authorise.ENUM);
 
+	Survey survey = null;
+	
 	public XFormData() {
 
 	}
@@ -143,7 +145,11 @@ public class XFormData {
 
 					SurveyTemplate template = new SurveyTemplate(localisation);
 					template.readDatabase(sd, templateName, false);
-					template.extendInstance(sd, si, false);
+					
+					SurveyManager sm = new SurveyManager(localisation);
+					survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key
+					
+					template.extendInstance(sd, si, false, survey);
 
 					thisInstanceId = si.getUuid();
 
@@ -206,9 +212,6 @@ public class XFormData {
 				}
 			}
 			log.info("####################### End of Saving everything to disk ##############################");
-
-			SurveyManager sm = new SurveyManager(localisation);
-			Survey survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key
 
 			if (survey.getDeleted()) {
 				String reason = survey.displayName + " has been deleted";

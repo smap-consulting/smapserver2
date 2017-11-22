@@ -1,16 +1,22 @@
 package utilities;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
+import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.smap.sdal.Utilities.ApplicationException;
 
 public class XLSUtilities {
 
@@ -177,5 +183,75 @@ public class XLSUtilities {
 		}
 		
 		return newValue;
+	}
+	
+	/*
+	 * Get a hashmap of column name and column index
+	 */
+	public static HashMap<String, Integer> getHeader(Row row) {
+		HashMap<String, Integer> header = new HashMap<String, Integer> ();
+		
+		int lastCellNum = row.getLastCellNum();
+		Cell cell = null;
+		String name = null;
+		
+        for(int i = 0; i <= lastCellNum; i++) {
+            cell = row.getCell(i);
+            if(cell != null) {
+                name = cell.getStringCellValue();
+                if(name != null && name.trim().length() > 0) {
+                	name = name.toLowerCase();
+                    header.put(name, i);
+                }
+            }
+        }
+            
+		return header;
+	}
+	
+	/*
+	 * Get the value of a cell at the specified column
+	 */
+	public static String getColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws ApplicationException {
+		
+		Integer cellIndex;
+		int idx;
+		String value = null;
+		double dValue = 0.0;
+		Date dateValue = null;
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
+	
+		cellIndex = header.get(name);
+		if(cellIndex != null) {
+			idx = cellIndex;
+			if(idx <= lastCellNum) {
+				Cell c = row.getCell(idx);
+				if(c != null) {
+					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+						if (HSSFDateUtil.isCellDateFormatted(c)) {
+							dateValue = c.getDateCellValue();
+							value = dateFormat.format(dateValue);
+						} else {
+							dValue = c.getNumericCellValue();
+							value = String.valueOf(dValue);
+							if(value != null && value.endsWith(".0")) {
+								value = value.substring(0, value.lastIndexOf('.'));
+							}
+						}
+					} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
+						value = c.getStringCellValue();
+					} else {
+						value = null;
+					}
+
+				}
+			}
+		} 
+
+		if(value == null) {		// Set to default value if null
+			value = def;
+		}
+		
+		return value;
 	}
 }

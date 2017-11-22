@@ -243,10 +243,10 @@ public class XLSCustomReportsManager {
 	                    int lastCellNum = row.getLastCellNum();
 	                    
 	                	if(needHeader) {
-	                		header = getHeader(row, lastCellNum);
+	                		header = XLSUtilities.getHeader(row);
 	                		needHeader = false;
 	                	} else {
-	                		String rowType = getColumn(row, "row type", header, lastCellNum, null);
+	                		String rowType = XLSUtilities.getColumn(row, "row type", header, lastCellNum, null);
 	                		
 	                		if(rowType != null) {
 	                			rowType = rowType.trim().toLowerCase();
@@ -263,7 +263,7 @@ public class XLSCustomReportsManager {
 		                			config.columns.add(currentCol);
 		                			
 		                			// Get data type
-		                			String dataType = getColumn(row, "data type", header, lastCellNum, null);
+		                			String dataType = XLSUtilities.getColumn(row, "data type", header, lastCellNum, null);
 		                			if(dataType != null) {
 		                				if(!dataType.equals("text") &&
 		                						!dataType.equals("date") &&
@@ -280,7 +280,7 @@ public class XLSCustomReportsManager {
 		                			}
 		                			
 		                			// Get column name
-		                			String colName = getColumn(row, "name", header, lastCellNum, null);
+		                			String colName = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
 		                			if(colName != null) {
 		                				colName = colName.trim().toLowerCase();
 		                				String modColName = colName.replaceAll("[^a-z0-9_]", "");
@@ -300,7 +300,7 @@ public class XLSCustomReportsManager {
 		                			}
 		                			
 		                			// Get display name
-		                			String dispName = getColumn(row, "display name", header, lastCellNum, null);
+		                			String dispName = XLSUtilities.getColumn(row, "display name", header, lastCellNum, null);
 		                			if(dispName != null) {
 		              	
 		                				currentCol.humanName = dispName;
@@ -310,7 +310,7 @@ public class XLSCustomReportsManager {
 		                			}
 		                			
 		                			// Get hide state
-		                			String hide = getColumn(row, "hide", header, lastCellNum, null);
+		                			String hide = XLSUtilities.getColumn(row, "hide", header, lastCellNum, null);
 		                			currentCol.hide = false;
 		                			if(hide != null) {
 		                				hide = hide.toLowerCase().trim();
@@ -320,7 +320,7 @@ public class XLSCustomReportsManager {
 		                			} 
 		                			
 		                			// Get readonly state
-		                			String readonly = getColumn(row, "readonly", header, lastCellNum, null);
+		                			String readonly = XLSUtilities.getColumn(row, "readonly", header, lastCellNum, null);
 		                			currentCol.readonly = false;
 		                			if(readonly != null) {
 		                				readonly = readonly.toLowerCase().trim();
@@ -330,7 +330,7 @@ public class XLSCustomReportsManager {
 		                			}
 		                			
 		                			// Get filter state
-		                			String filter = getColumn(row, "filter", header, lastCellNum, null);
+		                			String filter = XLSUtilities.getColumn(row, "filter", header, lastCellNum, null);
 		                			currentCol.filter = false;
 		                			if(filter != null) {
 		                				filter = filter.toLowerCase().trim();
@@ -341,14 +341,14 @@ public class XLSCustomReportsManager {
 		                			
 		                			// Get parameters
 		                			try {
-		                				currentCol.parameters = getParamObj(getColumn(row, "parameters", header, lastCellNum, null));
+		                				currentCol.parameters = getParamObj(XLSUtilities.getColumn(row, "parameters", header, lastCellNum, null));
 		                			} catch (Exception e) {
 		                				// Ignore errors if parameters are not found
 		                			}
 		                			
 		                			// Get calculation state
 		                			if(currentCol.type.equals("calculate")) {
-			                			String calculation = getColumn(row, "calculation", header, lastCellNum, null);
+			                			String calculation = XLSUtilities.getColumn(row, "calculation", header, lastCellNum, null);
 			                			
 			                			if(calculation != null && calculation.length() > 0) {
 			                				calculation = calculation.trim();
@@ -366,10 +366,10 @@ public class XLSCustomReportsManager {
 		                			}
 		                		} else if(rowType.equals("choice")) {
 		                			if(currentCol != null && currentCol.type.equals("select_one")) {
-		                				String name = getColumn(row, "name", header, lastCellNum, null);
-		                				String dispName = getColumn(row, "display name", header, lastCellNum, null);
+		                				String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
+		                				String dispName = XLSUtilities.getColumn(row, "display name", header, lastCellNum, null);
 		                				if(name == null) {
-		                					name = getColumn(row, "value", header, lastCellNum, null);	// Legacy implementation
+		                					name = XLSUtilities.getColumn(row, "value", header, lastCellNum, null);	// Legacy implementation
 		                					dispName = name;
 		                				}
 	
@@ -382,7 +382,7 @@ public class XLSCustomReportsManager {
 		                					currentCol.filter = true;
 		                					
 		                					// Add conditional color
-			                				String appearance = getColumn(row, "appearance", header, lastCellNum, null);
+			                				String appearance = XLSUtilities.getColumn(row, "appearance", header, lastCellNum, null);
 			                				if(appearance != null) {
 			                					if(currentCol.markup == null) {
 			                						currentCol.markup = new ArrayList<TableColumnMarkup> ();
@@ -400,7 +400,7 @@ public class XLSCustomReportsManager {
 		                			
 		                		} else if(rowType.equals("user_role")) {
 		                			if(currentCol != null && currentCol.type.equals("select_one")) {
-		                				String role = getColumn(row, "name", header, lastCellNum, null);
+		                				String role = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
 		                				if(role != null) {
 		                					if(currentCol.choices == null) {
 		                						currentCol.choices = new ArrayList<KeyValue> ();
@@ -420,7 +420,7 @@ public class XLSCustomReportsManager {
 		                			
 		                		} else if(rowType.equals("action")) {
 		                			if(currentCol != null) {
-		                				String action = getColumn(row, "action", header, lastCellNum, null);
+		                				String action = XLSUtilities.getColumn(row, "action", header, lastCellNum, null);
 		                				if(action != null) {
 		                					if(action.equals("respond")) {
 			                					if(currentCol.actions == null) {
@@ -433,10 +433,10 @@ public class XLSCustomReportsManager {
 		                					
 		                					// Get the action details
 		                					Action todo = new Action(action);
-		                					todo.notify_type = getColumn(row, "notify type", header, lastCellNum, null);
-		                					todo.notify_person = getColumn(row, "notify person", header, lastCellNum, null);
+		                					todo.notify_type = XLSUtilities.getColumn(row, "notify type", header, lastCellNum, null);
+		                					todo.notify_person = XLSUtilities.getColumn(row, "notify person", header, lastCellNum, null);
 		                					if(isSecurityManager) {
-		                						String roles = getColumn(row, "roles", header, lastCellNum, null);
+		                						String roles = XLSUtilities.getColumn(row, "roles", header, lastCellNum, null);
 		                						if(roles != null) {
 		                							todo.roles = new ArrayList<Role> ();
 		                							String rArray [] = roles.split(",");
@@ -471,8 +471,8 @@ public class XLSCustomReportsManager {
 		                				
 		                				processingConditions = true;
 		                				
-		                				String condition = getColumn(row, "condition", header, lastCellNum, null);
-		                				String value = getColumn(row, "value", header, lastCellNum, null);
+		                				String condition = XLSUtilities.getColumn(row, "condition", header, lastCellNum, null);
+		                				String value = XLSUtilities.getColumn(row, "value", header, lastCellNum, null);
 		                				
 		                				if(condition == null) {
 		                					throw new Exception("Missing \"condition\" on row: " + (j + 1));
@@ -496,7 +496,7 @@ public class XLSCustomReportsManager {
 		                				
 		                				
 		                				// Add conditional markup and save value for use in export of form
-		                				String appearance = getColumn(row, "appearance", header, lastCellNum, null);
+		                				String appearance = XLSUtilities.getColumn(row, "appearance", header, lastCellNum, null);
 		                				if(currentCol.markup == null) {
 		                					currentCol.markup = new ArrayList<TableColumnMarkup> ();        					
 		                				} 
@@ -508,7 +508,7 @@ public class XLSCustomReportsManager {
 		                			} 
 		                			
 		                		} else if(rowType.equals("settings")) {
-		                			config.settings = getParamObj(getColumn(row, "parameters", header, lastCellNum, null));
+		                			config.settings = getParamObj(XLSUtilities.getColumn(row, "parameters", header, lastCellNum, null));
 		                		} else {
 		                			throw new Exception(localisation.getString("mf_ur") + 
 		                					" " + localisation.getString("mf_or") + ": " + (j + 1));
@@ -650,14 +650,14 @@ public class XLSCustomReportsManager {
                     int lastCellNum = row.getLastCellNum();
                     
                 	if(needHeader) {
-                		header = getHeader(row, lastCellNum);
+                		header = XLSUtilities.getHeader(row);
                 		needHeader = false;
                 	} else {
-                		String rowType = getColumn(row, "row type", header, lastCellNum, null);
+                		String rowType = XLSUtilities.getColumn(row, "row type", header, lastCellNum, null);
                 		
                 		if(rowType != null) {
                 			rowType = rowType.trim().toLowerCase();
-                			String name = getColumn(row, "name", header, lastCellNum, null);
+                			String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
                 			
                 			// Close of any condition type calculations
                 			if(processingConditions && !rowType.equals("condition")) {
@@ -667,7 +667,7 @@ public class XLSCustomReportsManager {
                 			
                 			// Process the row
 	                		if(rowType.equals("group")) {
-	                			String groupName = getColumn(row, "display name", header, lastCellNum, null);
+	                			String groupName = XLSUtilities.getColumn(row, "display name", header, lastCellNum, null);
 	                			currentGroup = new LQASGroup(groupName);
 	                			lqas.groups.add(currentGroup);
 	                		
@@ -677,7 +677,7 @@ public class XLSCustomReportsManager {
 	                			String[] sources = null; 
 	          			
 	                			// Get data type
-	                			String dataType = getColumn(row, "data type", header, lastCellNum, null);
+	                			String dataType = XLSUtilities.getColumn(row, "data type", header, lastCellNum, null);
 	                			if(dataType != null) {
 	                				if(!dataType.equals("text") &&
 	                						!dataType.equals("date") &&
@@ -693,7 +693,7 @@ public class XLSCustomReportsManager {
 	                			}
 	                			
 	                			// Get calculation state
-		                		String calculation = getColumn(row, "calculation", header, lastCellNum, null);		
+		                		String calculation = XLSUtilities.getColumn(row, "calculation", header, lastCellNum, null);		
 	                			if(calculation != null && calculation.length() > 0) {
 	                				calculation = calculation.trim();
 	                				if(calculation.equals("condition")) {
@@ -717,7 +717,7 @@ public class XLSCustomReportsManager {
 	                		} else if(rowType.equals("item")) {
 	                	
 	                			// Get data type
-	                			String dataType = getColumn(row, "data type", header, lastCellNum, null);
+	                			String dataType = XLSUtilities.getColumn(row, "data type", header, lastCellNum, null);
 	                			if(dataType != null) {
 	                				if(!dataType.equals("text") &&
 	                						!dataType.equals("date") &&
@@ -732,11 +732,11 @@ public class XLSCustomReportsManager {
 	                				throw new Exception(localisation.getString("mf_mdt") + " " + localisation.getString("mf_or") + ": " + (j + 1));
 	                			}
 	                			
-	                			String targetResponseText = getColumn(row, "target response text", header, lastCellNum, null);
-	                			String displayName = getColumn(row, "display name", header, lastCellNum, null);
+	                			String targetResponseText = XLSUtilities.getColumn(row, "target response text", header, lastCellNum, null);
+	                			String displayName = XLSUtilities.getColumn(row, "display name", header, lastCellNum, null);
 
 	                			// Get calculation 
-		                		String calculation = getColumn(row, "calculation", header, lastCellNum, null);		
+		                		String calculation = XLSUtilities.getColumn(row, "calculation", header, lastCellNum, null);		
 	                			if(calculation != null && calculation.length() > 0) {
 	                				calculation = calculation.trim();
 	                			} else {
@@ -750,7 +750,7 @@ public class XLSCustomReportsManager {
 	                			
 	                		} else if(rowType.equals("footer")) {
 	                			
-	                			String displayName = getColumn(row, "display name", header, lastCellNum, null);
+	                			String displayName = XLSUtilities.getColumn(row, "display name", header, lastCellNum, null);
 	                			lqas.footer = new LQASItem("footer",  displayName, null, null,  null);
 	                			
 	                			
@@ -760,8 +760,8 @@ public class XLSCustomReportsManager {
 	                				
 	                				processingConditions = true;
 	                				
-	                				String condition = getColumn(row, "condition", header, lastCellNum, null);
-	                				String value = getColumn(row, "value", header, lastCellNum, null);
+	                				String condition = XLSUtilities.getColumn(row, "condition", header, lastCellNum, null);
+	                				String value = XLSUtilities.getColumn(row, "value", header, lastCellNum, null);
 	                				
 	                				if(condition == null) {
 	                					throw new Exception("Missing \"condition\" on row: " + (j + 1));
@@ -890,78 +890,8 @@ public class XLSCustomReportsManager {
 		
 		return appString.toString().trim();
 	}
-
 	
-	/*
-	 * Get a hashmap of column name and column index
-	 */
-	private HashMap<String, Integer> getHeader(Row row, int lastCellNum) {
-		HashMap<String, Integer> header = new HashMap<String, Integer> ();
-		
-		Cell cell = null;
-		String name = null;
-		
-        for(int i = 0; i <= lastCellNum; i++) {
-            cell = row.getCell(i);
-            if(cell != null) {
-                name = cell.getStringCellValue();
-                if(name != null && name.trim().length() > 0) {
-                	name = name.toLowerCase();
-                    header.put(name, i);
-                }
-            }
-        }
-            
-		return header;
-	}
-	
-	/*
-	 * Get the value of a cell at the specified column
-	 */
-	private String getColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws Exception {
-		
-		Integer cellIndex;
-		int idx;
-		String value = null;
-		double dValue = 0.0;
-		Date dateValue = null;
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
-	
-		cellIndex = header.get(name);
-		if(cellIndex != null) {
-			idx = cellIndex;
-			if(idx <= lastCellNum) {
-				Cell c = row.getCell(idx);
-				if(c != null) {
-					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-						if (HSSFDateUtil.isCellDateFormatted(c)) {
-							dateValue = c.getDateCellValue();
-							value = dateFormat.format(dateValue);
-						} else {
-							dValue = c.getNumericCellValue();
-							value = String.valueOf(dValue);
-							if(value != null && value.endsWith(".0")) {
-								value = value.substring(0, value.lastIndexOf('.'));
-							}
-						}
-					} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
-						value = c.getStringCellValue();
-					} else {
-						value = null;
-					}
 
-				}
-			}
-		} else {
-			throw new Exception("Column " + name + " not found");
-		}
-
-		if(value == null) {		// Set to default value if null
-			value = def;
-		}
-		
-		return value;
-	}
 	
 	/*
 	 * Get the columns for the oversight form definition sheet

@@ -20,6 +20,7 @@ import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.ManifestInfo;
+import org.smap.sdal.model.MetaItem;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.Option;
@@ -1542,7 +1543,7 @@ public class SurveyTemplate {
 	 *  useExternalChoices is set false when getting an XForm
 	 *      Return the dummy choice that points to the external file columns
 	 */
-	public void extendInstance(Connection sd, SurveyInstance instance, boolean useExternalChoices) throws SQLException {
+	public void extendInstance(Connection sd, SurveyInstance instance, boolean useExternalChoices, org.smap.sdal.model.Survey sdalSurvey) throws SQLException {
 		List<Form> formList  = getAllForms(); 
 		
 		// Set the display name
@@ -1554,6 +1555,24 @@ public class SurveyTemplate {
 			instance.setForm(f.getPath(formList), f.getTableName(), f.getType());
 			List <Question> questionList = f.getQuestions(sd, f.getPath(formList));
 			extendQuestions(sd, instance, questionList, f.getPath(formList), useExternalChoices);
+			if(!f.hasParent()) {
+				extendMeta(sdalSurvey.meta, instance);
+			}
+		}
+	}
+	
+	private void extendMeta(ArrayList<MetaItem> meta, SurveyInstance instance) {
+		
+		instance.setQuestion("/neta", "begin group", "meta", false, null, null);
+		for(MetaItem mq : meta) {
+			System.out.println("Extending: " + mq.name);
+			String questionPath = null;
+			if(mq.name.contains("instanceID") || mq.name.contains("instanceName") || mq.name.contains("audit")) {
+				questionPath = "/main/meta/" + mq.name;
+			} else {
+				questionPath = "/main/" + mq.name;
+			}
+			instance.setQuestion(questionPath, mq.type, mq.name, false, mq.columnName, mq.dataType);
 		}
 	}
 	

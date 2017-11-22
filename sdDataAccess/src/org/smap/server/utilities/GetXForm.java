@@ -505,6 +505,22 @@ public class GetXForm {
 		Stack<Element> elementStack = new Stack<Element>(); // Store the elements for non repeat groups
 
 		/*
+		 * If this is the top level form add the meta and preload data for the survey
+		 */
+		if(!f.hasParent()) {
+			if(location == INSTANCE) {
+				// Add the meta group
+				Element metaGroup = outputDoc.createElement("meta");
+				currentParent.appendChild(metaGroup);
+				Element instanceID = outputDoc.createElement("instanceID");
+				metaGroup.appendChild(instanceID);
+				Element instanceName = outputDoc.createElement("instanceName");
+				metaGroup.appendChild(instanceName);
+			} else if(location == BIND) {
+				currentParent.appendChild(populateInstanceId(outputDoc));
+			}
+		}
+		/*
 		 * Add the questions from the template
 		 */
 		List<Question> questions = f.getQuestions(sd, f.getPath(null));
@@ -856,6 +872,21 @@ public class GetXForm {
 				}
 			}
 		}
+
+		return questionElement;
+	}
+	
+	/*
+	 * Create a bind entry for the instance
+	 */
+	public Element populateInstanceId(Document outputXML)
+			throws Exception {
+
+		Element questionElement = outputXML.createElement("bind");
+
+		questionElement.setAttribute("nodeset", "/main/meta/instanceID");
+		questionElement.setAttribute("type", "string");
+		questionElement.setAttribute("calculate", "concat('uuid:', uuid())");
 
 		return questionElement;
 	}

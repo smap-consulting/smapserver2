@@ -59,6 +59,7 @@ public class Question {
 	public String linked_target;			//sId::qId of the target to link to
 	public ArrayList<Label> labels = new ArrayList<Label> ();
 	public String nodeset;
+	public String dataType;
 	
 	public boolean isTableList = false;	// Temporary flag used during HTML generation
 	

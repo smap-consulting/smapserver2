@@ -53,6 +53,7 @@ import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Notification;
@@ -60,6 +61,7 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.HostUnreachableException;
 import org.smap.server.entities.MissingSurveyException;
@@ -124,6 +126,8 @@ public class SubscriberBatch {
 		String user = null;
 		String password = null;
 		JdbcUploadEventManager uem = null;
+		
+		Survey sdalSurvey = null;
 
 		String sqlUpdateStatus = "insert into subscriber_event ("
 				+ "se_id,"
@@ -259,8 +263,11 @@ public class SubscriberBatch {
 										String templateName = instance.getTemplateName();
 										SurveyTemplate template = new SurveyTemplate(orgLocalisation);
 
+										SurveyManager sm = new SurveyManager(localisation);
+										sdalSurvey = sm.getSurveyId(sd, templateName);	// Get the survey from the templateName / ident
+										
 										template.readDatabase(sd, templateName, false);					
-										template.extendInstance(sd, instance, true);	// Extend the instance with information from the template
+										template.extendInstance(sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
 										// instance.getTopElement().printIEModel("   ");	// Debug
 
 										// Get attachments from incomplete submissions
@@ -276,7 +283,7 @@ public class SubscriberBatch {
 												ue.getSurveyNotes(),
 												ue.getLocationTrigger(),
 												ue.getAuditFilePath(),
-												orgLocalisation);	// Call the subscriber	
+												orgLocalisation, sdalSurvey);	// Call the subscriber	
 
 									} else {
 

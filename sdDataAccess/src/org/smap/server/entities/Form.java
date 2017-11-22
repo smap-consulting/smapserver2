@@ -113,10 +113,7 @@ public class Form implements Serializable {
 	public List<Question> getQuestions(Connection sd, String formPath) throws SQLException {
 		
 		if(questions == null) {
-			//PersistenceContext pc = new PersistenceContext("pgsql_jpa");
-			//QuestionManager qm = new QuestionManager(pc);
-			//questions = qm.getByFormId(f_id);
-			
+
 			JdbcQuestionManager qm = null;
 			try {
 				qm = new JdbcQuestionManager(sd);

@@ -536,12 +536,14 @@ public class UploadFiles extends Application {
 				throw new ApplicationException("Survey " + displayName + " already exists in this project");
 			} else if(type.equals("xls") || type.equals("xlsx")) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(type);
-				tum.getSurvey(sd, 
+				Survey s = tum.getSurvey(sd, 
 						oId, 
 						type, 
 						fileItem.getInputStream(), 
 						localisation, 
-						displayName);
+						displayName,
+						projectId);
+				s.write(sd);
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();

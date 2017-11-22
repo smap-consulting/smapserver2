@@ -56,6 +56,7 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Survey;
 import org.smap.server.entities.SubscriberEvent;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -84,7 +85,7 @@ public class SubUshahidi extends Subscriber {
 	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l)  {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
 		
 		localisation = l;
 		String url = null;	// Address of Ushahidi API

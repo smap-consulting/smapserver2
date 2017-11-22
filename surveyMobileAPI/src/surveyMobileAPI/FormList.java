@@ -185,7 +185,6 @@ public class FormList extends Application {
 				ODKForm form = new ODKForm();
 				Survey s = surveys.get(i);
 				form.formID = String.valueOf(s.getIdent());
-				form.name = s.getName();
 				form.name = s.getDisplayName();
 				form.majorMinorVersion = " ";
 				form.version = String.valueOf(s.version);

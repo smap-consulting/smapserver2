@@ -52,6 +52,7 @@ import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -88,6 +89,8 @@ public class SubRelationalDB extends Subscriber {
 	String gBasePath = null;
 	String gFilePath = null;
 	String gAuditFilePath = null;
+	
+	private Survey survey = null;
 
 	/**
 	 * @param args
@@ -107,7 +110,7 @@ public class SubRelationalDB extends Subscriber {
 	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
-			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l)  {
+			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
 
 		localisation = l;
 		gBasePath = basePath;
@@ -124,7 +127,6 @@ public class SubRelationalDB extends Subscriber {
 		DocumentBuilder db = null;
 		Document xmlConf = null;		
 		Connection connection = null;
-		Survey survey = null;
 		try {
 
 			// Get the connection details for the database with survey definitions
@@ -154,8 +156,8 @@ public class SubRelationalDB extends Subscriber {
 			Class.forName(dbClassMeta);		 
 			connection = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
 			//Authorise a = new Authorise(null, Authorise.ENUM);
-			SurveyManager sm = new SurveyManager(localisation);
-			survey = sm.getSurveyId(connection, templateName);	// Get the survey from the templateName / ident
+			
+			this.survey = survey;
 
 			try {
 				if (connection != null) {
@@ -177,13 +179,13 @@ public class SubRelationalDB extends Subscriber {
 		try {
 
 			writeAllTableContent(instance, remoteUser, server, device, 
-					formStatus, updateId, survey.id, uploadTime, surveyNotes, 
-					locationTrigger, survey.key_policy);
+					formStatus, updateId, uploadTime, surveyNotes, 
+					locationTrigger);
 
 			applyNotifications(ue_id, remoteUser, server, survey.id, survey.exclude_empty);
 			applyAssignmentStatus(ue_id, remoteUser);
 			if(survey.autoUpdates != null && survey.managed_id > 0) {
-				applyAutoUpdates(survey, server, remoteUser);
+				applyAutoUpdates(server, remoteUser);
 			}
 			se.setStatus("success");			
 
@@ -364,7 +366,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply auto update changes
 	 */
-	private void applyAutoUpdates(Survey survey, String server, String remoteUser) {
+	private void applyAutoUpdates(String server, String remoteUser) {
 
 		HashMap<Integer, ArrayList<AutoUpdate>> updates = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -471,9 +473,10 @@ public class SubRelationalDB extends Subscriber {
 	 */
 	private void writeAllTableContent(SurveyInstance instance, String remoteUser, 
 			String server, String device, String formStatus, String updateId,
-			int sId, Date uploadTime, String surveyNotes, String locationTrigger,
-			String keyPolicy) throws SQLInsertException {
+			Date uploadTime, String surveyNotes, String locationTrigger) throws SQLInsertException {
 
+		int sId = survey.id;
+		String keyPolicy = survey.key_policy;
 		Connection cResults = null;
 		Connection cMeta = null;
 		PreparedStatement pstmtHrk = null;
@@ -681,6 +684,7 @@ public class SubRelationalDB extends Subscriber {
 				// Write form
 				String tableName = element.getTableName();
 				List<IE> columns = element.getQuestions();
+				
 				String sql = null;
 
 				/*
@@ -1562,4 +1566,6 @@ public class SubRelationalDB extends Subscriber {
 		}
 		return colNames;	
 	}
+	
+	
 }

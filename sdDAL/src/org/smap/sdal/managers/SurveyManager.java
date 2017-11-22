@@ -48,6 +48,7 @@ import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedSurvey;
 import org.smap.sdal.model.ManifestInfo;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.PropertyChange;
@@ -131,7 +132,7 @@ public class SurveyManager {
 
 			Survey s = new Survey();
 			s.setId(resultSet.getInt(1));
-			s.setName(resultSet.getString(2));
+			//s.setName(resultSet.getString(2));
 			s.setDisplayName(resultSet.getString(3));
 			s.setDeleted(resultSet.getBoolean(4));
 			s.setBlocked(resultSet.getBoolean(5));
@@ -198,7 +199,7 @@ public class SurveyManager {
 
 				Survey s = new Survey();
 				s.setId(resultSet.getInt(1));
-				s.setName(resultSet.getString(2));
+				//s.setName(resultSet.getString(2));
 				s.setDisplayName(resultSet.getString(3));
 				s.setDeleted(resultSet.getBoolean(4));
 				s.setBlocked(resultSet.getBoolean(5));
@@ -292,7 +293,11 @@ public class SurveyManager {
 		sql.append("select s.s_id, s.name, s.ident, s.display_name, s.deleted, s.blocked, p.name, p.id,"
 				+ "s.def_lang, s.task_file, s.timing_data, u.o_id, s.class,"
 				+ "s.instance_name, s.hrk, s.based_on, s.shared_table, s.created, s.loaded_from_xls,"
-				+ "s.pulldata, s.version, s.key_policy, s.exclude_empty "
+				+ "s.pulldata, "
+				+ "s.version, "
+				+ "s.key_policy, "
+				+ "s.exclude_empty,"
+				+ "s.meta "
 				+ "from survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -322,7 +327,7 @@ public class SurveyManager {
 
 				s = new Survey();
 				s.setId(resultSet.getInt(1));
-				s.setName(resultSet.getString(2));
+				//s.setName(resultSet.getString(2));
 				s.setIdent(resultSet.getString(3));
 				s.setDisplayName(resultSet.getString(4));
 				s.setDeleted(resultSet.getBoolean(5));
@@ -347,6 +352,13 @@ public class SurveyManager {
 				s.version = resultSet.getInt(21);
 				s.key_policy = resultSet.getString(22);
 				s.exclude_empty = resultSet.getBoolean(23);
+				String meta = resultSet.getString(24);
+				if(meta != null) {
+					s.meta = new Gson().fromJson(meta, 
+							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
+				} else {
+					getLegacyMeta();
+				}
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
@@ -670,7 +682,7 @@ public class SurveyManager {
 
 				Survey s = new Survey();
 				s.setId(resultSet.getInt(1));
-				s.setName(resultSet.getString(2));
+				//s.setName(resultSet.getString(2));
 				s.setDisplayName(resultSet.getString(3));
 				s.setDeleted(resultSet.getBoolean(4));
 				s.setBlocked(resultSet.getBoolean(5));
@@ -1145,7 +1157,8 @@ public class SurveyManager {
 				+ "s.display_name, s.key_policy, s.auto_updates, "
 				+ "s.managed_id,"
 				+ "s.ident,"
-				+ "s.version "
+				+ "s.version,"
+				+ "s.meta "
 				+ "from survey s "
 				+ "where s.ident = ?";
 
@@ -1171,6 +1184,13 @@ public class SurveyManager {
 				s.managed_id = resultSet.getInt(9);
 				s.ident = resultSet.getString(10);
 				s.version = resultSet.getInt(11);
+				String meta = resultSet.getString(12);
+				if(meta != null) {
+					s.meta = new Gson().fromJson(meta, 
+							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
+				} else {
+					getLegacyMeta();
+				}
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -3228,6 +3248,15 @@ public class SurveyManager {
 
 
 		return out;
+	}
+	
+	private ArrayList<MetaItem> getLegacyMeta() {
+		ArrayList<MetaItem> meta = new ArrayList<MetaItem>();
+		
+		// TODO get legacy meta
+		// TODO write legacy meta to the survey defn
+		
+		return meta;
 	}
 
 }

@@ -14,7 +14,18 @@ public class Form {
 	public int parentQuestion;
 	public int parentQuestionIndex;
 	public String tableName;		// Name of the table that holds the results for this form
-	public String repeat_path;		// Path to the question that holds repeat count
+	//public String repeat_path;		// Path to the question that holds repeat count
 	public ArrayList<Question> questions = new ArrayList<Question> ();
 
+	// Basic constructor
+	public Form() {
+		
+	}
+	
+	// Constructor for creating new form
+	public Form(String name, int parentFormIndex, int parentQuestionIndex) {
+		this.name = name;
+		this.parentFormIndex = parentFormIndex;
+		this.parentQuestionIndex = parentQuestionIndex;
+	}
 }
