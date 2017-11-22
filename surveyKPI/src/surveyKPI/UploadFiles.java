@@ -111,7 +111,7 @@ public class UploadFiles extends Application {
 		Connection cResults = null;
 		boolean superUser = false;
 		boolean webform = true;
-		if(wf != null && (wf.equals("yes") || wf.equals("true"))) {
+		if(wf != null && (wf.equals("no") || wf.equals("false"))) {
 			webform = false;
 		}
 		
