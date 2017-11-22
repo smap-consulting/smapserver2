@@ -190,9 +190,14 @@ public class Survey {
 		try {
 			sd.setAutoCommit(false);
 			
-			writeSurvey(sd);
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			
+			writeSurvey(sd, gson);
 			writeLanguages(sd);
-			writeForms(sd);
+			writeLists(sd, gson);
+			writeForms(sd);			
+			
+			sd.commit();
 			
 		} finally {
 			try {sd.setAutoCommit(true);} catch (Exception e) {}
@@ -203,7 +208,7 @@ public class Survey {
 	 * Private methods that support writing to the survey to the database
 	 * 1. Write the survey definition
 	 */
-	private void writeSurvey(Connection sd) throws SQLException {
+	private void writeSurvey(Connection sd, Gson gson) throws SQLException {
 		
 		String sql = "insert into survey ("
 				+ "s_id, "
@@ -226,8 +231,6 @@ public class Survey {
 				+ "ident = ? "
 				+ "where s_id = ?;";
 		PreparedStatement pstmtUpdate = null;
-		
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -269,6 +272,83 @@ public class Survey {
 	 */
 	private void writeLanguages(Connection sd) throws SQLException {
 		GeneralUtilityMethods.setLanguages(sd, id, languages);
+	}
+	
+	/*
+	 * Write the lists
+	 * Then get the list id to be used by the question
+	 */
+	private void writeLists(Connection sd, Gson gson) throws SQLException {
+		
+		String sql = "insert into listname (s_id, name) values(?, ?);";
+		PreparedStatement pstmt = null;
+		
+		String sqlOption = "insert into option ("
+				+ "o_id, "
+				+ "seq, "
+				+ "ovalue, "
+				+ "cascade_filters, "
+				+ "externalfile, "
+				+ "column_name, "
+				+ "l_id) "
+				+ "values (nextval('o_seq'), ?, ?, ?, ?, ?, ?);";
+		PreparedStatement pstmtOption = null;
+		
+		String sqlUpdateOption = "update option set label_id = ? where o_id = ?";
+		PreparedStatement pstmtUpdateOption = null;
+		
+		try {
+			// Creating the option list
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+			pstmt.setInt(1, id);
+			
+			// Inserting an option
+			pstmtOption = sd.prepareStatement(sqlOption, Statement.RETURN_GENERATED_KEYS);
+			
+			// Setting the label ID
+			pstmtUpdateOption = sd.prepareStatement(sqlUpdateOption);
+			
+			for(String listname : optionLists.keySet()) {
+				
+				OptionList ol = optionLists.get(listname);
+				
+				// 1. Create the list and get the list id
+				pstmt.setString(2, listname);
+				pstmt.executeUpdate();				
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if(rs.next()) {
+					ol.id = rs.getInt(1);
+				}
+				
+				// 2. Insert each option with this list id
+				int idx = 0;
+				for(Option o : ol.options) {
+					pstmtOption.setInt(1, idx++);
+					pstmtOption.setString(2, o.value);
+					pstmtOption.setString(3, gson.toJson(o.cascade_filters));
+					pstmtOption.setBoolean(4, false);
+					pstmtOption.setString(5, o.columnName);
+					pstmtOption.setInt(6, ol.id);
+					pstmtOption.executeUpdate();
+					rs = pstmtOption.getGeneratedKeys();
+					if(rs.next()) {
+						o.id = rs.getInt(1);
+						String label_id = "option_" +  o.id;
+						
+						pstmtUpdateOption.setString(1, label_id);
+						pstmtUpdateOption.setInt(2, o.id);
+						pstmtUpdateOption.executeUpdate();
+					}
+					
+				}
+			}
+			
+			
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			if(pstmtOption != null) {try {pstmtOption.close();} catch(Exception e) {}}
+			if(pstmtUpdateOption != null) {try {pstmtUpdateOption.close();} catch(Exception e) {}}
+		}
 	}
 	
 	/*
@@ -376,17 +456,22 @@ public class Survey {
 				if(l.hint != null && l.hint.trim().length() > 0) {
 					infotextId = transId + ":hint";
 				}
+			}	
+			q.l_id = 0;	 // Set list id
+			if(q.list_name != null) {
+				OptionList ol = optionLists.get(q.list_name);
+				q.l_id = ol.id;
 			}
 			
-			
+			// Write the data
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, f_id);
 			pstmt.setInt(2, seq);
 			pstmt.setString(3, q.name);
-			pstmt.setString(4, q.type);					// TODO question type
+			pstmt.setString(4, q.type);
 			pstmt.setString(5, labelId);					
-			pstmt.setString(6, "");						// default answer
-			pstmt.setString(7, infotextId);
+			pstmt.setString(6, "");						// TODO default answer
+			pstmt.setString(7, infotextId);				// TODO Hint
 			pstmt.setBoolean(8, q.visible);				// TODO visibility
 			pstmt.setString(9, q.source);
 			pstmt.setString(10, q.source_param);
@@ -404,8 +489,8 @@ public class Survey {
 			pstmt.setString(22, "");						// TODO Nodeset value
 			pstmt.setString(23, "");						// TODO Nodeset label
 			pstmt.setString(24,  q.columnName);
-			pstmt.setBoolean(25,  false);    			// false
-			pstmt.setInt(26, q.l_id);					// TODO
+			pstmt.setBoolean(25,  false);    			// false			
+			pstmt.setInt(26, q.l_id);
 			pstmt.setString(27, q.autoplay);  			// TODO
 			pstmt.setString(28, q.accuracy);  			// TODO
 			pstmt.setString(29, q.dataType);
