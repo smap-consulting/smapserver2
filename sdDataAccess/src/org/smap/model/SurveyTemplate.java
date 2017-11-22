@@ -1563,7 +1563,7 @@ public class SurveyTemplate {
 	
 	private void extendMeta(ArrayList<MetaItem> meta, SurveyInstance instance) {
 		
-		instance.setQuestion("/neta", "begin group", "meta", false, null, null);
+		instance.setQuestion("/main/meta", "begin group", "meta", false, null, null);
 		for(MetaItem mq : meta) {
 			System.out.println("Extending: " + mq.name);
 			String questionPath = null;
