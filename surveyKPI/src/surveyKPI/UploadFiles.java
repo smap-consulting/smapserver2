@@ -93,6 +93,7 @@ public class UploadFiles extends Application {
 	public Response sendMedia(
 			@QueryParam("getlist") boolean getlist,
 			@QueryParam("survey_id") int sId,
+			@QueryParam("webform") String wf,
 			@Context HttpServletRequest request
 			) throws IOException {
 
@@ -109,7 +110,11 @@ public class UploadFiles extends Application {
 		Connection connectionSD = null; 
 		Connection cResults = null;
 		boolean superUser = false;
-
+		boolean webform = true;
+		if(wf != null && (wf.equals("yes") || wf.equals("true"))) {
+			webform = false;
+		}
+		
 		try {
 			
 			/*
@@ -194,8 +199,8 @@ public class UploadFiles extends Application {
 						// Create thumbnails
 						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);
 
-						// Apply changes from CSV files to survey definition
-						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
+						// Apply changes from CSV files to survey definition if requested by the user through setting the webform parameter
+						if(contentType.equals("text/csv") || fileName.endsWith(".csv") && webform) {
 							applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
 						}
 
@@ -772,7 +777,7 @@ public class UploadFiles extends Application {
 							changes.add(cs);
 						}
 					}
-				} else {
+				} else if(q.type.startsWith("select")) {
 					// File is being deleted just remove the external options for this questions
 					pstmtTranslationDelete.setInt(1, sId);
 					pstmtTranslationDelete.setInt(2, q.l_id);

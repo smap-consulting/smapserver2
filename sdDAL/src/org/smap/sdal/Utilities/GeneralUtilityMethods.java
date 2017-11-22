@@ -1582,8 +1582,6 @@ public class GeneralUtilityMethods {
 			private String filterString;
 			public HashMap<String, String> filter;
 
-			// data[vlc.value], data[vlc.label], filter.GetCascadeFilter(data)));
-			//public OptionItem(String v, String l, HashMap<String, String> f) {
 			public OptionItem(String[] data, ArrayList<ValueLabelCols> vlcA, HashMap<String, String> f) {
 				
 				for(int i = 0; i < vlcA.size(); i++) {
@@ -1622,7 +1620,10 @@ public class GeneralUtilityMethods {
 					unchanged = false;
 				} else {
 					for(int i = 0; i < label.size(); i++) {
-						if(!oi.label.get(i).equals(label.get(i))) {
+						LanguageItem thisLabel = label.get(i);
+						LanguageItem otherLabel = oi.label.get(i);
+						if(!thisLabel.language.equals(otherLabel.language) ||
+								!thisLabel.text.equals(otherLabel.text)) {
 							unchanged = false;
 							break;
 						}
@@ -1723,14 +1724,7 @@ public class GeneralUtilityMethods {
 
 			// debug
 			log.info(" ======== New list: " + listNew.size());
-			for(int i = 0; i < listNew.size(); i++) {
-				log.info("    - " + listNew.get(i).value);
-			}
-			
 			log.info(" ======== Old list" + listOld.size());
-			for(int i = 0; i < listOld.size(); i++) {
-				log.info("    - " + listOld.get(i).value);
-			}
 			
 			/*
 			 * Create a list of items to add that are in the new list but not in the old
