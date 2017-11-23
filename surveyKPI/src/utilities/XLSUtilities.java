@@ -4,6 +4,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
@@ -253,5 +254,23 @@ public class XLSUtilities {
 		}
 		
 		return value;
+	}
+	
+	public static ApplicationException getApplicationException(ResourceBundle localisation, String code, int row, String sheet, String param1, String param2) {
+		
+		StringBuffer buf = new StringBuffer(localisation.getString("tu_rn")).append(" ").append(localisation.getString(code));
+
+		String msg = buf.toString();
+		msg = msg.replace("%sheet", sheet);
+		msg = msg.replaceAll("%row", String.valueOf(row));
+		
+		if(param1 != null) {
+			msg = msg.replace("%s1", param1);
+		}
+		if(param2 != null) {
+			msg = msg.replace("%s2", param2);
+		}
+		
+		return new ApplicationException(msg);
 	}
 }

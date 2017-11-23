@@ -22,12 +22,10 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.util.ArrayList;
 
-//import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-//import org.apache.poi.ss.usermodel.Workbook;
-//import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
@@ -62,6 +60,11 @@ public class XLSTemplateUploadManager {
 
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
+
+	HashMap<String, String> qNameMap = new HashMap<> ();						// Use in question name validation
+	HashMap<String, HashMap<String, String>> oNameMap = new HashMap<> ();		// Use in option name validation
+	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
+	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.:/]*$");
 
 	boolean useDefaultLanguage = false;
 
@@ -130,7 +133,7 @@ public class XLSTemplateUploadManager {
 				while(rowNumChoices <= lastRowNumChoices) {
 
 					Row row = choicesSheet.getRow(rowNumChoices++);
-					
+
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
 						String listName = XLSUtilities.getColumn(row, "list name", choicesHeader, lastCellNum, null);
@@ -140,7 +143,7 @@ public class XLSTemplateUploadManager {
 								ol = new OptionList();
 								survey.optionLists.put(listName, ol);
 							}
-							ol.options.add(getOption(row));
+							ol.options.add(getOption(row, listName));
 						}
 
 					}
@@ -150,11 +153,9 @@ public class XLSTemplateUploadManager {
 			/*
 			 * 2. Process the survey sheet
 			 */
-
-			survey.forms.add(getForm("main", 0, 0));
-
+			getForm("main", -1, -1);
 			if(survey.forms.get(0).questions.size() == 0) {
-				throw new ApplicationException("There are no questions in this survey");
+				throw new ApplicationException(localisation.getString("tu_nq"));
 			}
 
 		}
@@ -172,19 +173,20 @@ public class XLSTemplateUploadManager {
 
 
 	}
-	
-	private Option getOption(Row row) throws ApplicationException {
+
+	private Option getOption(Row row, String listName) throws ApplicationException {
+
 		Option o = new Option();
 		int lastCellNum = row.getLastCellNum();
+		o.optionList = listName;
 
 		o.value = XLSUtilities.getColumn(row, "name", choicesHeader, lastCellNum, null);
-		if(o.value == null || o.value.trim().length() == 0) {
-			throw new ApplicationException("Value is required for the option in the choices sheet at row " + (rowNumChoices - 1));
-		}
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
 		o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
-	
+
+		validateOption(o, rowNumChoices);
+
 		return o;
 	}
 
@@ -269,23 +271,32 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Process the question rows to create a form
 	 */
-	private Form getForm(String name, int parentFormIndex, int parentQuestionIndex) throws Exception {
+	private void getForm(String name, int parentFormIndex, int parentQuestionIndex) throws Exception {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
+		survey.forms.add(f);
 
 		while(rowNumSurvey <= lastRowNumSurvey) {
 
 			Row row = surveySheet.getRow(rowNumSurvey++);
 
 			if(row != null) {
-				Question q = getQuestion(row);
+				Question q = getQuestion(row);				
 				if(q != null) {
+					if(q.type.equals("end repeat")) {
+						return;
+					}
+					validateQuestion(q, rowNumSurvey);
 					f.questions.add(q);
+					
+					if(q.type.equals("begin repeat")) {
+						getForm(q.name, survey.forms.size() - 1, f.questions.size() - 1);
+					}
 				}
+						
 			}
 		}
 
-		return f;
 	}
 
 	/*
@@ -298,14 +309,14 @@ public class XLSTemplateUploadManager {
 
 		String type = XLSUtilities.getColumn(row, "type", surveyHeader, lastCellNum, null);
 		if(type == null) {
-			return null;			// empty row
+			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
 		}
 		q.type = convertType(type, q);
 		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);
 		getLabels(row, lastCellNum, surveyHeader, q.labels);
-		
+
 		q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, false);	// Do not remove smap meta names as they are added through this mechanism
-		
+
 		q.source = "user";
 
 		// Derived values
@@ -340,17 +351,17 @@ public class XLSTemplateUploadManager {
 
 	}
 
-	
+
 	private String convertType(String in, Question q) {
-		
+
 		in = in.trim();
 		String out = in;
-		
+
 		if (in.equals("text")) {
 			out = "string";
 		} else if(in.equals("integer")) {
 			out = "int";
-			
+
 		} else if(in.startsWith("select_one") || in.startsWith("select one")) {
 			out = "select1";
 			q.list_name = in.substring("select_one".length() + 1);
@@ -370,4 +381,52 @@ public class XLSTemplateUploadManager {
 
 		return visible;
 	}
+
+	private void validateQuestion(Question q, int rowNumber) throws ApplicationException {
+
+		if (q.name == null || q.name.trim().length() == 0) {
+			// Check for a missing name
+			throw XLSUtilities.getApplicationException(localisation, "tu_mn", rowNumber, "survey", null, null);
+
+		} else if(!validQname.matcher(q.name).matches()) {
+			// Check for a valid name
+			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null);
+
+		} else if(qNameMap.get(q.name) != null) {
+			// Check for a duplicate name
+			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null);
+
+		}
+
+		qNameMap.put(q.name, q.name);
+
+	}
+
+	private void validateOption(Option o, int rowNumber) throws ApplicationException {
+
+		HashMap<String, String> listMap = oNameMap.get(o.optionList);
+		if(listMap == null) {
+			listMap = new HashMap<String, String> ();
+			oNameMap.put(o.optionList, listMap);
+		}
+
+		if(o.value == null || o.value.trim().length() == 0) {
+			// Check for a missing value
+			throw XLSUtilities.getApplicationException(localisation, "tu_vr", rowNumber, "choices", o.optionList, null);
+
+		} else if(!validChoiceName.matcher(o.value).matches()) {
+			// Check for a valid value
+			throw XLSUtilities.getApplicationException(localisation, "tu_cn",rowNumber, "choices", o.value, null);
+
+		} else if(listMap.get(o.value) != null) {
+			// Check for a duplicate value
+			throw XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList);
+
+		}
+
+		listMap.put(o.value, o.value);
+
+	}
+
+
 }

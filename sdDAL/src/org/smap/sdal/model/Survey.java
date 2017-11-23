@@ -195,7 +195,8 @@ public class Survey {
 			writeSurvey(sd, gson);
 			writeLanguages(sd);
 			writeLists(sd, gson);
-			writeForms(sd);			
+			writeForms(sd);	
+			updateForms(sd);		// Set parent form id and parent question id for forms
 			
 			sd.commit();
 			
@@ -362,10 +363,6 @@ public class Survey {
 	/*
 	 * 2. Write the forms
 	 * This creates an initial entry for a form and then gets the resultant form ID
-	 * Later once the questions have been written this form definition will be updated with 
-	 *  parent form
-	 *  parent question
-	 *  repeats
 	 */
 	private void writeForms(Connection sd) throws SQLException {
 		
@@ -407,6 +404,39 @@ public class Survey {
 		}	
 	}
 	
+	/*
+	 * 2. Update the forms with
+	 *  parent form
+	 *  parent question
+	 *  repeats TODO
+	 */
+	private void updateForms(Connection sd) throws SQLException {
+		
+		String sql = "update form set "
+				+ "parentform = ?, "
+				+ "parentquestion = ? "
+				+ "where f_id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+		
+			for(Form f : forms) {
+				if(f.parentFormIndex >= 0) {
+					Form parentForm = forms.get(f.parentFormIndex);	
+					Question parentQuestion = parentForm.questions.get(f.parentQuestionIndex);
+					pstmt.setInt(1, parentForm.id);
+					pstmt.setInt(2,  parentQuestion.id);
+					pstmt.setInt(3,  f.id);
+				
+					pstmt.executeUpdate();
+				}
+			}
+
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}	
+	}
 
 	/*
 	 * 3. Write a Question
@@ -472,7 +502,7 @@ public class Survey {
 			}
 			
 			// Write the data
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setInt(1, f_id);
 			pstmt.setInt(2, seq);
 			pstmt.setString(3, q.name);
@@ -518,6 +548,11 @@ public class Survey {
 			pstmt.setString(29, q.dataType);
 
 			pstmt.executeUpdate();
+			
+			ResultSet rs = pstmt.getGeneratedKeys();
+			if(rs.next()) {
+				q.id = rs.getInt(1);
+			}
 			
 			// Write the labels
 			UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, "");
