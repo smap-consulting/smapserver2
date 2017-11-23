@@ -417,7 +417,8 @@ public class Survey {
 		
 		String sql = "update form set "
 				+ "parentform = ?, "
-				+ "parentquestion = ? "
+				+ "parentquestion = ?, "
+				+ "repeats = ? "
 				+ "where f_id = ?";
 		PreparedStatement pstmt = null;
 		
@@ -430,7 +431,8 @@ public class Survey {
 					Question parentQuestion = parentForm.questions.get(f.parentQuestionIndex);
 					pstmt.setInt(1, parentForm.id);
 					pstmt.setInt(2,  parentQuestion.id);
-					pstmt.setInt(3,  f.id);
+					pstmt.setString(3, parentQuestion.repeatCount);
+					pstmt.setInt(4,  f.id);
 				
 					pstmt.executeUpdate();
 				}
@@ -530,11 +532,11 @@ public class Survey {
 			pstmt.setString(10, q.source_param);
 			pstmt.setBoolean(11, q.readonly); 			// TODO read only
 			pstmt.setBoolean(12, q.required);			// TODO required
-			pstmt.setString(13, q.relevant);				// TODO
+			pstmt.setString(13, q.relevant);	
 			pstmt.setString(14, q.calculation);			// TODO
 			pstmt.setString(15, q.chartdata);			// TODO
-			pstmt.setString(16, q.constraint);			// TODO
-			pstmt.setString(17, q.constraint_msg);		// TODO
+			pstmt.setString(16, q.constraint);
+			pstmt.setString(17, q.constraint_msg);
 			pstmt.setString(18, q.required_msg);			// TODO
 			pstmt.setString(19, q.appearance);			// TODO
 			pstmt.setString(20, q.parameters);			// TODO

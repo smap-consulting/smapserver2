@@ -62,6 +62,7 @@ public class XLSTemplateUploadManager {
 
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
+	HashMap<String, Integer> choiceFilterHeader = null;
 
 	HashMap<String, Integer> qNameMap = new HashMap<> ();						// Use in question name validation
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
@@ -193,6 +194,12 @@ public class XLSTemplateUploadManager {
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
 		o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
+		for(String key :choiceFilterHeader.keySet()) {
+			String value = XLSUtilities.getColumn(row, key, choicesHeader, lastCellNum, null);
+			if (value != null) {
+				o.cascade_filters.put(key, value);
+			}
+		}
 
 		validateOption(o, rowNumChoices);
 
@@ -206,6 +213,8 @@ public class XLSTemplateUploadManager {
 	 */
 	private void getHeaders() {
 
+		choiceFilterHeader = new HashMap<String, Integer> ();
+		
 		HashMap<String, String> langMap = new HashMap<String, String> ();
 
 		while(rowNumSurvey <= lastRowNumSurvey) {
@@ -242,7 +251,25 @@ public class XLSTemplateUploadManager {
 		while(rowNumChoices <= lastRowNumChoices) {
 			Row row = choicesSheet.getRow(rowNumChoices++);
 			if(row != null) {
-				choicesHeader = XLSUtilities.getHeader(row);				
+				choicesHeader = XLSUtilities.getHeader(row);	
+				
+				// Get the headers for filters
+				for(String h : choicesHeader.keySet()) {
+					if(h.equals("list name")
+							|| h.equals("name")
+							|| h.equals("label")
+							|| h.startsWith("label::") 
+							|| h.equals("image")
+							|| h.startsWith("image::") 
+							|| h.equals("audio")
+							|| h.startsWith("audio::") 
+							|| h.equals("video") 
+							|| h.startsWith("video::")) {
+						continue;
+					}
+					// The rest must be filter columns
+					choiceFilterHeader.put(h, choicesHeader.get(h));
+				}
 
 				// Add languages in order they exist in the header hence won't use keyset of surveyHeader
 				int lastCellNum = row.getLastCellNum();				
@@ -323,7 +350,7 @@ public class XLSTemplateUploadManager {
 		if(type == null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
 		}		
-		q.type = convertType(type, q);			
+		q.type = convertType(type, q);	
 		
 		// 2. Question name
 		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);  
@@ -334,16 +361,23 @@ public class XLSTemplateUploadManager {
 		// 3. Labels
 		getLabels(row, lastCellNum, surveyHeader, q.labels);		
 
-		// 4. choice filter TODO
+		// 4. choice filter
+		q.choice_filter = XLSUtilities.getColumn(row, "choice_filter", surveyHeader, lastCellNum, null);
 		
 		// 5. Constraint
 		q.constraint = XLSUtilities.getColumn(row, "constraint", surveyHeader, lastCellNum, null);  
 		
-		// 6. Constraint message TODO
+		// 6. Constraint message
+		q.constraint_msg = XLSUtilities.getColumn(row, "constraint_message", surveyHeader, lastCellNum, null); 
 		
 		// 7. Relevant
 		q.relevant = XLSUtilities.getColumn(row, "relevant", surveyHeader, lastCellNum, null);  		
 
+		// 7. Repeat count
+		if(q.type.equals("begin repeat")) {
+			q.repeatCount = XLSUtilities.getColumn(row, "repeat_count", surveyHeader, lastCellNum, null);  
+		}
+		
 		/*
 		 * Handle Groups
 		 */
@@ -461,7 +495,30 @@ public class XLSTemplateUploadManager {
 		
 		for(Form f : survey.forms) {
 			for(Question q : f.questions) {
-				validateQuestionInSurvey(q);
+				if(q.relevant != null) {
+					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
+					if(refs.size() > 0) {
+						questionInSurvey(refs, "relevant", q);
+					}
+				}
+				if(q.constraint != null) {
+					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.constraint);
+					if(refs.size() > 0) {
+						questionInSurvey(refs, "constraint", q);
+					}
+				}
+				if(q.repeatCount != null) {
+					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.repeatCount);
+					if(refs.size() > 0) {
+						questionInSurvey(refs, "repeat_count", q);
+					}
+				}
+				if(q.choice_filter != null) {
+					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.choice_filter);
+					if(refs.size() > 0) {
+						questionInSurvey(refs, "choice_filter", q);
+					}
+				}
 			}
 		}
 	}
@@ -490,21 +547,6 @@ public class XLSTemplateUploadManager {
 
 		listMap.put(o.value, rowNumber);
 
-	}
-
-	private void validateQuestionInSurvey(Question q) throws Exception {
-		if(q.relevant != null) {
-			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
-			if(refs.size() > 0) {
-				questionInSurvey(refs, "relevant", q);
-			}
-		}
-		if(q.constraint != null) {
-			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.constraint);
-			if(refs.size() > 0) {
-				questionInSurvey(refs, "constraint", q);
-			}
-		}
 	}
 	
 	private void questionInSurvey(ArrayList<String> names, String context, Question q) throws ApplicationException {

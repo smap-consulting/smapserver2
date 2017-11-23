@@ -61,6 +61,7 @@ public class Question {
 	public String nodeset;
 	public String dataType;
 	
+	public String repeatCount;			// Temporary data used during xls processing	
 	public boolean isTableList = false;	// Temporary flag used during HTML generation
 	
 	private static Logger log =
