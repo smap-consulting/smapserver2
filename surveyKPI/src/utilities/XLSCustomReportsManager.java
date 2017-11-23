@@ -120,13 +120,15 @@ public class XLSCustomReportsManager {
 			} else if(name.equals("parameters")) {
 				value = "";
 				int count = 0;
-				for(String k : props.parameters.keySet()) {
-					if(count++ > 0) {
-						value += " ";
+				if(props.parameters != null) {
+					for(String k : props.parameters.keySet()) {
+						if(count++ > 0) {
+							value += " ";
+						}
+						value += k;
+						value += "=";
+						value += props.parameters.get(k);
 					}
-					value += k;
-					value += "=";
-					value += props.parameters.get(k);
 				}
 			}
 			
@@ -527,6 +529,16 @@ public class XLSCustomReportsManager {
 			if(processingConditions ) {
 				processingConditions = false;
 				currentCol.calculation.add("END");
+			}
+		}
+		
+		// Final Validatation
+		
+		for(TableColumn col : config.columns) {
+			
+			// 1. Check for condition calculations without any corresponding contion entries
+			if(col.isCondition && col.calculation == null) {
+				throw new Exception(localisation.getString("mf_ncr") + ": " + col.name);
 			}
 		}
 	
@@ -1044,6 +1056,8 @@ public class XLSCustomReportsManager {
 		
 		HashMap<String, String> paramObj = null;
 		
+		// Remove any white space around the equal signs
+		parameters = GeneralUtilityMethods.removeSurroundingWhiteSpace(parameters, '=');
 		if(parameters != null) {
 			paramObj = new HashMap<String, String> ();
 			String [] params = parameters.split(" ");

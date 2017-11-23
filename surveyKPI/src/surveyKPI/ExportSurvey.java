@@ -1237,10 +1237,9 @@ public class ExportSurvey extends Application {
 							}
 						}
 					}
-				}
+				    }
 			}
 		} else {
-			//log.info("Ignoring invisible form: " + f.table_name);
 			// Proceed with any lower level forms
 			if(index < formList.size() - 1) {
 				appendToOutput(sd, outWriter, in , formList.get(index + 1), 

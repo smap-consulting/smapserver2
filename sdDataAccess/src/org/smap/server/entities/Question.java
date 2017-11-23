@@ -340,7 +340,7 @@ public class Question {
 	}
 	
 	public String getParameters() {
-		return cleanParams(parameters);
+		return GeneralUtilityMethods.removeSurroundingWhiteSpace(parameters, '=');
 	}
 	
 	public boolean getEnabled() {		// deprecate
@@ -813,43 +813,6 @@ public class Question {
 	    		}
 	    	}
 	    	return in;
-	    }
-	    
-	    /*
-	     * Remove inconvenient spaces form parameters
-	     */
-	    private String cleanParams(String in) {
-	    	StringBuffer out = new StringBuffer("");
-	    	
-	    	if(in != null) {
-	    		boolean validLocn = false;
-	    		boolean foundEquals = false;
-	    		for(int i = 0; i < in.length(); i++) {
-	    			
-	    			if(in.charAt(i) != ' ') {
-	    				out.append(in.charAt(i));
-	    			}
-	    			
-	    			// Determine if the location is valid for a space
-	    			// a. After an equals has been found and after some text
-	    			if(in.charAt(i) == '=') {
-	    				foundEquals = true;
-	    			}
-	    			if(foundEquals && in.charAt(i) != '=' && in.charAt(i) != ' ') {
-	    				validLocn = true;
-	    				foundEquals = false;
-	    			}
-	    			
-	    			// only add a space when the location is valid for a space
-	    			if(in.charAt(i) == ' ' && validLocn) {
-	    				out.append(' ');
-	    				validLocn = false;
-	    			}
-	    			
-	    		}
-	    	}
-	    	
-	    	return out.toString();
 	    }
 	 
 }

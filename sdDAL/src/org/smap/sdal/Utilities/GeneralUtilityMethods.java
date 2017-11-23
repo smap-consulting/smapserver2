@@ -1582,8 +1582,6 @@ public class GeneralUtilityMethods {
 			private String filterString;
 			public HashMap<String, String> filter;
 
-			// data[vlc.value], data[vlc.label], filter.GetCascadeFilter(data)));
-			//public OptionItem(String v, String l, HashMap<String, String> f) {
 			public OptionItem(String[] data, ArrayList<ValueLabelCols> vlcA, HashMap<String, String> f) {
 				
 				for(int i = 0; i < vlcA.size(); i++) {
@@ -1622,7 +1620,10 @@ public class GeneralUtilityMethods {
 					unchanged = false;
 				} else {
 					for(int i = 0; i < label.size(); i++) {
-						if(!oi.label.get(i).equals(label.get(i))) {
+						LanguageItem thisLabel = label.get(i);
+						LanguageItem otherLabel = oi.label.get(i);
+						if(!thisLabel.language.equals(otherLabel.language) ||
+								!thisLabel.text.equals(otherLabel.text)) {
 							unchanged = false;
 							break;
 						}
@@ -1723,14 +1724,7 @@ public class GeneralUtilityMethods {
 
 			// debug
 			log.info(" ======== New list: " + listNew.size());
-			for(int i = 0; i < listNew.size(); i++) {
-				log.info("    - " + listNew.get(i).value);
-			}
-			
 			log.info(" ======== Old list" + listOld.size());
-			for(int i = 0; i < listOld.size(); i++) {
-				log.info("    - " + listOld.get(i).value);
-			}
 			
 			/*
 			 * Create a list of items to add that are in the new list but not in the old
@@ -2625,9 +2619,12 @@ public class GeneralUtilityMethods {
 		}
 
 		// SQL to get the questions
-		String sqlQuestion1 = "select " + "qname, " + "qtype, " + "column_name, " + "q_id, " + "readonly, "
-				+ "source_param, " + "appearance, " + "display_name, " + "l_id " + "from question where f_id = ? "
-				+ "and source is not null " + "and published = 'true' " + "and soft_deleted = 'false' ";
+		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
+				+ "source_param, appearance, display_name, l_id " 
+				+ "from question where f_id = ? "
+				+ "and source is not null "
+				+ "and published = 'true' "
+				+ "and soft_deleted = 'false' ";
 
 		String sqlQuestion2 = colList.toString();
 		String sqlQuestion3 = "order by seq";
@@ -5233,6 +5230,137 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 		
+	}
+	
+	/*
+	 * Remove any white space surrounding a character
+	 */
+	public static String removeSurroundingWhiteSpace(String in, char c) {
+		StringBuffer out = new StringBuffer("");
+
+		if(in != null) {
+			boolean validLocn = false;
+			boolean foundChar = false;
+			for(int i = 0; i < in.length(); i++) {
+
+				if(in.charAt(i) != ' ') {
+					out.append(in.charAt(i));
+				}
+
+				// Determine if the location is valid for a space
+				// a. After the character has been found and after some text
+				if(in.charAt(i) == '=') {
+					foundChar = true;
+				}
+				if(foundChar && in.charAt(i) != c && in.charAt(i) != ' ') {
+					validLocn = true;
+					foundChar = false;
+				}
+
+				// only add a space when the location is valid for a space
+				if(in.charAt(i) == ' ' && validLocn) {
+					out.append(' ');
+					validLocn = false;
+				}
+
+			}
+		}
+
+		return out.toString();
+	}
+	
+	/*
+	 * Make sure there is white space around a character
+	 * Don't make a change if the character is within single quotes
+	 */
+	public static String addSurroundingWhiteSpace(String in, char [] cArray) {
+		StringBuffer out = new StringBuffer("");
+
+		if(in != null) {
+			int quoteCount = 0;
+			
+			for(int i = 0; i < in.length(); i++) {
+
+				if(in.charAt(i) == '\'') {
+					quoteCount++;
+				}
+				
+				boolean charInList = false;
+				for(int j = 0; j < cArray.length; j++) {
+					if(in.charAt(i) == cArray[j]) {
+						if(i < in.length() && in.charAt(i+1) == '=' && (in.charAt(i) == '<' || in.charAt(i) == '>')) {
+							charInList = false;
+						} else if(i > 0 && in.charAt(i) == '=' && (in.charAt(i-1) == '<' || in.charAt(i-1) == '>')) {
+							charInList = false;
+						} else if(i > 0 && in.charAt(i) == '=' && in.charAt(i-1) == '!' ) {
+							charInList = false;
+						} else if(i < in.length() && in.charAt(i) == '(' && in.charAt(i+1) == ')') {
+							charInList = false;
+						} else if(i > 0 && in.charAt(i) == ')' && in.charAt(i-1) == '(' ) {
+							charInList = false;
+						} else {
+							charInList = true;
+						}
+						break;
+					}
+				}
+				if(charInList && quoteCount%2 == 0) {
+					if(i > 0 && in.charAt(i-1) != ' ') {
+						out.append(' ');
+					}
+					out.append(in.charAt(i));
+					if(i < in.length() && in.charAt(i+1) != ' ') {
+						out.append(' ');
+					}
+				} else {
+					out.append(in.charAt(i));
+				}
+			}
+		}
+
+		return out.toString();
+	}
+	
+	/*
+	 * Make sure there is white space around a String of characters
+	 * Don't make a change if the character is within single quotes
+	 */
+	public static String addSurroundingWhiteSpace(String in, String [] token) {
+		StringBuffer out = new StringBuffer("");
+
+		if(in != null) {
+			int quoteCount = 0;
+			
+			for(int i = 0; i < in.length(); i++) {
+
+				if(in.charAt(i) == '\'') {
+					quoteCount++;
+				}
+
+				int tokenIndex = -1;
+				for(int j = 0; j < token.length; j++) {
+					if(in.substring(i).startsWith(token[j])) {				
+						tokenIndex = j;
+						break;
+					}
+				}
+
+				if(tokenIndex >= 0 && quoteCount%2 == 0) {
+					if(i > 0 && in.charAt(i-1) != ' ') {
+						out.append(' ');
+					}
+					out.append(token[tokenIndex]);
+					i += token[tokenIndex].length() - 1;		// i will be incremented again next time round the loop
+					if(i + 1 < in.length() && in.charAt(i+2) != ' ') {
+						out.append(' ');
+					}
+				} else {
+					out.append(in.charAt(i));
+				}
+			}
+		}
+
+		return out.toString();
 	}
 	
 }

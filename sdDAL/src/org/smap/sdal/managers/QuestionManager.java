@@ -81,12 +81,15 @@ public class QuestionManager {
 		csvRoot = csvRoot.replace("\'", "\'\'");
 		
 		ResultSet resultSet = null;
-		String sql = "select q.q_id, q.qname, q.qtype, q.appearance, q.l_id " +
-				" from question q, form f " +
-				" where f.f_id = q.f_id " +
-				" and q.appearance like '%search(''" + csvRoot + "''%' " +
-				" and q.qtype like 'select%' " + 
-				" and f.s_id = ?";
+		String sql = "select q.q_id, q.qname, q.qtype, q.appearance, q.l_id "
+				+ "from question q, form f, survey s "
+				+ " where f.f_id = q.f_id "
+				+ "and s.s_id = f.s_id "
+				+ "and s.deleted = 'false' "
+				+ "and q.appearance like '%search(''" + csvRoot + "''%' "
+				+ "and q.qtype like 'select%' "
+				+ "and q.soft_deleted = 'false' "
+				+ "and f.s_id = ?";
 	
 		String sqlOption = "select o.o_id, o.seq, o.label_id, o.ovalue " +
 				" from option o, question q" +

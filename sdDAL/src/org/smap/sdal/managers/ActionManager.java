@@ -298,7 +298,7 @@ public class ActionManager {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);
 			int pId = 0;
 			/*
-			 * Verify that the survey is managed by the provided data processing id and get
+			 * Verify that the survey is managed by the management id
 			 */
 			pstmtCanUpdate = sd.prepareStatement(sqlCanUpdate);
 			pstmtCanUpdate.setInt(1, sId);

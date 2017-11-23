@@ -258,7 +258,7 @@ public class Authorise {
 			if(sqlError) {
 				throw new ServerException();
 			} else {
-				throw new NotFoundException();	// Not found rather than not authorised as we could not find a resource that the user had access to
+				throw new AuthorisationException();	 
 			}
 		} 
  		
