@@ -24,6 +24,7 @@ import java.util.ArrayList;
 
 import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -41,6 +42,7 @@ import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
+import org.w3c.dom.Element;
 
 public class XLSTemplateUploadManager {
 
@@ -66,6 +68,8 @@ public class XLSTemplateUploadManager {
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.:/]*$");
 
+	Stack<String> groupStack = new Stack<String>();							// Keep track of groups
+	
 	boolean useDefaultLanguage = false;
 
 	Survey survey = null;
@@ -313,11 +317,32 @@ public class XLSTemplateUploadManager {
 		}
 		q.type = convertType(type, q);
 		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);
+		
+		// Handle groups
+		if(q.type.equals("begin group")) {
+			groupStack.push(q.name);
+		}
+		if(q.type.equals("end group")) {
+			String currentGroup = groupStack.pop();
+			if(q.name != null && q.name.trim().length() > 0) {
+				// Validate the provided group name against the current group
+				if(!q.name.equals(currentGroup)) {
+					throw XLSUtilities.getApplicationException(localisation, "tu_gm", rowNumSurvey, "survey", q.name, currentGroup);
+				}			
+			} else {
+				// Set the name of the end group to its group
+				q.name = currentGroup;
+			}
+		}
 		getLabels(row, lastCellNum, surveyHeader, q.labels);
 
 		q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, false);	// Do not remove smap meta names as they are added through this mechanism
 
-		q.source = "user";
+		if(q.type.equals("begin group") || q.type.equals("end group") || q.type.equals("begin repeat")) {
+			q.source = null;
+		} else {
+			q.source = "user";
+		}
 
 		// Derived values
 		q.visible = convertVisible(type);
@@ -392,13 +417,14 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null);
 
-		} else if(qNameMap.get(q.name) != null) {
+		} else if(!q.type.equals("end group") && qNameMap.get(q.name) != null) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null);
 
 		}
-
-		qNameMap.put(q.name, q.name);
+		if(!q.type.equals("end group")) {		
+			qNameMap.put(q.name, q.name);
+		}
 
 	}
 

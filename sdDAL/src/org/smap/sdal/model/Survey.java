@@ -500,12 +500,16 @@ public class Survey {
 				OptionList ol = optionLists.get(q.list_name);
 				q.l_id = ol.id;
 			}
+			String name = q.name;
+			if(q.type.equals("end group")) {
+				name += "_groupEnd";
+			}
 			
 			// Write the data
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setInt(1, f_id);
 			pstmt.setInt(2, seq);
-			pstmt.setString(3, q.name);
+			pstmt.setString(3, name);
 			pstmt.setString(4, q.type);
 			pstmt.setString(5, labelId);					
 			pstmt.setString(6, "");						// TODO default answer
