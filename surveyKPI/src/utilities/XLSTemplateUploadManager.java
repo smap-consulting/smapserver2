@@ -322,6 +322,9 @@ public class XLSTemplateUploadManager {
 				Question q = getQuestion(row);				
 				if(q != null) {
 					if(q.type.equals("end repeat")) {
+						if(parentFormIndex < 0) {
+							throw XLSUtilities.getApplicationException(localisation, "tu_eer", rowNumSurvey, "survey", null, null);
+						}
 						return;
 					}
 					validateQuestion(q, rowNumSurvey);
@@ -471,7 +474,7 @@ public class XLSTemplateUploadManager {
 		return visible;
 	}
 
-	private void validateQuestion(Question q, int rowNumber) throws ApplicationException {
+	private void validateQuestion(Question q, int rowNumber) throws Exception {
 
 		if (q.name == null || q.name.trim().length() == 0) {
 			// Check for a missing name
@@ -488,6 +491,14 @@ public class XLSTemplateUploadManager {
 		}
 		if(!q.type.equals("end group")) {		
 			qNameMap.put(q.name, rowNumber);
+		}
+		
+		// Circular references
+		if(q.relevant != null) {
+			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
+			if(refs.contains(q.name)) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", "relevant", q.name);
+			}
 		}
 	}
 	
@@ -517,6 +528,15 @@ public class XLSTemplateUploadManager {
 					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.choice_filter);
 					if(refs.size() > 0) {
 						questionInSurvey(refs, "choice_filter", q);
+					}
+				}
+				if(q.labels != null) {
+					int idx = 0;
+					for(Label l : q.labels) {
+						ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(l.text);
+						if(refs.size() > 0) {
+							questionInSurvey(refs, "label::" + survey.languages.get(idx).name, q);
+						}
 					}
 				}
 			}
