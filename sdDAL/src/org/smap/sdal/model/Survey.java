@@ -200,6 +200,9 @@ public class Survey {
 			
 			sd.commit();
 			
+		} catch (Exception e) {
+			try {sd.rollback();} catch (Exception ex) {}
+			throw e;
 		} finally {
 			try {sd.setAutoCommit(true);} catch (Exception e) {}
 		}
@@ -482,7 +485,9 @@ public class Survey {
 		
 		try {
 			
-			// Derive some values
+			/*
+			 * Derive values required for database
+			 */
 			if(q.columnName == null) {
 				q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
 			}
@@ -495,17 +500,25 @@ public class Survey {
 					infotextId = transId + ":hint";
 				}
 			}	
-			q.l_id = 0;	 // Set list id
+			
+			// Set list id
+			q.l_id = 0;	
 			if(q.list_name != null) {
 				OptionList ol = optionLists.get(q.list_name);
 				q.l_id = ol.id;
 			}
+			
+			// Set name
 			String name = q.name;
 			if(q.type.equals("end group")) {
 				name += "_groupEnd";
+			} else if(q.type.equals("geopoint") || q.type.equals("geotrace") || q.type.equals("geoshape")) {
+				name = "the_geom";
 			}
 			
-			// Write the data
+			/*
+			 * Write the data
+			 */
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setInt(1, f_id);
 			pstmt.setInt(2, seq);

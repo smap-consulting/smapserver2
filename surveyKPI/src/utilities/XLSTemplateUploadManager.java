@@ -279,6 +279,8 @@ public class XLSTemplateUploadManager {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
 		survey.forms.add(f);
+		
+		int thisFormIndex = survey.forms.size() - 1;
 
 		while(rowNumSurvey <= lastRowNumSurvey) {
 
@@ -294,7 +296,7 @@ public class XLSTemplateUploadManager {
 					f.questions.add(q);
 					
 					if(q.type.equals("begin repeat")) {
-						getForm(q.name, survey.forms.size() - 1, f.questions.size() - 1);
+						getForm(q.name, thisFormIndex, f.questions.size() - 1);
 					}
 				}
 						
