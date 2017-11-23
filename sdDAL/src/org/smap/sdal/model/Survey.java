@@ -512,9 +512,7 @@ public class Survey {
 			String name = q.name;
 			if(q.type.equals("end group")) {
 				name += "_groupEnd";
-			} else if(q.type.equals("geopoint") || q.type.equals("geotrace") || q.type.equals("geoshape")) {
-				name = "the_geom";
-			}
+			} 
 			
 			/*
 			 * Write the data

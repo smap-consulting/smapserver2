@@ -5363,5 +5363,30 @@ public class GeneralUtilityMethods {
 		return out.toString();
 	}
 	
+	/*
+	 * Get an array of question names from a string that contains xls names
+	 */
+	public static ArrayList<String> getXlsNames(
+			String input) throws Exception {
+		
+		if(input == null) {
+			return null;
+		}
+		
+		ArrayList<String> output = new ArrayList<> (); 
+		
+		Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+		java.util.regex.Matcher matcher = pattern.matcher(input);
+
+		while (matcher.find()) {
+			
+			String matched = matcher.group();
+			String qname = matched.substring(2, matched.length() - 1);
+			output.add(qname);
+		}
+		
+		return output;
+	}
+	
 }
 

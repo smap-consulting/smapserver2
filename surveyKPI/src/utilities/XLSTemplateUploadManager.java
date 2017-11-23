@@ -63,8 +63,8 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
 
-	HashMap<String, String> qNameMap = new HashMap<> ();						// Use in question name validation
-	HashMap<String, HashMap<String, String>> oNameMap = new HashMap<> ();		// Use in option name validation
+	HashMap<String, Integer> qNameMap = new HashMap<> ();						// Use in question name validation
+	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.:/]*$");
 
@@ -172,6 +172,11 @@ public class XLSTemplateUploadManager {
 
 
 		}
+		
+		/*
+		 * 4. Final Validation
+		 */
+		validateSurvey();
 
 		return survey;
 
@@ -313,15 +318,36 @@ public class XLSTemplateUploadManager {
 		Question q = new Question();
 		int lastCellNum = row.getLastCellNum();
 
+		// 1. Question type
 		String type = XLSUtilities.getColumn(row, "type", surveyHeader, lastCellNum, null);
 		if(type == null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
-		}
-		q.type = convertType(type, q);
-		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);
+		}		
+		q.type = convertType(type, q);			
 		
-		// Handle groups
-		if(q.type.equals("begin group")) {
+		// 2. Question name
+		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);  
+		if(q.type.equals("geopoint") || q.type.equals("geotrace") || q.type.equals("geoshape")) {
+			q.name = "the_geom";
+		}
+		
+		// 3. Labels
+		getLabels(row, lastCellNum, surveyHeader, q.labels);		
+
+		// 4. choice filter TODO
+		
+		// 5. Constraint
+		q.constraint = XLSUtilities.getColumn(row, "constraint", surveyHeader, lastCellNum, null);  
+		
+		// 6. Constraint message TODO
+		
+		// 7. Relevant
+		q.relevant = XLSUtilities.getColumn(row, "relevant", surveyHeader, lastCellNum, null);  		
+
+		/*
+		 * Handle Groups
+		 */
+		if(q.type.equals("begin group")) {	
 			groupStack.push(q.name);
 		}
 		if(q.type.equals("end group")) {
@@ -336,19 +362,21 @@ public class XLSTemplateUploadManager {
 				q.name = currentGroup;
 			}
 		}
-		getLabels(row, lastCellNum, surveyHeader, q.labels);
-
-		q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, false);	// Do not remove smap meta names as they are added through this mechanism
-
+		
+		/*
+		 * Derived Values
+		 */
+		// 1. Source
 		if(q.type.equals("begin group") || q.type.equals("end group") || q.type.equals("begin repeat")) {
 			q.source = null;
 		} else {
 			q.source = "user";
 		}
-
-		// Derived values
+		
+		// 2. Visibility
 		q.visible = convertVisible(type);
 
+		// 3. Column Name
 		return q;
 	}
 
@@ -425,16 +453,24 @@ public class XLSTemplateUploadManager {
 
 		}
 		if(!q.type.equals("end group")) {		
-			qNameMap.put(q.name, q.name);
+			qNameMap.put(q.name, rowNumber);
 		}
-
+	}
+	
+	private void validateSurvey() throws Exception {
+		
+		for(Form f : survey.forms) {
+			for(Question q : f.questions) {
+				validateQuestionInSurvey(q);
+			}
+		}
 	}
 
 	private void validateOption(Option o, int rowNumber) throws ApplicationException {
 
-		HashMap<String, String> listMap = oNameMap.get(o.optionList);
+		HashMap<String, Integer> listMap = oNameMap.get(o.optionList);
 		if(listMap == null) {
-			listMap = new HashMap<String, String> ();
+			listMap = new HashMap<String, Integer> ();
 			oNameMap.put(o.optionList, listMap);
 		}
 
@@ -452,9 +488,32 @@ public class XLSTemplateUploadManager {
 
 		}
 
-		listMap.put(o.value, o.value);
+		listMap.put(o.value, rowNumber);
 
 	}
 
+	private void validateQuestionInSurvey(Question q) throws Exception {
+		if(q.relevant != null) {
+			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
+			if(refs.size() > 0) {
+				questionInSurvey(refs, "relevant", q);
+			}
+		}
+		if(q.constraint != null) {
+			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.constraint);
+			if(refs.size() > 0) {
+				questionInSurvey(refs, "constraint", q);
+			}
+		}
+	}
+	
+	private void questionInSurvey(ArrayList<String> names, String context, Question q) throws ApplicationException {
+		for(String name : names) {
+			if(qNameMap.get(name) == null) {
+				Integer rowNumber = qNameMap.get(q.name);
+				throw XLSUtilities.getApplicationException(localisation, "tu_mq", rowNumber, "survey", context, name);
+			}
+		}
+	}
 
 }

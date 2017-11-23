@@ -462,7 +462,7 @@ public class TableManager {
 					} else if(colType.equals("geopoint")) {
 
 						// Add geometry columns after the table is created using AddGeometryColumn()
-						GeometryColumn gc = new GeometryColumn(tableName, q.getColumnName(), "POINT");
+						GeometryColumn gc = new GeometryColumn(tableName, "the_geom", "POINT");
 						geoms.add(gc);
 						sql += ", the_geom_alt double precision, the_geom_acc double precision";
 						continue;
@@ -525,7 +525,7 @@ public class TableManager {
 						sql += ", " + q.getColumnName() + " " + colType;
 					}
 				} else {
-					log.info("Info: Ignoring question with no source:" + q.getName());
+					// log.info("Info: Ignoring question with no source:" + q.getName());
 				}
 			}
 			sql += ");";
@@ -544,7 +544,7 @@ public class TableManager {
 
 					if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
 					pstmtGeom = cResults.prepareStatement(gSql);
-					log.info("Sql statement: " + pstmtGeom.toString());
+					log.info("Add geometry columns: " + pstmtGeom.toString());
 					pstmtGeom.executeUpdate();
 				}
 			} catch (SQLException e) {
