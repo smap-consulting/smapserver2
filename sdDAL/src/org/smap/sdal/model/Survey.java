@@ -323,6 +323,7 @@ public class Survey {
 				// 2. Insert each option with this list id
 				int idx = 0;
 				for(Option o : ol.options) {
+					String transId = null;
 					pstmtOption.setInt(1, idx++);
 					pstmtOption.setString(2, o.value);
 					pstmtOption.setString(3, gson.toJson(o.cascade_filters));
@@ -330,15 +331,22 @@ public class Survey {
 					pstmtOption.setString(5, o.columnName);
 					pstmtOption.setInt(6, ol.id);
 					pstmtOption.executeUpdate();
+					
+					
 					rs = pstmtOption.getGeneratedKeys();
 					if(rs.next()) {
 						o.id = rs.getInt(1);
-						String label_id = "option_" +  o.id;
-						
-						pstmtUpdateOption.setString(1, label_id);
+		
+						transId = "option_" +  o.id;
+						pstmtUpdateOption.setString(1, transId  + ":label");
 						pstmtUpdateOption.setInt(2, o.id);
 						pstmtUpdateOption.executeUpdate();
+						
+						// Write the labels
+						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, "");
 					}
+					
+					
 					
 				}
 			}
@@ -485,9 +493,23 @@ public class Survey {
 			pstmt.setString(18, q.required_msg);			// TODO
 			pstmt.setString(19, q.appearance);			// TODO
 			pstmt.setString(20, q.parameters);			// TODO
-			pstmt.setString(21, q.nodeset);				// TODO
-			pstmt.setString(22, "");						// TODO Nodeset value
-			pstmt.setString(23, "");						// TODO Nodeset label
+			
+			String nodeset = null;
+			String nodeset_value = null;
+			String nodeset_label = null;
+			String cascade_instance = null;
+			
+			if(q.type.startsWith("select")) {
+				cascade_instance = GeneralUtilityMethods.cleanName(q.list_name, true, false, false);
+				nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(q.choice_filter, cascade_instance);
+				nodeset_value = "name";
+				nodeset_label = "jr:itext(itextId)";
+			}
+			
+			pstmt.setString(21, nodeset);				// TODO
+			pstmt.setString(22, nodeset_value);
+			pstmt.setString(23, nodeset_label);
+			
 			pstmt.setString(24,  q.columnName);
 			pstmt.setBoolean(25,  false);    			// false			
 			pstmt.setInt(26, q.l_id);

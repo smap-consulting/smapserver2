@@ -33,6 +33,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
@@ -181,6 +182,8 @@ public class XLSTemplateUploadManager {
 			throw new ApplicationException("Value is required for the option in the choices sheet at row " + (rowNumChoices - 1));
 		}
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
+		o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
+		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
 	
 		return o;
 	}
@@ -301,6 +304,8 @@ public class XLSTemplateUploadManager {
 		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);
 		getLabels(row, lastCellNum, surveyHeader, q.labels);
 		
+		q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, false);	// Do not remove smap meta names as they are added through this mechanism
+		
 		q.source = "user";
 
 		// Derived values
@@ -345,19 +350,14 @@ public class XLSTemplateUploadManager {
 			out = "string";
 		} else if(in.equals("integer")) {
 			out = "int";
-		} else if(in.startsWith("select_one")) {
-			out = "select_one";
+			
+		} else if(in.startsWith("select_one") || in.startsWith("select one")) {
+			out = "select1";
 			q.list_name = in.substring("select_one".length() + 1);
-		} else if(in.startsWith("select one")) {
-			out = "select_one";
-			q.list_name = in.substring("select one".length() + 1);
-		} else if(in.startsWith("select_multiple")) {
-			out = "select_multiple";
+		} else if(in.startsWith("select_multiple") || in.startsWith("select multiple")) {
+			out = "select";
 			q.list_name = in.substring("select_multiple".length() + 1);
-		} else if(in.startsWith("select multiple")) {
-			out = "select_multiple";
-			q.list_name = in.substring("select multiple".length() + 1);
-		}
+		} 
 		return out;
 	}
 
