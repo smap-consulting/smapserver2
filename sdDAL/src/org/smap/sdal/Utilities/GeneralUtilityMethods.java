@@ -5369,20 +5369,18 @@ public class GeneralUtilityMethods {
 	public static ArrayList<String> getXlsNames(
 			String input) throws Exception {
 		
-		if(input == null) {
-			return null;
-		}
-		
 		ArrayList<String> output = new ArrayList<> (); 
 		
-		Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
-		java.util.regex.Matcher matcher = pattern.matcher(input);
-
-		while (matcher.find()) {
-			
-			String matched = matcher.group();
-			String qname = matched.substring(2, matched.length() - 1);
-			output.add(qname);
+		if(input != null) {
+			Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+			java.util.regex.Matcher matcher = pattern.matcher(input);
+	
+			while (matcher.find()) {
+				
+				String matched = matcher.group();
+				String qname = matched.substring(2, matched.length() - 1);
+				output.add(qname);
+			}
 		}
 		
 		return output;

@@ -184,6 +184,7 @@ public class IE {
 								|| qt.equals("geoshape")
 								|| qt.equals("geotrace")
 								|| qt.equals("acknowledge")
+								|| qt.equals("calculate")
 								|| qt.equals("begin group"))
 								{	
 							questions.add(child);

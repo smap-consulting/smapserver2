@@ -381,6 +381,30 @@ public class XLSTemplateUploadManager {
 			q.repeatCount = XLSUtilities.getColumn(row, "repeat_count", surveyHeader, lastCellNum, null);  
 		}
 		
+		// 8. Default
+		q.defaultanswer = XLSUtilities.getColumn(row, "default", surveyHeader, lastCellNum, null); 
+		
+		// 9. Readonly
+		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum);
+		
+		// 10. Appearance
+		q.appearance = XLSUtilities.getColumn(row, "appearance", surveyHeader, lastCellNum, null); 
+		
+		// 11. Parameters TODO
+		
+		// 12. autoplay TODO
+		
+		// 13. body::accuracyThreshold TODO
+		
+		// 14. Required
+		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum);		
+		
+		// 15. Required Message
+		q.required_msg = XLSUtilities.getColumn(row, "required_message", surveyHeader, lastCellNum, null); 
+		
+		// 16. Calculation
+		q.calculation = XLSUtilities.getColumn(row, "calculation", surveyHeader, lastCellNum, null); 
+		
 		/*
 		 * Handle Groups
 		 */
@@ -444,24 +468,27 @@ public class XLSTemplateUploadManager {
 	}
 
 
-	private String convertType(String in, Question q) {
+	private String convertType(String in, Question q) throws ApplicationException {
 
-		in = in.trim();
-		String out = in;
+		String type = getValidQuestionType(in);		
+		
+		// Validate and normalise input
+		if(type == null) {
+			throw XLSUtilities.getApplicationException(localisation, "tu_ut", rowNumSurvey, "survey", in, null);
+		}
 
-		if (in.equals("text")) {
-			out = "string";
-		} else if(in.equals("integer")) {
-			out = "int";
-
-		} else if(in.startsWith("select_one") || in.startsWith("select one")) {
-			out = "select1";
-			q.list_name = in.substring("select_one".length() + 1);
-		} else if(in.startsWith("select_multiple") || in.startsWith("select multiple")) {
-			out = "select";
-			q.list_name = in.substring("select_multiple".length() + 1);
+		// Do type conversions
+		if (type.equals("text")) {
+			type = "string";
+		} else if(in.startsWith("select_one")) {
+			type = "select1";
+			q.list_name = in.substring("select_one".length() + 1).trim();
+		} else if(in.startsWith("select_multiple")) {
+			type = "select";
+			q.list_name = in.substring("select_multiple".length() + 1).trim();
 		} 
-		return out;
+		
+		return type;
 	}
 
 	private boolean convertVisible(String type) {
@@ -575,6 +602,82 @@ public class XLSTemplateUploadManager {
 				Integer rowNumber = qNameMap.get(q.name);
 				throw XLSUtilities.getApplicationException(localisation, "tu_mq", rowNumber, "survey", context, name);
 			}
+		}
+	}
+	
+	private String getValidQuestionType(String in) {
+		
+		String out = null;	
+		String type = in.toLowerCase().trim();
+		
+		if(type.equals("text")) {
+			out = "text";
+		} else if(type.equals("integer") || type.equals("int")) {
+			out = "integer";
+		} else if (type.equals("decimal")) {
+			out = "decimal";
+		} else if (type.startsWith("select_one") || type.startsWith("select one")) {
+			int idx = in.indexOf("one");
+			out = "select_one " + in.substring(idx + 3);
+		} else if (type.startsWith("select_multiple") || type.startsWith("select multiple")) {
+			int idx = in.indexOf("multiple");
+			out = "select_multiple " + in.substring(idx + 8);;
+		} else if (type.equals("note")) {
+			out = "note";
+		} else if (type.equals("geopoint")) {
+			out = "geopoint";
+		} else if (type.equals("geotrace")) {
+			out = "geotrace";
+		} else if (type.equals("geoshape")) {
+			out = "geoshape";
+		} else if (type.equals("date")) {
+			out = "date";
+		} else if (type.equals("datetime")) {
+			out = "dateTime";
+		} else if (type.equals("time")) {
+			out = "time";
+		} else if (type.equals("image")) {
+			out = "image";
+		} else if (type.equals("audio")) {
+			out = "audio";
+		} else if (type.equals("video")) {
+			out = "video";
+		} else if (type.equals("barcode")) {
+			out = "barcode";
+		} else if (type.equals("calculate")) {
+			out = "calculate";
+		} else if (type.equals("acknowledge")) {
+			out = "acknowledge";
+		} else if (type.equals("graph")) {
+			out = "graph";
+		} else if (type.equals("begin repeat")) {
+			out = "begin repeat";
+		} else if (type.equals("end repeat")) {
+			out = "end repeat";
+		} else if (type.equals("begin group")) {
+			out = "begin group";
+		} else if (type.equals("end group")) {
+			out = "end group";
+		}
+				
+		return out;
+	}
+	
+	private boolean getBooleanColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum) throws ApplicationException {
+		String v = XLSUtilities.getColumn(row, name, header, lastCellNum, null); 
+		
+		if(v != null) {
+			v = v.trim();
+		} else {
+			return false;
+		}
+		
+		if(v.equalsIgnoreCase("yes") 
+				|| v.equalsIgnoreCase("true") 
+				|| v.equalsIgnoreCase("y")) {
+			return true;
+		} else {
+			return false;
 		}
 	}
 

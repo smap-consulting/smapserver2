@@ -455,6 +455,8 @@ public class TableManager {
 						colType = "text";
 					} else if(colType.equals("note")) {
 						colType = "text";
+					} else if(colType.equals("calculate")) {
+						colType = "text";
 					} else if(colType.equals("acknowledge")) {
 						colType = "text";
 					} else if(colType.equals("range")) {

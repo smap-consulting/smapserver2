@@ -525,20 +525,20 @@ public class Survey {
 			pstmt.setString(3, name);
 			pstmt.setString(4, q.type);
 			pstmt.setString(5, labelId);					
-			pstmt.setString(6, "");						// TODO default answer
-			pstmt.setString(7, infotextId);				// TODO Hint
+			pstmt.setString(6, q.defaultanswer);
+			pstmt.setString(7, infotextId);
 			pstmt.setBoolean(8, q.visible);				// TODO visibility
 			pstmt.setString(9, q.source);
 			pstmt.setString(10, q.source_param);
-			pstmt.setBoolean(11, q.readonly); 			// TODO read only
-			pstmt.setBoolean(12, q.required);			// TODO required
+			pstmt.setBoolean(11, q.readonly); 
+			pstmt.setBoolean(12, q.required);
 			pstmt.setString(13, q.relevant);	
 			pstmt.setString(14, q.calculation);			// TODO
 			pstmt.setString(15, q.chartdata);			// TODO
 			pstmt.setString(16, q.constraint);
 			pstmt.setString(17, q.constraint_msg);
-			pstmt.setString(18, q.required_msg);			// TODO
-			pstmt.setString(19, q.appearance);			// TODO
+			pstmt.setString(18, q.required_msg);
+			pstmt.setString(19, q.appearance);
 			pstmt.setString(20, q.parameters);			// TODO
 			
 			String nodeset = null;
