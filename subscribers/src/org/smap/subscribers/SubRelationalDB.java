@@ -1301,7 +1301,7 @@ public class SubRelationalDB extends Subscriber {
 
 				value = value.replace("'", "''").trim();
 
-				if(qType.equals("string") || qType.equals("select1") || qType.equals("barcode") || qType.equals("acknowledge")) {
+				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") || qType.equals("acknowledge")) {
 					value = "'" + value + "'";
 
 				} else if(qType.equals("int") || qType.equals("decimal")) {
