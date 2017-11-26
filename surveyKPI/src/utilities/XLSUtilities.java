@@ -256,6 +256,32 @@ public class XLSUtilities {
 		return value;
 	}
 	
+	/*
+	 * Get the text value of a cell and return null if the cell is empty
+	 */
+	public static String getTextColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum) throws ApplicationException {
+		
+		String value = null;
+		Integer cellIndex;
+		int idx;
+	
+		cellIndex = header.get(name);
+		if(cellIndex != null && cellIndex < lastCellNum) {
+			idx = cellIndex;
+			Cell c = row.getCell(idx);
+			if(c != null) {
+				value = c.getStringCellValue();
+				if(value != null) {
+					if(value.trim().length() == 0) {
+						value = null;
+					}
+				}
+			}
+		} 
+		
+		return value;
+	}
+	
 	public static ApplicationException getApplicationException(ResourceBundle localisation, String code, int row, String sheet, String param1, String param2) {
 		
 		StringBuffer buf = new StringBuffer(localisation.getString("tu_rn")).append(" ").append(localisation.getString(code));

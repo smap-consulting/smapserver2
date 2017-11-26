@@ -62,9 +62,11 @@ public class XLSTemplateUploadManager {
 	int rowNumSettings = 0;		
 	int lastRowNumSurvey = 0;
 	int lastRowNumChoices = 0;
+	int lastRowNumSettings = 0;
 
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
+	HashMap<String, Integer> settingsHeader = null;
 	HashMap<String, Integer> choiceFilterHeader = null;
 	HashMap<String, Integer> columnRoleHeader = null;
 
@@ -120,6 +122,7 @@ public class XLSTemplateUploadManager {
 
 		surveySheet = wb.getSheet("survey");
 		choicesSheet = wb.getSheet("choices");
+		settingsSheet = wb.getSheet("settings");
 
 		if(surveySheet == null) {
 			throw new Exception("A worksheet called 'survey' not found");
@@ -131,6 +134,10 @@ public class XLSTemplateUploadManager {
 			if(choicesSheet != null) {
 				lastRowNumChoices = choicesSheet.getLastRowNum();
 			}
+			if(settingsSheet != null) {
+				lastRowNumSettings = settingsSheet.getLastRowNum();
+			}
+			
 
 			getHeaders();	// get headers and set the languages from them
 
@@ -171,9 +178,26 @@ public class XLSTemplateUploadManager {
 		/*
 		 * 3, Process the settings sheet
 		 */
-		settingsSheet = wb.getSheet("settings");
-		if(settingsSheet != null && settingsSheet.getPhysicalNumberOfRows() > 0) {
-
+		if(settingsSheet != null && settingsHeader != null) {
+			Row row = settingsSheet.getRow(rowNumSettings++);
+			if(row != null) {
+				int lastCellNum = row.getLastCellNum();
+				
+				// Default language
+				survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum);
+				if(survey.def_lang != null) {
+					boolean validLanguage = false;
+					for(Language l : survey.languages) {
+						if(l.name.equals(survey.def_lang)) {
+							validLanguage = true;
+							break;
+						}
+					}
+					if(!validLanguage) {
+						throw new ApplicationException(localisation.getString("tu_idl"));
+					}
+				}
+			}
 
 		}
 		
@@ -216,10 +240,10 @@ public class XLSTemplateUploadManager {
 	 */
 	private void getHeaders() {
 
-		choiceFilterHeader = new HashMap<String, Integer> ();
-		
+		choiceFilterHeader = new HashMap<String, Integer> ();		
 		HashMap<String, String> langMap = new HashMap<String, String> ();
 
+		// Get survey sheet headers
 		while(rowNumSurvey <= lastRowNumSurvey) {
 			Row row = surveySheet.getRow(rowNumSurvey++);
 			if(row != null) {
@@ -265,51 +289,54 @@ public class XLSTemplateUploadManager {
 			}
 		}
 
-		while(rowNumChoices <= lastRowNumChoices) {
-			Row row = choicesSheet.getRow(rowNumChoices++);
-			if(row != null) {
-				choicesHeader = XLSUtilities.getHeader(row);	
-				
-				// Get the headers for filters
-				for(String h : choicesHeader.keySet()) {
-					if(h.equals("list name")
-							|| h.equals("name")
-							|| h.equals("label")
-							|| h.startsWith("label::") 
-							|| h.equals("image")
-							|| h.startsWith("image::") 
-							|| h.equals("audio")
-							|| h.startsWith("audio::") 
-							|| h.equals("video") 
-							|| h.startsWith("video::")) {
-						continue;
+		// Get choice sheet headeer
+		if(choicesSheet != null) {
+			while(rowNumChoices <= lastRowNumChoices) {
+				Row row = choicesSheet.getRow(rowNumChoices++);
+				if(row != null) {
+					choicesHeader = XLSUtilities.getHeader(row);	
+					
+					// Get the headers for filters
+					for(String h : choicesHeader.keySet()) {
+						if(h.equals("list name")
+								|| h.equals("name")
+								|| h.equals("label")
+								|| h.startsWith("label::") 
+								|| h.equals("image")
+								|| h.startsWith("image::") 
+								|| h.equals("audio")
+								|| h.startsWith("audio::") 
+								|| h.equals("video") 
+								|| h.startsWith("video::")) {
+							continue;
+						}
+						// The rest must be filter columns
+						choiceFilterHeader.put(h, choicesHeader.get(h));
 					}
-					// The rest must be filter columns
-					choiceFilterHeader.put(h, choicesHeader.get(h));
-				}
-
-				// Add languages in order they exist in the header hence won't use keyset of surveyHeader
-				int lastCellNum = row.getLastCellNum();				
-				int idx = 0;				
-				for(int i = 0; i <= lastCellNum; i++) {
-					Cell cell = row.getCell(i);
-					if(cell != null) {
-						String name = cell.getStringCellValue();
-						if(name.startsWith("label::") 
-								|| name.startsWith("image::") || name.startsWith("video::") 
-								|| name.startsWith("audio::")) {
-							String [] sArray = name.split("::");
-							if(sArray.length > 0) {
-								String exists = langMap.get(sArray[1]);
-								if(exists == null) {
-									langMap.put(sArray[1], sArray[1]);
-									survey.languages.add(new Language(idx++, sArray[1]));
+	
+					// Add languages in order they exist in the header hence won't use keyset of surveyHeader
+					int lastCellNum = row.getLastCellNum();				
+					int idx = 0;				
+					for(int i = 0; i <= lastCellNum; i++) {
+						Cell cell = row.getCell(i);
+						if(cell != null) {
+							String name = cell.getStringCellValue();
+							if(name.startsWith("label::") 
+									|| name.startsWith("image::") || name.startsWith("video::") 
+									|| name.startsWith("audio::")) {
+								String [] sArray = name.split("::");
+								if(sArray.length > 0) {
+									String exists = langMap.get(sArray[1]);
+									if(exists == null) {
+										langMap.put(sArray[1], sArray[1]);
+										survey.languages.add(new Language(idx++, sArray[1]));
+									}
 								}
 							}
 						}
 					}
+					break;
 				}
-				break;
 			}
 		}
 
@@ -317,6 +344,17 @@ public class XLSTemplateUploadManager {
 		if(survey.languages.size() == 0) {
 			survey.languages.add(new Language(0, "language"));
 			useDefaultLanguage = true;
+		}
+		
+		// Get Setting sheet headers
+		if(settingsSheet != null) {
+			while(rowNumSettings <= lastRowNumSettings) {
+				Row row = settingsSheet.getRow(rowNumSettings++);
+				if(row != null) {
+					settingsHeader = XLSUtilities.getHeader(row);
+					break;
+				}
+			}
 		}
 
 	}
