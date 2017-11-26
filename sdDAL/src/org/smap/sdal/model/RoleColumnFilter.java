@@ -6,4 +6,13 @@ package org.smap.sdal.model;
  */
 public class RoleColumnFilter {
 	public int id;	
+	
+	public RoleColumnFilter() {
+		
+	}
+	
+public RoleColumnFilter(int id) {
+		this.id = id;
+	}
+	
 }

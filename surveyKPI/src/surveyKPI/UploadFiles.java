@@ -548,7 +548,7 @@ public class UploadFiles extends Application {
 						localisation, 
 						displayName,
 						projectId);
-				s.write(sd);
+				s.write(sd, localisation, request.getRemoteUser());
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();

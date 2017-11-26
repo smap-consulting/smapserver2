@@ -9,12 +9,14 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.RoleManager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -50,6 +52,7 @@ public class Survey {
 	public HashMap<String, Boolean> filters = new HashMap<String, Boolean> ();
 	public ArrayList<ChangeLog> changes  = new ArrayList<ChangeLog> ();
 	public ArrayList<MetaItem> meta = new ArrayList<> ();
+	public HashMap<String, Role> roles = new HashMap<> ();
 	public Instance instance = new Instance();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
 	public int managed_id;
@@ -185,7 +188,7 @@ public class Survey {
 	public void setProjectTasksOnly(boolean v) { projectTasksOnly = v;};
 	
 	// Write a new survey to the database
-	public void write(Connection sd) throws SQLException {
+	public void write(Connection sd, ResourceBundle localisation, String userIdent) throws Exception {
 		log.info("Set autocommit false");
 		try {
 			sd.setAutoCommit(false);
@@ -197,6 +200,7 @@ public class Survey {
 			writeLists(sd, gson);
 			writeForms(sd);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
+			writeRoles(sd, localisation, gson, userIdent);
 			
 			sd.commit();
 			
@@ -401,6 +405,7 @@ public class Survey {
 				for(Question q : f.questions) {
 					writeQuestion(sd, q, f.id, idx++);
 				}
+				
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
@@ -443,6 +448,66 @@ public class Survey {
 		}	
 	}
 
+	/*
+	 * 2. Write the roles
+	 */
+	private void writeRoles(Connection sd, ResourceBundle localisation, Gson gson, String userIdent) throws Exception {
+		
+		String sqlGetRole = "select id from role "
+				+ "where o_id = ? "
+				+ "and name = ?";
+		PreparedStatement pstmtGetRole = null;
+		
+		String sqlAssociateSurvey = "insert into survey_role (s_id, r_id, column_filter, row_filter, enabled) "
+				+ "values (?, ?, ?, ?, 'true')";
+		PreparedStatement pstmtAssociateSurvey = null;
+		
+		try {
+			RoleManager rm = new RoleManager();
+			
+			pstmtGetRole = sd.prepareStatement(sqlGetRole);		
+			pstmtGetRole.setInt(1, o_id);
+			
+			for(String h : roles.keySet()) {
+				Role r = roles.get(h);
+				int rId;
+			
+				pstmtGetRole.setString(2, r.name);
+				
+				ResultSet rs = pstmtGetRole.executeQuery();
+				if(rs.next()) {
+					rId = rs.getInt(1);
+				} else {
+					// Create a new role
+					r.desc = localisation.getString("tu_cb");
+					r.desc = r.desc.replace("%s1", displayName);
+					rId = rm.createRole(sd, r, o_id, userIdent);
+				}
+				
+				// Associate the role with the survey
+				for(RoleColumnFilterRef ref : r.column_filter_ref) {
+					Question q = forms.get(ref.formIndex).questions.get(ref.questionIndex);
+					if(q != null) {
+						RoleColumnFilter rcf = new RoleColumnFilter(q.id);
+						r.column_filter.add(rcf);
+					}
+					
+				}
+				pstmtAssociateSurvey = sd.prepareStatement(sqlAssociateSurvey);
+				pstmtAssociateSurvey.setInt(1, id);
+				pstmtAssociateSurvey.setInt(2, rId);
+				pstmtAssociateSurvey.setString(3, gson.toJson(r.column_filter));
+				pstmtAssociateSurvey.setString(4, r.row_filter);	
+				
+				pstmtAssociateSurvey.executeUpdate();
+			
+			}
+		} finally {
+			if(pstmtGetRole != null) {try {pstmtGetRole.close();} catch(Exception e) {}}
+			if(pstmtAssociateSurvey != null) {try {pstmtAssociateSurvey.close();} catch(Exception e) {}}
+		}	
+	}
+	
 	/*
 	 * 3. Write a Question
 	 */

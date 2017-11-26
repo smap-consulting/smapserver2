@@ -41,6 +41,9 @@ import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.Role;
+import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.Survey;
 import org.w3c.dom.Element;
 
@@ -63,8 +66,9 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
 	HashMap<String, Integer> choiceFilterHeader = null;
+	HashMap<String, Integer> columnRoleHeader = null;
 
-	HashMap<String, Integer> qNameMap = new HashMap<> ();						// Use in question name validation
+	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.:/]*$");
@@ -83,8 +87,6 @@ public class XLSTemplateUploadManager {
 			wb = new XSSFWorkbook();
 		}
 	}
-
-
 
 	/*
 	 * Get a survey definition from an XLS file
@@ -108,6 +110,7 @@ public class XLSTemplateUploadManager {
 		// Create survey and set defaults
 		survey = new Survey();
 		survey.displayName = displayName;
+		survey.o_id = oId;
 		survey.p_id = p_id;
 		survey.version = 1;
 		survey.loadedFromXLS = true;
@@ -243,6 +246,20 @@ public class XLSTemplateUploadManager {
 						}
 					}
 				}
+				
+				// Get security roles
+				for(String h : surveyHeader.keySet()) {
+					if(h.startsWith("role::")) {
+						if(columnRoleHeader == null) {
+							columnRoleHeader = new HashMap<String, Integer> ();
+						}
+						columnRoleHeader.put(h, surveyHeader.get(h));
+						String [] roleA = h.split("::");
+						if(roleA.length > 1) {
+							survey.roles.put(h, new Role(roleA[1]));
+						}
+					}
+				}
 
 				break;
 			}
@@ -319,7 +336,7 @@ public class XLSTemplateUploadManager {
 			Row row = surveySheet.getRow(rowNumSurvey++);
 
 			if(row != null) {
-				Question q = getQuestion(row);				
+				Question q = getQuestion(row, thisFormIndex, f.questions.size());				
 				if(q != null) {
 					if(q.type.equals("end repeat")) {
 						if(parentFormIndex < 0) {
@@ -343,7 +360,7 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Get a question from the excel sheet
 	 */
-	private Question getQuestion(Row row) throws ApplicationException {
+	private Question getQuestion(Row row, int formIndex, int questionIndex) throws ApplicationException {
 
 		Question q = new Question();
 		int lastCellNum = row.getLastCellNum();
@@ -405,6 +422,21 @@ public class XLSTemplateUploadManager {
 		// 16. Calculation
 		q.calculation = XLSUtilities.getColumn(row, "calculation", surveyHeader, lastCellNum, null); 
 		
+		// Add Column Roles
+		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
+			for(String h : columnRoleHeader.keySet()) {
+				if(getBooleanColumn(row, h, surveyHeader, lastCellNum)) {
+					Role r = survey.roles.get(h);
+					if(r != null) {
+						if(r.column_filter_ref == null) {
+							r.column_filter_ref = new ArrayList<RoleColumnFilterRef> ();
+						}
+						r.column_filter_ref.add(new RoleColumnFilterRef(formIndex, questionIndex));
+					}
+				}
+			}
+		}
+			
 		/*
 		 * Handle Groups
 		 */
@@ -613,7 +645,7 @@ public class XLSTemplateUploadManager {
 		if(type.equals("text")) {
 			out = "text";
 		} else if(type.equals("integer") || type.equals("int")) {
-			out = "integer";
+			out = "int";
 		} else if (type.equals("decimal")) {
 			out = "decimal";
 		} else if (type.startsWith("select_one") || type.startsWith("select one")) {

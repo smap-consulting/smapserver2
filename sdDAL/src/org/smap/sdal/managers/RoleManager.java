@@ -101,11 +101,12 @@ public class RoleManager {
 	/*
 	 * Create a new Role
 	 */
-	public void createRole(Connection sd, 
+	public int createRole(Connection sd, 
 			Role r, 
 			int o_id, 
 			String ident) throws Exception {
 		
+		int rId = 0;
 		String sql = "insert into role (o_id, name, description, changed_by, changed_ts) " +
 				" values (?, ?, ?, ?, now());";
 		
@@ -113,7 +114,7 @@ public class RoleManager {
 		
 		try {
 			
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setInt(1, o_id);
 			pstmt.setString(2, r.name);
 			pstmt.setString(3, r.desc);
@@ -122,11 +123,17 @@ public class RoleManager {
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
+			ResultSet rs = pstmt.getGeneratedKeys();
+			if(rs.next()) {
+				rId = rs.getInt(1);
+			}
 			
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			
 		}
+		
+		return rId;
 
 	}
 	
