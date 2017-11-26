@@ -743,7 +743,7 @@ public class GetXForm {
 		String type = q.getType();
 		String dataType = q.getDataType();
 		
-		if(type.equals("range") && dataType == null) {
+		if(type.equals("range")) {
 			dataType = getDataTypeFromRange(q.getParameters());
 		}
 		
