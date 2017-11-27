@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
@@ -220,6 +221,7 @@ public class XLSUtilities {
 		String value = null;
 		double dValue = 0.0;
 		Date dateValue = null;
+		boolean bValue = false;
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
 	
 		cellIndex = header.get(name);
@@ -241,8 +243,14 @@ public class XLSUtilities {
 						}
 					} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
 						value = c.getStringCellValue();
+					} else if(c.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
+						bValue = c.getBooleanCellValue();
+						value = String.valueOf(bValue);
 					} else {
-						value = null;
+						throw(new ApplicationException("Error: Unknown cell type: " + c.getCellType() + 
+								" in sheet "  + c.getSheet().getSheetName() +
+								" in row " + c.getRowIndex() + 
+								", column " + c.getColumnIndex()));
 					}
 
 				}

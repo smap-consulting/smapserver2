@@ -44,8 +44,12 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.RoleColumnFilterRef;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.w3c.dom.Element;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 public class XLSTemplateUploadManager {
 
@@ -69,6 +73,8 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> settingsHeader = null;
 	HashMap<String, Integer> choiceFilterHeader = null;
 	HashMap<String, Integer> columnRoleHeader = null;
+	HashMap<String, Integer> rowRoleHeader = null;
+	
 
 	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
@@ -102,6 +108,7 @@ public class XLSTemplateUploadManager {
 			int p_id) throws Exception {
 
 		this.localisation = localisation;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
@@ -201,7 +208,23 @@ public class XLSTemplateUploadManager {
 				// instance name
 				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
 				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
+				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
 				
+				// Add row filters
+				if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
+					for(String h : rowRoleHeader.keySet()) {
+						String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum);
+						if(filter != null) {
+							Role r = survey.roles.get(h);
+							if(r != null) {
+								SqlFrag sq = new SqlFrag();
+								sq.addSqlFragment(filter, localisation, false);
+								settingsQuestionInSurvey(sq.columns, h);		// validate question names
+								r.row_filter = filter;
+							}
+						}
+					}
+				}
 			}
 
 		}
@@ -358,6 +381,20 @@ public class XLSTemplateUploadManager {
 				if(row != null) {
 					settingsHeader = XLSUtilities.getHeader(row);
 					break;
+				}
+			}
+			
+			// Add security roles
+			for(String h : settingsHeader.keySet()) {
+				if(h.startsWith("role::")) {
+					if(rowRoleHeader == null) {
+						rowRoleHeader = new HashMap<String, Integer> ();
+					}
+					rowRoleHeader.put(h, settingsHeader.get(h));
+					String [] roleA = h.split("::");
+					if(roleA.length > 1) {
+						survey.roles.put(h, new Role(roleA[1]));
+					}
 				}
 			}
 		}

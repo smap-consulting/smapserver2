@@ -231,8 +231,9 @@ public class Survey {
 				+ "instance_name,"
 				+ "loaded_from_xls,"
 				+ "meta,"
+				+ "task_file,"
 				+ "created) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, now());";		
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -253,6 +254,7 @@ public class Survey {
 			pstmt.setString(8, instanceNameDefn);
 			pstmt.setBoolean(9, loadedFromXLS);
 			pstmt.setString(10, gson.toJson(meta));
+			pstmt.setBoolean(11, task_file);
 			pstmt.executeUpdate();
 						
 			ResultSet rs = pstmt.getGeneratedKeys();
@@ -484,15 +486,18 @@ public class Survey {
 					rId = rm.createRole(sd, r, o_id, userIdent);
 				}
 				
-				// Associate the role with the survey
-				for(RoleColumnFilterRef ref : r.column_filter_ref) {
-					Question q = forms.get(ref.formIndex).questions.get(ref.questionIndex);
-					if(q != null) {
-						RoleColumnFilter rcf = new RoleColumnFilter(q.id);
-						r.column_filter.add(rcf);
+				// Add the column filter
+				if(r.column_filter_ref != null) {
+					for(RoleColumnFilterRef ref : r.column_filter_ref) {
+						Question q = forms.get(ref.formIndex).questions.get(ref.questionIndex);
+						if(q != null) {
+							RoleColumnFilter rcf = new RoleColumnFilter(q.id);
+							r.column_filter.add(rcf);
+						}		
 					}
-					
 				}
+				
+				// Associate the survey to the roles
 				pstmtAssociateSurvey = sd.prepareStatement(sqlAssociateSurvey);
 				pstmtAssociateSurvey.setInt(1, id);
 				pstmtAssociateSurvey.setInt(2, rId);
