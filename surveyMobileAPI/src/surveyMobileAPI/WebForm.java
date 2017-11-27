@@ -370,7 +370,7 @@ public class WebForm extends Application {
 				jr.surveyData.surveyClass = survey.surveyClass;
 				//jr.surveyData.surveyClass = xForm.getSurveyClass();
 
-				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass).toString();
+				jr.main = addMain(request, instanceStrToEditId, orgId, true, surveyClass, superUser).toString();
 
 				if (callback != null) {
 					outputString.append(callback + " (");
@@ -382,7 +382,7 @@ public class WebForm extends Application {
 				}
 			} else {
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyClass, orgId, accessKey));
+						survey.surveyClass, orgId, accessKey, superUser));
 			}
 
 			String respString = outputString.toString();
@@ -402,7 +402,7 @@ public class WebForm extends Application {
 	 * Add the HTML
 	 */
 	private StringBuffer addDocument(HttpServletRequest request, String instanceXML,
-			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey)
+			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, boolean superUser)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -418,7 +418,7 @@ public class WebForm extends Application {
 
 		output.append(
 				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, accessKey));
-		output.append(addBody(request, dataToEditId, orgId, surveyClass));
+		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser));
 
 		output.append("</html>\n");
 		return output;
@@ -580,13 +580,13 @@ public class WebForm extends Application {
 	 * Add the body
 	 */
 	private StringBuffer addBody(HttpServletRequest request, String dataToEditId, int orgId,
-			String surveyClass)
+			String surveyClass, boolean superUser)
 			throws UnsupportedEncodingException, TransformerFactoryConfigurationError, TransformerException {
 		StringBuffer output = new StringBuffer();
 
 		output.append("<body class='clearfix edit'>");
 		output.append(getAside());
-		output.append(addMain(request, dataToEditId, orgId, false, surveyClass));
+		output.append(addMain(request, dataToEditId, orgId, false, surveyClass, superUser));
 		output.append(getDialogs());
 
 		// Webforms script
@@ -601,7 +601,7 @@ public class WebForm extends Application {
 	 * Get the "Main" element of an enketo form
 	 */
 	private StringBuffer addMain(HttpServletRequest request, String dataToEditId, int orgId,
-			boolean minimal, String surveyClass)
+			boolean minimal, String surveyClass, boolean superUser)
 			throws UnsupportedEncodingException, TransformerFactoryConfigurationError, TransformerException {
 
 		StringBuffer output = new StringBuffer();
@@ -611,7 +611,7 @@ public class WebForm extends Application {
 		// "/XSL/openrosa2html5form.xsl");
 
 		GetHtml getHtml = new GetHtml(localisation);
-		String html = getHtml.get(request, template.getSurvey().getId(), false, userIdent);
+		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent);
 
 		// Convert escaped XML into HTML
 		html = html.replaceAll("&gt;", ">");

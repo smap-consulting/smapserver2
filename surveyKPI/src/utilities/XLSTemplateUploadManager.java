@@ -197,6 +197,10 @@ public class XLSTemplateUploadManager {
 						throw new ApplicationException(localisation.getString("tu_idl"));
 					}
 				}
+				
+				// instance name
+				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
+				
 			}
 
 		}
@@ -601,6 +605,7 @@ public class XLSTemplateUploadManager {
 	
 	private void validateSurvey() throws Exception {
 		
+		// Validate questions
 		for(Form f : survey.forms) {
 			for(Question q : f.questions) {
 				if(q.relevant != null) {
@@ -638,6 +643,14 @@ public class XLSTemplateUploadManager {
 				}
 			}
 		}
+		
+		// Validate Settings
+		if(survey.instanceNameDefn != null) {
+			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(survey.instanceNameDefn );
+			if(refs.size() > 0) {
+				settingsQuestionInSurvey(refs, "instance_name");
+			}
+		}
 	}
 
 	private void validateOption(Option o, int rowNumber) throws ApplicationException {
@@ -671,6 +684,18 @@ public class XLSTemplateUploadManager {
 			if(qNameMap.get(name) == null) {
 				Integer rowNumber = qNameMap.get(q.name);
 				throw XLSUtilities.getApplicationException(localisation, "tu_mq", rowNumber, "survey", context, name);
+			}
+		}
+	}
+	
+	private void settingsQuestionInSurvey(ArrayList<String> names, String colname) throws ApplicationException {
+		for(String name : names) {
+			if(qNameMap.get(name) == null) {
+				String msg = localisation.getString("tu_mq");
+				msg = msg.replace("%s1", colname);
+				msg = msg.replace("%s2", "settings");
+				msg = msg.replaceAll("%s3", name);
+				throw new ApplicationException(msg);
 			}
 		}
 	}

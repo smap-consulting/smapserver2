@@ -113,14 +113,8 @@ public class XFormData {
 			
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			String basePath = request.getServletContext().getInitParameter("au.com.smap.files");
-			if (basePath == null) {
-				basePath = "/smap";
-			} else if (basePath.equals("/ebs1")) { // Support for legacy apache virtual hosts
-				basePath = "/ebs1/servers/" + serverName.toLowerCase();
-			}
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
+			String basePath = GeneralUtilityMethods.getBasePath(request);
 
 			/*
 			 * Save the XML submission file
@@ -229,8 +223,9 @@ public class XFormData {
 				throw new SurveyBlockedException();
 			}
 
+			log.info("###### submitted by: " + request.getRemoteUser());
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, user);
 			} catch (Exception e) {
 			}
 			a.isValidSurvey(sd, user, survey.id, false, superUser); // Throw an exception if the user is not authorised

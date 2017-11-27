@@ -293,8 +293,9 @@ public class XLSUtilities {
 		if(param1 != null) {
 			msg = msg.replace("%s1", param1);
 		}
+		msg = msg.replace("%s2", sheet);
 		if(param2 != null) {
-			msg = msg.replace("%s2", param2);
+			msg = msg.replace("%s3", param2);
 		}
 		
 		return new ApplicationException(msg);
