@@ -245,12 +245,12 @@ public class Survey {
 			
 			pstmt.setString(1, displayName);		
 			pstmt.setInt(2, p_id);				
-			pstmt.setString(3, def_lang);		// TODO settings
-			pstmt.setString(4, surveyClass);		// TODO settings
+			pstmt.setString(3, def_lang);
+			pstmt.setString(4, surveyClass);	
 			pstmt.setString(5, ident);
 			pstmt.setInt(6, version);			
 			pstmt.setString(7, null);				// TODO manifest
-			pstmt.setString(8, instanceNameDefn);	// TODO settings
+			pstmt.setString(8, instanceNameDefn);
 			pstmt.setBoolean(9, loadedFromXLS);
 			pstmt.setString(10, gson.toJson(meta));
 			pstmt.executeUpdate();
@@ -598,7 +598,7 @@ public class Survey {
 			pstmt.setBoolean(11, q.readonly); 
 			pstmt.setBoolean(12, q.required);
 			pstmt.setString(13, q.relevant);	
-			pstmt.setString(14, q.calculation);			// TODO
+			pstmt.setString(14, q.calculation);
 			pstmt.setString(15, q.chartdata);			// TODO
 			pstmt.setString(16, q.constraint);
 			pstmt.setString(17, q.constraint_msg);

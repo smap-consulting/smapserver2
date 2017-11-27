@@ -200,6 +200,7 @@ public class XLSTemplateUploadManager {
 				
 				// instance name
 				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
+				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
 				
 			}
 
