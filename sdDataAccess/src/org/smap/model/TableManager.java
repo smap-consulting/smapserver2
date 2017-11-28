@@ -441,8 +441,8 @@ public class TableManager {
 				}
 
 				// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
-
-				if(source != null) {
+				// Also ignore meta and preload questions - these are now added separately and not from the question list
+				if(source != null && !GeneralUtilityMethods.isMetaQuestion(q.getName())) {
 
 					// Set column type for postgres
 					if(colType.equals("string")) {

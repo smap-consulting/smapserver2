@@ -5386,5 +5386,24 @@ public class GeneralUtilityMethods {
 		return output;
 	}
 	
+	/*
+	 * Return true if this is a preload or meta question
+	 */
+	public static boolean isMetaQuestion(String name) {
+		boolean meta = false;
+		
+		name = name.toLowerCase();
+		
+		System.out.println("Testing for meta question: " + name);
+		if(name.equals("instanceid")) {
+			meta = true;
+		} else if(name.equals("instancename")) {
+			meta = true;
+		}
+		
+		return meta;
+		
+	}
+	
 }
 

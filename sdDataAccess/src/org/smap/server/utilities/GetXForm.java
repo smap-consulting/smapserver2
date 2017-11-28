@@ -530,7 +530,11 @@ public class GetXForm {
 			if (!q.getEnabled()) {
 				continue;
 			}
-
+			
+			// Backward compatability - Ignore Meta and preload questions - these are now not included in the list of questions are added from survey settings
+			if(GeneralUtilityMethods.isMetaQuestion(q.getName())) {
+				continue;
+			}
 			Element questionElement = null;
 			String qType = q.getType();
 
