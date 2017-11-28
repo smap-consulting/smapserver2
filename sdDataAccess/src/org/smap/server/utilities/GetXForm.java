@@ -44,7 +44,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
-import org.smap.sdal.model.PreloadDetails;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -521,6 +520,12 @@ public class GetXForm {
 				Element instanceName = outputDoc.createElement("instanceName");
 				metaGroup.appendChild(instanceName);
 				
+				// Add a timing element if we have entered the meta group and timing is enabled
+				if (template.getSurvey().getTimingData()) {
+					Element audit = outputDoc.createElement("audit");
+					currentParent.appendChild(audit);
+				}
+				
 				if(preloads != null) {
 					for(MetaItem mi : preloads) {
 						if(mi.isPreload) {
@@ -613,14 +618,6 @@ public class GetXForm {
 
 					elementStack.push(currentParent);
 					currentParent = questionElement;
-
-					// Add a timing element if we have entered the meta group and timing is enabled
-					if (q.getName().equals("meta")) {
-						if (template.getSurvey().getTimingData()) {
-							questionElement = outputDoc.createElement("audit");
-							currentParent.appendChild(questionElement);
-						}
-					}
 
 					// Add a dummy instance element for the table list labels if this is a table
 					// list question

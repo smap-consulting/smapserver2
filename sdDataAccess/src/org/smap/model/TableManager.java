@@ -415,7 +415,7 @@ public class TableManager {
 						+ "_complete boolean default true, "
 						+ "_modified boolean default false"
 						+ ", _upload_time timestamp with time zone, _s_id integer"
-						+ ",instanceid text";
+						+ ",instanceid text, instancename text";
 
 				if(hasHrk) {
 					sql += ", _hrk text ";

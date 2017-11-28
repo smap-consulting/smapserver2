@@ -48,7 +48,6 @@ import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.Option;
-import org.smap.sdal.model.PreloadDetails;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
@@ -5401,7 +5400,9 @@ public class GeneralUtilityMethods {
 			meta = true;
 		} else if(name.equals("meta")) {
 			meta = true;
-		} 
+		} else if(name.equals("meta_groupend")) {
+			meta = true;
+		}
 		
 		return meta;
 		
