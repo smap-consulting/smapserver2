@@ -645,6 +645,18 @@ public class XLSTemplateUploadManager {
 			checkExpression(localisation, q.relevant, rowNumber, "survey", "relevant", q.name);
 		}
 		
+		if(q.constraint != null) {
+			checkExpression(localisation, q.constraint, rowNumber, "survey", "constraint", q.name);
+		}
+		
+		if(q.calculation != null) {
+			checkExpression(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
+		}
+		
+		if(q.choice_filter != null) {
+			checkExpression(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
+		}
+		
 	}
 	
 	private void checkExpression(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
