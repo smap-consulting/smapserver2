@@ -29,6 +29,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
@@ -419,6 +420,24 @@ public class GetHtml {
 		bodyElement.setAttribute("style", "display:none;");
 		bodyElement.setAttribute("id", "or-preload-items");
 
+		if(survey.meta != null) {
+			for(MetaItem mi : survey.meta) {
+				if(mi.isPreload) {
+					preloadLabel = outputDoc.createElement("label");
+					preloadLabel.setAttribute("class", "calculation non-select");
+					bodyElement.appendChild(preloadLabel);
+
+					preloadInput = outputDoc.createElement("input");
+					preloadInput.setAttribute("type", "hidden");
+					preloadInput.setAttribute("name", "/main/" + mi.name);
+					preloadInput.setAttribute("data-preload", mi.dataType);
+					preloadInput.setAttribute("data-preload-params", mi.sourceParam);
+					preloadInput.setAttribute("data-type-xml", mi.type);
+					preloadLabel.appendChild(preloadInput);
+				}
+			}
+		}
+		// Legacy preloads in questions
 		for (Question q : form.questions) {
 
 			if (q.isPreload() && !q.inMeta) {

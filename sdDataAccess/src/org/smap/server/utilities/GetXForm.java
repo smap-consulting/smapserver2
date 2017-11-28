@@ -43,6 +43,8 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ManifestValue;
+import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.PreloadDetails;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -508,6 +510,8 @@ public class GetXForm {
 		 * If this is the top level form add the meta and preload data for the survey
 		 */
 		if(!f.hasParent()) {
+			
+			ArrayList<MetaItem> preloads = template.getSurvey().getMeta();	// // preloads
 			if(location == INSTANCE) {
 				// Add the meta group
 				Element metaGroup = outputDoc.createElement("meta");
@@ -516,8 +520,34 @@ public class GetXForm {
 				metaGroup.appendChild(instanceID);
 				Element instanceName = outputDoc.createElement("instanceName");
 				metaGroup.appendChild(instanceName);
+				
+				if(preloads != null) {
+					for(MetaItem mi : preloads) {
+						if(mi.isPreload) {
+							Element preload = outputDoc.createElement(mi.name);
+							currentParent.appendChild(preload);
+						}
+					}
+				}
+				
 			} else if(location == BIND) {
-				currentParent.appendChild(populateInstanceId(outputDoc));
+				Element instanceId = outputDoc.createElement("bind");
+				instanceId.setAttribute("nodeset", "/main/meta/instanceID");
+				instanceId.setAttribute("type", "string");
+				instanceId.setAttribute("calculate", "concat('uuid:', uuid())");
+				
+				if(preloads != null) {
+					for(MetaItem mi : preloads) {
+						if(mi.isPreload) {
+							Element preload = outputDoc.createElement("bind");
+							preload.setAttribute("nodeset", "/main/" + mi.name);
+							preload.setAttribute("type", mi.type);
+							preload.setAttribute("jr:preload", mi.dataType);
+							preload.setAttribute("jr:preloadParams", mi.sourceParam);
+							currentParent.appendChild(preload);
+						}
+					}
+				}
 			}
 		}
 		/*
@@ -531,7 +561,7 @@ public class GetXForm {
 				continue;
 			}
 			
-			// Backward compatability - Ignore Meta and preload questions - these are now not included in the list of questions are added from survey settings
+			// Backward compatability - Ignore Meta  questions 
 			if(GeneralUtilityMethods.isMetaQuestion(q.getName())) {
 				continue;
 			}
@@ -876,21 +906,6 @@ public class GetXForm {
 				}
 			}
 		}
-
-		return questionElement;
-	}
-	
-	/*
-	 * Create a bind entry for the instance
-	 */
-	public Element populateInstanceId(Document outputXML)
-			throws Exception {
-
-		Element questionElement = outputXML.createElement("bind");
-
-		questionElement.setAttribute("nodeset", "/main/meta/instanceID");
-		questionElement.setAttribute("type", "string");
-		questionElement.setAttribute("calculate", "concat('uuid:', uuid())");
 
 		return questionElement;
 	}

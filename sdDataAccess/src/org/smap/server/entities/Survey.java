@@ -20,9 +20,16 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.server.entities;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.MetaItem;
 import org.smap.server.utilities.UtilityMethods;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*
  * Class to store Survey objects
@@ -62,6 +69,8 @@ public class Survey implements Serializable {
 	private boolean loaded_from_xls = false;
 	
 	private String hrk = null;
+	
+	private ArrayList<MetaItem> meta = null;
 	
 	/*
 	 * Constructor
@@ -133,6 +142,10 @@ public class Survey implements Serializable {
 		return hrk;
 	}
 	
+	public ArrayList<MetaItem> getMeta() {
+		return meta;
+	}
+	
 	/*
 	 * Setters
 	 */
@@ -195,6 +208,13 @@ public class Survey implements Serializable {
 	
 	public void setHrk(String v) {
 		hrk = v;
+	}
+	
+	public void setMeta(String v) {
+		if(v != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			meta = gson.fromJson(v, new TypeToken<ArrayList<MetaItem>>() {}.getType());
+		}
 	}
 	
 

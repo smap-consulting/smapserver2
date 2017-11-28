@@ -71,7 +71,8 @@ public class JdbcSurveyManager {
 			+ "instance_name,"
 			+ "deleted,"
 			+ "hrk,"
-			+ "timing_data "
+			+ "timing_data,"
+			+ "meta "
 			+ "from survey where ";
 	String sqlIdentWhere = "ident = ?;";
 	String sqlIdWhere = "s_id = ?;";
@@ -131,21 +132,6 @@ public class JdbcSurveyManager {
 		pstmtUpdate.executeUpdate();
 	}
 	
-	
-	/*
-	 * Update reference to self in calculations
-	 *
-	public void updateSelfCalcs(String ident, int sId) throws SQLException {
-		pstmtUpdateSelfCalcs.setString(1, ident);
-		pstmtUpdateSelfCalcs.setInt(2, sId);
-		pstmtUpdateSelfCalcs.executeUpdate();
-		
-		pstmtUpdateSelfCalcsManifest.setString(1, ident);
-		pstmtUpdateSelfCalcsManifest.setInt(2, sId);
-		pstmtUpdateSelfCalcsManifest.executeUpdate();
-	}
-	*/
-	
 	/*
 	 * Get a survey using its ident
 	 */
@@ -186,8 +172,6 @@ public class JdbcSurveyManager {
 	public void close() {
 		try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
 		try {if(pstmtUpdate != null) {pstmtUpdate.close();}} catch(Exception e) {};
-		//try {if(pstmtUpdateSelfCalcs != null) {pstmtUpdateSelfCalcs.close();}} catch(Exception e) {};
-		//try {if(pstmtUpdateSelfCalcsManifest != null) {pstmtUpdateSelfCalcsManifest.close();}} catch(Exception e) {};
 		try {if(pstmtGetByIdent != null) {pstmtGetByIdent.close();}} catch(Exception e) {};
 		try {if(pstmtGetById != null) {pstmtGetById.close();}} catch(Exception e) {};
 	}
@@ -215,6 +199,8 @@ public class JdbcSurveyManager {
 			s.setDeleted(rs.getBoolean(11));
 			s.setHrk(rs.getString(12));
 			s.setTimingData(rs.getBoolean(13));
+			s.setMeta(rs.getString(14));
+		
 		}
 		return s;
 	}

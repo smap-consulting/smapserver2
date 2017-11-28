@@ -15,6 +15,7 @@ import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.ChangeItem;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.Form;
@@ -363,7 +364,7 @@ public class TableManager {
 			}
 			
 			for(Form form : forms) {		
-				writeTableStructure(form, sd, cResults, hasHrk);
+				writeTableStructure(form, sd, cResults, hasHrk, template);
 				cResults.commit();
 			}	
 			
@@ -390,7 +391,7 @@ public class TableManager {
 		}		
 	}
 
-	private void writeTableStructure(Form form, Connection sd, Connection cResults, boolean hasHrk) throws Exception {
+	private void writeTableStructure(Form form, Connection sd, Connection cResults, boolean hasHrk, SurveyTemplate template) throws Exception {
 
 		String tableName = form.getTableName();
 		List<Question> columns = form.getQuestions(sd, form.getPath(null));
@@ -419,7 +420,25 @@ public class TableManager {
 				if(hasHrk) {
 					sql += ", _hrk text ";
 				}
+				
+				// Add preloads
+				ArrayList<MetaItem> meta = template.getSurvey().getMeta();
+				if(meta != null) {
+					for(MetaItem mi : meta) {
+						if(mi.isPreload) {
+							String type = " text";
+							if(mi.dataType.equals("timestamp")) {
+								type = " timestamp with time zone";
+							} else if(mi.dataType.equals("date")) {
+								type = " date";
+							}
+							sql += "," + mi.columnName + type;
+						}
+					}
+				}
 			}
+			
+			
 
 
 			for(Question q : columns) {
@@ -441,7 +460,7 @@ public class TableManager {
 				}
 
 				// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
-				// Also ignore meta and preload questions - these are now added separately and not from the question list
+				// Also ignore meta - these are now added separately and not from the question list
 				if(source != null && !GeneralUtilityMethods.isMetaQuestion(q.getName())) {
 
 					// Set column type for postgres

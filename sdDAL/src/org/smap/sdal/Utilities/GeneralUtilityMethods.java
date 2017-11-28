@@ -48,6 +48,7 @@ import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.PreloadDetails;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
@@ -3999,8 +4000,7 @@ public class GeneralUtilityMethods {
 		if (inputManifest == null) {
 			mArray = new ArrayList<String>();
 		} else {
-			Type type = new TypeToken<ArrayList<String>>() {
-			}.getType();
+			Type type = new TypeToken<ArrayList<String>>() {}.getType();
 			mArray = gson.fromJson(inputManifest, type);
 		}
 		if (!mArray.contains(filename)) {
@@ -5399,7 +5399,9 @@ public class GeneralUtilityMethods {
 			meta = true;
 		} else if(name.equals("instancename")) {
 			meta = true;
-		}
+		} else if(name.equals("meta")) {
+			meta = true;
+		} 
 		
 		return meta;
 		

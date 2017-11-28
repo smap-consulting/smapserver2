@@ -125,7 +125,7 @@ public class XLSTemplateUploadManager {
 		survey.loadedFromXLS = true;
 		survey.deleted = false;
 		survey.blocked = false;
-		survey.meta.add(new MetaItem("string", "instanceID", null, "instanceid", null));
+		survey.meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false));
 
 		surveySheet = wb.getSheet("survey");
 		choicesSheet = wb.getSheet("choices");
@@ -226,16 +226,17 @@ public class XLSTemplateUploadManager {
 					}
 				}
 			}
-
 		}
 		
+		
 		/*
-		 * 4. Final Validation
+		 * Add default preloads
 		 */
-		validateSurvey();
+		survey.meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true));
+		
+		validateSurvey();	// 4. Final Validation
 
 		return survey;
-
 
 	}
 
