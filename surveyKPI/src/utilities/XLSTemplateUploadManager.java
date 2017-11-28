@@ -158,7 +158,7 @@ public class XLSTemplateUploadManager {
 
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
-						String listName = XLSUtilities.getColumn(row, "list name", choicesHeader, lastCellNum, null);
+						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum);
 						if(listName != null) {
 							OptionList ol = survey.optionLists.get(listName);
 							if(ol == null) {
@@ -245,12 +245,12 @@ public class XLSTemplateUploadManager {
 		int lastCellNum = row.getLastCellNum();
 		o.optionList = listName;
 
-		o.value = XLSUtilities.getColumn(row, "name", choicesHeader, lastCellNum, null);
+		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum);
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
 		o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
 		for(String key :choiceFilterHeader.keySet()) {
-			String value = XLSUtilities.getColumn(row, key, choicesHeader, lastCellNum, null);
+			String value = XLSUtilities.getTextColumn(row, key, choicesHeader, lastCellNum);
 			if (value != null) {
 				o.cascade_filters.put(key, value);
 			}
@@ -446,46 +446,49 @@ public class XLSTemplateUploadManager {
 		int lastCellNum = row.getLastCellNum();
 
 		// 1. Question type
-		String type = XLSUtilities.getColumn(row, "type", surveyHeader, lastCellNum, null);
-		if(type == null) {
-			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
-		}		
-		q.type = convertType(type, q);	
+		String type = XLSUtilities.getTextColumn(row, "type", surveyHeader, lastCellNum);	
 		
 		// 2. Question name
-		q.name = XLSUtilities.getColumn(row, "name", surveyHeader, lastCellNum, null);  
+		q.name = XLSUtilities.getTextColumn(row, "name", surveyHeader, lastCellNum);  
+		if(type == null && q.name != null) {
+			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
+		} else if(type == null && q.name == null) {
+			return null;		// blank row
+		}
+		
+		q.type = convertType(type, q);			
 		if(q.type.equals("geopoint") || q.type.equals("geotrace") || q.type.equals("geoshape")) {
 			q.name = "the_geom";
-		}
+		}	
 		
 		// 3. Labels
 		getLabels(row, lastCellNum, surveyHeader, q.labels);		
 
 		// 4. choice filter
-		q.choice_filter = XLSUtilities.getColumn(row, "choice_filter", surveyHeader, lastCellNum, null);
+		q.choice_filter = XLSUtilities.getTextColumn(row, "choice_filter", surveyHeader, lastCellNum);
 		
 		// 5. Constraint
-		q.constraint = XLSUtilities.getColumn(row, "constraint", surveyHeader, lastCellNum, null);  
+		q.constraint = XLSUtilities.getTextColumn(row, "constraint", surveyHeader, lastCellNum);  
 		
 		// 6. Constraint message
-		q.constraint_msg = XLSUtilities.getColumn(row, "constraint_message", surveyHeader, lastCellNum, null); 
+		q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message", surveyHeader, lastCellNum); 
 		
 		// 7. Relevant
-		q.relevant = XLSUtilities.getColumn(row, "relevant", surveyHeader, lastCellNum, null);  		
+		q.relevant = XLSUtilities.getTextColumn(row, "relevant", surveyHeader, lastCellNum);  		
 
 		// 7. Repeat count
 		if(q.type.equals("begin repeat")) {
-			q.repeatCount = XLSUtilities.getColumn(row, "repeat_count", surveyHeader, lastCellNum, null);  
+			q.repeatCount = XLSUtilities.getTextColumn(row, "repeat_count", surveyHeader, lastCellNum);  
 		}
 		
 		// 8. Default
-		q.defaultanswer = XLSUtilities.getColumn(row, "default", surveyHeader, lastCellNum, null); 
+		q.defaultanswer = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum); 
 		
 		// 9. Readonly
 		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum);
 		
 		// 10. Appearance
-		q.appearance = XLSUtilities.getColumn(row, "appearance", surveyHeader, lastCellNum, null); 
+		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum); 
 		
 		// 11. Parameters TODO
 		
@@ -497,10 +500,10 @@ public class XLSTemplateUploadManager {
 		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum);		
 		
 		// 15. Required Message
-		q.required_msg = XLSUtilities.getColumn(row, "required_message", surveyHeader, lastCellNum, null); 
+		q.required_msg = XLSUtilities.getTextColumn(row, "required_message", surveyHeader, lastCellNum); 
 		
 		// 16. Calculation
-		q.calculation = XLSUtilities.getColumn(row, "calculation", surveyHeader, lastCellNum, null); 
+		q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum); 
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
@@ -558,21 +561,21 @@ public class XLSTemplateUploadManager {
 		// Get the label language values
 		if(useDefaultLanguage) {
 			Label lab = new Label();
-			lab.text = XLSUtilities.getColumn(row, "label", surveyHeader, lastCellNum, null);
-			lab.hint = XLSUtilities.getColumn(row, "hint", surveyHeader, lastCellNum, null);
-			lab.image = XLSUtilities.getColumn(row, "image", surveyHeader, lastCellNum, null);
-			lab.video = XLSUtilities.getColumn(row, "video", surveyHeader, lastCellNum, null);
-			lab.audio = XLSUtilities.getColumn(row, "audio", surveyHeader, lastCellNum, null);
+			lab.text = XLSUtilities.getTextColumn(row, "label", surveyHeader, lastCellNum);
+			lab.hint = XLSUtilities.getTextColumn(row, "hint", surveyHeader, lastCellNum);
+			lab.image = XLSUtilities.getTextColumn(row, "image", surveyHeader, lastCellNum);
+			lab.video = XLSUtilities.getTextColumn(row, "video", surveyHeader, lastCellNum);
+			lab.audio = XLSUtilities.getTextColumn(row, "audio", surveyHeader, lastCellNum);
 			labels.add(lab);
 		} else {
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
 				Label lab = new Label();
-				lab.text = XLSUtilities.getColumn(row, "label::" + lang, surveyHeader, lastCellNum, null);
-				lab.hint = XLSUtilities.getColumn(row, "hint::" + lang, surveyHeader, lastCellNum, null);
-				lab.image = XLSUtilities.getColumn(row, "image::" + lang, surveyHeader, lastCellNum, null);
-				lab.video = XLSUtilities.getColumn(row, "video::" + lang, surveyHeader, lastCellNum, null);
-				lab.audio = XLSUtilities.getColumn(row, "audio::" + lang, surveyHeader, lastCellNum, null);
+				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, surveyHeader, lastCellNum);
+				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, surveyHeader, lastCellNum);
+				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, surveyHeader, lastCellNum);
+				lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, surveyHeader, lastCellNum);
+				lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, surveyHeader, lastCellNum);
 				labels.add(lab);
 			}
 		}
@@ -638,7 +641,44 @@ public class XLSTemplateUploadManager {
 			if(refs.contains(q.name)) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", "relevant", q.name);
 			}
+			
+			checkExpression(localisation, q.relevant, rowNumber, "survey", "relevant", q.name);
 		}
+		
+	}
+	
+	private void checkExpression(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
+		checkMatchedParenthesies(localisation, '{', '}', expression, rowNumber, sheet, column);
+		checkMatchedParenthesies(localisation, '(', ')', expression, rowNumber, sheet, column);
+	}
+	
+	private void checkMatchedParenthesies(ResourceBundle localisation, char p1, char p2, String expression, int rowNumber, String sheet, String column) throws ApplicationException {
+		int depth = 0; 
+		int locn = 0;
+		if(expression != null) {
+             for(int i = 0; i < expression.length(); i++) {
+                 char c = expression.charAt(i);
+                 if( c == p1) {
+                     depth++;
+                     locn = i;
+                 } else if( c == p2) {
+                     depth--;
+                     locn = i;
+                 }
+                 if(depth < 0) {
+                     break;
+                 }
+             }
+
+             if(depth != 0) {
+            	 	if(p1 == '(') {
+            	 		throw XLSUtilities.getApplicationException(localisation, "tu_mbs", rowNumber, sheet, column, String.valueOf(locn));
+            	 	} else if(p1 == '{') {
+            	 		throw XLSUtilities.getApplicationException(localisation, "tu_mbc", rowNumber, sheet, column, String.valueOf(locn));
+            	 	}
+                
+             }
+         }
 	}
 	
 	private void validateSurvey() throws Exception {
@@ -797,7 +837,7 @@ public class XLSTemplateUploadManager {
 	}
 	
 	private boolean getBooleanColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum) throws ApplicationException {
-		String v = XLSUtilities.getColumn(row, name, header, lastCellNum, null); 
+		String v = XLSUtilities.getTextColumn(row, name, header, lastCellNum); 
 		
 		if(v != null) {
 			v = v.trim();

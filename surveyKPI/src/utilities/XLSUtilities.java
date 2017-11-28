@@ -219,10 +219,6 @@ public class XLSUtilities {
 		Integer cellIndex;
 		int idx;
 		String value = null;
-		double dValue = 0.0;
-		Date dateValue = null;
-		boolean bValue = false;
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
 	
 		cellIndex = header.get(name);
 		if(cellIndex != null) {
@@ -230,28 +226,8 @@ public class XLSUtilities {
 			if(idx <= lastCellNum) {
 				Cell c = row.getCell(idx);
 				if(c != null) {
-					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
-						if (HSSFDateUtil.isCellDateFormatted(c)) {
-							dateValue = c.getDateCellValue();
-							value = dateFormat.format(dateValue);
-						} else {
-							dValue = c.getNumericCellValue();
-							value = String.valueOf(dValue);
-							if(value != null && value.endsWith(".0")) {
-								value = value.substring(0, value.lastIndexOf('.'));
-							}
-						}
-					} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
-						value = c.getStringCellValue();
-					} else if(c.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
-						bValue = c.getBooleanCellValue();
-						value = String.valueOf(bValue);
-					} else {
-						throw(new ApplicationException("Error: Unknown cell type: " + c.getCellType() + 
-								" in sheet "  + c.getSheet().getSheetName() +
-								" in row " + c.getRowIndex() + 
-								", column " + c.getColumnIndex()));
-					}
+					value = getCellValue(c);
+					
 
 				}
 			}
@@ -278,7 +254,7 @@ public class XLSUtilities {
 			idx = cellIndex;
 			Cell c = row.getCell(idx);
 			if(c != null) {
-				value = c.getStringCellValue();
+				value = getCellValue(c);
 				if(value != null) {
 					if(value.trim().length() == 0) {
 						value = null;
@@ -286,6 +262,44 @@ public class XLSUtilities {
 				}
 			}
 		} 
+		
+		return value;
+	}
+	
+	/*
+	 * Get a cell value as String from XLS
+	 */
+	private static String getCellValue(Cell c) throws ApplicationException {
+		String value = null;
+		double dValue = 0.0;
+		Date dateValue = null;
+		boolean bValue = false;
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
+		
+		if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+			if (HSSFDateUtil.isCellDateFormatted(c)) {
+				dateValue = c.getDateCellValue();
+				value = dateFormat.format(dateValue);
+			} else {
+				dValue = c.getNumericCellValue();
+				value = String.valueOf(dValue);
+				if(value != null && value.endsWith(".0")) {
+					value = value.substring(0, value.lastIndexOf('.'));
+				}
+			}
+		} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
+			value = c.getStringCellValue();
+		} else if(c.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
+			bValue = c.getBooleanCellValue();
+			value = String.valueOf(bValue);
+		} else if(c.getCellType() == Cell.CELL_TYPE_BLANK) {
+			value = c.getStringCellValue();	// !! Not sure what this is about
+		} else {
+			throw(new ApplicationException("Error: Unknown cell type: " + c.getCellType() + 
+					" in sheet "  + c.getSheet().getSheetName() +
+					" in row " + c.getRowIndex() + 
+					", column " + c.getColumnIndex()));
+		}
 		
 		return value;
 	}
