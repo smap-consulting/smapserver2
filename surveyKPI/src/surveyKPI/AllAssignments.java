@@ -44,7 +44,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -53,9 +52,7 @@ import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Features;
 import org.smap.sdal.model.Geometry;
-import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.TaskAddressSettings;
 
 import com.google.gson.Gson;
@@ -64,18 +61,14 @@ import com.google.gson.reflect.TypeToken;
 
 import model.FormDesc;
 import taskModel.TaskAddress;
-import utilities.CSVReader;
 import utilities.ExchangeManager;
 import utilities.QuestionInfo;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;

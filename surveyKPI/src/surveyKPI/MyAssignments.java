@@ -39,6 +39,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Geometry;
+import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
@@ -78,15 +79,6 @@ public class MyAssignments extends Application {
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
 
-	class KeyValue {
-		String name;
-		String value;
-
-		public KeyValue(String k, String v) {
-			name = k;
-			value = v;
-		}
-	}
 
 	/*
 	 * Get assignments for user authenticated with credentials
@@ -495,20 +487,20 @@ public class MyAssignments extends Application {
 
 		String jOut = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
-		Type type = new TypeToken<ArrayList<KeyValue>>(){}.getType();
+		Type type = new TypeToken<ArrayList<KeyValueTask>>(){}.getType();
 
-		ArrayList<KeyValue> kvArray = null;
+		ArrayList<KeyValueTask> kvArray = null;
 
 		// 1. Get the current array
 		if(jIn != null && jIn.trim().length() > 0) {
 			kvArray = new Gson().fromJson(jIn, type);
 		} else {
-			kvArray = new ArrayList<KeyValue> ();
+			kvArray = new ArrayList<KeyValueTask> ();
 		}
 
 		// 2. Add the new kv pair
 		if(value != null && value.trim().length() > 0 ) {
-			KeyValue newKV = new KeyValue(name, value);
+			KeyValueTask newKV = new KeyValueTask(name, value);
 
 			kvArray.add(newKV);
 		}
