@@ -369,13 +369,13 @@ public class SubscriberBatch {
 				System.out.print("#");
 			}
 
-			if(subscriberType.equals("forward")) {
-				// Erase any templates that were deleted more than a set time ago
-				eraseOldTemplates(sd, cResults, basePath);
-
+			if(subscriberType.equals("upload")) {
 				// Send any pending messages
 				MessagingManagerApply mma = new MessagingManagerApply();
 				mma.applyOutbound(sd, serverName);
+			} else if(subscriberType.equals("forward")) {
+				// Erase any templates that were deleted more than a set time ago
+				eraseOldTemplates(sd, cResults, basePath);
 
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications

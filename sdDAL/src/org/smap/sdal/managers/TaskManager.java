@@ -682,7 +682,10 @@ public class TaskManager {
 					pstmtAssign.executeUpdate();
 				}
 				
-
+				// Notify the user of their new assignment
+				String userIdent = GeneralUtilityMethods.getUserIdent(sd, as.user_id);
+				MessagingManager mm = new MessagingManager();
+				mm.userChange(sd, userIdent);			
 		
 			}
 			

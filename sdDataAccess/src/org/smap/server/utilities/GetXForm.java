@@ -540,6 +540,7 @@ public class GetXForm {
 				instanceId.setAttribute("nodeset", "/main/meta/instanceID");
 				instanceId.setAttribute("type", "string");
 				instanceId.setAttribute("calculate", "concat('uuid:', uuid())");
+				currentParent.appendChild(instanceId);
 				
 				if(preloads != null) {
 					for(MetaItem mi : preloads) {
