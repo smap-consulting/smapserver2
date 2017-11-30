@@ -8,7 +8,13 @@ public class MetaItem {
 	public String dataType;
 	public boolean isPreload;
 	
-	public MetaItem(String type, String name, String sourceParam, String columnName, String dataType, boolean isPreload) {
+	public MetaItem(String type, 	// type
+			String name, 			// nodeset
+			String sourceParam, 		// jr:preloadParams
+			String columnName, 
+			String dataType, 		// jr:preload
+			boolean isPreload
+			) {
 		this.type = type;
 		this.name = name;
 		this.sourceParam = sourceParam;

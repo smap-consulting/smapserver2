@@ -47,6 +47,7 @@ import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
@@ -5386,14 +5387,13 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Return true if this is a preload or meta question
+	 * Return true if this is a meta question
 	 */
 	public static boolean isMetaQuestion(String name) {
 		boolean meta = false;
 		
 		name = name.toLowerCase();
 		
-		System.out.println("Testing for meta question: " + name);
 		if(name.equals("instanceid")) {
 			meta = true;
 		} else if(name.equals("instancename")) {
@@ -5405,6 +5405,38 @@ public class GeneralUtilityMethods {
 		}
 		
 		return meta;
+		
+	}
+	
+	/*
+	 * Get a preload item from the type
+	 * If this is not a preload return null
+	 */
+	public static MetaItem getPreloadItem(String type, String name) {
+		
+		MetaItem item = null;
+		
+		if(type.equals("start")) {
+			item = new MetaItem("dateTime", name, type, cleanName(name, true, true, true), "timestamp", true);
+		} else if(type.equals("end")) {
+			item = new MetaItem("dateTime", name, type, cleanName(name, true, true, true), "timestamp", true);
+		} else if(type.equals("today")) {
+			item = new MetaItem("date", name, type, cleanName(name, true, true, true), "date", true);
+		} else if(type.equals("deviceid")) {
+			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true);
+		} else if(type.equals("subscriberid")) {
+			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true);
+		} else if(type.equals("simserial")) {
+			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true);
+		} else if(type.equals("phonenumber")) {
+			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true);
+		} else if(type.equals("username")) {
+			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true);
+		} else if(type.equals("email")) {
+			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true);
+		} 
+		
+		return item;
 		
 	}
 	

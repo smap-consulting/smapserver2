@@ -232,12 +232,29 @@ public class XLSTemplateUploadManager {
 		/*
 		 * Add default preloads
 		 */
-		survey.meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true));
+		if(!hasMeta("start")) {
+			survey.meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true));
+		}
+		if(!hasMeta("end")) {
+			survey.meta.add(new MetaItem("dateTime", "_end", "end", "_end", "timestamp", true));
+		}
+		if(!hasMeta("deviceid")) {
+			survey.meta.add(new MetaItem("string", "_device", "deviceid", "_device", "property", true));
+		}
 		
 		validateSurvey();	// 4. Final Validation
 
 		return survey;
 
+	}
+	
+	private boolean hasMeta(String sourceParam) {
+		for(MetaItem mi : survey.meta) {
+			if(mi.isPreload && mi.sourceParam.equals(sourceParam)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	private Option getOption(Row row, String listName) throws ApplicationException {
@@ -419,17 +436,22 @@ public class XLSTemplateUploadManager {
 			if(row != null) {
 				Question q = getQuestion(row, thisFormIndex, f.questions.size());				
 				if(q != null) {
-					if(q.type.equals("end repeat")) {
-						if(parentFormIndex < 0) {
-							throw XLSUtilities.getApplicationException(localisation, "tu_eer", rowNumSurvey, "survey", null, null);
+					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name);
+					if(item != null) {
+						survey.meta.add(item);
+					} else {
+						if(q.type.equals("end repeat")) {
+							if(parentFormIndex < 0) {
+								throw XLSUtilities.getApplicationException(localisation, "tu_eer", rowNumSurvey, "survey", null, null);
+							}
+							return;
 						}
-						return;
-					}
-					validateQuestion(q, rowNumSurvey);
-					f.questions.add(q);
-					
-					if(q.type.equals("begin repeat")) {
-						getForm(q.name, thisFormIndex, f.questions.size() - 1);
+						validateQuestion(q, rowNumSurvey);
+						f.questions.add(q);
+						
+						if(q.type.equals("begin repeat")) {
+							getForm(q.name, thisFormIndex, f.questions.size() - 1);
+						}
 					}
 				}
 						
@@ -844,6 +866,24 @@ public class XLSTemplateUploadManager {
 			out = "begin group";
 		} else if (type.equals("end group")) {
 			out = "end group";
+		} else if (type.equals("start")) {
+			out = "start";
+		} else if (type.equals("end")) {
+			out = "end";
+		} else if (type.equals("today")) {
+			out = "today";
+		} else if (type.equals("deviceid")) {
+			out = "deviceid";
+		} else if (type.equals("subscriberid")) {
+			out = "subscriberid";
+		} else if (type.equals("simserial")) {
+			out = "simserial";
+		} else if (type.equals("phonenumber")) {
+			out = "phonenumber";
+		} else if (type.equals("username")) {
+			out = "username";
+		} else if (type.equals("email")) {
+			out = "email";
 		}
 				
 		return out;
