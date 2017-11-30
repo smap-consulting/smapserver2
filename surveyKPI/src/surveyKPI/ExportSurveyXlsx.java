@@ -67,7 +67,7 @@ public class ExportSurveyXlsx extends Application {
 	LogManager lm = new LogManager();		// Application log
 
 	@GET
-	public Response exportSurvey (@Context HttpServletRequest request, 
+	public Response exportSurveyXlsx (@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("filename") String filename,
 			@QueryParam("split_locn") boolean split_locn,
@@ -82,6 +82,7 @@ public class ExportSurveyXlsx extends Application {
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,
+			@QueryParam("meta") boolean meta,
 			
 			@Context HttpServletResponse response) {
 
@@ -131,7 +132,12 @@ public class ExportSurveyXlsx extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			
+				if(meta) {
+					System.out.println("Meta set to: " + meta);
+				} else {
+					System.out.println("Meta not set");
+				}
+				
 				cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");				
 
 				if(language == null) {	// ensure a language is set
@@ -171,7 +177,8 @@ public class ExportSurveyXlsx extends Application {
 						dateId,
 						superUser,
 						startingForm,
-						filter);
+						filter,
+						meta);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique

@@ -214,7 +214,8 @@ public class ExportSurveyThingsat extends Application {
 					dateId,
 					superUser,
 					startingForm,
-					filter);
+					filter,
+					true);
 			
 			pstmt = connectionResults.prepareStatement(sqlDesc.sql + ";");
 			ResultSet rs = pstmt.executeQuery();

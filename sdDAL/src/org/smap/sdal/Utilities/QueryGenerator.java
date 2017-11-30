@@ -70,7 +70,8 @@ public class QueryGenerator {
 			int dateId,
 			boolean superUser,
 			QueryForm form,
-			String filter) throws Exception {
+			String filter,
+			boolean meta) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -149,7 +150,8 @@ public class QueryGenerator {
 					superUser,
 					form,
 					tables,
-					true
+					true,
+					meta
 					);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
@@ -380,7 +382,8 @@ public class QueryGenerator {
 			boolean superUser,
 			QueryForm form,
 			ArrayList<String> tables,
-			boolean first
+			boolean first,
+			boolean meta
 			) throws SQLException {
 		
 		int colLimit = 10000;
@@ -390,6 +393,7 @@ public class QueryGenerator {
 		
 		tables.add(form.table);
 
+		
 		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
 				connectionSD,
 				connectionResults,
@@ -402,9 +406,9 @@ public class QueryGenerator {
 				false,				// Don't include parent key
 				false,				// Don't include "bad" columns
 				false,				// Don't include instance id
-				first,				// Include other meta data
-				first,				// Include preloads
-				first,				// Include Instance Name
+				first && meta,		// Include other meta data if meta set
+				first && meta,		// Include preloads if meta set
+				first && meta,		// Include Instance Name in first form if meta set
 				false,				// Survey duration
 				superUser,
 				false,				// HXL only include with XLS exports
@@ -491,7 +495,7 @@ public class QueryGenerator {
 				if(!wantThisOne) {
 					continue;
 				}
-			} else if(name.equals("prikey") && (!first)) {	// Only return the primary key of the top level form
+			} else if(name.equals("prikey") && (!first || !meta)) {	// Only return the primary key of the top level form
 				continue;
 			}
 			
@@ -647,7 +651,8 @@ public class QueryGenerator {
 						superUser,
 						form.childForms.get(i),
 						tables,
-						false
+						false,
+						meta
 						);
 			}
 		}

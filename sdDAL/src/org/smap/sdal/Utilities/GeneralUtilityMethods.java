@@ -2760,6 +2760,21 @@ public class GeneralUtilityMethods {
 			c.type = "";
 			columnList.add(c);
 		}
+		
+		// Add preloads that have been specified in the survey
+		if (includePreloads) {
+			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+			for(MetaItem mi : preloads) {
+				if(mi.isPreload) {
+					c = new TableColumn();
+					c.name = mi.columnName;
+					c.humanName = mi.name;
+					c.type = "";
+					columnList.add(c);
+				}
+			}
+
+		}
 
 		try {
 			pstmtQuestions.setInt(1, f_id);
@@ -5438,6 +5453,38 @@ public class GeneralUtilityMethods {
 		
 		return item;
 		
+	}
+	
+	/*
+	 * Get preloads in a survey
+	 */
+	public static ArrayList<MetaItem> getPreloads(Connection sd, int sId) throws SQLException {
+		ArrayList<MetaItem> preloads = null;
+		
+		String sql = "select meta from survey where s_id = ?;";
+		PreparedStatement pstmt = null;
+		
+		String metaString = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				 metaString = rs.getString(1);
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		if(metaString != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			preloads = gson.fromJson(metaString, new TypeToken<ArrayList<MetaItem>>() {}.getType());
+		} else {
+			preloads = new ArrayList <>();
+		}
+		
+		return preloads;
 	}
 	
 }

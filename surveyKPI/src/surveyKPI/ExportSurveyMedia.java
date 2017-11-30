@@ -227,7 +227,8 @@ public class ExportSurveyMedia extends Application {
 						dateId,
 						superUser,
 						startingForm,
-						filter);
+						filter,
+						true);
 				
 				/*
 				 * 1. Create the target folder
