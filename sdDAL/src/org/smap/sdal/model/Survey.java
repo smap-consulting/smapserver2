@@ -564,12 +564,23 @@ public class Survey {
 				q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
 			}
 			
-			String transId = f_id + "_question_" + q.columnName;
-			String labelId = transId + ":label";
+			// label reference
+			String transId = null;
+			String labelId = null;
+			for(Label l : q.labels) {
+				if(l.hasLabels()) {
+					transId = f_id + "_question_" + q.columnName;
+					labelId = transId + ":label";
+					break;
+				}
+			}			 
+			
+			// Hint reference
 			String infotextId = null;
 			for(Label l : q.labels) {
 				if(l.hint != null && l.hint.trim().length() > 0) {
 					infotextId = transId + ":hint";
+					break;
 				}
 			}	
 			
@@ -584,6 +595,8 @@ public class Survey {
 			String name = q.name;
 			if(q.type.equals("end group")) {
 				name += "_groupEnd";
+				infotextId = null;
+				transId = null;
 			} 
 			
 			/*
