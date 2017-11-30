@@ -37,8 +37,8 @@ import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.SqlDesc;
 
 /*
- * Various types of export related to a survey
- *    
+ * Export location and trail data as:
+ *    a) shape file
  */
 @Path("/exportSurveyLocation/{sId}/{filename}")
 public class ExportSurveyLocation extends Application {
@@ -51,10 +51,6 @@ public class ExportSurveyLocation extends Application {
 	LogManager lm = new LogManager();		// Application log
 	
 	
-	/*
-	 * Export location and trail data as:
-	 *    a) shape file
-	 */
 	@GET
 	@Produces("application/x-download")
 	public Response exportShape (@Context HttpServletRequest request, 

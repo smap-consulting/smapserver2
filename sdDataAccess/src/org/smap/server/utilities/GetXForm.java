@@ -542,6 +542,7 @@ public class GetXForm {
 				instanceId.setAttribute("calculate", "concat('uuid:', uuid())");
 				currentParent.appendChild(instanceId);
 				
+				
 				if(preloads != null) {
 					for(MetaItem mi : preloads) {
 						if(mi.isPreload) {

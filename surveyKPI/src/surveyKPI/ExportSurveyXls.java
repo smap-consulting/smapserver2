@@ -67,7 +67,6 @@ public class ExportSurveyXls extends Application {
 	Workbook wb = null;
 	
 	@GET
-	//@Produces("application/x-download")
 	public Response exportSurvey (@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("filename") String filename,

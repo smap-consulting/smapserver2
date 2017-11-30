@@ -589,6 +589,7 @@ public class XLSTemplateUploadManager {
 			lab.image = XLSUtilities.getTextColumn(row, "image", surveyHeader, lastCellNum);
 			lab.video = XLSUtilities.getTextColumn(row, "video", surveyHeader, lastCellNum);
 			lab.audio = XLSUtilities.getTextColumn(row, "audio", surveyHeader, lastCellNum);
+			
 			labels.add(lab);
 		} else {
 			for(int i = 0; i < survey.languages.size(); i++) {
@@ -633,8 +634,11 @@ public class XLSTemplateUploadManager {
 		boolean visible = true;
 		if(type.equals("calculate")) {
 			visible = false;
+		} else if(type.equals("end group")) {
+			visible = false;
+		} else if(GeneralUtilityMethods.getPreloadItem(type, "x") != null) {
+			visible = false;
 		}
-		// TODO preloads
 
 		return visible;
 	}
