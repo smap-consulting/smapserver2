@@ -296,21 +296,18 @@ public class XLSTemplateUploadManager {
 				surveyHeader = XLSUtilities.getHeader(row);
 
 				// Add languages in order they exist in the header hence won't use keyset of surveyHeader
-				int lastCellNum = row.getLastCellNum();				
-				int idx = 0;				
+				int lastCellNum = row.getLastCellNum();							
 				for(int i = 0; i <= lastCellNum; i++) {
 					Cell cell = row.getCell(i);
 					if(cell != null) {
 						String name = cell.getStringCellValue();
-						if(name.startsWith("label::") || name.startsWith("hint::") 
-								|| name.startsWith("image::") || name.startsWith("video::") 
-								|| name.startsWith("audio::")) {
+						if(name.startsWith("label::")) {	 // Only check the question label for languages, any others will be assumed to be errors
 							String [] sArray = name.split("::");
 							if(sArray.length > 0) {
 								String exists = langMap.get(sArray[1]);
 								if(exists == null) {
 									langMap.put(sArray[1], sArray[1]);
-									survey.languages.add(new Language(idx++, sArray[1]));
+									survey.languages.add(new Language(0, sArray[1]));
 								}
 							}
 						}
@@ -335,7 +332,7 @@ public class XLSTemplateUploadManager {
 			}
 		}
 
-		// Get choice sheet headeer
+		// Get choice sheet header
 		if(choicesSheet != null) {
 			while(rowNumChoices <= lastRowNumChoices) {
 				Row row = choicesSheet.getRow(rowNumChoices++);
@@ -361,6 +358,7 @@ public class XLSTemplateUploadManager {
 					}
 	
 					// Add languages in order they exist in the header hence won't use keyset of surveyHeader
+					/*
 					int lastCellNum = row.getLastCellNum();				
 					int idx = 0;				
 					for(int i = 0; i <= lastCellNum; i++) {
@@ -381,6 +379,7 @@ public class XLSTemplateUploadManager {
 							}
 						}
 					}
+					*/
 					break;
 				}
 			}
@@ -514,6 +513,7 @@ public class XLSTemplateUploadManager {
 		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum); 
 		
 		// 11. Parameters TODO
+		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum);
 		
 		// 12. autoplay TODO
 		
@@ -862,6 +862,8 @@ public class XLSTemplateUploadManager {
 			out = "acknowledge";
 		} else if (type.equals("graph")) {
 			out = "graph";
+		} else if (type.equals("range")) {
+			out = "range";
 		} else if (type.equals("begin repeat")) {
 			out = "begin repeat";
 		} else if (type.equals("end repeat")) {

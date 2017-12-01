@@ -196,7 +196,7 @@ public class Survey {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
 			writeSurvey(sd, gson);
-			writeLanguages(sd);
+			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
 			writeForms(sd);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
@@ -275,13 +275,6 @@ public class Survey {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
-	}
-	
-	/*
-	 * Write to the languages table
-	 */
-	private void writeLanguages(Connection sd) throws SQLException {
-		GeneralUtilityMethods.setLanguages(sd, id, languages);
 	}
 	
 	/*
