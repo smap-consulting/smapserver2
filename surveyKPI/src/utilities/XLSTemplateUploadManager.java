@@ -267,7 +267,7 @@ public class XLSTemplateUploadManager {
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
 		o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
-		for(String key :choiceFilterHeader.keySet()) {
+		for(String key : choiceFilterHeader.keySet()) {
 			String value = XLSUtilities.getTextColumn(row, key, choicesHeader, lastCellNum);
 			if (value != null) {
 				o.cascade_filters.put(key, value);
@@ -516,8 +516,10 @@ public class XLSTemplateUploadManager {
 		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum);
 		
 		// 12. autoplay TODO
+		q.autoplay = XLSUtilities.getTextColumn(row, "autoplay", surveyHeader, lastCellNum);
 		
-		// 13. body::accuracyThreshold TODO
+		// 13. body::accuracyThreshold
+		q.accuracy = XLSUtilities.getTextColumn(row, "body::accuracyThreshold", surveyHeader, lastCellNum);
 		
 		// 14. Required
 		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum);		
@@ -579,27 +581,39 @@ public class XLSTemplateUploadManager {
 		return q;
 	}
 
+	/*
+	 * For media try under the default column heading if the language specific is null
+	 */
 	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels) throws ApplicationException {
 
 		// Get the label language values
 		if(useDefaultLanguage) {
 			Label lab = new Label();
-			lab.text = XLSUtilities.getTextColumn(row, "label", surveyHeader, lastCellNum);
-			lab.hint = XLSUtilities.getTextColumn(row, "hint", surveyHeader, lastCellNum);
-			lab.image = XLSUtilities.getTextColumn(row, "image", surveyHeader, lastCellNum);
-			lab.video = XLSUtilities.getTextColumn(row, "video", surveyHeader, lastCellNum);
-			lab.audio = XLSUtilities.getTextColumn(row, "audio", surveyHeader, lastCellNum);
+			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum);
+			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum);
+			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum);
+			lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum);
+			lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum);
 			
 			labels.add(lab);
 		} else {
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
 				Label lab = new Label();
-				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, surveyHeader, lastCellNum);
-				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, surveyHeader, lastCellNum);
-				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, surveyHeader, lastCellNum);
-				lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, surveyHeader, lastCellNum);
-				lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, surveyHeader, lastCellNum);
+				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum);
+				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum);
+				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, header, lastCellNum);
+				if(lab.image == null) {
+					lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum);
+				}
+				lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, header, lastCellNum);
+				if(lab.video == null) {
+					lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum);
+				}
+				lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, header, lastCellNum);
+				if(lab.audio == null) {
+					lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum);
+				}
 				labels.add(lab);
 			}
 		}

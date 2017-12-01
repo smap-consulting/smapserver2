@@ -580,6 +580,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 
 		// Add media columns (Do this as the last columns since these columns are less used
+		// TODO only do this if there are media associated with choices
 		labelIndex = 0;
 		for(Language language : survey.languages) {
 			cols.add(new Column(colNumber++, "image::" + language.name, Column.COL_IMAGE, 0, "image"));
