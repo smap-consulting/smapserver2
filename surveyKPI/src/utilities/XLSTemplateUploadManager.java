@@ -125,7 +125,7 @@ public class XLSTemplateUploadManager {
 		survey.loadedFromXLS = true;
 		survey.deleted = false;
 		survey.blocked = false;
-		survey.meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false));
+		survey.meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false, null));
 
 		surveySheet = wb.getSheet("survey");
 		choicesSheet = wb.getSheet("choices");
@@ -233,13 +233,13 @@ public class XLSTemplateUploadManager {
 		 * Add default preloads
 		 */
 		if(!hasMeta("start")) {
-			survey.meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true));
+			survey.meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true, "start"));
 		}
 		if(!hasMeta("end")) {
-			survey.meta.add(new MetaItem("dateTime", "_end", "end", "_end", "timestamp", true));
+			survey.meta.add(new MetaItem("dateTime", "_end", "end", "_end", "timestamp", true, "end"));
 		}
 		if(!hasMeta("deviceid")) {
-			survey.meta.add(new MetaItem("string", "_device", "deviceid", "_device", "property", true));
+			survey.meta.add(new MetaItem("string", "_device", "deviceid", "_device", "property", true, "device"));
 		}
 		
 		validateSurvey();	// 4. Final Validation
@@ -435,7 +435,7 @@ public class XLSTemplateUploadManager {
 			if(row != null) {
 				Question q = getQuestion(row, thisFormIndex, f.questions.size());				
 				if(q != null) {
-					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name);
+					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name);
 					if(item != null) {
 						survey.meta.add(item);
 					} else {
@@ -472,6 +472,7 @@ public class XLSTemplateUploadManager {
 		
 		// 2. Question name
 		q.name = XLSUtilities.getTextColumn(row, "name", surveyHeader, lastCellNum);  
+		System.out.println("|" + q.name + "|");
 		if(type == null && q.name != null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
 		} else if(type == null && q.name == null) {
@@ -530,6 +531,9 @@ public class XLSTemplateUploadManager {
 		// 16. Calculation
 		q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum); 
 		
+		// 17. Display Name
+		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum); 
+		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
 			for(String h : columnRoleHeader.keySet()) {
@@ -577,7 +581,6 @@ public class XLSTemplateUploadManager {
 		// 2. Visibility
 		q.visible = convertVisible(type);
 
-		// 3. Column Name
 		return q;
 	}
 
@@ -650,7 +653,7 @@ public class XLSTemplateUploadManager {
 			visible = false;
 		} else if(type.equals("end group")) {
 			visible = false;
-		} else if(GeneralUtilityMethods.getPreloadItem(type, "x") != null) {
+		} else if(GeneralUtilityMethods.getPreloadItem(type, "", "") != null) {
 			visible = false;
 		}
 

@@ -256,7 +256,8 @@ public class XLSUtilities {
 			if(c != null) {
 				value = getCellValue(c);
 				if(value != null) {
-					if(value.trim().length() == 0) {
+					value = value.trim();  	// Remove trailing whitespace, its not visible to users
+					if(value.length() == 0) {
 						value = null;
 					}
 				}
