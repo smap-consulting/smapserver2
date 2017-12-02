@@ -141,7 +141,8 @@ public class UtilityMethods {
 			boolean forLabel,
 			HashMap<String, String> questionPaths,
 			int f_id,
-			boolean webform) throws Exception {
+			boolean webform,
+			String calledForQuestion) throws Exception {
 		
 		if(input == null) {
 			return input;
@@ -193,7 +194,8 @@ public class UtilityMethods {
 				}
 				
 				if(qPath == null) {
-					throw new Exception("Question path not found for question: " + qname);
+					throw new Exception("Question path not found for question: " + qname + " in " + input + 
+							" of " + calledForQuestion);
 				}
 			}
 			output.append(qPath);
@@ -261,7 +263,7 @@ public class UtilityMethods {
 		}		
 		
 		if(convertToXPath) {
-			v = convertAllxlsNames(v, false, questionPaths, f_id, false);
+			v = convertAllxlsNames(v, false, questionPaths, f_id, false, "unknown");
 		} else if(convertToXLSName) {
 			v = GeneralUtilityMethods.convertAllXpathNames(v, true);
 		}

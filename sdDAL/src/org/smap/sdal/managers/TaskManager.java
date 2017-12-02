@@ -520,7 +520,7 @@ public class TaskManager {
 				boolean fires = false;
 				String rule = null;
 
-				if(as.update_results && as.source_survey_id != as.target_survey_id) {
+				if(as.add_future  && as.source_survey_id != as.target_survey_id) {
 					if(as.filter != null) {
 						rule = testRule();		// TODO
 						if(rule != null) {

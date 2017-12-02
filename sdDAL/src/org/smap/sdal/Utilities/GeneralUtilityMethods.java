@@ -5303,13 +5303,13 @@ public class GeneralUtilityMethods {
 				boolean charInList = false;
 				for(int j = 0; j < cArray.length; j++) {
 					if(in.charAt(i) == cArray[j]) {
-						if(i < in.length() && in.charAt(i+1) == '=' && (in.charAt(i) == '<' || in.charAt(i) == '>')) {
+						if((i < in.length() - 1) && in.charAt(i+1) == '=' && (in.charAt(i) == '<' || in.charAt(i) == '>')) {
 							charInList = false;
 						} else if(i > 0 && in.charAt(i) == '=' && (in.charAt(i-1) == '<' || in.charAt(i-1) == '>')) {
 							charInList = false;
 						} else if(i > 0 && in.charAt(i) == '=' && in.charAt(i-1) == '!' ) {
 							charInList = false;
-						} else if(i < in.length() && in.charAt(i) == '(' && in.charAt(i+1) == ')') {
+						} else if(i < in.length() - 1 && in.charAt(i) == '(' && in.charAt(i+1) == ')') {
 							charInList = false;
 						} else if(i > 0 && in.charAt(i) == ')' && in.charAt(i-1) == '(' ) {
 							charInList = false;

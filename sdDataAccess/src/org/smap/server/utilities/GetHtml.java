@@ -494,7 +494,7 @@ public class GetHtml {
 				}
 
 				calculationInput.setAttribute("data-calculate",
-						" " + UtilityMethods.convertAllxlsNames(calculation, false, paths, form.id, true) + " ");
+						" " + UtilityMethods.convertAllxlsNames(calculation, false, paths, form.id, true, q.name) + " ");
 
 				calculationInput.setAttribute("data-type-xml", "string"); // Always use string for calculate
 				calculationLabel.appendChild(calculationInput);
@@ -676,13 +676,13 @@ public class GetHtml {
 		// constraint
 		if (q.constraint != null && q.constraint.trim().length() > 0) {
 			bodyElement.setAttribute("data-constraint",
-					UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true));
+					UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name));
 		}
 
 		// relevant
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			bodyElement.setAttribute("data-relevant",
-					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true));
+					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 		}
 
 		parent.appendChild(bodyElement);
@@ -712,7 +712,7 @@ public class GetHtml {
 			inputElement.setAttribute("value", "");
 			if (q.relevant != null && q.relevant.trim().length() > 0) {
 				inputElement.setAttribute("data-relevant",
-						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true));
+						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 			}
 			if(q.required) {
 				inputElement.setAttribute("data-required", "true()");
@@ -772,7 +772,7 @@ public class GetHtml {
 
 				String label = o.labels.get(idx).text;
 				try {
-					label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true);
+					label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -797,7 +797,7 @@ public class GetHtml {
 
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			groupElement.setAttribute("data-relevant",
-					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true));
+					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 		}
 
 		groupElement.setAttribute("name", paths.get(getRefName(q.name, form)));
@@ -851,7 +851,7 @@ public class GetHtml {
 
 			String label = q.labels.get(idx).text;
 			try {
-				label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true);
+				label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name);
 				label = convertMarkdown(label);
 
 			} catch (Exception e) {
@@ -869,7 +869,7 @@ public class GetHtml {
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
 				try {
-					label = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true);
+					label = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1164,7 +1164,7 @@ public class GetHtml {
 			parent.appendChild(bodyElement);
 			bodyElement.setAttribute("value", o.value);
 			String label = UtilityMethods.convertAllxlsNames(o.labels.get(languageIndex).text, true, paths, form.id,
-					true);
+					true, o.value);
 			bodyElement.setTextContent(label);
 		}
 
@@ -1181,7 +1181,7 @@ public class GetHtml {
 				parent.appendChild(bodyElement);
 				bodyElement.setAttribute("lang", lang.name);
 				bodyElement.setAttribute("data-option-value", o.value);
-				String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true);
+				String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value);
 				bodyElement.setTextContent(label);
 
 				idx++;

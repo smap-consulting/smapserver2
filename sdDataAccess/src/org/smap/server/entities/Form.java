@@ -147,7 +147,7 @@ public class Form implements Serializable {
 		String v = repeats;
 		
 		if(convertToXPath) {
-			v = UtilityMethods.convertAllxlsNames(v, false, questionPaths, f_id, false);
+			v = UtilityMethods.convertAllxlsNames(v, false, questionPaths, f_id, false, name);
 		} else {		// default to xls names ${...}
 			v = GeneralUtilityMethods.convertAllXpathNames(v, true);
 		}

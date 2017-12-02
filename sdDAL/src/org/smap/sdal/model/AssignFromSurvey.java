@@ -12,6 +12,8 @@ public class AssignFromSurvey {
 	public int target_survey_id;
 	public int task_group_id;
 	public boolean update_results;
+	public boolean add_future;
+	public boolean add_current;
 	public NewTasks new_tasks;			// Set if tasks created on the client are to be set
 	public ArrayList<TaskAddressSettings> address_columns;
 	public SqlWhereClause filter;

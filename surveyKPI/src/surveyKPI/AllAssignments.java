@@ -335,8 +335,6 @@ public class AllAssignments extends Application {
 		log.info("++++++++++++++++++++++++++++++++++++++ Assignment:" + settings);
 		AssignFromSurvey as = new Gson().fromJson(settings, AssignFromSurvey.class);
 
-		log.info("User id: " + as.user_id);
-
 		String userName = request.getRemoteUser();
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
@@ -366,8 +364,6 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtTaskGroup = null;
 		PreparedStatement pstmtGetSurveyIdent = null;
 		PreparedStatement pstmtUniqueTg = null;
-		
-		SqlFrag frag = null;
 
 		try {
 			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
@@ -383,8 +379,7 @@ public class AllAssignments extends Application {
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
-					null, false, false, false, false, false, "real", false, superUser, 0, "geojson");
-			
+					null, false, false, false, false, false, "real", false, superUser, 0, "geojson");	
 			
 			/*
 			 * Create the task group if an existing task group was not specified
@@ -443,7 +438,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the tasks unless no tasks have been specified
 			 */
-			if(as.target_survey_id > 0) {
+			if(as.target_survey_id > 0 && as.add_current) {
 				String sql = null;
 				ResultSet resultSet = null;
 				String insertSql1 = "insert into tasks (" +
