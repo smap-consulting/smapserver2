@@ -96,7 +96,7 @@ public class CreateXLSForm extends Application {
 			// Get the survey details
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), 
 					sId, true, basePath, null, false, false, true, 
-					false, false, "internal", false, superUser, 0, null);
+					false, false, "internal", false, true, superUser, 0, null);
 			
 			// Set file name
 			GeneralUtilityMethods.setFilenameInResponse(survey.displayName + "." + filetype, response);
@@ -105,9 +105,6 @@ public class CreateXLSForm extends Application {
 			XLSFormManager xf = new XLSFormManager(filetype);
 			xf.createXLSForm(response.getOutputStream(), survey);
 			
-		}  catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			
 			SDDataSource.closeConnection("createXLSForm", connectionSD);		

@@ -379,7 +379,7 @@ public class AllAssignments extends Application {
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
-					null, false, false, false, false, false, "real", false, superUser, 0, "geojson");	
+					null, false, false, false, false, false, "real", false, false, superUser, 0, "geojson");	
 			
 			/*
 			 * Create the task group if an existing task group was not specified

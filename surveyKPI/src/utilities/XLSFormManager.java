@@ -44,6 +44,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Location;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
@@ -79,6 +80,7 @@ public class XLSFormManager {
 		public static final int COL_AUTOPLAY = 17;
 		public static final int COL_ACCURACY = 18;
 		public static final int COL_PARAMETERS = 19;
+		public static final int COL_ROLE = 19;
 
 		public static final int COL_LIST_NAME = 100;
 		public static final int COL_CHOICE_NAME = 101;
@@ -153,8 +155,17 @@ public class XLSFormManager {
 					value = q.type;		// Everything else
 				}
 
-			} else if(type == COL_NAME) {				
-				value = q.name;		
+			} else if(type == COL_NAME) {	
+				if(q.type.equals("end group")) {
+					if(q.name != null) {
+						int idx = q.name.indexOf("_groupEnd");
+						if(idx >= 0) {
+							value = q.name.substring(0, idx);
+						}
+					}
+				} else {
+					value = q.name;	
+				}
 
 			} else if(type == COL_LABEL) {
 				if(q.type.equals("calculate")) {
@@ -314,7 +325,7 @@ public class XLSFormManager {
 	 */
 	public void createXLSForm(OutputStream outputStream, Survey survey) throws IOException {
 
-		survey = this.survey;
+		this.survey = survey;
 		
 		Sheet surveySheet = wb.createSheet("survey");
 		Sheet choicesSheet = wb.createSheet("choices");
@@ -393,6 +404,29 @@ public class XLSFormManager {
 		ArrayList<Question> questions = form.questions;
 		boolean inMeta = false;
 
+		/*
+		 * Add preload questions
+		 */
+		if(form.parentform == 0 && survey.meta != null) {
+			Column typeCol = colsSurvey.get(namedColumnIndexes.get("type"));
+			Column nameCol = colsSurvey.get(namedColumnIndexes.get("name"));
+			
+			Row row = surveySheet.createRow(rowNumberSurvey++);		// blank row
+			for(MetaItem mi : survey.meta) {
+				if(mi.isPreload) {
+					row = surveySheet.createRow(rowNumberSurvey++);
+							
+					Cell cell = row.createCell(typeCol.colNumber);
+					cell.setCellValue(mi.sourceParam);
+					
+					cell = row.createCell(nameCol.colNumber);
+					cell.setCellValue(mi.name);
+				}
+
+			}
+			row = surveySheet.createRow(rowNumberSurvey++);		// blank row
+		}
+		
 		for(Question q : questions)  {
 
 			if(q.name.equals("meta")) {
@@ -550,7 +584,10 @@ public class XLSFormManager {
 		int colNumber = 0;
 		// Add type and name columns
 		cols.add(new Column(colNumber++, "type", Column.COL_TYPE, 0, "type"));
+		namedColumnIndexes.put("type", new Integer(colNumber -1));
+		
 		cols.add(new Column(colNumber++, "name", Column.COL_NAME, 0, "name"));
+		namedColumnIndexes.put("name", new Integer(colNumber -1));
 
 		// Add label columns which vary according to the number of languages
 		int labelIndex = 0;
@@ -579,6 +616,12 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++,"required_message", Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 
+		// Add role columns
+		for(String role : survey.roles.keySet()) {
+			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE, 0, "role"));
+			labelIndex++;
+		}
+		
 		// Add media columns (Do this as the last columns since these columns are less used
 		// TODO only do this if there are media associated with choices
 		labelIndex = 0;

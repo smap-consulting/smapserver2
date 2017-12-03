@@ -73,7 +73,7 @@ public class GetHtml {
 		try {
 
 			survey = sm.getById(sd, null, userIdent, sId, true, basePath, null, false, false, true, false,
-					false, "real", false, superUser, 0, null);
+					false, "real", false, false, superUser, 0, null);
 
 			if(survey == null) {
 				throw new Exception("Survey not available - Check to see if it has been deleted or Security Roles applied");

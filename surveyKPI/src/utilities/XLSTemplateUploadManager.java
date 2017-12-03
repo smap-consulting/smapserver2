@@ -88,12 +88,7 @@ public class XLSTemplateUploadManager {
 	Survey survey = null;
 	ResourceBundle localisation = null;
 
-	public XLSTemplateUploadManager(String type) {
-		if(type != null && type.equals("xls")) {
-			wb = new HSSFWorkbook();
-		} else {
-			wb = new XSSFWorkbook();
-		}
+	public XLSTemplateUploadManager() {
 	}
 
 	/*
@@ -108,7 +103,6 @@ public class XLSTemplateUploadManager {
 			int p_id) throws Exception {
 
 		this.localisation = localisation;
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
@@ -437,6 +431,7 @@ public class XLSTemplateUploadManager {
 				if(q != null) {
 					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name);
 					if(item != null) {
+						validateQuestion(q, rowNumSurvey);
 						survey.meta.add(item);
 					} else {
 						if(q.type.equals("end repeat")) {

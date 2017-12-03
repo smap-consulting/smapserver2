@@ -540,7 +540,7 @@ public class UploadFiles extends Application {
 			if(sm.surveyExists(sd, displayName, projectId)) {
 				throw new ApplicationException("Survey " + displayName + " already exists in this project");
 			} else if(type.equals("xls") || type.equals("xlsx")) {
-				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(type);
+				XLSTemplateUploadManager tum = new XLSTemplateUploadManager();
 				Survey s = tum.getSurvey(sd, 
 						oId, 
 						type, 

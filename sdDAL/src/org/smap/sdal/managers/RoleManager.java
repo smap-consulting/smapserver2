@@ -249,13 +249,6 @@ public class RoleManager {
 				role.name = resultSet.getString("name");
 				role.enabled = resultSet.getBoolean("enabled");
 				role.row_filter = resultSet.getString("row_filter");
-				//String sqlFragString = resultSet.getString("row_filter");
-				//if(sqlFragString != null) {
-				//	SqlFrag sq = gson.fromJson(sqlFragString, SqlFrag.class);
-				//	if(sq.expression != null) {
-				//		role.row_filter = sq.expression.toString();
-				//	}
-				//}
 				
 				String colFilter = resultSet.getString("column_filter");
 				if(colFilter != null) {

@@ -55,6 +55,7 @@ import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
 
@@ -282,6 +283,7 @@ public class SurveyManager {
 			boolean getHrk,						// Set to true to return HRK as a question if it exists in the survey
 			String getExternalOptions,			// external || internal || real (get external if they exist else get internal)
 			boolean getChangeHistory,	
+			boolean getRoles,					// Only applies if "full" has been specified
 			boolean superUser,
 			int utcOffset,
 			String geomFormat
@@ -371,7 +373,8 @@ public class SurveyManager {
 				populateSurvey(sd, cResults, s, basePath, user, getPropertyTypeQuestions, getExternalOptions, 
 						getSoftDeleted,
 						getHrk,
-						getChangeHistory);			// Add forms, questions, options
+						getChangeHistory,
+						getRoles);			// Add forms, questions, options
 
 				if(getResults) {								// Add results
 
@@ -708,7 +711,8 @@ public class SurveyManager {
 			String getExternalOptions,
 			boolean getSoftDeleted,
 			boolean getHrk,
-			boolean getChangeHistory) throws Exception {
+			boolean getChangeHistory,
+			boolean getRoles) throws Exception {
 
 		/*
 		 * Prepared Statements
@@ -1131,6 +1135,15 @@ public class SurveyManager {
 				ls.id = linkedId;
 				ls.name = rsGetLinkable.getString(2);
 				s.linkedSurveys.add(ls);
+			}
+		}
+		
+		// Get the roles
+		if(getRoles) {
+			RoleManager rm = new RoleManager();
+			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.id, oId, true);	// Get enabled roles
+			for(Role r : roles) {
+				s.roles.put(r.name, r);
 			}
 		}
 
