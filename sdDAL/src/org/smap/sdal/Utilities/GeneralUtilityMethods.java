@@ -39,6 +39,8 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChoiceList;
+import org.smap.sdal.model.ColDesc;
+import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
@@ -2837,6 +2839,8 @@ public class GeneralUtilityMethods {
 					ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
 
 					HashMap<String, String> uniqueColumns = new HashMap<String, String>();
+					int multIdx = 0;
+					TableColumn firstOption = null;
 					while (rsMultiples.next()) {
 						String uk = question_column_name + "xx" + rsMultiples.getString(2); // Column name can be
 						// randomised so don't use
@@ -2846,8 +2850,11 @@ public class GeneralUtilityMethods {
 							uniqueColumns.put(uk, uk);
 
 							c = new TableColumn();
-							c.name = question_column_name + "__" + rsMultiples.getString(1);
-							c.humanName = question_human_name + " - " + rsMultiples.getString(2);
+						
+							String optionName = rsMultiples.getString(1);
+							String optionLabel = rsMultiples.getString(2);
+							c.name = question_column_name + "__" + optionName;
+							c.humanName = question_human_name + " - " + optionLabel;
 							c.option_name = rsMultiples.getString(2);
 							c.question_name = question_human_name;
 							c.l_id = l_id;
@@ -2857,6 +2864,15 @@ public class GeneralUtilityMethods {
 							if (hxlCode != null) {
 								c.hxlCode = hxlCode + "+label";
 							}
+							
+							// Add options to first column of select multiple
+							if(multIdx == 0) {
+								firstOption = c;
+								firstOption.choices = new ArrayList<KeyValue> ();
+							}
+							multIdx++;
+							firstOption.choices.add(new KeyValue(optionName, optionLabel));
+							
 							realQuestions.add(c);
 						}
 					}
@@ -5485,6 +5501,48 @@ public class GeneralUtilityMethods {
 		}
 		
 		return preloads;
+	}
+	
+	/*
+	 * Get Column Values from a result set created using ColDesc
+	 */
+	public static int getColValues(ResultSet rs, ColValues values, int dataColumn, 
+			ArrayList<ColDesc> columns, boolean merge_select_multiple) throws SQLException {
+		
+		ColDesc item = columns.get(dataColumn);
+		StringBuffer selMulValue = new StringBuffer("");
+		
+		if(merge_select_multiple && item.qType.equals("select") && item.choices != null) {
+			if(rs != null) {
+				for(KeyValue choice : item.choices) {
+					int smv = rs.getInt(dataColumn + 1);
+					if(smv == 1) {
+						if(selMulValue.length() > 0) {
+							selMulValue.append(" ");
+						}
+						selMulValue.append(choice.k);
+					}
+					dataColumn++;
+				}
+			} else {
+				// Jump over data columns 
+				dataColumn += item.choices.size();
+			}
+			
+			values.name = item.question_name;
+			values.label = item.question_name;
+			values.value = selMulValue.toString();
+			
+		} else {
+			values.name = item.name;
+			values.label = item.question_name;
+			if(rs != null) {
+				values.value = rs.getString(dataColumn + 1);
+			}
+			dataColumn++;
+		}
+
+		return dataColumn;
 	}
 	
 }

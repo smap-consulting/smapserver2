@@ -555,11 +555,11 @@ public class QueryGenerator {
 				if(sqlDesc.geometry_type != null && type.equals("geometry") && (format.equals("vrt") || format.equals("csv") || format.equals("stata") || format.equals("thingsat"))) {
 					if(sqlDesc.geometry_type.equals("wkbPoint") && (format.equals("csv") || format.equals("stata") || format.equals("spss")) ) {		// Split location into Lon, Lat
 						colBuf.append("ST_Y(" + form.table + "." + name + ") as lat, ST_X(" + form.table + "." + name + ") as lon");
-						sqlDesc.colNames.add(new ColDesc("lat", type, qType, label, null, false));
-						sqlDesc.colNames.add(new ColDesc("lon", type, qType, label, null, false));
+						sqlDesc.colNames.add(new ColDesc("lat", type, qType, label, null, false, col.question_name, null));
+						sqlDesc.colNames.add(new ColDesc("lon", type, qType, label, null, false, col.question_name, null));
 					} else {																								// Use well known text
 						colBuf.append("ST_AsText(" + form.table + "." + name + ") as the_geom");
-						sqlDesc.colNames.add(new ColDesc("the_geom", type, qType, label, null, false));
+						sqlDesc.colNames.add(new ColDesc("the_geom", type, qType, label, null, false, col.question_name, null));
 					}
 				} else {
 				
@@ -598,7 +598,9 @@ public class QueryGenerator {
 						colBuf.append(form.surveyLevel);	// Differentiate questions from different surveys
 					}
 					
-					sqlDesc.colNames.add(new ColDesc(name, type, qType, label, optionListLabels, needsReplace));
+					sqlDesc.colNames.add(new ColDesc(name, type, qType, label, 
+							optionListLabels, needsReplace, col.question_name,
+							col.choices));
 					sqlDesc.names.add(col.name);
 				}
 				

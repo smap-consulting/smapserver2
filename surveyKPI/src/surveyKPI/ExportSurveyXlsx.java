@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.ColDesc;
+import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
@@ -192,7 +193,6 @@ public class ExportSurveyXlsx extends Application {
 				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 				Workbook wb = null;
 				int rowNumber = 0;
-				int colNumber = 0;
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Sheet dataSheet = wb.createSheet("data");
 				
@@ -203,12 +203,22 @@ public class ExportSurveyXlsx extends Application {
 				 * Write Question Name Header
 				 */
 				Row headerRow = dataSheet.createRow(rowNumber++);				
-				colNumber = 0;
-				for(ColDesc item : sqlDesc.colNames) {
+				int colNumber = 0;
+				int dataColumn = 0;
+				while(dataColumn < sqlDesc.colNames.size()) {
+					ColValues values = new ColValues();
+					dataColumn = GeneralUtilityMethods.getColValues(
+							null, 
+							values, 
+							dataColumn,
+							sqlDesc.colNames, 
+							merge_select_multiple);	
+		
 					Cell cell = headerRow.createCell(colNumber++);
 					cell.setCellStyle(headerStyle);
-					cell.setCellValue(item.name);
+					cell.setCellValue(values.name);
 				}
+			
 				
 				/*
 				 * Write each row of data
@@ -216,13 +226,24 @@ public class ExportSurveyXlsx extends Application {
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
 				ResultSet rs = pstmt.executeQuery();
 				while(rs.next()) {
+					
 					Row dataRow = dataSheet.createRow(rowNumber++);	
+					
 					colNumber = 0;
-					for(ColDesc item : sqlDesc.colNames) {
-						Cell cell = dataRow.createCell(colNumber);
-						cell.setCellValue(rs.getString(colNumber + 1));
-						colNumber++;
+					dataColumn = 0;
+					while(dataColumn < sqlDesc.colNames.size()) {
+						ColValues values = new ColValues();
+						dataColumn = GeneralUtilityMethods.getColValues(
+								rs, 
+								values, 
+								dataColumn,
+								sqlDesc.colNames, 
+								merge_select_multiple);						
+
+						Cell cell = dataRow.createCell(colNumber++);
+						cell.setCellValue(values.value);
 					}
+					
 				}
 				
 				OutputStream outputStream = response.getOutputStream();
@@ -230,11 +251,6 @@ public class ExportSurveyXlsx extends Application {
 				wb.close();
 				outputStream.close();
 				((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
-
-
-
-				
-
 
 
 			} catch (ApplicationException e) {
