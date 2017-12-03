@@ -19,11 +19,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+
 
 //import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 //import org.apache.poi.ss.usermodel.Workbook;
@@ -33,29 +30,18 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.ResourceBundle;
-
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.Language;
-import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
-import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
-import org.smap.sdal.model.TableColumnMarkup;
-import org.w3c.dom.Element;
 
 public class XLSFormManager {
 
@@ -80,7 +66,7 @@ public class XLSFormManager {
 		public static final int COL_AUTOPLAY = 17;
 		public static final int COL_ACCURACY = 18;
 		public static final int COL_PARAMETERS = 19;
-		public static final int COL_ROLE = 19;
+		public static final int COL_ROLE = 20;
 
 		public static final int COL_LIST_NAME = 100;
 		public static final int COL_CHOICE_NAME = 101;
@@ -243,6 +229,21 @@ public class XLSFormManager {
 
 			} else if(type == COL_AUDIO) {				
 				value = q.labels.get(labelIndex).audio;
+
+			} else if(type == COL_ROLE) {				
+				Role r = survey.roles.get(typeString);
+				if(r != null) {
+					ArrayList<RoleColumnFilter> colFilters = r.column_filter;
+					if(colFilters != null) {
+						for(RoleColumnFilter rcf : colFilters) {
+							if(rcf.id == q.id) {
+								value = "yes";
+								break;
+							}
+						}
+						
+					}
+				}
 
 			} else {
 				System.out.println("Unknown column type for survey: " + type);
@@ -618,8 +619,7 @@ public class XLSFormManager {
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
-			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE, 0, "role"));
-			labelIndex++;
+			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE, 0, role));
 		}
 		
 		// Add media columns (Do this as the last columns since these columns are less used
