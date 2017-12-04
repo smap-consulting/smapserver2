@@ -616,7 +616,7 @@ public class WebForm extends Application {
 		// Convert escaped XML into HTML
 		html = html.replaceAll("&gt;", ">");
 		html = html.replaceAll("&lt;", "<");
-		html = html.replaceAll("&quot;", "\"");
+		//html = html.replaceAll("&quot;", "\\\"");
 		
 		for (int i = 0; i < manifestList.size(); i++) {
 			log.info(manifestList.get(i).fileName + " : " + manifestList.get(i).url + " : "
