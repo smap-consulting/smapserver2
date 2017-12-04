@@ -88,8 +88,7 @@ public class ExternalFileManager {
 	/*
 	 * Create a linked file
 	 */
-	public boolean createLinkedFile(Connection sd, Connection cRel, int sId, // The survey that contains the manifest
-																				// item
+	public boolean createLinkedFile(Connection sd, Connection cRel, int sId, // The survey that contains the manifest item
 			String filename, String filepath, String userName) throws Exception {
 
 		ResultSet rs = null;
