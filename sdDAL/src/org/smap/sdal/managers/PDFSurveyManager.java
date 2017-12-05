@@ -173,6 +173,9 @@ public class PDFSurveyManager {
 		UserManager um = new UserManager();
 		int [] repIndexes = new int[20];		// Assume repeats don't go deeper than 20 levels
 
+		Document document = null;
+		PdfWriter writer = null;
+		
 		try {
 
 			// Get fonts and embed them
@@ -286,18 +289,12 @@ public class PDFSurveyManager {
 
 				/*
 				 * Create a PDF without the stationary
-				 */				
-
-				PdfWriter writer = null;
-
-				/*
 				 * If we need to add a letter head then create document in two passes, the second pass adds the letter head
 				 * Else just create the document directly in a single pass
 				 */
 				Parser parser = getXMLParser();
 
 				// Step 1 - Create the underlying document as a byte array
-				Document document = null;
 				if(landscape) {
 					document = new Document(PageSize.A4.rotate());
 				} else {
@@ -362,10 +359,8 @@ public class PDFSurveyManager {
 					}
 				}
 
-				document.close();
-
 			}
-
+			
 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
@@ -373,6 +368,9 @@ public class PDFSurveyManager {
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 
+		} finally {
+			if(document != null) try {document.close();} catch (Exception e) {};
+			if(writer != null) try {writer.close();} catch (Exception e) {};
 		}
 
 		return filename;
