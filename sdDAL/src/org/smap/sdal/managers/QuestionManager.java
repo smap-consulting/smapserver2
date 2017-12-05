@@ -745,101 +745,59 @@ public class QuestionManager {
 					seq = rs.getInt(1);
 					qType = rs.getString(2);
 					published = rs.getBoolean(3);
-				}
-
-				/*
-				 * If the question is a group question then get its members
-				 */
-				if(qType.equals("begin group") && getGroupContents) {
-					groupContents = getQuestionsInGroup(sd, q, false);
-				}
-
-				if(published && !force) {
-					/*
-					 * The question has got some data associated with it in a results table
-					 * It should only be soft deleted so that:
-					 *   The editor can prevent another question from being added with the same name
-					 *   The results data can be accessed if needed
-					 */
-					pstmtSoftDelete.setInt(1, q.fId);
-					pstmtSoftDelete.setString(2, q.name );
-					pstmtSoftDelete.setInt(3, sId );
-
-					log.info("Soft Delete question: " + pstmtSoftDelete.toString());
-					pstmtSoftDelete.executeUpdate();
-				} else {
-					// Properly delete the question
-
-					// Delete the labels
-					pstmtDelLabels.setInt(1, sId);
-					pstmtDelLabels.setString(2, q.name );
-					pstmtDelLabels.setInt(3, q.fId);
-					pstmtDelLabels.setInt(4, sId );
-
-					log.info("Delete question labels: " + pstmtDelLabels.toString());
-					pstmtDelLabels.executeUpdate();
-
-					// Delete the hints
-					pstmtDelHints.setInt(1, sId);
-					pstmtDelHints.setString(2, q.name );
-					pstmtDelHints.setInt(3, q.fId);
-					pstmtDelHints.setInt(4, sId );
-
-					log.info("Delete question hints: " + pstmtDelHints.toString());
-					pstmtDelHints.executeUpdate();
 
 					/*
-					 * Delete the question
+					 * If the question is a group question then get its members
 					 */
-					pstmt.setInt(1, q.fId);
-					pstmt.setString(2, q.name );
-					pstmt.setInt(3, sId );
+					if(qType.equals("begin group") && getGroupContents) {
+						groupContents = getQuestionsInGroup(sd, q, false);
+					}
 
-					log.info("Delete question: " + pstmt.toString());
-					pstmt.executeUpdate();
+					if(published && !force) {
+						/*
+						 * The question has got some data associated with it in a results table
+						 * It should only be soft deleted so that:
+						 *   The editor can prevent another question from being added with the same name
+						 *   The results data can be accessed if needed
+						 */
+						pstmtSoftDelete.setInt(1, q.fId);
+						pstmtSoftDelete.setString(2, q.name );
+						pstmtSoftDelete.setInt(3, sId );
 
-					// Update the sequences of questions after the deleted question
-					pstmtUpdateSeq.setInt(1, q.fId);
-					pstmtUpdateSeq.setInt(2, seq);
-					pstmtUpdateSeq.setInt(3, sId);
-
-					log.info("Update sequences: " + pstmtUpdateSeq.toString());
-					pstmtUpdateSeq.executeUpdate();
-				}
-
-				/*
-				 * If the question is a group question then either:
-				 *   delete all the contents of the group, or
-				 *   Just remove the group so that the contents of the group are empty - TODO
-				 */
-
-				// If the question is a group question then also delete the end group
-				if(qType.equals("begin group")) {
-					String endGroupName = q.name + "_groupEnd";
-
-					pstmtGetSeq.setString(2, endGroupName );
-					rs = pstmtGetSeq.executeQuery();
-					if(rs.next()) {
-						seq = rs.getInt(1);
+						log.info("Soft Delete question: " + pstmtSoftDelete.toString());
+						pstmtSoftDelete.executeUpdate();
+					} else {
+						// Properly delete the question
 
 						// Delete the labels
 						pstmtDelLabels.setInt(1, sId);
-						pstmtDelLabels.setString(2, endGroupName );
+						pstmtDelLabels.setString(2, q.name );
 						pstmtDelLabels.setInt(3, q.fId);
 						pstmtDelLabels.setInt(4, sId );
 
-						log.info("Delete end group labels: " + pstmtDelLabels.toString());
+						log.info("Delete question labels: " + pstmtDelLabels.toString());
 						pstmtDelLabels.executeUpdate();
 
-						// Delete the end group
+						// Delete the hints
+						pstmtDelHints.setInt(1, sId);
+						pstmtDelHints.setString(2, q.name );
+						pstmtDelHints.setInt(3, q.fId);
+						pstmtDelHints.setInt(4, sId );
+
+						log.info("Delete question hints: " + pstmtDelHints.toString());
+						pstmtDelHints.executeUpdate();
+
+						/*
+						 * Delete the question
+						 */
 						pstmt.setInt(1, q.fId);
-						pstmt.setString(2, endGroupName);
+						pstmt.setString(2, q.name );
 						pstmt.setInt(3, sId );
 
-						log.info("Delete End group of question: " + pstmt.toString());
+						log.info("Delete question: " + pstmt.toString());
 						pstmt.executeUpdate();
 
-						// Update the sequences of questions after the deleted end group
+						// Update the sequences of questions after the deleted question
 						pstmtUpdateSeq.setInt(1, q.fId);
 						pstmtUpdateSeq.setInt(2, seq);
 						pstmtUpdateSeq.setInt(3, sId);
@@ -849,54 +807,74 @@ public class QuestionManager {
 					}
 
 					/*
-					 * Delete the contents of the group
+					 * If the question is a group question then either:
+					 *   delete all the contents of the group, or
+					 *   Just remove the group so that the contents of the group are empty - TODO
 					 */
-					if(groupContents != null) {
-						delete(sd, cResults, sId, groupContents, force, false);
+
+					// If the question is a group question then also delete the end group
+					if(qType.equals("begin group")) {
+						String endGroupName = q.name + "_groupEnd";
+
+						pstmtGetSeq.setString(2, endGroupName );
+						rs = pstmtGetSeq.executeQuery();
+						if(rs.next()) {
+							seq = rs.getInt(1);
+
+							// Delete the labels
+							pstmtDelLabels.setInt(1, sId);
+							pstmtDelLabels.setString(2, endGroupName );
+							pstmtDelLabels.setInt(3, q.fId);
+							pstmtDelLabels.setInt(4, sId );
+
+							log.info("Delete end group labels: " + pstmtDelLabels.toString());
+							pstmtDelLabels.executeUpdate();
+
+							// Delete the end group
+							pstmt.setInt(1, q.fId);
+							pstmt.setString(2, endGroupName);
+							pstmt.setInt(3, sId );
+
+							log.info("Delete End group of question: " + pstmt.toString());
+							pstmt.executeUpdate();
+
+							// Update the sequences of questions after the deleted end group
+							pstmtUpdateSeq.setInt(1, q.fId);
+							pstmtUpdateSeq.setInt(2, seq);
+							pstmtUpdateSeq.setInt(3, sId);
+
+							log.info("Update sequences: " + pstmtUpdateSeq.toString());
+							pstmtUpdateSeq.executeUpdate();
+						}
+
+						/*
+						 * Delete the contents of the group
+						 */
+						if(groupContents != null) {
+							delete(sd, cResults, sId, groupContents, force, false);
+						}
 					}
-				}
-
-				/*
-				 * If the question is a repeat question then delete the form, or
-				 */
-				if(qType.equals("begin repeat") || qType.equals("geopolygon") || qType.equals("geolinestring")) {
-
-					//String tableName = null;
 
 					/*
-					 * Delete the form in the survey definition - allow any data in a results table to become orphaned
-					 * In the case there is an existing datatable then it should be possible to reattach by adding the form back in
+					 * If the question is a repeat question then delete the form, or
 					 */
-					// 1. Get the table name for this form
-					//String sqlGetTableName = "select table_name, parentform, repeats from form where parentquestion = ? and s_id = ?;";
-					//pstmtGetTableName = sd.prepareStatement(sqlGetTableName);
-					//pstmtGetTableName.setInt(1, q.id);
-					//pstmtGetTableName.setInt(2, sId);
-					//ResultSet rsRepeat = pstmtGetTableName.executeQuery();
-					//if(rsRepeat.next()) {
-					//	tableName = rsRepeat.getString(1);
-					//}
+					if(qType.equals("begin repeat") || qType.equals("geopolygon") || qType.equals("geolinestring")) {
 
-					// 2. If the results table exists for this form then throw an exception
-					//if(tableName != null) {
+						// 3. Delete the form
+						String sqlDeleteForm = "delete from form where parentquestion = ? and s_id = ?;";
+						pstmtDeleteForm = sd.prepareStatement(sqlDeleteForm);
+						pstmtDeleteForm.setInt(1, q.id);
+						pstmtDeleteForm.setInt(2, sId);
 
-					//if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
-					//	throw new Exception("Cannot delete this form as it contains published data");
-					//} else {
+						log.info("Deleting form: " + pstmtDeleteForm.toString());
+						pstmtDeleteForm.executeUpdate();
 
-					// 3. Delete the form
-					String sqlDeleteForm = "delete from form where parentquestion = ? and s_id = ?;";
-					pstmtDeleteForm = sd.prepareStatement(sqlDeleteForm);
-					pstmtDeleteForm.setInt(1, q.id);
-					pstmtDeleteForm.setInt(2, sId);
 
-					log.info("Deleting form: " + pstmtDeleteForm.toString());
-					pstmtDeleteForm.executeUpdate();
-
-					//}
-					//}
+					}
 
 				}
+
+
 
 				SurveyManager sm = new SurveyManager(localisation);
 				sm.removeUnusedSurveyManifests(sd, sId);
