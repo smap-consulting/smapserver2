@@ -853,7 +853,7 @@ public class TableManager {
 
 	}
 
-	public boolean addUnpublishedColumns(Connection connectionSD, Connection cResults, int sId) throws Exception {
+	public boolean addUnpublishedColumns(Connection connectionSD, Connection cResults, int sId, String tableName) throws Exception {
 
 		boolean tablePublished = false;
 
@@ -875,6 +875,8 @@ public class TableManager {
 		log.info("######## Apply unpublished questions");
 		try {
 
+			addUnpublishedPreloads(connectionSD, cResults, sId, tableName);
+			
 			pstmtGetUnpublishedQuestions = connectionSD.prepareStatement(sqlGetUnpublishedQuestions);
 			pstmtGetUnpublishedOptions = connectionSD.prepareStatement(sqlGetUnpublishedOptions);
 
@@ -957,6 +959,28 @@ public class TableManager {
 
 		return tablePublished;
 
+	}
+	
+	public void addUnpublishedPreloads(Connection connectionSD, 
+			Connection cResults, 
+			int sId,
+			String tableName) throws Exception {
+
+		ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(connectionSD, sId);
+
+		log.info("######## Apply unpublished preloads");
+		for(MetaItem mi : preloads) {
+			if(mi.isPreload) {
+			
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, mi.columnName)) {
+					String type = mi.type;
+					if(type.equals("string")) {
+						type = "text";
+					}
+					alterColumn(cResults, tableName, type, mi.columnName);						
+				} 
+			}
+		} 
 	}
 
 	/*

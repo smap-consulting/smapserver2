@@ -707,7 +707,7 @@ public class SubRelationalDB extends Subscriber {
 
 						// Add any previously unpublished columns not in a changeset (Occurs if this is
 						// a new survey sharing an existing table)
-						tablePublished = tm.addUnpublishedColumns(cMeta, cRel, sId);
+						tablePublished = tm.addUnpublishedColumns(cMeta, cRel, sId, tableName);
 
 						if (tableChanged || tablePublished) {
 							tm.markPublished(cMeta, sId); // only mark published if there have been changes made

@@ -1220,7 +1220,7 @@ public class AllAssignments extends Application {
 				tableChanged = tm.applyTableChanges(sd, results, sId);
 
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				tablePublished = tm.addUnpublishedColumns(sd, results, sId);			
+				tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
 				if(tableChanged || tablePublished) {
 					tm.markPublished(sd, sId);		// only mark published if there have been changes made
 				}

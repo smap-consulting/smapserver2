@@ -3263,6 +3263,40 @@ public class SurveyManager {
 		return out;
 	}
 	
+	/*
+	 * Get the group forms
+	 * Get the forms for the passed in group surveyId
+	 */
+	public HashMap<String, String> getGroupForms(Connection sd, int groupSurveyId) {
+		HashMap<String, String> groupForms = new HashMap<> ();
+		
+		String sql = "select name, table_name from form where s_id in "
+				+ "(select s_id from survey where group_survey_id = ?) or s_id = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2, groupSurveyId);
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupForms.put(rs.getString(1), rs.getString(2));
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return groupForms;
+	}
+	
 	private ArrayList<MetaItem> getLegacyMeta() {
 		ArrayList<MetaItem> meta = new ArrayList<MetaItem>();
 		

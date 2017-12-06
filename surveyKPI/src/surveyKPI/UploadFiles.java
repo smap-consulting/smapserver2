@@ -1,6 +1,6 @@
 package surveyKPI;
 
-import javax.servlet.ServletException;
+
 
 /*
 This file is part of SMAP.
@@ -34,7 +34,6 @@ import javax.ws.rs.core.Response;
 
 import model.MediaResponse;
 import utilities.XLSCustomReportsManager;
-import utilities.XLSFormManager;
 import utilities.XLSTemplateUploadManager;
 
 import org.apache.commons.fileupload.FileItem;
@@ -62,11 +61,11 @@ import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.CopyOption;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -439,8 +438,7 @@ public class UploadFiles extends Application {
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
 		String displayName = null;
 		int projectId = -1;
-		String surveyIdent = null;
-		String projectName = null;
+		int surveyId = -1;
 		String fileName = null;
 		String type = null;			// xls or xlsx or xml
 		FileItem fileItem = null;
@@ -482,7 +480,7 @@ public class UploadFiles extends Application {
 						
 					} else if(item.getFieldName().equals("projectId")) {
 						projectId = Integer.parseInt(item.getString());
-						log.info("Template: " + projectId);
+						log.info("Project: " + projectId);
 						
 						// Authorisation - Access
 						if(projectId < 0) {
@@ -493,29 +491,16 @@ public class UploadFiles extends Application {
 						}
 						// End Authorisation
 						
-						// Get the project name
-						PreparedStatement pstmt = null;
+					} else if(item.getFieldName().equals("surveyId")) {
+						surveyId = -1;
 						try {
-							String sql = "select name from project where id = ?;";
-							pstmt = sd.prepareStatement(sql);
-							pstmt.setInt(1, projectId);
-							ResultSet rs = pstmt.executeQuery();
-							if(rs.next()) {
-								projectName = rs.getString(1);
-							}
+							surveyId = Integer.parseInt(item.getString());
 						} catch (Exception e) {
-							e.printStackTrace();
-						} finally {
-							if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
+							
 						}
-					} else if(item.getFieldName().equals("surveyIdent")) {
-						surveyIdent = item.getString();
-						if(surveyIdent != null) {
-							surveyIdent = surveyIdent.trim();
-						}
-						log.info("Survey Ident: " + surveyIdent);
-					
-					}else {
+						log.info("Add to survey group: " + surveyId);
+						
+					} else {
 						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
 					}
 				} else {
@@ -548,7 +533,20 @@ public class UploadFiles extends Application {
 						localisation, 
 						displayName,
 						projectId);
-				s.write(sd, localisation, request.getRemoteUser());
+				
+				/*
+				 * Get information on a survey group if this survey is to be added to one
+				 */
+				HashMap<String, String> groupForms = null;
+				if(surveyId > 0) {
+					groupForms = sm.getGroupForms(sd, surveyId);
+					s.groupSurveyId = surveyId;
+				}
+				
+				/*
+				 * Save the survey
+				 */
+				s.write(sd, localisation, request.getRemoteUser(), groupForms);
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();

@@ -217,7 +217,7 @@ public class ManagedForms extends Application {
 				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
 				boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, 0);
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId);			
+				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
 				if(tableChanged || tablePublished) {
 					tm.markPublished(sd, am.sId);		// only mark published if there have been changes made
 				}
@@ -244,7 +244,7 @@ public class ManagedForms extends Application {
 				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
 				boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, am.manageId);
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId);			
+				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
 				if(tableChanged || tablePublished) {
 					tm.markPublished(sd, am.sId);		// only mark published if there have been changes made
 				}

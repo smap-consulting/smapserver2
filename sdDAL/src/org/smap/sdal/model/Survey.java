@@ -70,7 +70,7 @@ public class Survey {
 	public String projectName;
 	public int pId;
 	public boolean projectTasksOnly;
-
+	public int groupSurveyId;
 	
 	// Getters
 	public int getId() {return id;}; 
@@ -187,10 +187,19 @@ public class Survey {
 	public void setProjectId(int v) { pId = v;};
 	public void setProjectTasksOnly(boolean v) { projectTasksOnly = v;};
 	
-	// Write a new survey to the database
-	public void write(Connection sd, ResourceBundle localisation, String userIdent) throws Exception {
-		log.info("Set autocommit false");
+	/*
+	 * Write a survey to the database
+	 * If this survey is to be attached to a group survey then
+	 *   1. Get a list of form names and from ids to be used when available
+	 *   2. Forms will only be created if they do not already exist
+	 *   2. questions and choices will only be created if they do not already exist in the form
+	 */
+	public void write(Connection sd, ResourceBundle localisation, 
+			String userIdent, HashMap<String, String> groupForms) throws Exception {
+		
+		System.out.println("Writing a new survey to group: " + groupSurveyId);
 		try {
+			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -198,7 +207,7 @@ public class Survey {
 			writeSurvey(sd, gson);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
-			writeForms(sd);	
+			writeForms(sd, groupForms);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
 			writeRoles(sd, localisation, gson, userIdent);
 			
@@ -232,8 +241,9 @@ public class Survey {
 				+ "loaded_from_xls,"
 				+ "meta,"
 				+ "task_file,"
+				+ "group_survey_id,"
 				+ "created) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";		
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -255,6 +265,7 @@ public class Survey {
 			pstmt.setBoolean(9, loadedFromXLS);
 			pstmt.setString(10, gson.toJson(meta));
 			pstmt.setBoolean(11, task_file);
+			pstmt.setInt(12, groupSurveyId);
 			pstmt.executeUpdate();
 						
 			ResultSet rs = pstmt.getGeneratedKeys();
@@ -366,7 +377,7 @@ public class Survey {
 	 * 2. Write the forms
 	 * This creates an initial entry for a form and then gets the resultant form ID
 	 */
-	private void writeForms(Connection sd) throws SQLException {
+	private void writeForms(Connection sd, HashMap<String, String> groupForms) throws SQLException {
 		
 		String sql = "insert into form ("
 				+ "f_id, "
@@ -382,8 +393,17 @@ public class Survey {
 			pstmt.setInt(1, id);		// Survey Id
 		
 			for(Form f : forms) {
+				
+				String tableName = null;
+				if(groupForms != null) {
+					tableName = groupForms.get(f.name);
+				}
+				
+				if(tableName == null) {
+					tableName = "s" + id + "_" + GeneralUtilityMethods.cleanName(f.name, true, false, false);
+				}
 				pstmt.setString(2, f.name);
-				pstmt.setString(3, "s" + id + "_" + GeneralUtilityMethods.cleanName(f.name, true, false, false));
+				pstmt.setString(3, tableName);
 				pstmt.executeUpdate();
 
 				ResultSet rs = pstmt.getGeneratedKeys();
