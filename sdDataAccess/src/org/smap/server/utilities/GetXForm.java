@@ -1385,7 +1385,7 @@ public class GetXForm {
 						priKey = 0;
 					}
 				} else {
-					priKey = getPrimaryKey(sd, cResults, firstForm, key, keyval);
+					priKey = getPrimaryKey(sd, cResults, firstForm, key, keyval, sId);
 				}
 			} else {
 				if (!priKeyValid(cResults, firstForm, priKey)) {
@@ -1492,7 +1492,7 @@ public class GetXForm {
 	 * Get the primary key from the passed in key values The key must be in the top
 	 * level form
 	 */
-	int getPrimaryKey(Connection sd, Connection cResults, Form firstForm, String key, String keyval)
+	int getPrimaryKey(Connection sd, Connection cResults, Form firstForm, String key, String keyval, int sId)
 			throws ApplicationException, SQLException {
 		int prikey = 0;
 		String table = firstForm.getTableName().replace("'", "''"); // Escape apostrophes
@@ -1501,15 +1501,32 @@ public class GetXForm {
 		String keyColumnName = null;
 
 		// Get the key type
-		List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null));
-		for (int i = 0; i < questions.size(); i++) {
-			Question q = questions.get(i);
-			if (q.getName().toLowerCase().trim().equals(key)) {
-				type = q.getType();
-				keyColumnName = q.getColumnName();
-				break;
+		if(key.equals("instanceid")) {
+			keyColumnName = key;
+			type = "string";
+		} else {
+			List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null));
+			for (int i = 0; i < questions.size(); i++) {
+				Question q = questions.get(i);
+				if (q.getName().toLowerCase().trim().equals(key)) {
+					type = q.getType();
+					keyColumnName = q.getColumnName();
+					break;
+				}
 			}
 		}
+		if (type == null) {
+			// Check the prelaods
+			ArrayList<MetaItem> meta = GeneralUtilityMethods.getPreloads(sd, sId);
+			for(MetaItem mi : meta) {
+				if(mi.isPreload && mi.name.equals(key)) {
+					type = mi.type;
+					keyColumnName = mi.columnName;
+					break;
+				}
+			}
+		}
+		
 		if (type == null) {
 			throw new ApplicationException("Key: " + key + " not found");
 		}
