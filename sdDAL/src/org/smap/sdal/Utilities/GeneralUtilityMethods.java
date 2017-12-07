@@ -5545,5 +5545,40 @@ public class GeneralUtilityMethods {
 		return dataColumn;
 	}
 	
+	/*
+	 * Set questions as published if the results column is available
+	 */
+	public static void setPublished(Connection sd, Connection cRel, int sId) throws SQLException {
+		
+		String sql = "select f.table_name, q.column_name, q.q_id "
+				+ "from question q, form f "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = ? "
+				+ "and q.source is not null "
+				+ "and q.published = 'false' "
+				+ "and q.soft_deleted = 'false' ";		
+		PreparedStatement pstmt = null;
+		
+		String sqlUpdate = "update question set published = true where q_id = ?";
+		PreparedStatement pstmtUpdate = null;
+		try {
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next())  {
+				if(hasColumn(cRel, rs.getString(1), rs.getString(2))) {
+					pstmtUpdate.setInt(1, rs.getInt(3));
+					pstmtUpdate.executeUpdate();
+				}
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+			if(pstmtUpdate != null) try {pstmtUpdate.close();} catch(Exception e) {}
+		}
+		
+	}
 }
 

@@ -821,7 +821,7 @@ public class GetXForm {
 
 		if (!count) {
 			// Add read only
-			if (q.isReadOnly()) {
+			if (q.isReadOnly() || q.getType().equals("note")) {
 				questionElement.setAttribute("readonly", "true()");
 			}
 
@@ -885,7 +885,7 @@ public class GetXForm {
 			if (repeats != null && repeats.trim().length() > 0) { // Add the path to the repeat count question
 				calculate = repeats;
 			}
-		} else {
+		} else if(q.getType().equals("calculate")) {
 			calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName());
 		}
 		if (calculate != null && calculate.trim().length() > 0) {

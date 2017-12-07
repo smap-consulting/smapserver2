@@ -449,6 +449,7 @@ public class UploadFiles extends Application {
 	
 		ArrayList<String> mesgArray = new ArrayList<String> ();
 		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
+		Connection cResults = ResultsDataSource.getConnection("CreateXLSForm-uploadForm");;
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		
@@ -457,7 +458,7 @@ public class UploadFiles extends Application {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-					
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
 			
 			/*
@@ -546,7 +547,7 @@ public class UploadFiles extends Application {
 				/*
 				 * Save the survey
 				 */
-				s.write(sd, localisation, request.getRemoteUser(), groupForms);
+				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
@@ -562,6 +563,7 @@ public class UploadFiles extends Application {
 		} finally {
 	
 			SDDataSource.closeConnection("CreateXLSForm-uploadForm", sd);
+			ResultsDataSource.closeConnection("CreateXLSForm-uploadForm", cResults);
 			
 		}
 		

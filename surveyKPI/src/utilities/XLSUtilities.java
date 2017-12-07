@@ -256,6 +256,7 @@ public class XLSUtilities {
 			if(c != null) {
 				value = getCellValue(c);
 				if(value != null) {
+					value = value.replaceAll("\u00A0", " ");		// Replace non breaking space with space
 					value = value.trim();  	// Remove trailing whitespace, its not visible to users
 					if(value.length() == 0) {
 						value = null;

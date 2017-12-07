@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.RoleManager;
 
 import com.google.gson.Gson;
@@ -43,6 +44,7 @@ public class Survey {
 	public String surveyClass;
 	public boolean deleted;
 	public boolean blocked;
+	public String manifest;
 	public boolean hasManifest;
 	public ArrayList<Form> forms = new ArrayList<Form> ();
 	public HashMap<String, OptionList> optionLists = new HashMap<String, OptionList> ();
@@ -194,7 +196,7 @@ public class Survey {
 	 *   2. Forms will only be created if they do not already exist
 	 *   2. questions and choices will only be created if they do not already exist in the form
 	 */
-	public void write(Connection sd, ResourceBundle localisation, 
+	public void write(Connection sd, Connection cRel, ResourceBundle localisation, 
 			String userIdent, HashMap<String, String> groupForms) throws Exception {
 		
 		System.out.println("Writing a new survey to group: " + groupSurveyId);
@@ -210,6 +212,15 @@ public class Survey {
 			writeForms(sd, groupForms);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
 			writeRoles(sd, localisation, gson, userIdent);
+			
+			// If this survey has been added on top of existing tables then mark columns published if they already exist
+			GeneralUtilityMethods.setPublished(sd, cRel, id);
+			
+			// Notify devices
+			MessagingManager mm = new MessagingManager();
+			mm.surveyChange(sd, id, 0);
+			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
+			GeneralUtilityMethods.updateFormDependencies(sd, id);
 			
 			sd.commit();
 			
@@ -260,7 +271,7 @@ public class Survey {
 			pstmt.setString(4, surveyClass);	
 			pstmt.setString(5, ident);
 			pstmt.setInt(6, version);			
-			pstmt.setString(7, null);				// TODO manifest
+			pstmt.setString(7, manifest);
 			pstmt.setString(8, instanceNameDefn);
 			pstmt.setBoolean(9, loadedFromXLS);
 			pstmt.setString(10, gson.toJson(meta));

@@ -37,6 +37,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
@@ -79,7 +80,7 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
-	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.:/]*$");
+	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.\\+%,():/]*$");
 
 	Stack<String> groupStack = new Stack<String>();							// Keep track of groups
 	
@@ -268,6 +269,9 @@ public class XLSTemplateUploadManager {
 			}
 		}
 
+		if(o.value.startsWith("Laylan-Mobile")) {
+			System.out.println("Value:" + o.value);
+		}
 		validateOption(o, rowNumChoices);
 
 		return o;
@@ -440,6 +444,12 @@ public class XLSTemplateUploadManager {
 							}
 							return;
 						}
+						
+						// Update the survey manifest if csv files are referenced from the appearance and then the calculation
+						ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, survey.manifest);
+						mi = GeneralUtilityMethods.addManifestFromCalculate(q.calculation, mi.manifest);
+						survey.manifest = mi.manifest;
+						
 						validateQuestion(q, rowNumSurvey);
 						f.questions.add(q);
 						
@@ -768,6 +778,12 @@ public class XLSTemplateUploadManager {
 						if(refs.size() > 0) {
 							questionInSurvey(refs, "label::" + survey.languages.get(idx).name, q);
 						}
+					}
+				}
+				if(q.calculation != null) {
+					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.calculation);
+					if(refs.size() > 0) {
+						questionInSurvey(refs, "calculation", q);
 					}
 				}
 			}
