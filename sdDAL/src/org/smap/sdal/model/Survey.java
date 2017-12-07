@@ -253,8 +253,10 @@ public class Survey {
 				+ "meta,"
 				+ "task_file,"
 				+ "group_survey_id,"
+				+ "hrk,"
+				+ "key_policy,"
 				+ "created) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";		
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -277,6 +279,8 @@ public class Survey {
 			pstmt.setString(10, gson.toJson(meta));
 			pstmt.setBoolean(11, task_file);
 			pstmt.setInt(12, groupSurveyId);
+			pstmt.setString(13, hrk);	// Key
+			pstmt.setString(14, key_policy);
 			pstmt.executeUpdate();
 						
 			ResultSet rs = pstmt.getGeneratedKeys();

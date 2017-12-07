@@ -200,10 +200,11 @@ public class XLSTemplateUploadManager {
 					}
 				}
 				
-				// instance name
 				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
 				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
 				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
+				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum);
+				survey.key_policy = XLSUtilities.getTextColumn(row, "key policy", settingsHeader, lastCellNum);
 				
 				// Add row filters
 				if(rowRoleHeader != null && rowRoleHeader.size() > 0) {

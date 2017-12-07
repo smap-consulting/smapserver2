@@ -76,6 +76,9 @@ public class XLSFormManager {
 		public static final int COL_DEFAULT_LANGUAGE = 200;
 		public static final int COL_INSTANCE_NAME = 201;
 		public static final int COL_STYLE = 202;
+		public static final int COL_KEY = 203;
+		public static final int COL_KEY_POLICY = 204;
+		public static final int COL_ROLE_ROW = 205;
 
 
 		String name;
@@ -294,7 +297,19 @@ public class XLSFormManager {
 			} else if(type == COL_INSTANCE_NAME) {			
 				value = survey.instanceNameDefn;
 
-			}else {
+			} else if(type == COL_KEY) {			
+				value = survey.hrk;
+
+			} else if(type == COL_KEY_POLICY) {			
+				value = survey.key_policy;
+
+			} else if(type == COL_ROLE_ROW) {				
+				Role r = survey.roles.get(typeString);
+				if(r != null) {
+					value = r.row_filter;
+				}
+
+			} else {
 				System.out.println("Unknown option type: " + type);
 			}
 
@@ -674,7 +689,14 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "default_language", Column.COL_DEFAULT_LANGUAGE, 0, "default_language"));
 		cols.add(new Column(colNumber++, "instance_name", Column.COL_INSTANCE_NAME, 0, "instance_name"));
 		cols.add(new Column(colNumber++, "style", Column.COL_STYLE, 0, "style"));
+		cols.add(new Column(colNumber++, "key", Column.COL_KEY, 0, "key"));
+		cols.add(new Column(colNumber++, "key policy", Column.COL_KEY_POLICY, 0, "key policy"));
 
+		// Add role columns
+		for(String role : survey.roles.keySet()) {
+			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE_ROW, 0, role));
+		}
+		
 		return cols;
 	}
 

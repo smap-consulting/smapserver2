@@ -334,9 +334,6 @@ public class RoleManager {
 			throw new Exception(localisation.getString("r_mc") + " " + bad);
 		}
 		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		String configString = gson.toJson(sq);
-		
 		try {
 			String sql = "update survey_role "
 					+ "set row_filter = ? "
@@ -344,7 +341,7 @@ public class RoleManager {
 					+ "and s_id = ?";
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, configString);
+			pstmt.setString(1, role.row_filter);
 			pstmt.setInt(2, role.linkid);
 			pstmt.setInt(3, sId);
 			
