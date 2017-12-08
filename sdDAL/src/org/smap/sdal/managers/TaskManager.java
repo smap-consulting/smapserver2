@@ -609,7 +609,7 @@ public class TaskManager {
 
 		try {
 
-			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, as.target_survey_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
 			String geoType = null;
 			String sql = null;

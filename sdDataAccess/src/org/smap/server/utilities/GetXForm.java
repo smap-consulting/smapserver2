@@ -1682,7 +1682,7 @@ public class GetXForm {
 
 		List<List<Results>> results = null;
 		if (GeneralUtilityMethods.tableExists(cResults, form.getTableName())) {
-			results = getResults(form, id, parentId, cResults, sd, template, simplifyMedia); // Add the child elements
+			results = getResults(form, id, parentId, cResults, sd, template, simplifyMedia, sId); // Add the child elements
 		} else {
 			results = new ArrayList<List<Results>>(); // Create an empty list
 		}
@@ -1723,7 +1723,6 @@ public class GetXForm {
 
 				} else { // Question
 
-					// remove _task_key functionality
 					// Set some default values for task management questions
 					// if(item.name != null && item.name.equals("_task_key")) {
 					// item.value = priKey.value;
@@ -1781,7 +1780,7 @@ public class GetXForm {
 	 * @param parentId
 	 */
 	List<List<Results>> getResults(Form form, int id, int parentId, Connection cResults, Connection sd,
-			SurveyTemplate template, boolean simplifyMedia) throws SQLException {
+			SurveyTemplate template, boolean simplifyMedia, int sId) throws SQLException {
 
 		List<List<Results>> output = new ArrayList<List<Results>>();
 
@@ -1790,7 +1789,19 @@ public class GetXForm {
 		 * Select questions are retrieved using a separate query as there are multiple
 		 * columns per question
 		 */
-		String sql = "select prikey";
+		StringBuffer sql = new StringBuffer("select prikey");
+		
+		if(parentId <= 0) {
+			// Add Meta
+			sql.append(",instanceID, instanceName");
+			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+			for(MetaItem mi : preloads) {
+				if(mi.isPreload) {
+					sql.append(",").append(mi.columnName);
+				}
+			}
+		}
+		
 		List<Question> questions = form.getQuestions(sd, form.getPath(null));
 		for (Question q : questions) {
 			String col = null;
@@ -1810,21 +1821,21 @@ public class GetXForm {
 							col = q.getColumnName();
 						}
 
-						sql += "," + col;
+						sql.append(",").append(col);
 					}
 				}
 			}
 
 		}
-		sql += " from " + form.getTableName();
+		sql.append(" from ").append(form.getTableName());
 		if (id != -1) {
-			sql += " where prikey=" + id + ";";
+			sql.append(" where prikey=").append(id);
 		} else {
-			sql += " where parkey=" + parentId + ";";
+			sql.append(" where parkey=").append(parentId);
 		}
 		
-		PreparedStatement pstmt = cResults.prepareStatement(sql);
-		log.info(pstmt.toString());
+		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
+		log.info("Get data for instance XML: " + pstmt.toString());
 		ResultSet resultSet = pstmt.executeQuery();
 
 		// For each record returned from the database add the data values to the
@@ -1841,6 +1852,21 @@ public class GetXForm {
 			 */
 			int index = 2;
 
+			if(parentId <= 0) {
+				// Add Meta
+				record.add(new Results("meta", null, null, true, false, false, null));
+				record.add(new Results("instanceID", null, resultSet.getString(index++), false, false, false, null));	
+				record.add(new Results("instanceName", null, resultSet.getString(index++), false, false, false, null));	
+				record.add(new Results("meta_groupEnd", null, null, false, true, false, null));
+				
+				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+				for(MetaItem mi : preloads) {
+					if(mi.isPreload) {
+						String value = resultSet.getString(index++);
+						record.add(new Results(mi.name, null, value, false, false, false, null));	
+					}
+				}
+			}
 			for (Question q : questions) {
 
 				String qName = q.getName();

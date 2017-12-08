@@ -179,7 +179,7 @@ public class SubscriberBatch {
 			} else if(subscriberType.equals("forward")) {
 				subscribers = initForward(sd);		// Get subscribers 
 			} else {
-				System.out.println("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
+				log.info("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
 			}
 
 			Date timeNow = new Date();
@@ -207,10 +207,10 @@ public class SubscriberBatch {
 							System.out.print(".");
 
 						} else {
-							System.out.println("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
+							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
 
 							for(UploadEvent ue : uel) {
-								System.out.println("        Survey:" + ue.getSurveyName() + ":" + ue.getId());
+								log.info("        Survey:" + ue.getSurveyName() + ":" + ue.getId());
 
 								SurveyInstance instance = null;
 								SubscriberEvent se = new SubscriberEvent();
@@ -218,7 +218,7 @@ public class SubscriberBatch {
 								se.setDest(s.getDest());
 								String uploadFile = ue.getFilePath();
 
-								System.out.println("Upload file: " + uploadFile);
+								log.info("Upload file: " + uploadFile);
 								InputStream is = null;
 								InputStream is2 = null;
 								InputStream is3 = null;
@@ -255,7 +255,7 @@ public class SubscriberBatch {
 
 										// Convert the file into a survey instance object
 										instance = new SurveyInstance(is2);
-										System.out.println("UUID:" + instance.getUuid());
+										log.info("UUID:" + instance.getUuid());
 
 										//instance.getTopElement().printIEModel("   ");	// Debug 
 
@@ -287,7 +287,7 @@ public class SubscriberBatch {
 
 									} else {
 
-										System.out.println("        filtered");
+										log.info("        filtered");
 										se.setStatus("filtered");
 										se.setReason(s.getSubscriberFilter());
 
@@ -347,7 +347,7 @@ public class SubscriberBatch {
 										int forwardSleep = 60;
 										Date now = new Date();
 										String dt = DateFormat.getDateTimeInstance().format(now);
-										System.out.println("No connectivity: " + dt);
+										log.info("No connectivity: " + dt);
 										try {
 											Thread.sleep(forwardSleep * 1000);
 										} catch (Exception e) {
@@ -358,7 +358,7 @@ public class SubscriberBatch {
 
 								// If the host is unreachable stop processing this subscriber, it may be that it has been taken off line
 								if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
-									System.out.println("Stopping processing of subscriber: " + s.getSubscriberName());
+									log.info("Stopping processing of subscriber: " + s.getSubscriberName());
 									break;
 								}
 							}
@@ -575,7 +575,7 @@ public class SubscriberBatch {
 					sd = null;
 				}
 			} catch (SQLException e) {
-				System.out.println("Failed to close connection");
+				log.log(Level.SEVERE, "Failed to close connection");
 				e.printStackTrace();
 			}
 
@@ -585,7 +585,7 @@ public class SubscriberBatch {
 					cResults = null;
 				}
 			} catch (SQLException e) {
-				System.out.println("Failed to close results connection");
+				log.log(Level.SEVERE, "Failed to close results connection");
 				e.printStackTrace();
 			}
 		}
@@ -664,7 +664,7 @@ public class SubscriberBatch {
 					}
 				}
 				if(date == null) {
-					System.out.println("******** Failed to get date from: " + surveyDisplayName + " deleted date was: " + deletedDate);
+					log.info("******** Failed to get date from: " + surveyDisplayName + " deleted date was: " + deletedDate);
 				} else {
 					try {
 						java.sql.Date dx = java.sql.Date.valueOf(date);
@@ -672,7 +672,7 @@ public class SubscriberBatch {
 						pstmtTemp.setInt(2,  sId);
 						pstmtTemp.executeUpdate();	
 					} catch (Exception e) {
-						System.out.println("Error: " + surveyDisplayName + " : " + e.getMessage());
+						log.log(Level.SEVERE, "Error: " + surveyDisplayName + " : " + e.getMessage());
 					}
 				}
 
@@ -689,7 +689,7 @@ public class SubscriberBatch {
 				String surveyIdent = rs.getString("ident");
 				String surveyDisplayName = rs.getString("display_name");
 
-				System.out.println("######### Erasing: " + surveyDisplayName + " which was deleted on " +  deletedDate);
+				log.info("######### Erasing: " + surveyDisplayName + " which was deleted on " +  deletedDate);
 				sm.deleteSurvey(sd, cResults, "auto erase", projectId, sId, surveyIdent, surveyDisplayName, basePath, true, "yes");
 			}
 
@@ -741,15 +741,15 @@ public class SubscriberBatch {
 
 
 					} catch (SAXException e) {
-						System.out.println("SAXException on configuration file: " + confFile);
+						log.log(Level.SEVERE, "SAXException on configuration file: " + confFile);
 					} catch (IOException e) {
-						System.out.println("IOException on configuration file: " + confFile);
+						log.log(Level.SEVERE, "IOException on configuration file: " + confFile);
 					} catch(ClassNotFoundException e) {
-						System.out.println("ClassNotFoundException on configuration file: " + confFile + " with class: " + subscriberType);
+						log.log(Level.SEVERE, "ClassNotFoundException on configuration file: " + confFile + " with class: " + subscriberType);
 					} catch (IllegalAccessException e) {
-						System.out.println("IllegalAccessException on configuration file: " + confFile + " with class: " + subscriberType);
+						log.log(Level.SEVERE, "IllegalAccessException on configuration file: " + confFile + " with class: " + subscriberType);
 					} catch (InstantiationException e) {
-						System.out.println("InstantiationException on configuration file: " + confFile + " with class: " + subscriberType);
+						log.log(Level.SEVERE, "InstantiationException on configuration file: " + confFile + " with class: " + subscriberType);
 						e.printStackTrace();
 					}
 				}
@@ -792,7 +792,7 @@ public class SubscriberBatch {
 				sub.setHostname(remoteUrl);
 				subscribers.add(sub);	// Add the new subscriber to the list of subscribers
 			} else {
-				System.out.println("Error: Invalid host (" + remoteUrl + ") for survey " + sId);
+				log.log(Level.SEVERE, "Error: Invalid host (" + remoteUrl + ") for survey " + sId);
 			}
 
 		}
@@ -835,10 +835,10 @@ public class SubscriberBatch {
 			File finalDirFile = finalFile.getParentFile();
 			String finalDir = finalDirFile.getPath();
 
-			System.out.println("SQL: " + sql + " : " + origIdent + " : " + ident);
+			log.info("Get incomplete attachments: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				System.out.println("++++++ Processing incomplete file name is: " + rs.getString(2));
+				log.info("++++++ Processing incomplete file name is: " + rs.getString(2));
 
 				int ue_id = rs.getInt(1);
 				File sourceFile = new File(rs.getString(2));
@@ -846,10 +846,10 @@ public class SubscriberBatch {
 
 				File files[] = sourceDirFile.listFiles();
 				for(int i = 0; i < files.length; i++) {
-					System.out.println("       File: " + files[i].getName());
+					log.info("       File: " + files[i].getName());
 					String fileName = files[i].getName();
 					if(!fileName.endsWith("xml")) {
-						System.out.println("++++++ Moving " + fileName + " to " + finalDir);
+						log.info("++++++ Moving " + fileName + " to " + finalDir);
 						files[i].renameTo(new File(finalDir + "/" + fileName));
 					}
 				}

@@ -932,6 +932,12 @@ public class SubRelationalDB extends Subscriber {
 
 		String sqlChildTables = "select table_name from form where parentform = (select f_id from form where parentform = 0 and s_id = ?)";
 		PreparedStatement pstmtChildTables = null;
+		
+		String sqlChildTablesInGroup = "select table_name from form "
+				+ "where parentform in (select f_id from form where parentform = 0 "
+				+ "and (s_id in (select s_id from survey where group_survey_id = ?)) "
+				+ "or s_id = ?)";
+		PreparedStatement pstmtChildTablesInGroup = null;
 
 		PreparedStatement pstmtChildUpdate = null;
 
@@ -978,7 +984,7 @@ public class SubRelationalDB extends Subscriber {
 							pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);
 							pstmtUpdateTarget.setInt(1, sourceKey);
 							pstmtUpdateTarget.setInt(2, prikey);
-							log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+							//log.info(("Merging col: " + pstmtUpdateTarget.toString()));
 							pstmtUpdateTarget.executeUpdate();
 						}
 					}
@@ -986,22 +992,35 @@ public class SubRelationalDB extends Subscriber {
 				}
 
 				// Add the child records from the merged survey to the new survey (TODO) possibly these should be replicated
-				pstmtChildTables = cMeta.prepareStatement(sqlChildTables);
-				pstmtChildTables.setInt(1,  sId);
-				ResultSet rsChildTables = pstmtChildTables.executeQuery();
-
-
-
-				while(rsChildTables.next()) {
-
-					String sqlChildUpdate = "update " + rsChildTables.getString(1) + " set parkey = ? where parkey = ?;";
+				
+				ResultSet rsc = null;
+				int groupId = GeneralUtilityMethods.getSurveyGroup(cMeta, sId);
+				if(groupId > 0) {
+					pstmtChildTablesInGroup = cMeta.prepareStatement(sqlChildTablesInGroup);
+					pstmtChildTablesInGroup.setInt(1,  groupId);
+					pstmtChildTablesInGroup.setInt(2,  groupId);
+					log.info("Get child tables for group: " + pstmtChildTablesInGroup.toString());
+					rsc = pstmtChildTablesInGroup.executeQuery();
+				
+				} else {
+					
+					// Not in a group - update the child tables directly
+					pstmtChildTables = cMeta.prepareStatement(sqlChildTables);
+					pstmtChildTables.setInt(1,  sId);
+					log.info("Get child tables: " + pstmtChildTables.toString());
+					rsc = pstmtChildTables.executeQuery();
+				}
+				while(rsc.next()) {
+	
+					String sqlChildUpdate = "update " + rsc.getString(1) + " set parkey = ? where parkey = ?;";
 					pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
-
+	
 					pstmtChildUpdate.setInt(1, prikey);
 					pstmtChildUpdate.setInt(2, sourceKey);
 					log.info("Updating parent keys: " + pstmtChildUpdate.toString());
 					pstmtChildUpdate.executeUpdate();
 				}
+				
 
 			}
 
@@ -1022,6 +1041,7 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
 			if(pstmtCloseSource != null) try{pstmtCloseSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
+			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
 			if(pstmtChildUpdate != null) try{pstmtChildUpdate.close();}catch(Exception e) {}
 		}
 

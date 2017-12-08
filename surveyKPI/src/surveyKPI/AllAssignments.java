@@ -671,10 +671,6 @@ public class AllAssignments extends Application {
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = connectionRel.prepareStatement(getTaskSql);	
 							
-							//if(frag != null) {
-							//	int idx = 1;
-							//	idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
-							//}
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							resultSet = pstmt.executeQuery();

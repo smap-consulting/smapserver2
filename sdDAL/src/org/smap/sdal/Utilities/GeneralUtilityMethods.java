@@ -2752,6 +2752,20 @@ public class GeneralUtilityMethods {
 				c.type = "";
 				columnList.add(c);
 			}
+			
+			// Add preloads that have been specified in the survey
+			if (includePreloads) {
+				ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+				for(MetaItem mi : preloads) {
+					if(mi.isPreload) {
+						c = new TableColumn();
+						c.name = mi.columnName;
+						c.humanName = mi.name;
+						c.type = "";
+						columnList.add(c);
+					}
+				}
+			}
 
 		}
 
@@ -2763,20 +2777,6 @@ public class GeneralUtilityMethods {
 			columnList.add(c);
 		}
 		
-		// Add preloads that have been specified in the survey
-		if (includePreloads) {
-			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
-			for(MetaItem mi : preloads) {
-				if(mi.isPreload) {
-					c = new TableColumn();
-					c.name = mi.columnName;
-					c.humanName = mi.name;
-					c.type = "";
-					columnList.add(c);
-				}
-			}
-
-		}
 
 		try {
 			pstmtQuestions.setInt(1, f_id);
@@ -5579,6 +5579,30 @@ public class GeneralUtilityMethods {
 			if(pstmtUpdate != null) try {pstmtUpdate.close();} catch(Exception e) {}
 		}
 		
+	}
+	
+	/*
+	 * Get survey group
+	 */
+	public static int getSurveyGroup(Connection sd, int sId) throws SQLException {
+		
+		int group = 0;
+		String sql = "select group_survey_id from survey where s_id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				group = rs.getInt(1);
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return group;
 	}
 }
 
