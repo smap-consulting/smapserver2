@@ -394,7 +394,7 @@ public class TableManager {
 	private void writeTableStructure(Form form, Connection sd, Connection cResults, boolean hasHrk, SurveyTemplate template) throws Exception {
 
 		String tableName = form.getTableName();
-		List<Question> columns = form.getQuestions(sd, form.getPath(null));
+		List<Question> columns = form.getQuestions(sd, form.getPath(null, null));
 		String sql = null;	
 		List <GeometryColumn> geoms = new ArrayList<GeometryColumn> ();
 

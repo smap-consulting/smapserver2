@@ -160,12 +160,20 @@ public class Form implements Serializable {
 		return parentform != 0;
 	}
 	
-	public String getPath(List <Form> forms) {
+	public String getPath(List <Form> forms, String refName) {
 		
 		if(path == null && forms != null) {
 			path = calculateFormPath(getName(), this, forms);
 		}
-		return path;
+		
+		String value = path;
+		if(refName != null) {		// We are inside a reference repeat
+			if(path.indexOf(refName + "_ref") < 0) { 
+				value = value.replaceFirst(refName, refName + "_ref");
+			}
+		}
+		System.out.println("Get Form Path: " + refName + " : " + value);
+		return value;
 	}
 	
 	private String getRelativePath() {

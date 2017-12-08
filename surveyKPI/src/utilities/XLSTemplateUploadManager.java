@@ -270,9 +270,6 @@ public class XLSTemplateUploadManager {
 			}
 		}
 
-		if(o.value.startsWith("Laylan-Mobile")) {
-			System.out.println("Value:" + o.value);
-		}
 		validateOption(o, rowNumChoices);
 
 		return o;
@@ -478,7 +475,6 @@ public class XLSTemplateUploadManager {
 		
 		// 2. Question name
 		q.name = XLSUtilities.getTextColumn(row, "name", surveyHeader, lastCellNum);  
-		System.out.println("|" + q.name + "|");
 		if(type == null && q.name != null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
 		} else if(type == null && q.name == null) {

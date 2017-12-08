@@ -72,6 +72,7 @@ public class GetXForm {
 	private boolean modelInstanceOnly = false;
 	private boolean isWebForms = false;
 	private boolean useNodesets = false;
+	private String refName;		// If not null are inside a reference repeat and the path of the form is stored here
 
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
@@ -231,7 +232,6 @@ public class GetXForm {
 					pulldataElement.appendChild(rootElement);
 					populateCSVElements(outputDoc, rootElement, mv.filePath);
 				}
-
 			}
 		}
 
@@ -365,8 +365,7 @@ public class GetXForm {
 			if (!isWebForms) {
 				formElement.setAttribute("project", String.valueOf(template.getProject().getName()));
 			}
-			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm); // Process the top
-																			// level form
+			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm); // Process the top form
 			parent.appendChild(formElement);
 		}
 	}
@@ -392,8 +391,7 @@ public class GetXForm {
 			gSurveyClass = surveyClass;
 		}
 		if (firstForm != null) {
-			populateForm(sd, outputDoc, bodyElement, BODY, firstForm); // Process the top level
-																		// form
+			populateForm(sd, outputDoc, bodyElement, BODY, firstForm); // Process the top level form
 		}
 
 		parent.appendChild(bodyElement);
@@ -474,7 +472,7 @@ public class GetXForm {
 		/*
 		 * Add the questions from the template
 		 */
-		List<Question> questions = f.getQuestions(sd, f.getPath(null));
+		List<Question> questions = f.getQuestions(sd, f.getPath(null, refName));
 		for (Question q : questions) {
 			
 			// Backward compatability - Ignore Meta  questions 
@@ -504,6 +502,26 @@ public class GetXForm {
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 
 					Form subForm = template.getSubForm(f, q);
+					
+					String refValue = q.getParameterValue("ref");
+					if(refName == null && refValue != null) {
+						System.out.println("Reference repeat $$$$$$$$$$$$$$$$$$$ " + q.getName());
+						
+						refName = subForm.getPath(null, null);		// In reference repeat
+						// If this Form is to be populated by instance data then create the reference
+						Element formElement_template_ref = outputDoc.createElement(subForm.getName() + "_ref");
+						
+						if (modelInstanceOnly) {
+							formElement_template_ref.setAttribute("template", ""); // The model requires a local name only
+						} else {
+							formElement_template_ref.setAttribute("jr:template", "");
+						}
+						
+						populateForm(sd, outputDoc, formElement_template_ref, INSTANCE, subForm);
+						currentParent.appendChild(formElement_template_ref);
+						
+						refName = null;		// Out of reference repeat
+					}
 
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
@@ -533,7 +551,7 @@ public class GetXForm {
 					// Add a dummy instance element for the table list labels if this is a table
 					// list question
 					if (q.isTableList) {
-						Element labelsElement = getTableListLabelsElement(sd, outputDoc, f, q, f.getPath(null));
+						Element labelsElement = getTableListLabelsElement(sd, outputDoc, f, q, f.getPath(null, refName));
 						currentParent.appendChild(labelsElement);
 					}
 
@@ -556,29 +574,41 @@ public class GetXForm {
 				// if(subForm != null) {
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 
+					Form subForm = template.getSubForm(f, q);
+					
+					String refValue = q.getParameterValue("ref");
+					if(refName == null && refValue != null) {
+						System.out.println("Reference repeat in bind @@@@@@@@@@@@@@@@@@ " + q.getName());
+						refName = f.getPath(null, null) + "/" + q.getName();		// Inside reference repeat
+						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
+						currentParent.appendChild(questionElement);
+						populateForm(sd, outputDoc, currentParent, BIND, subForm);
+						refName = null;		// Outside the reference repeat
+					}
+					
 					// Apply bind for repeat question
-					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
+					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
 					currentParent.appendChild(questionElement);
 
 					// Process sub form
-					Form subForm = template.getSubForm(f, q);
+					
 					populateForm(sd, outputDoc, currentParent, BIND, subForm);
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
-						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), true);
+						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), true);
 						currentParent.appendChild(questionElement);
 					}
 
 				} else if (q.getType().equals("begin group")) {
 
-					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
+					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
 					currentParent.appendChild(questionElement);
 
 				} else if (q.getType().equals("end group")) {
 
 				} else {
 
-					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
+					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
 					currentParent.appendChild(questionElement);
 
 				}
@@ -588,6 +618,39 @@ public class GetXForm {
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 					Form subForm = template.getSubForm(f, q);
 
+					String refValue = q.getParameterValue("ref");
+					if(refName == null && refValue != null) {
+						System.out.println("Reference repeat in body ################## " + q.getName());
+						
+						refName = f.getPath(null, null) + "/" + q.getName();	// inside reference repeat
+						Element groupElement = outputDoc.createElement("group");
+						currentParent.appendChild(groupElement);
+						
+						Element labelElement = outputDoc.createElement("label");
+						
+						// TODO - replace this with a parameter value
+						String labelRef = q.getQTextId();
+						if (labelRef != null && !labelRef.trim().isEmpty()) {
+							String label = "jr:itext('" + labelRef + "')";
+							labelElement.setAttribute("ref", label);
+						}
+						groupElement.appendChild(labelElement);
+						
+						Element repeatElement = outputDoc.createElement("repeat");
+						repeatElement.setAttribute("nodeset", subForm.getPath(null, refName));
+						
+						// Add appearance
+						String appearance = q.getAppearance(true, template.getQuestionPaths());
+						if (appearance != null) {
+							repeatElement.setAttribute("appearance", appearance);
+						}
+						//repeatElement.setAttribute("jr:noAddRemove", "true()");
+						groupElement.appendChild(repeatElement);
+						populateForm(sd, outputDoc, repeatElement, BODY, subForm);
+						
+						refName = null;		// outside reference repeat
+					}
+					
 					Element groupElement = outputDoc.createElement("group");
 					currentParent.appendChild(groupElement);
 
@@ -601,7 +664,7 @@ public class GetXForm {
 					groupElement.appendChild(labelElement);
 
 					Element repeatElement = outputDoc.createElement("repeat");
-					repeatElement.setAttribute("nodeset", subForm.getPath(null));
+					repeatElement.setAttribute("nodeset", subForm.getPath(null, refName));
 
 					// Add appearance
 					String appearance = q.getAppearance(true, template.getQuestionPaths());
@@ -622,7 +685,7 @@ public class GetXForm {
 				} else { // Add question to output
 					if (q.isVisible() || qType.equals("begin group")) {
 
-						questionElement = populateBodyQuestion(sd, outputDoc, f, q, f.getPath(null), useNodesets);
+						questionElement = populateBodyQuestion(sd, outputDoc, f, q, f.getPath(null, refName), useNodesets);
 						currentParent.appendChild(questionElement);
 
 					}
@@ -643,50 +706,12 @@ public class GetXForm {
 
 					// Add table list labels
 					if (q.isTableList) {
-						Element labelsElement = populateTableListLabels(sd, outputDoc, f, q, f.getPath(null));
+						Element labelsElement = populateTableListLabels(sd, outputDoc, f, q, f.getPath(null, refName));
 						currentParent.appendChild(labelsElement);
 					}
 				}
 			}
 		}
-	}
-
-	/*
-	 * Populate a repeating group
-	 */
-	public void createRepeatingGroup(Connection sd, Document outputXML, Element parent, Form subF, int location,
-			String parentXPath, Question parentQuestion) throws Exception {
-
-		if (location == INSTANCE) {
-
-			Element subFormParent = outputXML.createElement(parentQuestion.getName());
-			populateForm(sd, outputXML, subFormParent, location, subF);
-			parent.appendChild(subFormParent);
-
-		} else if (location == BIND) {
-
-			populateForm(sd, outputXML, parent, location, subF);
-
-		} else { // BODY
-
-			Element subFormParent = outputXML.createElement("group");
-			subFormParent.setAttribute("ref", subF.getPath(null));
-
-			// TODO Sets the repeat label to the parent question
-			Element labelElement = outputXML.createElement("label");
-			String jrRef = "jr:itext('" + parentQuestion.getQTextId() + "')";
-			labelElement.setTextContent(jrRef);
-			subFormParent.appendChild(labelElement);
-
-			Element repeatElement = outputXML.createElement("repeat");
-			repeatElement.setAttribute("nodeset", subF.getPath(null));
-			subFormParent.appendChild(repeatElement);
-
-			populateForm(sd, outputXML, repeatElement, location, subF);
-			parent.appendChild(subFormParent);
-
-		}
-
 	}
 
 	/*
@@ -764,17 +789,9 @@ public class GetXForm {
 			}
 			
 			// Add bind parameters
-			String parameters = q.getParameters();
-			if (parameters != null && parameters.trim().length() > 0) {
-				String[] pArray = parameters.split(" ");
-				for(int i = 0; i < pArray.length; i++) {
-					String[] px = pArray[i].split("=");
-					if(px.length == 2) {
-						if(px[0].trim().equals("max-pixels")) {
-							questionElement.setAttribute("orx:max-pixels", px[1].trim());
-						} 
-					}	
-				}
+			String pixelParam = q.getParameterValue("max-pixels");
+			if(pixelParam != null) {
+				questionElement.setAttribute("orx:max-pixels", pixelParam);
 			}
 		}
 
@@ -1010,7 +1027,7 @@ public class GetXForm {
 			throws Exception {
 
 		Element labelsElement = null;
-		List<Question> questions = f.getQuestions(sd, f.getPath(null));
+		List<Question> questions = f.getQuestions(sd, f.getPath(null, refName));
 		boolean inGroup = false;
 		for (Question qx : questions) {
 			if (qx.getType().equals("begin group") && qx.getName().equals(q.getName())) {
@@ -1041,7 +1058,7 @@ public class GetXForm {
 			throws Exception {
 
 		Element labelsElement = null;
-		List<Question> questions = f.getQuestions(sd, f.getPath(null));
+		List<Question> questions = f.getQuestions(sd, f.getPath(null, refName));
 		boolean inGroup = false;
 		for (Question qx : questions) {
 			if (qx.getType().equals("begin group") && qx.getName().equals(q.getName())) {
@@ -1414,7 +1431,7 @@ public class GetXForm {
 			keyColumnName = key;
 			type = "string";
 		} else {
-			List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null));
+			List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null, refName));
 			for (int i = 0; i < questions.size(); i++) {
 				Question q = questions.get(i);
 				if (q.getName().toLowerCase().trim().equals(key)) {
@@ -1498,7 +1515,7 @@ public class GetXForm {
 
 		List<Results> record = new ArrayList<Results>();
 
-		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		List<Question> questions = form.getQuestions(sd, form.getPath(null, refName));
 		for (Question q : questions) {
 
 			String qName = q.getName();
@@ -1711,7 +1728,7 @@ public class GetXForm {
 			}
 		}
 		
-		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		List<Question> questions = form.getQuestions(sd, form.getPath(null, refName));
 		for (Question q : questions) {
 			String col = null;
 
@@ -1925,7 +1942,16 @@ public class GetXForm {
 		if (key.equals("the_geom")) {
 			key = fId + key;
 		}
-		return paths.get(key);
+		
+		String value = paths.get(key);
+		if(refName != null) {		// We are inside a reference repeat
+			if(value.indexOf(refName + "_ref") < 0) { 
+				value = value.replaceFirst(refName, refName + "_ref");
+			}
+		}
+		
+		System.out.println("Get question reference: " + refName + " : " + value);
+		return value;
 	}
 	
 	/*

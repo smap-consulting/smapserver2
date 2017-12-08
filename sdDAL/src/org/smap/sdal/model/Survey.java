@@ -199,7 +199,6 @@ public class Survey {
 	public void write(Connection sd, Connection cRel, ResourceBundle localisation, 
 			String userIdent, HashMap<String, String> groupForms) throws Exception {
 		
-		System.out.println("Writing a new survey to group: " + groupSurveyId);
 		try {
 			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
