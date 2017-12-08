@@ -2,9 +2,7 @@ package org.smap.server.utilities;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
-import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.Writer;
@@ -250,7 +248,6 @@ public class GetXForm {
 			throws SQLException {
 
 		Survey s = template.getSurvey();
-		enableTranslationElements(sd, firstForm); // Enable the translations that are actually used
 
 		HashMap<String, HashMap<String, HashMap<String, Translation>>> translations = template.getTranslations();
 		// Write the translation objects
@@ -272,70 +269,68 @@ public class GetXForm {
 
 					Translation trans = (Translation) itrT.next();
 
-					if (trans.getEnabled()) {
-
-						if (languageElement == null) {
-							languageElement = outputDoc.createElement("translation");
-							languageElement.setAttribute("lang", trans.getLanguage());
-							if (s.getDefLang() != null && s.getDefLang().equals(trans.getLanguage())) {
-								languageElement.setAttribute("default", "true()"); // set default language
-							}
-							parent.appendChild(languageElement);
+					if (languageElement == null) {
+						languageElement = outputDoc.createElement("translation");
+						languageElement.setAttribute("lang", trans.getLanguage());
+						if (s.getDefLang() != null && s.getDefLang().equals(trans.getLanguage())) {
+							languageElement.setAttribute("default", "true()"); // set default language
 						}
-
-						if (textElement == null) {
-							textElement = outputDoc.createElement("text");
-							textElement.setAttribute("id", trans.getTextId());
-							languageElement.appendChild(textElement);
-						}
-
-						Element valueElement = outputDoc.createElement("value");
-
-						/*
-						 * Add the translation XML fragment to the output
-						 */
-						String type = trans.getType().trim();
-						Document xfragDoc;
-						if (type.equals("image") || type.equals("video") || type.equals("audio")) {
-							String base = type;
-							if (type.equals("image")) {
-								base = "images";
-							}
-							String fileLocn = trans.getValue(); // Location of file on disk, only file name is used by
-																// fieldTask
-							String filename = "";
-							if (fileLocn != null) {
-								int idx = fileLocn.lastIndexOf('/');
-								if (idx > 0) {
-									filename = fileLocn.substring(idx + 1);
-								} else {
-									filename = fileLocn;
-								}
-							}
-
-							valueElement.setTextContent("jr://" + base + "/" + filename);
-
-						} else {
-							// The text could be an xml fragment
-							try {
-
-								String v = trans.getValueXML(template.getQuestionPaths(), 0);
-								// valueElement.setTextContent(v);
-								xfragDoc = builder.parse(new InputSource(new StringReader(v)));
-								Element rootFrag = xfragDoc.getDocumentElement();
-								addXmlFrag(outputDoc, valueElement, rootFrag);
-
-							} catch (Exception e) {
-								e.printStackTrace();
-							}
-						}
-
-						if (!type.equals("none")) {
-							valueElement.setAttribute("form", type);
-						}
-
-						textElement.appendChild(valueElement);
+						parent.appendChild(languageElement);
 					}
+
+					if (textElement == null) {
+						textElement = outputDoc.createElement("text");
+						textElement.setAttribute("id", trans.getTextId());
+						languageElement.appendChild(textElement);
+					}
+
+					Element valueElement = outputDoc.createElement("value");
+
+					/*
+					 * Add the translation XML fragment to the output
+					 */
+					String type = trans.getType().trim();
+					Document xfragDoc;
+					if (type.equals("image") || type.equals("video") || type.equals("audio")) {
+						String base = type;
+						if (type.equals("image")) {
+							base = "images";
+						}
+						String fileLocn = trans.getValue(); // Location of file on disk, only file name is used by
+															// fieldTask
+						String filename = "";
+						if (fileLocn != null) {
+							int idx = fileLocn.lastIndexOf('/');
+							if (idx > 0) {
+								filename = fileLocn.substring(idx + 1);
+							} else {
+								filename = fileLocn;
+							}
+						}
+
+						valueElement.setTextContent("jr://" + base + "/" + filename);
+
+					} else {
+						// The text could be an xml fragment
+						try {
+
+							String v = trans.getValueXML(template.getQuestionPaths(), 0);
+							// valueElement.setTextContent(v);
+							xfragDoc = builder.parse(new InputSource(new StringReader(v)));
+							Element rootFrag = xfragDoc.getDocumentElement();
+							addXmlFrag(outputDoc, valueElement, rootFrag);
+
+						} catch (Exception e) {
+							e.printStackTrace();
+						}
+					}
+
+					if (!type.equals("none")) {
+						valueElement.setAttribute("form", type);
+					}
+
+					textElement.appendChild(valueElement);
+					
 				}
 			}
 		}
@@ -349,87 +344,6 @@ public class GetXForm {
 		if (fragList != null) {
 			for (int i = 0; i < fragList.getLength(); i++) {
 				main.appendChild(outputDoc.importNode(fragList.item(i), true));
-			}
-		}
-	}
-
-	/*
-	 * Enable the translation elements if there is an enabled question that
-	 * references the element This function is required because not all questions in
-	 * a survey are enabled and it would be inefficient to download the iText for
-	 * disabled questions
-	 */
-	public void enableTranslationElements(Connection sd, Form f) throws SQLException {
-		if (firstForm != null && f != null) {
-
-			HashMap<String, HashMap<String, HashMap<String, Translation>>> translations = template.getTranslations();
-			Collection<HashMap<String, HashMap<String, Translation>>> c = translations.values();
-
-			List<Question> questions = f.getQuestions(sd, f.getPath(null));
-			for (Question q : questions) {
-
-				if (q.getEnabled()) {
-					String labelRef = q.getQTextId();
-					String hintRef = q.getInfoTextId();
-
-					enableTranslationRef(c, labelRef);
-					enableTranslationRef(c, hintRef);
-
-					// If this is a choice question, add the items
-					if (q.getType().startsWith("select")) {
-						Collection<Option> options = null;
-						if (embedExternalSearch) {
-							options = q.getValidChoices(sd);
-						} else {
-							options = q.getChoices(sd);
-						}
-						List<Option> optionList = new ArrayList<Option>(options);
-
-						for (Option o : optionList) {
-							String oRef = o.getLabelId();
-							enableTranslationRef(c, oRef);
-						}
-					}
-
-					// If this is a repeating group then add the questions from the sub form
-					if (q.getType().equals("begin repeat") || q.getType().equals("geolinestring")
-							|| q.getType().equals("geopolygon")) {
-
-						Form subForm = template.getSubForm(f, q);
-						enableTranslationElements(sd, subForm);
-
-					}
-
-				} else {
-					log.info("----------Not enabled:" + q.getName());
-				}
-			}
-
-		}
-
-	}
-
-	/*
-	 * Enable the translation element for the provided reference
-	 */
-	public void enableTranslationRef(Collection<HashMap<String, HashMap<String, Translation>>> c, String ref) {
-		Iterator<HashMap<String, HashMap<String, Translation>>> itr = c.iterator();
-
-		if (ref != null) {
-			while (itr.hasNext()) { // Get each language
-				HashMap<String, HashMap<String, Translation>> l = itr.next(); // Single language
-				HashMap<String, Translation> types = l.get(ref); // Get the types for this string identifier
-
-				if (types != null) {
-					Collection<Translation> tCollection = types.values();
-					Iterator<Translation> itrT = tCollection.iterator();
-					while (itrT.hasNext()) { // Enable all types for this reference
-						Translation t = (Translation) itrT.next();
-						t.setEnabled(true);
-					}
-				} else {
-					log.info("Info. enableTranslationRef(): No types for:" + ref);
-				}
 			}
 		}
 	}
@@ -562,11 +476,6 @@ public class GetXForm {
 		 */
 		List<Question> questions = f.getQuestions(sd, f.getPath(null));
 		for (Question q : questions) {
-
-			// Skip questions that are not enabled
-			if (!q.getEnabled()) {
-				continue;
-			}
 			
 			// Backward compatability - Ignore Meta  questions 
 			if(GeneralUtilityMethods.isMetaQuestion(q.getName())) {

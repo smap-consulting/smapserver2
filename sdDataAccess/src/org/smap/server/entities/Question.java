@@ -343,10 +343,6 @@ public class Question {
 		return GeneralUtilityMethods.removeSurroundingWhiteSpace(parameters, '=');
 	}
 	
-	public boolean getEnabled() {		// deprecate
-		return true;
-	}
-	
 	public String getPath() {
 		
 		if(path != null) {
