@@ -83,6 +83,7 @@ public class XLSTemplateUploadManager {
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.\\+%,():/]*$");
 
 	Stack<String> groupStack = new Stack<String>();							// Keep track of groups
+	boolean inFieldList = false;												// Only some questions are allowed inside a field list
 	
 	boolean useDefaultLanguage = false;
 
@@ -700,6 +701,22 @@ public class XLSTemplateUploadManager {
 		
 		if(q.choice_filter != null) {
 			checkExpression(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
+		}
+		
+		// invalid question in field-list
+		if(inFieldList) {
+			if(q.type.equals("end group")) {
+				inFieldList = false;
+			} else if(q.type.equals("begin group") || q.type.equals("begin repeat")) {
+				String groupName = groupStack.pop();
+				throw XLSUtilities.getApplicationException(localisation, "tu_fl", rowNumber, "survey", q.type, groupName);
+			}
+		} else {
+			if(q.type.equals("begin group")) {
+				if(q.appearance != null && q.appearance.contains("field-list")) {
+					inFieldList = true;
+				}
+			}
 		}
 		
 	}
