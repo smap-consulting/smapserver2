@@ -172,7 +172,6 @@ public class Form implements Serializable {
 				value = value.replaceFirst(refName, refName + "_ref");
 			}
 		}
-		System.out.println("Get Form Path: " + refName + " : " + value);
 		return value;
 	}
 	

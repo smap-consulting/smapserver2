@@ -527,25 +527,26 @@ public class SubRelationalDB extends Subscriber {
 			} else {
 				// Check to see this submission was set to update an existing record with new data
 
-
-				if(updateId != null) {
-					log.info("Existing unique id:" + updateId);
-					existingKey = getKeyFromId(cResults, topElement, updateId);
-				} else {		
-					existingKey = topElement.getKey(); 	// Old way of checking for updates - deprecate
-				}
-
-				if(existingKey != null) {
-					log.info("Existing key:" + existingKey);
-					ArrayList<Integer> existingKeys = new ArrayList<Integer>();
-					existingKeys.add(Integer.parseInt(existingKey));
-					replaceExistingRecord(cResults, 	// Mark the existing record as being replaced
-							cMeta, 
-							topElement,
-							existingKeys , 
-							keys.newKey, 
-							hasHrk,
-							sId);		
+				if(keyPolicy == null ||keyPolicy.equals("none")) {
+					if(updateId != null) {
+						log.info("Existing unique id:" + updateId);
+						existingKey = getKeyFromId(cResults, topElement, updateId);
+					} else {		
+						existingKey = topElement.getKey(); 	// Old way of checking for updates - deprecate
+					}
+	
+					if(existingKey != null) {
+						log.info("Existing key:" + existingKey);
+						ArrayList<Integer> existingKeys = new ArrayList<Integer>();
+						existingKeys.add(Integer.parseInt(existingKey));
+						replaceExistingRecord(cResults, 	// Mark the existing record as being replaced
+								cMeta, 
+								topElement,
+								existingKeys , 
+								keys.newKey, 
+								hasHrk,
+								sId);		
+					}
 				}
 			}
 
@@ -575,7 +576,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Apply the key policy
 			 */
-			if(hasHrk && existingKey == null && keyPolicy != null) {
+			if(hasHrk && existingKey == null && keyPolicy != null && !keyPolicy.equals("none")) {
 				if(keyPolicy.equals("add")) {
 					log.info("Apply add policy - no action");
 				} else if(keyPolicy.equals("merge")) {
@@ -965,6 +966,7 @@ public class SubRelationalDB extends Subscriber {
 				pstmtCols = cRel.prepareStatement(sqlCols);
 				pstmtCols.setString(1, table);
 				ResultSet rsCols = pstmtCols.executeQuery();
+				int count = 0;
 				while(rsCols.next()) {
 					String col = rsCols.getString(1);
 					String sqlGetTarget = "select " + col + " from " + table + " where prikey = ?";
@@ -984,7 +986,9 @@ public class SubRelationalDB extends Subscriber {
 							pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);
 							pstmtUpdateTarget.setInt(1, sourceKey);
 							pstmtUpdateTarget.setInt(2, prikey);
-							//log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+							if(count++ == 0) {		// Only log the first merge
+								log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+							}
 							pstmtUpdateTarget.executeUpdate();
 						}
 					}

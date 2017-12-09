@@ -644,7 +644,7 @@ public class GetXForm {
 						if (appearance != null) {
 							repeatElement.setAttribute("appearance", appearance);
 						}
-						//repeatElement.setAttribute("jr:noAddRemove", "true()");
+						repeatElement.setAttribute("jr:noAddRemove", "true()");
 						groupElement.appendChild(repeatElement);
 						populateForm(sd, outputDoc, repeatElement, BODY, subForm);
 						
@@ -755,7 +755,7 @@ public class GetXForm {
 
 		if (!count) {
 			// Add read only
-			if (q.isReadOnly() || q.getType().equals("note")) {
+			if (q.isReadOnly() || q.getType().equals("note") || refName != null) {	// Always add read only if this is a reference repeat
 				questionElement.setAttribute("readonly", "true()");
 			}
 
@@ -1792,19 +1792,25 @@ public class GetXForm {
 						record.add(new Results(mi.name, null, value, false, false, false, null));	
 					}
 				}
+				
 			}
 			for (Question q : questions) {
 
 				String qName = q.getName();
 				String qType = q.getType();
-				// String qPath = q.getPath();
 				String qSource = q.getSource();
 
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 					Form subForm = template.getSubForm(form, q);
 
 					if (subForm != null) {
-						record.add(new Results(qName, subForm, null, false, false, false, null));
+						String refValue = q.getParameterValue("ref");
+						if(refValue != null) {
+							subForm.setName(subForm.getName() + "_ref");
+							record.add(new Results(qName + "_ref", subForm, null, false, false, false, null));
+						} else {
+							record.add(new Results(qName, subForm, null, false, false, false, null));
+						}
 					}
 
 				} else if (qType.equals("begin group")) {
