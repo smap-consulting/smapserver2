@@ -5604,5 +5604,23 @@ public class GeneralUtilityMethods {
 		
 		return group;
 	}
+	
+	public static String getSurveyParameter(String param, String params) {
+		String value = null;
+		params = removeSurroundingWhiteSpace(params, '=');
+		if (params != null && params.trim().length() > 0) {
+			String[] pArray = params.split(" ");
+			for(int i = 0; i < pArray.length; i++) {
+				String[] px = pArray[i].split("=");
+				if(px.length == 2) {
+					if(px[0].trim().equals(param)) {
+						value = px[1].trim();
+						break;
+					} 
+				}	
+			}
+		}
+		return value;
+	}
 }
 

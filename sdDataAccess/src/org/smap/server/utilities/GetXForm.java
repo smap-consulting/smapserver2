@@ -503,7 +503,7 @@ public class GetXForm {
 
 					Form subForm = template.getSubForm(f, q);
 					
-					String refValue = q.getParameterValue("ref");
+					String refValue = GeneralUtilityMethods.getSurveyParameter("ref", q.getParameters());
 					if(refName == null && refValue != null) {
 						System.out.println("Reference repeat $$$$$$$$$$$$$$$$$$$ " + q.getName());
 						
@@ -576,7 +576,7 @@ public class GetXForm {
 
 					Form subForm = template.getSubForm(f, q);
 					
-					String refValue = q.getParameterValue("ref");
+					String refValue = GeneralUtilityMethods.getSurveyParameter("ref", q.getParameters());
 					if(refName == null && refValue != null) {
 						System.out.println("Reference repeat in bind @@@@@@@@@@@@@@@@@@ " + q.getName());
 						refName = f.getPath(null, null) + "/" + q.getName();		// Inside reference repeat
@@ -618,7 +618,7 @@ public class GetXForm {
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 					Form subForm = template.getSubForm(f, q);
 
-					String refValue = q.getParameterValue("ref");
+					String refValue = GeneralUtilityMethods.getSurveyParameter("ref", q.getParameters());
 					if(refName == null && refValue != null) {
 						System.out.println("Reference repeat in body ################## " + q.getName());
 						
@@ -789,7 +789,7 @@ public class GetXForm {
 			}
 			
 			// Add bind parameters
-			String pixelParam = q.getParameterValue("max-pixels");
+			String pixelParam = GeneralUtilityMethods.getSurveyParameter("max-pixels", q.getParameters());
 			if(pixelParam != null) {
 				questionElement.setAttribute("orx:max-pixels", pixelParam);
 			}
@@ -1266,7 +1266,7 @@ public class GetXForm {
 	}
 
 	/*
-	 * Get the instance data for an XForm as a string
+	 * Get the instance data for an XForm
 	 */
 	public String getInstance(int sId, String templateName, SurveyTemplate template, String key, String keyval,
 			int priKey, boolean simplifyMedia, boolean isWebForms) throws ParserConfigurationException, ClassNotFoundException,
@@ -1323,8 +1323,8 @@ public class GetXForm {
 			boolean hasData = false;
 			if (priKey > 0) {
 				hasData = true;
-				populateForm(outputXML, firstForm, priKey, -1, cResults, sd, template, null, sId, templateName, false,
-						simplifyMedia);
+				populateFormData(outputXML, firstForm, priKey, -1, cResults, sd, template, null, sId, templateName, false,
+						simplifyMedia, null, 0);
 			} else if (key != null && keyval != null) {
 				// Create a blank form containing only the key values
 				hasData = true;
@@ -1531,20 +1531,20 @@ public class GetXForm {
 				Form subForm = template.getSubForm(form, q);
 
 				if (subForm != null) {
-					record.add(new Results(qName, subForm, null, false, false, false, null));
+					record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters()));
 				}
 
 			} else if (qType.equals("begin group")) {
 
-				record.add(new Results(qName, null, null, true, false, false, null));
+				record.add(new Results(qName, null, null, true, false, false, null, q.getParameters()));
 
 			} else if (qType.equals("end group")) {
 
-				record.add(new Results(qName, null, null, false, true, false, null));
+				record.add(new Results(qName, null, null, false, true, false, null, q.getParameters()));
 
 			} else {
 
-				record.add(new Results(qName, null, value, false, false, false, null));
+				record.add(new Results(qName, null, value, false, false, false, null, null));
 			}
 		}
 
@@ -1602,13 +1602,13 @@ public class GetXForm {
 	 * 
 	 * @param outputDoc
 	 */
-	public void populateForm(Document outputDoc, Form form, int id, int parentId, Connection cResults, Connection sd,
+	public void populateFormData(Document outputDoc, Form form, int id, int parentId, Connection cResults, Connection sd,
 			SurveyTemplate template, Element parentElement, int sId, String survey_ident, boolean isFirstSubForm,
-			boolean simplifyMedia) throws SQLException {
+			boolean simplifyMedia, String order, int count) throws SQLException {
 
 		List<List<Results>> results = null;
 		if (GeneralUtilityMethods.tableExists(cResults, form.getTableName())) {
-			results = getResults(form, id, parentId, cResults, sd, template, simplifyMedia, sId); // Add the child elements
+			results = getResults(form, id, parentId, cResults, sd, template, simplifyMedia, sId, order, count); // Add the child elements
 		} else {
 			results = new ArrayList<List<Results>>(); // Create an empty list
 		}
@@ -1632,9 +1632,22 @@ public class GetXForm {
 				item = record.get(j);
 
 				if (item.subForm != null) {
+					count = 0;
+					order = GeneralUtilityMethods.getSurveyParameter("instance_order", item.parameters);
+					String c = GeneralUtilityMethods.getSurveyParameter("instance_count", item.parameters);
+
+					if(c != null) {
+						try {
+							count = Integer.parseInt(c);
+						} catch (Exception e) {
+							// ignore
+						}
+					}
+					System.out.println("Order: " + order);
+					System.out.println("Count: " + count);
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
-					populateForm(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
-							currentParent, sId, survey_ident, needTemplate, simplifyMedia);
+					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
+							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count);
 				} else if (item.begin_group) {
 					Element childElement = null;
 					childElement = outputDoc.createElement(item.name);
@@ -1649,10 +1662,6 @@ public class GetXForm {
 
 				} else { // Question
 
-					// Set some default values for task management questions
-					// if(item.name != null && item.name.equals("_task_key")) {
-					// item.value = priKey.value;
-					// } else
 					if (item.name != null && item.name.toLowerCase().equals("instanceid")) {
 						gInstanceId = item.value;
 					} else if (item.media && item.filename != null && !item.filename.equals("null")) {
@@ -1706,7 +1715,7 @@ public class GetXForm {
 	 * @param parentId
 	 */
 	List<List<Results>> getResults(Form form, int id, int parentId, Connection cResults, Connection sd,
-			SurveyTemplate template, boolean simplifyMedia, int sId) throws SQLException {
+			SurveyTemplate template, boolean simplifyMedia, int sId, String order, int count) throws SQLException {
 
 		List<List<Results>> output = new ArrayList<List<Results>>();
 
@@ -1760,6 +1769,16 @@ public class GetXForm {
 			sql.append(" where parkey=").append(parentId);
 		}
 		
+		if(order != null && order.equals("reverse")) {
+			sql.append(" order by prikey desc");
+		} else {
+			sql.append(" order by prikey asc");
+		}
+		
+		if(count > 0) {
+			sql.append(" limit ").append(count);
+		}
+		
 		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
 		log.info("Get data for instance XML: " + pstmt.toString());
 		ResultSet resultSet = pstmt.executeQuery();
@@ -1771,7 +1790,7 @@ public class GetXForm {
 			List<Results> record = new ArrayList<Results>();
 
 			String priKey = resultSet.getString(1);
-			record.add(new Results("prikey", null, priKey, false, false, false, null));
+			record.add(new Results("prikey", null, priKey, false, false, false, null, null));
 
 			/*
 			 * Add data for the remaining questions
@@ -1780,16 +1799,16 @@ public class GetXForm {
 
 			if(parentId <= 0) {
 				// Add Meta
-				record.add(new Results("meta", null, null, true, false, false, null));
-				record.add(new Results("instanceID", null, resultSet.getString(index++), false, false, false, null));	
-				record.add(new Results("instanceName", null, resultSet.getString(index++), false, false, false, null));	
-				record.add(new Results("meta_groupEnd", null, null, false, true, false, null));
+				record.add(new Results("meta", null, null, true, false, false, null, null));
+				record.add(new Results("instanceID", null, resultSet.getString(index++), false, false, false, null, null));	
+				record.add(new Results("instanceName", null, resultSet.getString(index++), false, false, false, null, null));	
+				record.add(new Results("meta_groupEnd", null, null, false, true, false, null, null));
 				
 				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
 						String value = resultSet.getString(index++);
-						record.add(new Results(mi.name, null, value, false, false, false, null));	
+						record.add(new Results(mi.name, null, value, false, false, false, null, null));	
 					}
 				}
 				
@@ -1804,22 +1823,22 @@ public class GetXForm {
 					Form subForm = template.getSubForm(form, q);
 
 					if (subForm != null) {
-						String refValue = q.getParameterValue("ref");
+						String refValue = GeneralUtilityMethods.getSurveyParameter("ref", q.getParameters());
 						if(refValue != null) {
 							subForm.setName(subForm.getName() + "_ref");
-							record.add(new Results(qName + "_ref", subForm, null, false, false, false, null));
+							record.add(new Results(qName + "_ref", subForm, null, false, false, false, null, q.getParameters()));
 						} else {
-							record.add(new Results(qName, subForm, null, false, false, false, null));
+							record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters()));
 						}
 					}
 
 				} else if (qType.equals("begin group")) {
 
-					record.add(new Results(qName, null, null, true, false, false, null));
+					record.add(new Results(qName, null, null, true, false, false, null, q.getParameters()));
 
 				} else if (qType.equals("end group")) {
 
-					record.add(new Results(qName, null, null, false, true, false, null));
+					record.add(new Results(qName, null, null, false, true, false, null, q.getParameters()));
 
 				} else if (qType.equals("select")) { // Get the data from all the option columns
 
@@ -1862,7 +1881,7 @@ public class GetXForm {
 
 					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, optValue,
 					// false, false, false, null));
-					record.add(new Results(qName, null, optValue, false, false, false, null));
+					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters()));
 
 				} else if (qType.equals("image") || qType.equals("audio") || qType.equals("video")) { // Get the file
 																										// name
@@ -1886,7 +1905,7 @@ public class GetXForm {
 					}
 					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
 					// false, false, false, filename));
-					record.add(new Results(qName, null, value, false, false, false, filename));
+					record.add(new Results(qName, null, value, false, false, false, filename, q.getParameters()));
 
 					if (q.isPublished()) {
 						index++;
@@ -1923,7 +1942,7 @@ public class GetXForm {
 
 					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
 					// false, false, false, null));
-					record.add(new Results(qName, null, value, false, false, false, null));
+					record.add(new Results(qName, null, value, false, false, false, null, q.getParameters()));
 
 					if (q.isPublished()) {
 						index++;

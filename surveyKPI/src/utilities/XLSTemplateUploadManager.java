@@ -138,8 +138,7 @@ public class XLSTemplateUploadManager {
 			}
 			if(settingsSheet != null) {
 				lastRowNumSettings = settingsSheet.getLastRowNum();
-			}
-			
+			}			
 
 			getHeaders();	// get headers and set the languages from them
 
@@ -440,9 +439,9 @@ public class XLSTemplateUploadManager {
 							if(parentFormIndex < 0) {
 								throw XLSUtilities.getApplicationException(localisation, "tu_eer", rowNumSurvey, "survey", null, null);
 							}
-							return;
+							return; 
 						}
-						
+							
 						// Update the survey manifest if csv files are referenced from the appearance and then the calculation
 						ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, survey.manifest);
 						mi = GeneralUtilityMethods.addManifestFromCalculate(q.calculation, mi.manifest);
@@ -562,7 +561,7 @@ public class XLSTemplateUploadManager {
 			if(q.name != null && q.name.trim().length() > 0) {
 				// Validate the provided group name against the current group
 				if(!q.name.equals(currentGroup)) {
-					throw XLSUtilities.getApplicationException(localisation, "tu_gm", rowNumSurvey, "survey", q.name, currentGroup);
+					throw XLSUtilities.getApplicationException(localisation, "tu_eeg", rowNumSurvey, "survey", q.name, currentGroup);
 				}			
 			} else {
 				// Set the name of the end group to its group
@@ -792,6 +791,13 @@ public class XLSTemplateUploadManager {
 			if(refs.size() > 0) {
 				settingsQuestionInSurvey(refs, "instance_name");
 			}
+		}
+		
+		// Validate groups
+		if(!groupStack.isEmpty()) {
+			String groupName = groupStack.pop();
+			Integer rowNumber = qNameMap.get(groupName);
+			throw XLSUtilities.getApplicationException(localisation, "tu_meg", rowNumber, "survey", groupName, null);
 		}
 	}
 

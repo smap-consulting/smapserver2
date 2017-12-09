@@ -343,24 +343,6 @@ public class Question {
 		return GeneralUtilityMethods.removeSurroundingWhiteSpace(parameters, '=');
 	}
 	
-	public String getParameterValue(String param) {
-		String value = null;
-		String params = getParameters();
-		if (params != null && params.trim().length() > 0) {
-			String[] pArray = params.split(" ");
-			for(int i = 0; i < pArray.length; i++) {
-				String[] px = pArray[i].split("=");
-				if(px.length == 2) {
-					if(px[0].trim().equals(param)) {
-						value = px[1].trim();
-						break;
-					} 
-				}	
-			}
-		}
-		return value;
-	}
-	
 	public String getPath() {
 		
 		if(path != null) {

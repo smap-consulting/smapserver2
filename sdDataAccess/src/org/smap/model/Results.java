@@ -10,8 +10,11 @@ public class Results {
 	public boolean end_group;
 	public boolean media;
 	public String filename;	// Filename of media
+	public String parameters;
 	
-	public Results (String n, Form f, String v, boolean bg, boolean eg, boolean m, String fn) {
+	public Results (String n, Form f, String v, boolean bg, boolean eg, boolean m, 
+			String fn,
+			String parameters) {
 		name = n;
 		subForm = f;
 		value = v;
@@ -19,5 +22,6 @@ public class Results {
 		end_group = eg;
 		media = m;
 		filename = fn;
+		this.parameters = parameters;
 	}
 }
