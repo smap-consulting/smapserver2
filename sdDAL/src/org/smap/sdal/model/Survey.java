@@ -73,6 +73,7 @@ public class Survey {
 	public int pId;
 	public boolean projectTasksOnly;
 	public int groupSurveyId;
+	public String groupSurveyDetails;
 	
 	// Getters
 	public int getId() {return id;}; 

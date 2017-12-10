@@ -4400,7 +4400,7 @@ public class GeneralUtilityMethods {
 			pstmt = cRel.prepareStatement(sql);
 			pstmt.setString(1, tablename);
 			pstmt.setString(2, columnName);
-			log.info("SQL: " + pstmt.toString());
+			//log.info("SQL: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {

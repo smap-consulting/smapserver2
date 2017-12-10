@@ -413,8 +413,9 @@ public class AllAssignments extends Application {
 						+ "p_id, "
 						+ "address_params,"
 						+ "rule,"
-						+ "source_s_id) "
-						+ "values (?, ?, ?, ?, ?);";
+						+ "source_s_id,"
+						+ "target_s_id) "
+						+ "values (?, ?, ?, ?, ?, ?);";
 
 				pstmtTaskGroup = connectionSD.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
 				pstmtTaskGroup.setString(1, as.task_group_name);
@@ -422,6 +423,7 @@ public class AllAssignments extends Application {
 				pstmtTaskGroup.setString(3, addressParams);
 				pstmtTaskGroup.setString(4, settings);
 				pstmtTaskGroup.setInt(5, as.source_survey_id);
+				pstmtTaskGroup.setInt(6, as.target_survey_id);
 				log.info("Insert into task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 

@@ -735,7 +735,7 @@ public class UtilityMethodsEmail {
 					pstmt.setString(4, "none");
 					//pstmt.setString(5, GeneralUtilityMethods.convertAllxlsNames(l.text, sId, sd, true));
 					pstmt.setString(5, l.text);		// rmpath
-					log.info("Set text label: " + pstmt.toString());
+					// log.info("Set text label: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -745,7 +745,7 @@ public class UtilityMethodsEmail {
 					pstmt.setString(4, "none");
 					//pstmt.setString(5, GeneralUtilityMethods.convertAllxlsNames(l.hint, sId, sd, true));
 					pstmt.setString(5, l.hint);		// rmpath
-					log.info("Set hint label: " + pstmt.toString());
+					// log.info("Set hint label: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -754,7 +754,7 @@ public class UtilityMethodsEmail {
 					pstmt.setString(3, textId + ":label");
 					pstmt.setString(4, "image");
 					pstmt.setString(5, l.image);
-					log.info("Set image label: " + pstmt.toString());
+					// log.info("Set image label: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -763,7 +763,7 @@ public class UtilityMethodsEmail {
 					pstmt.setString(3, textId + ":label");
 					pstmt.setString(4, "video");
 					pstmt.setString(5, l.video);
-					log.info("Set video label: " + pstmt.toString());
+					// log.info("Set video label: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				
@@ -772,7 +772,7 @@ public class UtilityMethodsEmail {
 					pstmt.setString(3, textId + ":label");
 					pstmt.setString(4, "audio");
 					pstmt.setString(5, l.audio);
-					log.info("Set audio label: " + pstmt.toString());
+					// log.info("Set audio label: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 				

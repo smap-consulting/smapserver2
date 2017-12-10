@@ -443,6 +443,7 @@ public class UploadFiles extends Application {
 		String type = null;			// xls or xlsx or xml
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();
+		String action = null;
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -501,6 +502,10 @@ public class UploadFiles extends Application {
 						}
 						log.info("Add to survey group: " + surveyId);
 						
+					} else if(item.getFieldName().equals("action")) {						
+						action = item.getString();
+						log.info("Action: " + action);
+						
 					} else {
 						log.info("Unknown field name = "+item.getFieldName()+", Value = "+item.getString());
 					}
@@ -508,6 +513,12 @@ public class UploadFiles extends Application {
 					fileItem = (FileItem) item;
 				}
 			} 
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
 			
 			// Get the file type from its extension
 			fileName = fileItem.getName();
@@ -520,10 +531,25 @@ public class UploadFiles extends Application {
 			} else {
 				throw new ApplicationException("Unknown file type. Only xls, xlsx and xml are supported");
 			}
+			
+			SurveyManager sm = new SurveyManager(localisation);
+			Survey existingSurvey = null;
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			
+			if(action == null) {
+				action = "add";
+			} else if(action.equals("replace")) {
+				existingSurvey = sm.getById(sd, cResults, user, surveyId, 
+						false, basePath, null, false, false, false, 
+						false, false, null, false, false, superUser, 0, null);
+				displayName = existingSurvey.displayName;
+				
+				System.out.println("REplacing existing survey with name: " + displayName);
+			}
 
 			// If the survey display name already exists on this server, for this project, then throw an error		
-			SurveyManager sm = new SurveyManager(localisation);
-			if(sm.surveyExists(sd, displayName, projectId)) {
+
+			if(!action.equals("replace") && sm.surveyExists(sd, displayName, projectId)) {
 				throw new ApplicationException("Survey " + displayName + " already exists in this project");
 			} else if(type.equals("xls") || type.equals("xlsx")) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager();
@@ -541,13 +567,36 @@ public class UploadFiles extends Application {
 				HashMap<String, String> groupForms = null;
 				if(surveyId > 0) {
 					groupForms = sm.getGroupForms(sd, surveyId);
-					s.groupSurveyId = surveyId;
+					if(!action.equals("replace")) {
+						s.groupSurveyId = surveyId;
+					} else {
+						// Set the group survey id to the same value as the original survey
+						s.groupSurveyId = existingSurvey.groupSurveyId;
+					}
 				}
 				
 				/*
 				 * Save the survey
 				 */
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
+				
+				if(action.equals("replace")) {
+					/*
+					 * Soft delete the old survey
+					 * Set task groups to use the new survey
+					 */
+					System.out.println("Replacing survey: " + surveyId + " with survey " + s.id);
+					sm.delete(sd, 
+							cResults, 
+							surveyId, 
+							false,		// soft 
+							false,		// Do not delete the data 
+							user, 
+							basePath,
+							"no",
+							s.id);		// Do not delete the tables
+				}
+				
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();

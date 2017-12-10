@@ -938,6 +938,10 @@ public class XLSTemplateUploadManager {
 			out = "username";
 		} else if (type.equals("email")) {
 			out = "email";
+		} else if (type.equals("hidden value")) {	// Commcare 
+			out = "calculate";
+		} else if (type.equals("label")) {			// Commcare 
+			out = "note";
 		}
 				
 		return out;

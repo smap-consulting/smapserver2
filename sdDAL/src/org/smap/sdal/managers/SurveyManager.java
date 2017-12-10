@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.sdal.managers;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -27,14 +28,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Savepoint;
 import java.sql.Statement;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
@@ -83,11 +89,20 @@ public class SurveyManager {
 			boolean getDeleted, 
 			boolean getBlocked,
 			int projectId,			// Set to 0 to get all surveys regardless of project
-			boolean superUser
+			boolean superUser,
+			boolean onlyGroup,		// Only get surveys that are available to be used as groups
+			boolean getGroupDetails
 			) throws SQLException {
 
 		ArrayList<Survey> surveys = new ArrayList<Survey>();	// Results of request
 
+
+		StringBuffer sqlGetGroupDetails = new StringBuffer("select p.name, s.display_name "
+				+ "from survey s, project p "
+				+ "where s.p_id = p.id "
+				+ "and s.s_id = ?");
+		PreparedStatement pstmtGetGroupDetails = null;
+		
 		ResultSet resultSet = null;
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
@@ -103,7 +118,7 @@ public class SurveyManager {
 		if(!superUser) {					// Add RBAC
 			sql.append(GeneralUtilityMethods.getSurveyRBAC());
 		}
-
+		
 		// only return surveys in the users organisation unit + assigned project id 
 		// If a specific valid project id was passed then restrict surveys to that project as well
 
@@ -115,6 +130,9 @@ public class SurveyManager {
 		} 
 		if(!getBlocked) {
 			sql.append("and s.blocked = 'false'");
+		}
+		if(onlyGroup) {
+			sql.append("and s.group_survey_id = 0");
 		}
 		sql.append("order BY s.display_name;");
 
@@ -130,26 +148,39 @@ public class SurveyManager {
 		log.info("Get surveys: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		while (resultSet.next()) {						
-
-			Survey s = new Survey();
-			s.setId(resultSet.getInt(1));
-			//s.setName(resultSet.getString(2));
-			s.setDisplayName(resultSet.getString(3));
-			s.setDeleted(resultSet.getBoolean(4));
-			s.setBlocked(resultSet.getBoolean(5));
-			s.setIdent(resultSet.getString(6));
-			s.setManagedId(resultSet.getInt(7));
-			s.setVersion(resultSet.getInt(8));
-			s.setLoadedFromXLS(resultSet.getBoolean(9));
-			s.setProjectName(resultSet.getString(10));
-			s.setProjectId(resultSet.getInt(11));
-			s.setProjectTasksOnly(resultSet.getBoolean(12));
-			s.groupSurveyId = resultSet.getInt(13);
-
-
-			surveys.add(s);
-		} 
+		try {
+			pstmtGetGroupDetails = sd.prepareStatement(sqlGetGroupDetails.toString());
+			
+			while (resultSet.next()) {						
+	
+				Survey s = new Survey();
+				s.setId(resultSet.getInt(1));
+				//s.setName(resultSet.getString(2));
+				s.setDisplayName(resultSet.getString(3));
+				s.setDeleted(resultSet.getBoolean(4));
+				s.setBlocked(resultSet.getBoolean(5));
+				s.setIdent(resultSet.getString(6));
+				s.setManagedId(resultSet.getInt(7));
+				s.setVersion(resultSet.getInt(8));
+				s.setLoadedFromXLS(resultSet.getBoolean(9));
+				s.setProjectName(resultSet.getString(10));
+				s.setProjectId(resultSet.getInt(11));
+				s.setProjectTasksOnly(resultSet.getBoolean(12));
+				s.groupSurveyId = resultSet.getInt(13);
+	
+				if(getGroupDetails && s.groupSurveyId > 0) {
+					pstmtGetGroupDetails.setInt(1, s.groupSurveyId);
+					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
+					if(rsGroup.next()) {
+						s.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
+					}
+				}
+	
+				surveys.add(s);
+			} 
+		} finally {
+			if(pstmtGetGroupDetails != null) {try{pstmtGetGroupDetails.close();}catch(Exception r) {}}
+		}
 		return surveys;
 
 	}
@@ -3297,6 +3328,216 @@ public class SurveyManager {
 		}
 		
 		return groupForms;
+	}
+	
+	public void restore(Connection sd, int sId, String user) throws SQLException {
+		
+		String sql = "update survey set deleted='false', last_updated_time = now() where s_id = ?;";	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			log.info(pstmt.toString());
+			pstmt.executeUpdate();
+			lm.writeLog(sd, sId, user, "restore", "Restore survey ");
+			log.info("userevent: " + user + " : un delete survey : " + sId);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	public void delete(Connection sd, 
+			Connection cRel, 
+			int sId, 
+			boolean hard, 
+			boolean delData, 
+			String user, 
+			String basePath,
+			String tables,
+			int newSurveyId		// If greater than 0 then this survey is being replaced
+			) throws SQLException, IOException {
+		
+		// Get the survey ident and name
+		String surveyIdent = null;
+		String surveyName = null;
+		String surveyDisplayName = null;
+		int projectId = 0;
+		
+		String sql = "select s.name, s.ident, s.display_name, s.p_id "
+				+ "from survey s "
+				+ "where s.s_id = ?";
+		PreparedStatement pstmtIdent = null;
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmtIdent = sd.prepareStatement(sql);
+			pstmtIdent.setInt(1, sId);
+			ResultSet resultSet = pstmtIdent.executeQuery();
+	
+			if (resultSet.next()) {		
+				surveyName = resultSet.getString("name");
+				surveyIdent = resultSet.getString("ident");
+				surveyDisplayName = resultSet.getString("display_name");
+				projectId = resultSet.getInt("p_id");
+			}
+	
+			/*
+			 * Delete the survey. Either a soft or a hard delete
+			 */
+			if(hard) {
+	
+				ServerManager sm = new ServerManager();
+				sm.deleteSurvey(
+						sd, 
+						cRel,
+						user,
+						projectId,
+						sId,
+						surveyIdent,
+						surveyDisplayName,
+						basePath,
+						delData,
+						tables);
+	
+			} else {
+	
+				// Add date and time to the display name
+				DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
+				dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+				Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+				String newDisplayName = surveyDisplayName + " (" + dateFormat.format(cal.getTime()) + ")";
+	
+				// Update the "name"
+				String newName = null;
+				if(surveyName != null) {
+					int idx = surveyName.lastIndexOf('/');
+					newName = surveyName;
+					if(idx > 0) {
+						newName = surveyName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(newDisplayName) + ".xml";
+					}
+				}
+	
+				// Update the survey definition to indicate that the survey has been deleted
+				// Add the current date and time to the name and display name to ensure the deleted survey has a unique name 
+				sql = "update survey set " +
+						" deleted='true', " +
+						" last_updated_time = now(), " +
+						" name = ?, " +
+						" display_name = ? " +
+						"where s_id = ?;";	
+	
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, newName);
+				pstmt.setString(2, newDisplayName);
+				pstmt.setInt(3, sId);
+				log.info("Soft delete survey: " + pstmt.toString());
+				pstmt.executeUpdate();
+	
+				lm.writeLog(sd, sId, user, "delete", "Soft Delete survey " + surveyDisplayName);
+				log.info("userevent: " + user + " : soft delete survey : " + sId);
+	
+				// Rename files
+				GeneralUtilityMethods.renameTemplateFiles(surveyDisplayName, newDisplayName, basePath, projectId, projectId);
+			}
+	
+			/*
+			 * Delete or update any panels that reference this survey
+			 */
+			if(newSurveyId == 0) {
+				sql = "delete from dashboard_settings where ds_s_id = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				log.info("Delete dashboard panels: " + pstmt.toString());
+				pstmt.executeUpdate();
+			} else {
+				sql = "update dashboard_settings set ds_s_id = ? where ds_s_id = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, sId);
+				log.info("Update dashboard panels: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+	
+	
+			/*
+			 * Delete any survey views that reference this survey
+			 */
+			sql = "delete from survey_view where s_id = ?;";	
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			log.info("Delete survey views: " + pstmt.toString());
+			pstmt.executeUpdate();
+	
+			/*
+			 * Delete or update any tasks that are to update this survey
+			 */
+			if(newSurveyId == 0) {
+				sql = "delete from tasks where form_id = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				log.info("Delete tasks: " + pstmt.toString());
+				pstmt.executeUpdate();
+			} else {
+				sql = "update tasks set form_id = ? where form_id = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, sId);
+				log.info("Update tasks: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+			/*
+			 * Delete or update any task group rules that are to update this survey
+			 */
+			if(newSurveyId == 0) {
+				sql = "update task_group "
+						+ "set rule = null, source_s_id = 0, target_s_id = 0 "
+						+ "where target_s_id = ? or source_s_id = ?";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				pstmt.setInt(2, sId);
+				log.info("Update task groups: " + pstmt.toString());
+				pstmt.executeUpdate();
+			} else {
+				
+				sql = "update task_group "
+						+ "set source_s_id = ?"
+						+ "where source_s_id = ?";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, sId);
+				log.info("Update task groups: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				sql = "update task_group "
+						+ "set target_s_id = ?"
+						+ "where target_s_id = ?";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, sId);
+				log.info("Update task groups: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+			
+			/*
+			 * Delete or update any notifications dependent on this survey
+			 */
+			
+		} finally {
+			try {if (pstmtIdent != null) {pstmtIdent.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
 	}
 	
 	private ArrayList<MetaItem> getLegacyMeta() {

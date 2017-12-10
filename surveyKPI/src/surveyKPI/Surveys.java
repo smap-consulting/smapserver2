@@ -95,13 +95,13 @@ public class Surveys extends Application {
 		
 	}
 
-	// JSON
 	@GET
 	@Produces("application/json")
 	public Response getSurveys(@Context HttpServletRequest request,
 			@QueryParam("deleted") boolean getDeleted,
 			@QueryParam("blocked")  boolean getBlocked,
-			@QueryParam("projectId") int projectId
+			@QueryParam("projectId") int projectId,
+			@QueryParam("groups") boolean groups
 			) { 
 		
 		// Authorisation - Access
@@ -111,7 +111,9 @@ public class Surveys extends Application {
 		} else {
 			aGet.isAuthorised(connectionSD, request.getRemoteUser());
 		}
-		aGet.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		if(projectId > 0) {
+			aGet.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		}
 		// End Authorisation
 		
 		ArrayList<org.smap.sdal.model.Survey> surveys = null;
@@ -132,7 +134,9 @@ public class Surveys extends Application {
 					getDeleted, 
 					getBlocked, 
 					projectId,
-					superUser);
+					superUser,
+					groups,
+					true);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(surveys);
 			response = Response.ok(resp).build();

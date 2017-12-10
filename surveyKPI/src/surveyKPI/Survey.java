@@ -884,160 +884,48 @@ public class Survey extends Application {
 
 		log.info("Deleting template:" + sId);
 
+		Connection cResults = null;
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(sd, request.getRemoteUser());
 		boolean surveyMustBeDeleted = undelete || hard;
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, surveyMustBeDeleted, superUser);  // Note if hard delete is set to true the survey should have already been soft deleted
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, surveyMustBeDeleted, superUser);  // Note if hard delete is set to true the survey should have already been soft deleted
 		// End Authorisation
 
 		if(sId != 0) {
-
-			String sql = null;				
-			Connection connectionRel = null; 
-			PreparedStatement pstmt = null;
-			PreparedStatement pstmtDelTem = null;
-			PreparedStatement pstmtIdent = null;
-
+			
 			try {
-				if(undelete) {
-					/*
-					 * Restore the survey
-					 */
-					sql = "update survey set deleted='false', last_updated_time = now() where s_id = ?;";	
-					log.info(sql + " : " + sId);
-					pstmt = connectionSD.prepareStatement(sql);
-					pstmt.setInt(1, sId);
-					pstmt.executeUpdate();
-					lm.writeLog(connectionSD, sId, request.getRemoteUser(), "restore", "Restore survey ");
-					log.info("userevent: " + request.getRemoteUser() + " : un delete survey : " + sId);
-
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				SurveyManager mgr = new SurveyManager(localisation);
+				
+				if(undelete) {				 
+					mgr.restore(sd, sId, request.getRemoteUser());	// Restore the survey
 				} else {
-
-					// Get the survey ident and name
-					String surveyIdent = null;
-					String surveyName = null;
-					String surveyDisplayName = null;
-					int projectId = 0;
-					sql = "SELECT s.name, s.ident, s.display_name, s.p_id " +
-							"FROM survey s " + 
-							"where s.s_id = ?;";
-
-					pstmtIdent = connectionSD.prepareStatement(sql);
-					pstmtIdent.setInt(1, sId);
-					log.info("Get survey name and ident: " + pstmtIdent.toString());
-					ResultSet resultSet = pstmtIdent.executeQuery();
-
-					if (resultSet.next()) {		
-						surveyName = resultSet.getString("name");
-						surveyIdent = resultSet.getString("ident");
-						surveyDisplayName = resultSet.getString("display_name");
-						projectId = resultSet.getInt("p_id");
-					}
-
-					/*
-					 * Delete the survey. Either a soft or a hard delete
-					 */
-					if(hard) {
-
-						connectionRel = ResultsDataSource.getConnection("surveyKPI-Survey");
-						String basePath = GeneralUtilityMethods.getBasePath(request);
-						ServerManager sm = new ServerManager();
-						sm.deleteSurvey(
-								connectionSD, 
-								connectionRel,
-								request.getRemoteUser(),
-								projectId,
-								sId,
-								surveyIdent,
-								surveyDisplayName,
-								basePath,
-								delData,
-								tables);
-
-					} else {
-
-						// Add date and time to the display name
-						DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd HH:mm:ss");
-						dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
-						Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
-						String newDisplayName = surveyDisplayName + " (" + dateFormat.format(cal.getTime()) + ")";
-
-						// Update the "name"
-						String newName = null;
-						if(surveyName != null) {
-							int idx = surveyName.lastIndexOf('/');
-							newName = surveyName;
-							if(idx > 0) {
-								newName = surveyName.substring(0, idx + 1) + GeneralUtilityMethods.convertDisplayNameToFileName(newDisplayName) + ".xml";
-							}
-						}
-
-						// Update the survey definition to indicate that the survey has been deleted
-						// Add the current date and time to the name and display name to ensure the deleted survey has a unique name 
-						sql = "update survey set " +
-								" deleted='true', " +
-								" last_updated_time = now(), " +
-								" name = ?, " +
-								" display_name = ? " +
-								"where s_id = ?;";	
-
-						pstmt = connectionSD.prepareStatement(sql);
-						pstmt.setString(1, newName);
-						pstmt.setString(2, newDisplayName);
-						pstmt.setInt(3, sId);
-						log.info("Soft delete survey: " + pstmt.toString());
-						pstmt.executeUpdate();
-
-						lm.writeLog(connectionSD, sId, request.getRemoteUser(), "delete", "Soft Delete survey " + surveyDisplayName);
-						log.info("userevent: " + request.getRemoteUser() + " : soft delete survey : " + sId);
-
-						// Rename files
-						String basePath = GeneralUtilityMethods.getBasePath(request);
-						GeneralUtilityMethods.renameTemplateFiles(surveyDisplayName, newDisplayName, basePath, projectId, projectId);
-					}
-
-					/*
-					 * Delete any panels that reference this survey
-					 */
-					sql = "delete from dashboard_settings where ds_s_id = ?;";	
-					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-					pstmt = connectionSD.prepareStatement(sql);
-					pstmt.setInt(1, sId);
-					log.info("Delete dashboard panels: " + pstmt.toString());
-					pstmt.executeUpdate();
-
-
-					/*
-					 * Delete any survey views that reference this survey
-					 */
-					sql = "delete from survey_view where s_id = ?;";	
-					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-					pstmt = connectionSD.prepareStatement(sql);
-					pstmt.setInt(1, sId);
-					log.info("Delete survey views: " + pstmt.toString());
-					pstmt.executeUpdate();
-
-					/*
-					 * Delete any tasks that are to update this survey
-					 */
-					sql = "delete from tasks where form_id = ?;";	
-					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-					pstmt = connectionSD.prepareStatement(sql);
-					pstmt.setInt(1, sId);
-					log.info("Delete tasks: " + pstmt.toString());
-					pstmt.executeUpdate();
-
+					cResults = ResultsDataSource.getConnection("surveyKPI-Survey");
+					String basePath = GeneralUtilityMethods.getBasePath(request);
+					
+					mgr.delete(sd, 
+							cResults, 
+							sId, 
+							hard, 
+							delData, 
+							request.getRemoteUser(), 
+							basePath,
+							tables,
+							0);
 				}
 				
 				// Record the message so that devices can be notified
 				MessagingManager mm = new MessagingManager();
-				mm.surveyChange(connectionSD, sId, 0);
+				mm.surveyChange(sd, sId, 0);
 
 			} catch (SQLException e) {
 				log.log(Level.SEVERE, "SQL Error", e);
@@ -1048,12 +936,9 @@ public class Survey extends Application {
 				return "Error: Failed to delete";
 
 			} finally {
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				try {if (pstmtDelTem != null) {pstmtDelTem.close();}} catch (SQLException e) {}
-				try {if (pstmtIdent != null) {pstmtIdent.close();}} catch (SQLException e) {}
 
-				SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
-				ResultsDataSource.closeConnection("surveyKPI-Survey", connectionRel);
+				SDDataSource.closeConnection("surveyKPI-Survey", sd);
+				ResultsDataSource.closeConnection("surveyKPI-Survey", cResults);
 			}
 		}
 

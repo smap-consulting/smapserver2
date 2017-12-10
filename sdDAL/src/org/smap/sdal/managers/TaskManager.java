@@ -76,7 +76,7 @@ public class TaskManager {
 	 */
 	public ArrayList<TaskGroup> getTaskGroups(Connection sd, int projectId) throws Exception {
 
-		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id "
+		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id "
 				+ "from task_group where p_id = ? order by tg_id asc;";
 		PreparedStatement pstmt = null;
 
@@ -132,6 +132,7 @@ public class TaskManager {
 				tg.p_id = rs.getInt(4);
 				tg.rule = rs.getString(5);
 				tg.source_s_id = rs.getInt(6);
+				tg.target_s_id = rs.getInt(7);
 
 				if(rsTotal.next()) {
 					int tg_id = rsTotal.getInt(1);
@@ -170,7 +171,7 @@ public class TaskManager {
 	 */
 	public TaskGroup getTaskGroupDetails(Connection sd, int tgId) throws Exception {
 
-		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id "
+		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id "
 				+ "from task_group where tg_id = ?;";
 		PreparedStatement pstmt = null;
 
@@ -193,6 +194,7 @@ public class TaskManager {
 				tg.p_id = rs.getInt(4);
 				tg.rule = rs.getString(5);
 				tg.source_s_id = rs.getInt(6);
+				tg.target_s_id = rs.getInt(7);
 
 			}
 
@@ -486,18 +488,18 @@ public class TaskManager {
 	 */
 	public void updateTasksForSubmission(Connection sd, 
 			Connection cResults,
-			int sId, 
+			int source_s_id, 
 			String hostname,
 			String instanceId,
 			int pId) throws Exception {
 
-		String sqlGetRules = "select tg_id, rule, address_params from task_group where source_s_id = ?;";
+		String sqlGetRules = "select tg_id, rule, address_params, target_s_id from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
 		try {
 
 			pstmtGetRules = sd.prepareStatement(sqlGetRules);
-			pstmtGetRules.setInt(1, sId);
+			pstmtGetRules.setInt(1, source_s_id);
 
 			ResultSet rs = pstmtGetRules.executeQuery();
 			while(rs.next()) {
@@ -509,8 +511,9 @@ public class TaskManager {
 				if(addressString != null) {
 					address = new Gson().fromJson(addressString, new TypeToken<ArrayList<TaskAddressSettings>>() {}.getType());
 				}
+				int target_s_id = rs.getInt(4);
 
-				log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + sId);	// For log
+				log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
 
 				/*
 				 * Check filter to see if this rule should be fired
@@ -520,7 +523,7 @@ public class TaskManager {
 				boolean fires = false;
 				String rule = null;
 
-				if(as.add_future  && as.source_survey_id != as.target_survey_id) {
+				if(as.add_future  && as.source_survey_id != target_s_id) {
 					if(as.filter != null) {
 						rule = testRule();		// TODO
 						if(rule != null) {
@@ -534,9 +537,10 @@ public class TaskManager {
 				}
 
 				if(fires) {
-					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + sId);
-					TaskInstanceData tid = getTaskInstanceData(sd, cResults, sId, instanceId, address); // Get data from new submission
-					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, sId, tid, instanceId);  // Write to the database
+					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id);
+					TaskInstanceData tid = getTaskInstanceData(sd, cResults, source_s_id, instanceId, address); // Get data from new submission
+					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, source_s_id, 
+							target_s_id, tid, instanceId);  // Write to the database
 				}
 			}
 
@@ -564,7 +568,8 @@ public class TaskManager {
 			String hostname,
 			int tgId,
 			int pId,
-			int sId,
+			int source_s_id,
+			int target_s_id,
 			TaskInstanceData tid,			// data from submission
 			String instanceId	
 			) throws Exception {
@@ -609,7 +614,7 @@ public class TaskManager {
 
 		try {
 
-			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, as.target_survey_id);
+			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
 			String geoType = null;
 			String sql = null;
@@ -654,13 +659,12 @@ public class TaskManager {
 			/*
 			 * Write the task to the database
 			 */
-
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 
 			pstmt.setInt(1, pId);
 			pstmt.setInt(2,  tgId);
 			pstmt.setString(3,  title);
-			pstmt.setInt(4, as.target_survey_id);
+			pstmt.setInt(4, target_s_id);
 			pstmt.setString(5, formUrl);
 			pstmt.setString(6, geoType);
 			pstmt.setString(7, location);
