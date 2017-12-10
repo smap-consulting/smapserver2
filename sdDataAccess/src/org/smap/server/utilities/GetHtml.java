@@ -377,7 +377,7 @@ public class GetHtml {
 		StringBuffer classVal = new StringBuffer("");
 
 		if (q.type.equals("note") || (q.type.equals("text") && q.readonly)) {
-			classVal.append("note");
+			classVal.append("note question non-select");
 		} else if (q.type.equals("begin group") || q.type.equals("begin repeat")) {
 			if (hasLabel(q)) {
 				classVal.append("or-group");
@@ -459,16 +459,28 @@ public class GetHtml {
 	}
 
 	/*
-	 * Process the main block of questions Preloads are only in the top level form
+	 * Process Calculations
 	 */
 	private void processCalculations(Element parent, Form form) throws Exception {
 
-		Element calculationLabel = null;
-		Element calculationInput = null;
 		Element bodyElement = outputDoc.createElement("fieldset");
 		bodyElement.setAttribute("style", "display:none;");
 		bodyElement.setAttribute("id", "or-calculated-items");
 
+		processCalculationQuestions(bodyElement, form);
+		
+		parent.appendChild(bodyElement);
+		
+	}
+	
+	/*
+	 * Process the questions in a form to get calculation elements
+	 */
+	private void processCalculationQuestions(Element bodyElement, Form form) throws DOMException, Exception {
+		
+		Element calculationLabel = null;
+		Element calculationInput = null;
+		
 		for (Question q : form.questions) {
 
 			String calculation = null;
@@ -499,10 +511,19 @@ public class GetHtml {
 				calculationInput.setAttribute("data-type-xml", "string"); // Always use string for calculate
 				calculationLabel.appendChild(calculationInput);
 			}
+			
+			// Process calculations in repeats
+			if (q.type.equals("begin repeat")) {
+				// Process sub form
+				for (Form subForm : survey.forms) {
+					if (subForm.parentQuestion == q.id) { // continue with next form
+						processCalculationQuestions(bodyElement, subForm);
+						break;
+					}
+				}
+			}
 
 		}
-		parent.appendChild(bodyElement);
-
 	}
 
 	/*

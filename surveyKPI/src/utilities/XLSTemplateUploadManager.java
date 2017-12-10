@@ -170,7 +170,7 @@ public class XLSTemplateUploadManager {
 			/*
 			 * 2. Process the survey sheet
 			 */
-			getForm("main", -1, -1);
+			getForm("main", -1, -1, null);
 			if(survey.forms.get(0).questions.size() == 0) {
 				throw new ApplicationException(localisation.getString("tu_nq"));
 			}
@@ -204,7 +204,7 @@ public class XLSTemplateUploadManager {
 				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
 				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
 				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum);
-				survey.key_policy = XLSUtilities.getTextColumn(row, "key policy", settingsHeader, lastCellNum);
+				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum);
 				
 				// Add row filters
 				if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
@@ -417,9 +417,10 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Process the question rows to create a form
 	 */
-	private void getForm(String name, int parentFormIndex, int parentQuestionIndex) throws Exception {
+	private void getForm(String name, int parentFormIndex, int parentQuestionIndex, String parameters) throws Exception {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
+		f.setReference(parameters);
 		survey.forms.add(f);
 		
 		int thisFormIndex = survey.forms.size() - 1;
@@ -452,7 +453,7 @@ public class XLSTemplateUploadManager {
 						f.questions.add(q);
 						
 						if(q.type.equals("begin repeat")) {
-							getForm(q.name, thisFormIndex, f.questions.size() - 1);
+							getForm(q.name, thisFormIndex, f.questions.size() - 1, q.parameters);
 						}
 					}
 				}

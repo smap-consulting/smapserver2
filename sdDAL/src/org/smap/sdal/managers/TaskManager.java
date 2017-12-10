@@ -523,7 +523,7 @@ public class TaskManager {
 				boolean fires = false;
 				String rule = null;
 
-				if(as.add_future  && as.source_survey_id != target_s_id) {
+				if(as.add_future  && source_s_id != target_s_id) {
 					if(as.filter != null) {
 						rule = testRule();		// TODO
 						if(rule != null) {
@@ -537,7 +537,8 @@ public class TaskManager {
 				}
 
 				if(fires) {
-					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id);
+					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
+							" task survey: " + target_s_id);
 					TaskInstanceData tid = getTaskInstanceData(sd, cResults, source_s_id, instanceId, address); // Get data from new submission
 					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, source_s_id, 
 							target_s_id, tid, instanceId);  // Write to the database

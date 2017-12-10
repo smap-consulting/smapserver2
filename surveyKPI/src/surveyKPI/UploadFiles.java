@@ -522,14 +522,17 @@ public class UploadFiles extends Application {
 			
 			// Get the file type from its extension
 			fileName = fileItem.getName();
-			if(fileName.endsWith(".xlsx")) {
+			System.out.println("Filename is: " + fileName);
+			if(fileName == null || fileName.trim().length() == 0) {
+				throw new ApplicationException(localisation.getString("tu_nfs"));
+			} else if(fileName.endsWith(".xlsx")) {
 				type = "xlsx";
 			} else if(fileName.endsWith(".xls")) {
 				type = "xls";
 			} else if(fileName.endsWith(".xml")) {
 				throw new ApplicationException("XML files not supported yet");
 			} else {
-				throw new ApplicationException("Unknown file type. Only xls, xlsx and xml are supported");
+				throw new ApplicationException(localisation.getString("tu_uft"));
 			}
 			
 			SurveyManager sm = new SurveyManager(localisation);

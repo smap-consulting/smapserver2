@@ -398,8 +398,9 @@ public class Survey {
 				+ "f_id, "
 				+ "s_id, "
 				+ "name, "
-				+ "table_name) "
-				+ "values (nextval('f_seq'), ?, ?, ?);";
+				+ "table_name,"
+				+ "reference) "
+				+ "values (nextval('f_seq'), ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -415,10 +416,18 @@ public class Survey {
 				}
 				
 				if(tableName == null) {
-					tableName = "s" + id + "_" + GeneralUtilityMethods.cleanName(f.name, true, false, false);
+					String formName = null;
+					if(f.reference) {
+						formName = GeneralUtilityMethods.cleanName(f.referenceName, true, false, false);
+					} else {
+						formName = GeneralUtilityMethods.cleanName(f.name, true, false, false);
+					}					
+					tableName = "s" + id + "_" + formName;					
 				}
+				
 				pstmt.setString(2, f.name);
 				pstmt.setString(3, tableName);
+				pstmt.setBoolean(4, f.reference);
 				pstmt.executeUpdate();
 
 				ResultSet rs = pstmt.getGeneratedKeys();

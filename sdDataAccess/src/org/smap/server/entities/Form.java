@@ -65,6 +65,8 @@ public class Form implements Serializable {
 	
 	private String parentQuestionRef = null;
 	
+	private boolean reference = false;
+	
 	public int qSeq = 0;		// Used to store current sequence while saving a forms questions
 	/*
 	 * Constructor
@@ -182,6 +184,10 @@ public class Form implements Serializable {
 		}
 		return v;
 	}
+	
+	public boolean getReference() {
+		return reference;
+	}
 
 	public void setId(int value) {
 		f_id = value;
@@ -234,6 +240,10 @@ public class Form implements Serializable {
 	
 	public void setRelativePath(String v) {			// Path to this form within its parent form
 		relativePath = v;
+	}
+	
+	public void setReference(boolean v) {
+		reference = v;
 	}
 	
 	private String calculateFormPath(String name, Form currentForm, List <Form> forms) {

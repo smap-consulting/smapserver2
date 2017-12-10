@@ -781,6 +781,17 @@ public class Question {
 		 return po;
 	 }
 	 
+	 public boolean isReference() {
+		 boolean value = false;
+		 if(parameters != null) {
+			 String refValue = GeneralUtilityMethods.getSurveyParameter("ref", getParameters());
+			 if(refValue != null && refValue.equals("yes")) {
+				 value = true;
+			 }
+		 }
+		 return value;
+	 }
+	 
 	 private Collection<Option> loadChoices(Connection sd) throws SQLException {
 		 if(choices == null) {
 				//PersistenceContext pc = new PersistenceContext("pgsql_jpa");
@@ -810,5 +821,6 @@ public class Question {
 	    	}
 	    	return in;
 	    }
+	    
 	 
 }
