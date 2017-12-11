@@ -50,6 +50,7 @@ public class GetHtml {
 	HashMap<String, String> paths = new HashMap<>(); // Keep paths out of the survey model and instead store them here
 	Document outputDoc = null;
 	private boolean gInTableList = false;
+	private HashMap<String, Integer> gRecordCounts = null;
 
 	private static Logger log = Logger.getLogger(GetHtml.class.getName());
 
@@ -61,8 +62,11 @@ public class GetHtml {
 	/*
 	 * Get the Html as a string
 	 */
-	public String get(HttpServletRequest request, int sId, boolean superUser, String userIdent) {
-
+	public String get(HttpServletRequest request, int sId, boolean superUser, String userIdent, 
+			HashMap<String, Integer> recordCounts) {
+		
+		gRecordCounts = recordCounts;
+		
 		String response = null;
 
 		// Get the base path
@@ -123,14 +127,6 @@ public class GetHtml {
 	public Element populateRoot() {
 
 		Element rootElement = outputDoc.createElement("root");
-		/*
-		 * rootElement.setAttribute("xmlns:ev", "http://www.w3.org/2001/xml-events");
-		 * rootElement.setAttribute("xmlns:h", "http://www.w3.org/1999/xhtml");
-		 * rootElement.setAttribute("xmlns:jr", "http://openrosa.org/javarosa");
-		 * rootElement.setAttribute("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
-		 * rootElement.setAttribute("xmlns:xf", "http://www.w3.org/2002/xforms");
-		 * rootElement.setAttribute("xmlns:xalan", "http://xml.apache.org/xalan\"");
-		 */
 		outputDoc.appendChild(rootElement);
 
 		return rootElement;
@@ -486,6 +482,23 @@ public class GetHtml {
 			String calculation = null;
 			if (q.name.equals("instanceName")) {
 				calculation = survey.instanceNameDefn;
+			} if (q.type.equals("begin repeat")) {
+				for (Form subForm : survey.forms) {
+					if (subForm.parentQuestion == q.id) { // continue with next form
+						if(subForm.reference) {
+							calculation = "0";
+							if(gRecordCounts != null) {
+								Integer c = gRecordCounts.get(subForm.name);
+								if(c != null) {
+									calculation = String.valueOf(c);
+								}
+							}
+						} else {
+							calculation = q.calculation;
+						}
+						break;
+					}
+				}
 			} else {
 				calculation = q.calculation;
 			}
@@ -504,7 +517,7 @@ public class GetHtml {
 				} else {
 					calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)));
 				}
-
+				
 				calculationInput.setAttribute("data-calculate",
 						" " + UtilityMethods.convertAllxlsNames(calculation, false, paths, form.id, true, q.name) + " ");
 

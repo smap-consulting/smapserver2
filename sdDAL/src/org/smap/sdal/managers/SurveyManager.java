@@ -757,7 +757,8 @@ public class SurveyManager {
 				+ "f.name, "
 				+ "f.parentform, "
 				+ "f.parentquestion, "
-				+ "f.table_name "
+				+ "f.table_name, "
+				+ "f.reference "
 				+ "from form f where f.s_id = ?;";
 		PreparedStatement pstmtGetForms = sd.prepareStatement(sqlGetForms);	
 
@@ -893,6 +894,7 @@ public class SurveyManager {
 			f.parentform =rsGetForms.getInt(3); 
 			f.parentQuestion = rsGetForms.getInt(4);
 			f.tableName = rsGetForms.getString(5);
+			f.reference = rsGetForms.getBoolean(6);
 
 			/*
 			 * Add HRK

@@ -24,6 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -99,6 +100,7 @@ public class WebForm extends Application {
 	ResourceBundle localisation = null;
 	boolean viewOnly = false;
 	String userIdent = null;
+	HashMap<String, Integer> gRecordCounts = null;
 
 	/*
 	 * Get instance data Respond with JSON
@@ -340,6 +342,7 @@ public class WebForm extends Application {
 				instanceXML = xForm.getInstance(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm);
 				instanceStrToEditId = xForm.getInstanceId();
+				gRecordCounts = xForm.getRecordCounts();
 			}
 
 			if (mimeType.equals("json")) {
@@ -611,7 +614,7 @@ public class WebForm extends Application {
 		// "/XSL/openrosa2html5form.xsl");
 
 		GetHtml getHtml = new GetHtml(localisation);
-		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent);
+		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, gRecordCounts);
 
 		// Convert escaped XML into HTML
 		html = html.replaceAll("&gt;", ">");

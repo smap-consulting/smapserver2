@@ -73,9 +73,9 @@ public class GetXForm {
 	private boolean isWebForms = false;
 	private boolean useNodesets = false;
 	
+	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
+	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
-
-	// Globals
 
 	/*
 	 * Get the XForm as a string
@@ -1364,6 +1364,10 @@ public class GetXForm {
 	public String getInstanceId() {
 		return gInstanceId;
 	}
+	
+	public HashMap<String, Integer> getRecordCounts() {
+		return gRecordCounts;
+	}
 
 	public ArrayList<String> getFilenames() {
 		return gFilenames;
@@ -1621,7 +1625,11 @@ public class GetXForm {
 			results = new ArrayList<List<Results>>(); // Create an empty list
 		}
 
-		System.out.println("Populate Form Data: " + form.getName() + " : " + form.getTableName() + " : " + form.getReference());
+		/*
+		 * Store a link between the form name and the number of records
+		 * This is used to calculate the repeat count of reference forms
+		 */
+		gRecordCounts.put(form.getName(), results.size());
 		
 		boolean generatedTemplate = false;
 		// For each record returned from the database add a form element
