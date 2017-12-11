@@ -108,10 +108,14 @@ public class SurveyInstance {
 		}
 	}
 	
-	public void setForm(String ref, String tableName, String formType) {
+	public void setForm(String ref, String tableName, String formType, boolean reference) {
 		List<IE> matches = topInstanceElement.getMatchingElements(ref);
 		for(IE match : matches) {
-			match.setType("form");
+			if(reference) {
+				match.setType("ref_form");
+			} else {
+				match.setType("form");
+			}
 			match.setTableName(tableName);
 			match.setQType(formType);
 			forms.add(match);

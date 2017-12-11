@@ -1444,7 +1444,7 @@ public class GetXForm {
 				Question q = questions.get(i);
 				if (q.getName().toLowerCase().trim().equals(key)) {
 					type = q.getType();
-					keyColumnName = q.getColumnName();
+					keyColumnName = q.getColumnName(false);
 					break;
 				}
 			}
@@ -1621,6 +1621,8 @@ public class GetXForm {
 			results = new ArrayList<List<Results>>(); // Create an empty list
 		}
 
+		System.out.println("Populate Form Data: " + form.getName() + " : " + form.getTableName() + " : " + form.getReference());
+		
 		boolean generatedTemplate = false;
 		// For each record returned from the database add a form element
 		for (int i = 0; i < results.size(); i++) {
@@ -1638,6 +1640,12 @@ public class GetXForm {
 			for (int j = 1; j < record.size(); j++) {
 
 				item = record.get(j);
+				
+				boolean refForm = false;
+				if(item.subForm != null) {
+					refForm = item.subForm.getReference();
+				}
+				System.out.println("      " + item.name + " ; " + item.value + " : " + (item.subForm == null ? "q" : "f") + " : reference " + refForm);
 
 				if (item.subForm != null) {
 					count = 0;
@@ -1651,8 +1659,7 @@ public class GetXForm {
 							// ignore
 						}
 					}
-					System.out.println("Order: " + order);
-					System.out.println("Count: " + count);
+					
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
 					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
 							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count);
@@ -1694,16 +1701,6 @@ public class GetXForm {
 			// Append this new form to its parent (if the parent is null append to output
 			// doc)
 			if (parentElement != null) {
-				/*
-				 * The following code attempts to put a template section into instance data
-				 * however it does not appear to be needed This template section is probably
-				 * only required in the form model
-				 *
-				 * 
-				 * if(isFirstSubForm && !generatedTemplate) { Add a template for enketo
-				 * populateBlankForm(outputDoc, form, connection, template, parentElement, sId,
-				 * null, null, survey_ident, true); generatedTemplate = true; }
-				 */
 				parentElement.appendChild(currentParent);
 			} else {
 				currentParent.setAttribute("id", survey_ident);
@@ -1727,21 +1724,28 @@ public class GetXForm {
 
 		List<List<Results>> output = new ArrayList<List<Results>>();
 
+		System.out.println("Get results: " + form.getTableName() + " : " + form.getReference() + " : " + parentId);
+		Form processForm = null;
+		
 		/*
 		 * If this is a reference form then get the form that has the data
 		 */
 		boolean isReference = form.getReference();
-		Form referenceForm = null;
 		
 		if(isReference) {
+			/*
+			 * Get the form that has the data referred to from this reference form
+			 */
 			System.out.println("Reference form");
 			List<Form> forms = template.getAllForms();
 			for(Form f : forms) {
-				if(f.getTableName().equals(form.getTableName())) {
-					form = f;
+				if(f.getTableName().equals(form.getTableName()) && !f.getReference()) {
+					processForm = f;
 					break;
 				}
 			}
+		} else {
+			processForm = form;
 		}
 		
 
@@ -1766,37 +1770,41 @@ public class GetXForm {
 		/*
 		 * Get the data
 		 */
-		List<Question> questions = form.getQuestions(sd, form.getPath(null, refName));
+		List<Question> questions = processForm.getQuestions(sd, processForm.getPath(null, refName));
+		System.out.println(questions.size() + " : questions");
 		for (Question q : questions) {
 			String col = null;
 
 			if (q.isPublished()) {
-				if (template.getSubForm(form, q) == null) {
+				if (template.getSubForm(processForm, q) == null) {
 					// This question is not a place holder for a subform
 					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions
 						// that indicate the position of a subform
 						String qType = q.getType();
 						if (qType.equals("geopoint")) {
-							col = "ST_AsText(" + q.getColumnName() + ")";
+							col = "ST_AsText(" + q.getColumnName(isReference) + ")";
 						} else if (qType.equals("select")) {
 							continue; // Select data columns are retrieved separately as there are multiple columns
 							// per question
 						} else {
-							col = q.getColumnName();
+							col = q.getColumnName(isReference);
 						}
 
-						sql.append(",").append(col);
+						if(!isReference || !qType.equals("note")) {
+							sql.append(",").append(col);
+						}
 					}
 				}
 			}
 
 		}
-		sql.append(" from ").append(form.getTableName());
+		sql.append(" from ").append(processForm.getTableName());
 		if (id != -1) {
 			sql.append(" where prikey=").append(id);
 		} else {
 			sql.append(" where parkey=").append(parentId);
 		}
+		sql.append(" and _bad = false");
 
 		if(order != null && order.equals("reverse")) {
 			sql.append(" order by prikey desc");
@@ -1810,6 +1818,7 @@ public class GetXForm {
 
 		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
 		log.info("Get data for instance XML: " + pstmt.toString());
+		System.out.println("Parent: " + parentId);
 		ResultSet resultSet = pstmt.executeQuery();
 
 		// For each record returned from the database add the data values to the
@@ -1846,11 +1855,14 @@ public class GetXForm {
 			for (Question q : questions) {
 
 				String qName = q.getName();
+				if(isReference) {
+					qName = '_' + qName;
+				}
 				String qType = q.getType();
 				String qSource = q.getSource();
 
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
-					Form subForm = template.getSubForm(form, q);
+					Form subForm = template.getSubForm(processForm, q);
 
 					if (subForm != null) {
 						record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters()));
@@ -1878,10 +1890,10 @@ public class GetXForm {
 							if (hasColumns) {
 								sqlSelect += ",";
 							}
-							sqlSelect += q.getColumnName() + "__" + option.getColumnName();
+							sqlSelect += q.getColumnName(isReference) + "__" + option.getColumnName();
 							hasColumns = true;
 						}
-						sqlSelect += " from " + form.getTableName() + " where prikey=" + priKey + ";";
+						sqlSelect += " from " + processForm.getTableName() + " where prikey=" + priKey + ";";
 
 						pstmt = cResults.prepareStatement(sqlSelect);
 						log.info(pstmt.toString());
@@ -1890,7 +1902,7 @@ public class GetXForm {
 
 						hasColumns = false;
 						for (Option option : options) {
-							String opt = q.getColumnName() + "__" + option.getColumnName();
+							String opt = q.getColumnName(isReference) + "__" + option.getColumnName();
 							boolean optSet = resultSetOptions.getBoolean(opt);
 							log.fine("Option " + opt + ":" + resultSetOptions.getString(opt));
 							if (optSet) {
@@ -1935,7 +1947,7 @@ public class GetXForm {
 						index++;
 					}
 
-				} else if (qSource != null) {
+				} else if (qSource != null && (!isReference || !q.getType().equals("note"))) {
 
 					String value = null;
 					if (q.isPublished()) { // Get the data from the table if this question has been published
@@ -1947,8 +1959,7 @@ public class GetXForm {
 						int idx2 = value.indexOf(')');
 						if (idx1 > 0 && (idx2 > idx1)) {
 							value = value.substring(idx1 + 1, idx2);
-							// These values are in the order longitude latitude. This needs to be reversed
-							// for the XForm
+							// These values are in the order longitude latitude. This needs to be reversed for the XForm
 							String[] coords = value.split(" ");
 							if (coords.length > 1) {
 								value = coords[1] + " " + coords[0] + " 0 0";
@@ -1972,10 +1983,8 @@ public class GetXForm {
 						index++;
 					}
 				}
-
-
-				output.add(record);
 			}
+			output.add(record);
 		}
 
 		return output;

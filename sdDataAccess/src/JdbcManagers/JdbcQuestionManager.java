@@ -191,7 +191,7 @@ public class JdbcQuestionManager {
 		pstmt.setString(24, nodeset_value);
 		pstmt.setString(25, nodeset_label);
 		
-		pstmt.setString(26, q.getColumnName()); 
+		pstmt.setString(26, q.getColumnName(false)); 
 		pstmt.setBoolean(27, q.isPublished());
 		pstmt.setInt(28, q.getListId());  
 		pstmt.setString(29, q.getAutoPlay());

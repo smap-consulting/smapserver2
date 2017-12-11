@@ -844,6 +844,7 @@ public class SubRelationalDB extends Subscriber {
 						|| (child.getQType() != null && child.getQType().equals("geopolygon"))
 						|| (child.getQType() != null && child.getQType().equals("geolinestring"))
 						|| (child.getQType() != null && child.getQType().equals("begin group")))) {
+					
 					writeTableContent(child, parent_key, sName, remoteUser, server, device, uuid, formStatus, version,
 							surveyNotes, locationTrigger, cRel, cMeta, sId, uploadTime,
 							auditPath + "/" + child.getName() + "[" + recCounter + "]");

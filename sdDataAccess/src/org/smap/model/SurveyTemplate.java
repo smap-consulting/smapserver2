@@ -1552,7 +1552,7 @@ public class SurveyTemplate {
 		 * Extend the forms
 		 */
 		for(Form f : formList) {
-			instance.setForm(f.getPath(formList, null), f.getTableName(), f.getType());
+			instance.setForm(f.getPath(formList, null), f.getTableName(), f.getType(), f.getReference());
 			List <Question> questionList = f.getQuestions(sd, f.getPath(formList, null));
 			extendQuestions(sd, instance, questionList, f.getPath(formList, null), useExternalChoices);
 			if(!f.hasParent()) {
@@ -1597,14 +1597,14 @@ public class SurveyTemplate {
 			// Set the question type for "begin group" questions
 			if(q.getType() != null && q.getType().equals("begin group")) {
 				
-				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(), q.getDataType());
+				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(false), q.getDataType());
 				
 			}
 			
 			if(q.getSource() != null) {
 				// Extend any other questions that have a source (ie not meta data)
 				
-				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(), q.getDataType());
+				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(false), q.getDataType());
 				
 				// Set the overall survey location to the last geopoint type found in the survey				
 				if(q.getType().equals("geopoint") || q.getType().equals("geoshape") || q.getType().equals("geotrace")) {
@@ -1625,7 +1625,7 @@ public class SurveyTemplate {
 						
 						// This value must be populated for multi select questions
 
-						String optionColumn = q.getColumnName() + "__" + o.getColumnName();												
+						String optionColumn = q.getColumnName(false) + "__" + o.getColumnName();												
 						instance.setOption(questionPath, o.getValue(), o.getValue(), o.getSeq(), optionColumn);
 					}
 				}

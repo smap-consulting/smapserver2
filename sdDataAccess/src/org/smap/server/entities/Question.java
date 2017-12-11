@@ -175,8 +175,13 @@ public class Question {
 		return name;
 	}
 	
-	public String getColumnName() {
-		return column_name;
+	public String getColumnName(boolean isReference) {
+		String value = column_name;
+		if(isReference && value != null && value.startsWith("_")) {
+			// remove leading underscore
+			value = value.substring(1);
+		}
+		return value;
 	}
 
 	public String getType() {
