@@ -1280,7 +1280,7 @@ public class SurveyTemplate {
 			 *  2. the relative paths from its parent question (set when questions are read in)
 			 */
 			for(int i= 0; i < formList.size(); i++) {
-				String ref = formList.get(i).getPath(formList, null);
+				String ref = formList.get(i).getPath(formList);
 				if(ref != null) {
 					forms.put(ref, formList.get(i));
 				}
@@ -1298,7 +1298,7 @@ public class SurveyTemplate {
 				Form f = getFormById(f_id);
 				String formRef = null;
 				if(f != null) {
-					formRef = getFormById(f_id).getPath(formList, null);
+					formRef = getFormById(f_id).getPath(formList);
 				} else {
 					log.info("Form not found for f_id = " + f_id);
 				}
@@ -1552,9 +1552,9 @@ public class SurveyTemplate {
 		 * Extend the forms
 		 */
 		for(Form f : formList) {
-			instance.setForm(f.getPath(formList, null), f.getTableName(), f.getType(), f.getReference());
-			List <Question> questionList = f.getQuestions(sd, f.getPath(formList, null));
-			extendQuestions(sd, instance, questionList, f.getPath(formList, null), useExternalChoices);
+			instance.setForm(f.getPath(formList), f.getTableName(), f.getType(), f.getReference());
+			List <Question> questionList = f.getQuestions(sd, f.getPath(formList));
+			extendQuestions(sd, instance, questionList, f.getPath(formList), useExternalChoices);
 			if(!f.hasParent()) {
 				extendMeta(sdalSurvey.meta, instance);
 			}

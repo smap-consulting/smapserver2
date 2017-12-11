@@ -72,8 +72,7 @@ public class GetXForm {
 	private boolean modelInstanceOnly = false;
 	private boolean isWebForms = false;
 	private boolean useNodesets = false;
-	private String refName;		// If not null are inside a reference repeat and the path of the form is stored here
-
+	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
 	// Globals
@@ -472,7 +471,7 @@ public class GetXForm {
 		/*
 		 * Add the questions from the template
 		 */
-		List<Question> questions = f.getQuestions(sd, f.getPath(null, refName));
+		List<Question> questions = f.getQuestions(sd, f.getPath(null));
 		for (Question q : questions) {
 
 			// Backward compatability - Ignore Meta  questions 
@@ -553,7 +552,7 @@ public class GetXForm {
 					// Add a dummy instance element for the table list labels if this is a table
 					// list question
 					if (q.isTableList) {
-						Element labelsElement = getTableListLabelsElement(sd, outputDoc, f, q, f.getPath(null, refName));
+						Element labelsElement = getTableListLabelsElement(sd, outputDoc, f, q, f.getPath(null));
 						currentParent.appendChild(labelsElement);
 					}
 
@@ -591,7 +590,7 @@ public class GetXForm {
 					 */
 
 					// Apply bind for repeat question
-					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
+					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
 					currentParent.appendChild(questionElement);
 
 					// Process sub form
@@ -599,21 +598,22 @@ public class GetXForm {
 					populateForm(sd, outputDoc, currentParent, BIND, subForm);
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
-						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), true);
+						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), true);
 						currentParent.appendChild(questionElement);
 					}
 
 				} else if (q.getType().equals("begin group")) {
 
-					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
+					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
 					currentParent.appendChild(questionElement);
 
 				} else if (q.getType().equals("end group")) {
 
 				} else {
 
-					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
+					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
 					currentParent.appendChild(questionElement);
+					
 
 				}
 
@@ -670,7 +670,7 @@ public class GetXForm {
 					groupElement.appendChild(labelElement);
 
 					Element repeatElement = outputDoc.createElement("repeat");
-					repeatElement.setAttribute("nodeset", subForm.getPath(null, refName));
+					repeatElement.setAttribute("nodeset", subForm.getPath(null));
 
 					// Add appearance
 					String appearance = q.getAppearance(true, template.getQuestionPaths());
@@ -693,7 +693,7 @@ public class GetXForm {
 				} else { // Add question to output
 					if (q.isVisible() || qType.equals("begin group")) {
 
-						questionElement = populateBodyQuestion(sd, outputDoc, f, q, f.getPath(null, refName), useNodesets);
+						questionElement = populateBodyQuestion(sd, outputDoc, f, q, f.getPath(null), useNodesets);
 						currentParent.appendChild(questionElement);
 
 					}
@@ -714,7 +714,7 @@ public class GetXForm {
 
 					// Add table list labels
 					if (q.isTableList) {
-						Element labelsElement = populateTableListLabels(sd, outputDoc, f, q, f.getPath(null, refName));
+						Element labelsElement = populateTableListLabels(sd, outputDoc, f, q, f.getPath(null));
 						currentParent.appendChild(labelsElement);
 					}
 				}
@@ -763,7 +763,7 @@ public class GetXForm {
 
 		if (!count) {
 			// Add read only
-			if (q.isReadOnly() || q.getType().equals("note") || q.isReference()) {	// Always add read only if this is a reference repeat
+			if (q.isReadOnly() || q.getType().equals("note")) {	
 				questionElement.setAttribute("readonly", "true()");
 			}
 
@@ -1035,7 +1035,7 @@ public class GetXForm {
 			throws Exception {
 
 		Element labelsElement = null;
-		List<Question> questions = f.getQuestions(sd, f.getPath(null, refName));
+		List<Question> questions = f.getQuestions(sd, f.getPath(null));
 		boolean inGroup = false;
 		for (Question qx : questions) {
 			if (qx.getType().equals("begin group") && qx.getName().equals(q.getName())) {
@@ -1066,7 +1066,7 @@ public class GetXForm {
 			throws Exception {
 
 		Element labelsElement = null;
-		List<Question> questions = f.getQuestions(sd, f.getPath(null, refName));
+		List<Question> questions = f.getQuestions(sd, f.getPath(null));
 		boolean inGroup = false;
 		for (Question qx : questions) {
 			if (qx.getType().equals("begin group") && qx.getName().equals(q.getName())) {
@@ -1332,7 +1332,7 @@ public class GetXForm {
 			if (priKey > 0) {
 				hasData = true;
 				populateFormData(outputXML, firstForm, priKey, -1, cResults, sd, template, null, sId, templateName, false,
-						simplifyMedia, null, 0);
+						simplifyMedia, null, -1);
 			} else if (key != null && keyval != null) {
 				// Create a blank form containing only the key values
 				hasData = true;
@@ -1439,7 +1439,7 @@ public class GetXForm {
 			keyColumnName = key;
 			type = "string";
 		} else {
-			List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null, refName));
+			List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null));
 			for (int i = 0; i < questions.size(); i++) {
 				Question q = questions.get(i);
 				if (q.getName().toLowerCase().trim().equals(key)) {
@@ -1523,7 +1523,7 @@ public class GetXForm {
 
 		List<Results> record = new ArrayList<Results>();
 
-		List<Question> questions = form.getQuestions(sd, form.getPath(null, refName));
+		List<Question> questions = form.getQuestions(sd, form.getPath(null));
 		for (Question q : questions) {
 
 			String qName = q.getName();
@@ -1648,7 +1648,7 @@ public class GetXForm {
 				System.out.println("      " + item.name + " ; " + item.value + " : " + (item.subForm == null ? "q" : "f") + " : reference " + refForm);
 
 				if (item.subForm != null) {
-					count = 0;
+					count = -1;
 					order = GeneralUtilityMethods.getSurveyParameter("instance_order", item.parameters);
 					String c = GeneralUtilityMethods.getSurveyParameter("instance_count", item.parameters);
 
@@ -1724,7 +1724,6 @@ public class GetXForm {
 
 		List<List<Results>> output = new ArrayList<List<Results>>();
 
-		System.out.println("Get results: " + form.getTableName() + " : " + form.getReference() + " : " + parentId);
 		Form processForm = null;
 		
 		/*
@@ -1736,7 +1735,6 @@ public class GetXForm {
 			/*
 			 * Get the form that has the data referred to from this reference form
 			 */
-			System.out.println("Reference form");
 			List<Form> forms = template.getAllForms();
 			for(Form f : forms) {
 				if(f.getTableName().equals(form.getTableName()) && !f.getReference()) {
@@ -1770,7 +1768,7 @@ public class GetXForm {
 		/*
 		 * Get the data
 		 */
-		List<Question> questions = processForm.getQuestions(sd, processForm.getPath(null, refName));
+		List<Question> questions = processForm.getQuestions(sd, processForm.getPath(null));
 		System.out.println(questions.size() + " : questions");
 		for (Question q : questions) {
 			String col = null;
@@ -1812,7 +1810,7 @@ public class GetXForm {
 			sql.append(" order by prikey asc");
 		}
 
-		if(count > 0) {
+		if(count >= 0) {
 			sql.append(" limit ").append(count);
 		}
 
@@ -2002,15 +2000,7 @@ public class GetXForm {
 			key = fId + key;
 		}
 
-		String value = paths.get(key);
-		if(refName != null) {		// We are inside a reference repeat
-			if(value.indexOf(refName + "_ref") < 0) { 
-				value = value.replaceFirst(refName, refName + "_ref");
-			}
-		}
-
-		System.out.println("Get question reference: " + refName + " : " + value);
-		return value;
+		return paths.get(key);
 	}
 
 	/*
