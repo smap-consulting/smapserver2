@@ -102,7 +102,7 @@ public class CreatePDF extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			PDFSurveyManager pm = new PDFSurveyManager();  
+			PDFSurveyManager pm = new PDFSurveyManager(localisation);  
 			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options

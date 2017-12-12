@@ -3331,6 +3331,47 @@ public class SurveyManager {
 	}
 	
 	/*
+	 * Get the surveys and the table names that are shared with the passed in table name
+	 */
+	public HashMap<String, ArrayList<String>> getSharedTables(Connection sd, int sId) throws SQLException {
+		
+		HashMap<String, ArrayList<String>> sharedTables = new HashMap<> ();
+		
+		String sql = "select f.table_name, s.display_name "
+				+ "from survey s, form f "
+				+ "where s.s_id = f.s_id "
+				+ "and s.s_id != ? "
+				+ "and f.table_name in (select table_name from form where s_id = ?)";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setInt(2, sId);
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				String table = rs.getString(1);
+				ArrayList<String> surveys = sharedTables.get(table);
+				if(surveys == null) {
+					surveys = new ArrayList<String> ();
+					sharedTables.put(table, surveys);
+				}
+				surveys.add(rs.getString(2));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return sharedTables;
+	}
+	
+	/*
 	 * Get the group Questions
 	 */
 	public HashMap<String, String> getGroupQuestions(Connection sd, int groupSurveyId) throws SQLException {

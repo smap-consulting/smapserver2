@@ -31,6 +31,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.model.ServerData;
@@ -41,6 +42,8 @@ import com.google.gson.GsonBuilder;
 import taskModel.TaskResponse;
 
 import java.sql.*;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -55,15 +58,19 @@ public class Server extends Application {
 	
 	@GET
 	@Produces("application/json")
-	public Response getServerSettings() { 
+	public Response getServerSettings(@Context HttpServletRequest request) { 
 
 		Response response = null;
 		Connection sd = SDDataSource.getConnection("SurveyKPI-getServerSettings");
 
 		try {
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			ServerManager sm = new ServerManager();
-			ServerData data = sm.getServer(sd);
+			ServerData data = sm.getServer(sd, localisation);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(data);

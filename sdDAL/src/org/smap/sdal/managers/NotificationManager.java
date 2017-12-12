@@ -438,7 +438,7 @@ public class NotificationManager {
 				/*
 				 * Get survey details
 				 */
-				PDFSurveyManager pm = new PDFSurveyManager();
+				PDFSurveyManager pm = new PDFSurveyManager(localisation);
 				SurveyManager sm = new SurveyManager(localisation);
 				org.smap.sdal.model.Survey survey = null;
 				boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options

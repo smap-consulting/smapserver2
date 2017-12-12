@@ -315,7 +315,7 @@ public class WebForm extends Application {
 				accessKey = GeneralUtilityMethods.getNewAccessKey(connectionSD, userIdent, formIdent);
 				
 				manifestList = translationMgr.getManifestBySurvey(connectionSD, userIdent, survey.id, basePath, formIdent);
-				serverData = sm.getServer(connectionSD);
+				serverData = sm.getServer(connectionSD, localisation);
 				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "WebForm", e);

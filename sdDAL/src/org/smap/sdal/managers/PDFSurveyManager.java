@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -107,12 +108,10 @@ public class PDFSurveyManager {
 	public static Font bengaliFont = null;
 	public static Font bengaliFontBold = null;
 	private static final String DEFAULT_CSS = "/smap_bin/resources/css/default_pdf.css";
-	//private static int GROUP_WIDTH_DEFAULT = 4;
 	private static int NUMBER_TABLE_COLS = 10;
 	private static int NUMBER_QUESTION_COLS = 10;
 
-	//Font font = new Font(FontFamily.HELVETICA, 10);
-	//Font fontbold = new Font(FontFamily.HELVETICA, 10, Font.BOLD);
+	private ResourceBundle localisation;
 
 	private class Parser {
 		XMLParser xmlParser = null;
@@ -136,6 +135,10 @@ public class PDFSurveyManager {
 
 		// Map of questions that need to have the results of another question appended to their results in a pdf report
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
+	}
+	
+	public PDFSurveyManager(ResourceBundle l) {
+		localisation = l;
 	}
 
 	/*
@@ -168,7 +171,7 @@ public class PDFSurveyManager {
 		User user = null;
 
 		ServerManager serverManager = new ServerManager();
-		ServerData serverData = serverManager.getServer(sd);
+		ServerData serverData = serverManager.getServer(sd, localisation);
 
 		UserManager um = new UserManager();
 		int [] repIndexes = new int[20];		// Assume repeats don't go deeper than 20 levels

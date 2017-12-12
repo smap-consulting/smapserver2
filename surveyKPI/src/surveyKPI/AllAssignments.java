@@ -370,8 +370,7 @@ public class AllAssignments extends Application {
 			log.info("Set autocommit sd false");
 			connectionSD.setAutoCommit(false);
 
-			// Localisation
-			
+			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
