@@ -126,15 +126,15 @@ public class SurveyManager {
 			sql.append("and s.p_id = ? ");
 		}
 		if(!getDeleted) {
-			sql.append("and s.deleted = 'false'");
+			sql.append("and s.deleted = 'false' ");
 		} 
 		if(!getBlocked) {
-			sql.append("and s.blocked = 'false'");
+			sql.append("and s.blocked = 'false' ");
 		}
 		if(onlyGroup) {
-			sql.append("and s.group_survey_id = 0");
+			sql.append("and s.group_survey_id = 0 ");
 		}
-		sql.append("order BY s.display_name;");
+		sql.append("order BY s.display_name ");
 
 		pstmt = sd.prepareStatement(sql.toString());	
 		int idx = 1;
@@ -3302,7 +3302,7 @@ public class SurveyManager {
 	 * Get the group forms
 	 * Get the forms for the passed in group surveyId
 	 */
-	public HashMap<String, String> getGroupForms(Connection sd, int groupSurveyId) {
+	public HashMap<String, String> getGroupForms(Connection sd, int groupSurveyId) throws SQLException {
 		HashMap<String, String> groupForms = new HashMap<> ();
 		
 		String sql = "select name, table_name from form where s_id in "
@@ -3318,8 +3318,6 @@ public class SurveyManager {
 			while (rs.next()) {
 				groupForms.put(rs.getString(1), rs.getString(2));
 			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
 		} finally {
 			try {
 				if (pstmt != null) {
@@ -3330,6 +3328,76 @@ public class SurveyManager {
 		}
 		
 		return groupForms;
+	}
+	
+	/*
+	 * Get the group Questions
+	 */
+	public HashMap<String, String> getGroupQuestions(Connection sd, int groupSurveyId) throws SQLException {
+		
+		HashMap<String, String> groupQuestions = new HashMap<> ();
+		
+		String sql = "select qname, column_name from question where f_id in "
+				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ?)) or "
+				+ "f_id in (select f_id from form where s_id = ?)";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2, groupSurveyId);
+			log.info("Getting group questions: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupQuestions.put(rs.getString(1), rs.getString(2));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return groupQuestions;
+	}
+	
+	/*
+	 * Get the group Options
+	 */
+	public HashMap<String, String> getGroupOptions(Connection sd, int groupSurveyId) throws SQLException {
+		
+		HashMap<String, String> groupOptions = new HashMap<> ();
+		
+		String sql = "select o.ovalue, o.column_name, l.name from option o, listname l "
+				+ "where o.l_id = l.l_id "
+				+ "and (l.s_id in "
+				+ "(select s_id from survey where group_survey_id = ?) or "
+				+ "s_id = ?)";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2, groupSurveyId);
+			log.info("Getting group options: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupOptions.put(rs.getString(3) + "__" + rs.getString(1), rs.getString(2));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return groupOptions;
 	}
 	
 	public void restore(Connection sd, int sId, String user) throws SQLException {

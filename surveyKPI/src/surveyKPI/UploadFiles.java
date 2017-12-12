@@ -522,7 +522,6 @@ public class UploadFiles extends Application {
 			
 			// Get the file type from its extension
 			fileName = fileItem.getName();
-			System.out.println("Filename is: " + fileName);
 			if(fileName == null || fileName.trim().length() == 0) {
 				throw new ApplicationException(localisation.getString("tu_nfs"));
 			} else if(fileName.endsWith(".xlsx")) {
@@ -539,6 +538,18 @@ public class UploadFiles extends Application {
 			Survey existingSurvey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			
+			HashMap<String, String> groupForms = null;		// Maps form names to table names - When merging to an existing survey
+			HashMap<String, String> questionNames = null;	// Maps unabbreviated question names to abbreviated question names
+			HashMap<String, String> optionNames = null;		// Maps unabbreviated option names to abbreviated option names
+			boolean merge = false;									// Set true if an existing survey is to be replaced or this survey is to be merged with an existing survey
+			
+			if(surveyId > 0) {
+				merge = true;
+				groupForms = sm.getGroupForms(sd, surveyId);
+				questionNames = sm.getGroupQuestions(sd, surveyId);
+				optionNames = sm.getGroupOptions(sd, surveyId);
+			}
+			
 			if(action == null) {
 				action = "add";
 			} else if(action.equals("replace")) {
@@ -547,7 +558,6 @@ public class UploadFiles extends Application {
 						false, false, null, false, false, superUser, 0, null);
 				displayName = existingSurvey.displayName;
 				
-				System.out.println("REplacing existing survey with name: " + displayName);
 			}
 
 			// If the survey display name already exists on this server, for this project, then throw an error		
@@ -562,14 +572,15 @@ public class UploadFiles extends Application {
 						fileItem.getInputStream(), 
 						localisation, 
 						displayName,
-						projectId);
+						projectId,
+						questionNames,
+						optionNames,
+						merge);
 				
 				/*
 				 * Get information on a survey group if this survey is to be added to one
 				 */
-				HashMap<String, String> groupForms = null;
 				if(surveyId > 0) {
-					groupForms = sm.getGroupForms(sd, surveyId);
 					if(!action.equals("replace")) {
 						s.groupSurveyId = surveyId;
 					} else {
@@ -588,7 +599,6 @@ public class UploadFiles extends Application {
 					 * Soft delete the old survey
 					 * Set task groups to use the new survey
 					 */
-					System.out.println("Replacing survey: " + surveyId + " with survey " + s.id);
 					sm.delete(sd, 
 							cResults, 
 							surveyId, 

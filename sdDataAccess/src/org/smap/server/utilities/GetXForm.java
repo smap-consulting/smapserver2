@@ -502,28 +502,6 @@ public class GetXForm {
 
 					Form subForm = template.getSubForm(f, q);
 
-					/*
-					String refValue = GeneralUtilityMethods.getSurveyParameter("refx", q.getParameters());
-					if(refName == null && refValue != null && refValue.equals("yes")) {
-						System.out.println("Reference repeat $$$$$$$$$$$$$$$$$$$ " + q.getName());
-
-						refName = subForm.getPath(null, null);		// In reference repeat
-						// If this Form is to be populated by instance data then create the reference
-						Element formElement_template_ref = outputDoc.createElement(subForm.getName() + "_ref");
-
-						if (modelInstanceOnly) {
-							formElement_template_ref.setAttribute("template", ""); // The model requires a local name only
-						} else {
-							formElement_template_ref.setAttribute("jr:template", "");
-						}
-
-						populateForm(sd, outputDoc, formElement_template_ref, INSTANCE, subForm);
-						currentParent.appendChild(formElement_template_ref);
-
-						refName = null;		// Out of reference repeat
-					}
-					 */
-
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
 						questionElement = outputDoc.createElement(q.getName() + "_count");
@@ -577,18 +555,6 @@ public class GetXForm {
 
 					Form subForm = template.getSubForm(f, q);
 
-					/*
-					String refValue = GeneralUtilityMethods.getSurveyParameter("refx", q.getParameters());
-					if(refName == null && refValue != null  && refValue.equals("yes")) {
-						System.out.println("Reference repeat in bind @@@@@@@@@@@@@@@@@@ " + q.getName());
-						refName = f.getPath(null, null) + "/" + q.getName();		// Inside reference repeat
-						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null, refName), false);
-						currentParent.appendChild(questionElement);
-						populateForm(sd, outputDoc, currentParent, BIND, subForm);
-						refName = null;		// Outside the reference repeat
-					}
-					 */
-
 					// Apply bind for repeat question
 					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
 					currentParent.appendChild(questionElement);
@@ -621,41 +587,6 @@ public class GetXForm {
 				// if(subForm != null) {
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 					Form subForm = template.getSubForm(f, q);
-
-					/*
-					String refValue = GeneralUtilityMethods.getSurveyParameter("refx", q.getParameters());
-					if(refName == null && refValue != null  && refValue.equals("yes")) {
-						System.out.println("Reference repeat in body ################## " + q.getName());
-
-						refName = f.getPath(null, null) + "/" + q.getName();	// inside reference repeat
-						Element groupElement = outputDoc.createElement("group");
-						currentParent.appendChild(groupElement);
-
-						Element labelElement = outputDoc.createElement("label");
-
-						// TODO - replace this with a parameter value
-						String labelRef = q.getQTextId();
-						if (labelRef != null && !labelRef.trim().isEmpty()) {
-							String label = "jr:itext('" + labelRef + "')";
-							labelElement.setAttribute("ref", label);
-						}
-						groupElement.appendChild(labelElement);
-
-						Element repeatElement = outputDoc.createElement("repeat");
-						repeatElement.setAttribute("nodeset", subForm.getPath(null, refName));
-
-						// Add appearance
-						String appearance = q.getAppearance(true, template.getQuestionPaths());
-						if (appearance != null) {
-							repeatElement.setAttribute("appearance", appearance);
-						}
-						repeatElement.setAttribute("jr:noAddRemove", "true()");
-						groupElement.appendChild(repeatElement);
-						populateForm(sd, outputDoc, repeatElement, BODY, subForm);
-
-						refName = null;		// outside reference repeat
-					}
-					 */
 
 					Element groupElement = outputDoc.createElement("group");
 					currentParent.appendChild(groupElement);
@@ -1277,8 +1208,8 @@ public class GetXForm {
 	 * Get the instance data for an XForm
 	 */
 	public String getInstance(int sId, String templateName, SurveyTemplate template, String key, String keyval,
-			int priKey, boolean simplifyMedia, boolean isWebForms) throws ParserConfigurationException, ClassNotFoundException,
-	SQLException, TransformerException, ApplicationException {
+			int priKey, boolean simplifyMedia, boolean isWebForms) 
+			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
 
 		this.isWebForms = isWebForms;
 
@@ -1653,7 +1584,6 @@ public class GetXForm {
 				if(item.subForm != null) {
 					refForm = item.subForm.getReference();
 				}
-				System.out.println("      " + item.name + " ; " + item.value + " : " + (item.subForm == null ? "q" : "f") + " : reference " + refForm);
 
 				if (item.subForm != null) {
 					count = -1;
@@ -1732,7 +1662,8 @@ public class GetXForm {
 
 		List<List<Results>> output = new ArrayList<List<Results>>();
 
-		Form processForm = null;
+		Form processForm = null;		
+		List<Question> questions = form.getQuestions(sd, form.getPath(null));
 		
 		/*
 		 * If this is a reference form then get the form that has the data
@@ -1776,28 +1707,27 @@ public class GetXForm {
 		/*
 		 * Get the data
 		 */
-		List<Question> questions = processForm.getQuestions(sd, processForm.getPath(null));
-		System.out.println(questions.size() + " : questions");
 		for (Question q : questions) {
 			String col = null;
 
 			if (q.isPublished()) {
 				if (template.getSubForm(processForm, q) == null) {
 					// This question is not a place holder for a subform
-					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions
-						// that indicate the position of a subform
+					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
+
 						String qType = q.getType();
 						if (qType.equals("geopoint")) {
 							col = "ST_AsText(" + q.getColumnName(isReference) + ")";
 						} else if (qType.equals("select")) {
-							continue; // Select data columns are retrieved separately as there are multiple columns
-							// per question
+							continue; // Select data columns are retrieved separately as there are multiple columns per question
 						} else {
 							col = q.getColumnName(isReference);
 						}
 
-						if(!isReference || !qType.equals("note")) {
+						if(!isReference || q.getName().startsWith("_")) {
 							sql.append(",").append(col);
+						} else if(isReference) {
+							sql.append(",").append("''");
 						}
 					}
 				}
@@ -1824,7 +1754,6 @@ public class GetXForm {
 
 		PreparedStatement pstmt = cResults.prepareStatement(sql.toString());
 		log.info("Get data for instance XML: " + pstmt.toString());
-		System.out.println("Parent: " + parentId);
 		ResultSet resultSet = pstmt.executeQuery();
 
 		// For each record returned from the database add the data values to the
@@ -1861,9 +1790,6 @@ public class GetXForm {
 			for (Question q : questions) {
 
 				String qName = q.getName();
-				if(isReference) {
-					qName = '_' + qName;
-				}
 				String qType = q.getType();
 				String qSource = q.getSource();
 
@@ -1953,7 +1879,7 @@ public class GetXForm {
 						index++;
 					}
 
-				} else if (qSource != null && (!isReference || !q.getType().equals("note"))) {
+				} else if (qSource != null) {
 
 					String value = null;
 					if (q.isPublished()) { // Get the data from the table if this question has been published

@@ -410,20 +410,22 @@ public class Survey {
 		
 			for(Form f : forms) {
 				
+				String formName = null;
+				if(f.reference) {
+					formName = GeneralUtilityMethods.cleanName(f.referenceName, true, false, false);
+				} else {
+					formName = GeneralUtilityMethods.cleanName(f.name, true, false, false);
+				}			
+				
 				String tableName = null;
 				if(groupForms != null) {
-					tableName = groupForms.get(f.name);
+					tableName = groupForms.get(formName);
 				}
 				
 				if(tableName == null) {
-					String formName = null;
-					if(f.reference) {
-						formName = GeneralUtilityMethods.cleanName(f.referenceName, true, false, false);
-					} else {
-						formName = GeneralUtilityMethods.cleanName(f.name, true, false, false);
-					}					
-					tableName = "s" + id + "_" + formName;					
+					tableName = "s" + id + "_" + formName;		
 				}
+
 				
 				pstmt.setString(2, f.name);
 				pstmt.setString(3, tableName);
@@ -433,10 +435,6 @@ public class Survey {
 				ResultSet rs = pstmt.getGeneratedKeys();
 				if(rs.next()) {
 					f.id = rs.getInt(1);
-				}
-				
-				if(f.parentFormIndex == 0) {
-					// TODO write automatic preloads
 				}
 				
 				// Write Form questions
@@ -594,13 +592,6 @@ public class Survey {
 		
 		try {
 			
-			/*
-			 * Derive values required for database
-			 */
-			if(q.columnName == null) {
-				q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
-			}
-			
 			// label reference
 			String transId = null;
 			String labelId = null;
@@ -647,19 +638,19 @@ public class Survey {
 			pstmt.setString(5, labelId);					
 			pstmt.setString(6, q.defaultanswer);
 			pstmt.setString(7, infotextId);
-			pstmt.setBoolean(8, q.visible);				// TODO visibility
+			pstmt.setBoolean(8, q.visible);
 			pstmt.setString(9, q.source);
 			pstmt.setString(10, q.source_param);
 			pstmt.setBoolean(11, q.readonly); 
 			pstmt.setBoolean(12, q.required);
 			pstmt.setString(13, q.relevant);	
 			pstmt.setString(14, q.calculation);
-			pstmt.setString(15, q.chartdata);			// TODO
+			pstmt.setString(15, q.chartdata);
 			pstmt.setString(16, q.constraint);
 			pstmt.setString(17, q.constraint_msg);
 			pstmt.setString(18, q.required_msg);
 			pstmt.setString(19, q.appearance);
-			pstmt.setString(20, q.parameters);			// TODO
+			pstmt.setString(20, q.parameters);
 			
 			String nodeset = null;
 			String nodeset_value = null;
@@ -673,14 +664,14 @@ public class Survey {
 				nodeset_label = "jr:itext(itextId)";
 			}
 			
-			pstmt.setString(21, nodeset);				// TODO
+			pstmt.setString(21, nodeset);		
 			pstmt.setString(22, nodeset_value);
 			pstmt.setString(23, nodeset_label);
 			
 			pstmt.setString(24,  q.columnName);
-			pstmt.setBoolean(25,  false);    			// false			
+			pstmt.setBoolean(25,  false);   		
 			pstmt.setInt(26, q.l_id);
-			pstmt.setString(27, q.autoplay);  			// TODO
+			pstmt.setString(27, q.autoplay); 
 			pstmt.setString(28, q.accuracy);  			// TODO
 			pstmt.setString(29, q.dataType);
 

@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.Stack;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.poi.xssf.usermodel.*;
@@ -33,7 +32,6 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
@@ -43,14 +41,9 @@ import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
-import org.w3c.dom.Element;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 public class XLSTemplateUploadManager {
 
@@ -76,6 +69,9 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
 	
+	HashMap<String, String> questionNames;	// Mapping between original name and truncated name
+	HashMap<String, String> optionNames;		// Mapping between original name and truncated name
+	boolean merge;
 
 	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
@@ -102,9 +98,15 @@ public class XLSTemplateUploadManager {
 			InputStream inputStream, 
 			ResourceBundle localisation, 
 			String displayName,
-			int p_id) throws Exception {
+			int p_id,
+			HashMap<String, String> questionNames,
+			HashMap<String, String> optionNames,
+			boolean merge) throws Exception {
 
 		this.localisation = localisation;
+		this.questionNames = questionNames;
+		this.optionNames = optionNames;
+		this.merge = merge;
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
@@ -261,7 +263,18 @@ public class XLSTemplateUploadManager {
 
 		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum);
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
-		o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
+		
+		if(merge) {
+			// Attempt to get existing column name
+			String n = optionNames.get(listName + "__" + o.value);
+			if(n != null) {
+				o.columnName = n;
+			} else {
+				o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
+			}
+		} else {
+			o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
+		}
 		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
 		for(String key : choiceFilterHeader.keySet()) {
 			String value = XLSUtilities.getTextColumn(row, key, choicesHeader, lastCellNum);
@@ -487,6 +500,18 @@ public class XLSTemplateUploadManager {
 			q.name = "the_geom";
 		}	
 		
+		
+		if(merge) {
+			String n = questionNames.get(q.name);
+			if(n != null) {
+				q.columnName = n;
+			} else {
+				q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
+			}
+		} else {
+			q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
+		}
+		
 		// 3. Labels
 		getLabels(row, lastCellNum, surveyHeader, q.labels);		
 
@@ -639,12 +664,19 @@ public class XLSTemplateUploadManager {
 		// Do type conversions
 		if (type.equals("text")) {
 			type = "string";
-		} else if(in.startsWith("select_one")) {
-			type = "select1";
-			q.list_name = in.substring("select_one".length() + 1).trim();
-		} else if(in.startsWith("select_multiple")) {
-			type = "select";
-			q.list_name = in.substring("select_multiple".length() + 1).trim();
+		} else if(in.startsWith("select_one") || in.startsWith("select_multiple")) {
+			
+			if(in.startsWith("select_one")) {
+				type = "select1";
+			} else if(in.startsWith("select_multiple")) {
+				type = "select";
+			}
+			
+			String [] array = in.split(" ");
+			if(array.length <= 1) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_mln", rowNumSurvey, "survey", in.trim(), null);
+			}
+			q.list_name = array[1].trim();
 		} 
 		
 		return type;
