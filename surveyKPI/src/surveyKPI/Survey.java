@@ -317,7 +317,8 @@ public class Survey extends Application {
 			String sqlTables = "select "
 					+ "f.table_name, f.name, f_id, f.parentform "
 					+ "from form f "
-					+ "where f.s_id = ? " 
+					+ "where f.s_id = ? "
+					+ "and f.reference = 'false' " 
 					+ "order by f.table_name";		
 			pstmtTables = connectionSD.prepareStatement(sqlTables);	
 

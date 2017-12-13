@@ -265,6 +265,7 @@ public class XLSTemplateUploadManager {
 			String n = optionNames.get(listName + "__" + o.value);
 			if(n != null) {
 				o.columnName = n;
+				o.published = true;		// Exist therefore publish
 			} else {
 				o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 			}

@@ -318,8 +318,9 @@ public class Survey {
 				+ "cascade_filters, "
 				+ "externalfile, "
 				+ "column_name, "
-				+ "l_id) "
-				+ "values (nextval('o_seq'), ?, ?, ?, ?, ?, ?);";
+				+ "l_id,"
+				+ "published) "
+				+ "values (nextval('o_seq'), ?, ?, ?, ?, ?, ?, ?);";
 		PreparedStatement pstmtOption = null;
 		
 		String sqlUpdateOption = "update option set label_id = ? where o_id = ?";
@@ -358,6 +359,7 @@ public class Survey {
 					pstmtOption.setBoolean(4, false);
 					pstmtOption.setString(5, o.columnName);
 					pstmtOption.setInt(6, ol.id);
+					pstmtOption.setBoolean(7, o.published);
 					pstmtOption.executeUpdate();
 					
 					

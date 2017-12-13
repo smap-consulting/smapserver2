@@ -5550,7 +5550,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setPublished(Connection sd, Connection cRel, int sId) throws SQLException {
 		
-		String sql = "select f.table_name, q.column_name, q.q_id "
+		String sql = "select f.table_name, q.column_name, q.q_id, q.qtype "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = ? "
@@ -5568,9 +5568,16 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next())  {
-				if(hasColumn(cRel, rs.getString(1), rs.getString(2))) {
+				String qType = rs.getString(4);
+				if(qType.equals("select")) {
+					// Automatically set published the publish status of options determine if data is actually available 
 					pstmtUpdate.setInt(1, rs.getInt(3));
 					pstmtUpdate.executeUpdate();
+				} else {
+					if(hasColumn(cRel, rs.getString(1), rs.getString(2))) {
+						pstmtUpdate.setInt(1, rs.getInt(3));
+						pstmtUpdate.executeUpdate();
+					}
 				}
 			}
 

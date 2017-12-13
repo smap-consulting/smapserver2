@@ -1579,11 +1579,6 @@ public class GetXForm {
 			for (int j = 1; j < record.size(); j++) {
 
 				item = record.get(j);
-				
-				boolean refForm = false;
-				if(item.subForm != null) {
-					refForm = item.subForm.getReference();
-				}
 
 				if (item.subForm != null) {
 					count = -1;
@@ -1598,9 +1593,11 @@ public class GetXForm {
 						}
 					}
 					
+
 					boolean needTemplate = (!generatedTemplate && (parentElement == null));
 					populateFormData(outputDoc, item.subForm, -1, Integer.parseInt(priKey.value), cResults, sd, template,
 							currentParent, sId, survey_ident, needTemplate, simplifyMedia, order, count);
+					
 				} else if (item.begin_group) {
 					Element childElement = null;
 					childElement = outputDoc.createElement(item.name);
@@ -1710,7 +1707,7 @@ public class GetXForm {
 		for (Question q : questions) {
 			String col = null;
 
-			if (q.isPublished()) {
+			if (q.isPublished() || isReference) {		// Referenced questions are never published
 				if (template.getSubForm(processForm, q) == null) {
 					// This question is not a place holder for a subform
 					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
@@ -1724,10 +1721,19 @@ public class GetXForm {
 							col = q.getColumnName(isReference);
 						}
 
-						if(!isReference || q.getName().startsWith("_")) {
-							sql.append(",").append(col);
+						if(!isReference) {
+							sql.append(",").append(col);			// Normal data question
 						} else if(isReference) {
-							sql.append(",").append("''");
+							if(q.getName().startsWith("_")) {
+								// Reference question, check that the column exists as we cannot rely "on publish"
+								if(GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), col)) {
+									sql.append(",").append(col);
+								} else {
+									sql.append(",").append("''");
+								}
+							} else {
+								sql.append(",").append("''");	// Read only reference questions
+							}
 						}
 					}
 				}
@@ -1811,7 +1817,7 @@ public class GetXForm {
 				} else if (qType.equals("select")) { // Get the data from all the option columns
 
 					String optValue = "";
-					if (q.isPublished()) { // Get the data from the table if this question has been published
+					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
 						String sqlSelect = "select ";
 						List<Option> options = new ArrayList<Option>(q.getValidChoices(sd));
 						UtilityMethods.sortOptions(options); // Order within an XForm is not actually required, this is
