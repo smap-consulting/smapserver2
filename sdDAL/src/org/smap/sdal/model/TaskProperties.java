@@ -10,6 +10,7 @@ public class TaskProperties {
 	public String pid;				// Project id
 	public String url;
 	public int form_id;
+	public String form_ident;
 	public String form_name;
 	public boolean blocked;
 	public String form_version;
