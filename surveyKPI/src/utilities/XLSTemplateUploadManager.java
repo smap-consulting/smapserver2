@@ -433,7 +433,7 @@ public class XLSTemplateUploadManager {
 	private void getForm(String name, int parentFormIndex, int parentQuestionIndex, String parameters) throws Exception {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
-		f.setReference(parameters);
+		setFormReference(parameters, f);
 		survey.forms.add(f);
 		
 		int thisFormIndex = survey.forms.size() - 1;
@@ -790,8 +790,29 @@ public class XLSTemplateUploadManager {
 	
 	private void validateSurvey() throws Exception {
 		
-		// Validate questions
+		// Validate forms and questions
 		for(Form f : survey.forms) {
+			if(f.reference) {
+				Integer rowNumber = qNameMap.get(f.name);
+				if(f.name.equals(f.referenceName)) {
+					throw XLSUtilities.getApplicationException(localisation, "tu_ref_self", rowNumber, "survey", f.name, null);
+				} else {
+					boolean validRef = false;
+					for(Form refForm : survey.forms) {
+						if(refForm.name.equals(f.referenceName)) {
+							if(refForm.reference) {
+								throw XLSUtilities.getApplicationException(localisation, "tu_ref_ref", rowNumber, "survey", f.name, refForm.name);
+							} else {
+								validRef = true;
+								break;
+							}
+						}
+					}
+					if(!validRef) {
+						throw XLSUtilities.getApplicationException(localisation, "tu_ref_nf", rowNumber, "survey", f.referenceName, f.name);
+					}
+				}
+			}
 			for(Question q : f.questions) {
 				if(q.relevant != null) {
 					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
@@ -995,6 +1016,17 @@ public class XLSTemplateUploadManager {
 			return true;
 		} else {
 			return false;
+		}
+	}
+	
+	private void setFormReference(String parameters, Form f) throws ApplicationException {
+		if(parameters != null) {
+			String ref = GeneralUtilityMethods.getSurveyParameter("ref", parameters);
+			if(ref != null) {
+				f.reference = true;			
+				f.referenceName = ref;
+			}
+			
 		}
 	}
 

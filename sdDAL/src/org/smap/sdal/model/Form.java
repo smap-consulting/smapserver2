@@ -32,13 +32,4 @@ public class Form {
 		this.parentQuestionIndex = parentQuestionIndex;
 	}
 	
-	public void setReference(String parameters) {
-		if(parameters != null) {
-			String ref = GeneralUtilityMethods.getSurveyParameter("ref", parameters);
-			if(ref != null && ref.equals("yes")) {
-				reference = true;			
-				referenceName = GeneralUtilityMethods.getSurveyParameter("ref_form", parameters);
-			}
-		}
-	}
 }
