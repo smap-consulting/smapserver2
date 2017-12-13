@@ -108,11 +108,7 @@ public class XLSTemplateUploadManager {
 		this.optionNames = optionNames;
 		this.merge = merge;
 
-		if(type != null && type.equals("xls")) {
-			wb = new HSSFWorkbook(inputStream);
-		} else {
-			wb = new XSSFWorkbook(inputStream);
-		}
+		wb = WorkbookFactory.create(inputStream);
 
 		// Create survey and set defaults
 		survey = new Survey();

@@ -65,7 +65,6 @@ public class Survey {
 	public String key_policy;
 	public ArrayList<LinkedSurvey> linkedSurveys = new ArrayList<LinkedSurvey> ();
 	public String basedOn;
-	public boolean sharedTable;
 	public Timestamp created;
 	public boolean exclude_empty;
 	public String autoUpdates;

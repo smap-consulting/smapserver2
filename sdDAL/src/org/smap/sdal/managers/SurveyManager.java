@@ -327,12 +327,13 @@ public class SurveyManager {
 		StringBuffer sql = new StringBuffer();
 		sql.append("select s.s_id, s.name, s.ident, s.display_name, s.deleted, s.blocked, p.name, p.id,"
 				+ "s.def_lang, s.task_file, s.timing_data, u.o_id, s.class,"
-				+ "s.instance_name, s.hrk, s.based_on, s.shared_table, s.created, s.loaded_from_xls,"
+				+ "s.instance_name, s.hrk, s.based_on, s.created, s.loaded_from_xls,"
 				+ "s.pulldata, "
 				+ "s.version, "
 				+ "s.key_policy, "
 				+ "s.exclude_empty,"
-				+ "s.meta "
+				+ "s.meta,"
+				+ "s.group_survey_id "
 				+ "from survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -341,8 +342,7 @@ public class SurveyManager {
 				+ "and s.s_id = ? ");
 
 		if(!superUser) {
-			// Add RBAC
-			sql.append(GeneralUtilityMethods.getSurveyRBAC());
+			sql.append(GeneralUtilityMethods.getSurveyRBAC());	// Add RBAC
 		}
 
 		PreparedStatement pstmt = null;
@@ -377,23 +377,23 @@ public class SurveyManager {
 				s.instanceNameDefn = GeneralUtilityMethods.convertAllXpathNames(resultSet.getString(14), true);
 				s.hrk = resultSet.getString(15);
 				s.basedOn = resultSet.getString(16);
-				s.sharedTable = resultSet.getBoolean(17);
-				s.created = resultSet.getTimestamp(18);
-				s.loadedFromXLS = resultSet.getBoolean(19);
+				s.created = resultSet.getTimestamp(17);
+				s.loadedFromXLS = resultSet.getBoolean(18);
 
 				Type type = new TypeToken<ArrayList<Pulldata>>(){}.getType();
-				s.pulldata = new Gson().fromJson(resultSet.getString(20), type); 
+				s.pulldata = new Gson().fromJson(resultSet.getString(19), type); 
 
-				s.version = resultSet.getInt(21);
-				s.key_policy = resultSet.getString(22);
-				s.exclude_empty = resultSet.getBoolean(23);
-				String meta = resultSet.getString(24);
+				s.version = resultSet.getInt(20);
+				s.key_policy = resultSet.getString(21);
+				s.exclude_empty = resultSet.getBoolean(22);
+				String meta = resultSet.getString(23);
 				if(meta != null) {
 					s.meta = new Gson().fromJson(meta, 
 							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
 				} else {
 					getLegacyMeta();
 				}
+				s.groupSurveyId = resultSet.getInt(24);
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
@@ -456,6 +456,7 @@ public class SurveyManager {
 			int existingSurveyId,
 			boolean sharedResults,
 			String user
+
 			) throws SQLException, Exception {
 
 		int sId;
@@ -466,15 +467,16 @@ public class SurveyManager {
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
 
-		String sql1 = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, based_on, shared_table, created)" +
+		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
+				+ "based_on, group_survey_id, created)" +
 				" values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now());";
 
-		String sql2 = "update survey set name = ?, ident = ? where s_id = ?;";
+		String sqlUpdateSurvey = "update survey set name = ?, ident = ? where s_id = ?;";
 
-		String sql3 = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
+		String sqlCreateForm = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
 				" values (nextval('f_seq'), ?, 'main', ?, 0, null, '/main');";
 
-		String sql4 = "insert into question (q_id, f_id, qtype, qname, path, column_name, seq, visible, source, source_param, calculate) "
+		String sqlCreateQuestion = "insert into question (q_id, f_id, qtype, qname, path, column_name, seq, visible, source, source_param, calculate) "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, 'false', ?, ?, ?);";
 
 		PreparedStatement pstmt = null;
@@ -503,7 +505,7 @@ public class SurveyManager {
 			}			
 
 			// 1 Create basic survey
-			pstmt = sd.prepareStatement(sql1, Statement.RETURN_GENERATED_KEYS);		
+			pstmt = sd.prepareStatement(sqlCreateSurvey, Statement.RETURN_GENERATED_KEYS);		
 			pstmt.setString(1, name);
 			pstmt.setInt(2, projectId);
 			if(existing) {
@@ -511,7 +513,11 @@ public class SurveyManager {
 			} else {
 				pstmt.setString(3, null);
 			}
-			pstmt.setBoolean(4,  sharedResults);
+			if(sharedResults) {
+				pstmt.setInt(4, existingSurveyId);
+			} else {
+				pstmt.setInt(4, 0);
+			}
 
 			log.info("Create new survey: " + pstmt.toString());
 			pstmt.execute();
@@ -523,7 +529,7 @@ public class SurveyManager {
 			ident = "s" + projectId +"_" + sId;
 
 			pstmt.close();
-			pstmt = sd.prepareStatement(sql2);
+			pstmt = sd.prepareStatement(sqlUpdateSurvey);
 			pstmt.setString(1, ident);
 			pstmt.setString(2,  ident);
 			pstmt.setInt(3,  sId);
@@ -551,7 +557,7 @@ public class SurveyManager {
 				tablename = "s" + sId + "_main";
 
 				pstmt.close();
-				pstmt = sd.prepareStatement(sql3, Statement.RETURN_GENERATED_KEYS);
+				pstmt = sd.prepareStatement(sqlCreateForm, Statement.RETURN_GENERATED_KEYS);
 				pstmt.setInt(1,  sId);
 				pstmt.setString(2,  tablename);
 
@@ -564,7 +570,7 @@ public class SurveyManager {
 
 				// 6. Add questions
 				pstmt.close();
-				pstmt = sd.prepareStatement(sql4);
+				pstmt = sd.prepareStatement(sqlCreateQuestion);
 
 				pstmt.setInt(1, fId);			// Form Id		
 

@@ -212,7 +212,7 @@ public class Items extends Application {
 						parent,
 						fId,
 						tName,
-						false,	// Don't include Read only
+						true,	// Don't include Read only
 						true,	// Include parent key
 						true,	// Include "bad"
 						true,	// Include instanceId
@@ -430,7 +430,7 @@ public class Items extends Application {
 					}
 				}
 				sql2.append(whereClause);
-				sql2.append(" order by " + tName + ".prikey desc " + sqlLimit +";");
+				sql2.append(" order by " + tName + ".parkey desc, " + tName + ".prikey desc " + sqlLimit +";");
 				
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = connection.prepareStatement(sql2.toString());
