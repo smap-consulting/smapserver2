@@ -648,21 +648,7 @@ public class AllAssignments extends Application {
 									}
 								}
 							}
-
-							/*
-							 * Get the source form ident
-							 */
-							pstmtGetSurveyIdent.setInt(1, as.source_survey_id);
-							if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
-
-							log.info("SQL get survey ident: " + pstmt.toString());
-							resultSet = pstmtGetSurveyIdent.executeQuery();
-							String source_survey_ident = null;
-							if(resultSet.next()) {
-								source_survey_ident = resultSet.getString(1);
-							} else {
-								throw new Exception("Form identifier not found for form id: " + as.source_survey_id);
-							}
+	
 							getTaskSql += getTaskSqlWhere;
 							if(filterSql != null && filterSql.trim().length() > 0) {
 								getTaskSql += " and " + filterSql;
@@ -674,6 +660,7 @@ public class AllAssignments extends Application {
 							
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
+							if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
 							resultSet = pstmt.executeQuery();
 							while (resultSet.next()) {
 
