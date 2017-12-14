@@ -150,7 +150,7 @@ public class XLSTemplateUploadManager {
 					int lastCellNum = row.getLastCellNum();
 					
 					// Default language
-					survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum);
+					survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum, null);
 					if(survey.def_lang != null) {
 						boolean validLanguage = false;
 						for(Language l : survey.languages) {
@@ -164,16 +164,16 @@ public class XLSTemplateUploadManager {
 						}
 					}
 					
-					survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
-					survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
+					survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum, null);
+					survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
 					survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
-					survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum);
-					survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum);
+					survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
+					survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
 					
 					// Add row filters
 					if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
 						for(String h : rowRoleHeader.keySet()) {
-							String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum);
+							String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum, null);
 							if(filter != null) {
 								Role r = survey.roles.get(h);
 								if(r != null) {
@@ -198,7 +198,7 @@ public class XLSTemplateUploadManager {
 
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
-						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum);
+						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum, null);
 						if(listName != null) {
 							OptionList ol = survey.optionLists.get(listName);
 							if(ol == null) {
@@ -256,7 +256,7 @@ public class XLSTemplateUploadManager {
 		int lastCellNum = row.getLastCellNum();
 		o.optionList = listName;
 
-		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum);
+		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum, null);
 		getLabels(row, lastCellNum, choicesHeader, o.labels);
 		
 		if(merge) {
@@ -273,7 +273,7 @@ public class XLSTemplateUploadManager {
 		}
 		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
 		for(String key : choiceFilterHeader.keySet()) {
-			String value = XLSUtilities.getTextColumn(row, key, choicesHeader, lastCellNum);
+			String value = XLSUtilities.getTextColumn(row, key, choicesHeader, lastCellNum, null);
 			if (value != null) {
 				o.cascade_filters.put(key, value);
 			}
@@ -458,16 +458,13 @@ public class XLSTemplateUploadManager {
 		int lastCellNum = row.getLastCellNum();
 
 		// 1. Question type
-		String type = XLSUtilities.getTextColumn(row, "type", surveyHeader, lastCellNum);	
+		String type = XLSUtilities.getTextColumn(row, "type", surveyHeader, lastCellNum, null);	
 		
 		// 2. Question name
-		q.name = XLSUtilities.getTextColumn(row, "name", surveyHeader, lastCellNum);  
-		
-		// 3. Labels
-		getLabels(row, lastCellNum, surveyHeader, q.labels);	
+		q.name = XLSUtilities.getTextColumn(row, "name", surveyHeader, lastCellNum, null);  
 		
 		// Check type is not null
-		if(type == null && ((q.name != null || (q.labels != null && q.labels.size() > 0 && q.labels.get(0).text != null)))) {
+		if(type == null && q.name != null ) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
 		} else if(type == null && q.name == null) {
 			return null;		// blank row
@@ -478,6 +475,8 @@ public class XLSTemplateUploadManager {
 			q.name = "the_geom";
 		}	
 		
+		// 3. Labels
+		getLabels(row, lastCellNum, surveyHeader, q.labels);	
 		
 		if(merge) {
 			String n = questionNames.get(q.name);
@@ -491,51 +490,51 @@ public class XLSTemplateUploadManager {
 		}	
 
 		// 4. choice filter
-		q.choice_filter = XLSUtilities.getTextColumn(row, "choice_filter", surveyHeader, lastCellNum);
+		q.choice_filter = XLSUtilities.getTextColumn(row, "choice_filter", surveyHeader, lastCellNum, null);
 		
 		// 5. Constraint
-		q.constraint = XLSUtilities.getTextColumn(row, "constraint", surveyHeader, lastCellNum);  
+		q.constraint = XLSUtilities.getTextColumn(row, "constraint", surveyHeader, lastCellNum, null);  
 		
 		// 6. Constraint message
-		q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message", surveyHeader, lastCellNum); 
+		q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message", surveyHeader, lastCellNum, null); 
 		
 		// 7. Relevant
-		q.relevant = XLSUtilities.getTextColumn(row, "relevant", surveyHeader, lastCellNum);  		
+		q.relevant = XLSUtilities.getTextColumn(row, "relevant", surveyHeader, lastCellNum, null);  		
 
 		// 7. Repeat count
 		if(q.type.equals("begin repeat")) {
-			q.repeatCount = XLSUtilities.getTextColumn(row, "repeat_count", surveyHeader, lastCellNum);  
+			q.repeatCount = XLSUtilities.getTextColumn(row, "repeat_count", surveyHeader, lastCellNum, null);  
 		}
 		
 		// 8. Default
-		q.defaultanswer = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum); 
+		q.defaultanswer = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum, null); 
 		
 		// 9. Readonly
 		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum);
 		
 		// 10. Appearance
-		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum); 
+		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum, null); 
 		
 		// 11. Parameters TODO
-		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum);
+		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum, null);
 		
 		// 12. autoplay TODO
-		q.autoplay = XLSUtilities.getTextColumn(row, "autoplay", surveyHeader, lastCellNum);
+		q.autoplay = XLSUtilities.getTextColumn(row, "autoplay", surveyHeader, lastCellNum, null);
 		
 		// 13. body::accuracyThreshold
-		q.accuracy = XLSUtilities.getTextColumn(row, "body::accuracyThreshold", surveyHeader, lastCellNum);
+		q.accuracy = XLSUtilities.getTextColumn(row, "body::accuracyThreshold", surveyHeader, lastCellNum, null);
 		
 		// 14. Required
 		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum);		
 		
 		// 15. Required Message
-		q.required_msg = XLSUtilities.getTextColumn(row, "required_message", surveyHeader, lastCellNum); 
+		q.required_msg = XLSUtilities.getTextColumn(row, "required_message", surveyHeader, lastCellNum, null); 
 		
 		// 16. Calculation
-		q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum); 
+		q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum, null); 
 		
 		// 17. Display Name
-		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum); 
+		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum, null); 
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
@@ -595,11 +594,11 @@ public class XLSTemplateUploadManager {
 		// Get the label language values
 		if(useDefaultLanguage) {
 			Label lab = new Label();
-			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum);
-			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum);
-			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum);
-			lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum);
-			lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum);
+			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum, "-");
+			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
+			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
+			lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum, null);
+			lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum, null);
 			
 			labels.add(lab);
 		} else {
@@ -608,19 +607,19 @@ public class XLSTemplateUploadManager {
 				String lang = survey.languages.get(i).name;
 				
 				Label lab = new Label();
-				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum);
-				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum);
-				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, header, lastCellNum);
+				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, "-");
+				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null);
+				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, header, lastCellNum, null);
 				if(lab.image == null) {
-					lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum);
+					lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
 				}
-				lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, header, lastCellNum);
+				lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, header, lastCellNum, null);
 				if(lab.video == null) {
-					lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum);
+					lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum, null);
 				}
-				lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, header, lastCellNum);
+				lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, header, lastCellNum, null);
 				if(lab.audio == null) {
-					lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum);
+					lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum, null);
 				}
 				
 				labels.add(lab);
@@ -990,7 +989,7 @@ public class XLSTemplateUploadManager {
 	}
 	
 	private boolean getBooleanColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum) throws ApplicationException {
-		String v = XLSUtilities.getTextColumn(row, name, header, lastCellNum); 
+		String v = XLSUtilities.getTextColumn(row, name, header, lastCellNum, null); 
 		
 		if(v != null) {
 			v = v.trim();

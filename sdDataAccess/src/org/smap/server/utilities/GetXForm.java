@@ -621,6 +621,8 @@ public class GetXForm {
 
 					populateForm(sd, outputDoc, repeatElement, BODY, subForm);
 
+				} else if(qType.equals("end group")) { 
+					// Ignore end group
 				} else { // Add question to output
 					if (q.isVisible() || qType.equals("begin group")) {
 

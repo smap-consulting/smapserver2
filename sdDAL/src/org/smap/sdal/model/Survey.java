@@ -702,7 +702,9 @@ public class Survey {
 			}
 			
 			// Write the labels
-			UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels);
+			if(transId != null) {
+				UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels);
+			}
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

@@ -250,7 +250,7 @@ public class XLSUtilities {
 	/*
 	 * Get the text value of a cell and return null if the cell is empty
 	 */
-	public static String getTextColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum) throws ApplicationException {
+	public static String getTextColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String default_value) throws ApplicationException {
 
 		String value = null;
 		Integer cellIndex;
@@ -271,6 +271,10 @@ public class XLSUtilities {
 				}
 			}
 		} 
+		
+		if(value == null) {
+			value = default_value;
+		}
 
 		return value;
 	}
