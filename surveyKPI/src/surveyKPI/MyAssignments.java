@@ -182,11 +182,11 @@ public class MyAssignments extends Application {
 		a.isAuthorised(connectionSD, userName);
 		// End Authorisation
 
-		PreparedStatement pstmtGetForms = null;
 		PreparedStatement pstmtGetSettings = null;
 		PreparedStatement pstmtGetProjects = null;
 		PreparedStatement pstmtGeo = null;
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtNumberTasks = null;
 
 		Connection cRel = null;
 
@@ -196,7 +196,16 @@ public class MyAssignments extends Application {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-						
+			
+			String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
+			pstmtNumberTasks = connectionSD.prepareStatement(sqlNumberTasks);
+			pstmtNumberTasks.setInt(1, oId);
+			int ft_number_tasks = 20;
+			ResultSet rs = pstmtNumberTasks.executeQuery();
+			if(rs.next()) {
+				ft_number_tasks = rs.getInt(1);
+			}
+			
 			StringBuffer sql = null;
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 
@@ -204,41 +213,44 @@ public class MyAssignments extends Application {
 			connectionSD.setAutoCommit(true);
 
 			// Get the assignments
-			sql = new StringBuffer("SELECT " +
-					"t.id as task_id," +
-					"t.type," +
-					"t.title," +
-					"t.url," +
-					"s.ident as form_ident," +
-					"s.version as form_version," +
-					"s.p_id as pid," +
-					"t.initial_data," +
-					"t.update_id," +
-					"t.schedule_at," +
-					"t.location_trigger," +
-					"t.repeat," +
-					"a.status as assignment_status," +
-					"a.id as assignment_id, " +
-					"t.address as address, " +
-					"t.guidance as guidance, " +
-					"t.geo_type as geo_type " +
-					"from tasks t, assignments a, users u, survey s, user_project up, project p " +
-					"where t.id = a.task_id " +
-					"and t.form_id = s.s_id " +
-					"and u.id = up.u_id " +
-					"and s.p_id = up.p_id " +
-					"and s.p_id = p.id " +
-					"and s.deleted = 'false' " +
-					"and s.blocked = 'false' " +
-					"and a.assignee = u.id " +
-					"and (a.status = 'pending' or a.status = 'cancelled' or a.status = 'missed' " +
-					"or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) " +
-					"and u.ident = ? " +
-					"and p.o_id = ?");
+			sql = new StringBuffer("SELECT "
+					+ "t.id as task_id,"
+					+ "t.type,"
+					+ "t.title,"
+					+ "t.url,"
+					+ "s.ident as form_ident,"
+					+"s.version as form_version,"
+					+ "s.p_id as pid,"
+					+ "t.initial_data,"
+					+ "t.update_id,"
+					+ "t.schedule_at,"
+					+ "t.location_trigger,"
+					+ "t.repeat,"
+					+ "a.status as assignment_status,"
+					+ "a.id as assignment_id, "
+					+ "t.address as address, "
+					+ "t.guidance as guidance, "
+					+ "t.geo_type as geo_type "
+					+ "from tasks t, assignments a, users u, survey s, user_project up, project p "
+					+ "where t.id = a.task_id "
+					+ "and t.form_id = s.s_id "
+					+ "and u.id = up.u_id "
+					+ "and s.p_id = up.p_id "
+					+ "and s.p_id = p.id "
+					+ "and s.deleted = 'false' "
+					+ "and s.blocked = 'false' "
+					+ "and a.assignee = u.id "
+					+ "and (a.status = 'pending' or a.status = 'cancelled' or a.status = 'missed' "
+					+ "or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
+					+ "and u.ident = ? "
+					+ "and p.o_id = ? "
+					+ "order by t.id desc "
+					+ "limit ?");
 
 			pstmt = connectionSD.prepareStatement(sql.toString());	
 			pstmt.setString(1, userName);
 			pstmt.setInt(2, oId);
+			pstmt.setInt(3, ft_number_tasks);
 
 			log.info("Getting assignments: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
@@ -395,16 +407,16 @@ public class MyAssignments extends Application {
 			 * Get the settings for the phone
 			 */
 			tr.settings = new FieldTaskSettings();
-			sql = new StringBuffer("select " +
-					"o.ft_delete," +
-					"o.ft_send_trail, " +
-					"o.ft_sync_incomplete, " +
-					"o.ft_odk_style_menus, " +
-					"o.ft_review_final, " +
-					"o.ft_send " +
-					"from organisation o, users u " +
-					"where u.o_id = o.id " +
-					"and u.ident = ?;");
+			sql = new StringBuffer("select "
+					+ "o.ft_delete,"
+					+ "o.ft_send_trail, "
+					+ "o.ft_sync_incomplete, "
+					+ "o.ft_odk_style_menus, "
+					+ "o.ft_review_final, "
+					+ "o.ft_send "
+					+ "from organisation o, users u "
+					+ "where u.o_id = o.id "
+					+ "and u.ident = ?");
 
 			pstmtGetSettings = connectionSD.prepareStatement(sql.toString());	
 			pstmtGetSettings.setString(1, userName);
@@ -470,10 +482,11 @@ public class MyAssignments extends Application {
 			log.log(Level.SEVERE,"", e);
 			response = Response.serverError().build();
 		} finally {
-			try {if (pstmtGetForms != null) {pstmtGetForms.close();} } catch (Exception e) {}
 			try {if (pstmtGetSettings != null) {pstmtGetSettings.close();} } catch (Exception e) {}
+			try {if (pstmtGetProjects != null) {pstmtGetProjects.close();} } catch (Exception e) {}
 			try {if (pstmtGeo != null) {pstmtGeo.close();} } catch (Exception e) {}
 			try {if (pstmt != null) {pstmt.close();} } catch (Exception e) {}
+			try {if (pstmtNumberTasks != null) {pstmtNumberTasks.close();} } catch (Exception e) {}
 
 			SDDataSource.closeConnection("surveyKPI-MyAssignments", connectionSD);
 			ResultsDataSource.closeConnection("surveyKPI-MyAssignments", cRel);	

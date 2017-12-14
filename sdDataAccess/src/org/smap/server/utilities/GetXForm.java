@@ -1863,7 +1863,7 @@ public class GetXForm {
 					// name
 
 					String value = null;
-					if (q.isPublished()) { // Get the data from the table if this question has been published
+					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
 						value = resultSet.getString(index);
 					}
 					String filename = null;
@@ -1883,14 +1883,14 @@ public class GetXForm {
 					// false, false, false, filename));
 					record.add(new Results(qName, null, value, false, false, false, filename, q.getParameters()));
 
-					if (q.isPublished()) {
+					if (q.isPublished() || isReference) {
 						index++;
 					}
 
 				} else if (qSource != null) {
 
 					String value = null;
-					if (q.isPublished()) { // Get the data from the table if this question has been published
+					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
 						value = resultSet.getString(index);
 					}
 
@@ -1919,7 +1919,7 @@ public class GetXForm {
 					// false, false, false, null));
 					record.add(new Results(qName, null, value, false, false, false, null, q.getParameters()));
 
-					if (q.isPublished()) {
+					if (q.isPublished() || isReference) {
 						index++;
 					}
 				}

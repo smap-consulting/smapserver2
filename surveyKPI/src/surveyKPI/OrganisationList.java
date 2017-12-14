@@ -116,7 +116,8 @@ public class OrganisationList extends Application {
 					+ "ft_sync_incomplete,"
 					+ "ft_odk_style_menus,"
 					+ "ft_review_final,"
-					+ "ft_send as ft_send,"
+					+ "ft_send,"
+					+ "ft_number_tasks,"
 					+ "changed_by, "
 					+ "changed_ts," 
 					+ "admin_email, "
@@ -154,6 +155,7 @@ public class OrganisationList extends Application {
 				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
 				org.ft_review_final = resultSet.getBoolean("ft_review_final");
 				org.ft_send = resultSet.getString("ft_send");
+				org.ft_number_tasks = resultSet.getInt("ft_number_tasks");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
@@ -324,7 +326,7 @@ public class OrganisationList extends Application {
 		// End Authorisation
 		
 		String sql = "select ft_delete, ft_send_trail, ft_odk_style_menus,"
-				+ "ft_review_final, ft_send "
+				+ "ft_review_final, ft_send, ft_number_tasks "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -345,6 +347,7 @@ public class OrganisationList extends Application {
 				d.ft_odk_style_menus = rs.getBoolean(3);
 				d.ft_review_final = rs.getBoolean(4);
 				d.ft_send = rs.getString(5);
+				d.ft_number_tasks = rs.getInt(6);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -384,6 +387,7 @@ public class OrganisationList extends Application {
 				" ft_odk_style_menus = ?, " +
 				" ft_review_final = ?, " +
 				" ft_send = ?, " +
+				" ft_number_tasks = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -399,8 +403,9 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
 			pstmt.setBoolean(4, d.ft_review_final);
 			pstmt.setString(5, d.ft_send);
-			pstmt.setString(6, request.getRemoteUser());
+			pstmt.setInt(6, d.ft_number_tasks);
 			pstmt.setString(7, request.getRemoteUser());
+			pstmt.setString(8, request.getRemoteUser());
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();
