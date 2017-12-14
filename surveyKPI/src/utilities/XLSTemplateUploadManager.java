@@ -126,9 +126,9 @@ public class XLSTemplateUploadManager {
 		settingsSheet = wb.getSheet("settings");
 
 		if(surveySheet == null) {
-			throw new Exception("A worksheet called 'survey' not found");
+			throw XLSUtilities.getApplicationException(localisation, "tu_nw", -1, "survey", null, null);
 		} else if(surveySheet.getPhysicalNumberOfRows() == 0) {
-			throw new Exception("The survey worksheet is empty");
+			throw XLSUtilities.getApplicationException(localisation, "tu_ew", -1, "survey", null, null);
 		} else {
 
 			lastRowNumSurvey = surveySheet.getLastRowNum();
@@ -142,7 +142,54 @@ public class XLSTemplateUploadManager {
 			getHeaders();	// get headers and set the languages from them
 
 			/*
-			 * 1. Process the choices sheet
+			 * 1, Process the settings sheet
+			 */
+			if(settingsSheet != null && settingsHeader != null) {
+				Row row = settingsSheet.getRow(rowNumSettings++);
+				if(row != null) {
+					int lastCellNum = row.getLastCellNum();
+					
+					// Default language
+					survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum);
+					if(survey.def_lang != null) {
+						boolean validLanguage = false;
+						for(Language l : survey.languages) {
+							if(l.name.equals(survey.def_lang)) {
+								validLanguage = true;
+								break;
+							}
+						}
+						if(!validLanguage) {
+							throw new ApplicationException(localisation.getString("tu_idl"));
+						}
+					}
+					
+					survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
+					survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
+					survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
+					survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum);
+					survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum);
+					
+					// Add row filters
+					if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
+						for(String h : rowRoleHeader.keySet()) {
+							String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum);
+							if(filter != null) {
+								Role r = survey.roles.get(h);
+								if(r != null) {
+									SqlFrag sq = new SqlFrag();
+									sq.addSqlFragment(filter, localisation, false);
+									settingsQuestionInSurvey(sq.columns, h);		// validate question names
+									r.row_filter = filter;
+								}
+							}
+						}
+					}
+				}
+			}
+			
+			/*
+			 * 2. Process the choices sheet
 			 */
 			if(choicesSheet != null) {
 				while(rowNumChoices <= lastRowNumChoices) {
@@ -166,7 +213,7 @@ public class XLSTemplateUploadManager {
 			}
 
 			/*
-			 * 2. Process the survey sheet
+			 * 3. Process the survey sheet
 			 */
 			getForm("main", -1, -1, null);
 			if(survey.forms.get(0).questions.size() == 0) {
@@ -174,54 +221,6 @@ public class XLSTemplateUploadManager {
 			}
 
 		}
-
-		/*
-		 * 3, Process the settings sheet
-		 */
-		if(settingsSheet != null && settingsHeader != null) {
-			Row row = settingsSheet.getRow(rowNumSettings++);
-			if(row != null) {
-				int lastCellNum = row.getLastCellNum();
-				
-				// Default language
-				survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum);
-				if(survey.def_lang != null) {
-					boolean validLanguage = false;
-					for(Language l : survey.languages) {
-						if(l.name.equals(survey.def_lang)) {
-							validLanguage = true;
-							break;
-						}
-					}
-					if(!validLanguage) {
-						throw new ApplicationException(localisation.getString("tu_idl"));
-					}
-				}
-				
-				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum);
-				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum);
-				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
-				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum);
-				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum);
-				
-				// Add row filters
-				if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
-					for(String h : rowRoleHeader.keySet()) {
-						String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum);
-						if(filter != null) {
-							Role r = survey.roles.get(h);
-							if(r != null) {
-								SqlFrag sq = new SqlFrag();
-								sq.addSqlFragment(filter, localisation, false);
-								settingsQuestionInSurvey(sq.columns, h);		// validate question names
-								r.row_filter = filter;
-							}
-						}
-					}
-				}
-			}
-		}
-		
 		
 		/*
 		 * Add default preloads
@@ -290,7 +289,7 @@ public class XLSTemplateUploadManager {
 	 * This should work gracefully with a badly designed forms where there are inconsistent language
 	 *  names between the survey and choices sheet
 	 */
-	private void getHeaders() {
+	private void getHeaders() throws ApplicationException {
 
 		choiceFilterHeader = new HashMap<String, Integer> ();		
 		HashMap<String, String> langMap = new HashMap<String, String> ();
@@ -299,7 +298,7 @@ public class XLSTemplateUploadManager {
 		while(rowNumSurvey <= lastRowNumSurvey) {
 			Row row = surveySheet.getRow(rowNumSurvey++);
 			if(row != null) {
-				surveyHeader = XLSUtilities.getHeader(row);
+				surveyHeader = XLSUtilities.getHeader(row, localisation, rowNumSurvey, "survey");
 
 				// Add languages in order they exist in the header hence won't use keyset of surveyHeader
 				int lastCellNum = row.getLastCellNum();							
@@ -343,7 +342,7 @@ public class XLSTemplateUploadManager {
 			while(rowNumChoices <= lastRowNumChoices) {
 				Row row = choicesSheet.getRow(rowNumChoices++);
 				if(row != null) {
-					choicesHeader = XLSUtilities.getHeader(row);	
+					choicesHeader = XLSUtilities.getHeader(row, localisation, rowNumChoices, "choices");	
 					
 					// Get the headers for filters
 					for(String h : choicesHeader.keySet()) {
@@ -362,30 +361,7 @@ public class XLSTemplateUploadManager {
 						// The rest must be filter columns
 						choiceFilterHeader.put(h, choicesHeader.get(h));
 					}
-	
-					// Add languages in order they exist in the header hence won't use keyset of surveyHeader
-					/*
-					int lastCellNum = row.getLastCellNum();				
-					int idx = 0;				
-					for(int i = 0; i <= lastCellNum; i++) {
-						Cell cell = row.getCell(i);
-						if(cell != null) {
-							String name = cell.getStringCellValue();
-							if(name.startsWith("label::") 
-									|| name.startsWith("image::") || name.startsWith("video::") 
-									|| name.startsWith("audio::")) {
-								String [] sArray = name.split("::");
-								if(sArray.length > 0) {
-									String exists = langMap.get(sArray[1]);
-									if(exists == null) {
-										langMap.put(sArray[1], sArray[1]);
-										survey.languages.add(new Language(idx++, sArray[1]));
-									}
-								}
-							}
-						}
-					}
-					*/
+				
 					break;
 				}
 			}
@@ -402,7 +378,7 @@ public class XLSTemplateUploadManager {
 			while(rowNumSettings <= lastRowNumSettings) {
 				Row row = settingsSheet.getRow(rowNumSettings++);
 				if(row != null) {
-					settingsHeader = XLSUtilities.getHeader(row);
+					settingsHeader = XLSUtilities.getHeader(row, localisation, rowNumSettings, "settings");
 					break;
 				}
 			}
@@ -486,7 +462,12 @@ public class XLSTemplateUploadManager {
 		
 		// 2. Question name
 		q.name = XLSUtilities.getTextColumn(row, "name", surveyHeader, lastCellNum);  
-		if(type == null && q.name != null) {
+		
+		// 3. Labels
+		getLabels(row, lastCellNum, surveyHeader, q.labels);	
+		
+		// Check type is not null
+		if(type == null && ((q.name != null || (q.labels != null && q.labels.size() > 0 && q.labels.get(0).text != null)))) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_mt", rowNumSurvey, "survey", null, null);
 		} else if(type == null && q.name == null) {
 			return null;		// blank row
@@ -507,10 +488,7 @@ public class XLSTemplateUploadManager {
 			}
 		} else {
 			q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
-		}
-		
-		// 3. Labels
-		getLabels(row, lastCellNum, surveyHeader, q.labels);		
+		}	
 
 		// 4. choice filter
 		q.choice_filter = XLSUtilities.getTextColumn(row, "choice_filter", surveyHeader, lastCellNum);
@@ -613,7 +591,7 @@ public class XLSTemplateUploadManager {
 	 * For media try under the default column heading if the language specific is null
 	 */
 	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels) throws ApplicationException {
-
+		
 		// Get the label language values
 		if(useDefaultLanguage) {
 			Label lab = new Label();
@@ -625,8 +603,10 @@ public class XLSTemplateUploadManager {
 			
 			labels.add(lab);
 		} else {
+			
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
+				
 				Label lab = new Label();
 				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum);
 				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum);
@@ -642,6 +622,7 @@ public class XLSTemplateUploadManager {
 				if(lab.audio == null) {
 					lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum);
 				}
+				
 				labels.add(lab);
 			}
 		}
@@ -674,6 +655,9 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_mln", rowNumSurvey, "survey", in.trim(), null);
 			}
 			q.list_name = array[1].trim();
+			if(q.list_name.length() == 0) {
+				q.list_name = null;
+			}
 		} 
 		
 		return type;
@@ -746,6 +730,13 @@ public class XLSTemplateUploadManager {
 				if(q.appearance != null && q.appearance.contains("field-list")) {
 					inFieldList = true;
 				}
+			}
+		}
+		
+		// List name not in choices
+		if(q.list_name != null) {
+			if(survey.optionLists.get(q.list_name) == null) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_lnf", rowNumber, "survey", q.list_name, null);
 			}
 		}
 		
@@ -935,7 +926,7 @@ public class XLSTemplateUploadManager {
 			out = "select_multiple " + in.substring(idx + 8);;
 		} else if (type.equals("note")) {
 			out = "note";
-		} else if (type.equals("geopoint")) {
+		} else if (type.equals("geopoint") || type.equals("location")) {
 			out = "geopoint";
 		} else if (type.equals("geotrace")) {
 			out = "geotrace";
@@ -963,13 +954,13 @@ public class XLSTemplateUploadManager {
 			out = "graph";
 		} else if (type.equals("range")) {
 			out = "range";
-		} else if (type.equals("begin repeat")) {
+		} else if (type.equals("begin repeat") || type.equals("begin_repeat")) {
 			out = "begin repeat";
-		} else if (type.equals("end repeat")) {
+		} else if (type.equals("end repeat") || type.equals("end_repeat")) {
 			out = "end repeat";
-		} else if (type.equals("begin group")) {
+		} else if (type.equals("begin group") || type.equals("begin_group")) {
 			out = "begin group";
-		} else if (type.equals("end group")) {
+		} else if (type.equals("end group") || type.equals("end_group")) {
 			out = "end group";
 		} else if (type.equals("start")) {
 			out = "start";

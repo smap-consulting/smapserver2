@@ -188,11 +188,17 @@ public class QuestionManager {
 		PreparedStatement pstmtGetOldQuestions = null;
 		String sqlGetOldQuestions = "select column_name from question q where q.f_id = ? and q.qname = ? and q.soft_deleted = 'true';";
 
+		PreparedStatement pstmtSetLabels = null;
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
+				"values (?, ?, ?, ?, ?)";
+		
 		try {
 			pstmtUpdateSeq = sd.prepareStatement(sqlUpdateSeq);
 			pstmtInsertQuestion = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmtGetOldQuestions = sd.prepareStatement(sqlGetOldQuestions);
-
+			pstmtSetLabels = sd.prepareStatement(sqlSetLabels);
+			pstmtSetLabels.setInt(1, sId);
+			
 			for(Question q : questions) {
 
 				if(q.fId <= 0) {	// New Form, the formIndex can be used to retrieve the formId of this new form
@@ -320,7 +326,7 @@ public class QuestionManager {
 
 				// Set the labels
 				if(q.name != null && q.name.trim().length() > 0 && !q.type.equals("end group")) {
-					UtilityMethodsEmail.setLabels(sd, sId, q.fId + "_question_" + columnName, q.labels, "");
+					UtilityMethodsEmail.setLabels(sd, sId, q.fId + "_question_" + columnName, q.labels, pstmtSetLabels);
 				}
 
 				// Update the survey manifest if this question references CSV files
@@ -367,6 +373,7 @@ public class QuestionManager {
 			try {if (pstmtForm != null) {pstmtForm.close();}} catch (SQLException e) {}
 			try {if (pstmtGetFormId != null) {pstmtGetFormId.close();}} catch (SQLException e) {}
 			try {if (pstmtGetOldQuestions != null) {pstmtGetOldQuestions.close();}} catch (SQLException e) {}
+			try {if (pstmtSetLabels != null) {pstmtSetLabels.close();}} catch (SQLException e) {}
 		}
 
 	}
@@ -913,10 +920,17 @@ public class QuestionManager {
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update option set seq = seq + 1 where l_id = ? and seq >= ?;";
 
+		PreparedStatement pstmtSetLabels = null;
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
+				"values (?, ?, ?, ?, ?)";
+		
 		try {
 			pstmtUpdateSeq = sd.prepareStatement(sqlUpdateSeq);
 			pstmtInsertOption = sd.prepareStatement(sql);
-
+			
+			pstmtSetLabels = sd.prepareStatement(sqlSetLabels);
+			pstmtSetLabels.setInt(1, sId);
+			
 			for(Option o : options) {
 
 				// Get the list id for this option
@@ -945,7 +959,7 @@ public class QuestionManager {
 
 				// Set the labels 
 				if (updateLabels && transId != null && transId.trim().length() > 0) {
-					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, "");
+					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels);
 				}
 			}
 
@@ -956,6 +970,7 @@ public class QuestionManager {
 		} finally {
 			try {if (pstmtUpdateSeq != null) {pstmtUpdateSeq.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertOption != null) {pstmtInsertOption.close();}} catch (SQLException e) {}
+			try {if (pstmtSetLabels != null) {pstmtSetLabels.close();}} catch (SQLException e) {}
 		}	
 
 	}

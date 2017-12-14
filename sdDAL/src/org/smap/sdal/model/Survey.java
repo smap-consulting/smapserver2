@@ -326,6 +326,10 @@ public class Survey {
 		String sqlUpdateOption = "update option set label_id = ? where o_id = ?";
 		PreparedStatement pstmtUpdateOption = null;
 		
+		PreparedStatement pstmtSetLabels = null;
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
+				"values (?, ?, ?, ?, ?)";
+		
 		try {
 			// Creating the option list
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -336,6 +340,10 @@ public class Survey {
 			
 			// Setting the label ID
 			pstmtUpdateOption = sd.prepareStatement(sqlUpdateOption);
+			
+			// Setting the labels
+			pstmtSetLabels = sd.prepareStatement(sqlSetLabels);
+			pstmtSetLabels.setInt(1, id);
 			
 			for(String listname : optionLists.keySet()) {
 				
@@ -373,10 +381,8 @@ public class Survey {
 						pstmtUpdateOption.executeUpdate();
 						
 						// Write the labels
-						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, "");
+						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, pstmtSetLabels);
 					}
-					
-					
 					
 				}
 			}
@@ -386,6 +392,7 @@ public class Survey {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			if(pstmtOption != null) {try {pstmtOption.close();} catch(Exception e) {}}
 			if(pstmtUpdateOption != null) {try {pstmtUpdateOption.close();} catch(Exception e) {}}
+			if(pstmtSetLabels != null) {try {pstmtSetLabels.close();} catch(Exception e) {}}
 		}
 	}
 	
@@ -393,7 +400,7 @@ public class Survey {
 	 * 2. Write the forms
 	 * This creates an initial entry for a form and then gets the resultant form ID
 	 */
-	private void writeForms(Connection sd, HashMap<String, String> groupForms) throws SQLException {
+	private void writeForms(Connection sd, HashMap<String, String> groupForms) throws Exception {
 		
 		String sql = "insert into form ("
 				+ "f_id, "
@@ -404,11 +411,18 @@ public class Survey {
 				+ "values (nextval('f_seq'), ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 		
+		PreparedStatement pstmtSetLabels = null;
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
+				"values (?, ?, ?, ?, ?)";
+		
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		
 			pstmt.setInt(1, id);		// Survey Id
 		
+			pstmtSetLabels = sd.prepareStatement(sqlSetLabels);
+			pstmtSetLabels.setInt(1, id);
+			
 			for(Form f : forms) {
 				
 				String formName = null;
@@ -441,12 +455,13 @@ public class Survey {
 				// Write Form questions
 				int idx = 0;
 				for(Question q : f.questions) {
-					writeQuestion(sd, q, f.id, idx++);
+					writeQuestion(sd, q, f.id, idx++, pstmtSetLabels);
 				}
 				
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			if(pstmtSetLabels != null) {try {pstmtSetLabels.close();} catch(Exception e) {}}
 		}	
 	}
 	
@@ -552,7 +567,7 @@ public class Survey {
 	/*
 	 * 3. Write a Question
 	 */
-	private void writeQuestion(Connection sd, Question q, int f_id, int seq) throws SQLException {
+	private void writeQuestion(Connection sd, Question q, int f_id, int seq, PreparedStatement pstmtSetLabels) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		String sql = "insert into question ("
@@ -617,6 +632,9 @@ public class Survey {
 			q.l_id = 0;	
 			if(q.list_name != null) {
 				OptionList ol = optionLists.get(q.list_name);
+				if(ol == null) {
+					throw new Exception("List name " + q.list_name + " not found");
+				}
 				q.l_id = ol.id;
 			}
 			
@@ -684,7 +702,7 @@ public class Survey {
 			}
 			
 			// Write the labels
-			UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, "");
+			UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels);
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

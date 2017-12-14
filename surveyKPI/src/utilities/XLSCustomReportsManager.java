@@ -245,7 +245,7 @@ public class XLSCustomReportsManager {
 	                    int lastCellNum = row.getLastCellNum();
 	                    
 	                	if(needHeader) {
-	                		header = XLSUtilities.getHeader(row);
+	                		header = XLSUtilities.getHeader(row, localisation, j, "definition");
 	                		needHeader = false;
 	                	} else {
 	                		String rowType = XLSUtilities.getColumn(row, "row type", header, lastCellNum, null);
@@ -662,7 +662,7 @@ public class XLSCustomReportsManager {
                     int lastCellNum = row.getLastCellNum();
                     
                 	if(needHeader) {
-                		header = XLSUtilities.getHeader(row);
+                		header = XLSUtilities.getHeader(row, localisation, j, "definition");
                 		needHeader = false;
                 	} else {
                 		String rowType = XLSUtilities.getColumn(row, "row type", header, lastCellNum, null);
