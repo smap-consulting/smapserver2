@@ -407,6 +407,7 @@ public class Survey extends Application {
 				}
 
 				pstmtTables.setInt(1, currentSurveyId);
+				log.info("Get tables :" + pstmtTables.toString());
 				resultSet = pstmtTables.executeQuery();
 
 				while (resultSet.next()) {							
