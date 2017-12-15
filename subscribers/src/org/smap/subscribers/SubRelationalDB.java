@@ -324,11 +324,11 @@ public class SubRelationalDB extends Subscriber {
 				tm.updateTasksForSubmission(
 						sd,
 						cResults,
-						survey,
 						sId,
 						server,
 						instanceId,
-						pId
+						pId,
+						remoteUser
 						);
 				
 				//

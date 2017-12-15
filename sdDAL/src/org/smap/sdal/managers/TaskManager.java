@@ -496,15 +496,22 @@ public class TaskManager {
 	 */
 	public void updateTasksForSubmission(Connection sd, 
 			Connection cResults,
-			Survey survey,
 			int source_s_id, 
 			String hostname,
 			String instanceId,
-			int pId) throws Exception {
+			int pId,
+			String remoteUser) throws Exception {
 
 		String sqlGetRules = "select tg_id, rule, address_params, target_s_id from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
+		SurveyManager sm = new SurveyManager(localisation);
+		org.smap.sdal.model.Survey survey = null;
+		boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
+		survey = sm.getById(sd, cResults, remoteUser, source_s_id, true, "", 
+				instanceId, true, generateBlank, true, false, true, "real", 
+				false, false, false, 0, "geojson");
+		
 		try {
 
 			pstmtGetRules = sd.prepareStatement(sqlGetRules);
@@ -530,8 +537,6 @@ public class TaskManager {
 				 *   Don't fire if form to be updated is the same one that has been submitted 
 				 */
 				boolean fires = false;
-				String rule = null;
-
 				if(as.add_future  && source_s_id != target_s_id) {
 					if(as.filter.advanced != null) {
 						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
