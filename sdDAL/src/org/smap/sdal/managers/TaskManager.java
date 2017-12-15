@@ -24,6 +24,7 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskBulkAction;
@@ -70,6 +71,7 @@ public class TaskManager {
 	
 	private class TaskInstanceData {
 		int prikey = 0;						// data from submission
+		String ident = null;					// Identifier of person or role to be assigned
 		String location = null;				// data from submission
 		String address = null;				// data from submission
 		String locationTrigger = null;		// data from task set up
@@ -553,7 +555,7 @@ public class TaskManager {
 				if(fires) {
 					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
 							" task survey: " + target_s_id);
-					TaskInstanceData tid = getTaskInstanceData(sd, cResults, source_s_id, instanceId, address); // Get data from new submission
+					TaskInstanceData tid = getTaskInstanceData(sd, cResults, source_s_id, instanceId, as.assign_data, address); // Get data from new submission
 					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, source_s_id, 
 							target_s_id, tid, instanceId);  // Write to the database
 				}
@@ -566,13 +568,6 @@ public class TaskManager {
 		}
 
 
-	}
-
-	/*
-	 * Return the criteria for firing this rule
-	 */
-	private String testRule() {
-		return null;
 	}
 
 	/*
@@ -620,10 +615,14 @@ public class TaskManager {
 						+ "?);";	
 
 		String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
-
-		PreparedStatement pstmt = null;
 		PreparedStatement pstmtAssign = sd.prepareStatement(assignSQL);
 
+		String roleSQL = "select u_id from user_role where r_id = ?";
+		PreparedStatement pstmtRoles = sd.prepareStatement(roleSQL);
+		
+
+		PreparedStatement pstmt = null;
+		
 		String title = as.project_name + " : " + as.survey_name;
 		String location = tid.location;
 
@@ -694,31 +693,59 @@ public class TaskManager {
 			/*
 			 * Assign the user to the new task
 			 */
-			if(as.user_id > 0) {
-
-				ResultSet keys = pstmt.getGeneratedKeys();
-				if(keys.next()) {
-					int taskId = keys.getInt(1);
-
-					pstmtAssign.setInt(1, as.user_id);
-					pstmtAssign.setString(2, "accepted");
-					pstmtAssign.setInt(3, taskId);
-
-					log.info("Assign user to task:" + pstmtAssign.toString());
-
-					pstmtAssign.executeUpdate();
+			int userId = as.user_id;
+			int roleId = as.role_id;
+			if(tid.ident != null) {
+			
+				System.out.println("Assign Ident: " + tid.ident);
+				if(as.user_id == -2) {
+					userId = GeneralUtilityMethods.getUserId(sd, tid.ident);   // Its a user ident
+				} else {
+					roleId = GeneralUtilityMethods.getRoleId(sd, tid.ident);   // Its a role name
 				}
+			}
+			
+			if(userId > 0 || roleId > 0) {
+				ResultSet rsKeys = pstmt.getGeneratedKeys();
+				if(rsKeys.next()) {
+					int taskId = rsKeys.getInt(1);
+					pstmtAssign.setString(2, "accepted");
+					
+					if(userId > 0) {		// Assign the user to the new task
 
-				// Notify the user of their new assignment
-				String userIdent = GeneralUtilityMethods.getUserIdent(sd, as.user_id);
-				MessagingManager mm = new MessagingManager();
-				mm.userChange(sd, userIdent);			
+						pstmtAssign.setInt(1, userId);
+						pstmtAssign.setInt(3, taskId);
+						pstmtAssign.executeUpdate();
+						
+						// Notify the user of their new assignment
+						String userIdent = GeneralUtilityMethods.getUserIdent(sd, as.user_id);
+						MessagingManager mm = new MessagingManager();
+						mm.userChange(sd, userIdent);	
+
+					} else if(roleId > 0) {		// Assign all users with the current role
+
+						pstmtRoles.setInt(1, roleId);
+						ResultSet rsRoles = pstmtRoles.executeQuery();
+						
+						while(rsRoles.next()) {
+							pstmtAssign.setInt(1, rsRoles.getInt(1));													
+							pstmtAssign.setInt(3, taskId);
+							pstmtAssign.executeUpdate();
+							
+							// Notify the user of their new assignment
+							String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
+							MessagingManager mm = new MessagingManager();
+							mm.userChange(sd, userIdent);	
+						}
+					} 
+				}	
 
 			}
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
+			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
 		}
 	}
 
@@ -732,7 +759,8 @@ public class TaskManager {
 			Connection cResults, 
 			int sId, 
 			String instanceId,
-			ArrayList<TaskAddressSettings> address) throws SQLException {
+			String assign_data,
+			ArrayList<TaskAddressSettings> address) throws Exception {
 
 		TaskInstanceData tid = new TaskInstanceData();
 		
@@ -751,6 +779,12 @@ public class TaskManager {
 			if(hasGeom) {
 				sql.append(", ST_AsText(the_geom)");
 			}
+			if(assign_data != null && assign_data.trim().length() > 0) {
+				SqlFrag frag = new SqlFrag();
+				frag.addSqlFragment(assign_data, localisation, false);
+				sql.append(",").append(frag.sql.toString()).append(" as _assign_key");;
+			}
+			
 			if(address != null) {
 				for(TaskAddressSettings a : address) {
 					if(a.selected && !a.isMedia) {
@@ -774,6 +808,9 @@ public class TaskManager {
 			ResultSet rsData = pstmt.executeQuery();
 			if(rsData.next()) {
 				tid.prikey = rsData.getInt(colIdx++);
+				if(assign_data != null && assign_data.trim().length() > 0) {
+					tid.ident = rsData.getString("_assign_key");
+				}
 				if(hasGeom) {
 					tid.location = rsData.getString(colIdx++);
 				}

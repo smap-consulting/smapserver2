@@ -570,7 +570,6 @@ public class AllAssignments extends Application {
 							// Check to see if we need to assign the task based on retrieved data
 							String assignSql = null;
 							if(as.assign_data != null && as.assign_data.trim().length() > 0) {
-								System.out.println("############# Assign data: " + as.assign_data);	
 								SqlFrag frag = new SqlFrag();
 								frag.addSqlFragment(as.assign_data, localisation, false);
 								assignSql = frag.sql.toString();
