@@ -111,8 +111,11 @@ public class Tasks extends Application {
 	
 		try {
 			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			// Get task groups
-			TaskManager tm = new TaskManager();
+			TaskManager tm = new TaskManager(localisation);
 			ArrayList<TaskGroup> taskgroups = tm.getTaskGroups(sd, projectId);		
 			
 			// Return groups to calling program
@@ -155,9 +158,11 @@ public class Tasks extends Application {
 		// End authorisation
 	
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Get assignments
-			TaskManager tm = new TaskManager();
+			TaskManager tm = new TaskManager(localisation);
 			TaskListGeoJson t = tm.getTasks(sd, tgId, completed, userId);		
 			
 			// Return groups to calling program
@@ -197,9 +202,12 @@ public class Tasks extends Application {
 	
 		try {
 			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			// Get locations
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			TaskManager tm = new TaskManager();
+			TaskManager tm = new TaskManager(localisation);
 			ArrayList<Location> locations = tm.getLocations(sd, oId);
 			
 			
@@ -252,6 +260,9 @@ public class Tasks extends Application {
 			FileItem fileItem = null;
 			String filetype = null;
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			while(itr.hasNext()) {
 				
 				FileItem item = (FileItem) itr.next();
@@ -301,7 +312,7 @@ public class Tasks extends Application {
 					// Save locations to disk
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 					log.info("userevent: " + request.getRemoteUser() + " : upload locations from xls file: " + fileName + " for organisation: " + oId);
-					TaskManager tm = new TaskManager();
+					TaskManager tm = new TaskManager(localisation);
 					tm.saveLocations(sd, locations, oId);
 					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", locations.size() + " locations / NFC tags uploaded from file " + fileName);
 					// Return tags to calling program
@@ -347,8 +358,6 @@ public class Tasks extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End authorisation
 		
-		TaskManager tm = new TaskManager();
-		
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		// Set file type to "xlsx" unless "xls" has been specified
@@ -357,11 +366,12 @@ public class Tasks extends Application {
 		}
 		
 		try {
-			
-			// Localisation
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
-			Locale locale = new Locale(organisation.locale);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());			
+			
+			TaskManager tm = new TaskManager(localisation);
 			
 			// Get the current locations
 			ArrayList<Location> locations = tm.getLocations(sd, organisation.id);
@@ -404,8 +414,6 @@ public class Tasks extends Application {
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
 		// End Authorisation 
 		
-		TaskManager tm = new TaskManager();
-		
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		// Set file type to "xlsx" unless "xls" has been specified
@@ -426,6 +434,7 @@ public class Tasks extends Application {
 			Locale locale = new Locale(organisation.locale);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			TaskManager tm = new TaskManager(localisation);
 			
 			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
 			TaskListGeoJson tl = tm.getTasks(sd, tgId, true, 0);	// Get the task list
@@ -541,7 +550,7 @@ public class Tasks extends Application {
 				TaskListGeoJson tl = xf.getXLSTaskList(filetype, file.getInputStream(), localisation);
 				
 				// Save tasks to the database
-				TaskManager tm = new TaskManager();
+				TaskManager tm = new TaskManager(localisation);
 				
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
@@ -608,10 +617,13 @@ public class Tasks extends Application {
 		
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		TaskFeature tf = gson.fromJson(task, TaskFeature.class);
-		TaskManager tm = new TaskManager();
+		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			TaskManager tm = new TaskManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			tm.writeTask(sd, pId, tgId, tf, request.getServerName(), false, oId);
 			response = Response.ok().build();
@@ -654,9 +666,12 @@ public class Tasks extends Application {
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		TaskFeature tf = gson.fromJson(task, TaskFeature.class);
-		TaskManager tm = new TaskManager();
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			TaskManager tm = new TaskManager(localisation);
 			tm.updateWhen(sd, pId, tf.properties.id, tf.properties.from, tf.properties.to);
 			response = Response.ok().build();
 		
@@ -697,12 +712,16 @@ public class Tasks extends Application {
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		TaskBulkAction bulkAction = gson.fromJson(tasks, TaskBulkAction.class);
-		TaskManager tm = new TaskManager();
+	
 		
 		log.info("userevent: " + request.getRemoteUser() + " : bulk action for : " + tgId + " " 
 					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.taskIds.toString());
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			TaskManager tm = new TaskManager(localisation);
 			tm.applyBulkAction(sd, pId, bulkAction);
 			response = Response.ok().build();
 		
@@ -743,8 +762,10 @@ public class Tasks extends Application {
 	
 		
 		try {
-			MiscPDFManager pm = new MiscPDFManager();  
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			MiscPDFManager pm = new MiscPDFManager(localisation);  			
 			pm.createTasksPdf(
 					sd,
 					response.getOutputStream(),

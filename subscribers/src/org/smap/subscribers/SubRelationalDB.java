@@ -320,10 +320,11 @@ public class SubRelationalDB extends Subscriber {
 						excludeEmpty);	
 
 				// Apply Tasks
-				TaskManager tm = new TaskManager();
+				TaskManager tm = new TaskManager(localisation);
 				tm.updateTasksForSubmission(
 						sd,
 						cResults,
+						survey,
 						sId,
 						server,
 						instanceId,

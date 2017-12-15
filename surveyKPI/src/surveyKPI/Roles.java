@@ -35,7 +35,10 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Role;
+import org.smap.sdal.model.RoleName;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -56,6 +59,7 @@ import java.util.logging.Logger;
 public class Roles extends Application {
 	
 	Authorise aSM = null;
+	Authorise aLowPriv = null;
 
 	private static Logger log =
 			 Logger.getLogger(Roles.class.getName());
@@ -70,6 +74,10 @@ public class Roles extends Application {
 		authorisations.add(Authorise.ORG);
 		aSM = new Authorise(authorisations, null);
 		
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ANALYST);
+		aLowPriv = new Authorise(authorisations, null);
 	}
 	
 	/*
@@ -85,7 +93,7 @@ public class Roles extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
+		Connection sd = SDDataSource.getConnection("surveyKPI-getRoles");
 		aSM.isAuthorised(sd, request.getRemoteUser());
 		
 		// End Authorisation
@@ -105,7 +113,7 @@ public class Roles extends Application {
 
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-roleList", sd);
+			SDDataSource.closeConnection("surveyKPI-getRoles", sd);
 		}
 
 		return response;
@@ -122,7 +130,7 @@ public class Roles extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-RoleList");
+		Connection sd = SDDataSource.getConnection("surveyKPI-updateRoles");
 		aSM.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -157,7 +165,7 @@ public class Roles extends Application {
 			log.log(Level.SEVERE,"Error", e);
 
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-roleList", sd);
+			SDDataSource.closeConnection("surveyKPI-updateRoles", sd);
 		}
 		
 		return response;
@@ -214,7 +222,7 @@ public class Roles extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
+		Connection sd = SDDataSource.getConnection("surveyKPI-getSurveyRoles");
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -240,7 +248,7 @@ public class Roles extends Application {
 
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-roleList", sd);
+			SDDataSource.closeConnection("surveyKPI-getSurveyRoles", sd);
 		}
 
 		return response;
@@ -265,7 +273,7 @@ public class Roles extends Application {
 		Role role = new Gson().fromJson(roleString, Role.class);
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
+		Connection sd = SDDataSource.getConnection("surveyKPI-updateSurveyRoles");
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -299,12 +307,52 @@ public class Roles extends Application {
 			log.log(Level.SEVERE,"Error", e);
 
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-roleList", sd);
+			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
 
 		return response;
 	}
 
+	/*
+	 * Get the roles names in the organisation
+	 * This is a low privilege service to allow users who are not the security manager to get role names for pusrposes
+	 *  such as assigning tasks to members of a role
+	 */
+	@Path("/roles/names")
+	@GET
+	@Produces("application/json")
+	public Response getRolesNames(
+			@Context HttpServletRequest request
+			) { 
+
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-getRoleNames");
+		aLowPriv.isAuthorised(sd, request.getRemoteUser());
+		
+		// End Authorisation
+		
+		RoleManager rm = new RoleManager();
+		try {
+			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			
+			ArrayList<RoleName> roles = rm.getRoleNames(sd, o_id);
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(roles);
+			response = Response.ok(resp).build();
+		} catch (Exception e) {
+			
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+
+		} finally {
+			
+			SDDataSource.closeConnection("surveyKPI-getRoleNames", sd);
+		}
+
+		return response;
+	}
 
 }
 

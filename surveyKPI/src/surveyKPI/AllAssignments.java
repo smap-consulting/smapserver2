@@ -360,6 +360,7 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtAssign = null;
+		PreparedStatement pstmtRoles = null;
 		PreparedStatement pstmtCheckGeom = null;
 		PreparedStatement pstmtTaskGroup = null;
 		PreparedStatement pstmtGetSurveyIdent = null;
@@ -385,7 +386,7 @@ public class AllAssignments extends Application {
 			 */
 			int taskGroupId = -1;
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			ResultSet keys = null;
+			ResultSet rsKeys = null;
 			if(as.task_group_id <= 0) {
 
 				/*
@@ -428,9 +429,9 @@ public class AllAssignments extends Application {
 
 				connectionSD.commit();		// Success as TG is created, even if there are no existing tasks ready to go this is good
 
-				keys = pstmtTaskGroup.getGeneratedKeys();
-				if(keys.next()) {
-					taskGroupId = keys.getInt(1);
+				rsKeys = pstmtTaskGroup.getGeneratedKeys();
+				if(rsKeys.next()) {
+					taskGroupId = rsKeys.getInt(1);
 				}
 			} else {
 				taskGroupId = as.task_group_id;
@@ -470,10 +471,13 @@ public class AllAssignments extends Application {
 								"?, " +
 								"?," +
 								"now() + interval '7 days'," +  // Schedule for 1 week (TODO allow user to set)
-								"?);";		
+								"?)";		
 
-				String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
+				String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
 				pstmtAssign = connectionSD.prepareStatement(assignSQL);
+				
+				String roleSQL = "select u_id from user_role where r_id = ?";
+				pstmtRoles = connectionSD.prepareStatement(roleSQL);
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
 				pstmtCheckGeom = connectionRel.prepareStatement(checkGeomSQL);
@@ -562,6 +566,16 @@ public class AllAssignments extends Application {
 								filterSql = filterQuestion.getFilterExpression(fValue, fValue2);		
 								log.info("filter: " + filterSql);
 							}
+							
+							// Check to see if we need to assign the task based on retrieved data
+							String assignSql = null;
+							if(as.assign_data != null && as.assign_data.trim().length() > 0) {
+								System.out.println("############# Assign data: " + as.assign_data);	
+								SqlFrag frag = new SqlFrag();
+								frag.addSqlFragment(as.assign_data, localisation, false);
+								assignSql = frag.sql.toString();
+							}
+							
 							// Check to see if this form has geometry columns
 							boolean hasGeom = false;
 							pstmtCheckGeom.setString(1, tableName);
@@ -574,20 +588,24 @@ public class AllAssignments extends Application {
 							}
 
 							// Get the primary key, location and address columns from this top level table
-							String getTaskSql = null;
-							String getTaskSqlWhere = null;
-							String getTaskSqlEnd = null;
+							StringBuffer getTaskSql = new StringBuffer("");
+							StringBuffer getTaskSqlWhere = new StringBuffer("");
+							StringBuffer getTaskSqlEnd = new StringBuffer("");
 							boolean hasInstanceName = GeneralUtilityMethods.hasColumn(connectionRel, tableName, "instancename");
 
 							if(hasGeom) {
 								log.info("Has geometry");
-								getTaskSql = "select " + tableName +".prikey, ST_AsText(" + tableName + ".the_geom) as the_geom," +
-										tableName + ".instanceid";
+								getTaskSql.append("select ").append(tableName)
+										.append(".prikey, ST_AsText(").append(tableName).append(".the_geom) as the_geom,")
+										.append(tableName).append(".instanceid");
+								
 								if(hasInstanceName) {
-									getTaskSql += ", " + tableName + ".instancename";
+									getTaskSql.append(", ").append(tableName).append(".instancename");
 								}
-								getTaskSqlWhere = " from " + tableName + " where " + tableName + "._bad = 'false'";	
-								getTaskSqlEnd = ";";
+								
+								getTaskSqlWhere.append(" from ").append(tableName).append(" where ")
+										.append(tableName).append("._bad = 'false'");	
+
 							} else {
 								log.info("No geom found");
 								// Get a subform that has geometry
@@ -612,51 +630,63 @@ public class AllAssignments extends Application {
 								}
 								pstmt2.close();
 								resultSet2.close();
-								getTaskSql = "select " + tableName + 
-										".prikey, ST_AsText(ST_MakeLine(" + tableName2 + ".the_geom)) as the_geom, " +
-										tableName + ".instanceid";
+								getTaskSql.append("select ").append(tableName) 
+										.append(".prikey, ST_AsText(ST_MakeLine(").append(tableName2)
+										.append(".the_geom)) as the_geom, ").append(tableName).append(".instanceid");
+								
 								if(hasInstanceName) {
-									getTaskSql += ", " + tableName + ".instancename";
+									getTaskSql.append(", ").append(tableName).append(".instancename");
 								}
 
-								getTaskSqlWhere = " from " + tableName + " left outer join " + tableName2 + 
-										" on " + tableName + ".prikey = " + tableName2 + ".parkey " +
-										" where " + tableName + "._bad = 'false'";							
-								getTaskSqlEnd = "group by " + tableName + ".prikey ";
+								getTaskSqlWhere.append(" from ").append(tableName).append(" left outer join ")
+										.append(tableName2).append(" on ").append(tableName).append(".prikey = ")
+										.append(tableName2).append(".parkey ")
+										.append(" where ").append(tableName).append("._bad = 'false'");	
+								
+								getTaskSqlEnd.append("group by ").append(tableName).append(".prikey ");
 							}
 
 							// Finally if we still haven't found a geometry column then set all locations to 0, 0
 							if(!hasGeom) {
 								log.info("No geometry columns found");
+								
+								getTaskSql = new StringBuffer("");
+								getTaskSqlWhere = new StringBuffer("");
+								getTaskSqlEnd = new StringBuffer("");
 
-								getTaskSql = "select " + tableName + ".prikey, 'POINT(0 0)' as the_geom, " +
-										tableName + ".instanceid";
+								getTaskSql.append("select ").append(tableName).append(".prikey, 'POINT(0 0)' as the_geom, ")
+											.append(tableName).append(".instanceid");
+								
 								if(hasInstanceName) {
-									getTaskSql += ", " + tableName + ".instancename";
+									getTaskSql.append(", ").append(tableName).append(".instancename");
 								}
-								getTaskSqlWhere = " from " + tableName + " where " + tableName + "._bad = 'false'";	
-								getTaskSqlEnd = ";";
+								getTaskSqlWhere.append(" from ").append(tableName).append(" where ").append(tableName)
+										.append("._bad = 'false'");	
 
 							}
 
+							if(assignSql != null) {
+								System.out.println("AssignSQl: " + assignSql);
+								getTaskSql.append(",").append(assignSql).append(" as _assign_key");
+							}
 
 							if(as.address_columns != null) {
 								for(int i = 0; i < as.address_columns.size(); i++) {
 									TaskAddressSettings add = as.address_columns.get(i);
 									if(add.selected) {
-										getTaskSql += "," + tableName + "." + add.name;
+										getTaskSql.append(",").append(tableName).append(".").append(add.name);
 									}
 								}
 							}
 	
-							getTaskSql += getTaskSqlWhere;
+							getTaskSql.append(getTaskSqlWhere);
 							if(filterSql != null && filterSql.trim().length() > 0) {
-								getTaskSql += " and " + filterSql;
+								getTaskSql.append(" and ").append(filterSql);
 							}
-							getTaskSql += getTaskSqlEnd;
+							getTaskSql.append(getTaskSqlEnd);
 
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-							pstmt = connectionRel.prepareStatement(getTaskSql);	
+							pstmt = connectionRel.prepareStatement(getTaskSql.toString());	
 							
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
@@ -759,23 +789,42 @@ public class AllAssignments extends Application {
 								if(count != 1) {
 									log.info("Error: Failed to insert task");
 								} else {
-									if(as.user_id > 0) {	// Assign the user to the new task
-
-										keys = pstmtInsert.getGeneratedKeys();
-										if(keys.next()) {
-											int taskId = keys.getInt(1);
-
-											pstmtAssign.setInt(1, as.user_id);
-											pstmtAssign.setString(2, "accepted");
-											pstmtAssign.setInt(3, taskId);
-
-											log.info("Assign user to task:" + pstmtAssign.toString());
-
-											pstmtAssign.executeUpdate();
+									int userId = as.user_id;
+									int roleId = as.role_id;
+									if(assignSql != null) {
+										String ident = resultSet.getString("_assign_key");
+										System.out.println("Assign Ident: " + ident);
+										if(as.user_id == -2) {
+											userId = GeneralUtilityMethods.getUserId(connectionSD, ident);   // Its a user ident
+										} else {
+											roleId = GeneralUtilityMethods.getRoleId(connectionSD, ident);   // Its a role name
 										}
-										if(keys != null) try{ keys.close(); } catch(SQLException e) {};
+									}
+									if(userId > 0 || roleId > 0) {
+										rsKeys = pstmtInsert.getGeneratedKeys();
+										if(rsKeys.next()) {
+											int taskId = rsKeys.getInt(1);
+											pstmtAssign.setString(2, "accepted");
+											
+											if(userId > 0) {		// Assign the user to the new task
 
+												pstmtAssign.setInt(1, userId);
+												pstmtAssign.setInt(3, taskId);
+												pstmtAssign.executeUpdate();
 
+											} else if(roleId > 0) {		// Assign all users with the current role
+				
+												pstmtRoles.setInt(1, roleId);
+												ResultSet rsRoles = pstmtRoles.executeQuery();
+												
+												while(rsRoles.next()) {
+													pstmtAssign.setInt(1, rsRoles.getInt(1));													
+													pstmtAssign.setInt(3, taskId);
+													pstmtAssign.executeUpdate();
+												}
+											} 
+										}
+										if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
 									}
 								}
 							}
@@ -837,9 +886,9 @@ public class AllAssignments extends Application {
 							log.info("Error: Failed to insert task");
 						} else if((f.properties != null && f.properties.userId > 0) || as.user_id > 0) {	// Assign the user to the new task
 
-							keys = pstmtInsert.getGeneratedKeys();
-							if(keys.next()) {
-								int taskId = keys.getInt(1);
+							rsKeys = pstmtInsert.getGeneratedKeys();
+							if(rsKeys.next()) {
+								int taskId = rsKeys.getInt(1);
 
 								if(f.properties != null && f.properties.userId > 0) {
 									pstmtAssign.setInt(1, f.properties.userId);
@@ -853,8 +902,10 @@ public class AllAssignments extends Application {
 
 								log.info("Assign status: " + pstmtAssign.toString());
 								pstmtAssign.executeUpdate();
+								
+								// TODO assign from roles
 							}
-							if(keys != null) try{ keys.close(); } catch(SQLException e) {};
+							if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
 
 						}
 					}
@@ -892,6 +943,7 @@ public class AllAssignments extends Application {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			if(pstmtInsert != null) try {	pstmtInsert.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
+			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
 			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 			if(pstmtGetSurveyIdent != null) try {	pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};
@@ -1547,8 +1599,12 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtDelete = null;
 
 		try {
+			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			TaskManager tm = new TaskManager();
+			TaskManager tm = new TaskManager(localisation);
 			tm.deleteTasksInTaskGroup(connectionSD, tg_id);		// Note can't rely on cascading delete as temporary users need to be deleted
 			String deleteSQL = "delete from task_group where tg_id = ?; "; 
 			pstmtDelete = connectionSD.prepareStatement(deleteSQL);

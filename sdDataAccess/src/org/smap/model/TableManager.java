@@ -79,6 +79,7 @@ public class TableManager {
 	public TableManager(ResourceBundle l) {
 		localisation = l;
 	}
+	
 	/*
 	 * Create the table if it does not already exit in the database
 	 */

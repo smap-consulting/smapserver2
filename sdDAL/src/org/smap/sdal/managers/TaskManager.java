@@ -9,6 +9,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
@@ -23,6 +24,7 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskBulkAction;
 import org.smap.sdal.model.TaskFeature;
@@ -64,6 +66,8 @@ public class TaskManager {
 	private static Logger log =
 			Logger.getLogger(TaskManager.class.getName());
 
+	private ResourceBundle localisation = null;
+	
 	private class TaskInstanceData {
 		int prikey = 0;						// data from submission
 		String location = null;				// data from submission
@@ -71,6 +75,10 @@ public class TaskManager {
 		String locationTrigger = null;		// data from task set up
 	}
 
+	public TaskManager(ResourceBundle l) {
+		localisation = l;
+	}
+	
 	/*
 	 * Get the current task groups
 	 */
@@ -488,6 +496,7 @@ public class TaskManager {
 	 */
 	public void updateTasksForSubmission(Connection sd, 
 			Connection cResults,
+			Survey survey,
 			int source_s_id, 
 			String hostname,
 			String instanceId,
@@ -524,16 +533,16 @@ public class TaskManager {
 				String rule = null;
 
 				if(as.add_future  && source_s_id != target_s_id) {
-					if(as.filter != null) {
-						rule = testRule();		// TODO
-						if(rule != null) {
-							fires = true;
+					if(as.filter.advanced != null) {
+						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
+						if(!fires) {
+							log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
 						}
 					} else {
 						fires = true;
 					}
 				} else {
-					log.info("Rule not fired");
+					log.info("Rule not fired as target = source");
 				}
 
 				if(fires) {

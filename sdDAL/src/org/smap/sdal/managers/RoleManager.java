@@ -11,8 +11,10 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.RoleName;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
 
@@ -90,6 +92,41 @@ public class RoleManager {
 			
 
 					    
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return roles;
+	}
+	
+	/*
+	 * Get the names and idents of roles
+	 */
+	public ArrayList<RoleName> getRoleNames(Connection sd, int o_id) throws SQLException {
+		PreparedStatement pstmt = null;
+		ArrayList<RoleName> roles = new ArrayList<> ();
+		
+		try {
+			String sql = null;
+			ResultSet resultSet = null;
+			
+			/*
+			 * Get the roles for this organisation
+			 */
+			sql = "SELECT id, "
+					+ "name "
+					+ "from role "
+					+ "where o_id = ? "
+					+ "order by name asc";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, o_id);
+			resultSet = pstmt.executeQuery();
+							
+			while(resultSet.next()) {
+				roles.add(new RoleName(resultSet.getInt("id"), resultSet.getString("name")));
+			}
+						    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}

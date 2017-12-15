@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -60,6 +61,8 @@ public class MiscPDFManager {
 	private static Logger log =
 			 Logger.getLogger(MiscPDFManager.class.getName());
 	
+	private ResourceBundle localisation = null;
+	
 	int marginLeft = 36;
 	int marginRight = 36;
 	int marginTop_1 = 300;
@@ -75,9 +78,6 @@ public class MiscPDFManager {
 
 			document.setMargins(marginLeft, marginRight, marginTop_2, marginBottom_2);
 			
-			//if(pageNumber > 1) {
-			//	writer.setCropBoxSize(new Rectangle(marginLeft, marginRight, marginTop_2, marginBottom_2));
-			//}
 		}
 		public void onEndPage(PdfWriter writer, Document document) {
 			
@@ -93,6 +93,10 @@ public class MiscPDFManager {
 	public static Font defaultFont = null;
 	public static BaseColor VLG = new BaseColor(0xE8,0xE8,0xE8);
 
+	public MiscPDFManager(ResourceBundle l) {
+		localisation = l;
+	}
+	
 	/*
 	 * Call this function to create a PDF
 	 * Return a suggested name for the PDF file derived from the results
@@ -345,7 +349,7 @@ public class MiscPDFManager {
 			/*
 			 * Get the tasks for this task group
 			 */
-			TaskManager tm = new TaskManager();
+			TaskManager tm = new TaskManager(localisation);
 			TaskListGeoJson t = tm.getTasks(sd, tgId, false, 0);	
 			PdfWriter writer = null;			
 				

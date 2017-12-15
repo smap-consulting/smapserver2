@@ -791,34 +791,53 @@ public class GeneralUtilityMethods {
 	 */
 	static public int getUserId(Connection sd, String user) throws SQLException {
 
-		int u_id = -1;
+		int id = -1;
 
-		String sqlGetUserId = "select id " + " from users u " + " where u.ident = ?;";
+		String sql = "select id " + " from users u " + " where u.ident = ?;";
 
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetUserId);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				u_id = rs.getInt(1);
+				id = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 		}
 
-		return u_id;
+		return id;
+	}
+	
+	/*
+	 * Get the role id from the role name
+	 */
+	static public int getRoleId(Connection sd, String name) throws SQLException {
+
+		int id = -1;
+
+		String sql = "select id from role where name = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, name);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		}
+
+		return id;
 	}
 
 	/*
@@ -5100,8 +5119,6 @@ public class GeneralUtilityMethods {
 
 			resp = pstmt.toString();
 
-		} catch(Exception e) { 
-			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
