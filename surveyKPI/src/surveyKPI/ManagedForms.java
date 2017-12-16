@@ -102,7 +102,10 @@ public class ManagedForms extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
 			
-			SurveyViewManager mf = new SurveyViewManager();
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyViewManager mf = new SurveyViewManager(localisation);
 			ArrayList<ManagedFormItem> items = mf.getManagedForms(sd, pId);
 			response = Response.ok(gson.toJson(items)).build();
 		
@@ -292,12 +295,13 @@ public class ManagedForms extends Application {
 				
 			try {	
 				SurveyViewDefn svd = new SurveyViewDefn();
-				SurveyViewManager qm = new SurveyViewManager();
+				SurveyViewManager qm = new SurveyViewManager(localisation);
 				qm.getDataProcessingConfig(sd, managedId, svd, null, oId);
 					
 				org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form		
 				ArrayList<TableColumn> formColumns = GeneralUtilityMethods.getColumnsInForm(sd, 
 						cResults,
+						localisation,
 						sId,
 						user,
 						0,

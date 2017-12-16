@@ -315,7 +315,7 @@ public class ActionManager {
 			 * Get the data processing columns
 			 */
 			SurveyViewDefn svd = new SurveyViewDefn();
-			SurveyViewManager svm = new SurveyViewManager();
+			SurveyViewManager svm = new SurveyViewManager(localisation);
 			svm.getDataProcessingConfig(sd, managedId, svd, null, oId);
 
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form

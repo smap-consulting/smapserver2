@@ -452,7 +452,16 @@ public class GetXForm {
 				instanceId.setAttribute("type", "string");
 				instanceId.setAttribute("calculate", "concat('uuid:', uuid())");
 				currentParent.appendChild(instanceId);
-
+				
+				String instanceNameCalculate = UtilityMethods.convertAllxlsNames(template.getSurvey().getInstanceName(), false,
+						template.getQuestionPaths(), f.getId(), false, "instanceName");
+				if(instanceNameCalculate != null && instanceNameCalculate.trim().length() > 0) {
+					Element instanceName = outputDoc.createElement("bind");
+					instanceName.setAttribute("nodeset", "/main/meta/instanceName");
+					instanceName.setAttribute("type", "string");					
+					instanceName.setAttribute("calculate", instanceNameCalculate);
+					currentParent.appendChild(instanceName);
+				}
 
 				if(preloads != null) {
 					for(MetaItem mi : preloads) {
@@ -466,7 +475,7 @@ public class GetXForm {
 						}
 					}
 				}
-			}
+			} 
 		}
 		/*
 		 * Add the questions from the template

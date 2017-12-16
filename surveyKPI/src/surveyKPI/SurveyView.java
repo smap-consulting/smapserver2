@@ -47,6 +47,8 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -132,9 +134,12 @@ public class SurveyView extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
-			SurveyViewManager svm = new SurveyViewManager();
+			SurveyViewManager svm = new SurveyViewManager(localisation);
 			
 			// Get the default view
 			if(viewId == 0) {	
@@ -207,10 +212,12 @@ public class SurveyView extends Application {
 		// End Authorisation
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());	// Get user id
 			
-			SurveyViewManager svm = new SurveyViewManager();
+			SurveyViewManager svm = new SurveyViewManager(localisation);
 			viewId = svm.save(sd, uId, viewId, sId, managedId, queryId, view, mapView, chartView);
 
 			// return the view id

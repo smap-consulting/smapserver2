@@ -444,6 +444,7 @@ public class SubscriberBatch {
 									ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
 											sd,
 											cResults,
+											localisation,
 											sId,
 											null,		// No need for user - we are super user
 											topForm.parentform,

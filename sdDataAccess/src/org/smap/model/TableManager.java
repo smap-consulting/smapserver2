@@ -156,7 +156,7 @@ public class TableManager {
 			PreparedStatement pstmtAdd = null;
 
 			SurveyViewDefn svd = new SurveyViewDefn();
-			SurveyViewManager qm = new SurveyViewManager();
+			SurveyViewManager qm = new SurveyViewManager(localisation);
 			qm.getDataProcessingConfig(sd, managedId, svd, null, GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId));
 
 			org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form

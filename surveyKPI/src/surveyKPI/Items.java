@@ -37,7 +37,6 @@ import model.Filter;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.smap.notifications.interfaces.EmitNotifications;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -46,7 +45,6 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.TableColumn;
 
 import utilities.QuestionInfo;
@@ -207,6 +205,7 @@ public class Items extends Application {
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						connection,
+						localisation,
 						sId,
 						request.getRemoteUser(),
 						parent,

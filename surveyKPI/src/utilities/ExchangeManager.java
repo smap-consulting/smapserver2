@@ -70,6 +70,8 @@ public class ExchangeManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	private ResourceBundle localisation;
+	
 	Workbook wb = null;
 	boolean isXLSX = false;
 	
@@ -93,7 +95,8 @@ public class ExchangeManager {
 		}
 	}
 	
-	public ExchangeManager() {
+	public ExchangeManager(ResourceBundle l) {
+		localisation = l;
 	}
 	
 	HashMap<String, String> surveyNames = null;
@@ -172,6 +175,7 @@ public class ExchangeManager {
 					f.columnList = GeneralUtilityMethods.getColumnsInForm(
 							sd,
 							connectionResults,
+							localisation,
 							sId,
 							user,
 							parentId,

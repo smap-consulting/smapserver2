@@ -363,6 +363,7 @@ public class XLSResultsManager {
 					f.columnList = GeneralUtilityMethods.getColumnsInForm(
 							sd,
 							connectionResults,
+							localisation,
 							sId,
 							user,
 							parentId,

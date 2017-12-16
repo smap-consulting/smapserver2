@@ -225,7 +225,7 @@ public class ActionService extends Application {
 
 		output.append("<!DOCTYPE html>\n");
 
-		output.append(addHead(sd, cResults, request, a, uIdent, superUser));
+		output.append(addHead(sd, cResults, localisation, request, a, uIdent, superUser));
 		output.append(addBody(request, localisation, s));
 
 		output.append("</html>\n");
@@ -235,7 +235,7 @@ public class ActionService extends Application {
 	/*
 	 * Add the head section
 	 */
-	private StringBuffer addHead(Connection sd, Connection cResults, HttpServletRequest request, Action a,
+	private StringBuffer addHead(Connection sd, Connection cResults, ResourceBundle localisation, HttpServletRequest request, Action a,
 			String uIdent, boolean superUser) throws SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -267,7 +267,7 @@ public class ActionService extends Application {
 		output.append("<script>");
 
 		int uId = GeneralUtilityMethods.getUserId(sd, uIdent);
-		SurveyViewManager mfm = new SurveyViewManager();
+		SurveyViewManager mfm = new SurveyViewManager(localisation);
 		mfc = mfm.getSurveyView(sd, cResults, uId, 0, a.sId, a.managedId, uIdent,
 				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);

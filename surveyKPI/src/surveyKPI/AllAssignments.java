@@ -1175,7 +1175,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Get the forms for this survey 
 			 */
-			ExchangeManager xm = new ExchangeManager();
+			ExchangeManager xm = new ExchangeManager(localisation);
 			ArrayList <FormDesc> formList = xm.getFormList(sd, sId);		
 
 			pstmtGetCol = sd.prepareStatement(sqlGetCol);  			// Prepare the statement to get the column names in the survey that are to be updated

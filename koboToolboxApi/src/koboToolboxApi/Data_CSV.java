@@ -230,6 +230,9 @@ public class Data_CSV extends Application {
 		}
 
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 			outWriter = response.getWriter();
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
@@ -271,7 +274,8 @@ public class Data_CSV extends Application {
 				rs.close();
 			}
 
-			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(sd, cResults, sId,
+			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(sd, cResults, 
+					localisation, sId,
 					request.getRemoteUser(), parentform, fId, table_name, false, getParkey, // Include parent key if the
 					// form is not the top level
 					// form (fId is 0)

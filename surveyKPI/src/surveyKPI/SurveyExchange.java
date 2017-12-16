@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -77,6 +79,9 @@ public class SurveyExchange extends Application {
 		
 		try {
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export all Survey Data");
 			
 			connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurveyTransfer");
@@ -96,7 +101,7 @@ public class SurveyExchange extends Application {
 			/*
 			 * Save the XLS export into the folder
 			 */
-			ExchangeManager xm = new ExchangeManager();
+			ExchangeManager xm = new ExchangeManager(localisation);
 			ArrayList<FileDescription> files = xm.createExchangeFiles(
 					sd, 
 					connectionResults,

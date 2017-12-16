@@ -2596,6 +2596,7 @@ public class GeneralUtilityMethods {
 	public static ArrayList<TableColumn> getColumnsInForm(
 			Connection sd, 
 			Connection cResults, 
+			ResourceBundle localisation,
 			int sId, 
 			String user,
 			int formParent, 
@@ -2686,7 +2687,7 @@ public class GeneralUtilityMethods {
 		if (includeSurveyDuration && formParent == 0) {
 			durationColumn = new TableColumn();
 			durationColumn.name = "_duration";
-			durationColumn.humanName = "Survey Duration";
+			durationColumn.humanName = localisation.getString("a_sd");
 			durationColumn.type = "duration";
 			columnList.add(durationColumn);
 		}
@@ -2710,7 +2711,7 @@ public class GeneralUtilityMethods {
 
 			c = new TableColumn();
 			c.name = "_user";
-			c.humanName = "User";
+			c.humanName = localisation.getString("a_user");
 			c.type = "";
 			columnList.add(c);
 
@@ -2722,13 +2723,13 @@ public class GeneralUtilityMethods {
 
 				c = new TableColumn();
 				c.name = "_upload_time";
-				c.humanName = "Upload Time";
+				c.humanName = localisation.getString("a_ut");
 				c.type = "dateTime";
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "_s_id";
-				c.humanName = "Survey Name";
+				c.humanName = localisation.getString("a_name");
 				c.type = "";
 				columnList.add(c);
 			}
@@ -2736,7 +2737,7 @@ public class GeneralUtilityMethods {
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_version") != null) {
 				c = new TableColumn();
 				c.name = "_version";
-				c.humanName = "Version";
+				c.humanName = localisation.getString("a_v");
 				c.type = "";
 				columnList.add(c);
 			}
@@ -2744,7 +2745,7 @@ public class GeneralUtilityMethods {
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_complete") != null) {
 				c = new TableColumn();
 				c.name = "_complete";
-				c.humanName = "Complete";
+				c.humanName = localisation.getString("a_comp");
 				c.type = "";
 				columnList.add(c);
 			}
@@ -2753,7 +2754,7 @@ public class GeneralUtilityMethods {
 					|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
 				c = new TableColumn();
 				c.name = "instanceid";
-				c.humanName = "instanceid";
+				c.humanName = localisation.getString("a_id");
 				c.type = "";
 				columnList.add(c);
 			}
@@ -2761,18 +2762,24 @@ public class GeneralUtilityMethods {
 			if (uptodateTable) {
 				c = new TableColumn();
 				c.name = "_survey_notes";
-				c.humanName = "Survey Notes";
+				c.humanName = localisation.getString("a_sn");
 				c.type = "";
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "_location_trigger";
-				c.humanName = "Location Trigger";
+				c.humanName = localisation.getString("a_lt");
+				c.type = "";
+				columnList.add(c);
+				
+				c = new TableColumn();
+				c.name = "instancename";
+				c.humanName = localisation.getString("a_inst");
 				c.type = "";
 				columnList.add(c);
 			}
 			
-			// Add preloads that have been specified in the survey
+			// Add preloads that have been specified in the survey definition
 			if (includePreloads) {
 				ArrayList<MetaItem> preloads = getPreloads(sd, sId);
 				for(MetaItem mi : preloads) {

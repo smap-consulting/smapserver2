@@ -46,6 +46,7 @@ public class QueryGenerator {
 	private static Logger log =
 			 Logger.getLogger(QueryGenerator.class.getName());
 
+	
 	public static SqlDesc gen(
 			Connection connectionSD, 
 			Connection connectionResults, 
@@ -125,6 +126,7 @@ public class QueryGenerator {
 			 * Create an object describing the sql query recursively from the target table
 			 */
 			getSqlDesc(
+					localisation,
 					sqlDesc, 
 					sId,
 					0, 
@@ -231,7 +233,7 @@ public class QueryGenerator {
 		 * The form list is in order of Parent to child forms
 		 */
 		if(form.childForms != null && form.childForms.size() > 0) {
-			shpSqlBuf.append(getJoins(connectionSD, form.childForms, form));
+			shpSqlBuf.append(getJoins(connectionSD, localisation, form.childForms, form));
 		}
 		
 		String sqlRestrictToDateRange = null;
@@ -307,7 +309,7 @@ public class QueryGenerator {
 		return sqlDesc;
 	}
 	
-	private static StringBuffer getJoins(Connection sd, ArrayList<QueryForm> forms, QueryForm prevForm) throws SQLException {
+	private static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, QueryForm prevForm) throws SQLException {
 		StringBuffer join = new StringBuffer("");
 		
 		for(int i = 0; i < forms.size(); i++) {
@@ -344,7 +346,7 @@ public class QueryGenerator {
 		for(int i = 0; i < forms.size(); i++) {
 			QueryForm form = forms.get(i);
 			if(form.childForms != null && form.childForms.size() > 0) {
-				join.append(getJoins(sd, form.childForms, form));
+				join.append(getJoins(sd, localisation, form.childForms, form));
 			}
 		}
 		return join;
@@ -357,6 +359,7 @@ public class QueryGenerator {
 	 */
 
 	private  static void getSqlDesc(
+			ResourceBundle localisation,
 			SqlDesc sqlDesc, 
 			int sId, 
 			int level, 
@@ -397,6 +400,7 @@ public class QueryGenerator {
 		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
 				connectionSD,
 				connectionResults,
+				localisation,
 				sId,
 				user,
 				form.parent,
@@ -628,6 +632,7 @@ public class QueryGenerator {
 		if(form.childForms != null && form.childForms.size() > 0) {	
 			for(int i = 0; i < form.childForms.size(); i++) {
 				getSqlDesc(
+						localisation,
 						sqlDesc, 
 						sId, 
 						level + 1,

@@ -415,7 +415,7 @@ public class GetHtml {
 		Element bodyElement = outputDoc.createElement("fieldset");
 		bodyElement.setAttribute("style", "display:none;");
 		bodyElement.setAttribute("id", "or-preload-items");
-
+		
 		if(survey.meta != null) {
 			for(MetaItem mi : survey.meta) {
 				if(mi.isPreload) {
@@ -463,6 +463,32 @@ public class GetHtml {
 		bodyElement.setAttribute("style", "display:none;");
 		bodyElement.setAttribute("id", "or-calculated-items");
 
+		if(form.parentform == 0) {
+			// instanceID
+			Element calculationLabel = outputDoc.createElement("label");
+			calculationLabel.setAttribute("class", "calculation non-select");
+			bodyElement.appendChild(calculationLabel);
+			Element calculationInput = outputDoc.createElement("input");
+			calculationInput.setAttribute("type", "hidden");
+			calculationInput.setAttribute("name", "/main/meta/instanceID");			
+			calculationInput.setAttribute("data-type-xml", "string");
+			calculationLabel.appendChild(calculationInput);
+			
+			// instanceName
+			if(survey.instanceNameDefn != null && survey.instanceNameDefn.trim().length() > 0) { 
+				calculationLabel = outputDoc.createElement("label");
+				calculationLabel.setAttribute("class", "calculation non-select");
+				bodyElement.appendChild(calculationLabel);
+				calculationInput = outputDoc.createElement("input");
+				calculationInput.setAttribute("type", "hidden");
+				calculationInput.setAttribute("name", "/main/meta/instanceName");			
+				calculationInput.setAttribute("data-type-xml", "string");
+				calculationInput.setAttribute("data-calculate",
+						" " + UtilityMethods.convertAllxlsNames(survey.instanceNameDefn, false, paths, form.id, true, "instanceName") + " ");
+				calculationLabel.appendChild(calculationInput);
+			}
+		}
+		
 		processCalculationQuestions(bodyElement, form);
 		
 		parent.appendChild(bodyElement);
@@ -481,7 +507,8 @@ public class GetHtml {
 
 			String calculation = null;
 			if (q.name.equals("instanceName")) {
-				calculation = survey.instanceNameDefn;
+				continue;		// Legacy instance name included as a question
+				//calculation = survey.instanceNameDefn;
 			} if (q.type.equals("begin repeat")) {
 				for (Form subForm : survey.forms) {
 					if (subForm.parentQuestion == q.id) { // continue with next form

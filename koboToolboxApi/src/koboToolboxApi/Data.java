@@ -206,6 +206,9 @@ public class Data extends Application {
 
 		try {
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			// Get the managed Id
@@ -248,6 +251,7 @@ public class Data extends Application {
 			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
 					sd,
 					cResults,
+					localisation,
 					sId,
 					request.getRemoteUser(),
 					parentform,
@@ -405,6 +409,9 @@ public class Data extends Application {
 		}
 
 		try {
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
@@ -447,6 +454,7 @@ public class Data extends Application {
 			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
 					sd,
 					cResults,
+					localisation,
 					sId,
 					request.getRemoteUser(),
 					parentform,

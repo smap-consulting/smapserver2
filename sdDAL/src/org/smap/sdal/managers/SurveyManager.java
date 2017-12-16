@@ -464,24 +464,29 @@ public class SurveyManager {
 		String ident = null;
 		String tablename = null;
 		String existingSurvey = null;
+		String existingMeta = null;
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
+		ArrayList<MetaItem> meta = new ArrayList<> ();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
-				+ "based_on, group_survey_id, created)" +
-				" values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now());";
+				+ "based_on, group_survey_id, meta, created)" +
+				" values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, ?, now())";
+		PreparedStatement pstmtCreateSurvey = null;
 
-		String sqlUpdateSurvey = "update survey set name = ?, ident = ? where s_id = ?;";
+		String sqlUpdateSurvey = "update survey set name = ?, ident = ? where s_id = ?";
+		PreparedStatement pstmtUpdateSurvey = null;
 
 		String sqlCreateForm = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
 				" values (nextval('f_seq'), ?, 'main', ?, 0, null, '/main');";
+		PreparedStatement pstmtCreateForm = null;
+		
+		//String sqlCreateQuestion = "insert into question (q_id, f_id, qtype, qname, path, column_name, seq, visible, source, source_param, calculate) "
+		//		+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, 'false', ?, ?, ?);";
 
-		String sqlCreateQuestion = "insert into question (q_id, f_id, qtype, qname, path, column_name, seq, visible, source, source_param, calculate) "
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, 'false', ?, ?, ?);";
 
-		PreparedStatement pstmt = null;
-
-		String sqlGetSource = "select s.display_name, f.f_id from survey s, form f "
+		String sqlGetSource = "select s.display_name, f.f_id, s.meta from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
 				+ "and f.parentform = 0";
@@ -496,6 +501,7 @@ public class SurveyManager {
 				if(rsGetSource.next()) {
 					existingSurvey = rsGetSource.getString(1);
 					existingFormId = rsGetSource.getInt(2);
+					existingMeta = rsGetSource.getString(3);
 				}
 			}
 			if(sd.getAutoCommit()) {
@@ -505,37 +511,46 @@ public class SurveyManager {
 			}			
 
 			// 1 Create basic survey
-			pstmt = sd.prepareStatement(sqlCreateSurvey, Statement.RETURN_GENERATED_KEYS);		
-			pstmt.setString(1, name);
-			pstmt.setInt(2, projectId);
+			pstmtCreateSurvey = sd.prepareStatement(sqlCreateSurvey, Statement.RETURN_GENERATED_KEYS);		
+			pstmtCreateSurvey.setString(1, name);
+			pstmtCreateSurvey.setInt(2, projectId);
 			if(existing) {
-				pstmt.setString(3, existingSurvey);
+				pstmtCreateSurvey.setString(3, existingSurvey);
 			} else {
-				pstmt.setString(3, null);
+				pstmtCreateSurvey.setString(3, null);
 			}
 			if(sharedResults) {
-				pstmt.setInt(4, existingSurveyId);
+				pstmtCreateSurvey.setInt(4, existingSurveyId);
 			} else {
-				pstmt.setInt(4, 0);
+				pstmtCreateSurvey.setInt(4, 0);
+			}
+			if(existing) {
+				pstmtCreateSurvey.setString(5,  existingMeta);
+			} else {
+				meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false, null));
+				meta.add(new MetaItem("string", "instanceName", null, "instancename", null, false, null));
+				meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true, "start"));
+				meta.add(new MetaItem("dateTime", "_end", "end", "_end", "timestamp", true, "end"));
+				meta.add(new MetaItem("string", "_device", "deviceid", "_device", "property", true, "device"));
+				pstmtCreateSurvey.setString(5,  gson.toJson(meta));
 			}
 
-			log.info("Create new survey: " + pstmt.toString());
-			pstmt.execute();
-			ResultSet rs = pstmt.getGeneratedKeys();
+			log.info("Create new survey: " + pstmtCreateSurvey.toString());
+			pstmtCreateSurvey.execute();
+			ResultSet rs = pstmtCreateSurvey.getGeneratedKeys();
 			rs.next();
 
 			// 2 Update values dependent on the sId
 			sId = rs.getInt(1);
 			ident = "s" + projectId +"_" + sId;
 
-			pstmt.close();
-			pstmt = sd.prepareStatement(sqlUpdateSurvey);
-			pstmt.setString(1, ident);
-			pstmt.setString(2,  ident);
-			pstmt.setInt(3,  sId);
+			pstmtUpdateSurvey = sd.prepareStatement(sqlUpdateSurvey);
+			pstmtUpdateSurvey.setString(1, ident);
+			pstmtUpdateSurvey.setString(2,  ident);
+			pstmtUpdateSurvey.setInt(3,  sId);
 
-			log.info("Create new survey part 2: " + pstmt.toString());
-			pstmt.execute();
+			log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
+			pstmtUpdateSurvey.execute();
 
 			/*
 			 * 3. Create forms
@@ -556,25 +571,25 @@ public class SurveyManager {
 				// 5 Create a new empty form (except for default questions)
 				tablename = "s" + sId + "_main";
 
-				pstmt.close();
-				pstmt = sd.prepareStatement(sqlCreateForm, Statement.RETURN_GENERATED_KEYS);
-				pstmt.setInt(1,  sId);
-				pstmt.setString(2,  tablename);
+				pstmtCreateForm = sd.prepareStatement(sqlCreateForm, Statement.RETURN_GENERATED_KEYS);
+				pstmtCreateForm.setInt(1,  sId);
+				pstmtCreateForm.setString(2,  tablename);
 
-				log.info("Create new form: " + pstmt.toString());
-				pstmt.execute();
+				log.info("Create new form: " + pstmtCreateForm.toString());
+				pstmtCreateForm.execute();
 
-				rs = pstmt.getGeneratedKeys();
-				rs.next();
-				fId = rs.getInt(1);
+				//rs = pstmtCreateForm.getGeneratedKeys();
+				//rs.next();
+				//fId = rs.getInt(1);
 
 				// 6. Add questions
-				pstmt.close();
-				pstmt = sd.prepareStatement(sqlCreateQuestion);
+				//pstmt.close();
+				//pstmt = sd.prepareStatement(sqlCreateQuestion);
 
-				pstmt.setInt(1, fId);			// Form Id		
+				//pstmt.setInt(1, fId);			// Form Id		
 
 				// Device ID
+				/*
 				pstmt.setString(2,  "string");			// Type
 				pstmt.setString(3, "_device");			// Name
 				pstmt.setString(4,  "/main/_device");	// Path
@@ -650,6 +665,7 @@ public class SurveyManager {
 				pstmt.setString(8, null);				// Source Param
 				pstmt.setString(9, null);				// Calculation
 				pstmt.execute();
+				*/
 			}
 
 			lm.writeLog(sd, sId, user, "create survey", "Survey created in online editor");
@@ -669,7 +685,9 @@ public class SurveyManager {
 				try{sd.setAutoCommit(true);} catch(Exception ex) {};
 			}
 
-			if(pstmt != null) try {pstmt.close();} catch(Exception e){};
+			if(pstmtCreateSurvey != null) try {pstmtCreateSurvey.close();} catch(Exception e){};
+			if(pstmtUpdateSurvey != null) try {pstmtUpdateSurvey.close();} catch(Exception e){};
+			if(pstmtCreateForm != null) try {pstmtCreateForm.close();} catch(Exception e){};
 			if(pstmtGetSource != null) try {pstmtGetSource.close();} catch(Exception e){};
 		}
 
@@ -2713,9 +2731,9 @@ public class SurveyManager {
 				}
 				sql += " from " + form.tableName;
 				if(parentId == 0) {
-					sql += " where " + instanceName + " = ?;";
+					sql += " where instanceId = ?";
 				} else {
-					sql += " where parkey = ?;";
+					sql += " where parkey = ?";
 				}
 
 				pstmt = cResults.prepareStatement(sql);	 
@@ -2729,6 +2747,7 @@ public class SurveyManager {
 					log.info("Time zone: " + pstmtUtcOffset.toString());
 					pstmtUtcOffset.execute();
 				}
+				log.info("Get results: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 
 			}

@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -51,6 +52,12 @@ public class SurveyViewManager {
 	
 	private static Logger log =
 			 Logger.getLogger(SurveyViewManager.class.getName());
+	
+	private ResourceBundle localisation = null;
+	
+	public SurveyViewManager(ResourceBundle l) {
+		localisation = l;
+	}
 	
 	/*
 	 * Get the Managed Form Configuration
@@ -134,6 +141,7 @@ public class SurveyViewManager {
 			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 					sd,
 					cResults,
+					localisation,
 					sId,
 					uIdent,
 					0,

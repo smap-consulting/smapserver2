@@ -389,6 +389,7 @@ public class ExportSurvey extends Application {
 					f.columnList = GeneralUtilityMethods.getColumnsInForm(
 							sd,
 							connectionResults,
+							localisation,
 							sId,
 							request.getRemoteUser(),
 							parentId,

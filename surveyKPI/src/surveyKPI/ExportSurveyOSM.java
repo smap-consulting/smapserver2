@@ -13,6 +13,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -187,6 +189,9 @@ public class ExportSurveyOSM extends Application {
 
 			try {
  
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
 				HashMap<Integer, FormDesc> forms = new HashMap<Integer, FormDesc> ();			// A description of each form in the survey
 				ArrayList <FormDesc> formList = new ArrayList<FormDesc> ();					// A list of all the forms
 				FormDesc topForm = null;
@@ -241,6 +246,7 @@ public class ExportSurveyOSM extends Application {
 					f.cols = GeneralUtilityMethods.getColumnsInForm(
 							connectionSD,
 							connectionResults,
+							localisation,
 							sId,
 							request.getRemoteUser(),
 							f.parent,
