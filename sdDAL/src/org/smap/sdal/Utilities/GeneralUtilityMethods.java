@@ -3425,9 +3425,7 @@ public class GeneralUtilityMethods {
 
 		if (in.equals("string") && !visible) {
 			out = "calculate";
-		} else if (in.equals("string") && readonly) {
-			out = "note";
-		}
+		} 
 
 		return out;
 

@@ -558,6 +558,9 @@ public class XLSTemplateUploadManager {
 			groupStack.push(q.name);
 		}
 		if(q.type.equals("end group")) {
+			if(groupStack.isEmpty()) { 
+				throw XLSUtilities.getApplicationException(localisation, "tu_eegm", rowNumSurvey, "survey", null, null);
+			}
 			String currentGroup = groupStack.pop();
 			if(q.name != null && q.name.trim().length() > 0) {
 				// Validate the provided group name against the current group

@@ -372,7 +372,7 @@ public class GetHtml {
 
 		StringBuffer classVal = new StringBuffer("");
 
-		if (q.type.equals("note") || (q.type.equals("text") && q.readonly)) {
+		if (q.type.equals("note")) {
 			classVal.append("note question non-select");
 		} else if (q.type.equals("begin group") || q.type.equals("begin repeat")) {
 			if (hasLabel(q)) {
@@ -777,6 +777,9 @@ public class GetHtml {
 			}
 			if(q.required) {
 				inputElement.setAttribute("data-required", "true()");
+			}
+			if (q.readonly) {
+				inputElement.setAttribute("readonly", "readonly");
 			}
 
 			// Itemset labels

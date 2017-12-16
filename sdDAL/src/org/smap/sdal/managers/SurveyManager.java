@@ -1011,7 +1011,7 @@ public class SurveyManager {
 
 				} 
 
-				// Translate type name to "note" if it is a read only string
+				// Translate type name to "note" if it is a read only string -- Deprecate
 				q.type = GeneralUtilityMethods.translateTypeFromDB(q.type, q.readonly, q.visible);
 
 				// Track if this question is in the meta group
@@ -1917,7 +1917,6 @@ public class SurveyManager {
 					String propertyType = null;
 					String originalNewValue = ci.property.newVal;		// Save for logging
 
-					// Convert "note" type to a read only string
 					// Add constraint that name and type properties can only be updated if the form has not been published
 					if(ci.property.prop.equals("type")) {
 						if(ci.property.newVal.equals("note")) {
