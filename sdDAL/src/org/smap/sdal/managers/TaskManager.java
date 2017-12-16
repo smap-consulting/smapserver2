@@ -540,7 +540,7 @@ public class TaskManager {
 				 */
 				boolean fires = false;
 				if(as.add_future  && source_s_id != target_s_id) {
-					if(as.filter.advanced != null) {
+					if(as.filter != null && as.filter.advanced != null) {
 						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
 						if(!fires) {
 							log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);

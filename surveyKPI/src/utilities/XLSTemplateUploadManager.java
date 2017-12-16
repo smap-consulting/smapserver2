@@ -140,9 +140,41 @@ public class XLSTemplateUploadManager {
 			}			
 
 			getHeaders();	// get headers and set the languages from them
+			
+			/*
+			 * 1. Process the choices sheet
+			 */
+			if(choicesSheet != null) {
+				while(rowNumChoices <= lastRowNumChoices) {
+
+					Row row = choicesSheet.getRow(rowNumChoices++);
+
+					if(row != null) {
+						int lastCellNum = row.getLastCellNum();	
+						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum, null);
+						if(listName != null) {
+							OptionList ol = survey.optionLists.get(listName);
+							if(ol == null) {
+								ol = new OptionList();
+								survey.optionLists.put(listName, ol);
+							}
+							ol.options.add(getOption(row, listName));
+						}
+
+					}
+				}
+			}
 
 			/*
-			 * 1, Process the settings sheet
+			 * 2. Process the survey sheet
+			 */
+			getForm("main", -1, -1, null);
+			if(survey.forms.get(0).questions.size() == 0) {
+				throw new ApplicationException(localisation.getString("tu_nq"));
+			}
+			
+			/*
+			 * 3, Process the settings sheet
 			 */
 			if(settingsSheet != null && settingsHeader != null) {
 				Row row = settingsSheet.getRow(rowNumSettings++);
@@ -186,38 +218,6 @@ public class XLSTemplateUploadManager {
 						}
 					}
 				}
-			}
-			
-			/*
-			 * 2. Process the choices sheet
-			 */
-			if(choicesSheet != null) {
-				while(rowNumChoices <= lastRowNumChoices) {
-
-					Row row = choicesSheet.getRow(rowNumChoices++);
-
-					if(row != null) {
-						int lastCellNum = row.getLastCellNum();	
-						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum, null);
-						if(listName != null) {
-							OptionList ol = survey.optionLists.get(listName);
-							if(ol == null) {
-								ol = new OptionList();
-								survey.optionLists.put(listName, ol);
-							}
-							ol.options.add(getOption(row, listName));
-						}
-
-					}
-				}
-			}
-
-			/*
-			 * 3. Process the survey sheet
-			 */
-			getForm("main", -1, -1, null);
-			if(survey.forms.get(0).questions.size() == 0) {
-				throw new ApplicationException(localisation.getString("tu_nq"));
 			}
 
 		}

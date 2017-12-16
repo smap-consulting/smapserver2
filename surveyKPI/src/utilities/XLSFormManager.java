@@ -690,7 +690,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "instance_name", Column.COL_INSTANCE_NAME, 0, "instance_name"));
 		cols.add(new Column(colNumber++, "style", Column.COL_STYLE, 0, "style"));
 		cols.add(new Column(colNumber++, "key", Column.COL_KEY, 0, "key"));
-		cols.add(new Column(colNumber++, "key policy", Column.COL_KEY_POLICY, 0, "key policy"));
+		cols.add(new Column(colNumber++, "key_policy", Column.COL_KEY_POLICY, 0, "key_policy"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
