@@ -527,8 +527,9 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Dropping duplicate");
 			} else {
 				// Check to see this submission was set to update an existing record with new data
+				// Don't do this if a key policy has been set. That will override these updates
 
-				if(keyPolicy == null ||keyPolicy.equals("none")) {
+				if(keyPolicy == null || keyPolicy.equals("none")) {
 					if(updateId != null) {
 						log.info("Existing unique id:" + updateId);
 						existingKey = getKeyFromId(cResults, topElement, updateId);
@@ -933,12 +934,15 @@ public class SubRelationalDB extends Subscriber {
 				+ "and prikey != ?";
 		PreparedStatement pstmtCloseSource = null;
 
-		String sqlChildTables = "select table_name from form where parentform = (select f_id from form where parentform = 0 and s_id = ?)";
+		String sqlChildTables = "select table_name from form "
+				+ "where parentform in (select f_id from form where parentform = 0 and s_id = ?) "
+				+ "and reference = 'false'";
 		PreparedStatement pstmtChildTables = null;
 		
 		String sqlChildTablesInGroup = "select table_name from form "
-				+ "where parentform in (select f_id from form where parentform = 0 "
-				+ "and (s_id in (select s_id from survey where group_survey_id = ?)) "
+				+ "where reference = 'false' "
+				+ "and parentform in (select f_id from form where parentform = 0 "
+				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
 				+ "or s_id = ?)";
 		PreparedStatement pstmtChildTablesInGroup = null;
 

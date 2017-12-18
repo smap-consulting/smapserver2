@@ -3403,7 +3403,7 @@ public class SurveyManager {
 		HashMap<String, String> groupQuestions = new HashMap<> ();
 		
 		String sql = "select qname, column_name from question where f_id in "
-				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ?)) or "
+				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ? and deleted = 'false')) or "
 				+ "f_id in (select f_id from form where s_id = ?)";
 
 		PreparedStatement pstmt = null;
@@ -3439,7 +3439,7 @@ public class SurveyManager {
 		String sql = "select o.ovalue, o.column_name, l.name from option o, listname l "
 				+ "where o.l_id = l.l_id "
 				+ "and (l.s_id in "
-				+ "(select s_id from survey where group_survey_id = ?) or "
+				+ "(select s_id from survey where group_survey_id = ? and deleted = 'false') or "
 				+ "s_id = ?)";
 
 		PreparedStatement pstmt = null;
