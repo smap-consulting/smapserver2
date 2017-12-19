@@ -232,7 +232,6 @@ public class ExportSurveyXlsx extends Application {
 						Cell cell = dataRow.createCell(colNumber++);
 						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
 								values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-						cell.setCellValue(values.value);
 					}
 					
 				}
