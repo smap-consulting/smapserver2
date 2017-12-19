@@ -1,8 +1,5 @@
 package utilities;
 
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-
 /*
 This file is part of SMAP.
 
@@ -19,23 +16,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
-*/
+ */
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-
-//import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-//import org.apache.poi.ss.usermodel.Workbook;
-//import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,15 +35,9 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.commons.io.IOUtils;
-import org.apache.poi.hssf.usermodel.HSSFDataFormat;
-import org.apache.poi.hssf.usermodel.HSSFHyperlink;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
-import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -64,12 +47,12 @@ import org.smap.sdal.model.TableColumn;
 import surveyKPI.ExportSurveyXls;
 
 public class XLSResultsManager {
-	
+
 	private static Logger log =
-			 Logger.getLogger(ExportSurveyXls.class.getName());
-	
+			Logger.getLogger(ExportSurveyXls.class.getName());
+
 	LogManager lm = new LogManager();		// Application log
-	
+
 	Workbook wb = null;
 	boolean isXLSX = false;
 	int rowIndex = 0;		// Heading row is 0
@@ -81,7 +64,7 @@ public class XLSResultsManager {
 		String humanName;
 		String hxlTag;
 		boolean isImage;
-		
+
 		Column(String n, String l, String h, String hxlTag) {
 			name = n;
 			label = l;
@@ -89,30 +72,48 @@ public class XLSResultsManager {
 			this.hxlTag = hxlTag;
 		}
 	}
-	
+
 	private class CellItem {
-		
+
 		public static final int DECIMAL = 1;
 		public static final int INTEGER = 2;
 		public static final int STRING = 3;
 		public static final int DATE = 4;
 		public static final int DATETIME = 5;
-		
+
 		public String v;
 		public int type;
-		
+
 		public CellItem(String v, int type) {
 			this.v = v;
 			this.type = type;
 		}
+		
+		public String getStringType() {
+			String stringType = "string";
+			switch (type) {
+				case DECIMAL: stringType = "decimal";
+				break;
+				case INTEGER: stringType = "int";
+				break;
+				case STRING: stringType = "string";
+				break;
+				case DATE: stringType = "date";
+				break;
+				case DATETIME: stringType = "dateTime";
+				break;
+			}
+			return stringType;
+		}
 	}
 	
+
 	private class RecordDesc {
 		String prikey;
 		String parkey;
 		ArrayList<CellItem> record;
 	}
-	
+
 	private class FormDesc {
 		String f_id;
 		String parent;
@@ -126,7 +127,7 @@ public class XLSResultsManager {
 		ArrayList<RecordDesc> records = null;
 		ArrayList<FormDesc> children = null;
 		ArrayList<TableColumn> columnList = null;
-		
+
 		@SuppressWarnings("unused")
 		public void debugForm(String indent) {
 			System.out.println(indent + "Form=============");
@@ -143,16 +144,16 @@ public class XLSResultsManager {
 			}
 			System.out.println("End Form=============");
 		}
-		
+
 		public void clearRecords() {
 			records = null;
-				if(children != null) {
+			if(children != null) {
 				for(int i = 0; i < children.size(); i++) {
 					children.get(i).clearRecords();
 				}
 			}
 		}
-		
+
 		public void addRecord(String prikey, String parkey, ArrayList<CellItem> rec) {
 			if(records == null) {
 				records = new ArrayList<RecordDesc> ();
@@ -164,7 +165,7 @@ public class XLSResultsManager {
 			rd.record = rec;
 			records.add(rd);
 		}
-		
+
 		// Used for debugging
 		@SuppressWarnings("unused")
 		public void printRecords(int spacing, boolean long_form) {
@@ -183,7 +184,7 @@ public class XLSResultsManager {
 					}
 				}
 			}
-			
+
 			if(long_form && children != null) {
 				for(int i = 0; i < children.size(); i++) {
 					children.get(i).printRecords(spacing + 4, long_form);
@@ -191,12 +192,12 @@ public class XLSResultsManager {
 			}
 		}
 	}
-	
+
 	private ResourceBundle localisation;
-	
+
 	public XLSResultsManager(String type, ResourceBundle l) {
 		localisation = l;
-		
+
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook();
 			isXLSX = false;
@@ -205,9 +206,9 @@ public class XLSResultsManager {
 			isXLSX = true;
 		}
 	}
-	
+
 	HashMap<String, String> surveyNames = null;
-	
+
 	public void createXLS(
 			Connection sd, 
 			Connection connectionResults,
@@ -228,7 +229,7 @@ public class XLSResultsManager {
 			int dateId,
 			boolean superUser,
 			String results_filter) throws Exception {
-		
+
 		Sheet resultsSheet = wb.createSheet("survey");
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
 		HashMap<String, String> selectMultipleColumnNames = new HashMap<String, String> ();
@@ -237,11 +238,11 @@ public class XLSResultsManager {
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 		surveyNames = new HashMap<String, String> ();
 		ArrayList<Column> cols = new ArrayList<Column> ();
-		
+
 		String dateName = null;
 		int dateForm = 0;
 		if(sId != 0) {
-			
+
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmt2 = null;
 			PreparedStatement pstmtSSC = null;
@@ -249,34 +250,34 @@ public class XLSResultsManager {
 			PreparedStatement pstmtDateFilter = null;
 
 			try {
-				
+
 				SurveyManager sm = new SurveyManager(localisation);
 				org.smap.sdal.model.Survey survey = sm.getById(sd, connectionResults, request.getRemoteUser(), sId, true, basePath, 
 						null, false, false, false, false, false, "real", false, false, superUser, 0, "geojson");
-				
+
 				if(embedImages) {
 					basePath = GeneralUtilityMethods.getBasePath(request);
 				}
-				
+
 				// Prepare statement to get server side includes
 				String sqlSSC = "select ssc.name, ssc.function, ssc.type, ssc.units from ssc ssc, form f " +
 						" where f.f_id = ssc.f_id " +
 						" and f.table_name = ? " +
 						" order by ssc.id;";
 				pstmtSSC = sd.prepareStatement(sqlSSC);
-				
+
 				// Prepare the statement to get the question type and read only attribute
 				String sqlQType = "select q.qtype, q.readonly from question q, form f " +
 						" where q.f_id = f.f_id " +
 						" and f.table_name = ? " +
 						" and q.qname = ?;";
 				pstmtQType = sd.prepareStatement(sqlQType);
-				
+
 				HashMap<String, FormDesc> forms = new HashMap<String, FormDesc> ();			// A description of each form in the survey
 				ArrayList <FormDesc> formList = new ArrayList<FormDesc> ();					// A list of all the forms
 				FormDesc topForm = null;	
-				
-				
+
+
 				/*
 				 * Get the tables / forms in this survey 
 				 */
@@ -288,7 +289,7 @@ public class XLSResultsManager {
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, sId);
 				ResultSet resultSet = pstmt.executeQuery();
-				
+
 				while (resultSet.next()) {
 
 					FormDesc fd = new FormDesc();
@@ -319,7 +320,7 @@ public class XLSResultsManager {
 						fd.maxRepeats = getMaxRepeats(sd, connectionResults, sId, Integer.parseInt(fd.f_id));
 					}
 				}
-				
+
 				/*
 				 * Get the details on the date filter
 				 */
@@ -327,7 +328,7 @@ public class XLSResultsManager {
 					dateForm = Integer.parseInt(topForm.f_id);
 					dateName = "_upload_time";
 				} else if(dateId > 0) {
-					
+
 					String sqlDateFilter = "select f_id, column_name from question where q_id = ?";
 					pstmtDateFilter = sd.prepareStatement(sqlDateFilter);
 					pstmtDateFilter.setInt(1, dateId);
@@ -337,7 +338,7 @@ public class XLSResultsManager {
 						dateName = rs.getString("column_name");
 					}
 				}
-				
+
 				/*
 				 * Put the forms into a list in top down order
 				 */
@@ -347,7 +348,7 @@ public class XLSResultsManager {
 				if(topForm.visible) {
 					cols.add(new Column("prikey", "", "Record", null));
 				}
-				
+
 				/*
 				 * Add to each form description
 				 *  1) The maximum number of repeats (if the form is to be flattened)
@@ -381,8 +382,8 @@ public class XLSResultsManager {
 							hxl,
 							false		// Don't include audit data
 							);
-						
-							
+
+
 					for(int k = 0; k < f.maxRepeats; k++) {
 						for(int j = 0; j < f.columnList.size(); j++) {
 
@@ -392,16 +393,16 @@ public class XLSResultsManager {
 							boolean ro = c.readonly;
 							String humanName = c.humanName;
 							String hxlCode = c.hxlCode;
-							
+
 							boolean isAttachment = false;
 							boolean isSelectMultiple = false;
 							String selectMultipleQuestionDisplayName = null;
 							String optionName = null;
-							
+
 							if(!exp_ro && ro) {
 								continue;			// Drop read only columns if they are not selected to be exported				
 							}
-								
+
 							if(qType.equals("image") || qType.equals("audio") || qType.equals("video")) {
 								isAttachment = true;
 							}
@@ -411,22 +412,22 @@ public class XLSResultsManager {
 								selectMultipleQuestionDisplayName = c.humanName;
 								optionName = c.option_name;
 							}
-											
+
 							if(isSelectMultiple && merge_select_multiple) {
 								humanName = selectMultipleQuestionDisplayName;
-								
+
 								// Add the name of sql column to a look up table for the get data stage
 								selMultChoiceNames.put(name, optionName);
 							}
-							
+
 							if(qType.equals("dateTime")) {
 								humanName += " (GMT)";
 							}
-							
+
 							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
 								humanName += "(r " + (k + 1) + ")";
 							}
-							
+
 							// If the user has requested that select multiples be merged then we only want the question added once
 							boolean skipSelectMultipleOption = false;
 							if(isSelectMultiple && merge_select_multiple) {
@@ -437,19 +438,19 @@ public class XLSResultsManager {
 									selectMultipleColumnNames.put(humanName, humanName);		// Record that we have 
 								}
 							}
-							
+
 							if(!name.equals("prikey") && !skipSelectMultipleOption) {	// Primary key is only added once for all the tables
 								if(f.visible) {	// Add column headings if the form is visible
-						
+
 									addToHeader(sd, cols, language, humanName, name, hxlCode, qType, split_locn, sId, f,
 											merge_select_multiple);
-									
+
 								}
 							}
-							
+
 							// Set the sql selection text for this column (Only need to do this once, not for every repeating record)
 							if(k == 0) {
-								
+
 								String selName = null;
 								if(c.isGeometry()) {
 									selName = "ST_AsTEXT(" + name + ") ";
@@ -457,22 +458,22 @@ public class XLSResultsManager {
 								} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
 									selName = "timezone('UTC', " + name + ") as " + name;	
 								} else {
-									
+
 									if(isAttachment) {
 										selName = "'" + urlprefix + "' || " + name + " as " + name;
 									} else {
 										selName = name;
 									}
-									
+
 								}
-								
+
 								if(f.columns == null) {
 									f.columns = selName;
 								} else {
 									f.columns += "," + selName;
 								}
 								f.columnCount++;
-								
+
 								// Increment the column count if this is a geopoint question and the lat/lon are being split
 								if(c.isGeometry() && split_locn) {
 									if(geomType.equals("geopoint")) {
@@ -481,7 +482,7 @@ public class XLSResultsManager {
 								}
 							}
 						}
-						
+
 						/*
 						 * Add the server side calculations
 						 */ 
@@ -498,34 +499,34 @@ public class XLSResultsManager {
 							}
 
 							String colName = sscName + " (" + sscUnits + ")";
-							
+
 							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
 								colName += "_" + (k + 1);
 							}
 
 							if(f.visible) {	// Add column headings if the form is visible
-								
+
 								addToHeader(sd, cols, language, colName, colName, null, sscType, split_locn, sId, f,
 										merge_select_multiple);
-				
+
 							}
-							
-							
+
+
 							// Set the sql selection text for this column (Only need to do this once, not for every repeating record)
 							if(k == 0) {
-								
+
 								String selName = null;
-								
+
 								if(sscFn.equals("area")) {
-									
+
 									selName = "ST_Area(geography(the_geom), true)";
 									if(sscUnits.equals("hectares")) {
 										selName += " / 10000";
 									}
 									selName += " as \"" + colName + "\"";
-									
+
 								} else if (sscFn.equals("length")) {
-									
+
 									if(geomType.equals("geopolygon") || geomType.equals("geoshape")) {
 										selName = "ST_Length(geography(the_geom), true)";
 									} else {
@@ -535,23 +536,23 @@ public class XLSResultsManager {
 										selName += " / 1000";
 									}
 									selName += " as \"" + colName + "\"";
-									
+
 								} else {
 									selName= sscName;
 								}
-								
+
 								if(f.columns == null) {
 									f.columns = selName;
 								} else {
 									f.columns += "," + selName;
 								}
-								
+
 								TableColumn tc = new TableColumn();
 								tc.name = selName;
 								tc.humanName = selName;
 								tc.type = sscType;
 								f.columnList.add(tc);
-								
+
 								f.columnCount++;
 							}
 
@@ -569,8 +570,8 @@ public class XLSResultsManager {
 
 					filterFrag = new SqlFrag();
 					filterFrag.addSqlFragment(results_filter, localisation, false);
-					
-					
+
+
 					for(String filterCol : filterFrag.columns) {
 						boolean valid = false;
 						for(FormDesc f : formList) {
@@ -591,7 +592,7 @@ public class XLSResultsManager {
 						}
 					}
 				}
-				
+
 				// Write out the column headings
 				if(!language.equals("none")) {	// Add the questions / option labels if requested
 					createHeader(cols, resultsSheet, styles, true, false);
@@ -600,7 +601,7 @@ public class XLSResultsManager {
 				if(hxl) {
 					createHeader(cols, resultsSheet, styles, false, true);	// Add the names
 				}
- 
+
 				/*
 				 * Add the data
 				 */
@@ -624,28 +625,28 @@ public class XLSResultsManager {
 						dateForm,
 						superUser,
 						results_filter);
-	
-			
+
+
 			} finally {
-				
+
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 				try {if (pstmt2 != null) {pstmt2.close();	}} catch (SQLException e) {	}
 				try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
 				try {if (pstmtQType != null) {pstmtQType.close();	}} catch (SQLException e) {	}
 				try {if (pstmtDateFilter != null) {pstmtDateFilter.close();	}} catch (SQLException e) {	}
-				
+
 			}
 		}
-		
+
 		wb.write(outputStream);
 		outputStream.close();
-		
+
 		// If XLSX then temporary streaming files need to be deleted
 		if(isXLSX) {
 			((SXSSFWorkbook) wb).dispose();
 		}
 	}
-	
+
 	/*
 	 * Create a header row and set column widths
 	 */
@@ -655,25 +656,25 @@ public class XLSResultsManager {
 			Map<String, CellStyle> styles, 
 			boolean label,
 			boolean hxl) {
-				
+
 		// Create survey sheet header row
 		Row headerRow = sheet.createRow(rowIndex++);
 		CellStyle headerStyle = styles.get("header");
 		for(int i = 0; i < cols.size(); i++) {
 			Column col = cols.get(i);
-			
-            Cell cell = headerRow.createCell(i);
-            cell.setCellStyle(headerStyle);
-            if(label) {
-            	cell.setCellValue(col.label);
-            } else if(hxl) {
-            	cell.setCellValue(col.hxlTag);
-            } else {
-            	cell.setCellValue(col.humanName);
-            }
-        }
+
+			Cell cell = headerRow.createCell(i);
+			cell.setCellStyle(headerStyle);
+			if(label) {
+				cell.setCellValue(col.label);
+			} else if(hxl) {
+				cell.setCellValue(col.hxlTag);
+			} else {
+				cell.setCellValue(col.humanName);
+			}
+		}
 	}
-	
+
 	/*
 	 * Write the record to the XLS file
 	 */
@@ -682,9 +683,7 @@ public class XLSResultsManager {
 			Sheet sheet, 
 			Map<String, CellStyle> styles,
 			boolean embedImages) throws IOException {
-		
-		CreationHelper createHelper = wb.getCreationHelper();
-		
+
 		Row row = sheet.createRow(rowIndex++);
 		if(embedImages) {
 			row.setHeight((short) 1000);
@@ -692,111 +691,19 @@ public class XLSResultsManager {
 
 		for(int i = 0; i < record.size(); i++) {
 			CellItem ci = record.get(i);
-			
-            Cell cell = row.createCell(i);
-            
-            if(ci.v != null && (ci.v.startsWith("https://") || ci.v.startsWith("http://"))) {
-            	
-            	if(embedImages) {
-            		if(ci.v.endsWith(".jpg") || ci.v.endsWith(".png")) {
-            			int idx = ci.v.indexOf("attachments");
-            			int idxName = ci.v.lastIndexOf('/');
-            			if(idx > 0 && idxName > 0) {
-            				String fileName = ci.v.substring(idxName);
-	            			String stem = basePath + "/" + ci.v.substring(idx, idxName);
-	            			String imageName = stem + "/thumbs" + fileName + ".jpg";
-	            			try {
-				            	InputStream inputStream = new FileInputStream(imageName);
-				            	byte[] imageBytes = IOUtils.toByteArray(inputStream);
-				            	int pictureureIdx = wb.addPicture(imageBytes, Workbook.PICTURE_TYPE_JPEG);
-				            	inputStream.close();
-				            	
-				            	ClientAnchor anchor = createHelper.createClientAnchor();
-				            	anchor.setCol1(i);
-				            	anchor.setRow1(rowIndex - 1);
-				            	anchor.setCol2(i + 1);
-				            	anchor.setRow2(rowIndex);
-				            	anchor.setAnchorType(ClientAnchor.MOVE_AND_RESIZE); 
-				            	//sheet.setColumnWidth(i, 20 * 256);
-				            	Drawing drawing = sheet.createDrawingPatriarch();
-				            	Picture pict = drawing.createPicture(anchor, pictureureIdx);
-				            	//pict.resize();
-	            			} catch (Exception e) {
-	            				log.info("Error: Missing image file: " + imageName);
-	            			}
-            			}
-            		}
-            	} 
-            	
-				cell.setCellStyle(styles.get("link"));
-				if(isXLSX) {
-					XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
-					url.setAddress(ci.v);
-					cell.setHyperlink(url);
-				} else {
-					HSSFHyperlink url = new HSSFHyperlink(HSSFHyperlink.LINK_URL);
-					url.setAddress(ci.v);
-					cell.setHyperlink(url);
-				}
-				
-				cell.setCellValue(ci.v);
-				
-			} else {
-            
-	            /*
-	             * Write the value as double or string
-	             */
-	            boolean cellWritten = false; 
-	
-	            if(ci.type == CellItem.DECIMAL || 
-	            		ci.type == CellItem.INTEGER && 
-	            		ci.v != null) {
-	        		try {
-	        			double vDouble = Double.parseDouble(ci.v);
-	
-	        			cell.setCellStyle(styles.get("default"));
-	        			cell.setCellValue(vDouble);
-	        			cellWritten = true;
-	        		} catch (Exception e) {
-	        			// Ignore
-	        		}
-	            } else if(ci.type == CellItem.DATETIME) {
-	            	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	            	try {
-	            		java.util.Date date = dateFormat.parse(ci.v);
-	            		cell.setCellStyle(styles.get("datetime"));
-		            	cell.setCellValue(date);
-		            	cellWritten = true;
-	            	} catch (Exception e) {
-	        			// Ignore
-	        		}
-	            } else if(ci.type == CellItem.DATE) {
-	            	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-	            	try {
-	            		java.util.Date date = dateFormat.parse(ci.v);
-	            		cell.setCellStyle(styles.get("date"));
-		            	cell.setCellValue(date);
-		            	cellWritten = true;
-	            	} catch (Exception e) {
-	        			// Ignore
-	        		}
-	            }
-	            
-	           	if(!cellWritten) {
-	           		cell.setCellStyle(styles.get("default"));
-	        		cell.setCellValue(ci.v);
-	        	}
-			}         
-        }
+			Cell cell = row.createCell(i);
+			XLSUtilities.setCellValue(wb, sheet, cell, styles, ci.v, ci.getStringType(), embedImages, 
+					basePath, rowIndex, i, isXLSX);
+		}
 	}
-	
+
 	private int getMaxRepeats(Connection con, Connection results_con, int sId, int formId)  {
 		int maxRepeats = 1;
-		
+
 		String sql = "SELECT table_name, parentform FROM form" +
 				" WHERE s_id = ? " +
 				" AND f_id = ?;";	
-		
+
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGetCount = null;
 		try {
@@ -804,50 +711,50 @@ public class XLSResultsManager {
 			ArrayList<String> tables = new ArrayList<String> ();
 			getTableHierarchy(pstmt, tables, sId, formId);
 			int numTables = tables.size();
-			
+
 			StringBuffer sqlBuf = new StringBuffer();
 			sqlBuf.append("select max(t.cnt)  from " +
 					"(select count(");
 			sqlBuf.append(tables.get(numTables - 1));
 			sqlBuf.append(".prikey) cnt " +
 					" from ");
-			
-			
+
+
 			for(int i = 0; i < numTables; i++) {
 				if(i > 0) {
 					sqlBuf.append(",");
 				}
 				sqlBuf.append(tables.get(i));
 			}
-			
+
 			// where clause
 			sqlBuf.append(" where ");
 			sqlBuf.append(tables.get(0));
 			sqlBuf.append("._bad='false'");
 			if(numTables > 1) {
 				for(int i = 0; i < numTables - 1; i++) {
-					
+
 					sqlBuf.append(" and ");
-					
+
 					sqlBuf.append(tables.get(i));
 					sqlBuf.append(".parkey = ");
 					sqlBuf.append(tables.get(i+1));
 					sqlBuf.append(".prikey");
 				}
 			}
-			
+
 			sqlBuf.append(" group by ");
 			sqlBuf.append(tables.get(numTables - 1));
 			sqlBuf.append(".prikey) AS t;");
-			
+
 			pstmtGetCount = results_con.prepareStatement(sqlBuf.toString());
 			ResultSet rsCount = pstmtGetCount.executeQuery();
 			if(rsCount.next()) {
 				maxRepeats = rsCount.getInt(1);
 			}
-			
-			
-			
+
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -856,12 +763,12 @@ public class XLSResultsManager {
 		}
 		return maxRepeats;
 	}
-	
+
 	/*
 	 * Add the list of children to parent forms
 	 */
 	private void addChildren(FormDesc parentForm, HashMap<String, FormDesc> forms, ArrayList<FormDesc> formList) {
-		
+
 		for(FormDesc fd : forms.values()) {
 			if(fd.parent != null && fd.parent.equals(parentForm.f_id)) {
 				if(parentForm.children == null) {
@@ -872,11 +779,11 @@ public class XLSResultsManager {
 				addChildren(fd,  forms, formList);
 			}
 		}
-		
+
 	}
-	
+
 	private void getTableHierarchy(PreparedStatement pstmt, ArrayList<String> tables, int sId, int formId) throws SQLException {
-		
+
 		pstmt.setInt(1, sId);
 		pstmt.setInt(2, formId);
 		ResultSet rs = pstmt.executeQuery();
@@ -885,9 +792,9 @@ public class XLSResultsManager {
 			getTableHierarchy(pstmt, tables, sId, rs.getInt(2));
 		}
 	}
-	
 
-	
+
+
 	/*
 	 * Add to the header
 	 */
@@ -902,12 +809,12 @@ public class XLSResultsManager {
 			int sId, 
 			FormDesc f,
 			boolean merge_select_multiple) throws SQLException {
-		
+
 		String label = null;
 		if(!language.equals("none")) {
 			label = getQuestion(sd, colName, sId, f, language, merge_select_multiple);
 		}
-		
+
 		if(split_locn && qType != null && qType.equals("geopoint")) {
 			cols.add(new Column("Latitude", "Latitude", "Latitude", "#geo+lat"));
 			cols.add(new Column("Longitude", "Longitude", "Longitude", "+geo+lon"));
@@ -917,11 +824,11 @@ public class XLSResultsManager {
 				col.isImage = true;
 			}
 			cols.add(col);
-			
+
 		}
-		
+
 	}
-	
+
 	/*
 	 * Return the text
 	 */
@@ -932,7 +839,7 @@ public class XLSResultsManager {
 		if(value == null) {
 			value = "";
 		}
-		
+
 		if(split_locn && value.startsWith("POINT")) {
 
 			String coords [] = getLonLat(value);
@@ -944,15 +851,15 @@ public class XLSResultsManager {
 				out.add(new CellItem(value, CellItem.STRING));
 				out.add(new CellItem(value, CellItem.STRING));
 			}
-				
-			
+
+
 		} else if(split_locn && (value.startsWith("POLYGON") || value.startsWith("LINESTRING"))) {
-			
+
 			// Can't split linestrings and polygons, leave latitude and longitude as blank
 			out.add(new CellItem("", CellItem.STRING));
 			out.add(new CellItem("", CellItem.STRING));
-			
-			
+
+
 		} else if(split_locn && columnType != null & columnType.equals("geopoint") ) {
 			// Geopoint that needs to be split but there is no data
 			out.add(new CellItem("", CellItem.STRING));
@@ -965,7 +872,7 @@ public class XLSResultsManager {
 						"&mlon=" +
 						coords[0] +
 						"&zoom=14", CellItem.STRING));
-			
+
 			} else {
 				out.add(new CellItem(value, CellItem.STRING));
 			}
@@ -988,7 +895,7 @@ public class XLSResultsManager {
 				surveyNames.put(value, displayName);
 			}
 			out.add(new CellItem(displayName, CellItem.STRING));
-				
+
 		} else if(columnType.equals("dateTime")) {
 			// Convert the timestamp to the excel format specified in the xl2 mso-format
 			int idx1 = out.indexOf('.');	// Drop the milliseconds
@@ -1012,7 +919,7 @@ public class XLSResultsManager {
 
 		return out;
 	}
-	
+
 	/*
 	 * For each record in the top level table all records in other tables that
 	 * can link back to the top level record are retrieved.  These are then combined 
@@ -1041,20 +948,20 @@ public class XLSResultsManager {
 			int dateForm,
 			boolean superUser,
 			String advanced_filter) throws Exception {
-		
+
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		RoleManager rm = new RoleManager();
 		ArrayList<SqlFrag> rfArray = null;
 		boolean hasRbacFilter = false;
-		
+
 		/*
 		 * Retrieve the data for this table
 		 */
 		sql.append("select " + f.columns + " from " + f.table_name +
 				" where _bad is false ");		
-		
+
 		String sqlRestrictToDateRange = null;
 		if(dateName != null && dateForm == Integer.parseInt(f.f_id)) {	
 			sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, f.table_name + "." + dateName);
@@ -1063,27 +970,27 @@ public class XLSResultsManager {
 				sql.append(sqlRestrictToDateRange);
 			}
 		}
-		
-		
+
+
 		// Add the advanced filter fragment
 		if(advanced_filter != null) {
-			
+
 			StringBuffer filterQuery = new StringBuffer(" and ");
 			filterQuery.append(f.table_name);
 			filterQuery.append(".instanceid in ");
 			filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, localisation,
 					survey, advanced_filter));
 			sql.append(filterQuery.toString());
-			
+
 			log.info("++++  Filter Query clause: " + filterQuery.toString());
-			
-			
-			
+
+
+
 			//sql.append( " and (");
 			//sql.append(filterFrag.sql);
 			//sql.append(") ");
 		}
-		
+
 		if(f.parkey != null && !f.parkey.equals("0")) {
 			sql.append(" and parkey=?");
 		} else {
@@ -1101,7 +1008,7 @@ public class XLSResultsManager {
 			}
 		}
 		sql.append(" order by prikey asc");	
-		
+
 		try {
 			pstmt = connectionResults.prepareStatement(sql.toString());
 			// if date filter is set then add it
@@ -1114,8 +1021,8 @@ public class XLSResultsManager {
 					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
 				}
 			}
-			
-			
+
+
 			if(f.parkey != null && !f.parkey.equals("0")) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
 			} else if(hasRbacFilter) {
@@ -1123,34 +1030,34 @@ public class XLSResultsManager {
 			}
 			// log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-			
+
 			while (resultSet.next()) {
-				
+
 				String prikey = resultSet.getString(1);
 				ArrayList<CellItem> record = new ArrayList<CellItem>();
-				
+
 				// If this is the top level form reset the current parents and add the primary key
 				if(f.parkey == null || f.parkey.equals("0")) {
 					f.clearRecords();
 					record.addAll(getContent(sd, prikey, true, "prikey", "key", split_locn));
 				}
-				
-				
+
+
 				// Add the other questions to the output record
 				String currentSelectMultipleQuestionName = null;
 				String multipleChoiceValue = null;
 				for(int i = 1; i < f.columnList.size(); i++) {
-					
+
 					TableColumn c = f.columnList.get(i);
 
 					String columnName = c.name;
 					String columnType = c.type;
 					String value = resultSet.getString(i + 1);
-					
+
 					if(value == null) {
 						value = "";	
 					}
-					
+
 					if(merge_select_multiple) {
 						String choice = choiceNames.get(columnName);
 						if(choice != null) {
@@ -1165,12 +1072,12 @@ public class XLSResultsManager {
 							} else if (i == f.columnList.size() - 1) {
 								//  Its the end of the record		
 								multipleChoiceValue = XLSUtilities.updateMultipleChoiceValue(value, choice, multipleChoiceValue);
-								
+
 								record.addAll(getContent(sd, multipleChoiceValue, false, columnName, columnType, split_locn));
 							} else {
 								// A second select multiple directly after the first - write out the previous
 								record.addAll(getContent(sd, multipleChoiceValue, false, currentSelectMultipleQuestionName, "select", split_locn));
-								
+
 								// Restart process for the new select multiple
 								currentSelectMultipleQuestionName = selectMultipleQuestionName;
 								multipleChoiceValue = null;
@@ -1180,7 +1087,7 @@ public class XLSResultsManager {
 							if(currentSelectMultipleQuestionName != null) {
 								// Write out the previous multiple choice value before continuing with the non multiple choice value
 								record.addAll(getContent(sd, multipleChoiceValue, false, currentSelectMultipleQuestionName, "select", split_locn));
-								
+
 								// Restart Process
 								multipleChoiceValue = null;
 								currentSelectMultipleQuestionName = null;
@@ -1192,7 +1099,7 @@ public class XLSResultsManager {
 					}
 				}
 				f.addRecord(prikey, f.parkey, record);
-								
+
 				// Process child tables
 				if(f.children != null) {
 					for(int j = 0; j < f.children.size(); j++) {
@@ -1220,7 +1127,7 @@ public class XLSResultsManager {
 								null);
 					}
 				}
-				
+
 				/*
 				 * For each complete survey retrieved combine the results
 				 *  into a serial list that match the column headers. Where there are missing forms in the
@@ -1228,14 +1135,14 @@ public class XLSResultsManager {
 				 *  with empty values.
 				 */
 				if(f.parkey == null || f.parkey.equals("0")) {
-					
+
 					//f.printRecords(4, true);
 					appendToOutput(sd, new ArrayList<CellItem> (), 
 							formList.get(0), formList, 0, null, resultsSheet, styles, embedImages);
-					
+
 				}
 			}
-			
+
 		} finally {
 			try{
 				if(resultSet != null) {resultSet.close();};
@@ -1244,9 +1151,9 @@ public class XLSResultsManager {
 				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
 			}
 		}
-		
+
 	}
-	
+
 	/*
 	 * Construct the output
 	 */
@@ -1262,16 +1169,16 @@ public class XLSResultsManager {
 		if(f.records != null) {
 			number_records = f.records.size(); 
 		} 
-		
+
 		if(f.visible) {
-			
+
 			if(f.flat) {
 				ArrayList<CellItem> newRec = new ArrayList<CellItem> ();
 				newRec.addAll(in);
 				for(int i = 0; i < number_records; i++) {
 					newRec.addAll(f.records.get(i).record);
 				}
-				
+
 				log.info("flat------>" + f.table_name + "Number records: " + number_records);
 				// Pad up to max repeats
 				for(int i = number_records; i < f.maxRepeats; i++) {
@@ -1288,13 +1195,13 @@ public class XLSResultsManager {
 				} else {
 					closeRecord(newRec, resultsSheet, styles, embedImages);
 				}
-				
+
 			} else {
 				boolean found_non_matching_record = false;
 				boolean hasMatchingRecord = false;
 				if(number_records == 0) {
 					if(index < formList.size() - 1) {
-						
+
 						/*
 						 * Add an empty record for this form
 						 */
@@ -1303,10 +1210,10 @@ public class XLSResultsManager {
 						for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
 							newRec.addAll(getContent(sd, "", false, "", "empty", false));
 						}
-						
+
 						FormDesc nextForm = formList.get(index + 1);
 						String filter = null;
-						
+
 						appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages);
 					} else {
 						closeRecord(in, resultsSheet, styles, embedImages);
@@ -1317,20 +1224,20 @@ public class XLSResultsManager {
 					 */
 					for(int i = 0; i < number_records; i++) {
 						RecordDesc rd = f.records.get(i);
-						
+
 						if(parent == null || parent.equals("0") || parent.equals(rd.parkey)) {
 							hasMatchingRecord = true;
 						}
 					}
-					
+
 					for(int i = 0; i < number_records; i++) {
 						RecordDesc rd = f.records.get(i);
-						
+
 						if(parent == null || parent.equals("0") || parent.equals(rd.parkey)) {
 							ArrayList<CellItem> newRec = new ArrayList<CellItem> ();
 							newRec.addAll(in);
 							newRec.addAll(f.records.get(i).record);
-			
+
 							if(index < formList.size() - 1) {
 								/*
 								 * If the next form is a child of this one then pass the primary key of the current record
@@ -1356,7 +1263,7 @@ public class XLSResultsManager {
 								found_non_matching_record = true;
 
 								if(index < formList.size() - 1) {
-									
+
 									/*
 									 * Add an empty record for this form
 									 */
@@ -1365,10 +1272,10 @@ public class XLSResultsManager {
 									for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
 										newRec.addAll(getContent(sd, "",  false, "", "empty", false));
 									}
-									
+
 									FormDesc nextForm = formList.get(index + 1);
 									String filter = null;
-									
+
 									appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages);
 								} else {
 									/*
@@ -1393,9 +1300,9 @@ public class XLSResultsManager {
 				closeRecord(in, resultsSheet, styles, embedImages);
 			}
 		}
-		
+
 	}
-	
+
 	private String getQuestion(Connection conn, String colName, int sId, FormDesc form, String language, boolean merge_select_multiple) throws SQLException {
 		String questionText = "";
 		String qColName = null;
@@ -1404,7 +1311,7 @@ public class XLSResultsManager {
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		int qId = -1;
-		
+
 		if(colName != null && language != null) {
 			// Split the column name into the question and option part
 			// Assume that double underscore is a unique separator
@@ -1415,9 +1322,9 @@ public class XLSResultsManager {
 				qColName = colName.substring(0, idx);
 				optionColName = colName.substring(idx+2);
 			}
-			
+
 			String sql = null;
-	
+
 			sql = "SELECT t.value AS qtext, q.qtype AS qtype, q.q_id FROM question q, translation t" +
 					" WHERE q.f_id = ? " +
 					" AND q.qtext_id = t.text_id " +
@@ -1431,13 +1338,13 @@ public class XLSResultsManager {
 			pstmt.setInt(3, sId);
 			pstmt.setString(4, qColName);
 			resultSet = pstmt.executeQuery();
-		
+
 			if (resultSet.next()) {
 				questionText = resultSet.getString("qtext");
 				qType = resultSet.getString("qtype");
 				qId = resultSet.getInt("q_id");
 			}
-			
+
 			// Get any option text
 			if(qType != null && qType.startsWith("select")) {
 				sql = "SELECT t.value AS otext, o.ovalue AS ovalue, o.column_name FROM option o, question q, translation t" +
@@ -1447,13 +1354,13 @@ public class XLSResultsManager {
 						" AND t.language = ? " +
 						" AND t.s_id = ? " +
 						" ORDER BY o.seq ASC;";
-						
+
 				pstmt = conn.prepareStatement(sql);	 
 				pstmt.setInt(1, qId);
 				pstmt.setString(2, language);
 				pstmt.setInt(3, sId);
 				resultSet = pstmt.executeQuery();
-			
+
 				while (resultSet.next()) {
 					String name = resultSet.getString("ovalue");
 					String columnName = resultSet.getString("column_name").toLowerCase();
@@ -1469,19 +1376,19 @@ public class XLSResultsManager {
 					}
 				}
 			}
-			
+
 		}
-		
+
 		try{
 			if(resultSet != null) {resultSet.close();};
 			if(pstmt != null) {pstmt.close();};
 		} catch (Exception ex) {
 			log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
 		}
-		
+
 		return questionText;
 	}
-	
+
 	/*
 	 * Get the longitude and latitude from a WKT POINT
 	 */

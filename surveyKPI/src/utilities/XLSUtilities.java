@@ -1,27 +1,44 @@
 package utilities;
 
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.poi.hssf.usermodel.HSSFCellStyle;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
+import org.apache.poi.hssf.usermodel.HSSFHyperlink;
 import org.apache.poi.hssf.util.HSSFColor;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
+import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFHyperlink;
 import org.smap.sdal.Utilities.ApplicationException;
+
+import surveyKPI.ExportSurveyXls;
 
 public class XLSUtilities {
 
+	private static Logger log =
+			Logger.getLogger(ExportSurveyXls.class.getName());
 	/**
 	 * create a library of cell styles
 	 */
@@ -340,5 +357,112 @@ public class XLSUtilities {
 		}
 
 		return new ApplicationException(msg);
+	}
+	
+	public static void setCellValue(Workbook wb, 
+			Sheet sheet,
+			Cell cell, 
+			Map<String, CellStyle> styles,
+			String value, 
+			String type,
+			boolean embedImages, 
+			String basePath,
+			int row,
+			int col,
+			boolean isXLSX) {
+		
+		if(value != null && (value.startsWith("https://") || value.startsWith("http://"))) {
+
+			CreationHelper createHelper = wb.getCreationHelper();
+			if(embedImages) {
+				if(value.endsWith(".jpg") || value.endsWith(".png")) {
+					int idx = value.indexOf("attachments");
+					int idxName = value.lastIndexOf('/');
+					if(idx > 0 && idxName > 0) {
+						String fileName = value.substring(idxName);
+						String stem = basePath + "/" + value.substring(idx, idxName);
+						String imageName = stem + "/thumbs" + fileName + ".jpg";
+						try {
+							InputStream inputStream = new FileInputStream(imageName);
+							byte[] imageBytes = IOUtils.toByteArray(inputStream);
+							int pictureureIdx = wb.addPicture(imageBytes, Workbook.PICTURE_TYPE_JPEG);
+							inputStream.close();
+
+							ClientAnchor anchor = createHelper.createClientAnchor();
+							anchor.setCol1(col);
+							anchor.setRow1(row - 1);
+							anchor.setCol2(col + 1);
+							anchor.setRow2(row);
+							anchor.setAnchorType(ClientAnchor.MOVE_AND_RESIZE); 
+							//sheet.setColumnWidth(i, 20 * 256);
+							Drawing drawing = sheet.createDrawingPatriarch();
+							Picture pict = drawing.createPicture(anchor, pictureureIdx);
+							//pict.resize();
+						} catch (Exception e) {
+							log.info("Error: Missing image file: " + imageName);
+						}
+					}
+				}
+			} 
+
+			cell.setCellStyle(styles.get("link"));
+			if(isXLSX) {
+				XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
+				url.setAddress(value);
+				cell.setHyperlink(url);
+			} else {
+				HSSFHyperlink url = new HSSFHyperlink(HSSFHyperlink.LINK_URL);
+				url.setAddress(value);
+				cell.setHyperlink(url);
+			}
+
+			cell.setCellValue(value);
+
+		} else {
+
+			/*
+			 * Write the value as double or string
+			 */
+			boolean cellWritten = false; 
+
+			if(type.equals("decimal") || 
+					type.equals("int") && 
+					value != null) {
+				try {
+					double vDouble = Double.parseDouble(value);
+
+					cell.setCellStyle(styles.get("default"));
+					cell.setCellValue(vDouble);
+					cellWritten = true;
+				} catch (Exception e) {
+					// Ignore
+				}
+			} else if(type.equals("dateTime")) {
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				try {
+					java.util.Date date = dateFormat.parse(value);
+					cell.setCellStyle(styles.get("datetime"));
+					cell.setCellValue(date);
+					cellWritten = true;
+				} catch (Exception e) {
+					// Ignore
+				}
+			} else if(type.equals("date")) {
+				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+				try {
+					java.util.Date date = dateFormat.parse(value);
+					cell.setCellStyle(styles.get("date"));
+					cell.setCellValue(date);
+					cellWritten = true;
+				} catch (Exception e) {
+					// Ignore
+				}
+			}
+
+			if(!cellWritten) {
+				cell.setCellStyle(styles.get("default"));
+				cell.setCellValue(value);
+			}
+		}        
 	}
 }

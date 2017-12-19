@@ -1565,7 +1565,6 @@ public class SurveyTemplate {
 		
 		instance.setQuestion("/main/meta", "begin group", "meta", false, null, null);
 		for(MetaItem mq : meta) {
-			System.out.println("Extending: " + mq.name);
 			String questionPath = null;
 			if(mq.name.contains("instanceID") || mq.name.contains("instanceName") || mq.name.contains("audit")) {
 				questionPath = "/main/meta/" + mq.name;

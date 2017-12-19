@@ -5563,6 +5563,7 @@ public class GeneralUtilityMethods {
 			}
 			dataColumn++;
 		}
+		values.type = item.qType;
 
 		return dataColumn;
 	}
@@ -5651,5 +5652,7 @@ public class GeneralUtilityMethods {
 		}
 		return value;
 	}
+	
+	
 }
 

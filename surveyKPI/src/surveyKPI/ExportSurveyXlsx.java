@@ -132,12 +132,6 @@ public class ExportSurveyXlsx extends Application {
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-				if(meta) {
-					System.out.println("Meta set to: " + meta);
-				} else {
-					System.out.println("Meta not set");
-				}
 				
 				cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");				
 
@@ -182,10 +176,6 @@ public class ExportSurveyXlsx extends Application {
 						meta);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
-				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
-
-
-				System.out.println(sqlDesc.sql);
 				
 				/*
 				 * Create XLSX File
@@ -218,7 +208,6 @@ public class ExportSurveyXlsx extends Application {
 					cell.setCellStyle(headerStyle);
 					cell.setCellValue(values.name);
 				}
-			
 				
 				/*
 				 * Write each row of data
@@ -241,6 +230,8 @@ public class ExportSurveyXlsx extends Application {
 								merge_select_multiple);						
 
 						Cell cell = dataRow.createCell(colNumber++);
+						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
+								values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 						cell.setCellValue(values.value);
 					}
 					
