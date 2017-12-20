@@ -1806,7 +1806,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Check for existence of an opton
+	 * Check for existence of an option
 	 */
 	public static boolean optionExists(Connection sd, int l_id, String value, String cascade_filters) {
 		boolean exists = false;

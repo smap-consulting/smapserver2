@@ -1,5 +1,7 @@
 package utilities;
 
+import java.io.File;
+
 /*
 This file is part of SMAP.
 
@@ -23,6 +25,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.regex.Pattern;
@@ -30,6 +33,9 @@ import java.util.regex.Pattern;
 import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.ChangeItem;
+import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
@@ -90,7 +96,8 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Get a survey definition from an XLS file
 	 */
-	public Survey getSurvey(Connection sd, 
+	public Survey getSurvey(
+			Connection sd,
 			int oId, 
 			String type, 
 			InputStream inputStream, 
@@ -839,6 +846,12 @@ public class XLSTemplateUploadManager {
 					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.calculation);
 					if(refs.size() > 0) {
 						questionInSurvey(refs, "calculation", q);
+					}
+				}
+				if(q.appearance != null) {
+					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.appearance);
+					if(refs.size() > 0) {
+						questionInSurvey(refs, "appearance", q);
 					}
 				}
 			}

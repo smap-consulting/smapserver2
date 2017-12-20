@@ -57,6 +57,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.TableColumn;
 
@@ -352,7 +353,8 @@ public class ExchangeManager {
 			boolean isCSV,
 			ArrayList<String> responseMsg,
 			String basePath,
-			ResourceBundle localisation
+			ResourceBundle localisation,
+			ArrayList<MetaItem> preloads
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -390,26 +392,28 @@ public class ExchangeManager {
 				for(int i = 0; i < line.length; i++) {
 					String colName = line[i].replace("'", "''");	// Escape apostrophes
 					
-					// If this column is in the survey then add it to the list of columns to be processed
-					Column col = getColumn(pstmtGetCol, pstmtGetChoices, colName, columns, responseMsg, localisation);
-					if(col != null) {
-						col.index = i;
-						if(col.geomCol != null) {
-							// Do not add the geom columns to the list of columns to be parsed
-							if(col.geomCol.equals("lon")) {
-								lonIndex = i;
-							} else if(col.geomCol.equals("lat")) {
-								latIndex = i;
+					if(colName.trim().length() > 0) {
+						// If this column is in the survey then add it to the list of columns to be processed
+						Column col = getColumn(pstmtGetCol, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
+						if(col != null) {
+							col.index = i;
+							if(col.geomCol != null) {
+								// Do not add the geom columns to the list of columns to be parsed
+								if(col.geomCol.equals("lon")) {
+									lonIndex = i;
+								} else if(col.geomCol.equals("lat")) {
+									latIndex = i;
+								}
+							} else {
+								columns.add(col);
 							}
 						} else {
-							columns.add(col);
+							responseMsg.add(
+									localisation.getString("imp_qn") +
+									" " + colName + " " +
+									localisation.getString("imp_nfi") +
+									": " + form.name);  
 						}
-					} else {
-						responseMsg.add(
-								localisation.getString("imp_qn") +
-								" " + colName + " " +
-								localisation.getString("imp_nfi") +
-								": " + form.name);  
 					}
 
 				}
@@ -1095,7 +1099,8 @@ public class ExchangeManager {
 			String qName,
 			ArrayList<Column> columns,
 			ArrayList<String> responseMsg,
-			ResourceBundle localisation
+			ResourceBundle localisation,
+			ArrayList<MetaItem> preloads
 			) throws SQLException {
 		
 		Column col = null;
@@ -1168,6 +1173,11 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_complete";
 				col.type = "boolean";
+			} else if(qName.equals("Instance Name")) {
+				col = new Column();
+				col.name = qName;
+				col.columnName = "instancename";
+				col.type = "string";
 			} else {
 				pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
 				log.info("Get column: " + pstmtGetCol.toString());
@@ -1194,6 +1204,20 @@ public class ExchangeManager {
 							o.columnName = rsChoices.getString("column_name");
 							o.value = rsChoices.getString("ovalue");
 							col.choices.add(o);
+						}
+					}
+				} else {
+					// Check to see if it is a preload
+					
+					for(MetaItem mi : preloads) {
+						if(mi.isPreload) {
+							if(mi.name.equals(qName)) {
+								col = new Column();
+								col.name = qName;
+								col.columnName = mi.columnName;
+								col.type = mi.type;
+								break;
+							}
 						}
 					}
 				}

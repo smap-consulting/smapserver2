@@ -688,10 +688,10 @@ public class Survey {
 			pstmt.setString(23, nodeset_label);
 			
 			pstmt.setString(24,  q.columnName);
-			pstmt.setBoolean(25,  false);   		
+			pstmt.setBoolean(25,  false);   				// published		
 			pstmt.setInt(26, q.l_id);
 			pstmt.setString(27, q.autoplay); 
-			pstmt.setString(28, q.accuracy);  			// TODO
+			pstmt.setString(28, q.accuracy);
 			pstmt.setString(29, q.dataType);
 
 			pstmt.executeUpdate();

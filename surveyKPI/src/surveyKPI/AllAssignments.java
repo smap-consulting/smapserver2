@@ -52,6 +52,7 @@ import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Features;
 import org.smap.sdal.model.Geometry;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TaskAddressSettings;
 
@@ -1095,7 +1096,8 @@ public class AllAssignments extends Application {
 		String contentType = null;
 		int sId = 0;
 		String sIdent = null;		// Survey Ident
-		String sName = null;		// Survey Name
+		String sName = null;			// Survey Name
+		ArrayList<MetaItem> preloads = null;
 		boolean clear_existing = false;
 		HashMap<String, File> mediaFiles = new HashMap<String, File> ();
 		HashMap<String, File> formFileMap = null;
@@ -1133,6 +1135,7 @@ public class AllAssignments extends Application {
 
 						sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 						sName = GeneralUtilityMethods.getSurveyName(sd, sId);
+						preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 					} else if(item.getFieldName().equals("clear_existing")) {
 						clear_existing = true;
 					}
@@ -1304,7 +1307,8 @@ public class AllAssignments extends Application {
 							isCSV,
 							responseMsg,
 							basePath,
-							localisation);
+							localisation,
+							preloads);
 
 					if(formIdx == 0) {
 						recordsWritten = count;

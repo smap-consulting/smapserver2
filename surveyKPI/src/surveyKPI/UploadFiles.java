@@ -51,9 +51,12 @@ import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.CustomReportItem;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.LQAS;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
 import com.google.gson.Gson;
@@ -610,6 +613,15 @@ public class UploadFiles extends Application {
 							s.id);		// Do not delete the tables
 				}
 				
+				// Create external options if there is a CSV file referenced by this survey
+				writeExternalChoices(
+						sd, 
+						cResults, 
+						localisation,
+						s,
+						basePath, 
+						user);
+				
 			}
 			
 			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
@@ -1109,6 +1121,78 @@ public class UploadFiles extends Application {
 		}
 
 
+	}
+	
+	/*
+	 * Add the options from any external CSV files
+	 */
+	private void writeExternalChoices(
+			Connection sd, 
+			Connection cResults, 
+			ResourceBundle localisation,
+			Survey survey,
+			String basePath, String user) throws Exception {
+		
+		SurveyManager sm = new SurveyManager(localisation);
+		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
+
+		for(Form f : survey.forms) {
+			for(Question q : f.questions) {
+				if(q.type.startsWith("select")) {
+					
+					// Check to see if this appearance references a manifest file
+					if(q.appearance != null && q.appearance.toLowerCase().trim().contains("search(")) {
+						// Yes it references a manifest
+						
+						int idx1 = q.appearance.indexOf('(');
+						int idx2 = q.appearance.indexOf(')');
+						if(idx1 > 0 && idx2 > idx1) {
+							String criteriaString = q.appearance.substring(idx1 + 1, idx2);
+							
+							String criteria [] = criteriaString.split(",");
+							if(criteria.length > 0) {
+								
+								if(criteria[0] != null && criteria[0].length() > 2) {	// allow for quotes
+									String filename = criteria[0].trim();
+									filename = filename.substring(1, filename.length() -1);
+									filename += ".csv";
+									log.info("We have found a manifest link to " + filename);
+									
+									ChangeSet cs = new ChangeSet();
+									cs.changeType = "option";
+									cs.source = "file";
+									cs.items = new ArrayList<ChangeItem> ();
+									changes.add(cs);
+	
+									
+									String filepath = basePath + "/media/organisation/" + survey.o_id + "/" + filename;		
+									File file = new File(filepath);
+	
+									GeneralUtilityMethods.getOptionsFromFile(
+										sd,
+										localisation,
+										user,
+										survey.getId(),
+										cs.items,
+										file,
+										null,
+										filename,
+										q.name,
+										q.l_id,
+										q.id,				
+										"select",
+										q.appearance);
+					
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+			
+		sm.applyChangeSetArray(sd, cResults, survey.getId(), user, changes, false);
+		
 	}
 
 }

@@ -23,11 +23,8 @@ import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
 import org.smap.server.utilities.UtilityMethods;
 
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-
-import sun.rmi.runtime.Log;
 
 /*****************************************************************************
 
@@ -867,6 +864,8 @@ public class TableManager {
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and q.published = 'false' "
+				+ "and f.reference = 'false' "
+				+ "and q.soft_deleted = 'false' "
 				+ "and f.s_id = ?";
 
 		String sqlGetUnpublishedOptions = "select o_id, column_name, externalfile "
