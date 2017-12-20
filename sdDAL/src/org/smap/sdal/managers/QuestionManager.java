@@ -169,10 +169,9 @@ public class QuestionManager {
 				+ "nodeset,"
 				+ "nodeset_value,"
 				+ "nodeset_label,"
-				+ "display_name,"
-				+ "chartdata"
+				+ "display_name"
 				+ ") " 
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -319,7 +318,6 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(24, nodeset_value);
 				pstmtInsertQuestion.setString(25, nodeset_label);
 				pstmtInsertQuestion.setString(26, q.display_name);
-				pstmtInsertQuestion.setString(27, q.chartdata);
 
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();

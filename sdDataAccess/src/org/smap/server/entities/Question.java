@@ -91,8 +91,6 @@ public class Question {
 
 	private String calculate;
 	
-	private String chartdata;
-	
 	private String constraint;
 	
 	private String constraint_msg;
@@ -271,11 +269,7 @@ public class Question {
 	public String getCalculate(boolean convertToXPath, HashMap<String, String> questionPaths, String xFormRoot) throws Exception {
 		String v = null;
 		
-		if(qType.equals("chart")) {
-			v = chartdata;		// Get the calculation component of the chart data object
-		} else {
-			v = calculate;
-		}
+		v = calculate;
 		
 		if(xFormRoot != null) {
 			v = substituteRootName(v, xFormRoot);
@@ -292,10 +286,6 @@ public class Question {
 		}
 		
 		return v;
-	}
-	
-	public String getChartDataString() {
-		return chartdata;
 	}
 	
 	public String getConstraint(boolean convertToXPath, HashMap<String, String> questionPaths, String xFormRoot) throws Exception {
@@ -554,10 +544,6 @@ public class Question {
 	
 	public void setCalculate(String v) {
 		calculate = v;
-	}
-	
-	public void setChartDataString(String v) {
-		chartdata = v;
 	}
 	
 	public void setConstraintMsg(String v) {

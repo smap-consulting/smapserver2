@@ -586,7 +586,6 @@ public class Survey {
 				+ "mandatory,"
 				+ "relevant,"
 				+ "calculate,"
-				+ "chartdata,"
 				+ "qconstraint,"
 				+ "constraint_msg,"
 				+ "required_msg,"
@@ -604,7 +603,7 @@ public class Survey {
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 		try {
 			
@@ -664,12 +663,11 @@ public class Survey {
 			pstmt.setBoolean(12, q.required);
 			pstmt.setString(13, q.relevant);	
 			pstmt.setString(14, q.calculation);
-			pstmt.setString(15, q.chartdata);
-			pstmt.setString(16, q.constraint);
-			pstmt.setString(17, q.constraint_msg);
-			pstmt.setString(18, q.required_msg);
-			pstmt.setString(19, q.appearance);
-			pstmt.setString(20, q.parameters);
+			pstmt.setString(15, q.constraint);
+			pstmt.setString(16, q.constraint_msg);
+			pstmt.setString(17, q.required_msg);
+			pstmt.setString(18, q.appearance);
+			pstmt.setString(19, q.parameters);
 			
 			String nodeset = null;
 			String nodeset_value = null;
@@ -683,16 +681,16 @@ public class Survey {
 				nodeset_label = "jr:itext(itextId)";
 			}
 			
-			pstmt.setString(21, nodeset);		
-			pstmt.setString(22, nodeset_value);
-			pstmt.setString(23, nodeset_label);
+			pstmt.setString(20, nodeset);		
+			pstmt.setString(21, nodeset_value);
+			pstmt.setString(22, nodeset_label);
 			
-			pstmt.setString(24,  q.columnName);
-			pstmt.setBoolean(25,  false);   				// published		
-			pstmt.setInt(26, q.l_id);
-			pstmt.setString(27, q.autoplay); 
-			pstmt.setString(28, q.accuracy);
-			pstmt.setString(29, q.dataType);
+			pstmt.setString(23,  q.columnName);
+			pstmt.setBoolean(24,  false);   				// published		
+			pstmt.setInt(25, q.l_id);
+			pstmt.setString(26, q.autoplay); 
+			pstmt.setString(27, q.accuracy);
+			pstmt.setString(28, q.dataType);
 
 			pstmt.executeUpdate();
 			

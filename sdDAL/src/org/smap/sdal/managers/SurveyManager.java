@@ -810,8 +810,7 @@ public class SurveyManager {
 				+ "q.accuracy,"
 				+ "q.linked_target,"
 				+ "q.display_name,"
-				+ "q.f_id,"
-				+ "q.chartdata "
+				+ "q.f_id "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "where q.f_id = ? ";
@@ -984,7 +983,6 @@ public class SurveyManager {
 				q.linked_target = rsGetQuestions.getString(27);
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
-				q.chartdata = rsGetQuestions.getString(30);
 
 				if(q.autoplay == null) {
 					q.autoplay = "none";

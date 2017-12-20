@@ -963,8 +963,8 @@ public class XLSTemplateUploadManager {
 			out = "calculate";
 		} else if (type.equals("acknowledge")) {
 			out = "acknowledge";
-		} else if (type.equals("graph")) {
-			out = "graph";
+		} else if (type.equals("chart")) {
+			out = "chart";
 		} else if (type.equals("range")) {
 			out = "range";
 		} else if (type.equals("begin repeat") || type.equals("begin_repeat")) {
