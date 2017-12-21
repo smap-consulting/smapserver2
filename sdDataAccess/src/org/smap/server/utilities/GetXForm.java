@@ -878,6 +878,8 @@ public class GetXForm {
 						questionElement.setAttribute("chart_type", px1);
 					} else if(px0.equals("stacked")) {
 						questionElement.setAttribute("stacked", px1);
+					} else if(px0.equals("normalised")) {
+						questionElement.setAttribute("normalised", px1);
 					}
 				}
 			}
