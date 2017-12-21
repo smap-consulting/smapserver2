@@ -30,7 +30,12 @@ import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.regex.Pattern;
 
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathExpression;
+import javax.xml.xpath.XPathFactory;
+
 import org.apache.poi.ss.usermodel.*;
+import org.javarosa.xpath.XPathParseTool;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.SurveyManager;
@@ -709,19 +714,24 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", "relevant", q.name);
 			}
 			
-			checkExpression(localisation, q.relevant, rowNumber, "survey", "relevant", q.name);
+			checkParentheses(localisation, q.relevant, rowNumber, "survey", "relevant", q.name);
 		}
 		
 		if(q.constraint != null) {
-			checkExpression(localisation, q.constraint, rowNumber, "survey", "constraint", q.name);
+			checkParentheses(localisation, q.constraint, rowNumber, "survey", "constraint", q.name);
 		}
 		
 		if(q.calculation != null) {
-			checkExpression(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
+			checkParentheses(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
+			try {
+				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.calculation));
+			} catch (Exception e) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "calculation", e.getMessage());
+			}
 		}
 		
 		if(q.choice_filter != null) {
-			checkExpression(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
+			checkParentheses(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
 		}
 		
 		// invalid question in field-list
@@ -749,7 +759,7 @@ public class XLSTemplateUploadManager {
 		
 	}
 	
-	private void checkExpression(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
+	private void checkParentheses(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
 		checkMatchedParenthesies(localisation, '{', '}', expression, rowNumber, sheet, column);
 		checkMatchedParenthesies(localisation, '(', ')', expression, rowNumber, sheet, column);
 	}

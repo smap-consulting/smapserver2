@@ -812,7 +812,7 @@ public class GeneralUtilityMethods {
 
 		return id;
 	}
-	
+
 	/*
 	 * Get the role id from the role name
 	 */
@@ -1605,7 +1605,7 @@ public class GeneralUtilityMethods {
 			public HashMap<String, String> filter;
 
 			public OptionItem(String[] data, ArrayList<ValueLabelCols> vlcA, HashMap<String, String> f) {
-				
+
 				for(int i = 0; i < vlcA.size(); i++) {
 					ValueLabelCols vlc = vlcA.get(i);
 					if(i == 0) {
@@ -1613,7 +1613,7 @@ public class GeneralUtilityMethods {
 					}
 					label.add(new LanguageItem(vlc.language, data[vlc.label]));
 				}
-				
+
 				filter = f;
 				filterString = "";
 				if (f != null) {
@@ -1634,10 +1634,10 @@ public class GeneralUtilityMethods {
 				}
 				return false;
 			}
-			
+
 			private boolean labelsUnchanged(OptionItem oi) {
 				boolean unchanged = true;
-				
+
 				if(oi.label.size() != label.size()) {
 					unchanged = false;
 				} else {
@@ -1703,7 +1703,7 @@ public class GeneralUtilityMethods {
 					}
 				}
 			}
-			
+
 			// Compare with old values as long as there was not an error in reading the columns from the csv file
 			if(vlcA.error) {
 				// Force delete of existing choices
@@ -1747,7 +1747,7 @@ public class GeneralUtilityMethods {
 			// debug
 			log.info(" ======== New list: " + listNew.size());
 			log.info(" ======== Old list" + listOld.size());
-			
+
 			/*
 			 * Create a list of items to add that are in the new list but not in the old
 			 * Create a list of items to remove that are in the old list but not in the new
@@ -1777,7 +1777,7 @@ public class GeneralUtilityMethods {
 				ciList.add(c);
 
 			}
-			
+
 			/*
 			 * Add new items
 			 */
@@ -1927,7 +1927,7 @@ public class GeneralUtilityMethods {
 			lm.writeLog(sd, 0, "", "csv file", msg);
 			throw new Exception(msg);
 		}
-		
+
 		PreparedStatement pstmt = null;
 		String sql = "SELECT o.ovalue, t.value, t.language " 
 				+ "from option o, translation t, question q "
@@ -1939,15 +1939,15 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, qId);
 			log.info("Get value/label combos: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
-			
+
 			while (rs.next()) {
 				boolean err = false;
 				ValueLabelCols vlc = new ValueLabelCols();
-				
+
 				String valueName = rs.getString(1);
 				String labelName = rs.getString(2);
 				vlc.language = rs.getString(3);		
-				
+
 				vlc.value = -1;
 				vlc.label = -1;
 				for (int i = 0; i < cols.length; i++) {
@@ -1958,7 +1958,7 @@ public class GeneralUtilityMethods {
 						vlc.label = i;
 					}
 				}
-				
+
 				if (vlc.value == -1) {
 					String msg = "Column " + valueName + " not found in csv file for question " + qDisplayName;
 					lm.writeLog(sd, 0, "", "csv file", msg);
@@ -2771,14 +2771,14 @@ public class GeneralUtilityMethods {
 				c.humanName = localisation.getString("a_lt");
 				c.type = "";
 				columnList.add(c);
-				
+
 				c = new TableColumn();
 				c.name = "instancename";
 				c.humanName = localisation.getString("a_inst");
 				c.type = "";
 				columnList.add(c);
 			}
-			
+
 			// Add preloads that have been specified in the survey definition
 			if (includePreloads) {
 				ArrayList<MetaItem> preloads = getPreloads(sd, sId);
@@ -2802,7 +2802,7 @@ public class GeneralUtilityMethods {
 			c.type = "";
 			columnList.add(c);
 		}
-		
+
 
 		try {
 			pstmtQuestions.setInt(1, f_id);
@@ -2876,7 +2876,7 @@ public class GeneralUtilityMethods {
 							uniqueColumns.put(uk, uk);
 
 							c = new TableColumn();
-						
+
 							String optionName = rsMultiples.getString(1);
 							String optionLabel = rsMultiples.getString(2);
 							c.name = question_column_name + "__" + optionName;
@@ -2890,7 +2890,7 @@ public class GeneralUtilityMethods {
 							if (hxlCode != null) {
 								c.hxlCode = hxlCode + "+label";
 							}
-							
+
 							// Add options to first column of select multiple
 							if(multIdx == 0) {
 								firstOption = c;
@@ -2898,7 +2898,7 @@ public class GeneralUtilityMethods {
 							}
 							multIdx++;
 							firstOption.choices.add(new KeyValue(optionName, optionLabel));
-							
+
 							realQuestions.add(c);
 						}
 					}
@@ -3273,17 +3273,6 @@ public class GeneralUtilityMethods {
 			}
 
 			output.append(input);
-
-			/*
-			 * parts = input.trim().split("\\s+"); boolean inOutput = false; for(int i = 0;
-			 * i < parts.length; i++) { String elem = parts[i].trim();
-			 * if(elem.equals("<output") && i + 1 < parts.length &&
-			 * parts[i+1].trim().equals("value=\"")) { i++; inOutput = true; // discard
-			 * start of wrapper } else if(elem.equals("\"/>")) { inOutput = false; //
-			 * discard end of wrapper } else if(inOutput && parts[i].startsWith("/") &&
-			 * notInQuotes(output)) { output.append(xpathNameToName(parts[i],
-			 * xlsName).trim() + " "); } else { output.append(parts[i].trim() + " "); } }
-			 */
 		}
 
 		return output.toString().trim();
@@ -3345,13 +3334,56 @@ public class GeneralUtilityMethods {
 
 			// Reset the start
 			start = matcher.end();
-
 		}
 
 		// Get the remainder of the string
 		if (start < input.length()) {
 			item = input.substring(start).trim();
 			convertSqlFragToHrkElement(item, output);
+		}
+
+		return output.toString().trim();
+
+	}
+
+	/*
+	 * Where an expression is validated as a good xpath expression then the xls names need to be converted
+	 * to xpaths.  However it is not necessary to create the full xpath which may not be available hence a
+	 * pseudo xpath of /name is created
+	 */
+	public static String convertAllxlsNamesToPseudoXPath(String input)  {
+
+		if (input == null) {
+			return null;
+		} else if (input.trim().length() == 0) {
+			return null;
+		}
+
+		StringBuffer output = new StringBuffer("");
+
+		Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+		java.util.regex.Matcher matcher = pattern.matcher(input);
+		int start = 0;
+		while (matcher.find()) {
+
+			String matched = matcher.group();
+			String qname = matched.substring(2, matched.length() - 1);
+
+			// Add any text before the match
+			int startOfGroup = matcher.start();
+			output.append(input.substring(start, startOfGroup));				
+
+			// Add the question name
+			output.append("/").append(qname);
+
+			// Reset the start
+			start = matcher.end();
+
+		}
+
+		// Get the remainder of the string
+		if (start < input.length()) {
+			output.append(input.substring(start));	
 		}
 
 		return output.toString().trim();
@@ -5096,14 +5128,14 @@ public class GeneralUtilityMethods {
 
 		return testResult;
 	}
-	
+
 	/*
 	 * Return SQL that can be used to filter out records not matching a filter
 	 */
 	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter) throws Exception {
 
 		String resp = null;
-		
+
 		StringBuffer filterQuery = new StringBuffer("(select ");
 		filterQuery.append(getMainTable(survey.forms));
 		filterQuery.append(".instanceid from ");		
@@ -5129,7 +5161,7 @@ public class GeneralUtilityMethods {
 		}
 
 		log.info("Filter check sql: " + resp);
-		
+
 		return resp;
 	}
 
@@ -5202,16 +5234,16 @@ public class GeneralUtilityMethods {
 		}
 		return attribIdx;
 	}
-	
+
 	/*
 	 * Return true if document synchronisation is enabled on this server
 	 */
 	public static boolean documentSyncEnabled(Connection sd) throws SQLException {
-		
+
 		boolean enabled = false;
 		String sql = "select document_sync from server;";
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
@@ -5222,19 +5254,19 @@ public class GeneralUtilityMethods {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
-		
+
 		return enabled;
 	}
-	
+
 	/*
 	 * Get document server configuration
 	 */
 	public static HashMap<String, String> docServerConfig(Connection sd) throws SQLException {
-		
+
 		HashMap<String, String> config = new HashMap<> ();
 		String sql = "select doc_server, doc_server_user, doc_server_password from server;";
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
@@ -5247,31 +5279,31 @@ public class GeneralUtilityMethods {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
-		
+
 		return config;
 	}
-	
+
 	/*
 	 * Record the fact that a user has downloaded a form
 	 */
 	public static void recordFormDownload(Connection sd, String user, String formIdent, int version, String deviceId) throws SQLException {
-		
+
 		String sqlDel = "delete from form_downloads where u_id = ? and form_ident = ? and device_id = ?";
 		PreparedStatement pstmtDel = null;
-		
+
 		String sql = "insert into form_downloads(u_id, form_ident, form_version, device_id, updated_time) "
 				+ "values(?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			int uId = getUserId(sd, user);
-			
+
 			pstmtDel = sd.prepareStatement(sqlDel);
 			pstmtDel.setInt(1, uId);
 			pstmtDel.setString(2, formIdent);
 			pstmtDel.setString(3, deviceId);
 			pstmtDel.executeUpdate();
-			
+
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, uId);
 			pstmt.setString(2, formIdent);
@@ -5282,9 +5314,9 @@ public class GeneralUtilityMethods {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
-		
+
 	}
-	
+
 	/*
 	 * Remove any white space surrounding a character
 	 */
@@ -5321,7 +5353,7 @@ public class GeneralUtilityMethods {
 
 		return out.toString();
 	}
-	
+
 	/*
 	 * Make sure there is white space around a character
 	 * Don't make a change if the character is within single quotes
@@ -5331,13 +5363,13 @@ public class GeneralUtilityMethods {
 
 		if(in != null) {
 			int quoteCount = 0;
-			
+
 			for(int i = 0; i < in.length(); i++) {
 
 				if(in.charAt(i) == '\'') {
 					quoteCount++;
 				}
-				
+
 				boolean charInList = false;
 				for(int j = 0; j < cArray.length; j++) {
 					if(in.charAt(i) == cArray[j]) {
@@ -5373,7 +5405,7 @@ public class GeneralUtilityMethods {
 
 		return out.toString();
 	}
-	
+
 	/*
 	 * Make sure there is white space around a String of characters
 	 * Don't make a change if the character is within single quotes
@@ -5383,7 +5415,7 @@ public class GeneralUtilityMethods {
 
 		if(in != null) {
 			int quoteCount = 0;
-			
+
 			for(int i = 0; i < in.length(); i++) {
 
 				if(in.charAt(i) == '\'') {
@@ -5415,38 +5447,38 @@ public class GeneralUtilityMethods {
 
 		return out.toString();
 	}
-	
+
 	/*
 	 * Get an array of question names from a string that contains xls names
 	 */
 	public static ArrayList<String> getXlsNames(
 			String input) throws Exception {
-		
+
 		ArrayList<String> output = new ArrayList<> (); 
-		
+
 		if(input != null) {
 			Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
 			java.util.regex.Matcher matcher = pattern.matcher(input);
-	
+
 			while (matcher.find()) {
-				
+
 				String matched = matcher.group();
 				String qname = matched.substring(2, matched.length() - 1);
 				output.add(qname);
 			}
 		}
-		
+
 		return output;
 	}
-	
+
 	/*
 	 * Return true if this is a meta question
 	 */
 	public static boolean isMetaQuestion(String name) {
 		boolean meta = false;
-		
+
 		name = name.toLowerCase();
-		
+
 		if(name.equals("instanceid")) {
 			meta = true;
 		} else if(name.equals("instancename")) {
@@ -5456,19 +5488,19 @@ public class GeneralUtilityMethods {
 		} else if(name.equals("meta_groupend")) {
 			meta = true;
 		}
-		
+
 		return meta;
-		
+
 	}
-	
+
 	/*
 	 * Get a preload item from the type
 	 * If this is not a preload return null
 	 */
 	public static MetaItem getPreloadItem(String type, String name, String display_name) {
-		
+
 		MetaItem item = null;
-		
+
 		if(type.equals("start")) {
 			item = new MetaItem("dateTime", name, type, cleanName(name, true, true, true), "timestamp", true, display_name);
 		} else if(type.equals("end")) {
@@ -5488,52 +5520,52 @@ public class GeneralUtilityMethods {
 		} else if(type.equals("email")) {
 			item = new MetaItem("string", name, type, cleanName(name, true, true, true), "property", true, display_name);
 		} 
-		
+
 		return item;
-		
+
 	}
-	
+
 	/*
 	 * Get preloads in a survey
 	 */
 	public static ArrayList<MetaItem> getPreloads(Connection sd, int sId) throws SQLException {
 		ArrayList<MetaItem> preloads = null;
-		
+
 		String sql = "select meta from survey where s_id = ?;";
 		PreparedStatement pstmt = null;
-		
+
 		String metaString = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next())  {
-				 metaString = rs.getString(1);
+				metaString = rs.getString(1);
 			}
 
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
-		
+
 		if(metaString != null) {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			preloads = gson.fromJson(metaString, new TypeToken<ArrayList<MetaItem>>() {}.getType());
 		} else {
 			preloads = new ArrayList <>();
 		}
-		
+
 		return preloads;
 	}
-	
+
 	/*
 	 * Get Column Values from a result set created using ColDesc
 	 */
 	public static int getColValues(ResultSet rs, ColValues values, int dataColumn, 
 			ArrayList<ColDesc> columns, boolean merge_select_multiple) throws SQLException {
-		
+
 		ColDesc item = columns.get(dataColumn);
 		StringBuffer selMulValue = new StringBuffer("");
-		
+
 		if(merge_select_multiple && item.qType.equals("select") && item.choices != null) {
 			if(rs != null) {
 				for(KeyValue choice : item.choices) {
@@ -5550,11 +5582,11 @@ public class GeneralUtilityMethods {
 				// Jump over data columns 
 				dataColumn += item.choices.size();
 			}
-			
+
 			values.name = item.question_name;
 			values.label = item.question_name;
 			values.value = selMulValue.toString();
-			
+
 		} else {
 			values.name = item.name;
 			values.label = item.question_name;
@@ -5567,12 +5599,12 @@ public class GeneralUtilityMethods {
 
 		return dataColumn;
 	}
-	
+
 	/*
 	 * Set questions as published if the results column is available
 	 */
 	public static void setPublished(Connection sd, Connection cRel, int sId) throws SQLException {
-		
+
 		String sql = "select f.table_name, q.column_name, q.q_id, q.qtype "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
@@ -5581,12 +5613,12 @@ public class GeneralUtilityMethods {
 				+ "and q.published = 'false' "
 				+ "and q.soft_deleted = 'false' ";		
 		PreparedStatement pstmt = null;
-		
+
 		String sqlUpdate = "update question set published = true where q_id = ?";
 		PreparedStatement pstmtUpdate = null;
 		try {
 			pstmtUpdate = sd.prepareStatement(sqlUpdate);
-			
+
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
@@ -5608,18 +5640,18 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 			if(pstmtUpdate != null) try {pstmtUpdate.close();} catch(Exception e) {}
 		}
-		
+
 	}
-	
+
 	/*
 	 * Get survey group
 	 */
 	public static int getSurveyGroup(Connection sd, int sId) throws SQLException {
-		
+
 		int group = 0;
 		String sql = "select group_survey_id from survey where s_id = ?";
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  sId);
@@ -5631,10 +5663,10 @@ public class GeneralUtilityMethods {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
-		
+
 		return group;
 	}
-	
+
 	public static String getSurveyParameter(String param, String params) {
 		String value = null;
 		params = removeSurroundingWhiteSpace(params, '=');
@@ -5652,7 +5684,7 @@ public class GeneralUtilityMethods {
 		}
 		return value;
 	}
-	
-	
+
+
 }
 

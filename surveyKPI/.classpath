@@ -66,5 +66,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/postgresql-42.1.4.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/xmlworker-5.5.4.jar"/>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/opendatakit-javarosa-2.6.1.jar"/>
 	<classpathentry kind="output" path="build/classes"/>
 </classpath>

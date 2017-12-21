@@ -544,7 +544,7 @@ public class UploadFiles extends Application {
 			HashMap<String, String> groupForms = null;		// Maps form names to table names - When merging to an existing survey
 			HashMap<String, String> questionNames = null;	// Maps unabbreviated question names to abbreviated question names
 			HashMap<String, String> optionNames = null;		// Maps unabbreviated option names to abbreviated option names
-			boolean merge = false;									// Set true if an existing survey is to be replaced or this survey is to be merged with an existing survey
+			boolean merge = false;							// Set true if an existing survey is to be replaced or this survey is to be merged with an existing survey
 			
 			if(surveyId > 0) {
 				merge = true;
