@@ -52,6 +52,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.Survey;
 
 public class XLSTemplateUploadManager {
@@ -730,8 +731,19 @@ public class XLSTemplateUploadManager {
 			}
 		}
 		
+		if(q.appearance != null) {
+			checkParentheses(localisation, q.appearance, rowNumber, "survey", "appearance", q.name);
+			testXExprFunctions(q.appearance, localisation, true);
+			
+		}
+		
 		if(q.choice_filter != null) {
 			checkParentheses(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
+			try {
+				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.choice_filter));
+			} catch (Exception e) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "choice_filter", e.getMessage());
+			}
 		}
 		
 		// invalid question in field-list
@@ -1039,6 +1051,68 @@ public class XLSTemplateUploadManager {
 			}
 			
 		}
+	}
+	
+	/*
+	 * Test for valid java rosa functions in an XPath expression
+	 * If the call is for an appearance then only the search function is valid and "search" without parameters is also valid
+	 */
+	private void testXExprFunctions(String in, ResourceBundle localisation, boolean isAppearance) throws Exception {
+		
+		// 1. remove any text inside quotes
+		boolean inside = false;
+		StringBuffer noText = new StringBuffer("");
+		for(int i = 0; i < in.length(); i++) {
+			if(in.charAt(i) == '\'') {
+				inside = !inside;
+			}
+			if(!inside) {
+				noText.append(in.charAt(i));
+			}
+		}
+		
+		if(noText.length() > 0) {
+			String process = noText.toString();
+			//Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+			Pattern pattern = Pattern.compile("count[\\s]\\(");
+			java.util.regex.Matcher matcher = pattern.matcher(process);
+
+			while (matcher.find()) {
+
+				StringBuffer toTest = new StringBuffer("");
+				String matched = matcher.group();			
+				
+				// remove sub functions
+				int depth = 0;
+				boolean end = false;
+				for(int i = matcher.start(); i < noText.length(); i++) {
+					if(in.charAt(i) == '(') {
+						depth++;
+					} else if(in.charAt(i) == '(') {
+						depth--;
+						if(depth == 0) {
+							end = true;
+						}
+					}
+					if(depth <= 1) {
+						toTest.append(in.charAt(i));
+					}
+					if(end) {
+						break;
+					}
+				}
+				
+				String[] args = toTest.toString().split(",");
+				System.out.println("Number of args for: " + matched + " is " + args.length);
+				if(matched.startsWith("search")) {
+				
+				}
+			}
+				
+	
+		}
+		
+		
 	}
 
 }
