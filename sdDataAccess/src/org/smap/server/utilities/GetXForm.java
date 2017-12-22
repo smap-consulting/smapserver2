@@ -802,7 +802,7 @@ public class GetXForm {
 
 		String type = q.getType();
 		if (type.equals("string") || type.equals("int") || type.equals("dateTime") || type.equals("decimal")
-				|| type.equals("barcode") || type.equals("date") || type.equals("geopoint") || type.equals("time")) {
+				|| type.equals("barcode") || type.equals("date") || type.equals("geopoint") || type.equals("time") || type.equals("note")) {
 			questionElement = outputXML.createElement("input");
 		} else if (type.equals("select")) {
 			questionElement = outputXML.createElement("select");
