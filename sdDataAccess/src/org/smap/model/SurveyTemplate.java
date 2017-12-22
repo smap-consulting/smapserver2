@@ -1257,6 +1257,16 @@ public class SurveyTemplate {
 		JdbcTranslationManager tm = null;
 		
 		try {
+			/*
+			 * Add preloads to the questionPaths hashmap so they can be referenced
+			 */
+			ArrayList<MetaItem> preloads = survey.getMeta();
+			for(MetaItem mi : preloads) {
+				if(mi.isPreload) {
+					questionPaths.put(mi.name, "/smap/" + mi.name);
+				}
+			}
+			
 			pm = new JdbcProjectManager(sd);
 			project = pm.getById(survey.getProjectId());
 			

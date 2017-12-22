@@ -171,6 +171,16 @@ public class GetHtml {
 		populateLanguageChoices(bodyElement);
 		parent.appendChild(bodyElement);
 
+		/*
+		 * Add preloads to the questionPaths hashmap so they can be referenced
+		 */
+		ArrayList<MetaItem> preloads = survey.meta;
+		for(MetaItem mi : preloads) {
+			if(mi.isPreload) {
+				paths.put(mi.name, "/smap/" + mi.name);
+			}
+		}
+		
 		// Questions
 		for (Form form : survey.forms) {
 			if (form.parentform == 0) { // Start with top level form
