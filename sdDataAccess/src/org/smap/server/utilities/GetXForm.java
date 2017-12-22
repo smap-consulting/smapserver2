@@ -761,7 +761,7 @@ public class GetXForm {
 			if (repeats != null && repeats.trim().length() > 0) { // Add the path to the repeat count question
 				calculate = repeats;
 			}
-		} else {
+		} else if(!q.getType().equals("begin group")) {
 			calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName());
 		}
 		if (calculate != null && calculate.trim().length() > 0) {
