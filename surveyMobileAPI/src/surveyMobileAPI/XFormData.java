@@ -124,9 +124,8 @@ public class XFormData {
 			while (iter.hasNext()) {
 				FileItem item = (FileItem) iter.next();
 				String name = item.getFieldName();
-				if (name.equals("xml_submission_file") || name.equals("xml_submission_data")) { // xml_submission_data
-																								// is the name used by
-																								// webForms
+				if (name.equals("xml_submission_file") || name.equals("xml_submission_data")) { // xml_submission_data is the name used by webForms
+
 					si = new SurveyInstance(item.getInputStream());
 
 					// Extend the instance with data available in the template
@@ -138,7 +137,7 @@ public class XFormData {
 							+ ")");
 
 					SurveyTemplate template = new SurveyTemplate(localisation);
-					template.readDatabase(sd, templateName, false);
+					templateName = template.readDatabase(sd, templateName, false);  // Update the template name if the survey has been replaced
 					
 					SurveyManager sm = new SurveyManager(localisation);
 					survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key

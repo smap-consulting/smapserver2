@@ -22,9 +22,6 @@ package surveyMobileAPI;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.Enumeration;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,7 +39,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
-import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -68,7 +64,6 @@ public class Upload extends Application {
 	
 	private static final String OPEN_ROSA_VERSION_HEADER = "X-OpenRosa-Version";
 	private static final String OPEN_ROSA_VERSION = "1.0";
-	private static final String DATE_HEADER = "Date";
 	
 	private static final String RESPONSE_MSG1 = 
 		"<OpenRosaResponse xmlns=\"http://openrosa.org/http/response\">";

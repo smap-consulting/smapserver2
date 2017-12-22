@@ -922,7 +922,8 @@ public class Survey extends Application {
 							request.getRemoteUser(), 
 							basePath,
 							tables,
-							0);
+							0,
+							null);
 				}
 				
 				// Record the message so that devices can be notified

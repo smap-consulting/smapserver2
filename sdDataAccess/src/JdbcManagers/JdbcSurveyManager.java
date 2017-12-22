@@ -47,13 +47,13 @@ public class JdbcSurveyManager {
 			+ "instance_name,"
 			+ "loaded_from_xls,"
 			+ "created) "
-			+ "values (nextval('s_seq'), ?, now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";
+			+ "values (nextval('s_seq'), ?, now(), ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 	
 	// Update survey ident based on id
 	PreparedStatement pstmtUpdate = null;
 	String sqlUpdate = "update survey set "
 			+ "ident = ? "
-			+ "where s_id = ?;";
+			+ "where s_id = ?";
 	
 	// Retrieve
 	PreparedStatement pstmtGetByIdent = null;
@@ -74,12 +74,16 @@ public class JdbcSurveyManager {
 			+ "timing_data,"
 			+ "meta "
 			+ "from survey where ";
-	String sqlIdentWhere = "ident = ?;";
-	String sqlIdWhere = "s_id = ?;";
+	String sqlIdentWhere = "ident = ?";
+	String sqlIdWhere = "s_id = ?";
 
 	// Check existence
 	PreparedStatement pstmtExists = null;
-	String sqlExists = "select count(*) from survey where display_name = ? and p_id = ?;";
+	String sqlExists = "select count(*) from survey where display_name = ? and p_id = ?";
+	
+	// Get replacement ident
+	PreparedStatement pstmtReplacement = null;
+	String sqlReplacement = "select new_ident from replacement where old_ident = ?";
 	
 	/*
 	 * Constructor
@@ -92,6 +96,7 @@ public class JdbcSurveyManager {
 		pstmtGetByIdent = sd.prepareStatement(sqlGet + sqlIdentWhere);
 		pstmtGetById = sd.prepareStatement(sqlGet + sqlIdWhere);
 		pstmtExists = sd.prepareStatement(sqlExists);
+		pstmtReplacement = sd.prepareStatement(sqlReplacement);
 	}
 	
 	/*
@@ -136,8 +141,20 @@ public class JdbcSurveyManager {
 	 * Get a survey using its ident
 	 */
 	public Survey getByIdent(String ident) throws SQLException {
-		pstmtGetByIdent.setString(1, ident);
-		return getSurvey(pstmtGetByIdent);
+		
+		pstmtGetByIdent.setString(1, ident);		
+		Survey s = getSurvey(pstmtGetByIdent);
+		
+		if(s == null || s.getDeleted()) {
+			// Try to get a replacement survey ident
+			pstmtReplacement.setString(1, ident);
+			ResultSet rs = pstmtReplacement.executeQuery();
+			if(rs.next()) {
+				pstmtGetByIdent.setString(1, rs.getString(1));
+				s = getSurvey(pstmtGetByIdent);
+			}
+		}
+		return s;
 	}
 	
 	/*
@@ -174,6 +191,7 @@ public class JdbcSurveyManager {
 		try {if(pstmtUpdate != null) {pstmtUpdate.close();}} catch(Exception e) {};
 		try {if(pstmtGetByIdent != null) {pstmtGetByIdent.close();}} catch(Exception e) {};
 		try {if(pstmtGetById != null) {pstmtGetById.close();}} catch(Exception e) {};
+		try {if(pstmtReplacement != null) {pstmtReplacement.close();}} catch(Exception e) {};
 	}
 	
 	/*

@@ -148,8 +148,6 @@ public class SubRelationalDB extends Subscriber {
 			 *  survey and it will be ignored as eventually there will be no surveys identified by name
 			 */
 
-			String templateName = instance.getTemplateName();
-
 			// Authorisation - Access
 			Class.forName(dbClassMeta);		 
 			connection = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);

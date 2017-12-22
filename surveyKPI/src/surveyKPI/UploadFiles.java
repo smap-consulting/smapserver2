@@ -1,7 +1,6 @@
 package surveyKPI;
 
 
-
 /*
 This file is part of SMAP.
 
@@ -451,7 +450,6 @@ public class UploadFiles extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
-		ArrayList<String> mesgArray = new ArrayList<String> ();
 		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
 		Connection cResults = ResultsDataSource.getConnection("CreateXLSForm-uploadForm");;
 
@@ -560,7 +558,6 @@ public class UploadFiles extends Application {
 						false, basePath, null, false, false, false, 
 						false, false, null, false, false, superUser, 0, null);
 				displayName = existingSurvey.displayName;
-				
 			}
 
 			// If the survey display name already exists on this server, for this project, then throw an error		
@@ -609,8 +606,10 @@ public class UploadFiles extends Application {
 							false,		// Do not delete the data 
 							user, 
 							basePath,
-							"no",
-							s.id);		// Do not delete the tables
+							"no",		// Do not delete the tables
+							s.id,		// New Survey Id for replacement 
+							s.ident);	// New survey ident to enter into the replacement redirect table	
+					
 				}
 				
 				// Create external options if there is a CSV file referenced by this survey

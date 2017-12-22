@@ -281,12 +281,13 @@ public class Survey {
 			pstmt.setString(13, hrk);	// Key
 			pstmt.setString(14, key_policy);
 			pstmt.executeUpdate();
-						
-			ResultSet rs = pstmt.getGeneratedKeys();
-			if(rs.next()) {
-				id = rs.getInt(1);
+			
+			// If an ident was not provided then assign a new ident based on the survey id
+			if(ident == null || ident.trim().length() == 0) {
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if(rs.next()) {
+					id = rs.getInt(1);
 				
-				if(ident == null || ident.trim().length() == 0) {
 					String surveyName = "s" + p_id + "_" + id;
 					ident = surveyName;
 					

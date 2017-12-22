@@ -121,7 +121,6 @@ public class SubscriberBatch {
 		String userMeta = null;
 		String passwordMeta = null;
 
-		String dbClass = null;
 		String database = null;
 		String user = null;
 		String password = null;
@@ -149,7 +148,6 @@ public class SubscriberBatch {
 
 			// Get the connection details for the target results database
 			xmlConf = db.parse(new File(confFilePath + "/results_db.xml"));
-			dbClass = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
 			database = xmlConf.getElementsByTagName("database").item(0).getTextContent();
 			user = xmlConf.getElementsByTagName("user").item(0).getTextContent();
 			password = xmlConf.getElementsByTagName("password").item(0).getTextContent();

@@ -1180,9 +1180,11 @@ public class SurveyTemplate {
 	 * 
 	 * @param surveyIdent the ident of the survey
 	 */
-	public void readDatabase(Connection sd, String surveyIdent, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
+	public String readDatabase(Connection sd, String surveyIdent, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
 
 		JdbcSurveyManager sm = null;
+		
+		String newSurveyIdent = surveyIdent;
 		
 		try {
 			// Locate the survey object
@@ -1195,6 +1197,7 @@ public class SurveyTemplate {
 			
 			if(survey != null) {
 				readDatabase(survey, sd, embedExternalSearch);	// Get the rest of the survey
+				newSurveyIdent = survey.getIdent();
 			} else {
 				log.info("Error: Survey Template not found: " + surveyId);
 				throw new MissingTemplateException("Error: Survey Template not found: " + surveyId);
@@ -1202,6 +1205,8 @@ public class SurveyTemplate {
 		} finally {
 			if(sm != null) {sm.close();}
 		}
+		
+		return newSurveyIdent;
 
 	}
 	

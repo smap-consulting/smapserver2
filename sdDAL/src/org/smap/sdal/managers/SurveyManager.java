@@ -3483,7 +3483,8 @@ public class SurveyManager {
 			String user, 
 			String basePath,
 			String tables,
-			int newSurveyId		// If greater than 0 then this survey is being replaced
+			int newSurveyId,		// If greater than 0 then this survey is being replaced
+			String newSurveyIdent
 			) throws SQLException, IOException {
 		
 		// Get the survey ident and name
@@ -3498,6 +3499,17 @@ public class SurveyManager {
 		PreparedStatement pstmtIdent = null;
 		
 		PreparedStatement pstmt = null;
+		
+		String sqlReplace = "insert into replacement (old_id, old_ident, new_ident) values(?, ?, ?)";
+		PreparedStatement pstmtReplace = null;
+	
+		String sqlRedirect = "update replacement set new_ident = ? where new_ident = ?";
+		PreparedStatement pstmtRedirect = null;
+		
+		String sqlRedirectDelete = "delete from replacement where new_ident = ?";
+		PreparedStatement pstmtRedirectDelete = null;
+		
+		
 		
 		try {
 			pstmtIdent = sd.prepareStatement(sql);
@@ -3658,12 +3670,37 @@ public class SurveyManager {
 			
 			
 			/*
-			 * Delete or update any notifications dependent on this survey
+			 * Update the replacement table
 			 */
+			if(newSurveyId > 0) {
+				// add redirect
+				pstmtReplace = sd.prepareStatement(sqlReplace);
+				pstmtReplace.setInt(1, sId);
+				pstmtReplace.setString(2, surveyIdent);
+				pstmtReplace.setString(3, newSurveyIdent);
+				pstmtReplace.executeUpdate();
+				
+				// Redirect any surveys that had been replaced by the old survey ident
+				pstmtRedirect = sd.prepareStatement(sqlRedirect);
+				pstmtRedirect.setString(1, newSurveyIdent);
+				pstmtRedirect.setString(2, surveyIdent);
+				pstmtRedirect.executeUpdate();
+			}
+			
+			// Delete any redirects to the deleted survey
+			pstmtRedirectDelete = sd.prepareStatement(sqlRedirectDelete);
+			pstmtRedirectDelete.setString(1, surveyIdent);
+			pstmtRedirectDelete.executeUpdate();
+				
+		
 			
 		} finally {
 			try {if (pstmtIdent != null) {pstmtIdent.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtReplace != null) {pstmtReplace.close();}} catch (SQLException e) {}
+			try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
+			try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
+			try {if (pstmtRedirectDelete != null) {pstmtRedirectDelete.close();}} catch (SQLException e) {}
 		}
 	}
 	
@@ -3675,5 +3712,6 @@ public class SurveyManager {
 		
 		return meta;
 	}
+	
 
 }
