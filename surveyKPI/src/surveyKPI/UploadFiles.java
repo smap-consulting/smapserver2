@@ -1167,20 +1167,22 @@ public class UploadFiles extends Application {
 									String filepath = basePath + "/media/organisation/" + survey.o_id + "/" + filename;		
 									File file = new File(filepath);
 	
-									GeneralUtilityMethods.getOptionsFromFile(
-										sd,
-										localisation,
-										user,
-										survey.getId(),
-										cs.items,
-										file,
-										null,
-										filename,
-										q.name,
-										q.l_id,
-										q.id,				
-										"select",
-										q.appearance);
+									if(file.exists()) {
+										GeneralUtilityMethods.getOptionsFromFile(
+											sd,
+											localisation,
+											user,
+											survey.getId(),
+											cs.items,
+											file,
+											null,
+											filename,
+											q.name,
+											q.l_id,
+											q.id,				
+											"select",
+											q.appearance);
+									}
 					
 								}
 							}

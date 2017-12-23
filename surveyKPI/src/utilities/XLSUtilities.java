@@ -425,37 +425,39 @@ public class XLSUtilities {
 			 */
 			boolean cellWritten = false; 
 
-			if(type.equals("decimal") || 
-					type.equals("int") && 
-					value != null) {
-				try {
-					double vDouble = Double.parseDouble(value);
-
-					cell.setCellStyle(styles.get("default"));
-					cell.setCellValue(vDouble);
-					cellWritten = true;
-				} catch (Exception e) {
-					// Ignore
-				}
-			} else if(type.equals("dateTime")) {
-				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-				try {
-					java.util.Date date = dateFormat.parse(value);
-					cell.setCellStyle(styles.get("datetime"));
-					cell.setCellValue(date);
-					cellWritten = true;
-				} catch (Exception e) {
-					// Ignore
-				}
-			} else if(type.equals("date")) {
-				DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-				try {
-					java.util.Date date = dateFormat.parse(value);
-					cell.setCellStyle(styles.get("date"));
-					cell.setCellValue(date);
-					cellWritten = true;
-				} catch (Exception e) {
-					// Ignore
+			if(type != null) {
+				if(type.equals("decimal") || 
+						type.equals("int") && 
+						value != null) {
+					try {
+						double vDouble = Double.parseDouble(value);
+	
+						cell.setCellStyle(styles.get("default"));
+						cell.setCellValue(vDouble);
+						cellWritten = true;
+					} catch (Exception e) {
+						// Ignore
+					}
+				} else if(type.equals("dateTime")) {
+					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					try {
+						java.util.Date date = dateFormat.parse(value);
+						cell.setCellStyle(styles.get("datetime"));
+						cell.setCellValue(date);
+						cellWritten = true;
+					} catch (Exception e) {
+						// Ignore
+					}
+				} else if(type.equals("date")) {
+					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+					try {
+						java.util.Date date = dateFormat.parse(value);
+						cell.setCellStyle(styles.get("date"));
+						cell.setCellValue(date);
+						cellWritten = true;
+					} catch (Exception e) {
+						// Ignore
+					}
 				}
 			}
 

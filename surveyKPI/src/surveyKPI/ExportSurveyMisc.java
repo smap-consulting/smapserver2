@@ -233,7 +233,7 @@ public class ExportSurveyMisc extends Application {
 						startDate,
 						endDate,
 						dateId,
-						superUser,
+						false,			// superUser - Always apply filters
 						startingForm,
 						filter,
 						true);

@@ -170,7 +170,7 @@ public class ExportSurveyXlsx extends Application {
 						startDate,
 						endDate,
 						dateId,
-						superUser,
+						false,				// Super user - always apply filters
 						startingForm,
 						filter,
 						meta);

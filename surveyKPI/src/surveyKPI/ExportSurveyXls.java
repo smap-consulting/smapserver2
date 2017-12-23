@@ -176,7 +176,7 @@ public class ExportSurveyXls extends Application {
 					startDate,
 					endDate,
 					dateId,
-					superUser,
+					false,		// superUser - Always apply filters
 					filter);
 			
 			responseVal = Response.ok("").build();
