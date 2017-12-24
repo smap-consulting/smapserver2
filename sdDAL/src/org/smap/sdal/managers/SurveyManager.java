@@ -1803,8 +1803,7 @@ public class SurveyManager {
 			}
 
 			if(totalCount == 0) {
-				log.info("Info: No changes applied");
-				//throw new Exception("No changes applied");		
+				log.info("Info: No changes applied");	
 			}
 
 		} catch (Exception e) {
@@ -1812,11 +1811,8 @@ public class SurveyManager {
 			throw e;
 		} finally {
 			try {if (pstmtLangInsert != null) {pstmtLangInsert.close();}} catch (SQLException e) {}
-			//try {if (pstmtLangUpdate != null) {pstmtLangUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtOptionInsert != null) {pstmtOptionInsert.close();}} catch (SQLException e) {}
-			//try {if (pstmtOptionGet != null) {pstmtOptionGet.close();}} catch (SQLException e) {}
 			try {if (pstmtMaxSeq != null) {pstmtMaxSeq.close();}} catch (SQLException e) {}
-			//try {if (pstmtOptionUpdate != null) {pstmtOptionUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtOptionDelete != null) {pstmtOptionDelete.close();}} catch (SQLException e) {}
 			try {if (pstmtTranslationDelete != null) {pstmtTranslationDelete.close();}} catch (SQLException e) {}
 		}

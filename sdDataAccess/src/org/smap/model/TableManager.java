@@ -462,25 +462,8 @@ public class TableManager {
 				// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 				// Also ignore meta - these are now added separately and not from the question list
 				if(source != null && !GeneralUtilityMethods.isMetaQuestion(q.getName())) {
-
-					// Set column type for postgres
-					if(colType.equals("string")) {
-						colType = "text";
-					} else if(colType.equals("decimal")) {
-						colType = "double precision";
-					} else if(colType.equals("select1")) {
-						colType = "text";
-					} else if(colType.equals("barcode")) {
-						colType = "text";
-					} else if(colType.equals("note")) {
-						colType = "text";
-					} else if(colType.equals("calculate")) {
-						colType = "text";
-					} else if(colType.equals("acknowledge")) {
-						colType = "text";
-					} else if(colType.equals("range")) {
-						colType = "double precision";
-					} else if(colType.equals("geopoint")) {
+					
+					if(colType.equals("geopoint")) {
 
 						// Add geometry columns after the table is created using AddGeometryColumn()
 						GeometryColumn gc = new GeometryColumn(tableName, "the_geom", "POINT");
@@ -511,13 +494,9 @@ public class TableManager {
 						geoms.add(gc);
 						continue;
 
-					} else if(colType.equals("dateTime")) {
-						colType = "timestamp with time zone";					
-					} else if(colType.equals("audio") || colType.equals("image") || 
-							colType.equals("video")) {
-						colType = "text";					
-					}
-
+					} 
+					
+					
 					if(colType.equals("select")) {
 						// Create a column for each option
 						// Values in this column can only be '0' or '1', not using boolean as it may be easier for analysis with an integer
@@ -543,6 +522,7 @@ public class TableManager {
 							log.info("Warning: No Options for Select:" + q.getName());
 						}
 					} else {
+						colType = getPostgresColType(colType);
 						sql += ", " + q.getColumnName(false) + " " + colType;
 					}
 				} else {
@@ -577,6 +557,31 @@ public class TableManager {
 
 		}
 
+	}
+	
+	private String getPostgresColType(String colType) {
+		if(colType.equals("string")) {
+			colType = "text";
+		} else if(colType.equals("decimal")) {
+			colType = "double precision";
+		} else if(colType.equals("select1")) {
+			colType = "text";
+		} else if(colType.equals("barcode")) {
+			colType = "text";
+		} else if(colType.equals("note")) {
+			colType = "text";
+		} else if(colType.equals("calculate")) {
+			colType = "text";
+		} else if(colType.equals("acknowledge")) {
+			colType = "text";
+		} else if(colType.equals("range")) {
+			colType = "double precision";
+		} else if(colType.equals("dateTime")) {
+			colType = "timestamp with time zone";					
+		} else if(colType.equals("audio") || colType.equals("image") || colType.equals("video")) {
+			colType = "text";					
+		}
+		return colType;
 	}
 
 	/*
@@ -775,23 +780,7 @@ public class TableManager {
 									} else {
 										columns.add(qd.columnName);		// Usually this is the case unless the question is a select multiple
 	
-										if(qd.type.equals("string")) {
-											qd.type = "text";
-										} else if(qd.type.equals("dateTime")) {
-											qd.type = "timestamp with time zone";					
-										} else if(qd.type.equals("audio") || qd.type.equals("image") || qd.type.equals("video")) {
-											qd.type = "text";					
-										} else if(qd.type.equals("decimal")) {
-											qd.type = "double precision";
-										} else if(qd.type.equals("range")) {
-											qd.type = "double precision";
-										} else if(qd.type.equals("barcode")) {
-											qd.type = "text";
-										} else if(qd.type.equals("note")) {
-											qd.type = "text";
-										} else if(qd.type.equals("select1")) {
-											qd.type = "text";
-										} else if (qd.type.equals("select")) {
+										if (qd.type.equals("select")) {
 											qd.type = "integer";
 	
 											columns.clear();
@@ -908,23 +897,7 @@ public class TableManager {
 				} else {
 					columns.add(columnName);		// Usually this is the case unless the question is a select multiple
 
-					if(qType.equals("string")) {
-						qType = "text";
-					} else if(qType.equals("dateTime")) {
-						qType = "timestamp with time zone";					
-					} else if(qType.equals("audio") || qType.equals("image") || qType.equals("video")) {
-						qType = "text";					
-					} else if(qType.equals("decimal")) {
-						qType = "real";
-					} else if(qType.equals("barcode")) {
-						qType = "text";
-					} else if(qType.equals("note")) {
-						qType = "text";
-					} else if(qType.equals("select1")) {
-						qType = "text";
-					} else if(qType.equals("acknowledge")) {
-						qType = "text";
-					} else if (qType.equals("select")) {
+					if (qType.equals("select")) {
 						qType = "integer";
 
 						columns.clear();
@@ -1044,6 +1017,7 @@ public class TableManager {
 				try { cResults.commit();	} catch(Exception ex) {}
 			} else {
 
+				type = getPostgresColType(type);
 				String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
 				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
 				log.info("Alter table: " + pstmtAlterTable.toString());

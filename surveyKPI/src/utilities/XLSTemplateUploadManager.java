@@ -265,7 +265,6 @@ public class XLSTemplateUploadManager {
 			String n = optionNames.get(listName + "__" + o.value);
 			if(n != null) {
 				o.columnName = n;
-				o.published = true;		// Exist therefore publish
 			} else {
 				o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 			}
@@ -280,6 +279,7 @@ public class XLSTemplateUploadManager {
 			}
 		}
 
+		o.published = false;		// Default to unpublised TODO work out when this can be set to published
 		validateOption(o, rowNumChoices);
 
 		return o;
