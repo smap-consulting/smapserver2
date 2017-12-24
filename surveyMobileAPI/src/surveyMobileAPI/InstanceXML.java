@@ -128,15 +128,14 @@ public class InstanceXML extends Application{
 			
 			response = Response.ok(instanceXML).build();
 		
-		} catch (SQLException e) {
-			log.log(Level.SEVERE,"Exception", e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} catch (ApplicationException e) {
 		    String msg = e.getMessage();	
 			log.info(msg);	
+			lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + msg);
 			response = Response.status(Status.NOT_FOUND).entity(msg).build();
 		}  catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
+			lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + e.getMessage());
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} 
 				

@@ -52,6 +52,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
@@ -74,6 +75,7 @@ public class WebForm extends Application {
 	Authorise a = new Authorise(null, Authorise.ENUM);
 
 	private static Logger log = Logger.getLogger(WebForm.class.getName());
+	LogManager lm = new LogManager();		// Application log
 
 	class SurveyData {
 		String modelStr;
@@ -951,6 +953,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + e.getMessage());
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 
