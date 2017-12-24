@@ -1595,7 +1595,10 @@ public class GeneralUtilityMethods {
 			ArrayList<ChangeItem> ciList, 
 			File csvFile, 
 			File oldCsvFile,
-			String csvFileName, String qName, int l_id, int qId, String qType, String qAppearance) throws Exception {
+			String csvFileName, 
+			String qName, 
+			int l_id, 
+			int qId, String qType, String qAppearance) throws Exception {
 
 		// Store the value and label data for each row in here
 		class OptionItem {
@@ -1603,6 +1606,7 @@ public class GeneralUtilityMethods {
 			public ArrayList<LanguageItem> label = new ArrayList<LanguageItem> ();
 			private String filterString;
 			public HashMap<String, String> filter;
+			public HashMap<String, String> optionValues = new HashMap<String, String> ();
 
 			public OptionItem(String[] data, ArrayList<ValueLabelCols> vlcA, HashMap<String, String> f) {
 
@@ -1654,7 +1658,6 @@ public class GeneralUtilityMethods {
 				return unchanged;
 			}
 		}
-		;
 
 		List<OptionItem> listNew = new ArrayList<OptionItem>();
 		List<OptionItem> listOld = new ArrayList<OptionItem>();
@@ -1685,8 +1688,7 @@ public class GeneralUtilityMethods {
 				lm.writeLog(sd, sId, user, "csv file", msg);
 				throw new Exception(msg);
 			}
-			// have the value and label
-
+		
 			/*
 			 * Read the old and new data rows Only get the columns that are to be applied as
 			 * if a new unrelated column is added it should not change existing data Based
@@ -1699,7 +1701,9 @@ public class GeneralUtilityMethods {
 				if(newLine != null) {
 					String[] data = parser.parseLine(newLine);
 					if (filter.isIncluded(data)) {
-						listNew.add(new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data)));
+						OptionItem item = new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data));
+						// This this option if we do not already have it, csv files can have many duplicates
+						listNew.add(item);
 					}
 				}
 			}

@@ -272,7 +272,7 @@ public class XLSTemplateUploadManager {
 		} else {
 			o.columnName = GeneralUtilityMethods.cleanName(o.value, false, false, false);
 		}
-		o.cascade_filters = new HashMap<String, String> ();   // TODO - Choice filters from choices sheet
+		o.cascade_filters = new HashMap<String, String> ();  
 		for(String key : choiceFilterHeader.keySet()) {
 			String value = XLSUtilities.getTextColumn(row, key, choicesHeader, lastCellNum, null);
 			if (value != null) {
@@ -971,7 +971,7 @@ public class XLSTemplateUploadManager {
 			out = "video";
 		} else if (type.equals("barcode")) {
 			out = "barcode";
-		} else if (type.equals("calculate")) {
+		} else if (type.equals("calculate") || type.equals("calculation")) {
 			out = "calculate";
 		} else if (type.equals("acknowledge")) {
 			out = "acknowledge";

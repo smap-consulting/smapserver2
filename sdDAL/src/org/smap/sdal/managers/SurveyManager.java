@@ -3432,8 +3432,9 @@ public class SurveyManager {
 		String sql = "select o.ovalue, o.column_name, l.name from option o, listname l "
 				+ "where o.l_id = l.l_id "
 				+ "and (l.s_id in "
-				+ "(select s_id from survey where group_survey_id = ? and deleted = 'false') or "
-				+ "s_id = ?)";
+				+ "(select s_id from survey where group_survey_id = ?) or "
+				+ "s_id = ?) "
+				+ "order by o.o_id desc";	// newest first
 
 		PreparedStatement pstmt = null;
 		try {
@@ -3444,7 +3445,10 @@ public class SurveyManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupOptions.put(rs.getString(3) + "__" + rs.getString(1), rs.getString(2));
+				String key = rs.getString(3) + "__" + rs.getString(1);
+				if(groupOptions.get(key) == null) {
+					groupOptions.put(key, rs.getString(2));
+				}
 			}
 		} finally {
 			try {
