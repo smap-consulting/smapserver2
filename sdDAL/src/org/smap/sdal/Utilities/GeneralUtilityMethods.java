@@ -1606,7 +1606,6 @@ public class GeneralUtilityMethods {
 			public ArrayList<LanguageItem> label = new ArrayList<LanguageItem> ();
 			private String filterString;
 			public HashMap<String, String> filter;
-			public HashMap<String, String> optionValues = new HashMap<String, String> ();
 
 			public OptionItem(String[] data, ArrayList<ValueLabelCols> vlcA, HashMap<String, String> f) {
 
@@ -1659,6 +1658,7 @@ public class GeneralUtilityMethods {
 			}
 		}
 
+		HashMap<String, String> optionValues = new HashMap<String, String> ();	// Ensure uniqueness of values
 		List<OptionItem> listNew = new ArrayList<OptionItem>();
 		List<OptionItem> listOld = new ArrayList<OptionItem>();
 
@@ -1703,7 +1703,12 @@ public class GeneralUtilityMethods {
 					if (filter.isIncluded(data)) {
 						OptionItem item = new OptionItem(data, vlcA.values, filter.GetCascadeFilter(data));
 						// This this option if we do not already have it, csv files can have many duplicates
-						listNew.add(item);
+						String test = optionValues.get(item.value);
+						if(test == null) {
+							listNew.add(item);
+							optionValues.put(item.value, item.value);
+						}
+						
 					}
 				}
 			}
