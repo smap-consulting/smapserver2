@@ -508,11 +508,8 @@ public class TaskManager {
 		PreparedStatement pstmtGetRules = null;
 
 		SurveyManager sm = new SurveyManager(localisation);
-		org.smap.sdal.model.Survey survey = null;
-		boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
-		survey = sm.getById(sd, cResults, remoteUser, source_s_id, true, "", 
-				instanceId, true, generateBlank, true, false, true, "real", 
-				false, false, false, 0, "geojson");
+		Survey survey = null;
+
 		
 		try {
 
@@ -521,6 +518,13 @@ public class TaskManager {
 
 			ResultSet rs = pstmtGetRules.executeQuery();
 			while(rs.next()) {
+				
+				if(survey == null) {
+					// Get the forms - this is required by the test filter
+					survey = sm.getById(sd, cResults, remoteUser, source_s_id, true, "", 
+							instanceId, false, false, true, false, true, "real", 
+							false, false, false, 0, "geojson");
+				}
 
 				int tgId = rs.getInt(1);
 				AssignFromSurvey as = new Gson().fromJson(rs.getString(2), AssignFromSurvey.class);

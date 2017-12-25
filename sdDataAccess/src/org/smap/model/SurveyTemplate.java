@@ -1580,7 +1580,7 @@ public class SurveyTemplate {
 	
 	private void extendMeta(ArrayList<MetaItem> meta, SurveyInstance instance) {
 		
-		instance.setQuestion("/main/meta", "begin group", "meta", false, null, null);
+		instance.setQuestion("/main/meta", "begin group", "meta", false, null, null, false);
 		for(MetaItem mq : meta) {
 			String questionPath = null;
 			if(mq.name.contains("instanceID") || mq.name.contains("instanceName") || mq.name.contains("audit")) {
@@ -1588,7 +1588,7 @@ public class SurveyTemplate {
 			} else {
 				questionPath = "/main/" + mq.name;
 			}
-			instance.setQuestion(questionPath, mq.type, mq.name, false, mq.columnName, mq.dataType);
+			instance.setQuestion(questionPath, mq.type, mq.name, false, mq.columnName, mq.dataType, false);
 		}
 	}
 	
@@ -1613,14 +1613,18 @@ public class SurveyTemplate {
 			// Set the question type for "begin group" questions
 			if(q.getType() != null && q.getType().equals("begin group")) {
 				
-				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(false), q.getDataType());
+				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(false), 
+						q.getDataType(), q.isCompressed());
 				
 			}
 			
 			if(q.getSource() != null) {
 				// Extend any other questions that have a source (ie not meta data)
 				
-				instance.setQuestion(questionPath, q.getType(), q.getName(), q.getPhoneOnly(), q.getColumnName(false), q.getDataType());
+				instance.setQuestion(questionPath, q.getType(), q.getName(), 
+						q.getPhoneOnly(), q.getColumnName(false), 
+						q.getDataType(),
+						q.isCompressed());
 				
 				// Set the overall survey location to the last geopoint type found in the survey				
 				if(q.getType().equals("geopoint") || q.getType().equals("geoshape") || q.getType().equals("geotrace")) {

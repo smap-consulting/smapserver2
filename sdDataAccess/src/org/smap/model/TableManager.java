@@ -497,7 +497,7 @@ public class TableManager {
 					} 
 					
 					
-					if(colType.equals("select")) {
+					if(colType.equals("select") && !q.isCompressed()) {
 						// Create a column for each option
 						// Values in this column can only be '0' or '1', not using boolean as it may be easier for analysis with an integer
 						Collection<Option> options = q.getValidChoices(sd);
@@ -522,7 +522,7 @@ public class TableManager {
 							log.info("Warning: No Options for Select:" + q.getName());
 						}
 					} else {
-						colType = getPostgresColType(colType);
+						colType = getPostgresColType(colType, q.isCompressed());
 						sql += ", " + q.getColumnName(false) + " " + colType;
 					}
 				} else {
@@ -559,7 +559,7 @@ public class TableManager {
 
 	}
 	
-	private String getPostgresColType(String colType) {
+	private String getPostgresColType(String colType, boolean compressed) {
 		if(colType.equals("string")) {
 			colType = "text";
 		} else if(colType.equals("decimal")) {
@@ -579,6 +579,8 @@ public class TableManager {
 		} else if(colType.equals("dateTime")) {
 			colType = "timestamp with time zone";					
 		} else if(colType.equals("audio") || colType.equals("image") || colType.equals("video")) {
+			colType = "text";					
+		} else if(colType.equals("select") && compressed) {
 			colType = "text";					
 		}
 		return colType;
@@ -600,6 +602,7 @@ public class TableManager {
 		String type;
 		String table;
 		boolean reference;
+		boolean compressed;
 	}
 	private class TableUpdateStatus {
 		String msg;
@@ -725,12 +728,12 @@ public class TableManager {
 
 							while(rsQuestions.next()) {
 								// Get the question details
-								int qId = rsQuestions.getInt(1);
+								int qId = rsQuestions.getInt(1);		// Select questions are returned in the Result Set
 								QuestionDetails qd = getQuestionDetails(connectionSD, qId);
 
-								if(qd != null && !qd.reference) {
+								if(qd != null && !qd.reference && !qd.compressed) {
 									if(qd.hasExternalOptions && externalFile || !qd.hasExternalOptions && !externalFile) {
-										status = alterColumn(cResults, qd.table, "integer", qd.columnName + "__" + optionColumnName);
+										status = alterColumn(cResults, qd.table, "integer", qd.columnName + "__" + optionColumnName, qd.compressed);
 										if(status.tableAltered) {
 											tableChanged = true;
 										}
@@ -803,7 +806,7 @@ public class TableManager {
 	
 										// Apply each column
 										for(String col : columns) {
-											status = alterColumn(cResults, qd.table, qd.type, col);
+											status = alterColumn(cResults, qd.table, qd.type, col, qd.compressed);
 											tableChanged = true;
 										}
 									}
@@ -849,7 +852,8 @@ public class TableManager {
 
 		boolean tablePublished = false;
 
-		String sqlGetUnpublishedQuestions = "select q.q_id, q.qtype, q.column_name, q.l_id, q.appearance, f.table_name "
+		String sqlGetUnpublishedQuestions = "select "
+				+ "q.q_id, q.qtype, q.column_name, q.l_id, q.appearance, f.table_name, q.compressed "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and q.published = 'false' "
@@ -886,6 +890,7 @@ public class TableManager {
 				int l_id = rs.getInt(4);				// List Id
 				boolean hasExternalOptions = GeneralUtilityMethods.isAppearanceExternalFile(rs.getString(5));
 				String table_name = rs.getString(6);
+				boolean compressed = rs.getBoolean(7);
 
 				columns.clear();
 
@@ -897,7 +902,7 @@ public class TableManager {
 				} else {
 					columns.add(columnName);		// Usually this is the case unless the question is a select multiple
 
-					if (qType.equals("select")) {
+					if (qType.equals("select") && !compressed) {
 						qType = "integer";
 
 						columns.clear();
@@ -920,7 +925,7 @@ public class TableManager {
 
 					// Apply each column
 					for(String col : columns) {
-						alterColumn(cResults, table_name, qType, col);
+						alterColumn(cResults, table_name, qType, col, compressed);
 						tablePublished = true;
 					}					
 				} 
@@ -955,7 +960,7 @@ public class TableManager {
 					if(type.equals("string")) {
 						type = "text";
 					}
-					alterColumn(cResults, tableName, type, mi.columnName);						
+					alterColumn(cResults, tableName, type, mi.columnName, false);						
 				} 
 			}
 		} 
@@ -964,7 +969,7 @@ public class TableManager {
 	/*
 	 * Alter the table
 	 */
-	private TableUpdateStatus alterColumn(Connection cResults, String table, String type, String column) {
+	private TableUpdateStatus alterColumn(Connection cResults, String table, String type, String column, boolean compressed) {
 
 		PreparedStatement pstmtAlterTable = null;
 		PreparedStatement pstmtApplyGeometryChange = null;
@@ -1017,7 +1022,7 @@ public class TableManager {
 				try { cResults.commit();	} catch(Exception ex) {}
 			} else {
 
-				type = getPostgresColType(type);
+				type = getPostgresColType(type, compressed);
 				String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
 				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
 				log.info("Alter table: " + pstmtAlterTable.toString());
@@ -1051,7 +1056,7 @@ public class TableManager {
 		QuestionDetails qd = new QuestionDetails();
 		PreparedStatement pstmt = null;;
 
-		String sqlGetQuestionDetails = "select q.column_name, q.appearance, q.qtype, f.table_name, f.reference "
+		String sqlGetQuestionDetails = "select q.column_name, q.appearance, q.qtype, f.table_name, f.reference, q.compressed "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and q_id = ?;";
@@ -1069,6 +1074,7 @@ public class TableManager {
 				qd.type = rsDetails.getString(3);
 				qd.table = rsDetails.getString(4);
 				qd.reference = rsDetails.getBoolean(5);
+				qd.compressed = rsDetails.getBoolean(6);
 			} else {
 				throw new Exception("Can't find question details: " + qId);
 			}

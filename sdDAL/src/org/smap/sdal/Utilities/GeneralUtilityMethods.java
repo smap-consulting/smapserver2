@@ -2652,7 +2652,7 @@ public class GeneralUtilityMethods {
 
 		// SQL to get the questions
 		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
-				+ "source_param, appearance, display_name, l_id " 
+				+ "source_param, appearance, display_name, l_id, compressed " 
 				+ "from question where f_id = ? "
 				+ "and source is not null "
 				+ "and published = 'true' "
@@ -2833,6 +2833,7 @@ public class GeneralUtilityMethods {
 				String appearance = rsQuestions.getString(7);
 				String display_name = rsQuestions.getString(8);
 				int l_id = rsQuestions.getInt(9);
+				boolean compressed = rsQuestions.getBoolean(10);
 				if (display_name != null && display_name.trim().length() > 0) {
 					question_human_name = display_name;
 				}
@@ -2861,7 +2862,7 @@ public class GeneralUtilityMethods {
 					continue; // Drop read only columns if they are not selected to be exported
 				}
 
-				if (qType.equals("select")) {
+				if (qType.equals("select") && !compressed) {
 
 					// Check if there are any choices from an external csv file in this select
 					// multiple

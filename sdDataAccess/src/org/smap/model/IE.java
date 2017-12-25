@@ -21,6 +21,7 @@ public class IE {
 	private int seq = 0;
 	private String path = null;	// The path by which this element is known in the XML template
 	private ArrayList <IE> children = new ArrayList <IE> ();
+	private boolean compressed = false;		// Set true for select multiples to stores data in a single column
 	
 	public IE(String name, String value) {
 		this.name = name;
@@ -68,6 +69,10 @@ public class IE {
 		return phoneOnly;
 	}
 	
+	public boolean isCompressed() {
+		return compressed;
+	}
+	
 	public int getSeq() {
 		return seq;
 	}
@@ -106,6 +111,10 @@ public class IE {
 	
 	public void setPhoneOnly(boolean v) {
 		this.phoneOnly = v;
+	}
+	
+	public void setCompressed(boolean v) {
+		this.compressed = v;
 	}
 	
 	public void setSeq(int v) {

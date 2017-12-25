@@ -1728,7 +1728,7 @@ public class GetXForm {
 						String qType = q.getType();
 						if (qType.equals("geopoint")) {
 							col = "ST_AsText(" + q.getColumnName(isReference) + ")";
-						} else if (qType.equals("select")) {
+						} else if (qType.equals("select") && !q.isCompressed()) {
 							continue; // Select data columns are retrieved separately as there are multiple columns per question
 						} else {
 							col = q.getColumnName(isReference);
@@ -1827,7 +1827,7 @@ public class GetXForm {
 
 					record.add(new Results(qName, null, null, false, true, false, null, q.getParameters()));
 
-				} else if (qType.equals("select")) { // Get the data from all the option columns
+				} else if (qType.equals("select") && !q.isCompressed()) { // Get the data from all the option columns
 
 					String optValue = "";
 					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published

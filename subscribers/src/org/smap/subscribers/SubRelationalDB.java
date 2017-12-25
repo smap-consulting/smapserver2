@@ -1232,7 +1232,7 @@ public class SubRelationalDB extends Subscriber {
 
 		for(IE col : columns) {
 			String colType = col.getQType();
-			if(colType.equals("select")) {
+			if(colType.equals("select") && !col.isCompressed()) {
 				List<IE> options = col.getChildren();
 				UtilityMethods.sortElements(options);
 				HashMap<String, String> uniqueColumns = new HashMap<String, String> (); 
@@ -1268,7 +1268,7 @@ public class SubRelationalDB extends Subscriber {
 			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
 			String colType = col.getQType();
 
-			if(colType.equals("select")) {
+			if(colType.equals("select") && !col.isCompressed()) {
 				List<IE> options = col.getChildren();
 				UtilityMethods.sortElements(options);
 				HashMap<String, String> uniqueColumns = new HashMap<String, String> (); 
@@ -1327,7 +1327,9 @@ public class SubRelationalDB extends Subscriber {
 
 				value = value.replace("'", "''").trim();
 
-				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") || qType.equals("acknowledge")) {
+				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") 
+						|| qType.equals("acknowledge")
+						|| qType.equals("select")) {		// Compressed select
 					value = "'" + value + "'";
 
 				} else if(qType.equals("int") || qType.equals("decimal")) {

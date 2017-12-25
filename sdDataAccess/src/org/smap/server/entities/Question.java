@@ -87,6 +87,8 @@ public class Question {
 	
 	private boolean mandatory = false;
 	
+	private boolean compressed = false;
+	
 	private String relevant;
 
 	private String calculate;
@@ -244,6 +246,10 @@ public class Question {
 
 	public boolean isMandatory() {
 		return mandatory;
+	}
+	
+	public boolean isCompressed() {
+		return compressed;
 	}
 
 	/*
@@ -518,24 +524,24 @@ public class Question {
 		source_param = v;
 	}
 	
-	public void setReadOnly(boolean ro) {
-		readOnly = ro;
+	public void setReadOnly(boolean v) {
+		readOnly = v;
 	}
 	
 	public void setRepeatCount(boolean v) {
 		repeatCount = v;
 	}
 
-	public void setReadOnly(String ro) {
-		readOnly = ro.toLowerCase().startsWith("t");
-	}
-
-	public void setMandatory(boolean man) {
-		mandatory = man;
+	public void setMandatory(boolean v) {
+		mandatory = v;
 	}
 	
-	public void setRelevant(String rel) {
-		relevant = rel;
+	public void setCompressed(boolean v) {
+		compressed = v;
+	}
+	
+	public void setRelevant(String v) {
+		relevant = v;
 	}
 	
 	public void setConstraint(String v) {
