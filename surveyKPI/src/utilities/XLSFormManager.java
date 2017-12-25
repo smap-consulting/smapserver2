@@ -67,6 +67,7 @@ public class XLSFormManager {
 		public static final int COL_ACCURACY = 18;
 		public static final int COL_PARAMETERS = 19;
 		public static final int COL_ROLE = 20;
+		public static final int COL_COMPRESSED = 21;
 
 		public static final int COL_LIST_NAME = 100;
 		public static final int COL_CHOICE_NAME = 101;
@@ -219,7 +220,10 @@ public class XLSFormManager {
 				value = q.accuracy;		
 
 			} else if(type == COL_REQUIRED) {				
-				value = q.required ? "yes" : "no";		
+				value = q.required ? "yes" : "";		
+
+			} else if(type == COL_COMPRESSED) {				
+				value = q.compressed ? "yes" : "";		
 
 			} else if(type == COL_REQUIRED_MSG) {				
 				value = q.required_msg;		
@@ -631,6 +635,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "required", Column.COL_REQUIRED, 0, "required"));
 		cols.add(new Column(colNumber++,"required_message", Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
+		cols.add(new Column(colNumber++, "compressed", Column.COL_COMPRESSED, 0, "compressed"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {

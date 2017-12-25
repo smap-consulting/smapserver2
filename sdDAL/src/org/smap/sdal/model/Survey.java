@@ -600,11 +600,12 @@ public class Survey {
 				+ "l_id,"
 				+ "autoplay,"
 				+ "accuracy,"
-				+ "dataType"
+				+ "dataType,"
+				+ "compressed"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 		try {
 			
@@ -692,6 +693,7 @@ public class Survey {
 			pstmt.setString(26, q.autoplay); 
 			pstmt.setString(27, q.accuracy);
 			pstmt.setString(28, q.dataType);
+			pstmt.setBoolean(29, q.compressed);
 
 			pstmt.executeUpdate();
 			
