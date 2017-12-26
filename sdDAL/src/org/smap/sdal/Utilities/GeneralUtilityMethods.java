@@ -5193,7 +5193,7 @@ public class GeneralUtilityMethods {
 		StringBuffer out = new StringBuffer("");
 
 		for (Form f : forms) {
-			if(f.parentform == parent) {
+			if(f.parentform == parent && !f.reference) {
 				if(parent != 0) {
 					out.append(" left outer join ");
 				}
@@ -5615,7 +5615,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setPublished(Connection sd, Connection cRel, int sId) throws SQLException {
 
-		String sql = "select f.table_name, q.column_name, q.q_id, q.qtype "
+		String sql = "select f.table_name, q.column_name, q.q_id, q.qtype, q.compressed "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = ? "
@@ -5634,7 +5634,8 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next())  {
 				String qType = rs.getString(4);
-				if(qType.equals("select")) {
+				boolean compressed = rs.getBoolean(5);
+				if(qType.equals("select") && !compressed) {
 					// Automatically set published the publish status of options determine if data is actually available 
 					pstmtUpdate.setInt(1, rs.getInt(3));
 					pstmtUpdate.executeUpdate();
