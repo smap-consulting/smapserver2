@@ -148,18 +148,14 @@ public class Register extends Application {
 					rd.admin_name,
 					localisation);			 
 
-			/*
-			 * 3. Create a default project
-			 */
+			 // 3. Create a default project
 			ProjectManager pm = new ProjectManager();
 			Project p = new Project();
 			p.name = "default";
 			p.desc = "Default Project - Created on registration";
 			pm.createProject(sd, p, o_id, u_id, request.getRemoteUser());
 			
-			/*
-			 * 4. Create a notification recording this event
-			 */
+			 // 4. Create a notification recording this event
 			try {
 				EmitNotifications en = new EmitNotifications();
 				en.publish(EmitNotifications.AWS_REGISTER_ORGANISATION,
