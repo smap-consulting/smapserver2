@@ -563,7 +563,9 @@ public class UploadFiles extends Application {
 			// If the survey display name already exists on this server, for this project, then throw an error		
 
 			if(!action.equals("replace") && sm.surveyExists(sd, displayName, projectId)) {
-				throw new ApplicationException("Survey " + displayName + " already exists in this project");
+				String msg = localisation.getString("tu_ae");
+				msg = msg.replaceAll("%s1", displayName);
+				throw new ApplicationException(msg);
 			} else if(type.equals("xls") || type.equals("xlsx")) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager();
 				Survey s = tum.getSurvey(sd, 

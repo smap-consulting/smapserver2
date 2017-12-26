@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -48,8 +49,6 @@ import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Pulldata;
-import org.smap.sdal.model.Question;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -58,13 +57,10 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -253,15 +249,15 @@ public class Surveys extends Application {
 		
 		// Authorisation - Access
 		boolean superUser = false;
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Surveys");
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
-		aUpdate.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(existing) {
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			} catch (Exception e) {
 			}
-			aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), existingSurveyId, false, superUser);	// Validate that the user can access the existing survey
+			aUpdate.isValidSurvey(sd, request.getRemoteUser(), existingSurveyId, false, superUser);	// Validate that the user can access the existing survey
 		}
 		// End Authorisation
 		
@@ -278,13 +274,18 @@ public class Surveys extends Application {
 
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation);
-			int sId = sm.createNewSurvey(connectionSD, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser());
+			if(sm.surveyExists(sd, name, projectId)) {
+				String msg = localisation.getString("tu_ae");
+				msg = msg.replaceAll("%s1", name);
+				throw new ApplicationException(msg);
+			}
+			int sId = sm.createNewSurvey(sd, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser());
 			// Get the survey details.  superUser set to true as this user just created the survey so they are effectively a super user for this survey and we can save a database call
-			survey = sm.getById(connectionSD, 
+			survey = sm.getById(sd, 
 					cResults,  request.getRemoteUser(), sId, true, 
 					basePath, null, false, false, true, true, false,
 					"internal", false, false, true, 0, null);
@@ -294,6 +295,9 @@ public class Surveys extends Application {
 			response = Response.ok(resp).build();
 			
 			
+		} catch(ApplicationException e) {		
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		
 		} catch (SQLException e) {
 			
 			if(e.getMessage().contains("duplicate key")) {
@@ -310,7 +314,7 @@ public class Surveys extends Application {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", connectionSD);	
+			SDDataSource.closeConnection("surveyKPI-Surveys", sd);	
 			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
 			
 		}
