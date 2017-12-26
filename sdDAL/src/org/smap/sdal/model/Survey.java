@@ -549,6 +549,11 @@ public class Survey {
 					}
 				}
 				
+				// Sort the column filters in order of increasing id to improve speed of matchint with questions
+				if(r.column_filter != null) {
+					r.column_filter.sort(null);
+				}
+				
 				// Associate the survey to the roles
 				pstmtAssociateSurvey = sd.prepareStatement(sqlAssociateSurvey);
 				pstmtAssociateSurvey.setInt(1, id);
