@@ -919,7 +919,6 @@ public class SubRelationalDB extends Subscriber {
 				+ "and column_name not like '\\_%' "
 				+ "and column_name != 'prikey' "
 				+ "and column_name != 'parkey' "
-				+ "and column_name != 'instancename' "
 				+ "and column_name != 'instanceid'";
 		PreparedStatement pstmtCols = null;
 

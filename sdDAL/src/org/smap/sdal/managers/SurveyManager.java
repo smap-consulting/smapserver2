@@ -1083,6 +1083,7 @@ public class SurveyManager {
 		log.info("Get lists for survey: " + pstmtGetLists.toString());
 		rsGetLists = pstmtGetLists.executeQuery();
 
+		int idx = 0;
 		while(rsGetLists.next()) {
 
 			int listId = rsGetLists.getInt(1);
@@ -1102,7 +1103,9 @@ public class SurveyManager {
 
 			pstmtGetOptions.setInt(1, listId);
 			pstmtGetOptions.setBoolean(2, external);
-			log.info("SQL Get options: " + pstmtGetOptions.toString());
+			if(idx++ == 0) {
+				log.info("SQL Get options: " + pstmtGetOptions.toString());
+			}
 			rsGetOptions = pstmtGetOptions.executeQuery();
 
 			Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
@@ -1137,7 +1140,6 @@ public class SurveyManager {
 			}
 
 			s.optionLists.put(listName, optionList);
-			//s.optionLists_orig.put(listName, optionList);
 
 		}
 

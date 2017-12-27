@@ -593,6 +593,10 @@ public class GetXForm {
 				}
 
 			} else if (location == BODY) {
+				String appearance = q.getAppearance(true, template.getQuestionPaths());
+				if(appearance != null && appearance.equals("hidden")) {
+					continue;
+				}
 				// if(subForm != null) {
 				if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 					Form subForm = template.getSubForm(f, q);
@@ -613,7 +617,7 @@ public class GetXForm {
 					repeatElement.setAttribute("nodeset", subForm.getPath(null));
 
 					// Add appearance
-					String appearance = q.getAppearance(true, template.getQuestionPaths());
+					appearance = q.getAppearance(true, template.getQuestionPaths());
 					if (appearance != null) {
 						repeatElement.setAttribute("appearance", appearance);
 					}
