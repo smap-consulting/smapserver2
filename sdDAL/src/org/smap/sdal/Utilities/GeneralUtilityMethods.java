@@ -5482,6 +5482,46 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Remove leading or trailing whitespace around question names
+	 */
+	public static String cleanXlsNames(
+			String input)  {
+
+		StringBuffer output = new StringBuffer(""); 
+
+		if(input != null) {
+			Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+			java.util.regex.Matcher matcher = pattern.matcher(input);
+
+			int start = 0;
+			while (matcher.find()) {
+
+				// Add any text before the match
+				int startOfGroup = matcher.start();
+				output.append(input.substring(start, startOfGroup));
+				
+				String matched = matcher.group();
+				String qname = matched.substring(2, matched.length() - 1).trim();
+				output.append("${").append(qname).append("}");
+				
+				// Reset the start
+				start = matcher.end();
+			}
+			
+			// Get the remainder of the string
+			if (start < input.length()) {
+				output.append(input.substring(start));
+			}
+		}
+
+		if(output.length() > 0) {
+			return output.toString().trim();
+		} else {
+			return null;
+		}
+	}
+
+	/*
 	 * Return true if this is a meta question
 	 */
 	public static boolean isMetaQuestion(String name) {

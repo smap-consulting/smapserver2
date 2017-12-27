@@ -251,7 +251,7 @@ public class XLSTemplateUploadManager {
 		return false;
 	}
 
-	private Option getOption(Row row, String listName) throws ApplicationException {
+	private Option getOption(Row row, String listName) throws ApplicationException, Exception {
 
 		Option o = new Option();
 		int lastCellNum = row.getLastCellNum();
@@ -453,7 +453,7 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Get a question from the excel sheet
 	 */
-	private Question getQuestion(Row row, int formIndex, int questionIndex) throws ApplicationException {
+	private Question getQuestion(Row row, int formIndex, int questionIndex) throws ApplicationException, Exception {
 
 		Question q = new Question();
 		int lastCellNum = row.getLastCellNum();
@@ -492,15 +492,18 @@ public class XLSTemplateUploadManager {
 
 		// 4. choice filter
 		q.choice_filter = XLSUtilities.getTextColumn(row, "choice_filter", surveyHeader, lastCellNum, null);
+		q.choice_filter = GeneralUtilityMethods.cleanXlsNames(q.choice_filter);
 		
 		// 5. Constraint
 		q.constraint = XLSUtilities.getTextColumn(row, "constraint", surveyHeader, lastCellNum, null);  
+		q.constraint = GeneralUtilityMethods.cleanXlsNames(q.constraint);
 		
 		// 6. Constraint message
 		q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message", surveyHeader, lastCellNum, null); 
 		
 		// 7. Relevant
-		q.relevant = XLSUtilities.getTextColumn(row, "relevant", surveyHeader, lastCellNum, null);  		
+		q.relevant = XLSUtilities.getTextColumn(row, "relevant", surveyHeader, lastCellNum, null);  
+		q.relevant = GeneralUtilityMethods.cleanXlsNames(q.relevant);
 
 		// 7. Repeat count
 		if(q.type.equals("begin repeat")) {
@@ -515,6 +518,7 @@ public class XLSTemplateUploadManager {
 		
 		// 10. Appearance
 		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum, null); 
+		q.appearance = GeneralUtilityMethods.cleanXlsNames(q.appearance);
 		
 		// 11. Parameters TODO
 		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum, null);
@@ -533,6 +537,7 @@ public class XLSTemplateUploadManager {
 		
 		// 16. Calculation
 		q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum, null); 
+		q.calculation = GeneralUtilityMethods.cleanXlsNames(q.calculation);
 		
 		// 17. Display Name
 		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum, null); 
@@ -596,7 +601,7 @@ public class XLSTemplateUploadManager {
 	/*
 	 * For media try under the default column heading if the language specific is null
 	 */
-	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels) throws ApplicationException {
+	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels) throws ApplicationException, Exception {
 		
 		// Get the label language values
 		if(useDefaultLanguage) {
@@ -607,6 +612,7 @@ public class XLSTemplateUploadManager {
 			lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum, null);
 			lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum, null);
 			
+			lab.text = GeneralUtilityMethods.cleanXlsNames(lab.text);
 			labels.add(lab);
 		} else {
 			
@@ -629,6 +635,7 @@ public class XLSTemplateUploadManager {
 					lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum, null);
 				}
 				
+				lab.text = GeneralUtilityMethods.cleanXlsNames(lab.text);
 				labels.add(lab);
 			}
 		}
@@ -854,7 +861,14 @@ public class XLSTemplateUploadManager {
 						ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(l.text);
 						if(refs.size() > 0) {
 							questionInSurvey(refs, "label::" + survey.languages.get(idx).name, q);
+							
+							if(refs.contains(q.name)) {		// Check for self reference
+								Integer rowNumber = qNameMap.get(q.name);
+								throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", 
+										"label::" + survey.languages.get(idx).name, q.name);
+							}
 						}
+						idx++;
 					}
 				}
 				if(q.calculation != null) {
