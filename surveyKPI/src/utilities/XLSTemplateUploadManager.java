@@ -121,6 +121,7 @@ public class XLSTemplateUploadManager {
 		survey.deleted = false;
 		survey.blocked = false;
 		survey.meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false, null));
+		survey.meta.add(new MetaItem("string", "instanceName", null, "instancename", null, false, null));
 
 		surveySheet = wb.getSheet("survey");
 		choicesSheet = wb.getSheet("choices");
