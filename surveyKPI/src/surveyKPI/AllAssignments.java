@@ -362,6 +362,7 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtAssign = null;
 		PreparedStatement pstmtRoles = null;
+		PreparedStatement pstmtRoles2 = null;
 		PreparedStatement pstmtCheckGeom = null;
 		PreparedStatement pstmtTaskGroup = null;
 		PreparedStatement pstmtGetSurveyIdent = null;
@@ -479,6 +480,10 @@ public class AllAssignments extends Application {
 				
 				String roleSQL = "select u_id from user_role where r_id = ?";
 				pstmtRoles = connectionSD.prepareStatement(roleSQL);
+				
+				String roleSQL2 = "select u_id from user_role where r_id = ? and u_id in "
+						+ "(select u_id from user_role where r_id = ?)";
+				pstmtRoles2 = connectionSD.prepareStatement(roleSQL2);
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
 				pstmtCheckGeom = connectionRel.prepareStatement(checkGeomSQL);
@@ -791,6 +796,7 @@ public class AllAssignments extends Application {
 								} else {
 									int userId = as.user_id;
 									int roleId = as.role_id;
+									int fixedRoleId = as.fixed_role_id;
 									if(assignSql != null) {
 										String ident = resultSet.getString("_assign_key");
 										System.out.println("Assign Ident: " + ident);
@@ -814,8 +820,15 @@ public class AllAssignments extends Application {
 
 											} else if(roleId > 0) {		// Assign all users with the current role
 				
-												pstmtRoles.setInt(1, roleId);
-												ResultSet rsRoles = pstmtRoles.executeQuery();
+												ResultSet rsRoles = null;
+												if(fixedRoleId > 0) {
+													pstmtRoles2.setInt(1, roleId);
+													pstmtRoles2.setInt(2, fixedRoleId);
+													rsRoles = pstmtRoles2.executeQuery();
+												} else {
+													pstmtRoles.setInt(1, roleId);
+													rsRoles = pstmtRoles.executeQuery();
+												}												
 												
 												while(rsRoles.next()) {
 													pstmtAssign.setInt(1, rsRoles.getInt(1));													
@@ -944,6 +957,7 @@ public class AllAssignments extends Application {
 			if(pstmtInsert != null) try {	pstmtInsert.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
 			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
+			if(pstmtRoles2 != null) try {	pstmtRoles2.close(); } catch(SQLException e) {};
 			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 			if(pstmtGetSurveyIdent != null) try {	pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};

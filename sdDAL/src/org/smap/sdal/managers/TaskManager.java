@@ -624,6 +624,9 @@ public class TaskManager {
 		String roleSQL = "select u_id from user_role where r_id = ?";
 		PreparedStatement pstmtRoles = sd.prepareStatement(roleSQL);
 		
+		String roleSQL2 = "select u_id from user_role where r_id = ? and u_id in "
+				+ "(select u_id from user_role where r_id = ?)";
+		PreparedStatement pstmtRoles2 = sd.prepareStatement(roleSQL2);
 
 		PreparedStatement pstmt = null;
 		
@@ -699,6 +702,7 @@ public class TaskManager {
 			 */
 			int userId = as.user_id;
 			int roleId = as.role_id;
+			int fixedRoleId = as.fixed_role_id;
 			if(tid.ident != null) {
 			
 				System.out.println("Assign Ident: " + tid.ident);
@@ -728,8 +732,15 @@ public class TaskManager {
 
 					} else if(roleId > 0) {		// Assign all users with the current role
 
-						pstmtRoles.setInt(1, roleId);
-						ResultSet rsRoles = pstmtRoles.executeQuery();
+						ResultSet rsRoles = null;
+						if(fixedRoleId > 0) {
+							pstmtRoles2.setInt(1, roleId);
+							pstmtRoles2.setInt(2, fixedRoleId);
+							rsRoles = pstmtRoles2.executeQuery();
+						} else {
+							pstmtRoles.setInt(1, roleId);
+							rsRoles = pstmtRoles.executeQuery();
+						}	
 						
 						while(rsRoles.next()) {
 							pstmtAssign.setInt(1, rsRoles.getInt(1));													
@@ -750,6 +761,7 @@ public class TaskManager {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
 			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
+			if(pstmtRoles2 != null) try {	pstmtRoles2.close(); } catch(SQLException e) {};
 		}
 	}
 

@@ -2763,7 +2763,7 @@ public class GeneralUtilityMethods {
 					|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
 				c = new TableColumn();
 				c.name = "instanceid";
-				c.humanName = localisation.getString("a_id");
+				c.humanName = "instanceid";
 				c.type = "";
 				columnList.add(c);
 			}

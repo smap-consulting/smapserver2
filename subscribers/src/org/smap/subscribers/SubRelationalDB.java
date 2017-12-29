@@ -1055,7 +1055,8 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	/*
-	 * Method to merge a previous records content into this new record
+	 * Method to discard new submission
+	 * Called if the policy is discard
 	 */
 	private void discardTableContent(
 			Connection cRel,

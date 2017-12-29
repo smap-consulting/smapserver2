@@ -126,9 +126,6 @@ public class CreatePDF extends Application {
 					response,
 					utcOffset);
 			
-		}  catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			
 			SDDataSource.closeConnection("createPDF", connectionSD);	

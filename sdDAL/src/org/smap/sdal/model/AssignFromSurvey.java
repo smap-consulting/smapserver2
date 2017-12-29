@@ -11,6 +11,7 @@ public class AssignFromSurvey {
 	public String survey_name;
 	public int user_id;				// Either user id, or role id are used to assign people directly at task group creation
 	public int role_id;
+	public int fixed_role_id;
 	public String assign_data;		// Rule used to identify the person or the role that the task should be assigned to using the base data
 	public int task_group_id;
 	public boolean update_results;
