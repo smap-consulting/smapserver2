@@ -712,7 +712,7 @@ public class TaskManager {
 			int fixedRoleId = as.fixed_role_id;
 			if(tid.ident != null) {
 			
-				System.out.println("Assign Ident: " + tid.ident);
+				log.info("Assign Ident: " + tid.ident);
 				if(as.user_id == -2) {
 					userId = GeneralUtilityMethods.getUserId(sd, tid.ident);   // Its a user ident
 				} else {
@@ -730,6 +730,7 @@ public class TaskManager {
 
 						pstmtAssign.setInt(1, userId);
 						pstmtAssign.setInt(3, taskId);
+						log.info("Assign user: " + pstmtAssign.toString());
 						pstmtAssign.executeUpdate();
 						
 						// Notify the user of their new assignment
@@ -743,15 +744,20 @@ public class TaskManager {
 						if(fixedRoleId > 0) {
 							pstmtRoles2.setInt(1, roleId);
 							pstmtRoles2.setInt(2, fixedRoleId);
+							log.info("Get roles2: " + pstmtRoles2.toString());
 							rsRoles = pstmtRoles2.executeQuery();
 						} else {
 							pstmtRoles.setInt(1, roleId);
+							log.info("Get roles: " + pstmtRoles.toString());
 							rsRoles = pstmtRoles.executeQuery();
 						}	
 						
+						int count = 0;
 						while(rsRoles.next()) {
+							count++;
 							pstmtAssign.setInt(1, rsRoles.getInt(1));													
 							pstmtAssign.setInt(3, taskId);
+							log.info("Assign user from role: " + pstmtAssign.toString());
 							pstmtAssign.executeUpdate();
 							
 							// Notify the user of their new assignment
@@ -759,9 +765,14 @@ public class TaskManager {
 							MessagingManager mm = new MessagingManager();
 							mm.userChange(sd, userIdent);	
 						}
+						if(count == 0) {
+							log.info("No matching users found");
+						}
 					} 
 				}	
 
+			} else {
+				log.info("xxxxxxx No matching role");
 			}
 
 		} finally {
