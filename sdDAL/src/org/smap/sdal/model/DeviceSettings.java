@@ -22,6 +22,8 @@ public class DeviceSettings {
 	public String ft_delete;
 	public boolean ft_send_trail;
 	public boolean ft_odk_style_menus;
+	public boolean ft_specify_instancename;
+	public boolean ft_admin_menu;
 	public boolean ft_review_final;
 	public String ft_send;
 	public int ft_number_tasks;

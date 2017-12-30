@@ -981,9 +981,7 @@ public class AllAssignments extends Application {
 
 		log.info("Assignment:" + settings);
 		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
-		ArrayList<Assignment> aArray = new Gson().fromJson(settings, type);
-
-		String userName = request.getRemoteUser();	
+		ArrayList<Assignment> aArray = new Gson().fromJson(settings, type);	
 
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");

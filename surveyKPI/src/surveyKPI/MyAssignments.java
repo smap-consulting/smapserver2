@@ -412,6 +412,8 @@ public class MyAssignments extends Application {
 					+ "o.ft_send_trail, "
 					+ "o.ft_sync_incomplete, "
 					+ "o.ft_odk_style_menus, "
+					+ "o.ft_specify_instancename, "
+					+ "o.ft_admin_menu, "
 					+ "o.ft_review_final, "
 					+ "o.ft_send "
 					+ "from organisation o, users u "
@@ -429,8 +431,10 @@ public class MyAssignments extends Application {
 				tr.settings.ft_send_trail = resultSet.getBoolean(2);
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
-				tr.settings.ft_review_final = resultSet.getBoolean(5);
-				tr.settings.ft_send = resultSet.getString(6);
+				tr.settings.ft_specify_instancename = resultSet.getBoolean(5);
+				tr.settings.ft_admin_menu = resultSet.getBoolean(6);
+				tr.settings.ft_review_final = resultSet.getBoolean(7);
+				tr.settings.ft_send = resultSet.getString(8);
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
 				tr.settings.ft_location_trigger = GeneralUtilityMethods.isBusinessServer(request.getServerName());

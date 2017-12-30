@@ -75,6 +75,7 @@ public class TaskManager {
 		String location = null;				// data from submission
 		String address = null;				// data from submission
 		String locationTrigger = null;		// data from task set up
+		String instanceName = null;			// data from task look up
 	}
 
 	public TaskManager(ResourceBundle l) {
@@ -630,7 +631,13 @@ public class TaskManager {
 
 		PreparedStatement pstmt = null;
 		
-		String title = as.project_name + " : " + as.survey_name;
+		String title = null;
+		if(tid.instanceName == null || tid.instanceName.trim().length() == 0) {
+			title = as.project_name + " : " + as.survey_name;
+		} else {
+			title = tid.instanceName;
+		}
+
 		String location = tid.location;
 
 		try {
@@ -789,7 +796,7 @@ public class TaskManager {
 		try {
 			Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
-			StringBuffer sql = new StringBuffer("select prikey");
+			StringBuffer sql = new StringBuffer("select prikey, instancename");
 			
 			boolean hasGeom = GeneralUtilityMethods.hasColumn(cResults, topForm.tableName, "the_geom");
 			if(hasGeom) {
@@ -824,6 +831,7 @@ public class TaskManager {
 			ResultSet rsData = pstmt.executeQuery();
 			if(rsData.next()) {
 				tid.prikey = rsData.getInt(colIdx++);
+				tid.instanceName = rsData.getString(colIdx++);
 				if(assign_data != null && assign_data.trim().length() > 0) {
 					tid.ident = rsData.getString("_assign_key");
 				}

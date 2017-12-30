@@ -115,6 +115,8 @@ public class OrganisationList extends Application {
 					+ "ft_send_trail,"
 					+ "ft_sync_incomplete,"
 					+ "ft_odk_style_menus,"
+					+ "ft_specify_instancename,"
+					+ "ft_admin_menu,"
 					+ "ft_review_final,"
 					+ "ft_send,"
 					+ "ft_number_tasks,"
@@ -153,6 +155,8 @@ public class OrganisationList extends Application {
 				org.ft_send_trail = resultSet.getBoolean("ft_send_trail");
 				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
 				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
+				org.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
+				org.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
 				org.ft_review_final = resultSet.getBoolean("ft_review_final");
 				org.ft_send = resultSet.getString("ft_send");
 				org.ft_number_tasks = resultSet.getInt("ft_number_tasks");
@@ -325,7 +329,8 @@ public class OrganisationList extends Application {
 		aAdmin.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
-		String sql = "select ft_delete, ft_send_trail, ft_odk_style_menus,"
+		String sql = "select ft_delete, ft_send_trail, ft_odk_style_menus, "
+				+ "ft_specify_instancename, ft_admin_menu,"
 				+ "ft_review_final, ft_send, ft_number_tasks "
 				+ "from organisation "
 				+ "where "
@@ -345,9 +350,11 @@ public class OrganisationList extends Application {
 				d.ft_delete = rs.getString(1);
 				d.ft_send_trail = rs.getBoolean(2);
 				d.ft_odk_style_menus = rs.getBoolean(3);
-				d.ft_review_final = rs.getBoolean(4);
-				d.ft_send = rs.getString(5);
-				d.ft_number_tasks = rs.getInt(6);
+				d.ft_specify_instancename = rs.getBoolean(4);
+				d.ft_admin_menu = rs.getBoolean(5);
+				d.ft_review_final = rs.getBoolean(6);
+				d.ft_send = rs.getString(7);
+				d.ft_number_tasks = rs.getInt(8);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -385,6 +392,8 @@ public class OrganisationList extends Application {
 				" ft_delete = ?, " +
 				" ft_send_trail = ?, " +
 				" ft_odk_style_menus = ?, " +
+				" ft_specify_instancename = ?, " +
+				" ft_admin_menu = ?, " +
 				" ft_review_final = ?, " +
 				" ft_send = ?, " +
 				" ft_number_tasks = ?, " +
@@ -401,11 +410,13 @@ public class OrganisationList extends Application {
 			pstmt.setString(1, d.ft_delete);
 			pstmt.setBoolean(2, d.ft_send_trail);
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
-			pstmt.setBoolean(4, d.ft_review_final);
-			pstmt.setString(5, d.ft_send);
-			pstmt.setInt(6, d.ft_number_tasks);
-			pstmt.setString(7, request.getRemoteUser());
-			pstmt.setString(8, request.getRemoteUser());
+			pstmt.setBoolean(4, d.ft_specify_instancename);
+			pstmt.setBoolean(5, d.ft_admin_menu);
+			pstmt.setBoolean(6, d.ft_review_final);
+			pstmt.setString(7, d.ft_send);
+			pstmt.setInt(8, d.ft_number_tasks);
+			pstmt.setString(9, request.getRemoteUser());
+			pstmt.setString(10, request.getRemoteUser());
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();
