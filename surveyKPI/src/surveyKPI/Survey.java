@@ -131,7 +131,6 @@ public class Survey extends Application {
 			String fileBasePath = null;		// File path excluding extensions
 			String folderPath = null;
 			String filename = null;
-			String filepath = null;
 			String sourceExt = null;
 			int projectId = 0;
 
@@ -175,6 +174,13 @@ public class Survey extends Application {
 					sourceExt = "." + type;
 				}
 				sourceName = fileBasePath + sourceExt;
+				
+				String sourceNameXls = null;
+				String sourceNameXlsX = null;
+				if(type.equals("xls")) {
+					sourceNameXls = fileBasePath + ".xls";
+					sourceNameXlsX = fileBasePath + ".xlsx";
+				}
 
 				log.info("Source name: " + sourceName + " type: " + type);
 				/*
@@ -214,23 +220,19 @@ public class Survey extends Application {
 
 				}
 
-				// Check for the existence of the source file, if it isn't at the standard location try obsolete locations
-				File sourceFile = new File(sourceName);
-				if(!sourceFile.exists()) {
-					// Probably this is an old survey that is missing the projectId path in the path
-					log.info("Locating old survey");
-
-					if(type.equals("xls")) {
-						fileBasePath = basePath + "/templates/xls/" + target_name; // Old xls files were in their own folder
-					} else {
-						fileBasePath = basePath + "/templates/" + target_name;
+				// Check for the existence of the source file
+				File outputFile = null;
+				if(type.equals("xls")) {
+					outputFile = new File(sourceNameXlsX);
+					if(!outputFile.exists()) {
+						outputFile = new File(sourceNameXls);
 					}
-					sourceName =  fileBasePath + sourceExt;	
+				} else {
+					String filepath = fileBasePath + ext;
+					outputFile = new File(filepath);
 				}
 
-				filepath = fileBasePath + ext;
 				filename = target_name + ext;
-
 				try {  		
 					int code = 0;
 					if(type.equals("codebook")) {
@@ -241,8 +243,7 @@ public class Survey extends Application {
 						log.info("Process exitValue: " + code);
 					}
 
-					File file = new File(filepath);
-					builder = Response.ok(file);
+					builder = Response.ok(outputFile);
 					if(type.equals("codebook")) {
 						builder.header("Content-type","application/pdf; charset=UTF-8");
 					} else if(type.equals("xls")) {

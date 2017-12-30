@@ -39,6 +39,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -592,7 +593,7 @@ public class UploadFiles extends Application {
 				}
 				
 				/*
-				 * Save the survey
+				 * Save the survey to the database
 				 */
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
 				
@@ -622,6 +623,21 @@ public class UploadFiles extends Application {
 						s,
 						basePath, 
 						user);
+				
+				/*
+				 * Save the file to disk
+				 */
+				String fileFolder = basePath + "/templates/" + projectId +"/"; 
+				String targetName = GeneralUtilityMethods.getSafeTemplateName(displayName);
+				String filePath = fileFolder + targetName + "." + type;
+				
+				// 1. Create the project folder if it does not exist
+				File folder = new File(fileFolder);
+				FileUtils.forceMkdir(folder);
+
+				// 2. Save the file
+				File savedFile = new File(filePath);
+				fileItem.write(savedFile);
 				
 			}
 			
