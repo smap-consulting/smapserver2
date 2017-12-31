@@ -256,14 +256,17 @@ public class MessagingManagerApply {
 				+ "and u.id = ug.u_id "
 				+ "and ug.g_id = 3 "			// enum
 				+ "and s.p_id = up.p_id "
-				+ "and s.s_id = ? and not temporary";
+				+ "and s.s_id = ? and not temporary "
+				+ "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or "
+				+ " (s.s_id in (select s_id from users ux, user_role ur, survey_role sr "
+				+ "where ux.ident = u.ident and sr.enabled = true and ux.id = ur.u_id and ur.r_id = sr.r_id)))";
 
 		PreparedStatement pstmt = null;
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("Get survey users: " + pstmt.toString());
+			log.info("xxxxxxxxxxxxxxxxxxx Get survey users: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));

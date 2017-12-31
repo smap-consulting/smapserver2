@@ -386,6 +386,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the task group if an existing task group was not specified
 			 */
+			int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, userName, sId);
 			int taskGroupId = -1;
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			ResultSet rsKeys = null;
@@ -801,9 +802,9 @@ public class AllAssignments extends Application {
 										String ident = resultSet.getString("_assign_key");
 										System.out.println("Assign Ident: " + ident);
 										if(as.user_id == -2) {
-											userId = GeneralUtilityMethods.getUserId(connectionSD, ident);   // Its a user ident
+											userId = GeneralUtilityMethods.getUserIdOrgCheck(connectionSD, ident, oId);   // Its a user ident
 										} else {
-											roleId = GeneralUtilityMethods.getRoleId(connectionSD, ident);   // Its a role name
+											roleId = GeneralUtilityMethods.getRoleId(connectionSD, ident, oId);   // Its a role name
 										}
 									}
 									if(userId > 0 || roleId > 0) {

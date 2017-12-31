@@ -793,7 +793,7 @@ public class GeneralUtilityMethods {
 
 		int id = -1;
 
-		String sql = "select id " + " from users u " + " where u.ident = ?;";
+		String sql = "select id " + " from users u " + " where u.ident = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -801,6 +801,36 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
+			log.info("Get user id: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		}
+
+		return id;
+	}
+	
+	/*
+	 * Get the user id from the user ident
+	 */
+	static public int getUserIdOrgCheck(Connection sd, String user, int oId) throws SQLException {
+
+		int id = -1;
+
+		String sql = "select id " + " from users u " + " where u.ident = ? and u.o_id = ?;";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			log.info("Get user id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -816,11 +846,11 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the role id from the role name
 	 */
-	static public int getRoleId(Connection sd, String name) throws SQLException {
+	static public int getRoleId(Connection sd, String name, int oId) throws SQLException {
 
 		int id = -1;
 
-		String sql = "select id from role where name = ?";
+		String sql = "select id from role where name = ? and o_id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -828,6 +858,8 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, name);
+			pstmt.setInt(2, oId);
+			log.info("Get role id: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				id = rs.getInt(1);
@@ -4768,10 +4800,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static String getSurveyRBAC() {
 		return "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
-				+ "(s.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User
-				// also
-				// has
-				// role
+				+ "(s.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
 

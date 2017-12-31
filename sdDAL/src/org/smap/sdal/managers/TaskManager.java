@@ -710,13 +710,14 @@ public class TaskManager {
 			int userId = as.user_id;
 			int roleId = as.role_id;
 			int fixedRoleId = as.fixed_role_id;
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, target_s_id);
 			if(tid.ident != null) {
 			
 				log.info("Assign Ident: " + tid.ident);
 				if(as.user_id == -2) {
-					userId = GeneralUtilityMethods.getUserId(sd, tid.ident);   // Its a user ident
+					userId = GeneralUtilityMethods.getUserIdOrgCheck(sd, tid.ident, oId);   // Its a user ident
 				} else {
-					roleId = GeneralUtilityMethods.getRoleId(sd, tid.ident);   // Its a role name
+					roleId = GeneralUtilityMethods.getRoleId(sd, tid.ident, oId);   // Its a role name
 				}
 			}
 			
