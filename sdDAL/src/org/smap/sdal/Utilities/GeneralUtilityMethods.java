@@ -4002,11 +4002,7 @@ public class GeneralUtilityMethods {
 				}
 			}
 		} finally {
-			if (pstmt != null)
-				try {
-					pstmt.close();
-				} catch (Exception e) {
-				}
+			if (pstmt != null) try {pstmt.close();	} catch (Exception e) {}
 		}
 
 		return params;
