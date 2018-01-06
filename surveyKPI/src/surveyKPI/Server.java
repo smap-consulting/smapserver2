@@ -39,8 +39,6 @@ import org.smap.sdal.model.ServerData;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import taskModel.TaskResponse;
-
 import java.sql.*;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -105,29 +103,19 @@ public class Server extends Application {
 		
 		ServerData data = new Gson().fromJson(settings, ServerData.class);
 		
-		String sqlDel = "truncate table server;";
-		PreparedStatement pstmtDel = null;
-		
-		String sql = "insert into server ("
-				+ "smtp_host,"
-				+ "email_domain,"
-				+ "email_user,"
-				+ "email_password,"
-				+ "email_port,"
-				+ "mapbox_default,"
-				+ "google_key) "
-				+ "values(?,?,?,?,?,?,?);";
+		String sql = "update server set "
+				+ "smtp_host = ?,"
+				+ "email_domain = ?,"
+				+ "email_user = ?,"
+				+ "email_password = ?,"
+				+ "email_port = ?,"
+				+ "mapbox_default = ?,"
+				+ "google_key = ?,"
+				+ "sms_url = ?";
 		
 		PreparedStatement pstmt = null;
 
-
-
 		try {
-			
-			sd.setAutoCommit(false);
-			// Delete the existing data
-			pstmtDel = sd.prepareStatement(sqlDel);
-			pstmtDel.executeUpdate();
 			
 			// Add the updated data
 			pstmt = sd.prepareStatement(sql);
@@ -138,17 +126,14 @@ public class Server extends Application {
 			pstmt.setInt(5, data.email_port);
 			pstmt.setString(6, data.mapbox_default);
 			pstmt.setString(7, data.google_key);
+			pstmt.setString(8, data.sms_url);
 			pstmt.executeUpdate();
-			
-			sd.setAutoCommit(true);
 				
 		} catch (Exception e) {
-			try {sd.rollback();} catch(Exception ex) {}
 			String msg = e.getMessage();
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(msg).build();	
 			
 		} finally {
-			try {sd.setAutoCommit(true);} catch(Exception e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		
 			SDDataSource.closeConnection("surveyKPI-AllAssignments-Save Server Settings", sd);
