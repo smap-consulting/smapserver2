@@ -1716,9 +1716,8 @@ public class GeneralUtilityMethods {
 			ValueLabelColsResp vlcA = getValueLabelCols(sd, qId, qName, cols); // Identify the columns in the CSV file that
 			if(vlcA.values.size() == 0) {
 				String msg = localisation.getString("ex_csv_nc");
-				msg.replace("%s1", qName);
+				msg = msg.replace("%s1", qName);
 				lm.writeLog(sd, sId, user, "csv file", msg);
-				throw new Exception(msg);
 			}
 		
 			/*
