@@ -351,7 +351,7 @@ public class MyAssignments extends Application {
 				 *  generate the new CSV files if the linked data has changed
 				 */
 				List<ManifestValue> manifestList = translationMgr.
-						getLinkedManifests(connectionSD, survey.id, survey.ident);
+						getSurveyManifests(connectionSD, survey.id, survey.ident, null, 0, true);		// Get linked only
 
 				for( ManifestValue m : manifestList) {
 

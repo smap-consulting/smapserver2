@@ -64,9 +64,6 @@ public class TranslationManager {
 				manifestQuerySql;
 		PreparedStatement pstmtQuestionLevel = null;
 		
-		String sqlSurveyLevel = "select manifest from survey where s_id = ? and manifest is not null; ";
-		PreparedStatement pstmtSurveyLevel = null;
-		
 		try {
 			
 			/*
@@ -100,40 +97,8 @@ public class TranslationManager {
 				}
 			} 
 			
-			/*
-			 * Get Survey Level manifests from survey table
-			 */
-			pstmtSurveyLevel = sd.prepareStatement(sqlSurveyLevel);	 			
-			pstmtSurveyLevel.setInt(1, surveyId);
-			
-			rs = pstmtSurveyLevel.executeQuery();
-			if(rs.next()) {
-				String manifestString = rs.getString(1);
-				Type type = new TypeToken<ArrayList<String>>(){}.getType();
-				ArrayList<String> manifestList = new Gson().fromJson(manifestString, type);
-				
-				for(int i = 0; i < manifestList.size(); i++) {
-					
-					ManifestValue m = new ManifestValue();
-					m.fileName = manifestList.get(i);
-					m.sId = surveyId;
-					
-					if(m.fileName.equals("linked_self")) {
-						m.fileName = "linked_" + surveyIdent;
-					} else if(m.fileName.equals("linked_s_pd_self")) {
-						m.fileName = "linked_s_pd_" + surveyIdent;
-					}
-					if(m.fileName.endsWith(".csv") || m.fileName.endsWith(".zip")) {
-						m.type = "csv";
-						UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId);
-					} else {
-						m.type = "linked";
-						m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
-					}
-					
-					manifests.add(m);
-				}
-			}
+			List<ManifestValue> surveyManifests = getSurveyManifests(sd, surveyId, surveyIdent, basePath, oId, false);
+			manifests.addAll(surveyManifests);
 			
 			
 		} catch (SQLException e) {
@@ -141,7 +106,6 @@ public class TranslationManager {
 			throw e;
 		} finally {
 			if (pstmtQuestionLevel != null) { try {pstmtQuestionLevel.close();} catch (SQLException e) {}}
-			if (pstmtSurveyLevel != null) { try {pstmtSurveyLevel.close();} catch (SQLException e) {}}
 		}
 		
 		return manifests;
@@ -151,9 +115,12 @@ public class TranslationManager {
 	/*
 	 * Get the manifest items to linked forms
 	 */
-	public List<ManifestValue> getLinkedManifests(Connection sd,  
+	public List<ManifestValue> getSurveyManifests(Connection sd,  
 			int surveyId,
-			String surveyIdent
+			String surveyIdent,
+			String basePath,
+			int oId,
+			boolean linkedOnly
 			)	throws SQLException {
 		
 		ArrayList<ManifestValue> manifests = new ArrayList<ManifestValue>();	// Results of request
@@ -189,10 +156,18 @@ public class TranslationManager {
 						m.fileName = "linked_s_pd_" + surveyIdent;
 					}
 					
-					if(!m.fileName.endsWith(".csv") && !m.fileName.endsWith(".zip")) {
+					if(m.fileName.endsWith(".csv") || m.fileName.endsWith(".zip")) {
+						if(!linkedOnly) {
+							m.type = "csv";
+							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId);
+							manifests.add(m);
+						}
+					} else {
 						m.type = "linked";
+						m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
 						manifests.add(m);
 					}
+					
 				}
 			}
 			
