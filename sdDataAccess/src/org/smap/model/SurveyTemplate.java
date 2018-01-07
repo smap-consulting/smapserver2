@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 import java.util.Set;
 import java.util.Vector;
 
+import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
@@ -1699,20 +1700,24 @@ public class SurveyTemplate {
 									String filepath = basePath + "/media/organisation/" + oId + "/" + filename;		
 									File file = new File(filepath);
 	
-									org.smap.sdal.Utilities.GeneralUtilityMethods.getOptionsFromFile(
-										connectionSD,
-										localisation,
-										user,
-										survey.getId(),
-										cs.items,
-										file,
-										null,
-										filename,
-										q.getName(),
-										q.getListId(),
-										q.getId(),				
-										"select",
-										appearance);
+									try {
+										GeneralUtilityMethods.getOptionsFromFile(
+											connectionSD,
+											localisation,
+											user,
+											survey.getId(),
+											cs.items,
+											file,
+											null,
+											filename,
+											q.getName(),
+											q.getListId(),
+											q.getId(),				
+											"select",
+											appearance);
+									} catch (ApplicationWarning w) {
+										// ignore warnings
+									}
 					
 								}
 							}

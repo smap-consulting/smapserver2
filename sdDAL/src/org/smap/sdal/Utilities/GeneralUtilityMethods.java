@@ -1630,7 +1630,7 @@ public class GeneralUtilityMethods {
 			String csvFileName, 
 			String qName, 
 			int l_id, 
-			int qId, String qType, String qAppearance) throws Exception {
+			int qId, String qType, String qAppearance) throws ApplicationWarning, Exception {
 
 		// Store the value and label data for each row in here
 		class OptionItem {
@@ -1718,6 +1718,7 @@ public class GeneralUtilityMethods {
 				String msg = localisation.getString("ex_csv_nc");
 				msg = msg.replace("%s1", qName);
 				lm.writeLog(sd, sId, user, "csv file", msg);
+				throw new ApplicationWarning(msg);
 			}
 		
 			/*

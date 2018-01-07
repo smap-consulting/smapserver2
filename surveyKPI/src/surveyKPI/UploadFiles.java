@@ -41,6 +41,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
@@ -452,7 +453,8 @@ public class UploadFiles extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
-		Connection cResults = ResultsDataSource.getConnection("CreateXLSForm-uploadForm");;
+		Connection cResults = ResultsDataSource.getConnection("CreateXLSForm-uploadForm");
+		ArrayList<ApplicationWarning> warnings = new ArrayList<> ();
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		
@@ -622,7 +624,8 @@ public class UploadFiles extends Application {
 						localisation,
 						s,
 						basePath, 
-						user);
+						user,
+						warnings);
 				
 				/*
 				 * Save the file to disk
@@ -641,7 +644,15 @@ public class UploadFiles extends Application {
 				
 			}
 			
-			response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
+			if(warnings.size() == 0) {
+				response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
+			} else {
+				StringBuilder msg = new StringBuilder("");
+				for(ApplicationWarning w : warnings) {
+					msg.append("<br/> - ").append(w.getMessage());
+				}
+				response = Response.ok(gson.toJson(new Message("warning", msg.toString(), displayName))).build();
+			}
 			
 		} catch(ApplicationException ex) {		
 			response = Response.ok(gson.toJson(new Message("error", ex.getMessage(), displayName))).build();
@@ -1148,7 +1159,9 @@ public class UploadFiles extends Application {
 			Connection cResults, 
 			ResourceBundle localisation,
 			Survey survey,
-			String basePath, String user) throws Exception {
+			String basePath, 
+			String user,
+			ArrayList<ApplicationWarning> warnings) throws Exception {
 		
 		SurveyManager sm = new SurveyManager(localisation);
 		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
@@ -1186,20 +1199,24 @@ public class UploadFiles extends Application {
 									File file = new File(filepath);
 	
 									if(file.exists()) {
-										GeneralUtilityMethods.getOptionsFromFile(
-											sd,
-											localisation,
-											user,
-											survey.getId(),
-											cs.items,
-											file,
-											null,
-											filename,
-											q.name,
-											q.l_id,
-											q.id,				
-											"select",
-											q.appearance);
+										try {
+											GeneralUtilityMethods.getOptionsFromFile(
+												sd,
+												localisation,
+												user,
+												survey.getId(),
+												cs.items,
+												file,
+												null,
+												filename,
+												q.name,
+												q.l_id,
+												q.id,				
+												"select",
+												q.appearance);
+										} catch (ApplicationWarning w) {
+											warnings.add(w);
+										}
 									}
 					
 								}

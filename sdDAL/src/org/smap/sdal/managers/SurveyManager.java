@@ -39,6 +39,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.ChangeElement;
@@ -3149,20 +3150,24 @@ public class SurveyManager {
 									String filepath = basePath + "/media/organisation/" + oId + "/" + filename;		
 									File file = new File(filepath);
 
-									org.smap.sdal.Utilities.GeneralUtilityMethods.getOptionsFromFile(
-											sd,
-											localisation,
-											user,
-											sId,
-											cs.items,
-											file,
-											null,			// ignore any previous versions of the CSV file
-											filename,
-											q.columnName,
-											q.l_id,
-											q.id,				
-											"select",
-											appearance);
+									try {
+										GeneralUtilityMethods.getOptionsFromFile(
+												sd,
+												localisation,
+												user,
+												sId,
+												cs.items,
+												file,
+												null,			// ignore any previous versions of the CSV file
+												filename,
+												q.columnName,
+												q.l_id,
+												q.id,				
+												"select",
+												appearance);
+									} catch(ApplicationWarning w) {
+										// ignore warnings
+									}
 
 								}
 							}
