@@ -154,6 +154,8 @@ public class TranslationManager {
 						m.fileName = "linked_" + surveyIdent;
 					} else if(m.fileName.equals("linked_s_pd_self")) {
 						m.fileName = "linked_s_pd_" + surveyIdent;
+					} else if(m.fileName.startsWith("chart_self")) {
+						m.fileName = m.fileName.replace("chart_self", "chart_" + surveyIdent);
 					}
 					
 					if(m.fileName.endsWith(".csv") || m.fileName.endsWith(".zip")) {
@@ -163,15 +165,17 @@ public class TranslationManager {
 							manifests.add(m);
 						}
 					} else {
-						m.type = "linked";
+						if(m.fileName.startsWith("chart_s")) {
+							m.type = "chart";
+						} else {
+							m.type = "linked";
+						}
 						m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
 						manifests.add(m);
-					}
-					
+					}				
 				}
 			}
-			
-			
+					
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;

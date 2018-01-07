@@ -432,7 +432,7 @@ public class XLSTemplateUploadManager {
 							return; 
 						}
 							
-						// Update the survey manifest if csv files are referenced from the appearance and then the calculation
+						// Update the survey manifest if csv files are referenced from the appearance and/or the calculation
 						ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, survey.manifest);
 						mi = GeneralUtilityMethods.addManifestFromCalculate(q.calculation, mi.manifest);
 						survey.manifest = mi.manifest;

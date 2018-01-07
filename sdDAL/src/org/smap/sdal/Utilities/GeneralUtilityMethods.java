@@ -2993,7 +2993,7 @@ public class GeneralUtilityMethods {
 		String sqlGetDefLang = "select def_lang from survey where s_id = ?";
 		PreparedStatement pstmtDefLang = sd.prepareStatement(sqlGetDefLang);
 
-		// SQL to get the choices for a survey TODO query
+		// SQL to get the choices for a survey
 		String sqlGetChoices = "select o.l_id, " + "o.ovalue as value, " + "t.value, " + "t.language "
 				+ "from option o, translation t, survey s " + "where s.s_id = ? " + "and s.s_id = t.s_id "
 				+ "and o.l_id in (select l_id from listname where s_id = ?) " + "and o.label_id = t.text_id ";
@@ -3285,7 +3285,6 @@ public class GeneralUtilityMethods {
 	 */
 	public static String convertAllXpathLabels(String input, boolean xlsName) {
 		StringBuffer output = new StringBuffer("");
-		String[] parts = null;
 
 		if (input != null) {
 
@@ -3734,7 +3733,6 @@ public class GeneralUtilityMethods {
 
 			ResultSet rs = pstmt.executeQuery();
 			int newSeq = 0;
-			boolean inMeta = false;
 			while (rs.next()) {
 				int qId = rs.getInt(1);
 				int seq = rs.getInt(2);
@@ -4014,7 +4012,6 @@ public class GeneralUtilityMethods {
 	public static ManifestInfo addManifestFromAppearance(String appearance, String inputManifest) {
 
 		ManifestInfo mi = new ManifestInfo();
-		ArrayList<String> refQuestions = null;
 		String manifestType = null;
 
 		mi.manifest = inputManifest;
@@ -4037,14 +4034,13 @@ public class GeneralUtilityMethods {
 						filename = filename.substring(1, filename.length() - 1);
 
 						if (filename.startsWith("linked_s") || filename.startsWith("linked_s_pd_s")) { // Linked survey
-							refQuestions = getRefQuestionsSearch(criteria);
 							manifestType = "linked";
 						} else {
 							filename += ".csv";
 							manifestType = "csv";
 						}
 
-						updateManifest(mi, filename, refQuestions, manifestType);
+						updateManifest(mi, filename, manifestType);
 
 					}
 				}
@@ -4060,7 +4056,6 @@ public class GeneralUtilityMethods {
 	public static ManifestInfo addManifestFromCalculate(String calculate, String inputManifest) {
 
 		ManifestInfo mi = new ManifestInfo();
-		ArrayList<String> refQuestions = null;
 		String manifestType = null;
 
 		mi.manifest = inputManifest;
@@ -4088,18 +4083,17 @@ public class GeneralUtilityMethods {
 							filename = filename.substring(1, filename.length() - 1);
 
 							if (filename.startsWith("linked_s") || filename.startsWith("linked_s_pd_s")) { // Linked
-								// survey
-								//log.info(
-								//		"We have found a manifest link to " + filename + " calculate is: " + calculate);
-								refQuestions = getRefQuestionsSearch(criteria);
 								manifestType = "linked";
+							} else if (filename.startsWith("chart_s")) { // Linked chart type data
+								
+								manifestType = "chart";
+								filename += "_" + getKeyQuestionPulldata(criteria);		// Each key needs its own file
 							} else {
 								filename += ".csv";
 								manifestType = "csv";
-								//log.info("We have found a manifest file " + filename);
 							}
 
-							updateManifest(mi, filename, refQuestions, manifestType);
+							updateManifest(mi, filename, manifestType);
 						}
 					}
 					idx1 = calculate.indexOf("pulldata(", idx2);
@@ -4114,8 +4108,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Update the manifest
 	 */
-	private static void updateManifest(ManifestInfo mi, String filename, ArrayList<String> refQuestions,
-			String manifestType) {
+	private static void updateManifest(ManifestInfo mi, String filename, String manifestType) {
 
 		String inputManifest = mi.manifest;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -4184,9 +4177,15 @@ public class GeneralUtilityMethods {
 						linked_sId = sId;
 					} else if (fileName.equals("linked_s_pd_self")) {
 						linked_sId = sId;
+					} else if (fileName.startsWith("chart_self")) {
+						linked_sId = sId;
 					} else if (fileName.startsWith("linked_s")) {
 						String ident = fileName.substring(fileName.indexOf("s"));
-						log.info("Survey Ident: " + ident);
+						log.info("Linked Survey Ident: " + ident);
+						linked_sId = getSurveyId(sd, ident);
+					} else if (fileName.startsWith("chart_s")) {
+						String ident = fileName.substring(fileName.indexOf("s"), fileName.lastIndexOf('_'));
+						log.info("Chart Survey Ident: " + ident);
 						linked_sId = getSurveyId(sd, ident);
 					}
 
@@ -4258,6 +4257,26 @@ public class GeneralUtilityMethods {
 		}
 		return refQuestions;
 	}
+	
+	/*
+	 * Get the question that is used as a key when retrieving data for charts
+	 */
+	private static String getKeyQuestionPulldata(String[] params) {
+		String param = null;
+
+		/*
+		 * pulldata('chart_self', 'data_column', 'key_column', keyvalue)
+		 * The key column is the thid one
+		 * 
+		 */
+		if (params.length > 2) {
+			param = params[2].trim();
+			param = param.substring(1, param.length() - 1); // Remove quotes
+		}
+	
+		return param;
+	}
+
 
 	/*
 	 * Get the questions referenced by a pulldata function in a linked survey
@@ -5072,6 +5091,7 @@ public class GeneralUtilityMethods {
 		String resp = in;
 		resp = resp.replaceAll("linked_self", "linked_" + sIdent);
 		resp = resp.replaceAll("linked_s_pd_self", "linked_s_pd_" + sIdent);
+		resp = resp.replaceAll("chart_self", "chart_" + sIdent);
 
 		return resp;
 	}

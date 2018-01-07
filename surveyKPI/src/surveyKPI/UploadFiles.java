@@ -112,7 +112,7 @@ public class UploadFiles extends Application {
 
 		log.info("upload files - media -----------------------");
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
+		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		Connection connectionSD = null; 
@@ -413,8 +413,11 @@ public class UploadFiles extends Application {
 	}
 
 	private class Message {
+		@SuppressWarnings("unused")
 		String status;
+		@SuppressWarnings("unused")
 		String message;
+		@SuppressWarnings("unused")
 		String name;
 		
 		public Message(String status, String message, String name) {
@@ -448,7 +451,7 @@ public class UploadFiles extends Application {
 		String user = request.getRemoteUser();
 		String action = null;
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
+		fileItemFactory.setSizeThreshold(5*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		Connection sd = SDDataSource.getConnection("CreateXLSForm-uploadForm"); 
@@ -677,7 +680,7 @@ public class UploadFiles extends Application {
 
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
+		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		Connection sd = null; 
@@ -824,7 +827,7 @@ public class UploadFiles extends Application {
 
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 
-		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
+		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		Connection sd = null; 
@@ -962,7 +965,7 @@ public class UploadFiles extends Application {
 		/*
 		 * Find surveys that use this CSV file
 		 */
-		if(sId > 0) {  // TODO A specific survey has been requested
+		if(sId > 0) { 
 
 			applyCSVChangesToSurvey(connectionSD,  cResults, localisation, user, sId, csvFileName, csvFile, oldCsvFile);
 
