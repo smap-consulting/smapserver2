@@ -14,6 +14,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.ChangeItem;
@@ -1271,20 +1272,24 @@ public class QuestionManager {
 		cs.source = "file";
 		cs.items = new ArrayList<ChangeItem> ();
 
-		GeneralUtilityMethods.getOptionsFromFile(
-				sd,
-				localisation,
-				user,
-				sId,
-				cs.items,
-				csvFile,
-				oldCsvFile,
-				csvFileName,
-				q.name,
-				q.l_id,
-				q.id,
-				q.type,
-				q.appearance);
+		try {
+			GeneralUtilityMethods.getOptionsFromFile(
+					sd,
+					localisation,
+					user,
+					sId,
+					cs.items,
+					csvFile,
+					oldCsvFile,
+					csvFileName,
+					q.name,
+					q.l_id,
+					q.id,
+					q.type,
+					q.appearance);
+		} catch (ApplicationWarning w) {
+			// ignore warnings
+		}
 
 		return cs;
 	}

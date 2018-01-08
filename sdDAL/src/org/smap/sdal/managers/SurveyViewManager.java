@@ -170,7 +170,9 @@ public class SurveyViewManager {
 				TableColumn c = columnList.get(i);
 				if(keepThis(c.name)) {
 					TableColumn tc = new TableColumn(c.name, c.humanName);
-					tc.hide = hideDefault(c.humanName);
+					if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
+						tc.hide = hideDefault(c.humanName);
+					}
 					tc.filter = c.filter;
 					tc.type = c.type;
 					tc.l_id = c.l_id;
