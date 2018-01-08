@@ -22,15 +22,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.time.ZoneId;
-
-
-//import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-//import org.apache.poi.ss.usermodel.Workbook;
-//import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
@@ -60,20 +52,20 @@ public class XLSReportsManager {
 	Workbook wb = null;
 	boolean isXLSX = false;
 	int rowNumber = 1;		// Heading row is 0
+	ResourceBundle localisation = null;
 	
 	private class Column {
 		String name;
-		String human_name;
+		String humanName;
 		int dataIndex;
 		int colIndex;
 		String type;
 		
-		public Column(ResourceBundle localisation, int dataIndex, String n, String type, int colIndex) {
+		public Column(int dataIndex, String name, String humanName, String type, int colIndex) {
 			this.dataIndex = dataIndex;
 			this.colIndex = colIndex;
-			name = n;
-			//human_name = localisation.getString(n);
-			human_name = n;		// Need to work out how to use translations when the file needs to be imported again
+			this.name = name;
+			this.humanName = humanName;		// Need to work out how to use translations when the file needs to be imported again
 			this.type = type;
 		}
 		
@@ -106,16 +98,18 @@ public class XLSReportsManager {
 			ArrayList<ChartData> chartDataArray,
 			ArrayList<KeyValue> settings,
 			SurveyViewDefn mfc,
-			ResourceBundle localisation, 
+			ResourceBundle l, 
 			String tz) throws IOException {
 		
+		this.localisation = l;
 		Sheet dataSheet = wb.createSheet("data");
 		Sheet taskSettingsSheet = wb.createSheet("settings");
 		//taskListSheet.createFreezePane(3, 1);	// Freeze header row and first 3 columns
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
-		ArrayList<Column> cols = getColumnList(mfc, dArray, localisation);
+		ArrayList<Column> cols = getColumnList(mfc, dArray);
+		
 		createHeader(cols, dataSheet, styles);	
 		processDataListForXLS(dArray, dataSheet, taskSettingsSheet, styles, cols, tz, settings);
 		
@@ -201,8 +195,7 @@ public class XLSReportsManager {
 	 * Get the columns for the data sheet
 	 */
 	private ArrayList<Column> getColumnList(SurveyViewDefn mfc, 
-			ArrayList<ArrayList<KeyValue>> dArray, 
-			ResourceBundle localisation) {
+			ArrayList<ArrayList<KeyValue>> dArray) {
 		
 		ArrayList<Column> cols = new ArrayList<Column> ();
 		ArrayList<KeyValue> record = null;
@@ -219,7 +212,7 @@ public class XLSReportsManager {
 				if(record != null) {
 					dataIndex = getDataIndex(record, tc.humanName);
 				}
-				cols.add(new Column(localisation, dataIndex, tc.humanName, tc.type, colIndex++));
+				cols.add(new Column(dataIndex, tc.name, tc.humanName, tc.type, colIndex++));
 			}
 		}
 	
@@ -259,7 +252,7 @@ public class XLSReportsManager {
 			
             Cell cell = headerRow.createCell(i);
             cell.setCellStyle(headerStyle);
-            cell.setCellValue(col.human_name);
+            cell.setCellValue(col.humanName);
         }
 	}
 	
@@ -283,7 +276,10 @@ public class XLSReportsManager {
 			ArrayList<KeyValue> record = dArray.get(index);
 			for(Column col : cols) {
 				Cell cell = row.createCell(col.colIndex);
-				String value = record.get(col.dataIndex).v;
+				String value = "error";
+				if(col.dataIndex >= 0) {
+					value = record.get(col.dataIndex).v;
+				}
 				
 				cell.setCellStyle(styles.get("default"));	
 				

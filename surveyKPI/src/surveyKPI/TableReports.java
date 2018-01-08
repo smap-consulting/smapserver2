@@ -95,8 +95,6 @@ public class TableReports extends Application {
 			@FormParam("settings") String settingsString
 			) throws Exception { 
 		
-		System.out.println("Chart data: " + chartData);
-		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-tables");
 		boolean superUser = false;
@@ -123,16 +121,15 @@ public class TableReports extends Application {
 		try {
 			
 			// Localisation
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			
-			Locale locale = new Locale(organisation.locale);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Get columns
-			SurveyViewManager qm = new SurveyViewManager(localisation);
-			SurveyViewDefn mfc = qm.getSurveyView(sd, cResults, uId, 0, sId, managedId, request.getRemoteUser(), oId, superUser);
+			SurveyViewManager svm = new SurveyViewManager(localisation);
+			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, 0, sId, managedId, request.getRemoteUser(), oId, superUser);
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;
