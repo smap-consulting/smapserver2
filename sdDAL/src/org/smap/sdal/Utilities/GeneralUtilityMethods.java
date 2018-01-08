@@ -4092,7 +4092,7 @@ public class GeneralUtilityMethods {
 								manifestType = "linked";
 							} else if (filename.startsWith("chart_s")) { // Linked chart type data
 								
-								manifestType = "chart";
+								manifestType = "linked";
 								filename += "_" + getKeyQuestionPulldata(criteria);		// Each key needs its own file
 							} else {
 								filename += ".csv";
@@ -4262,6 +4262,47 @@ public class GeneralUtilityMethods {
 			refQuestions.add(param);
 		}
 		return refQuestions;
+	}
+	
+	/*
+	 * Get the question that is used as a key in a pulldata chart function embedded in a calculate
+	 */
+	private static String getKeyQuestionCalculate(String calculate) {
+		
+		String key = null;
+		
+		if (calculate != null && calculate.toLowerCase().trim().contains("pulldata(")) {
+
+			// Yes it references a manifest
+			// Get first pulldata functions from this calculate - Assume only one pulldata containing time series
+
+			int idx1 = calculate.indexOf("pulldata");
+			while (idx1 >= 0) {
+				idx1 = calculate.indexOf('(', idx1);
+				int idx2 = calculate.indexOf(')', idx1);
+				if (idx1 >= 0 && idx2 > idx1) {
+					String criteriaString = calculate.substring(idx1 + 1, idx2);
+
+					String criteria[] = criteriaString.split(",");
+
+					if (criteria.length > 0) {
+
+						if (criteria[0] != null && criteria[0].length() > 2) { // allow for quotes
+							String filename = criteria[0].trim();
+							filename = filename.substring(1, filename.length() - 1);
+
+							if (filename.startsWith("chart_s")) { // Linked chart type data
+								
+								key = getKeyQuestionPulldata(criteria);		// Each key needs its own file
+								break;
+							}
+						}
+					}
+					idx1 = calculate.indexOf("pulldata(", idx2);
+				}
+			}
+		}
+		return key;
 	}
 	
 	/*
@@ -5098,6 +5139,10 @@ public class GeneralUtilityMethods {
 		resp = resp.replaceAll("linked_self", "linked_" + sIdent);
 		resp = resp.replaceAll("linked_s_pd_self", "linked_s_pd_" + sIdent);
 		resp = resp.replaceAll("chart_self", "chart_" + sIdent);
+		String key = getKeyQuestionCalculate(in);
+		if(key != null) {
+			resp = resp.replaceAll("chart_" + sIdent, "chart_" + sIdent + "_" + key);
+		}
 
 		return resp;
 	}

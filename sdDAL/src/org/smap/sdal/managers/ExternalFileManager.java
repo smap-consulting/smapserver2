@@ -121,11 +121,12 @@ public class ExternalFileManager {
 
 			ArrayList<String> uniqueColumns = new ArrayList<String>();
 			/*
-			 * Get parameters There are two types of linked CSV files generated 1. Parent
-			 * child records where there can be many records from a sub form that match the
-			 * key. Filename starts with "linked_s_pd_" (PD_IDENT) 2. Normal lookup where
-			 * there is only one record that should match a key. Filename starts with
-			 * "linked_"
+			 * Get parameters There are two types of linked CSV files generated 
+			 * 1. Parent child records where there can be many records from a sub form that match the
+			 *  key. Filename starts with "linked_s_pd_" (PD_IDENT) 
+			 * 2. Normal lookup where there is only one record that should match a key. Filename starts with
+			 *  "linked_"
+			 * 3. Time series data.  Filename starts with "chart_s"
 			 */
 			if (filename.startsWith(PD_IDENT)) {
 				linked_s_pd = true;
@@ -302,7 +303,7 @@ public class ExternalFileManager {
 
 					bw.flush();
 					bw.close();
-				} else if(chart) {
+				} else if (chart) {
 					log.info("create linked file for chart: " + sIdent);
 					HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
 					
@@ -335,6 +336,7 @@ public class ExternalFileManager {
 							// A new data key
 							if(currentDkv != null) {
 								writeChartRecords(sqlDef.colNames, chartData, bw, currentDkv, chart_key);
+								chartData = new HashMap<String, ArrayList<String>> ();
 							}
 							currentDkv = dkv;
 						}
@@ -442,12 +444,14 @@ public class ExternalFileManager {
 				if(!col.equals(chart_key)) {
 					bw.write(",");
 					ArrayList<String> vList = data.get(col);
-					int idx = 0;
-					for(String v : vList) {
-						if(idx++ > 0) {
-							bw.write(":");
+					if(vList != null) {
+						int idx = 0;
+						for(String v : vList) {
+							if(idx++ > 0) {
+								bw.write(":");
+							}
+							bw.write(v);
 						}
-						bw.write(v);
 					}
 				}
 			

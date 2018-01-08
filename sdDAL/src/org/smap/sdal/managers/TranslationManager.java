@@ -165,11 +165,7 @@ public class TranslationManager {
 							manifests.add(m);
 						}
 					} else {
-						if(m.fileName.startsWith("chart_s")) {
-							m.type = "chart";
-						} else {
-							m.type = "linked";
-						}
+						m.type = "linked";
 						m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
 						manifests.add(m);
 					}				

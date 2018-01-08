@@ -162,7 +162,7 @@ public class FormsManifest {
 					filepath = m.filePath;
 				}
 				
-				log.info("Geting manifest at: " + filepath);
+				log.info("Getting manifest at: " + filepath);
 				
 				// Check that the file exists
 				if(filepath != null) {
