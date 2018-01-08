@@ -93,6 +93,8 @@ public class ExternalFileManager {
 
 		ResultSet rs = null;
 		boolean linked_s_pd = false;
+		boolean chart = false;
+		String chart_key = null;
 		String sIdent = null;
 		int linked_sId = 0;
 		String data_key = null;
@@ -164,9 +166,16 @@ public class ExternalFileManager {
 					throw new Exception("Pulldata data_key not found");
 				}
 
-			} else {
+			} else if (filename.startsWith("linked_s")){
 				int idx = filename.indexOf('_');
 				sIdent = filename.substring(idx + 1);
+			} else if (filename.startsWith("chart_s")) {  // Form: chart_sxx_yyyy_keyname we want sxx_yyyy
+				chart = true;
+				int idx1 = filename.indexOf('_');
+				int idx2 = filename.indexOf('_', idx1 + 1);
+				idx2 = filename.indexOf('_', idx2 + 1);
+				sIdent = filename.substring(idx1 + 1, idx2);
+				chart_key = filename.substring(idx2 + 1);
 			}
 
 			if (sIdent != null && sIdent.equals("self")) {
@@ -293,6 +302,63 @@ public class ExternalFileManager {
 
 					bw.flush();
 					bw.close();
+				} else if(chart) {
+					log.info("create linked file for chart: " + sIdent);
+					HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
+					
+					if(rs != null) {
+						rs.close();
+					}
+					rs = pstmtData.executeQuery();
+
+					BufferedWriter bw = new BufferedWriter(
+							new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
+
+					// Write header
+					bw.write(chart_key);
+					
+					for (int i = 0; i < sqlDef.colNames.size(); i++) {
+						String col = sqlDef.colNames.get(i);
+						if(!col.equals(chart_key)) {
+							bw.write(",");
+							bw.write(col);
+						}
+					}
+					bw.newLine();
+
+					// Write data
+					String currentDkv = null; // Current value of the data key
+					String dkv = null;
+					while (rs.next()) {
+						dkv = rs.getString(chart_key);
+						if (dkv != null && !dkv.equals(currentDkv)) {
+							// A new data key
+							if(currentDkv != null) {
+								writeChartRecords(sqlDef.colNames, chartData, bw, currentDkv, chart_key);
+							}
+							currentDkv = dkv;
+						}
+
+						for (int i = 0; i < sqlDef.colNames.size(); i++) {
+							String col = sqlDef.colNames.get(i);
+							if(!col.equals(chart_key)) {
+								ArrayList<String> vList = chartData.get(col);
+								if(vList == null) {
+									vList = new ArrayList<String> ();
+									chartData.put(col, vList);
+								}
+								vList.add(rs.getString(col));
+								
+							}
+						}
+
+					}
+
+					// Write the records for the final key
+					writeChartRecords(sqlDef.colNames, chartData, bw, currentDkv, chart_key);
+
+					bw.flush();
+					bw.close();
 				} else {
 					// Use PSQL to generate the file as it is faster
 					int code = 0;
@@ -364,6 +430,31 @@ public class ExternalFileManager {
 			bw.newLine();
 		}
 	}
+	
+	/*
+	 * Write timeseries data
+	 */
+	private void writeChartRecords(ArrayList<String> cols, HashMap<String, ArrayList<String>> data, BufferedWriter bw,
+			String dkv, String chart_key) throws IOException {
+
+			bw.write(dkv);
+			for(String col : cols) {
+				if(!col.equals(chart_key)) {
+					bw.write(",");
+					ArrayList<String> vList = data.get(col);
+					int idx = 0;
+					for(String v : vList) {
+						if(idx++ > 0) {
+							bw.write(":");
+						}
+						bw.write(v);
+					}
+				}
+			
+			bw.newLine();
+		}
+	}
+
 
 	/*
 	 * Return true if the file needs to be regenerated If regeneration is required

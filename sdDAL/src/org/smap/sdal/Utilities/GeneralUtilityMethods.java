@@ -3971,6 +3971,11 @@ public class GeneralUtilityMethods {
 							if (appFilename.endsWith("self")) {
 								appFilename = appFilename.replace("self", sIdent);
 							}
+							if(appFilename.startsWith("chart_s")) {
+								// Add key
+								appFilename += "_";
+								appFilename += GeneralUtilityMethods.getKeyQuestionPulldata(criteria);
+							}
 							if (filename.equals(appFilename)) { // We want this one
 								log.info("We have found a manifest link to " + filename);
 
