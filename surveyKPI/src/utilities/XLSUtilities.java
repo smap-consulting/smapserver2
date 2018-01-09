@@ -226,7 +226,7 @@ public class XLSUtilities {
 					if(exists == null) {
 						header.put(name, i);
 					} else {
-						throw getApplicationException(localisation, "tu_dh", rowNumber, sheet, name, null);
+						throw getApplicationException(localisation, "tu_dh", rowNumber, sheet, name, null, null);
 					}
 				}
 			}
@@ -334,7 +334,13 @@ public class XLSUtilities {
 		return value;
 	}
 
-	public static ApplicationException getApplicationException(ResourceBundle localisation, String code, int row, String sheet, String param1, String param2) {
+	public static ApplicationException getApplicationException(ResourceBundle localisation, 
+			String code, 
+			int row, 
+			String sheet, 
+			String param1, 
+			String param2,
+			String param3) {
 
 		StringBuffer buf = null;
 		if(row >= 0) {
@@ -351,10 +357,17 @@ public class XLSUtilities {
 		if(param1 != null) {
 			msg = msg.replace("%s1", param1);
 		}
+		
 		msg = msg.replace("%s2", sheet);
+		
 		if(param2 != null) {
 			msg = msg.replace("%s3", param2);
 		}
+		
+		if(param3 != null) {
+			msg = msg.replace("%s4", param3);
+		}
+		
 
 		return new ApplicationException(msg);
 	}
