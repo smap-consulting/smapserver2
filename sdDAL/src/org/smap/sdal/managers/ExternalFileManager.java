@@ -231,7 +231,7 @@ public class ExternalFileManager {
 
 				// 5. Get the sql
 				RoleManager rm = new RoleManager();
-				SqlDef sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, userName, rm);
+				SqlDef sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, userName, rm, chart_key);
 				pstmtData = cRel.prepareStatement(sqlDef.sql);
 				int paramCount = 1;
 				if (sqlDef.hasRbacFilter) {
@@ -338,8 +338,8 @@ public class ExternalFileManager {
 								writeChartRecords(sqlDef.colNames, chartData, bw, currentDkv, chart_key);
 								chartData = new HashMap<String, ArrayList<String>> ();
 							}
-							currentDkv = dkv;
 						}
+						currentDkv = dkv;
 
 						for (int i = 0; i < sqlDef.colNames.size(); i++) {
 							String col = sqlDef.colNames.get(i);
@@ -439,24 +439,23 @@ public class ExternalFileManager {
 	private void writeChartRecords(ArrayList<String> cols, HashMap<String, ArrayList<String>> data, BufferedWriter bw,
 			String dkv, String chart_key) throws IOException {
 
-			bw.write(dkv);
-			for(String col : cols) {
-				if(!col.equals(chart_key)) {
-					bw.write(",");
-					ArrayList<String> vList = data.get(col);
-					if(vList != null) {
-						int idx = 0;
-						for(String v : vList) {
-							if(idx++ > 0) {
-								bw.write(":");
-							}
-							bw.write(v);
+		bw.write(dkv);
+		for(String col : cols) {
+			if(!col.equals(chart_key)) {
+				bw.write(",");
+				ArrayList<String> vList = data.get(col);
+				if(vList != null) {
+					int idx = 0;
+					for(String v : vList) {
+						if(idx++ > 0) {
+							bw.write(":");
 						}
+						bw.write(v);
 					}
 				}
-			
-			bw.newLine();
+			}
 		}
+		bw.newLine();
 	}
 
 
@@ -551,9 +550,12 @@ public class ExternalFileManager {
 	 * generator from SDAL
 	 */
 	private SqlDef getSql(Connection sd, int sId, ArrayList<String> qnames, boolean linked_s_pd, String data_key,
-			String user, RoleManager rm) throws SQLException {
+			String user, RoleManager rm, String chart_key) throws SQLException {
 
-		StringBuffer sql = new StringBuffer("select distinct ");
+		StringBuffer sql = new StringBuffer("select ");
+		if(chart_key == null) {		// Time series data should not be made distinct
+			sql.append("distinct ");
+		}
 		StringBuffer where = new StringBuffer("");
 		StringBuffer tabs = new StringBuffer("");
 		StringBuffer order_cols = new StringBuffer("");
@@ -663,7 +665,11 @@ public class ExternalFileManager {
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
-			if (linked_s_pd) {
+			if(chart_key != null) {
+				sql.append(" order by ");
+				sql.append(chart_key);
+				sql.append(" asc");
+			} else if (linked_s_pd) {
 				sql.append(" order by _data_key");
 				if (subTables.size() > 0) {
 					for (String subTable : subTables) {

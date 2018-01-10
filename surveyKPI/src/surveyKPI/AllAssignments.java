@@ -1099,6 +1099,10 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtGetChoices = null;
 
 		PreparedStatement pstmtDeleteExisting = null;
+		
+		// SQL to clear entries in linked_forms that controls csv regeneration
+		String sqlDelLinks = "delete from linked_forms where linked_s_id = ? ";
+		PreparedStatement pstmtDelLinks = null;
 
 		String uploadedFileName = null;
 		String fileName = null;
@@ -1331,7 +1335,14 @@ public class AllAssignments extends Application {
 					responseMsg.add(localisation.getString("imp_no_file") + ": " + formDesc.name);
 					log.info("No file of data for form: " + formDesc.name);
 				}
-			}				
+			}		
+			
+			/*
+			 * Clear any entries in linked_forms for this survey so that CSV files will be regenerated
+			 */
+			pstmtDelLinks = sd.prepareStatement(sqlDelLinks);
+			pstmtDelLinks.setInt(1, sId);
+			pstmtDelLinks.executeUpdate();
 
 			results.commit();
 
@@ -1384,6 +1395,7 @@ public class AllAssignments extends Application {
 			try {if (pstmtGetCol != null) {pstmtGetCol.close();}} catch (SQLException e) {}
 			try {if (pstmtGetChoices != null) {pstmtGetChoices.close();}} catch (SQLException e) {}
 			try {if (pstmtDeleteExisting != null) {pstmtDeleteExisting.close();}} catch (SQLException e) {}
+			try {if (pstmtDelLinks != null) {pstmtDelLinks.close();}} catch (SQLException e) {}
 
 			try {results.setAutoCommit(true);} catch (SQLException e) {}
 
