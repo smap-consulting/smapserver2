@@ -1126,8 +1126,6 @@ public class XLSTemplateUploadManager {
 					// remove sub functions
 					int depth = 0;
 					boolean end = false;
-					System.out.println("no text: " + noText);
-					System.out.println("Start: " + matcher.start());
 					for(int i = matcher.start(); i < noText.length(); i++) {
 						if(noText.charAt(i) == '(') {
 							depth++;
@@ -1144,10 +1142,8 @@ public class XLSTemplateUploadManager {
 							break;
 						}
 					}
-					System.out.println("To test: " + toTest);
 					
 					String[] args = toTest.toString().split(",");
-					System.out.println("Number of args for: " + matched + " is " + args.length);
 					if(args.length != f.args) {
 						throw XLSUtilities.getApplicationException(localisation, "tu_args", rowNumber, "survey", column, 
 								f.name, f.template);

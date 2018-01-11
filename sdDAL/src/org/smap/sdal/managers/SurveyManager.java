@@ -2692,7 +2692,6 @@ public class SurveyManager {
 			}
 
 			if(instanceId != null || parentKey > 0) {
-				String instanceName = null;
 				for(Question q : questions) {
 					String col = null;
 
@@ -2706,17 +2705,12 @@ public class SurveyManager {
 
 								col = "ST_AsGeoJSON(" + q.columnName + ", 5)";
 
-							} else if(qType.equals("select")){
+							} else if(qType.equals("select") && !q.compressed){
 								continue;	// Select data columns are retrieved separately as there are multiple columns per question
 							} else {
 								col = q.columnName;
 							}
 
-							// _instanceid is the legacy name for the instanceid column
-							// instanceid the standard name adopted by odk
-							if (col.equals("_instanceid") || col.equals("instanceid")) {
-								instanceName = col;
-							}
 							sql += "," + col;
 						}
 					}
@@ -2859,7 +2853,8 @@ public class SurveyManager {
 			String qSource = q.source;
 			String listName = q.list_name;
 			String appearance = q.appearance;
-
+			boolean compressed = q.compressed;
+			
 			if(qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {	
 				Form subForm = s.getSubForm(form, q);
 
@@ -2895,7 +2890,7 @@ public class SurveyManager {
 				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance));
 				index--;		// Decrement the index as the end group was not in the SQL query
 
-			} else if(qType.equals("select")) {		// Get the data from all the option columns
+			} else if(qType.equals("select") && !compressed) {		// Get the data from all the option columns
 
 				String sqlSelect = "select ";
 				ArrayList<Option> options = new ArrayList<Option>(q.getValidChoices(s));
@@ -2936,11 +2931,38 @@ public class SurveyManager {
 					} 
 					nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
 
-
 				}
 				record.add(nr);	
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
+
+			} else if(qType.equals("select") && compressed) {		// Get the data from all the option columns
+
+				ArrayList<Option> options = new ArrayList<Option>(q.getValidChoices(s));
+				Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance);
+				String value = "";
+				if(resultSet != null) {
+					value = resultSet.getString(index);
+				}
+				if(value != null) {
+					String [] valuesSet = value.split(" ");
+	
+					int oIdx = -1;
+					for(Option option : options) {
+						oIdx++;
+						boolean optSet = false;
+						for(int i = 0; i  < valuesSet.length; i++) {
+							
+							if(option.value.equals(valuesSet[i])) {
+								optSet = true;
+								break;
+							}
+						}
+						nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
+					}
+				}
+				record.add(nr);	
+
 
 			} else if(qType.equals("select1")) {		// Get the data from all the option columns
 
