@@ -112,7 +112,7 @@ public class OrganisationList extends Application {
 					+ "allow_twitter, "
 					+ "can_edit, "
 					+ "ft_delete,"
-					+ "ft_send_trail,"
+					+ "ft_send_location,"
 					+ "ft_sync_incomplete,"
 					+ "ft_odk_style_menus,"
 					+ "ft_specify_instancename,"
@@ -152,7 +152,7 @@ public class OrganisationList extends Application {
 				org.allow_twitter = resultSet.getBoolean("allow_twitter"); 
 				org.can_edit = resultSet.getBoolean("can_edit");
 				org.ft_delete = resultSet.getString("ft_delete");
-				org.ft_send_trail = resultSet.getBoolean("ft_send_trail");
+				org.ft_send_location = resultSet.getString("ft_send_location");
 				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
 				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
 				org.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
@@ -329,7 +329,7 @@ public class OrganisationList extends Application {
 		aAdmin.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
-		String sql = "select ft_delete, ft_send_trail, ft_odk_style_menus, "
+		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
 				+ "ft_specify_instancename, ft_admin_menu,"
 				+ "ft_review_final, ft_send, ft_number_tasks "
 				+ "from organisation "
@@ -348,7 +348,7 @@ public class OrganisationList extends Application {
 			if(rs.next()) {
 				DeviceSettings d = new DeviceSettings();
 				d.ft_delete = rs.getString(1);
-				d.ft_send_trail = rs.getBoolean(2);
+				d.ft_send_location= rs.getString(2);
 				d.ft_odk_style_menus = rs.getBoolean(3);
 				d.ft_specify_instancename = rs.getBoolean(4);
 				d.ft_admin_menu = rs.getBoolean(5);
@@ -390,7 +390,7 @@ public class OrganisationList extends Application {
 		String sql = "update organisation set " +
 			
 				" ft_delete = ?, " +
-				" ft_send_trail = ?, " +
+				" ft_send_location = ?, " +
 				" ft_odk_style_menus = ?, " +
 				" ft_specify_instancename = ?, " +
 				" ft_admin_menu = ?, " +
@@ -408,7 +408,7 @@ public class OrganisationList extends Application {
 			DeviceSettings d = new Gson().fromJson(settings, DeviceSettings.class);
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, d.ft_delete);
-			pstmt.setBoolean(2, d.ft_send_trail);
+			pstmt.setString(2, d.ft_send_location);
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
 			pstmt.setBoolean(4, d.ft_specify_instancename);
 			pstmt.setBoolean(5, d.ft_admin_menu);

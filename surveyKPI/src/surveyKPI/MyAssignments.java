@@ -409,7 +409,7 @@ public class MyAssignments extends Application {
 			tr.settings = new FieldTaskSettings();
 			sql = new StringBuffer("select "
 					+ "o.ft_delete,"
-					+ "o.ft_send_trail, "
+					+ "o.ft_send_location, "
 					+ "o.ft_sync_incomplete, "
 					+ "o.ft_odk_style_menus, "
 					+ "o.ft_specify_instancename, "
@@ -428,7 +428,7 @@ public class MyAssignments extends Application {
 			if(resultSet.next()) {
 				tr.settings.ft_delete = resultSet.getString(1);
 				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete);
-				tr.settings.ft_send_trail = resultSet.getBoolean(2);
+				tr.settings.ft_send_location = resultSet.getString(2);
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
 				tr.settings.ft_specify_instancename = resultSet.getBoolean(5);

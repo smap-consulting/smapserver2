@@ -3,7 +3,7 @@ package taskModel;
 public class FieldTaskSettings {
 	public boolean ft_delete_submitted;	// deprecated
 	public String ft_delete;
-	public boolean ft_send_trail;
+	public String ft_send_location;
 	public boolean ft_location_trigger;
 	public boolean ft_sync_incomplete;
 	public boolean ft_odk_style_menus;

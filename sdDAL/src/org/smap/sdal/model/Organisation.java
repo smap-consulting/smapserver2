@@ -30,7 +30,7 @@ public class Organisation {
 	public boolean allow_twitter;
 	public boolean can_edit;
 	public String ft_delete;
-	public boolean ft_send_trail;
+	public String ft_send_location;
 	public boolean ft_sync_incomplete;
 	public boolean ft_odk_style_menus;
 	public boolean ft_specify_instancename;
