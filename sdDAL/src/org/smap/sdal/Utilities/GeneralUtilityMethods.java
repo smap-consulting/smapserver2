@@ -1798,46 +1798,49 @@ public class GeneralUtilityMethods {
 			ArrayList<OptionItem> listDel = new ArrayList<OptionItem>(listOld);
 			listDel.removeAll(listNew);
 
-			/*
-			 * Delete Items 
-			 * Do this first as presumably its possible that the new option could have identical identifiers to an 
-			 * option its replacing but with a different label
-			 */
-			log.info("There are " + listDel.size() + " items to delete");
-			for (OptionItem item : listDel) {
-
-				ChangeItem c = new ChangeItem();
-				c.option = new Option();
-				c.option.l_id = l_id;
-				c.qName = qName; // Add for logging
-				c.fileName = csvFileName; // Add for logging
-				c.qType = qType;
-				c.option.value = item.value;
-				c.action = "delete";
-
-				ciList.add(c);
-
-			}
-
-			/*
-			 * Add new items
-			 */
-			log.info("Adding " + listAdd.size() + " items");
-			for (OptionItem item : listAdd) {
-
-				ChangeItem c = new ChangeItem();
-				c.option = new Option();
-				c.option.l_id = l_id;
-				c.qName = qName; // Add for logging
-				c.fileName = csvFileName; // Add for logging
-				c.qType = qType;
-				c.option.externalLabel = item.label;
-				c.option.value = item.value;
-				c.option.cascade_filters = item.filter;
-				c.action = "add";
-
-				ciList.add(c);
-
+			// Add a limit of 100 changes to be applied
+			if(listAdd.size() < 100 && listDel.size() < 100) {
+				/*
+				 * Delete Items 
+				 * Do this first as presumably its possible that the new option could have identical identifiers to an 
+				 * option its replacing but with a different label
+				 */
+				log.info("There are " + listDel.size() + " items to delete");
+				for (OptionItem item : listDel) {
+	
+					ChangeItem c = new ChangeItem();
+					c.option = new Option();
+					c.option.l_id = l_id;
+					c.qName = qName; // Add for logging
+					c.fileName = csvFileName; // Add for logging
+					c.qType = qType;
+					c.option.value = item.value;
+					c.action = "delete";
+	
+					ciList.add(c);
+	
+				}
+	
+				/*
+				 * Add new items
+				 */
+				log.info("Adding " + listAdd.size() + " items");
+				for (OptionItem item : listAdd) {
+	
+					ChangeItem c = new ChangeItem();
+					c.option = new Option();
+					c.option.l_id = l_id;
+					c.qName = qName; // Add for logging
+					c.fileName = csvFileName; // Add for logging
+					c.qType = qType;
+					c.option.externalLabel = item.label;
+					c.option.value = item.value;
+					c.option.cascade_filters = item.filter;
+					c.action = "add";
+	
+					ciList.add(c);
+	
+				}
 			}
 
 		} finally {

@@ -2905,16 +2905,21 @@ public class SurveyManager {
 						hasColumns = true;
 					}
 				}
-				sqlSelect += " from " + form.tableName + " where prikey=" + priKey + ";";
-
+				
 				ResultSet resultSetOptions = null;
-				if(resultSet != null) {
-					if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
-					pstmtSelect = cResults.prepareStatement(sqlSelect);	 
-
-					log.info("Get data from option columns: " + pstmtSelect.toString());
-					resultSetOptions = pstmtSelect.executeQuery();
-					resultSetOptions.next();		// There will only be one record
+				if(hasColumns) {
+					sqlSelect += " from " + form.tableName + " where prikey=" + priKey + ";";
+						
+					if(resultSet != null) {
+						if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
+						pstmtSelect = cResults.prepareStatement(sqlSelect);	 
+	
+						log.info("Get data from option columns: " + pstmtSelect.toString());
+						resultSetOptions = pstmtSelect.executeQuery();
+						resultSetOptions.next();		// There will only be one record
+					}
+				} else {
+					log.info("No published options for question: " + q.name);
 				}
 
 				Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, listName, appearance);

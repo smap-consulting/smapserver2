@@ -79,7 +79,7 @@ public class JdbcQuestionManager {
 			+ ") "
 			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtGetBySurveyId;
 	PreparedStatement pstmtGetByFormId;
@@ -186,19 +186,19 @@ public class JdbcQuestionManager {
 			}
 			
 		}	
-		pstmt.setString(23, nodeset);
-		pstmt.setString(24, nodeset_value);
-		pstmt.setString(25, nodeset_label);
+		pstmt.setString(22, nodeset);
+		pstmt.setString(23, nodeset_value);
+		pstmt.setString(24, nodeset_label);
 		
-		pstmt.setString(26, q.getColumnName(false)); 
-		pstmt.setBoolean(27, q.isPublished());
-		pstmt.setInt(28, q.getListId());  
-		pstmt.setString(29, q.getAutoPlay());
-		pstmt.setString(30, q.getAccuracy());
-		pstmt.setString(31, q.getDataType());
-		pstmt.setBoolean(32, q.isCompressed());
+		pstmt.setString(25, q.getColumnName(false)); 
+		pstmt.setBoolean(26, q.isPublished());
+		pstmt.setInt(27, q.getListId());  
+		pstmt.setString(28, q.getAutoPlay());
+		pstmt.setString(29, q.getAccuracy());
+		pstmt.setString(30, q.getDataType());
+		pstmt.setBoolean(31, q.isCompressed());
 		
-		//log.info("Write question: " + pstmt.toString());
+		log.info("Write question   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx: " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		ResultSet rs = pstmt.getGeneratedKeys();

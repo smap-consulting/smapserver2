@@ -158,7 +158,7 @@ public class PDFSurveyManager {
 			String filename,
 			boolean landscape,					// Set true if landscape
 			HttpServletResponse response,
-			int utcOffset) {
+			int utcOffset) throws Exception {
 
 		if(language != null) {
 			language = language.replace("'", "''");	// Escape apostrophes
@@ -367,10 +367,11 @@ public class PDFSurveyManager {
 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "SQL Error", e);
+			throw e;
 
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-
+			throw e;
 		} finally {
 			if(document != null) try {document.close();} catch (Exception e) {};
 			if(writer != null) try {writer.close();} catch (Exception e) {};
