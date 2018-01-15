@@ -325,7 +325,7 @@ public class QuestionManager {
 
 				// Set the labels
 				if(q.name != null && q.name.trim().length() > 0 && !q.type.equals("end group")) {
-					UtilityMethodsEmail.setLabels(sd, sId, q.fId + "_question_" + columnName, q.labels, pstmtSetLabels);
+					UtilityMethodsEmail.setLabels(sd, sId, q.fId + "_question_" + columnName, q.labels, pstmtSetLabels, false);
 				}
 
 				// Update the survey manifest if this question references CSV files
@@ -958,7 +958,7 @@ public class QuestionManager {
 
 				// Set the labels 
 				if (updateLabels && transId != null && transId.trim().length() > 0) {
-					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels);
+					UtilityMethodsEmail.setLabels(sd, sId, transId, o.labels, pstmtSetLabels, false);
 				}
 			}
 

@@ -424,10 +424,13 @@ public class Survey {
 			for(Form f : forms) {
 				
 				String formName = null;
+				String cleanName = null;
 				if(f.reference) {
-					formName = GeneralUtilityMethods.cleanName(f.referenceName, true, false, false);
+					formName = f.referenceName;
+					cleanName = GeneralUtilityMethods.cleanName(f.referenceName, true, false, false);
 				} else {
-					formName = GeneralUtilityMethods.cleanName(f.name, true, false, false);
+					formName = f.name;
+					cleanName = GeneralUtilityMethods.cleanName(f.name, true, false, false);
 				}			
 				
 				String tableName = null;
@@ -436,7 +439,7 @@ public class Survey {
 				}
 				
 				if(tableName == null) {
-					tableName = "s" + id + "_" + formName;		
+					tableName = "s" + id + "_" + cleanName;		
 				}
 
 				
