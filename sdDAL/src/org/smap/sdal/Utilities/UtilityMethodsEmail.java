@@ -702,7 +702,8 @@ public class UtilityMethodsEmail {
 			int sId, 
 			String textId, 
 			ArrayList<Label> labels,
-			PreparedStatement pstmt) throws SQLException {
+			PreparedStatement pstmt,
+			boolean external) throws SQLException {
 
 		ArrayList<Language> languages = new ArrayList<Language>();
 
@@ -717,6 +718,7 @@ public class UtilityMethodsEmail {
 
 			// Set common values
 			pstmt.setString(2, languages.get(i).name);
+			pstmt.setBoolean(6, external);
 
 			// Update text
 			if(l.text != null ) {

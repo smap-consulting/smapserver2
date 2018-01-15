@@ -8,11 +8,8 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
-
-import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -328,8 +325,8 @@ public class Survey {
 		PreparedStatement pstmtUpdateOption = null;
 		
 		PreparedStatement pstmtSetLabels = null;
-		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
-				"values (?, ?, ?, ?, ?)";
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value, external) " +
+				"values (?, ?, ?, ?, ?, ?)";
 		
 		try {
 			// Creating the option list
@@ -382,7 +379,7 @@ public class Survey {
 						pstmtUpdateOption.executeUpdate();
 						
 						// Write the labels
-						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, pstmtSetLabels);
+						UtilityMethodsEmail.setLabels(sd, id, transId, o.labels, pstmtSetLabels, o.externalFile);
 					}
 					
 				}
@@ -413,8 +410,8 @@ public class Survey {
 		PreparedStatement pstmt = null;
 		
 		PreparedStatement pstmtSetLabels = null;
-		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
-				"values (?, ?, ?, ?, ?)";
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value, external) " +
+				"values (?, ?, ?, ?, ?, ?)";
 		
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -709,7 +706,7 @@ public class Survey {
 			
 			// Write the labels
 			if(transId != null) {
-				UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels);
+				UtilityMethodsEmail.setLabels(sd, id, transId, q.labels, pstmtSetLabels, false);
 			}
 			
 		} finally {

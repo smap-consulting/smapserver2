@@ -1458,7 +1458,7 @@ public class SurveyTemplate {
 			 * Get translations
 			 */
 			tm = new JdbcTranslationManager(sd);
-			List <Translation> tList = tm.getBySurveyId(survey.getId());
+			List <Translation> tList = tm.getBySurveyId(survey.getId(), embedExternalSearch);
 			//List <Translation> tList = tPersist.getBySurvey(survey);
 			for(Translation t : tList) {
 				HashMap<String, HashMap<String, Translation>> languageMap = translations.get(t.getLanguage());
