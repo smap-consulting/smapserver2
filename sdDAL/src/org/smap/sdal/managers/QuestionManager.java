@@ -189,8 +189,8 @@ public class QuestionManager {
 		String sqlGetOldQuestions = "select column_name from question q where q.f_id = ? and q.qname = ? and q.soft_deleted = 'true';";
 
 		PreparedStatement pstmtSetLabels = null;
-		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
-				"values (?, ?, ?, ?, ?)";
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value, external) " +
+				"values (?, ?, ?, ?, ?, ?)";
 		
 		try {
 			pstmtUpdateSeq = sd.prepareStatement(sqlUpdateSeq);
@@ -920,8 +920,8 @@ public class QuestionManager {
 		String sqlUpdateSeq = "update option set seq = seq + 1 where l_id = ? and seq >= ?;";
 
 		PreparedStatement pstmtSetLabels = null;
-		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value) " +
-				"values (?, ?, ?, ?, ?)";
+		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value, external) " +
+				"values (?, ?, ?, ?, ?, ?)";
 		
 		try {
 			pstmtUpdateSeq = sd.prepareStatement(sqlUpdateSeq);
