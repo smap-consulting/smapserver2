@@ -842,7 +842,7 @@ public class XLSResultsManager {
 
 		if(split_locn && value.startsWith("POINT")) {
 
-			String coords [] = getLonLat(value);
+			String coords [] = GeneralUtilityMethods.getLonLat(value);
 
 			if(coords.length > 1) {
 				out.add(new CellItem(coords[1], CellItem.DECIMAL));
@@ -865,7 +865,7 @@ public class XLSResultsManager {
 			out.add(new CellItem("", CellItem.STRING));
 			out.add(new CellItem("", CellItem.STRING));
 		} else if(value.startsWith("POINT")) {
-			String coords [] = getLonLat(value);
+			String coords [] = GeneralUtilityMethods.getLonLat(value);
 			if(coords.length > 1) {
 				out.add(new CellItem("http://www.openstreetmap.org/?mlat=" +
 						coords[1] +
@@ -1389,17 +1389,5 @@ public class XLSResultsManager {
 		return questionText;
 	}
 
-	/*
-	 * Get the longitude and latitude from a WKT POINT
-	 */
-	private String [] getLonLat(String point) {
-		String [] coords = null;
-		int idx1 = point.indexOf("(");
-		int idx2 = point.indexOf(")");
-		if(idx2 > idx1) {
-			String lonLat = point.substring(idx1 + 1, idx2);
-			coords = lonLat.split(" ");
-		}
-		return coords;
-	}
+
 }

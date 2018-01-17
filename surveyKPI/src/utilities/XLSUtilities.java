@@ -32,6 +32,7 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFHyperlink;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 import surveyKPI.ExportSurveyXls;
 
@@ -384,7 +385,29 @@ public class XLSUtilities {
 			int col,
 			boolean isXLSX) {
 		
-		if(value != null && (value.startsWith("https://") || value.startsWith("http://"))) {
+		if(value.startsWith("POINT")) {
+			CreationHelper createHelper = wb.getCreationHelper();
+			String coords [] = GeneralUtilityMethods.getLonLat(value);
+			if(coords.length > 1) {
+				value = "http://www.openstreetmap.org/?mlat=" +
+						coords[1] +
+						"&mlon=" +
+						coords[0] +
+						"&zoom=14";
+				cell.setCellStyle(styles.get("link"));
+				if(isXLSX) {
+					XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
+					url.setAddress(value);
+					cell.setHyperlink(url);
+				} else {
+					HSSFHyperlink url = new HSSFHyperlink(HSSFHyperlink.LINK_URL);
+					url.setAddress(value);
+					cell.setHyperlink(url);
+				}
+			} 
+			cell.setCellValue(value);
+			
+		} else if(value != null && (value.startsWith("https://") || value.startsWith("http://"))) {
 
 			CreationHelper createHelper = wb.getCreationHelper();
 			if(embedImages) {
@@ -480,4 +503,5 @@ public class XLSUtilities {
 			}
 		}        
 	}
+	
 }

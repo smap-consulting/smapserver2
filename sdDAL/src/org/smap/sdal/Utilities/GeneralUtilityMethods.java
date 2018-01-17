@@ -5833,6 +5833,20 @@ public class GeneralUtilityMethods {
 		}
 		return value;
 	}
+	
+	/*
+	 * Get the longitude and latitude from a WKT POINT
+	 */
+	public static String [] getLonLat(String point) {
+		String [] coords = null;
+		int idx1 = point.indexOf("(");
+		int idx2 = point.indexOf(")");
+		if(idx2 > idx1) {
+			String lonLat = point.substring(idx1 + 1, idx2);
+			coords = lonLat.split(" ");
+		}
+		return coords;
+	}
 
 
 }

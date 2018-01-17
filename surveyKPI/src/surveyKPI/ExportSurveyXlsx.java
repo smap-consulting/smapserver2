@@ -14,7 +14,6 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -44,7 +43,6 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
-import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
@@ -204,9 +202,19 @@ public class ExportSurveyXlsx extends Application {
 							sqlDesc.colNames, 
 							merge_select_multiple);	
 		
-					Cell cell = headerRow.createCell(colNumber++);
-					cell.setCellStyle(headerStyle);
-					cell.setCellValue(values.name);
+					if(split_locn && values.name.equals("the_geom")) {
+						Cell cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue("Latitude");
+						
+						cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue("Longitude");
+					} else {
+						Cell cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue(values.name);
+					}
 				}
 				
 				/*
@@ -229,9 +237,59 @@ public class ExportSurveyXlsx extends Application {
 								sqlDesc.colNames, 
 								merge_select_multiple);						
 
-						Cell cell = dataRow.createCell(colNumber++);
-						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-								values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+						if(split_locn && values.value.startsWith("POINT")) {
+
+							String coords [] = GeneralUtilityMethods.getLonLat(values.value);
+
+							if(coords.length > 1) {
+								Cell cell = dataRow.createCell(colNumber++);
+								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[1], 
+										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+								cell = dataRow.createCell(colNumber++);
+								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[0], 
+										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+								//out.add(new CellItem(coords[1], CellItem.DECIMAL));
+								//out.add(new CellItem(coords[0], CellItem.DECIMAL)); 
+							} else {
+								Cell cell = dataRow.createCell(colNumber++);
+								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
+										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
+								cell = dataRow.createCell(colNumber++);
+								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
+										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
+								//out.add(new CellItem(value, CellItem.STRING));
+								//out.add(new CellItem(value, CellItem.STRING));
+							}
+
+
+						} else if(split_locn && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
+
+							// Can't split linestrings and polygons, leave latitude and longitude as blank
+							Cell cell = dataRow.createCell(colNumber++);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
+									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
+							cell = dataRow.createCell(colNumber++);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
+									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
+							//out.add(new CellItem("", CellItem.STRING));
+							//out.add(new CellItem("", CellItem.STRING));
+
+
+						} else if(split_locn && values.type != null & values.type.equals("geopoint") ) {
+							// Geopoint that needs to be split but there is no data
+							Cell cell = dataRow.createCell(colNumber++);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
+									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
+							cell = dataRow.createCell(colNumber++);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
+									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
+							//out.add(new CellItem("", CellItem.STRING));
+							//out.add(new CellItem("", CellItem.STRING));
+						} else {
+							Cell cell = dataRow.createCell(colNumber++);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
+									values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+						}
 					}
 					
 				}
