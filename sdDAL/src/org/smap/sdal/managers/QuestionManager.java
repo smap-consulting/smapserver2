@@ -20,6 +20,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Label;
+import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
@@ -170,9 +171,10 @@ public class QuestionManager {
 				+ "nodeset,"
 				+ "nodeset_value,"
 				+ "nodeset_label,"
-				+ "display_name"
+				+ "display_name,"
+				+ "compressed"
 				+ ") " 
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -319,6 +321,13 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(24, nodeset_value);
 				pstmtInsertQuestion.setString(25, nodeset_label);
 				pstmtInsertQuestion.setString(26, q.display_name);
+				if(q.type.equals("select")) {
+					// Default a select question to compressed if its data comes from a CSV file
+					ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, null);
+					pstmtInsertQuestion.setBoolean(27, q.compressed || mi.changed);
+				} else {
+					pstmtInsertQuestion.setBoolean(27, false);
+				}
 
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1571,7 +1580,8 @@ public class QuestionManager {
 				+ "published,"
 				+ "column_name_applied,"
 				+ "l_id,"
-				+ "display_name)"						// List ids will need to be updated
+				+ "display_name,"
+				+ "compressed)"						// List ids will need to be updated
 
 				 // Get the existing data
 				 + " select "
@@ -1606,7 +1616,8 @@ public class QuestionManager {
 				 + (sharedResults ? "published, " : "'false', ")	// Set to false if this question is for a new table	
 				 + "column_name_applied, "
 				 + "l_id,"
-				 + "display_name "
+				 + "display_name,"
+				 + "compressed"
 
 				 + "from question where f_id = ? "		// Existing form id
 				 + "and soft_deleted = 'false';";	

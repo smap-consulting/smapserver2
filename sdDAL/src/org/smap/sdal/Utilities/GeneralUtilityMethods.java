@@ -1690,6 +1690,41 @@ public class GeneralUtilityMethods {
 			}
 		}
 
+		/*
+		 * Start code_migration compressed
+		 * Important! loading options from a CSV file into choices for a question has been deprecated
+		 * As an interim implementation and select multiple questions that uses a CSV file will be marked as compressed
+		 * This will mean it will not depend on these options to store results
+		 */
+		if(qType.equals("select")) {
+			String sqlHasExternal = "select count(*) from option where l_id = ? and externalfile;";
+			PreparedStatement pstmtHasExternal = null;
+			String sqlSetCompressed = "update question set compressed = 'true' where q_id = ?";
+			PreparedStatement pstmtSetCompressed = null;
+			try {
+				pstmtHasExternal = sd.prepareStatement(sqlHasExternal);
+				pstmtHasExternal.setInt(1, l_id);
+				ResultSet rs = pstmtHasExternal.executeQuery();
+				
+				boolean hasExternals = false;
+				if(rs.next()) {
+					if(rs.getInt(1) > 0) {
+						hasExternals = true;
+					}
+				}
+				if(hasExternals) {
+					pstmtSetCompressed = sd.prepareStatement(sqlSetCompressed);
+					pstmtSetCompressed.setInt(1, qId);
+					pstmtSetCompressed.executeUpdate();
+				}
+			} finally {
+				if(pstmtHasExternal != null) try {pstmtHasExternal.close();} catch(Exception e) {}
+				if(pstmtSetCompressed != null) try {pstmtSetCompressed.close();} catch(Exception e) {}
+			}
+		}
+		/*
+		 * End code Migration
+		 */
 		HashMap<String, String> optionValues = new HashMap<String, String> ();	// Ensure uniqueness of values
 		List<OptionItem> listNew = new ArrayList<OptionItem>();
 		List<OptionItem> listOld = new ArrayList<OptionItem>();

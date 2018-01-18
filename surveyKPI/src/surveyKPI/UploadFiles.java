@@ -126,6 +126,12 @@ public class UploadFiles extends Application {
 		
 		try {
 			
+			connectionSD = SDDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
+			cResults = ResultsDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
+			
+			// Authorisation - Access
+			auth.isAuthorised(connectionSD, request.getRemoteUser());
+			
 			/*
 			 * Parse the request
 			 */
@@ -156,10 +162,6 @@ public class UploadFiles extends Application {
 
 					String fileName = item.getName();
 					fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
-
-					// Authorisation - Access
-					connectionSD = SDDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
-					auth.isAuthorised(connectionSD, request.getRemoteUser());
 					
 					// Get the users locale
 					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
@@ -173,8 +175,6 @@ public class UploadFiles extends Application {
 						auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 					} 
 					// End authorisation
-
-					cResults = ResultsDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
 
 					String basePath = GeneralUtilityMethods.getBasePath(request);
 
@@ -1041,7 +1041,7 @@ public class UploadFiles extends Application {
 				 * Create a changeset
 				 */
 				if(csvFile != null) {
-					if(q.type.startsWith("select")) {		// Only add select multiples to ensure the column names are created
+					if(q.type.startsWith("select")) {
 						ChangeSet cs = qm.getCSVChangeSetForQuestion(connectionSD, 
 								localisation, user, sId, csvFile, oldCsvFile, csvFileName, q);
 						if(cs.items.size() > 0) {
