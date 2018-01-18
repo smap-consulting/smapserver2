@@ -129,8 +129,24 @@ public class UploadFiles extends Application {
 			connectionSD = SDDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
 			cResults = ResultsDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
 			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			// Authorisation - Access
-			auth.isAuthorised(connectionSD, request.getRemoteUser());
+			auth.isAuthorised(connectionSD, request.getRemoteUser());	
+			if(sId > 0) {
+				try {
+					superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+				} catch (Exception e) {
+				}
+				auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+			} 
+			// End authorisation
+
+			
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			MediaInfo mediaInfo = new MediaInfo();
 			
 			/*
 			 * Parse the request
@@ -152,6 +168,14 @@ public class UploadFiles extends Application {
 
 						}
 					}
+					// Check authorisation for this survey id
+					if(sId > 0) {
+						try {
+							superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+						} catch (Exception e) {
+						}
+						auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+					} 
 
 				} else if(!item.isFormField()) {
 					// Handle Uploaded files.
@@ -162,23 +186,7 @@ public class UploadFiles extends Application {
 
 					String fileName = item.getName();
 					fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
-					
-					// Get the users locale
-					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
-					ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-					
-					if(sId > 0) {
-						try {
-							superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
-						} catch (Exception e) {
-						}
-						auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-					} 
-					// End authorisation
 
-					String basePath = GeneralUtilityMethods.getBasePath(request);
-
-					MediaInfo mediaInfo = new MediaInfo();
 					if(sId > 0) {
 						mediaInfo.setFolder(basePath, sId, null, connectionSD);
 					} else {	
@@ -213,25 +221,24 @@ public class UploadFiles extends Application {
 							applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
 						}
 
-						if(getlist) {
-							MediaResponse mResponse = new MediaResponse ();
-							mResponse.files = mediaInfo.get();			
-							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-							String resp = gson.toJson(mResponse);
-							log.info("Responding with " + mResponse.files.size() + " files");
-
-							response = Response.ok(resp).build();
-						} else {
-							response = Response.ok().build();
-						}
 
 					} else {
 						log.log(Level.SEVERE, "Media folder not found");
 						response = Response.serverError().entity("Media folder not found").build();
 					}
-
-
 				}
+			}
+			
+			if(getlist) {
+				MediaResponse mResponse = new MediaResponse ();
+				mResponse.files = mediaInfo.get();			
+				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+				String resp = gson.toJson(mResponse);
+				log.info("Responding with " + mResponse.files.size() + " files");
+
+				response = Response.ok(resp).build();
+			} else {
+				response = Response.ok().build();
 			}
 
 		} catch(Exception ex) {
