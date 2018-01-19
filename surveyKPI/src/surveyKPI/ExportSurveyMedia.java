@@ -64,13 +64,19 @@ import utilities.QuestionInfo;
 @Path("/exportSurveyMedia/{sId}/{filename}")
 public class ExportSurveyMedia extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(ExportSurveyMedia.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	public ExportSurveyMedia() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	
 	/*
 	 * Export media in a zip file

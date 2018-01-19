@@ -69,12 +69,19 @@ import java.util.logging.Logger;
 @Path("/items/{form}")
 public class Items extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Items.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+	
+	public Items() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	
 	/*
 	 * JSON

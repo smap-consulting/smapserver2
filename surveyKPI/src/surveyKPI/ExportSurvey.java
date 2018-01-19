@@ -57,13 +57,20 @@ import org.smap.sdal.model.TableColumn;
 @Path("/exportSurvey/{sId}/{filename}")
 public class ExportSurvey extends Application {
 
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 
 	private static Logger log =
 			Logger.getLogger(ExportSurvey.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
+	public ExportSurvey() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
+	
 	private class RecordDesc {
 		String prikey;
 		String parkey;

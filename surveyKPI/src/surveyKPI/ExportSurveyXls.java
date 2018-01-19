@@ -53,13 +53,19 @@ import utilities.XLSResultsManager;
 @Path("/exportxls/{sId}/{filename}")
 public class ExportSurveyXls extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(ExportSurveyXls.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	public ExportSurveyXls() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 
 	ArrayList<StringBuffer> parentRows = null;
 

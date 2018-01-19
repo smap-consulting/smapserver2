@@ -80,12 +80,14 @@ public class Data extends Application {
 	public Data() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.MANAGE);
 		a = new Authorise(authorisations, null);
 
 		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
 		authorisationsSuper.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
 		authorisationsSuper.add(Authorise.ADMIN);
 		aSuper = new Authorise(authorisations, null);
 

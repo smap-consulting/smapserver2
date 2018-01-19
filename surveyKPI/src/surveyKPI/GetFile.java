@@ -66,6 +66,7 @@ public class GetFile extends Application {
 	public GetFile() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.ENUM);
 		a = new Authorise(authorisations, null);	

@@ -385,7 +385,7 @@ public class XLSUtilities {
 			int col,
 			boolean isXLSX) {
 		
-		if(value.startsWith("POINT")) {
+		if(value != null && value.startsWith("POINT")) {
 			CreationHelper createHelper = wb.getCreationHelper();
 			String coords [] = GeneralUtilityMethods.getLonLat(value);
 			if(coords.length > 1) {

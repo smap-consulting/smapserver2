@@ -59,10 +59,16 @@ import org.w3c.dom.Element;
 @Path("/exportSurveyOSM/{sId}/{filename}")
 public class ExportSurveyOSM extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	public ExportSurveyOSM() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	private static Logger log =
 			 Logger.getLogger(ExportSurveyOSM.class.getName());
 	

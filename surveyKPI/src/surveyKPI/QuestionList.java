@@ -55,11 +55,18 @@ import java.util.logging.Logger;
 @Path("/questionList/{sId}/{language}")
 public class QuestionList extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
 
+	public QuestionList() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
+	
 	/*
 	 * Return a list of all questions in the survey
 	 * Deprecate.  This service has been replaced by the next one. It should be deleted however 

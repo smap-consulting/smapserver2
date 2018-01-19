@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -70,13 +71,19 @@ import net.sourceforge.jeval.Evaluator;
 @Path("/lqasExport/{sId}/{rId}")
 public class ExportLQAS extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(ExportLQAS.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 	
+	public ExportLQAS() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	/*
 	 * Assume:
 	 *  1) LQAS surveys only have one form and this form is the one that has the "lot" question in it

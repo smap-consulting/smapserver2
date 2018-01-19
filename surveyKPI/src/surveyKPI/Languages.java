@@ -53,6 +53,13 @@ public class Languages extends Application {
 	
 	Authorise a = new Authorise(null, Authorise.ANALYST);
 	
+	public Languages() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
+	
 	/*
 	 * Return the list of languages in this survey
 	 */

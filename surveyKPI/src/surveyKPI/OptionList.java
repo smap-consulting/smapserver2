@@ -34,6 +34,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,7 +44,14 @@ import java.util.Set;
 @Path("/optionList/{sId}/{language}/{qId}")
 public class OptionList extends Application {
 
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
+	
+	public OptionList() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	
 	@GET
 	@Produces("application/json")

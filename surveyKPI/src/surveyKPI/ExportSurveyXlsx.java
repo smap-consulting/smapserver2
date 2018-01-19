@@ -58,13 +58,19 @@ import utilities.XLSUtilities;
 @Path("/exportxlsx/{sId}/{filename}")
 public class ExportSurveyXlsx extends Application {
 
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 
 	private static Logger log =
 			Logger.getLogger(ExportSurveyXlsx.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
+	public ExportSurveyXlsx() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	@GET
 	public Response exportSurveyXlsx (@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,

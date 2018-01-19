@@ -50,11 +50,17 @@ import java.util.logging.Logger;
 @Path("/dashboard")
 public class Dashboard extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Dashboard.class.getName());
 	
+	public Dashboard() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	/*
 	 * Get the dashboard settings
 	 * The survey id is obtained from the survey table based on the survey name stored in the
@@ -75,7 +81,6 @@ public class Dashboard extends Application {
 		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
-		String user = request.getRemoteUser();
 		ArrayList<Settings> sArray = new ArrayList<Settings> ();
 
 		ResultSet resultSet = null;

@@ -67,10 +67,17 @@ public class TableReports extends Application {
 	private static Logger log =
 			 Logger.getLogger(TableReports.class.getName());
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	LogManager lm = new LogManager();		// Application log
 
+	public TableReports() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
+	
 	private class Chart {
 		public String title;
 		public String image;

@@ -62,13 +62,19 @@ import com.google.gson.reflect.TypeToken;
 @Path("/deprected/exportSurveyThingsat/{sId}/{filename}")
 public class ExportSurveyThingsat extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	LogManager lm = new LogManager();		// Application log
 	
 	private static Logger log =
 			 Logger.getLogger(ExportSurveyThingsat.class.getName());
 	
+	public ExportSurveyThingsat() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);
+	}
 	/*
 	 * Export as:
 	 *    a) csv files
