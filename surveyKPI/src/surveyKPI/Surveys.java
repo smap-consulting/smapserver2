@@ -80,6 +80,7 @@ public class Surveys extends Application {
 		ArrayList<String> authorisations2 = new ArrayList<String> ();
 		
 		authorisations1.add(Authorise.ANALYST);
+		authorisations1.add(Authorise.VIEW_DATA);
 		authorisations1.add(Authorise.ADMIN);
 		authorisations1.add(Authorise.ENUM);
 		

@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -47,7 +48,7 @@ import org.smap.sdal.managers.PDFSurveyManager;
 import org.smap.sdal.managers.SurveyManager;
 
 /*
- * Creates a PDF template
+ * Downloads a record in PDF format
  * HTML Fragments 
  *   <h3>  - Use for group Labels
  *   .group - group elements
@@ -57,13 +58,19 @@ import org.smap.sdal.managers.SurveyManager;
 @Path("/pdf/{sId}")
 public class CreatePDF extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(CreatePDF.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 
+	public CreatePDF() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		a = new Authorise(authorisations, null);	
+	}
 	
 	@GET
 	@Produces("application/x-download")
