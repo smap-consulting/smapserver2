@@ -43,6 +43,7 @@ import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
@@ -1920,11 +1921,12 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert and audit file into a Hashmap
 	 */
-	public static HashMap<String, Integer> getAudit(File csvFile, ArrayList<String> columns, String auditPath) {
+	public static  void getAudit(File csvFile, ArrayList<String> columns, String auditPath,
+			HashMap<String, Integer> timeReport, HashMap<String, GeoPoint> locationReport) {
 
 		BufferedReader br = null;
-		HashMap<String, Integer> audit = new HashMap<>();
-		HashMap<String, Integer> initAudit = new HashMap<>();
+		HashMap<String, Integer> initTimeAudit = new HashMap<>();
+		HashMap<String, GeoPoint> initLocationAudit = new HashMap<>();
 
 		try {
 			FileReader reader = new FileReader(csvFile);
@@ -1938,7 +1940,7 @@ public class GeneralUtilityMethods {
 			while (line != null) {
 				String[] auditCols = parser.parseLine(line);
 				int time = 0;
-				if (auditCols.length > 2 && auditCols[0] != null && auditCols[0].equals("question")) {
+				if (auditCols.length >= 4 && auditCols[0] != null && auditCols[0].equals("question")) {
 					String id = auditCols[1];
 					if (id != null) {
 						id = id.trim();
@@ -1950,7 +1952,22 @@ public class GeneralUtilityMethods {
 									BigInteger to = new BigInteger(auditCols[3]);
 									BigInteger diff = to.subtract(from);
 									time = diff.intValue();
-									initAudit.put(name, time);
+									
+									// Timer audit value based on total time in the question
+									int t = 0;
+									Integer currentTime = initTimeAudit.get(name);
+									if(currentTime != null) {
+										t = currentTime.intValue();
+									}
+									initTimeAudit.put(name, t + time);
+									
+									// Location audit value based on location of last entry into the question
+									if(auditCols.length >= 6) {
+										Double lat = new Double(auditCols[4]);
+										Double lon = new Double(auditCols[5]);
+										initLocationAudit.put(name, new GeoPoint(lat, lon));
+									}
+									
 								} catch (Exception e) {
 									log.info("Error: invalid audit line: " + e.getMessage() + " : " + line);
 								}
@@ -1970,11 +1987,16 @@ public class GeneralUtilityMethods {
 				if (!col.startsWith("_") && !col.equals("meta")) {
 					int t = 0;
 					try {
-						t = initAudit.get(col);
+						t = initTimeAudit.get(col);
 					} catch (Exception e) {
 						// ignore errors time will be set to 0
 					}
-					audit.put(col, t);
+					timeReport.put(col, t);
+					
+					GeoPoint g = initLocationAudit.get(col);
+					if(g != null) {
+						locationReport.put(col,  g);
+					}
 				}
 			}
 
@@ -1988,7 +2010,6 @@ public class GeneralUtilityMethods {
 			;
 		}
 
-		return audit;
 	}
 
 	/*

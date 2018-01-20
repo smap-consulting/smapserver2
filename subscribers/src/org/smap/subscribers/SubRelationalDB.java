@@ -50,7 +50,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -815,11 +817,12 @@ public class SubRelationalDB extends Subscriber {
 						String auditString = null;
 						if (gAuditFilePath != null) {
 							File auditFile = new File(gAuditFilePath);
-							HashMap<String, Integer> auditReport = GeneralUtilityMethods.getAudit(auditFile,
-									getColNames(columns), auditPath);
+							Audit audit = new Audit();
+							GeneralUtilityMethods.getAudit(auditFile,
+									getColNames(columns), auditPath, audit.time, audit.location);
 
 							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-							auditString = gson.toJson(auditReport);
+							auditString = gson.toJson(audit);
 						}
 						pstmt.setString(stmtIndex++, auditString);
 					}
