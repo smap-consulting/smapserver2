@@ -175,7 +175,7 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				subscribers = init(sd);		// Get subscribers 
 			} else if(subscriberType.equals("forward")) {
-				subscribers = initForward(sd);		// Get subscribers 
+				subscribers = initForward(sd, localisation);		// Get subscribers 
 			} else {
 				log.info("Unknown subscriber type: " + subscriberType + " known values are upload, forward");
 			}
@@ -760,7 +760,7 @@ public class SubscriberBatch {
 	/*
 	 * Create a Subscriber object for each forwarding subscriber
 	 */
-	public List<Subscriber> initForward(Connection connection) throws SQLException {
+	public List<Subscriber> initForward(Connection connection, ResourceBundle localisation) throws SQLException {
 
 		List<Subscriber> subscribers = new ArrayList<Subscriber> ();
 
@@ -768,7 +768,7 @@ public class SubscriberBatch {
 		 * This type of subscriber is per link, that is 
 		 * survey -> remote survey so create a subscriber object for each
 		 */
-		NotificationManager fm = new NotificationManager();
+		NotificationManager fm = new NotificationManager(localisation);
 		ArrayList<Notification> forwards = fm.getEnabledNotifications(connection, "forward");
 		for(int i = 0; i < forwards.size(); i++) {
 			Notification f = forwards.get(i);

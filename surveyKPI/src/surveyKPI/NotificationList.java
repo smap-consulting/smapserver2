@@ -27,6 +27,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -101,7 +103,11 @@ public class NotificationList extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
-			NotificationManager nm = new NotificationManager();
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			NotificationManager nm = new NotificationManager(localisation);
 			ArrayList<Notification> nList = nm.getProjectNotifications(connectionSD, pstmt, request.getRemoteUser(), projectId);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -135,7 +141,11 @@ public class NotificationList extends Application {
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-NotificationList-getTypes");	
 		
 		try {
-			NotificationManager fm = new NotificationManager();
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			NotificationManager fm = new NotificationManager(localisation);
 			ArrayList<String> tList = fm.getNotificationTypes(connectionSD);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -302,8 +312,11 @@ public class NotificationList extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {	
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			NotificationManager nm = new NotificationManager();
+			NotificationManager nm = new NotificationManager(localisation);
 			
 			// Validate
 			if(n.target.equals("forward") && nm.isFeedbackLoop(connectionSD, request.getServerName(), n)) {
@@ -379,7 +392,11 @@ public class NotificationList extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
-			NotificationManager nm = new NotificationManager();
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			NotificationManager nm = new NotificationManager(localisation);
 			if(n.target.equals("forward") && nm.isFeedbackLoop(connectionSD, request.getServerName(), n)) {
 				throw new Exception("Survey is being forwarded to itself");
 			}
@@ -437,6 +454,10 @@ public class NotificationList extends Application {
 		// Data level authorisation, is the user authorised to delete this forward
 		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			ResultSet resultSet = null;
 			String sql = "select s_id " +
 					" from forward " +
@@ -451,7 +472,7 @@ public class NotificationList extends Application {
 				int sId = resultSet.getInt(1);
 				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 				a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
-				NotificationManager fm = new NotificationManager();
+				NotificationManager fm = new NotificationManager(localisation);
 				fm.deleteNotification(connectionSD, pstmt, request.getRemoteUser(), id);
 			}
 			

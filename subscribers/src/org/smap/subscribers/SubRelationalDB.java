@@ -303,7 +303,7 @@ public class SubRelationalDB extends Subscriber {
 
 				// Apply notifications
 				String urlprefix = "https://" + server + "/";
-				NotificationManager nm = new NotificationManager();
+				NotificationManager nm = new NotificationManager(localisation);
 				nm.notifyForSubmission(
 						sd, 
 						cResults,
