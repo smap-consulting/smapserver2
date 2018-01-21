@@ -553,7 +553,7 @@ public class SubscriberBatch {
 						if(pstmtCheckNeed != null) {try {pstmtCheckNeed.close();} catch(Exception e) {}}
 					}
 				} else {
-					log.info("=== sync not enabled");
+					// log.info("=== sync not enabled");
 				}
 
 
