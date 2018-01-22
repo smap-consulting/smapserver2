@@ -62,7 +62,7 @@ public class MessagingManagerApply {
 	/*
 	 * Apply any outbound messages
 	 */
-	public void applyOutbound(Connection sd, String serverName) {
+	public void applyOutbound(Connection sd, Connection cResults, String serverName) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -141,8 +141,13 @@ public class MessagingManagerApply {
 					
 				} else if(topic.equals("submission")) {
 					SubmissionMessage sm = gson.fromJson(data, SubmissionMessage.class);
-					
-					System.out.println("xxxxxxxxxxx: Submission message: " + sm);
+			
+					NotificationManager nm = new NotificationManager(localisation);
+					nm.processNotification(
+							sd, 
+							cResults, 
+							organisation, 
+							sm); 
 					
 				} else {
 					// Assume a direct email to be processed immediately

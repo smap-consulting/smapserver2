@@ -115,6 +115,9 @@ public class Server extends Application {
 		
 		PreparedStatement pstmt = null;
 
+		String sqlInsert = "insert into server(smtp_host) values(?)";
+		PreparedStatement pstmtInsert = null;
+		
 		try {
 			
 			// Add the updated data
@@ -127,7 +130,15 @@ public class Server extends Application {
 			pstmt.setString(6, data.mapbox_default);
 			pstmt.setString(7, data.google_key);
 			pstmt.setString(8, data.sms_url);
-			pstmt.executeUpdate();
+			int count = pstmt.executeUpdate();
+			
+			if(count == 0) {
+				
+				pstmtInsert = sd.prepareStatement(sqlInsert);
+				pstmtInsert.setString(1, null);
+				pstmtInsert.executeUpdate();
+				pstmt.executeUpdate();
+			}
 				
 		} catch (Exception e) {
 			String msg = e.getMessage();
@@ -135,6 +146,7 @@ public class Server extends Application {
 			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 		
 			SDDataSource.closeConnection("surveyKPI-AllAssignments-Save Server Settings", sd);
 		}

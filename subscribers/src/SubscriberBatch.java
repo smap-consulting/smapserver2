@@ -370,7 +370,7 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				// Send any pending messages
 				MessagingManagerApply mma = new MessagingManagerApply();
-				mma.applyOutbound(sd, serverName);
+				mma.applyOutbound(sd, cResults, serverName);
 			} else if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, basePath);

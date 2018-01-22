@@ -439,11 +439,9 @@ public class NotificationManager {
 				 * Get survey details
 				 */
 				SurveyManager sm = new SurveyManager(localisation);
-				boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
-				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, remoteUser);
 				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
-						instanceId, true, generateBlank, true, false, true, "real", 
-						false, false, superUser, utcOffset, "geojson");
+						instanceId, true, false, true, false, true, "real", 
+						false, false, false, utcOffset, "geojson");
 				
 				/*
 				 * Test the filter
@@ -470,6 +468,7 @@ public class NotificationManager {
 		
 					SubmissionMessage subMgr = new SubmissionMessage(
 							sId,
+							ident,
 							pId,
 							instanceId, 
 							nd.from,
@@ -478,15 +477,14 @@ public class NotificationManager {
 							nd.attach,
 							nd.emailQuestion,
 							nd.emails,
-							target);
-					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
-					processNotification(sd, 
-							cResults, 
-							organisation, 
+							target,
+							remoteUser,
 							scheme,
 							serverName,
-							basePath, 
-							subMgr, survey, remoteUser, serverRoot, ident); 
+							basePath,
+							serverRoot);
+					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
+					
 				}
 			}
 				
@@ -508,14 +506,7 @@ public class NotificationManager {
 	public void processNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
-			String scheme,
-			String serverName,
-			String basePath, 
-			SubmissionMessage msg, 
-			Survey survey,
-			String remoteUser,
-			String serverRoot,
-			String ident) throws Exception {
+			SubmissionMessage msg) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
@@ -549,6 +540,11 @@ public class NotificationManager {
 			}
 		}
 		
+		SurveyManager sm = new SurveyManager(localisation);
+		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
+				msg.instanceId, true, generateBlank, true, false, true, "real", 
+				false, false, false, utcOffset, "geojson");
+		
 		try {
 			
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
@@ -556,7 +552,6 @@ public class NotificationManager {
 			/*
 			 * Add details from the survey to the subject and email content
 			 */
-			SurveyManager sm = new SurveyManager(localisation);
 			msg.subject = sm.fillStringTemplate(survey, msg.subject);
 			msg.content = sm.fillStringTemplate(survey, msg.content);
 			TextManager tm = new TextManager();
@@ -566,8 +561,8 @@ public class NotificationManager {
 			tm.createTextOutput(sd,
 						cResults,
 						text,
-						basePath, 
-						remoteUser,
+						msg.basePath, 
+						msg.user,
 						survey,
 						utcOffset,
 						"none");
@@ -581,7 +576,7 @@ public class NotificationManager {
 					docURL = null;
 					
 					// Create temporary PDF and get file name
-					filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
+					filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
 					FileOutputStream outputStream = null;
 					try {
 						outputStream = new FileOutputStream(filePath); 
@@ -600,9 +595,9 @@ public class NotificationManager {
 							sd,
 							cResults,
 							outputStream,
-							basePath, 
-							serverRoot,
-							remoteUser,
+							msg.basePath, 
+							msg.serverRoot,
+							msg.user,
 							"none", 
 							survey, 
 							generateBlank,
@@ -614,7 +609,7 @@ public class NotificationManager {
 					logContent = filePath;
 					
 				} else {
-					docURL = "/webForm/" + ident +
+					docURL = "/webForm/" + msg.ident +
 							"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
 					logContent = docURL;
 				}
@@ -627,7 +622,7 @@ public class NotificationManager {
 			String notify_details = null;			// Notification log
 			String error_details = null;				// Notification log
 			if(msg.target.equals("email")) {
-				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, remoteUser);
+				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 					ArrayList<String> emailList = null;
 					log.info("Email question: " + msg.emailQuestion);
@@ -664,14 +659,14 @@ public class NotificationManager {
 					}
 						
 					if(emails.trim().length() > 0) {
-						log.info("userevent: " + remoteUser + " sending email of '" + logContent + "' to " + emails);
+						log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
 						
 						// Set the subject
 						String subject = "";
 						if(msg.subject != null && msg.subject.trim().length() > 0) {
 							subject = msg.subject;
 						} else {
-							if(serverName != null && serverName.contains("smap")) {
+							if(msg.server != null && msg.server.contains("smap")) {
 								subject = "Smap ";
 							}
 							subject += localisation.getString("c_notify");
@@ -713,8 +708,8 @@ public class NotificationManager {
 									filename,
 									organisation.getAdminEmail(), 
 									emailServer,
-									scheme,
-									serverName,
+									msg.scheme,
+									msg.server,
 									localisation);
 						} catch(Exception e) {
 							status = "error";
@@ -767,7 +762,7 @@ public class NotificationManager {
 						for(String sms : smsList) {
 							
 							if(sentEndPoints.get(sms) == null) {
-								log.info("userevent: " + remoteUser + " sending sms of '" + msg.content + "' to " + sms);
+								log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
 								responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
 								sentEndPoints.put(sms, sms);
 							} else {
