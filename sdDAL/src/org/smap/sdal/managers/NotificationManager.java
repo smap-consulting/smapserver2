@@ -506,7 +506,8 @@ public class NotificationManager {
 	public void processNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
-			SubmissionMessage msg) throws Exception {
+			SubmissionMessage msg,
+			int messageId) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
@@ -523,8 +524,8 @@ public class NotificationManager {
 		
 		PreparedStatement pstmtNotificationLog = null;
 		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time) " +
-				"values( ?, ?,?, ?, ?, ?, now()); ";
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
 		
 		// Time Zone
 		int utcOffset = 0;	
@@ -800,6 +801,8 @@ public class NotificationManager {
 				pstmtNotificationLog.setString(4, notify_details);
 				pstmtNotificationLog.setString(5, status);
 				pstmtNotificationLog.setString(6, error_details);
+				pstmtNotificationLog.setInt(7, messageId);
+				
 				pstmtNotificationLog.executeUpdate();
 			}
 		} finally {

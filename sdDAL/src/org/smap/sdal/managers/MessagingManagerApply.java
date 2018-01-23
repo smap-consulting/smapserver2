@@ -147,7 +147,8 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
-							sm); 
+							sm,
+							id); 
 					
 				} else {
 					// Assume a direct email to be processed immediately

@@ -362,7 +362,7 @@ public class EventList extends Application {
 				projSurveySelect = "and n.p_id = ? ";
 			}
 				
-			sql = "SELECT n.id, n.status, n.notify_details, n.status_details, n.event_time " +
+			sql = "SELECT n.id, n.status, n.notify_details, n.status_details, n.event_time, n.message_id " +
 					"from notification_log n, users u " +
 					"where u.ident = ? " +
 					"and u.o_id = n.o_id " +
@@ -415,6 +415,7 @@ public class EventList extends Application {
 					jp.put("status", resultSet.getString("status"));
 					jp.put("status_details", resultSet.getString("status_details"));
 					jp.put("event_time", resultSet.getString("event_time"));
+					jp.put("message_id", resultSet.getString("message_id"));
 					jr.put("properties", jp);
 					ja.put(jr);
 					
