@@ -1,5 +1,5 @@
 package surveyKPI;
-
+ 
 /*
 This file is part of SMAP.
 
@@ -78,7 +78,6 @@ public class MyAssignments extends Application {
 
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
-
 
 	/*
 	 * Get assignments for user authenticated with credentials
