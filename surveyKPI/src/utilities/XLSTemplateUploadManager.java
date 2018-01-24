@@ -171,6 +171,10 @@ public class XLSTemplateUploadManager {
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
 						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum, null);
+						if(listName == null) {
+							listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
+						}
+						
 						if(listName != null) {
 							OptionList ol = survey.optionLists.get(listName);
 							if(ol == null) {

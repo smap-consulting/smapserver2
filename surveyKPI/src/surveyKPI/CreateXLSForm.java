@@ -80,7 +80,7 @@ public class CreateXLSForm extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(connectionSD, request.getRemoteUser());		
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		a.isValidDelSurvey(connectionSD, request.getRemoteUser(), sId,superUser);
 		// End Authorisation 
 		
 
