@@ -20,12 +20,14 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
@@ -62,6 +64,57 @@ public class EventList extends Application {
 		
 	}
 
+	/*
+	 * Retry a notification
+	 */
+	@GET
+	@Path("/retry/{messageId}")
+	public Response retry(@Context HttpServletRequest request,
+			@PathParam("messageId") int messageId,
+			@PathParam("notificationId") int notificationId
+			) {
+		
+		Response response = null;
+		
+		String user = request.getRemoteUser();
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList - retry");
+		a.isAuthorised(sd, user);
+		if(messageId != 0) {
+			a.isValidMessage(sd, request.getRemoteUser(), messageId);
+		}
+		
+		String sqlNot = "delete from notification_log where message_id = ?";
+		PreparedStatement pstmtNot = null;
+		
+		String sqlMsg = "update message set processed_time = null where id = ?";
+		PreparedStatement pstmtMsg = null;
+		
+		try {
+			
+			// Delete notification
+			pstmtNot = sd.prepareStatement(sqlNot);
+			pstmtNot.setInt(1,messageId);
+			pstmtNot.executeUpdate();
+			
+			// Delete message
+			pstmtMsg = sd.prepareStatement(sqlMsg);
+			pstmtMsg.setInt(1,messageId);
+			pstmtMsg.executeUpdate();
+			
+			
+		} catch (SQLException e) {
+				
+			log.log(Level.SEVERE, "SQL Exception", e);
+		
+		} finally {
+			try {if (pstmtNot != null) {pstmtNot.close();}} catch (SQLException e) {}
+			try {if (pstmtMsg != null) {pstmtMsg.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection("surveyKPI-EventList - retry", sd);
+		}
+		
+		return response;
+	}
 	
 	// Respond with JSON 
 	@GET
