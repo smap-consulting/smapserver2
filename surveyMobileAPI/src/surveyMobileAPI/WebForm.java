@@ -389,7 +389,7 @@ public class WebForm extends Application {
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
 						survey.surveyClass, orgId, accessKey, superUser));
 			}
-
+			
 			String respString = outputString.toString();
 			response = Response.status(Status.OK).entity(respString).build();
 

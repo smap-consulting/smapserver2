@@ -409,7 +409,7 @@ public class XLSResultsManager {
 
 							if(qType.equals("select")) {
 								isSelectMultiple = true;
-								selectMultipleQuestionDisplayName = c.humanName;
+								selectMultipleQuestionDisplayName = c.question_name;
 								optionName = c.option_name;
 							}
 

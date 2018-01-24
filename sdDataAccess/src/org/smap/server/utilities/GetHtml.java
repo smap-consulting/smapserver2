@@ -637,6 +637,10 @@ public class GetHtml {
 		}
 		selectElement.setAttribute("data-type-xml", q.type);
 		selectElement.setAttribute("style", "display:none;");
+		if (q.relevant != null && q.relevant.trim().length() > 0) {
+			selectElement.setAttribute("data-relevant",
+					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+		}
 
 		// Add template option
 		Element templateElement = outputDoc.createElement("option");

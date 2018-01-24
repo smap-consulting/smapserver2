@@ -268,6 +268,76 @@ public class Authorise {
 	}
 	
 	/*
+	 * Verify that the user is entitled to access this particular survey
+	 * Ignore whether or not it is deleted
+	 */
+	public boolean isValidDelSurvey(Connection conn, String user, int sId, boolean superUser)
+			throws ServerException, AuthorisationException, NotFoundException {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+		/*
+		 * 1) Make sure survey is in a project that the user has access to
+		 */
+
+		StringBuffer sql = new StringBuffer("select count(*) from survey s, users u, user_project up, project p "
+				+ "where u.id = up.u_id "
+				+ "and p.id = up.p_id "
+				+ "and s.p_id = up.p_id "
+				+ "and s.s_id = ? "
+				+ "and u.ident = ? ");
+		
+		try {		
+			
+			if(!superUser) {
+				// Add RBAC
+				sql.append(GeneralUtilityMethods.getSurveyRBAC());
+			}
+			
+			pstmt = conn.prepareStatement(sql.toString());
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, user);
+			
+			if(!superUser) {
+				pstmt.setString(4, user);
+			}
+			log.info("IsValidSurvey: " + pstmt.toString());
+			
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Survey validation failed for: " + user + " survey was: " + sId);
+ 			
+ 			SDDataSource.closeConnection("isValidSurvey", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();	 
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the user is entitled to access this particular query
 	 */
 	public boolean isValidQuery(Connection conn, String user, int queryId)

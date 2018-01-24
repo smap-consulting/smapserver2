@@ -243,7 +243,7 @@ public class ExportSurveyXlsx extends Application {
 								sqlDesc.colNames, 
 								merge_select_multiple);						
 
-						if(split_locn && values.value.startsWith("POINT")) {
+						if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 
 							String coords [] = GeneralUtilityMethods.getLonLat(values.value);
 
@@ -268,7 +268,7 @@ public class ExportSurveyXlsx extends Application {
 							}
 
 
-						} else if(split_locn && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
+						} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
 
 							// Can't split linestrings and polygons, leave latitude and longitude as blank
 							Cell cell = dataRow.createCell(colNumber++);

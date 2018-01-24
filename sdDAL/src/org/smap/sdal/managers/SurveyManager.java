@@ -64,6 +64,7 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -416,6 +417,7 @@ public class SurveyManager {
 							s.getFormIdx(ff.id), 
 							-1, 
 							0,	
+							sd,
 							cResults, 
 							instanceId, 
 							0, 
@@ -854,6 +856,7 @@ public class SurveyManager {
 					f.questions.add(q);
 				}
 			}
+			
 			/*
 			 * Get the questions for this form
 			 */
@@ -2549,6 +2552,7 @@ public class SurveyManager {
 			int fIdx,
 			int id, 
 			int parentId, 
+			Connection sd,
 			Connection cResults,
 			String instanceId,
 			int parentKey,
@@ -2603,6 +2607,7 @@ public class SurveyManager {
 			}
 
 			if(instanceId != null || parentKey > 0) {
+				
 				for(Question q : questions) {
 					String col = null;
 
@@ -2627,6 +2632,22 @@ public class SurveyManager {
 					}
 
 				}
+				
+				/*
+				 * Add questions from meta
+				 */
+				if(form.parentform == 0) {
+					ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
+					for(MetaItem mi : preloads) {
+						if(mi.isPreload) {
+							sql += "," + mi.columnName;
+						}
+					}
+					
+					// Add instancename which is not in meta
+					sql += "," + "instancename";
+				}
+				
 				sql += " from " + form.tableName;
 				if(parentId == 0) {
 					sql += " where instanceId = ?";
@@ -2663,9 +2684,23 @@ public class SurveyManager {
 					if(isTopLevel) {
 						String user = resultSet.getString(2);
 						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));
+						
+						ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
+						for(MetaItem mi : preloads) {
+							if(mi.isPreload) {
+								record.add(new Result(mi.columnName, mi.name, resultSet.getString(mi.columnName), false, fIdx, -1, 0, null, null));
+							}
+						}
+						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));
+						
+					}
+					
+					if(form.parentform == 0) {
+						
 					}
 
 					addDataForQuestions(
+							sd,
 							cResults,
 							resultSet, 
 							record, 
@@ -2698,6 +2733,7 @@ public class SurveyManager {
 				}
 
 				addDataForQuestions(
+						sd,
 						cResults,
 						resultSet, 
 						record, 
@@ -2732,6 +2768,7 @@ public class SurveyManager {
 	 * If the resultSet is null then populate with blank data
 	 */
 	private void addDataForQuestions(
+			Connection sd,
 			Connection cResults,
 			ResultSet resultSet, 
 			ArrayList<Result> record, 
@@ -2776,6 +2813,7 @@ public class SurveyManager {
 							s.getFormIdx(subForm.id),
 							subForm.id, 
 							id, 
+							sd,
 							cResults,
 							null,
 							newParentKey,
