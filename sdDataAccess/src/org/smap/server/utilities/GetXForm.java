@@ -1724,6 +1724,11 @@ public class GetXForm {
 		for (Question q : questions) {
 			String col = null;
 
+			// Backward compatability - Ignore Meta  questions 
+			if(GeneralUtilityMethods.isMetaQuestion(q.getName())) {
+				continue;
+			}
+			
 			if (q.isPublished() || isReference) {		// Referenced questions are never published
 				if (template.getSubForm(processForm, q) == null) {
 					// This question is not a place holder for a subform
@@ -1812,6 +1817,11 @@ public class GetXForm {
 
 			for (Question q : questions) {
 
+				// Backward compatability - Ignore Meta  questions 
+				if(GeneralUtilityMethods.isMetaQuestion(q.getName())) {
+					continue;
+				}
+				
 				String qName = q.getName();
 				String qType = q.getType();
 				String qSource = q.getSource();
