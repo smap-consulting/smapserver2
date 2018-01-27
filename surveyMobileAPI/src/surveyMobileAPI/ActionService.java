@@ -274,7 +274,7 @@ public class ActionService extends Application {
 		Form f = GeneralUtilityMethods.getTopLevelForm(sd, a.sId);
 
 		output.append(getManagedConfig(mfc));
-		output.append(getRecord(sd, cResults, mfc, a.sId, a.prikey, urlprefix, request.getRemoteUser(), f.tableName,
+		output.append(getRecord(sd, cResults, localisation, mfc, a.sId, a.prikey, urlprefix, request.getRemoteUser(), f.tableName,
 				superUser));
 
 		output.append("var gSurvey="); // Survey id
@@ -399,14 +399,12 @@ public class ActionService extends Application {
 		return output;
 	}
 
-	private StringBuffer getRecord(Connection sd, Connection cResults, SurveyViewDefn mfc, int sId, int prikey,
+	private StringBuffer getRecord(Connection sd, Connection cResults, ResourceBundle localisation, SurveyViewDefn mfc, int sId, int prikey,
 			String urlprefix, String uIdent, String tableName, boolean superUser) throws SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
 
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-
-		TableDataManager tdm = new TableDataManager();
+		TableDataManager tdm = new TableDataManager(localisation);
 		JSONArray ja = null;
 
 		PreparedStatement pstmt = null;

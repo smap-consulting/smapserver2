@@ -363,7 +363,7 @@ public class MyAssignments extends Application {
 					 * The file is unique per survey and by user name due to the use of roles to
 					 *  restrict columns and rows per user
 					 */
-					ExternalFileManager efm = new ExternalFileManager();
+					ExternalFileManager efm = new ExternalFileManager(localisation);
 					String basepath = GeneralUtilityMethods.getBasePath(request);
 					String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
 					filepath =  dirPath + m.fileName;

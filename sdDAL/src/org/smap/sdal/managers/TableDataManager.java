@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
@@ -39,6 +40,11 @@ import org.smap.sdal.model.TableColumn;
 public class TableDataManager {
 
 	private static Logger log = Logger.getLogger(TableDataManager.class.getName());
+	private static ResourceBundle localisation;
+	
+	public TableDataManager(ResourceBundle l) {
+		localisation = l;
+	}
 
 	/*
 	 * Get the current columns
@@ -116,7 +122,7 @@ public class TableDataManager {
 			}
 
 			// RBAC filter
-			RoleManager rm = new RoleManager();
+			RoleManager rm = new RoleManager(localisation);
 			ArrayList<SqlFrag> rfArray = null;
 			if (!superUser) {
 				rfArray = rm.getSurveyRowFilter(sd, sId, uIdent);

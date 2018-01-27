@@ -49,6 +49,11 @@ public class RoleManager {
 	private static Logger log =
 			 Logger.getLogger(RoleManager.class.getName());
 
+	ResourceBundle localisation = null;
+	
+	public RoleManager(ResourceBundle l) {
+		localisation = l;
+	}
 
 	/*
 	 * Get available roles
@@ -428,7 +433,7 @@ public class RoleManager {
 	 * Get the sql for a survey role filter for a specific user and survey
 	 * A user can have multiple roles as can a survey hence an array of roles is returned
 	 */
-	public ArrayList<SqlFrag> getSurveyRowFilter(Connection sd, int sId, String user) throws SQLException {
+	public ArrayList<SqlFrag> getSurveyRowFilter(Connection sd, int sId, String user) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
@@ -455,7 +460,13 @@ public class RoleManager {
 			while(resultSet.next()) {		
 				String sqlFragString = resultSet.getString("row_filter");
 				if(sqlFragString != null) {
-					rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));
+					if(sqlFragString.trim().startsWith("{")) {
+						rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
+					} else {
+						SqlFrag sf = new SqlFrag();									// New only the string is stored
+						sf.addSqlFragment(sqlFragString, localisation, false);
+						rfArray.add(sf);
+					}
 				}		
 			}
 		} finally {

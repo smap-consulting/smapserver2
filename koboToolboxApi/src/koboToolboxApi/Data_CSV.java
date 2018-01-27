@@ -342,7 +342,7 @@ public class Data_CSV extends Application {
 
 			if (GeneralUtilityMethods.tableExists(cResults, table_name)) {
 
-				TableDataManager tdm = new TableDataManager();
+				TableDataManager tdm = new TableDataManager(localisation);
 				JSONArray ja = null;
 
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,

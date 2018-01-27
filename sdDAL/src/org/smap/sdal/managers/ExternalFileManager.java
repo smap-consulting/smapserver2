@@ -12,6 +12,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,11 +47,17 @@ import com.google.gson.reflect.TypeToken;
 public class ExternalFileManager {
 
 	private static Logger log = Logger.getLogger(ExternalFileManager.class.getName());
+	
+	private static ResourceBundle localisation = null;
 
 	LogManager lm = new LogManager(); // Application log
 
 	private static String PD_IDENT = "linked_s_pd_";
 
+	public ExternalFileManager(ResourceBundle l) {
+		localisation = l;
+	}
+	
 	/*
 	 * Class to return SQL
 	 */
@@ -230,7 +237,7 @@ public class ExternalFileManager {
 				}
 
 				// 5. Get the sql
-				RoleManager rm = new RoleManager();
+				RoleManager rm = new RoleManager(localisation);
 				SqlDef sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, userName, rm, chart_key);
 				pstmtData = cRel.prepareStatement(sqlDef.sql);
 				int paramCount = 1;
@@ -550,7 +557,7 @@ public class ExternalFileManager {
 	 * generator from SDAL
 	 */
 	private SqlDef getSql(Connection sd, int sId, ArrayList<String> qnames, boolean linked_s_pd, String data_key,
-			String user, RoleManager rm, String chart_key) throws SQLException {
+			String user, RoleManager rm, String chart_key) throws Exception {
 
 		StringBuffer sql = new StringBuffer("select ");
 		if(chart_key == null) {		// Time series data should not be made distinct

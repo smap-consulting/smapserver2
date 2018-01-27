@@ -403,7 +403,7 @@ public class SubscriberBatch {
 
 					try {
 						ResultSet rs = pstmtNot.executeQuery();
-						TableDataManager tdm = new TableDataManager();
+						TableDataManager tdm = new TableDataManager(localisation);
 
 						while(rs.next()) {
 							haveSyncNotifications = true;

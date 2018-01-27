@@ -517,7 +517,7 @@ public class Survey {
 		PreparedStatement pstmtAssociateSurvey = null;
 		
 		try {
-			RoleManager rm = new RoleManager();
+			RoleManager rm = new RoleManager(localisation);
 			
 			pstmtGetRole = sd.prepareStatement(sqlGetRole);		
 			pstmtGetRole.setInt(1, o_id);

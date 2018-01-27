@@ -631,6 +631,7 @@ public class ExportSurvey extends Application {
 				 */
 				getData(sd, 
 						connectionResults, 
+						localisation,
 						sId,
 						request.getRemoteUser(),
 						outWriter, 
@@ -862,6 +863,7 @@ public class ExportSurvey extends Application {
 	private void getData(
 			Connection sd, 
 			Connection connectionResults, 
+			ResourceBundle localisation,
 			int sId,
 			String user,
 			PrintWriter outWriter, 
@@ -875,12 +877,12 @@ public class ExportSurvey extends Application {
 			Date endDate,
 			int dateId,
 			boolean superUser,
-			SqlFrag filterFrag) throws SQLException {
+			SqlFrag filterFrag) throws Exception {
 
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		boolean hasRbacFilter = false;
-		RoleManager rm = new RoleManager();
+		RoleManager rm = new RoleManager(localisation);
 		ArrayList<SqlFrag> rfArray = null;
 
 		/*
@@ -1032,6 +1034,7 @@ public class ExportSurvey extends Application {
 						getData(
 								sd, 
 								connectionResults, 
+								localisation,
 								sId,
 								user,
 								outWriter, 

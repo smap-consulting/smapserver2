@@ -952,7 +952,7 @@ public class XLSResultsManager {
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
-		RoleManager rm = new RoleManager();
+		RoleManager rm = new RoleManager(localisation);
 		ArrayList<SqlFrag> rfArray = null;
 		boolean hasRbacFilter = false;
 

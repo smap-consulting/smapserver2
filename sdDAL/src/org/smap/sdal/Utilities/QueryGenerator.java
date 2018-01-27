@@ -256,7 +256,7 @@ public class QueryGenerator {
 		// Add RBAC/Role Row Filter
 		boolean hasRbacFilter = false;
 		ArrayList<SqlFrag> rfArray = null;
-		RoleManager rm = new RoleManager();
+		RoleManager rm = new RoleManager(localisation);
 		if(!superUser) {
 			rfArray = rm.getSurveyRowFilter(connectionSD, sId, user);
 			if(rfArray.size() > 0) {

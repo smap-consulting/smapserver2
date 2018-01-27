@@ -1116,7 +1116,7 @@ public class SurveyManager {
 		
 		// Get the roles
 		if(getRoles) {
-			RoleManager rm = new RoleManager();
+			RoleManager rm = new RoleManager(localisation);
 			ArrayList<Role> roles = rm.getSurveyRoles(sd, s.id, oId, true);	// Get enabled roles
 			for(Role r : roles) {
 				s.roles.put(r.name, r);

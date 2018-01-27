@@ -354,7 +354,7 @@ public class Items extends Application {
 				/*
 				 * Add row filtering performed by RBAC
 				 */
-				RoleManager rm = new RoleManager();
+				RoleManager rm = new RoleManager(localisation);
 				ArrayList<SqlFrag> rfArray = null;
 				if(!superUser) {
 					rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
@@ -374,10 +374,12 @@ public class Items extends Application {
 								hasRbacRowFilter = true;
 							}
 						}
-						if(sqlFilter.length() > 0) {
-							sqlFilter += " and " + "(" + rfString + ")";
-						} else {
-							sqlFilter = "(" + rfString + ")";
+						if(rfString.trim().length() > 0) {
+							if(sqlFilter.length() > 0) {
+								sqlFilter += " and " + "(" + rfString + ")";
+							} else {
+								sqlFilter = "(" + rfString + ")";
+							}
 						}
 					}
 				}

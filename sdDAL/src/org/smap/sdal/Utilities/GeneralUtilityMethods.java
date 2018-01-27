@@ -2725,7 +2725,7 @@ public class GeneralUtilityMethods {
 		StringBuffer colList = new StringBuffer("");
 		if (!superUser) {
 			if (sId > 0) {
-				RoleManager rm = new RoleManager();
+				RoleManager rm = new RoleManager(localisation);
 				ArrayList<RoleColumnFilter> rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
 				if (rcfArray.size() > 0) {
 					colList.append(" and q_id in (");

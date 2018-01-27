@@ -278,7 +278,7 @@ public class Data extends Application {
 				columns.addAll(config.columns);
 			}
 
-			TableDataManager tdm = new TableDataManager();
+			TableDataManager tdm = new TableDataManager(localisation);
 			JSONArray ja = null;
 
 			pstmt = tdm.getPreparedStatement(

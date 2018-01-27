@@ -521,7 +521,7 @@ public class Surveys extends Application {
 			}
 			
 			// Force regeneration of any dynamic CSV files that this survey links to
-			ExternalFileManager efm = new ExternalFileManager();
+			ExternalFileManager efm = new ExternalFileManager(localisation);
 			efm.linkerChanged(connectionSD, sId);
 			
 			String respString = gson.toJson(resp);	// Create the response	

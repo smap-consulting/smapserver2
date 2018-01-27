@@ -98,8 +98,14 @@ public class Roles extends Application {
 		
 		// End Authorisation
 		
-		RoleManager rm = new RoleManager();
+		
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			RoleManager rm = new RoleManager(localisation);
+			
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
 			ArrayList<Role> roles = rm.getRoles(sd, o_id);
@@ -138,9 +144,12 @@ public class Roles extends Application {
 		ArrayList<Role> rArray = new Gson().fromJson(roles, type);
 		
 		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
-			RoleManager rm = new RoleManager();
+			RoleManager rm = new RoleManager(localisation);
 			
 			for(int i = 0; i < rArray.size(); i++) {
 				Role r = rArray.get(i);
@@ -189,9 +198,12 @@ public class Roles extends Application {
 		Type type = new TypeToken<ArrayList<Role>>(){}.getType();		
 		ArrayList<Role> rArray = new Gson().fromJson(roles, type);
 		
-		RoleManager rm = new RoleManager();
-		
 		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			RoleManager rm = new RoleManager(localisation);
+			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			rm.deleteRoles(sd, rArray, o_id);
 			response = Response.ok().build();			
@@ -233,9 +245,12 @@ public class Roles extends Application {
 		
 		// End Authorisation
 		
-		RoleManager rm = new RoleManager();
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
+			RoleManager rm = new RoleManager(localisation);
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			ArrayList<Role> roles = rm.getSurveyRoles(sd, sId, oId, enabledOnly);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -284,12 +299,13 @@ public class Roles extends Application {
 		aSM.isValidRole(sd, request.getRemoteUser(), role.id);
 		// End Authorisation
 		
-		RoleManager rm = new RoleManager();
+		
 		try {
-			
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			RoleManager rm = new RoleManager(localisation);
 			
 			if(property.equals("enabled")) {
 				role.linkid = rm.updateSurveyLink(sd, sId, role.id, role.linkid, role.enabled);
@@ -333,8 +349,13 @@ public class Roles extends Application {
 		
 		// End Authorisation
 		
-		RoleManager rm = new RoleManager();
 		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			RoleManager rm = new RoleManager(localisation);
+						
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
 			ArrayList<RoleName> roles = rm.getRoleNames(sd, o_id);
