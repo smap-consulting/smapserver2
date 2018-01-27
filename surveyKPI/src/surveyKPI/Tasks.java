@@ -98,7 +98,7 @@ public class Tasks extends Application {
 			@PathParam("projectId") int projectId 
 			) throws IOException {
 		
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		
 		Response response = null;
 		Connection sd = null; 
@@ -146,7 +146,7 @@ public class Tasks extends Application {
 			@QueryParam("user") int userId
 			) throws IOException {
 		
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		
 		Response response = null;
 		Connection sd = null; 
@@ -190,7 +190,7 @@ public class Tasks extends Application {
 			@Context HttpServletRequest request
 			) throws IOException {
 		
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		
 		Response response = null;
 		Connection sd = null; 
@@ -243,7 +243,7 @@ public class Tasks extends Application {
 		
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
 		
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -475,7 +475,7 @@ public class Tasks extends Application {
 
 		log.info("userevent: " + request.getRemoteUser() + " : upload tasks from xls file for project: " + pId);
 		
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);

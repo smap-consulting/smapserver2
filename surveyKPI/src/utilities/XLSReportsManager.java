@@ -116,7 +116,7 @@ public class XLSReportsManager {
 		/*
 		 * Write the chart data if it is not null
 		 */
-		if(chartDataArray != null) { 
+		if(chartDataArray != null) {
 			for(int i = 0; i < chartDataArray.size(); i++) {
 				ChartData cd = chartDataArray.get(i);
 				

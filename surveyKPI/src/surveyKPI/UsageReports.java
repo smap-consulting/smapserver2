@@ -69,7 +69,7 @@ public class UsageReports extends Application {
 			@QueryParam("year") int year,
 			@QueryParam("period") String period) throws Exception {
 
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());   // Service only available on business servers
+		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());   // Service only available on business servers
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("createPDF");	
