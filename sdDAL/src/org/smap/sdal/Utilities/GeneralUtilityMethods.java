@@ -5558,7 +5558,7 @@ public class GeneralUtilityMethods {
 						out.append(' ');
 					}
 					out.append(in.charAt(i));
-					if(i < in.length() && in.charAt(i+1) != ' ') {
+					if(i < in.length() - 1 && in.charAt(i+1) != ' ') {
 						out.append(' ');
 					}
 				} else {
