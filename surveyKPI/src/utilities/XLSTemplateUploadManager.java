@@ -234,7 +234,7 @@ public class XLSTemplateUploadManager {
 								if(r != null) {
 									SqlFrag sq = new SqlFrag();
 									sq.addSqlFragment(filter, localisation, false);
-									settingsQuestionInSurvey(sq.columns, h);		// validate question names
+									settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
 									r.row_filter = filter;
 								}
 							}

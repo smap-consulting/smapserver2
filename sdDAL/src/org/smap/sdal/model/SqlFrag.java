@@ -20,6 +20,7 @@ public class SqlFrag {
 	public StringBuffer sql = new StringBuffer("");
 	public ArrayList<SqlFragParam> params = new ArrayList<SqlFragParam> ();
 	public ArrayList<String> columns = new ArrayList<String> ();
+	public ArrayList<String> humanNames = new ArrayList<String> ();
 
 	private static Logger log =
 			 Logger.getLogger(SqlFrag.class.getName());
@@ -148,7 +149,7 @@ public class SqlFrag {
 	public String sqlToken(String token) throws Exception {
 		String out = "";
 		
-		token = token.trim().toLowerCase();
+		token = token.trim();
 		
 		// Check for a column name
 		if(token.startsWith("${") && token.endsWith("}")) {
@@ -156,13 +157,14 @@ public class SqlFrag {
 			boolean columnNameCaptured = false;
 			out = GeneralUtilityMethods.cleanName(name, true, true, false);
 			for(int i = 0; i < columns.size(); i++) {
-				if(columns.get(i).equals(name)) {
+				if(columns.get(i).equals(out)) {
 					columnNameCaptured = true;
 					break;
 				}
 			}
 			if(!columnNameCaptured) {
 				columns.add(out);
+				humanNames.add(name);
 			}
 		} else if (token.equals(">") ||
 				token.equals("<") ||

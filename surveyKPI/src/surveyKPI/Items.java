@@ -363,7 +363,7 @@ public class Items extends Application {
 						for(SqlFrag rf : rfArray) {
 							if(rf.columns.size() > 0) {
 								for(int i = 0; i < rf.columns.size(); i++) {
-									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.columns.get(i));
+									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
 									QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
 									tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
 								}
