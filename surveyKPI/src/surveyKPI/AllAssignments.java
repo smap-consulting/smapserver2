@@ -1093,6 +1093,15 @@ public class AllAssignments extends Application {
 				+ "and source is not null "
 				+ "and not soft_deleted";
 		PreparedStatement pstmtGetCol = null;
+		
+		// Alternate SQL for data downloaded from google sheets - This will have all underscores stripped out
+		String sqlGetColGS = "select q_id, qname, column_name, qtype "
+				+ "from question "
+				+ "where f_id = ? "
+				+ "and replace(lower(qname), '_','') = ? "
+				+ "and source is not null "
+				+ "and not soft_deleted";
+		PreparedStatement pstmtGetColGS = null;
 
 		// SQL to get choices for a select question
 		String sqlGetChoices = "select o.ovalue, o.column_name from option o, question q where q.q_id = ? and o.l_id = q.l_id";
@@ -1199,6 +1208,7 @@ public class AllAssignments extends Application {
 			ArrayList <FormDesc> formList = xm.getFormList(sd, sId);		
 
 			pstmtGetCol = sd.prepareStatement(sqlGetCol);  			// Prepare the statement to get the column names in the survey that are to be updated
+			pstmtGetColGS = sd.prepareStatement(sqlGetColGS); 
 			pstmtGetChoices = sd.prepareStatement(sqlGetChoices);  // Prepare the statement to get select choices
 
 			// If this is a zip file extract the contents and set the path to the expanded data file that should be inside
@@ -1307,7 +1317,7 @@ public class AllAssignments extends Application {
 				FormDesc formDesc = formList.get(formIdx);
 
 				File f = formFileMap.get(formDesc.name);
-
+				
 				if(f != null) {
 					boolean isCSV = false;
 					if(f.getName().endsWith(".csv")) {
@@ -1316,6 +1326,7 @@ public class AllAssignments extends Application {
 
 					int count = xm.loadFormDataFromFile(results, 
 							pstmtGetCol, 
+							pstmtGetColGS,
 							pstmtGetChoices, 
 							f, 
 							formDesc, 
@@ -1393,6 +1404,7 @@ public class AllAssignments extends Application {
 
 		} finally {
 			try {if (pstmtGetCol != null) {pstmtGetCol.close();}} catch (SQLException e) {}
+			try {if (pstmtGetColGS != null) {pstmtGetColGS.close();}} catch (SQLException e) {}
 			try {if (pstmtGetChoices != null) {pstmtGetChoices.close();}} catch (SQLException e) {}
 			try {if (pstmtDeleteExisting != null) {pstmtDeleteExisting.close();}} catch (SQLException e) {}
 			try {if (pstmtDelLinks != null) {pstmtDelLinks.close();}} catch (SQLException e) {}

@@ -64,6 +64,19 @@ import org.smap.sdal.model.TableColumn;
 import model.FormDesc;
 import surveyKPI.ExportSurveyXls;
 
+/*
+ * Handle import export of files
+ * Handle the formats created by Smap Exports
+ *     Worksheets containing form data are called "d_" formname
+ *     Column containing a unique key for each record is called "prikey"
+ *     Column linking to the unique key of a parent record is called "parkey"
+ * Attempt to handle exports of Aggregate data from Google sheets    
+ *     The names of worksheets will need to be changed before importing
+ *          The main worksheet needs to be called "d_main"
+ *          The other worksheets need "d_" prepended
+ *     Column containing a unique key for each record is called "metainstanceid"
+ *         Column linking to the unique key of a parent record is called "parentuid"
+ */
 public class ExchangeManager {
 	
 	private static Logger log =
@@ -345,6 +358,7 @@ public class ExchangeManager {
 	public int loadFormDataFromFile(
 			Connection results,
 			PreparedStatement pstmtGetCol, 
+			PreparedStatement pstmtGetColGS,
 			PreparedStatement pstmtGetChoices,
 			File file,
 			FormDesc form,
@@ -370,8 +384,9 @@ public class ExchangeManager {
 		
 		try {
 			
-			form.keyMap = new HashMap<Integer, Integer> ();
+			form.keyMap = new HashMap<String, String> ();
 			pstmtGetCol.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
+			pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 			
 			String [] line;
 			if(isCSV) {
@@ -408,11 +423,26 @@ public class ExchangeManager {
 								columns.add(col);
 							}
 						} else {
-							responseMsg.add(
-									localisation.getString("imp_qn") +
-									" " + colName + " " +
-									localisation.getString("imp_nfi") +
-									": " + form.name);  
+							col = getColumn(pstmtGetColGS, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
+							if(col != null) {
+								col.index = i;
+								if(col.geomCol != null) {
+									// Do not add the geom columns to the list of columns to be parsed
+									if(col.geomCol.equals("lon")) {
+										lonIndex = i;
+									} else if(col.geomCol.equals("lat")) {
+										latIndex = i;
+									}
+								} else {
+									columns.add(col);
+								}
+							} else {
+								responseMsg.add(
+										localisation.getString("imp_qn") +
+										" " + colName + " " +
+										localisation.getString("imp_nfi") +
+										": " + form.name);  
+							}
 						}
 					}
 
@@ -539,7 +569,7 @@ public class ExchangeManager {
 						}
 						
 						int index = 1;
-						int prikey = -1;
+						String prikey = null;
 						boolean writeRecord = true;
 						if(form.parent == 0) {
 							pstmtInsert.setString(index++, "uuid:" + String.valueOf(UUID.randomUUID()));
@@ -562,16 +592,17 @@ public class ExchangeManager {
 							
 							String value = line[col.index].trim();	
 	
-							if(col.name.equals("prikey")) {
-								try { prikey = Integer.parseInt(value);} catch (Exception e) {}
-							} else if(col.name.equals("parkey")) {
+							if(col.name.equals("prikey") || col.name.equals("metainstanceid")) {
+								prikey = value;
+							} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
 								if(form.parent == 0) {
 									pstmtInsert.setInt(index++, 0);
 								} else {
-									int parkey = -1;
-									try { parkey = Integer.parseInt(value);} catch (Exception e) {}
-									Integer newParKey = form.parentForm.keyMap.get(parkey);
-									if(newParKey == null) {
+									String parkey = value;
+									String newParKey = form.parentForm.keyMap.get(parkey);
+									int iParKey = -1;
+									try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
+									if(newParKey == null || iParKey == -1) {
 										responseMsg.add(
 												localisation.getString("pk_nf") +
 												" " + parkey + " " +
@@ -579,7 +610,7 @@ public class ExchangeManager {
 												" " + form.name);
 										writeRecord = false;
 									} else {
-										pstmtInsert.setInt(index++, newParKey);
+										pstmtInsert.setInt(index++, iParKey);
 									}
 								}
 							} else if(col.type.equals("audio") || col.type.equals("video") || col.type.equals("image")) {
@@ -707,7 +738,7 @@ public class ExchangeManager {
 							pstmtInsert.executeUpdate();
 							ResultSet rs = pstmtInsert.getGeneratedKeys();
 							if(rs.next()) {
-								form.keyMap.put(prikey, rs.getInt(1));
+								form.keyMap.put(prikey, rs.getString(1));
 							}
 							recordsWritten++;
 						}
@@ -745,8 +776,11 @@ public class ExchangeManager {
 			int sheetCount = wb.getNumberOfSheets();
 			for(int i = 0; i < sheetCount; i++) {
 				String name = wb.getSheetName(i);
-				if(name.startsWith("d_"));
-				forms.add(name.substring(2));
+				if(name.startsWith("d_")) {
+					// Legacy forms remove prefix added by older results exports  30th January 2018
+					name = name.substring(2);
+				}
+				forms.add(name);
 			}
 		} finally {
 			try{wb.close();} catch(Exception e) {}
@@ -1129,6 +1163,17 @@ public class ExchangeManager {
 				col.type = "int";
 				col.write = false;					// Don't write the primary key a new one will be generated
 			} else if(qName.equals("parkey")) {
+				col = new Column();
+				col.name = qName;
+				col.columnName = "parkey";
+				col.type = "int";
+			} if(qName.equals("metainstanceid")) {	// Primary key for google sheet exports
+				col = new Column();
+				col.name = qName;
+				col.columnName = "prikey";
+				col.type = "int";
+				col.write = false;					// Don't write the primary key a new one will be generated
+			} else if(qName.equals("parentuid")) {	// Foreign key for google sheet exports
 				col = new Column();
 				col.name = qName;
 				col.columnName = "parkey";

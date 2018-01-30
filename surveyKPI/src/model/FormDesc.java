@@ -16,6 +16,6 @@ public class FormDesc {
 	public String columns = null;
 	public ArrayList<FormDesc> children = null;
 	public ArrayList<TableColumn> columnList = null;
-	public HashMap<Integer, Integer> keyMap = null;
+	public HashMap<String, String> keyMap = null;
 	public FormDesc parentForm = null;
 }
