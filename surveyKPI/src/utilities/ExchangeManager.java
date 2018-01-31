@@ -377,7 +377,9 @@ public class ExchangeManager {
 		int lonIndex = -1;			// Column containing longitude
 		int latIndex = -1;			// Column containing latitude
 		SimpleDateFormat dateFormatDT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		SimpleDateFormat dateFormatDTGS = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 		int recordsWritten = 0;
+		int instanceIdColumn = -1;
 		
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtDeleteExisting = null;
@@ -408,17 +410,20 @@ public class ExchangeManager {
 					String colName = line[i].replace("'", "''");	// Escape apostrophes
 					
 					if(colName.trim().length() > 0) {
+						if(colName.toLowerCase().equals("instanceid")) {
+							instanceIdColumn = i;
+						}
 						// If this column is in the survey then add it to the list of columns to be processed
 						Column col = getColumn(pstmtGetCol, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
 						if(col != null) {
 							col.index = i;
 							if(col.geomCol != null) {
 								// Do not add the geom columns to the list of columns to be parsed
-								if(col.geomCol.equals("lon")) {
+								if(col.geomCol.equals("lon") || col.geomCol.equals("plotgpsLongitude")) {
 									lonIndex = i;
-								} else if(col.geomCol.equals("lat")) {
+								} else if(col.geomCol.equals("lat") || col.geomCol.equals("plotgpsLatitude")) {
 									latIndex = i;
-								}
+								} 
 							} else {
 								columns.add(col);
 							}
@@ -428,11 +433,11 @@ public class ExchangeManager {
 								col.index = i;
 								if(col.geomCol != null) {
 									// Do not add the geom columns to the list of columns to be parsed
-									if(col.geomCol.equals("lon")) {
+									if(col.geomCol.equals("lon") || col.geomCol.equals("plotgpsLongitude")) {
 										lonIndex = i;
-									} else if(col.geomCol.equals("lat")) {
+									} else if(col.geomCol.equals("lat") || col.geomCol.equals("plotgpsLatitude")) {
 										latIndex = i;
-									}
+									} 
 								} else {
 									columns.add(col);
 								}
@@ -572,7 +577,14 @@ public class ExchangeManager {
 						String prikey = null;
 						boolean writeRecord = true;
 						if(form.parent == 0) {
-							pstmtInsert.setString(index++, "uuid:" + String.valueOf(UUID.randomUUID()));
+							String instanceId = null;
+							if(instanceIdColumn >= 0) {
+								instanceId = line[instanceIdColumn].trim();
+							}
+							if(instanceId == null || instanceId.trim().length() == 0) {
+								instanceId = "uuid:" + String.valueOf(UUID.randomUUID());
+							}
+							pstmtInsert.setString(index++, instanceId);
 						} 
 						
 						for(int i = 0; i < columns.size(); i++) {
@@ -616,13 +628,25 @@ public class ExchangeManager {
 							} else if(col.type.equals("audio") || col.type.equals("video") || col.type.equals("image")) {
 								
 								// If the data references a media file then process the attachment
-								File srcPathFile = mediaFiles.get(value);
-								if(srcPathFile != null) {
+								File srcPathFile = null;
+								String srcUrl = null;
+								if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
+									// Get the attachment from the link
+									srcUrl = value;
+									value = UUID.randomUUID().toString();	// Create a random name for the initial download
+								} else {
+									// Attachment should have been loaded with the zip file
+									srcPathFile = mediaFiles.get(value);
+								}
+								
+								// Copy the attachments to the target location and get the new name
+								if(srcPathFile != null || srcUrl != null) {
 									value = GeneralUtilityMethods.createAttachments(
 										value, 
 										srcPathFile, 
 										basePath, 
-										sIdent);
+										sIdent,
+										srcUrl);
 								}
 								if(value != null && value.trim().length() == 0) {
 									value = null;
@@ -669,6 +693,7 @@ public class ExchangeManager {
 								if(notEmpty(value)) {
 									try {
 										dateVal = Date.valueOf(value); 
+										
 									} catch (Exception e) {
 										log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
 									}
@@ -681,7 +706,12 @@ public class ExchangeManager {
 										java.util.Date uDate = dateFormatDT.parse(value);
 										tsVal = new Timestamp(uDate.getTime());
 									} catch (Exception e) {
-										log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+										try {
+											java.util.Date uDate = dateFormatDTGS.parse(value);		// Try US date format
+											tsVal = new Timestamp(uDate.getTime());
+										} catch (Exception ex) {
+											log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+										}
 									}
 								}
 								
@@ -1141,7 +1171,8 @@ public class ExchangeManager {
 		String geomCol = null;
 		
 		// Cater for lat, lon columns which map to a geopoint
-		if(qName.equals("lat") || qName.equals("lon")) {
+		if(qName.equals("lat") || qName.equals("lon") 
+				|| qName.equals("plotgpsLatitude") || qName.equals("plotgpsLongitude")) {
 			geomCol = qName;
 			qName = "the_geom";
 		} 
@@ -1156,24 +1187,13 @@ public class ExchangeManager {
 		}
 		
 		if(!questionExists) {
-			if(qName.equals("prikey")) {
+			if(qName.equals("prikey") || qName.equals("metainstanceid")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "prikey";
 				col.type = "int";
 				col.write = false;					// Don't write the primary key a new one will be generated
-			} else if(qName.equals("parkey")) {
-				col = new Column();
-				col.name = qName;
-				col.columnName = "parkey";
-				col.type = "int";
-			} if(qName.equals("metainstanceid")) {	// Primary key for google sheet exports
-				col = new Column();
-				col.name = qName;
-				col.columnName = "prikey";
-				col.type = "int";
-				col.write = false;					// Don't write the primary key a new one will be generated
-			} else if(qName.equals("parentuid")) {	// Foreign key for google sheet exports
+			} else if(qName.equals("parkey") || qName.equals("parentuid")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "parkey";
@@ -1203,7 +1223,7 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_location_trigger";
 				col.type = "int";
-			} else if(qName.equals("Upload Time")) {
+			} else if(qName.equals("Upload Time") || qName.equals("metasubmissiondate")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_upload_time";
@@ -1213,7 +1233,7 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_version";
 				col.type = "int";
-			} else if(qName.equals("Complete")) {
+			} else if(qName.equals("Complete") || qName.equals("metaiscomplete")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_complete";
@@ -1223,6 +1243,18 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "instancename";
 				col.type = "string";
+			} else if(qName.toLowerCase().equals("instanceid")) {
+				// Don't add a column, instanceid is added by default, however record the column for this data
+			} else if(qName.equals("plotgpsAltitude")) {
+				col = new Column();
+				col.name = qName;
+				col.columnName = "the_geom_alt";
+				col.type = "decimal";
+			} else if(qName.equals("plotgpsAccuracy")) {
+				col = new Column();
+				col.name = qName;
+				col.columnName = "the_geom_acc";
+				col.type = "decimal";
 			} else {
 				pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
 				log.info("Get column: " + pstmtGetCol.toString());
@@ -1232,7 +1264,7 @@ public class ExchangeManager {
 					col = new Column();
 					col.name = qName;
 					col.columnName = rs.getString("column_name");
-					col.geomCol = geomCol;				// This column holds the latitude or the longitude or neither
+					col.geomCol = geomCol;				// This column holds the latitude, longitude, Altitude, Accuracy or none of these
 					col.type = rs.getString("qtype");
 					
 					if(col.type.startsWith("select")) {

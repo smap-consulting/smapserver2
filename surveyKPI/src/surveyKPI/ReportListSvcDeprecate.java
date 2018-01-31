@@ -376,8 +376,10 @@ public class ReportListSvcDeprecate extends Application {
 					outImageURL = "attachments/report/" + ident + "_" + imageName;
 					if(reportType.equals("photo") || reportType.equals("video")) {
 						outThumbURL = "attachments/report/thumbs/" + ident + "_" + thumbName;
-					} else {
+					} else if (reportType.equals("audio")){
 						outThumbURL = "fieldAnalysis/img/audio-icon.png";
+					} else {
+					    outThumbURL = "fieldAnalysis/img/link.png";
 					}
 					
 					copyImageFile(inImageURL, ident + "_" + imageName, serverName, basePath);

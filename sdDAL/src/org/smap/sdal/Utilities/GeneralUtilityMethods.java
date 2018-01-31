@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.math.BigInteger;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
@@ -383,7 +384,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add an attachment to a survey
 	 */
-	static public String createAttachments(String srcName, File srcPathFile, String basePath, String surveyName) {
+	static public String createAttachments(String srcName, File srcPathFile, String basePath, String surveyName, String srcUrl) {
 
 		log.info("Create attachments");
 
@@ -407,11 +408,17 @@ public class GeneralUtilityMethods {
 		String contentType = org.smap.sdal.Utilities.UtilityMethodsEmail.getContentType(srcName);
 
 		try {
-			log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile);
+			
 			FileUtils.forceMkdir(dstDirFile);
 			FileUtils.forceMkdir(dstThumbsFile);
 			FileUtils.forceMkdir(dstFlvFile);
-			FileUtils.copyFile(srcPathFile, dstPathFile);
+			if(srcPathFile != null) {
+				log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile);
+				FileUtils.copyFile(srcPathFile, dstPathFile);
+			} else if(srcUrl != null) {
+				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
+				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);
+			}
 			processAttachment(dstName, dstDir, contentType, srcExt);
 
 		} catch (IOException e) {

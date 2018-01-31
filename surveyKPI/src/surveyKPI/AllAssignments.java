@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.TableManager;
@@ -68,6 +69,7 @@ import utilities.QuestionInfo;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
@@ -672,7 +674,6 @@ public class AllAssignments extends Application {
 							}
 
 							if(assignSql != null) {
-								System.out.println("AssignSQl: " + assignSql);
 								getTaskSql.append(",").append(assignSql).append(" as _assign_key");
 							}
 
@@ -800,7 +801,6 @@ public class AllAssignments extends Application {
 									int fixedRoleId = as.fixed_role_id;
 									if(assignSql != null) {
 										String ident = resultSet.getString("_assign_key");
-										System.out.println("Assign Ident: " + ident);
 										if(as.user_id == -2) {
 											userId = GeneralUtilityMethods.getUserIdOrgCheck(connectionSD, ident, oId);   // Its a user ident
 										} else {
@@ -1304,6 +1304,20 @@ public class AllAssignments extends Application {
 
 					log.info("Clearing results: " + pstmtDeleteExisting.toString());
 					pstmtDeleteExisting.executeUpdate();
+					
+				}
+				
+				/*
+				 * Delete any attachments
+				 * TODO this will delete the attachments even if the new upload fails
+				 */
+				String fileFolder = basePath + "/attachments/" + sIdent;
+				File folder = new File(fileFolder);
+				try {
+					log.info("Deleting attachments folder: " + fileFolder);
+					FileUtils.deleteDirectory(folder);
+				} catch (IOException e) {
+					log.info("Error deleting attachments directory:" + fileFolder + " : " + e.getMessage());
 				}
 			}
 
