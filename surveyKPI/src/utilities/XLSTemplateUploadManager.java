@@ -119,7 +119,8 @@ public class XLSTemplateUploadManager {
 			int p_id,
 			HashMap<String, String> questionNames,
 			HashMap<String, String> optionNames,
-			boolean merge) throws Exception {
+			boolean merge,
+			int existingVersion) throws Exception {
 
 		this.localisation = localisation;
 		this.questionNames = questionNames;
@@ -133,7 +134,7 @@ public class XLSTemplateUploadManager {
 		survey.displayName = displayName;
 		survey.o_id = oId;
 		survey.p_id = p_id;
-		survey.version = 1;
+		survey.version = merge ? existingVersion + 1 : 1;
 		survey.loadedFromXLS = true;
 		survey.deleted = false;
 		survey.blocked = false;
@@ -542,10 +543,10 @@ public class XLSTemplateUploadManager {
 		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum, null); 
 		q.appearance = GeneralUtilityMethods.cleanXlsNames(q.appearance);
 		
-		// 11. Parameters TODO
+		// 11. Parameters
 		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum, null);
 		
-		// 12. autoplay TODO
+		// 12. autoplay
 		q.autoplay = XLSUtilities.getTextColumn(row, "autoplay", surveyHeader, lastCellNum, null);
 		
 		// 13. body::accuracyThreshold

@@ -555,6 +555,7 @@ public class UploadFiles extends Application {
 			HashMap<String, String> groupForms = null;		// Maps form names to table names - When merging to an existing survey
 			HashMap<String, String> questionNames = null;	// Maps unabbreviated question names to abbreviated question names
 			HashMap<String, String> optionNames = null;		// Maps unabbreviated option names to abbreviated option names
+			int existingVersion = 1;							// Make the version of a survey that replaces an existing survey one greater
 			boolean merge = false;							// Set true if an existing survey is to be replaced or this survey is to be merged with an existing survey
 			
 			if(surveyId > 0) {
@@ -571,6 +572,7 @@ public class UploadFiles extends Application {
 						false, basePath, null, false, false, false, 
 						false, false, null, false, false, superUser, 0, null);
 				displayName = existingSurvey.displayName;
+				existingVersion = existingSurvey.version;
 			}
 
 			// If the survey display name already exists on this server, for this project, then throw an error		
@@ -590,7 +592,8 @@ public class UploadFiles extends Application {
 						projectId,
 						questionNames,
 						optionNames,
-						merge);
+						merge,
+						existingVersion);
 				
 				/*
 				 * Get information on a survey group if this survey is to be added to one
