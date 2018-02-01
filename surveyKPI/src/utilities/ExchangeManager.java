@@ -377,7 +377,8 @@ public class ExchangeManager {
 		int lonIndex = -1;			// Column containing longitude
 		int latIndex = -1;			// Column containing latitude
 		SimpleDateFormat dateFormatDT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		SimpleDateFormat dateFormatDTGS = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		SimpleDateFormat dateTimeFormatDTGS = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+		SimpleDateFormat dateFormatDTGS = new SimpleDateFormat("MM/dd/yyyy");
 		int recordsWritten = 0;
 		int instanceIdColumn = -1;
 		
@@ -695,7 +696,12 @@ public class ExchangeManager {
 										dateVal = Date.valueOf(value); 
 										
 									} catch (Exception e) {
-										log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+										try {
+											java.util.Date uDate = dateFormatDTGS.parse(value);		// Try US date format
+											dateVal = new Date(uDate.getTime());
+										} catch (Exception ex) {
+											log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+										}
 									}
 								}
 								pstmtInsert.setDate(index++, dateVal);
@@ -707,7 +713,7 @@ public class ExchangeManager {
 										tsVal = new Timestamp(uDate.getTime());
 									} catch (Exception e) {
 										try {
-											java.util.Date uDate = dateFormatDTGS.parse(value);		// Try US date format
+											java.util.Date uDate = dateTimeFormatDTGS.parse(value);		// Try US date format
 											tsVal = new Timestamp(uDate.getTime());
 										} catch (Exception ex) {
 											log.info("Error parsing datetime: " + value + " : " + e.getMessage());

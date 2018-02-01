@@ -1414,7 +1414,8 @@ public class SubRelationalDB extends Subscriber {
 									srcName, 
 									srcPathFile, 
 									gBasePath, 
-									surveyName) + "'";
+									surveyName,
+									null) + "'";
 
 						} else {
 							try {
