@@ -2465,7 +2465,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the answer for a specific question and a specific instance
 	 */
-	public static ArrayList<String> getResponseForQuestion(Connection sd, Connection results, int sId, int qId,
+	public static ArrayList<String> getResponseForEmailQuestion(Connection sd, Connection results, int sId, int qId,
 			String instanceId) throws SQLException {
 
 		PreparedStatement pstmtQuestion = null;
@@ -2618,6 +2618,46 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return responses;
+	}
+	
+	/*
+	 * Get the answer for a specific question and a specific instance
+	 */
+	public static String getResponseMetaValue(Connection sd, Connection results, int sId, String metaName,
+			String instanceId) throws SQLException {
+
+		PreparedStatement pstmtResults = null;
+
+		String value = null;
+		try {
+			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+			for(MetaItem item : preloads) {
+				if(item.name.equals(metaName)) {
+					Form f = getTopLevelForm(sd, sId);
+					StringBuffer query = new StringBuffer("select ");
+					query.append(item.columnName);
+					query.append(" from ");
+					query.append(f.tableName);
+					query.append(" where instanceid = ?");
+					
+					pstmtResults = results.prepareStatement(query.toString());
+					pstmtResults.setString(1, instanceId);
+					log.info("Get results for a question: " + pstmtResults.toString());
+					ResultSet rs = pstmtResults.executeQuery();
+					if (rs.next()) {
+						value = rs.getString(1);
+					}
+					break;
+				}
+			}
+			
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
+			throw e;
+		} finally {
+			try {if (pstmtResults != null) {	pstmtResults.close();}} catch (SQLException e) {}
+		}
+		return value;
 	}
 
 	/*

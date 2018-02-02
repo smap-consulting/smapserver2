@@ -476,6 +476,7 @@ public class NotificationManager {
 							nd.content,
 							nd.attach,
 							nd.emailQuestion,
+							nd.emailMeta,
 							nd.emails,
 							target,
 							remoteUser,
@@ -628,9 +629,15 @@ public class NotificationManager {
 					ArrayList<String> emailList = null;
 					log.info("Email question: " + msg.emailQuestion);
 					if(msg.emailQuestion > 0) {
-						emailList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
+						emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
 					} else {
 						emailList = new ArrayList<String> ();
+					}
+					
+					// Add any meta email addresses to the per question emails
+					String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, msg.sId, msg.emailMeta, msg.instanceId);
+					if(metaEmail != null) {
+						emailList.add(metaEmail);
 					}
 					
 					// Add the static emails to the per question emails
@@ -745,7 +752,7 @@ public class NotificationManager {
 					ArrayList<String> responseList = new ArrayList<> ();
 					log.info("SMS question: " + msg.emailQuestion);
 					if(msg.emailQuestion > 0) {
-						smsList = GeneralUtilityMethods.getResponseForQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
+						smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
 					} else {
 						smsList = new ArrayList<String> ();
 					}

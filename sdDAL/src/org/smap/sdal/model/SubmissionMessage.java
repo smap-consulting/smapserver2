@@ -12,6 +12,7 @@ public class SubmissionMessage {
 	public String content;
 	public String attach;
 	public int emailQuestion;
+	public String emailMeta;
 	public ArrayList<String> emails;
 	public String target;
 	public String user;
@@ -30,6 +31,7 @@ public class SubmissionMessage {
 			String content, 
 			String attach, 
 			int emailQuestion,
+			String emailMeta,
 			ArrayList<String> emails,
 			String target,
 			String user,
@@ -47,6 +49,7 @@ public class SubmissionMessage {
 		this.content = content;
 		this.attach = attach;
 		this.emailQuestion = emailQuestion;
+		this.emailMeta = emailMeta;
 		this.emails = emails;
 		this.target = target;
 		this.user = user;

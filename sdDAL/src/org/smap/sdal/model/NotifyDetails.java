@@ -5,6 +5,7 @@ import java.util.ArrayList;
 public class NotifyDetails {
 	public ArrayList<String> emails;
 	public int emailQuestion = 0;
+	public  String emailMeta;
 	public String smtp_host = null;
 	public String email_domain = null;
 	public String from = null;
