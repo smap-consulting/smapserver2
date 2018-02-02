@@ -364,7 +364,7 @@ public class Authorise {
 			pstmt.setString(2, user);
 			
 			if(!superUser) {
-				pstmt.setString(4, user);
+				pstmt.setString(3, user);
 			}
 			log.info("IsValidSurvey: " + pstmt.toString());
 			
