@@ -545,7 +545,7 @@ public class NotificationManager {
 		SurveyManager sm = new SurveyManager(localisation);
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
-				false, false, false, utcOffset, "geojson");
+				false, false, true, utcOffset, "geojson");
 		
 		try {
 			
