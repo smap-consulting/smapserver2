@@ -70,6 +70,7 @@ import java.util.logging.Logger;
 public class Items extends Application {
 	
 	Authorise a = null;
+	Authorise aUpdate = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Items.class.getName());
@@ -81,6 +82,10 @@ public class Items extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		aUpdate = new Authorise(authorisations, null);
 	}
 	
 	/*
@@ -617,8 +622,9 @@ public class Items extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		
+		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
+		aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
 		Connection cRel = null; 
