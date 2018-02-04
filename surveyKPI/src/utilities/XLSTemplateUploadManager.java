@@ -233,8 +233,8 @@ public class XLSTemplateUploadManager {
 							if(filter != null) {
 								Role r = survey.roles.get(h);
 								if(r != null) {
-									SqlFrag sq = new SqlFrag();
-									sq.addSqlFragment(filter, localisation, false);
+									SqlFrag sq = new SqlFrag(localisation);
+									sq.addSqlFragment(filter, false);
 									settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
 									r.row_filter = filter;
 								}

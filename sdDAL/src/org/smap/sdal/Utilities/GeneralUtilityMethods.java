@@ -5310,8 +5310,8 @@ public class GeneralUtilityMethods {
 
 		// Add the filter
 		filterQuery.append(" and (");
-		SqlFrag frag = new SqlFrag();
-		frag.addSqlFragment(filter, localisation, false);
+		SqlFrag frag = new SqlFrag(localisation);
+		frag.addSqlFragment(filter, false);
 		filterQuery.append(frag.sql);
 		filterQuery.append(")");
 
@@ -5354,8 +5354,8 @@ public class GeneralUtilityMethods {
 		filterQuery.append(" where (");		
 
 		// Add the filter
-		SqlFrag frag = new SqlFrag();
-		frag.addSqlFragment(filter, localisation, false);
+		SqlFrag frag = new SqlFrag(localisation);
+		frag.addSqlFragment(filter, false);
 		filterQuery.append(frag.sql);
 		filterQuery.append("))");
 

@@ -568,8 +568,8 @@ public class XLSResultsManager {
 				SqlFrag filterFrag = null;
 				if(results_filter != null && results_filter.length() > 0) {
 
-					filterFrag = new SqlFrag();
-					filterFrag.addSqlFragment(results_filter, localisation, false);
+					filterFrag = new SqlFrag(localisation);
+					filterFrag.addSqlFragment(results_filter, false);
 
 
 					for(String filterCol : filterFrag.columns) {

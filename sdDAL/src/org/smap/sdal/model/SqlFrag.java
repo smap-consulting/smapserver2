@@ -22,8 +22,13 @@ public class SqlFrag {
 	public ArrayList<String> columns = new ArrayList<String> ();
 	public ArrayList<String> humanNames = new ArrayList<String> ();
 
-	private static Logger log =
-			 Logger.getLogger(SqlFrag.class.getName());
+	private static Logger log = Logger.getLogger(SqlFrag.class.getName());
+	
+	private ResourceBundle localisation;
+	
+	public SqlFrag(ResourceBundle l) {
+		localisation = l;
+	}
 	
 	// Set the original expression used to create this SQlFrag
 	public void setExpression(String in) {
@@ -52,7 +57,7 @@ public class SqlFrag {
 	/*
 	 * Add an SQL expression
 	 */
-	public void addSqlFragment(String in, ResourceBundle localisation, boolean isCondition) throws Exception {
+	public void addSqlFragment(String in, boolean isCondition) throws Exception {
 		
 		ArrayList<SqlFragParam> tempParams = new ArrayList<SqlFragParam> ();
 		
@@ -258,7 +263,9 @@ public class SqlFrag {
 					out = iValue.toString();
 				}
 			} catch (Exception e) {
-				log.log(Level.SEVERE,"Error", e);
+				String msg = localisation.getString("inv_token");
+				msg = msg.replace("%s1", token);
+				throw new Exception(msg);
 			}
 			
 		}

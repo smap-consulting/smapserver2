@@ -358,8 +358,8 @@ public class XLSCustomReportsManager {
 			                					// Calculation set by condition rows
 			                					currentCol.isCondition = true;
 			                				} else if(calculation.length() > 0) {
-			                					currentCol.calculation = new SqlFrag();
-			                					currentCol.calculation.addSqlFragment(calculation, localisation, true);
+			                					currentCol.calculation = new SqlFrag(localisation);
+			                					currentCol.calculation.addSqlFragment(calculation, true);
 			                				} 
 			                			} else {
 			                				throw new Exception(localisation.getString("mf_mc") + 
@@ -480,19 +480,19 @@ public class XLSCustomReportsManager {
 		                					throw new Exception("Missing \"condition\" on row: " + (j + 1));
 		                				} else {
 		                					if(currentCol.calculation == null) {
-		                						currentCol.calculation = new SqlFrag();
+		                						currentCol.calculation = new SqlFrag(localisation);
 		                						currentCol.calculation.add("CASE");
 		                					}
 		                					if(condition.toLowerCase().trim().equals("all")) {
 		                						currentCol.calculation.add("ELSE");
-		                						currentCol.calculation.addSqlFragment(value, localisation, false);
+		                						currentCol.calculation.addSqlFragment(value, false);
 		                						//currentCol.calculation.addText(value);
 		                					} else {
 		                						currentCol.calculation.add("WHEN");
-		                						currentCol.calculation.addSqlFragment(condition, localisation, true);
+		                						currentCol.calculation.addSqlFragment(condition, true);
 		                						currentCol.calculation.add("THEN");
 		                						//currentCol.calculation.addText(value);
-		                						currentCol.calculation.addSqlFragment(value, localisation, false);
+		                						currentCol.calculation.addSqlFragment(value, false);
 		                					}
 		                				}
 		                				
@@ -712,8 +712,8 @@ public class XLSCustomReportsManager {
 	                					// Calculation set by condition rows
 	                					
 	                				} else if(calculation.length() > 0) {
-	                					select = new SqlFrag();
-	                					select.addSqlFragment(calculation, localisation, false);
+	                					select = new SqlFrag(localisation);
+	                					select.addSqlFragment(calculation, false);
 	                				} 
 	                			} else {
 	                				throw new Exception(localisation.getString("mf_mc") + 
@@ -779,7 +779,7 @@ public class XLSCustomReportsManager {
 	                					throw new Exception("Missing \"condition\" on row: " + (j + 1));
 	                				} else {
 	                					if(currentDataItem.select == null) {
-	                						currentDataItem.select = new SqlFrag();
+	                						currentDataItem.select = new SqlFrag(localisation);
 	                						currentDataItem.select.add("CASE");
 	                					}
 	                					if(condition.toLowerCase().trim().equals("all")) {
@@ -787,7 +787,7 @@ public class XLSCustomReportsManager {
 	                						currentDataItem.select.addText(value);
 	                					} else {
 	                						currentDataItem.select.add("WHEN");
-	                						currentDataItem.select.addSqlFragment(condition, localisation, true);
+	                						currentDataItem.select.addSqlFragment(condition, true);
 	                						currentDataItem.select.add("THEN");
 	                						currentDataItem.select.addText(value);
 	                					}

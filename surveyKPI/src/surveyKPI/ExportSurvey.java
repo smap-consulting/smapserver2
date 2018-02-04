@@ -606,8 +606,8 @@ public class ExportSurvey extends Application {
 				SqlFrag filterFrag = null;
 				if(filter != null && filter.length() > 0) {
 
-					filterFrag = new SqlFrag();
-					filterFrag.addSqlFragment(filter, localisation, false);
+					filterFrag = new SqlFrag(localisation);
+					filterFrag.addSqlFragment(filter, false);
 
 
 					for(String filterCol : filterFrag.columns) {
