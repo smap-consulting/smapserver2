@@ -53,6 +53,7 @@ import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
@@ -5169,20 +5170,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return true if the appearance value indicates that there are external choices
-	 * in this question
-	 */
-	public static boolean isExternalChoices(String appearance) {
-		boolean external = false;
-
-		if (appearance != null && appearance.toLowerCase().trim().contains("search(")) {
-			external = true;
-		}
-
-		return external;
-	}
-
-	/*
 	 * Get the search question from appearance Used when converting searches into
 	 * cascading selects
 	 */
@@ -5954,6 +5941,37 @@ public class GeneralUtilityMethods {
 		return coords;
 	}
 
+	/*
+	 * Update settings in question that identify if choices are in an external file
+	 * This is only required until all select type questions have been converted
+	 */
+	public static void transitionExternalCSV(Connection sd, Question q) throws SQLException {
+		
+		if(q.type.startsWith("select") && isAppearanceExternalFile(q.appearance)) {
+			ManifestInfo mi = addManifestFromAppearance(q.appearance, null);
+			q.external_choices = true;
+			q.external_table = mi.filename;
+		} else {
+			q.external_choices = false;
+		}
+		
+		String sql = "update question "
+				+ "set external_choices = ?,"
+				+ "external_table = ? "
+				+ "where q_id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  q.external_choices ? "yes" : "no");
+			pstmt.setString(2, q.external_table);
+			pstmt.setInt(3,  q.id);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		
+	}
 
 }
 

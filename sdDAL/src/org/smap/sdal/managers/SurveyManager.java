@@ -424,7 +424,8 @@ public class SurveyManager {
 							s, 
 							generateDummyValues,
 							utcOffset,
-							geomFormat);
+							geomFormat,
+							s.o_id);
 					ArrayList<Result> topForm = s.instance.results.get(0);
 					// Get the user ident that submitted the survey
 					for(Result r : topForm) {
@@ -725,7 +726,9 @@ public class SurveyManager {
 				+ "q.linked_target,"
 				+ "q.display_name,"
 				+ "q.f_id,"
-				+ "q.compressed "
+				+ "q.compressed,"
+				+ "q.external_choices,"
+				+ "q.external_table "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "where q.f_id = ? ";
@@ -900,6 +903,19 @@ public class SurveyManager {
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
 				q.compressed = rsGetQuestions.getBoolean(30);
+				
+				String exChoices = rsGetQuestions.getString(31);
+				String exTable = rsGetQuestions.getString(32);
+				if(exChoices == null) {
+					if(q.type.startsWith("select")) {
+						GeneralUtilityMethods.transitionExternalCSV(sd, q);
+					} else {
+						q.external_choices = false;
+					}
+				} else {
+					q.external_choices = exChoices.equals("yes");
+					q.external_table = exTable;
+				}
 
 				if(q.autoplay == null) {
 					q.autoplay = "none";
@@ -2559,7 +2575,8 @@ public class SurveyManager {
 			Survey s,
 			boolean generateDummyValues,
 			int utcOffset,
-			String geomFormat) throws SQLException{
+			String geomFormat,
+			int oId) throws SQLException{
 
 		ArrayList<ArrayList<Result>> output = new ArrayList<ArrayList<Result>> ();
 
@@ -2715,7 +2732,8 @@ public class SurveyManager {
 							isTopLevel,
 							generateDummyValues,
 							utcOffset,
-							geomFormat);
+							geomFormat,
+							oId);
 
 					output.add(record);
 				}
@@ -2748,7 +2766,8 @@ public class SurveyManager {
 						isTopLevel,
 						generateDummyValues,
 						utcOffset,
-						geomFormat);
+						geomFormat,
+						oId);
 
 				output.add(record);
 			}
@@ -2783,7 +2802,8 @@ public class SurveyManager {
 			boolean isTopLevel,
 			boolean generateDummyValues,
 			int utcOffset,
-			String geomFormat) throws SQLException {
+			String geomFormat,
+			int oId) throws SQLException {
 		/*
 		 * Add data for the remaining questions (prikey and user have already been extracted)
 		 */
@@ -2820,7 +2840,8 @@ public class SurveyManager {
 							s,
 							generateDummyValues,
 							utcOffset,
-							geomFormat);
+							geomFormat,
+							oId);
 
 					record.add(nr);
 				}
@@ -2871,11 +2892,12 @@ public class SurveyManager {
 					log.info("No published options for question: " + q.name);
 				}
 
-				Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, listName, appearance);
+				//Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, listName, appearance);
 				hasColumns = false;
-				int oIdx = -1;
+				//int oIdx = -1;
+				StringBuffer vBuffer = new StringBuffer("");
 				for(Option option : options) {
-					oIdx++;
+					//oIdx++;
 					boolean optSet = false;
 					if(option.published) {
 						String opt = q.columnName + "__" + option.columnName;
@@ -2883,13 +2905,22 @@ public class SurveyManager {
 							optSet = resultSetOptions.getBoolean(opt);
 						}
 					} 
-					nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
+					if(optSet) {		// Store as compressed
+						if(vBuffer.length() > 0) {
+							vBuffer.append(" ");
+						}
+						vBuffer.append(option.columnName);
+					}
+					//nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
 
 				}
-				record.add(nr);	
+				//record.add(nr);	
+				record.add(new Result(qName, qType, vBuffer.toString(), false, fIdx, qIdx, 0, listName, appearance));
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
 
+			/*
+			 * Process compressed select multiple and select one the same
 			} else if(qType.equals("select") && compressed) {		// Get the data from all the option columns
 
 				ArrayList<Option> options = new ArrayList<Option>(q.getValidChoices(s));
@@ -2935,7 +2966,7 @@ public class SurveyManager {
 				}
 				record.add(nr);	
 
-
+			*/
 			} else if(qSource != null) {
 
 				String value = "";

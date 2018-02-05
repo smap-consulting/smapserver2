@@ -60,6 +60,8 @@ public class Question {
 	public ArrayList<Label> labels = new ArrayList<Label> ();
 	public String nodeset;
 	public String dataType;
+	public boolean external_choices;
+	public String external_table;
 	
 	public String repeatCount;			// Temporary data used during xls processing	
 	public boolean isTableList = false;	// Temporary flag used during HTML generation

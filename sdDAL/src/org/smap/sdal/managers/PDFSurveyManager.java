@@ -26,9 +26,11 @@ import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -112,7 +114,8 @@ public class PDFSurveyManager {
 	private static int NUMBER_QUESTION_COLS = 10;
 
 	private ResourceBundle localisation;
-
+	private ChoiceManager choiceManager = null;
+	
 	private class Parser {
 		XMLParser xmlParser = null;
 		ElementList elements = null;
@@ -139,6 +142,7 @@ public class PDFSurveyManager {
 	
 	public PDFSurveyManager(ResourceBundle l) {
 		localisation = l;
+		choiceManager = new ChoiceManager(l);
 	}
 
 	/*
@@ -153,7 +157,7 @@ public class PDFSurveyManager {
 			String serverRoot,
 			String remoteUser,
 			String language, 
-			org.smap.sdal.model.Survey survey,
+			Survey survey,
 			boolean generateBlank,
 			String filename,
 			boolean landscape,					// Set true if landscape
@@ -443,7 +447,7 @@ public class PDFSurveyManager {
 			String basePath,
 			String formName,
 			int repeatIndex,
-			org.smap.sdal.model.Survey survey,
+			Survey survey,
 			int languageIdx,
 			String serverRoot,
 			PdfStamper stamper) throws IOException, DocumentException {
@@ -474,6 +478,15 @@ public class PDFSurveyManager {
 						fillTemplate(sd, gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, survey, languageIdx, serverRoot, stamper);
 					} 
 				} else if(r.type.equals("select1")) {
+					
+					Form form = survey.forms.get(r.fIdx);
+					Question question = form.questions.get(r.qIdx);
+					
+					value = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+							survey.languages.get(languageIdx).name);
+					
+					
+					/*
 					for(Result c : r.choices) {
 						if(c.isSet) {
 							// value = c.name;
@@ -488,7 +501,24 @@ public class PDFSurveyManager {
 							break;
 						}
 					}
+					*/
 				} else if(r.type.equals("select")) {
+					
+					if(value != null) {
+						String vArray [] = value.split(" ");
+						value = "";
+						Form form = survey.forms.get(r.fIdx);
+						Question question = form.questions.get(r.qIdx);
+						for(int i = 0; i < vArray.length; i++) {
+							String vx = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+									survey.languages.get(languageIdx).name);
+							if(value.length() > 0) {
+								value += ", ";
+							}
+							value += GeneralUtilityMethods.unesc(vx);
+						}
+					}
+					/*
 					value = "";		// Going to append multiple selections to value
 					for(Result c : r.choices) {
 						if(c.isSet) {
@@ -504,6 +534,7 @@ public class PDFSurveyManager {
 							}
 						}
 					}
+					*/
 				} else {
 					value = r.value;
 				}
@@ -770,7 +801,7 @@ public class PDFSurveyManager {
 				// Process the question
 
 				Form form = survey.forms.get(r.fIdx);
-				org.smap.sdal.model.Question question = form.questions.get(r.qIdx);
+				Question question = form.questions.get(r.qIdx);
 
 				if(includeResult(r, question, appendix, gv, generateBlank)) {
 					if(question.type.equals("begin group")) {
@@ -934,6 +965,7 @@ public class PDFSurveyManager {
 		boolean skipped = false;
 		boolean choiceSet = false;
 		
+		/*
 		if(r.choices != null) {
 			for(Result c : r.choices) {
 				if(c.isSet) {
@@ -942,6 +974,7 @@ public class PDFSurveyManager {
 				}
 			}
 		}
+		*/
 		if(!q.type.equals("note")) {
 			skipped = ((r.value == null || r.value.trim().length() == 0) && !choiceSet);
 		}
@@ -1066,7 +1099,7 @@ public class PDFSurveyManager {
 		di.choices = convertChoiceListToDisplayItems(
 				survey, 
 				question,
-				r.choices, 
+				//r.choices, 
 				languageIdx,
 				record,
 				parentRecords);
@@ -1143,6 +1176,7 @@ public class PDFSurveyManager {
 
 		for(Result r : record) {
 			if(r.name.equals(name)) {
+				/*
 				if(r.type.startsWith("select")) {
 					value = "";
 					for(Result rc : r.choices) {
@@ -1154,8 +1188,9 @@ public class PDFSurveyManager {
 						}
 					}
 				} else {
+				*/
 					value = r.value;
-				}
+				//}
 				break;
 			}
 		}
@@ -1314,11 +1349,12 @@ public class PDFSurveyManager {
 	ArrayList<DisplayItem> convertChoiceListToDisplayItems(
 			org.smap.sdal.model.Survey survey, 
 			org.smap.sdal.model.Question question,
-			ArrayList<Result> choiceResults,
+			//ArrayList<Result> choiceResults,
 			int languageIdx,
 			ArrayList<Result> record,
 			ArrayList<ArrayList<Result>> parentRecords) {
 
+		ArrayList<Result> choiceResults = new ArrayList<Result> ();		// Probably this needs to generate a set of all choices selected and not for a blank template
 		ArrayList<DisplayItem> diList = null;
 		if(choiceResults != null) {
 			diList = new ArrayList<DisplayItem>();
@@ -1676,18 +1712,21 @@ public class PDFSurveyManager {
 			cell.addElement(list);
 
 		} else {
-			stringValue = getSelectValue(isSelectMultiple, di, deps);
-			if(GeneralUtilityMethods.isRtlLanguage(stringValue)) {
-				cell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+			if(deps == null || (di.value != null && !di.value.trim().toLowerCase().equals("other"))) {
+				//stringValue = getSelectValue(isSelectMultiple, di, deps);
+				if(GeneralUtilityMethods.isRtlLanguage(stringValue)) {
+					cell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+				}
+				cell.addElement(getPara(di.value, di, gv, deps, null));
 			}
-			cell.addElement(getPara(stringValue, di, gv, deps, null));
+		
 		}
 
 	}
 
 	/*
 	 * Get the value of a select question
-	 */
+	 *
 	String getSelectValue(boolean isSelectMultiple, DisplayItem di, ArrayList<String> deps) {
 		StringBuffer sb = new StringBuffer("");
 
@@ -1723,6 +1762,7 @@ public class PDFSurveyManager {
 		return sb.toString();
 
 	}
+	*/
 
 	/*
 	 * Fill in user details for the output when their is no template

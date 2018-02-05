@@ -694,6 +694,50 @@ public class UtilityMethodsEmail {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
 		}
 	}
+	
+	/*
+	 * Get labels for an option or question
+	 */
+	public static String getSingleLabel(
+			Connection connectionSD,
+			int sId,
+			String languageName, 
+			String text_id) throws Exception {
+
+		PreparedStatement pstmt = null;
+		String label =  null;
+		
+		try {
+
+			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id = ?";
+			pstmt = connectionSD.prepareStatement(sql);
+
+			ResultSet resultSet;
+
+			if(text_id != null) {
+				pstmt.setInt(1, sId);
+				pstmt.setString(2, languageName);
+				pstmt.setString(3, text_id);
+
+				resultSet = pstmt.executeQuery();		
+				while(resultSet.next()) {
+
+					String t = resultSet.getString(1).trim();
+					String v = resultSet.getString(2);
+
+					if(t.equals("none")) {
+						label = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
+					} 
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			throw e;
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
+		}
+		return label;
+	}
 
 	/*
 	 * Set labels for an option or question

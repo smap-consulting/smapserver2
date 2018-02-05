@@ -559,7 +559,7 @@ public class PDFTableManager {
 	
 	/*
 	 * Set the contents of the value cell
-	 */
+	 *
 	private void updateValueCell(PdfPCell valueCell, 
 			String value,
 			String basePath
@@ -567,10 +567,8 @@ public class PDFTableManager {
 	
 			
 		valueCell.addElement(getPara(value));
-
-		
-
 	}
+	*/
 	
 	private Paragraph getPara(String value) {
 		
@@ -583,6 +581,7 @@ public class PDFTableManager {
 		return para;
 	}
 	
+	/*
 	private void processSelect(PdfPCell cell, DisplayItem di,
 			boolean generateBlank,
 			GlobalVariables gv) {
@@ -599,11 +598,7 @@ public class PDFTableManager {
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 		
-		/*
-		 * Add the value of this question unless
-		 *   The form is not blank and the value is "other" and their are 1 or more dependent questions
-		 *   In this case we assume that its only the values of the dependent questions that are needed
-		 */
+		
 		if(generateBlank) {
 			for(DisplayItem aChoice : di.choices) {
 				ListItem item = new ListItem(GeneralUtilityMethods.unesc(aChoice.text), font);
@@ -639,10 +634,11 @@ public class PDFTableManager {
 		}
 
 	}
+	*/
 	
 	/*
 	 * Get the value of a select question
-	 */
+	 *
 	String getSelectValue(boolean isSelectMultiple, DisplayItem di, ArrayList<String> deps) {
 		StringBuffer sb = new StringBuffer("");
 		
@@ -679,6 +675,7 @@ public class PDFTableManager {
 		return sb.toString();
 		
 	}
+	*/
 	
 	/*
 	 * Fill in user details for the output when their is no template

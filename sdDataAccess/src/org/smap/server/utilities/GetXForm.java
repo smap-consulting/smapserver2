@@ -950,7 +950,7 @@ public class GetXForm {
 					q.getNodeset(), q.getAppearance(false, null), q.getFormId());
 			// Add the itemset
 			if (nodeset != null
-					&& (!GeneralUtilityMethods.isExternalChoices(q.getAppearance(true, template.getQuestionPaths()))
+					&& (!GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, template.getQuestionPaths()))
 							|| embedExternalSearch)) {
 				cascade = true;
 				Element isElement = outputXML.createElement("itemset");

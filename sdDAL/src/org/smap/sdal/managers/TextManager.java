@@ -11,6 +11,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -24,6 +25,7 @@ import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
 import org.smap.sdal.model.ServerData;
@@ -94,7 +96,8 @@ public class TextManager {
 	private static Logger log =
 			 Logger.getLogger(TextManager.class.getName());
 	
-
+	private ResourceBundle localisation;
+	private ChoiceManager choiceManager = null;
 	
 	private class GlobalVariables {																// Level descended in form hierarchy
 
@@ -102,6 +105,10 @@ public class TextManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 
+	public TextManager(ResourceBundle l) {
+		localisation = l;
+		choiceManager = new ChoiceManager(l);
+	}
 	/*
 	 * Create the text output for an email message
 	 */
@@ -238,6 +245,12 @@ public class TextManager {
 						replaceTextParameters(sd, gv, text, r.subForm.get(k), basePath, fieldName, k, survey, languageIdx);
 					} 
 				} else if(r.type.equals("select1")) {
+					Form form = survey.forms.get(r.fIdx);
+					Question question = form.questions.get(r.qIdx);
+					
+					value = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+							survey.languages.get(languageIdx).name);
+					/*
 					for(Result c : r.choices) {
 						if(c.isSet) {
 							// value = c.name;
@@ -249,7 +262,24 @@ public class TextManager {
 							break;
 						}
 					}
+					*/
 				} else if(r.type.equals("select")) {
+					
+					if(value != null) {
+						String vArray [] = value.split(" ");
+						value = "";
+						Form form = survey.forms.get(r.fIdx);
+						Question question = form.questions.get(r.qIdx);
+						for(int i = 0; i < vArray.length; i++) {
+							String vx = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+									survey.languages.get(languageIdx).name);
+							if(value.length() > 0) {
+								value += ", ";
+							}
+							value += GeneralUtilityMethods.unesc(vx);
+						}
+					}
+					/*
 					value = "";		// Going to append multiple selections to value
 					for(Result c : r.choices) {
 						if(c.isSet) {
@@ -265,6 +295,7 @@ public class TextManager {
 							}
 						}
 					}
+					*/
 				} else {
 					value = r.value;
 				}

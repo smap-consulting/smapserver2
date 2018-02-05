@@ -556,7 +556,7 @@ public class NotificationManager {
 			 */
 			msg.subject = sm.fillStringTemplate(survey, msg.subject);
 			msg.content = sm.fillStringTemplate(survey, msg.content);
-			TextManager tm = new TextManager();
+			TextManager tm = new TextManager(localisation);
 			ArrayList<String> text = new ArrayList<> ();
 			text.add(msg.subject);
 			text.add(msg.content);
