@@ -2934,7 +2934,10 @@ public class GeneralUtilityMethods {
 						c = new TableColumn();
 						c.name = mi.columnName;
 						c.humanName = mi.name;
-						c.type = "";
+						c.type = mi.dataType;
+						if(c.type != null && c.type.equals("timestamp")) {
+							c.type = "dateTime";
+						}
 						columnList.add(c);
 					}
 				}

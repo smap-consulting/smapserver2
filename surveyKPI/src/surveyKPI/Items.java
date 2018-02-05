@@ -241,6 +241,7 @@ public class Items extends Application {
 				String geomType = null;
 				int newColIdx = 0;
 				JSONArray columns = new JSONArray();
+				JSONArray types = new JSONArray();
 				ArrayList<String> sscList = new ArrayList<String> ();
 				
 				for(TableColumn c : columnList) {
@@ -268,8 +269,9 @@ public class Items extends Application {
 						
 					}
 					
-					colNames.add(c.humanName);
+					colNames.add(c.name);
 					columns.put(c.humanName);
+					types.put(c.type);
 					newColIdx++;
 				}
 				
@@ -492,6 +494,7 @@ public class Items extends Application {
 							
 							//String name = rsMetaData.getColumnName(i);	
 							String name = colNames.get(i);
+							String headerName = columns.getString(i);
 							String value = resultSet.getString(i + 1);	
 							if(value == null) {
 								value = "";
@@ -502,16 +505,16 @@ public class Items extends Application {
 								jp.put("prikeys", prikeys);
 								prikeys.put(resultSet.getString("prikey"));
 								maxRec = resultSet.getInt("prikey");
-							} else if(name.equals("Survey Name")) {
+							} else if(name.equals("_s_id")) {
 								// Get the display name
 								String displayName = surveyNames.get(value);
 								if(displayName == null && value.length() > 0) {
 									displayName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(value));
 									surveyNames.put(value, displayName);
 								}
-								jp.put(name, displayName);
+								jp.put(headerName, displayName);
 							} else {
-								jp.put(name, value);
+								jp.put(headerName, value);
 							}
 						}
 					} 
@@ -573,6 +576,7 @@ public class Items extends Application {
 				 jo.put("type", "FeatureCollection");
 				 jo.put("features", ja);
 				 jo.put("cols", columns);
+				 jo.put("types", types);
 				 jo.put("formName", formName);
 				
 			} catch (SQLException e) {
