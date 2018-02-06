@@ -410,7 +410,7 @@ public class Items extends Application {
 				if(rec_limit > 0) {
 					sqlLimit = "LIMIT " + rec_limit;
 				}
-				StringBuffer sql2 = new StringBuffer("select ");
+				StringBuffer sql2 = new StringBuffer("select distinct ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
 				sql2.append(cols);
 				sql2.append(" from ");
 				sql2.append(tables.getTablesSQL());

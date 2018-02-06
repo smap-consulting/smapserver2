@@ -53,8 +53,9 @@ public class PdfUtilities {
 			    Anchor url = new Anchor("\uf08e", Symbols);
 			    url.setReference(imageUrl);
 			    ColumnText data = new ColumnText(stamper.getOverContent(page));
+			   
 			    data.setSimpleColumn(url, targetPosition.getLeft(), targetPosition.getBottom(), targetPosition.getRight(), targetPosition.getTop(), 
-			    		targetPosition.getWidth(), Element.ALIGN_CENTER);
+			    		targetPosition.getWidth() / 2, Element.ALIGN_CENTER);
 			    data.go();
 			} catch (Exception e) {
 				log.info("Field not found for: " + fieldName);
