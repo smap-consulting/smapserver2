@@ -18,12 +18,13 @@ public class DisplayItem {
 	public String type;
 	public boolean isSet = false;
 	public boolean isNewPage = false;
-	public ArrayList<DisplayItem> choices = null;
+	//public ArrayList<DisplayItem> choices = null;
 	public BaseColor labelbg;
 	public BaseColor valuebg;
 	public boolean labelcaps = false;
 	public boolean labelbold = false;
 	public int fIdx = 0;
+	public int qIdx = 0;
 	public int rec_number = 0;
 	public String map;
 	public String location;

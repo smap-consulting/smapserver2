@@ -702,33 +702,33 @@ public class UtilityMethodsEmail {
 			Connection connectionSD,
 			int sId,
 			String languageName, 
-			String text_id) throws Exception {
+			int l_id,
+			String value) throws Exception {
 
 		PreparedStatement pstmt = null;
 		String label =  null;
 		
 		try {
 
-			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id = ?";
+			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id = "
+					+ "(select label_id from option where l_id = ? and ovalue = ?)";
 			pstmt = connectionSD.prepareStatement(sql);
 
-			ResultSet resultSet;
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, languageName);
+			pstmt.setInt(3,  l_id);
+			pstmt.setString(4, value);
 
-			if(text_id != null) {
-				pstmt.setInt(1, sId);
-				pstmt.setString(2, languageName);
-				pstmt.setString(3, text_id);
+			log.info("Get label: " + pstmt.toString());
+			ResultSet resultSet = pstmt.executeQuery();		
+			while(resultSet.next()) {
 
-				resultSet = pstmt.executeQuery();		
-				while(resultSet.next()) {
+				String t = resultSet.getString(1).trim();
+				String v = resultSet.getString(2);
 
-					String t = resultSet.getString(1).trim();
-					String v = resultSet.getString(2);
-
-					if(t.equals("none")) {
-						label = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
-					} 
-				}
+				if(t.equals("none")) {
+					label = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
+				} 
 			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);

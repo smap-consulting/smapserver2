@@ -516,7 +516,6 @@ public class NotificationManager {
 		String logContent = null;
 		
 		boolean writeToMonitor = true;
-		PDFSurveyManager pm = new PDFSurveyManager(localisation);
 		
 		HashMap<String, String> sentEndPoints = new HashMap<> ();
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
@@ -546,6 +545,8 @@ public class NotificationManager {
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, utcOffset, "geojson");
+		
+		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey);
 		
 		try {
 			
@@ -594,14 +595,11 @@ public class NotificationManager {
 					}
 	
 					filename = pm.createPdf(
-							sd,
-							cResults,
 							outputStream,
 							msg.basePath, 
 							msg.serverRoot,
 							msg.user,
 							"none", 
-							survey, 
 							generateBlank,
 							null,
 							landscape,

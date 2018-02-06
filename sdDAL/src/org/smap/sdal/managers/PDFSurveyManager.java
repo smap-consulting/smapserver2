@@ -16,7 +16,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -44,7 +43,6 @@ import com.itextpdf.text.Document;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
-import com.itextpdf.text.Font.FontFamily;
 import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.List;
@@ -113,8 +111,15 @@ public class PDFSurveyManager {
 	private static int NUMBER_TABLE_COLS = 10;
 	private static int NUMBER_QUESTION_COLS = 10;
 
+	// Global values set in constructor
 	private ResourceBundle localisation;
 	private ChoiceManager choiceManager = null;
+	private Survey survey;
+	private Connection sd;
+	private Connection cResults;
+	
+	// Other global values
+	int languageIdx = 0;
 	
 	private class Parser {
 		XMLParser xmlParser = null;
@@ -140,9 +145,12 @@ public class PDFSurveyManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 	
-	public PDFSurveyManager(ResourceBundle l) {
+	public PDFSurveyManager(ResourceBundle l, Connection c, Connection cr, Survey s) {
 		localisation = l;
 		choiceManager = new ChoiceManager(l);
+		sd = c;
+		cResults = cr;
+		survey  = s;
 	}
 
 	/*
@@ -150,14 +158,11 @@ public class PDFSurveyManager {
 	 * Return a suggested name for the PDF file derived from the results
 	 */
 	public String createPdf(
-			Connection sd,
-			Connection cResults,
 			OutputStream outputStream,
 			String basePath, 
 			String serverRoot,
 			String remoteUser,
 			String language, 
-			Survey survey,
 			boolean generateBlank,
 			String filename,
 			boolean landscape,					// Set true if landscape
@@ -274,6 +279,7 @@ public class PDFSurveyManager {
 			gv.mapbox_key = serverData.mapbox_default;
 
 
+			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			if(templateFile.exists()) {
 
 				log.info("PDF Template Exists");
@@ -281,10 +287,10 @@ public class PDFSurveyManager {
 
 				PdfReader reader = new PdfReader(templateName);
 				PdfStamper stamper = new PdfStamper(reader, outputStream);
-				int languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
+				
 				for(int i = 0; i < survey.instance.results.size(); i++) {
-					fillTemplate(sd, gv, stamper.getAcroFields(), survey.instance.results.get(i), 
-							basePath, null, i, survey, languageIdx, serverRoot, stamper);
+					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
+							basePath, null, i, serverRoot, stamper);
 				}
 				if(user != null) {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, basePath);
@@ -317,8 +323,6 @@ public class PDFSurveyManager {
 						marginLeft, marginRight, marginTop_2, marginBottom_2)); 
 				document.open();
 
-				int languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
-
 				// If this form has data maintain a list of parent records to lookup ${values}
 				ArrayList<ArrayList<Result>> parentRecords = null;
 				if(!generateBlank) {
@@ -327,11 +331,11 @@ public class PDFSurveyManager {
 
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					processForm(
-							sd, parser, document, survey.instance.results.get(i), 
-							survey, 
+							parser, 
+							document, 
+							survey.instance.results.get(i), 
 							basePath, 
 							serverRoot,
-							languageIdx,
 							generateBlank,
 							0,
 							i,
@@ -351,10 +355,11 @@ public class PDFSurveyManager {
 
 					for(int i = 0; i < survey.instance.results.size(); i++) {
 						processForm(
-								sd, parser, document, survey.instance.results.get(i), survey, 
+								parser, 
+								document, 
+								survey.instance.results.get(i), 
 								basePath, 
 								serverRoot,
-								languageIdx,
 								generateBlank,
 								0,
 								i,
@@ -440,15 +445,12 @@ public class PDFSurveyManager {
 	 * Fill the template with data from the survey
 	 */
 	private void fillTemplate(
-			Connection sd,
 			GlobalVariables gv,
 			AcroFields pdfForm, 
 			ArrayList<Result> record, 
 			String basePath,
 			String formName,
 			int repeatIndex,
-			Survey survey,
-			int languageIdx,
 			String serverRoot,
 			PdfStamper stamper) throws IOException, DocumentException {
 		try {
@@ -475,14 +477,15 @@ public class PDFSurveyManager {
 				 */
 				if(r.type.equals("form")) {
 					for(int k = 0; k < r.subForm.size(); k++) {
-						fillTemplate(sd, gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, survey, languageIdx, serverRoot, stamper);
+						fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper);
 					} 
 				} else if(r.type.equals("select1")) {
 					
 					Form form = survey.forms.get(r.fIdx);
 					Question question = form.questions.get(r.qIdx);
 					
-					value = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+					String nameValue = r.value;
+					value = choiceManager.getLabel(sd, survey.id, question.l_id, nameValue, question.external_choices, question.external_table, 
 							survey.languages.get(languageIdx).name);
 					
 					
@@ -504,13 +507,14 @@ public class PDFSurveyManager {
 					*/
 				} else if(r.type.equals("select")) {
 					
-					if(value != null) {
-						String vArray [] = value.split(" ");
+					String nameValue = r.value;
+					if(nameValue != null) {
+						String vArray [] = nameValue.split(" ");
 						value = "";
 						Form form = survey.forms.get(r.fIdx);
 						Question question = form.questions.get(r.qIdx);
 						for(int i = 0; i < vArray.length; i++) {
-							String vx = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+							String vx = choiceManager.getLabel(sd, survey.id, question.l_id, vArray[i], question.external_choices, question.external_table, 
 									survey.languages.get(languageIdx).name);
 							if(value.length() > 0) {
 								value += ", ";
@@ -728,14 +732,11 @@ public class PDFSurveyManager {
 	 *  can be applied to showing the form on the screen and generating the PDF
 	 */
 	private void processForm(
-			Connection sd,
 			Parser parser,
 			Document document,  
 			ArrayList<Result> record,
-			org.smap.sdal.model.Survey survey,
 			String basePath,
 			String serverRoot,
-			int languageIdx,
 			boolean generateBlank,
 			int depth,
 			int length,
@@ -762,12 +763,11 @@ public class PDFSurveyManager {
 					for(int k = 0; k < blankRepeats; k++) {
 						repIndexes[depth] = k;
 						processForm(
-								sd, 
 								parser, 
-								document, r.subForm.get(0), survey, 
+								document, 
+								r.subForm.get(0), 
 								basePath, 
 								serverRoot,
-								languageIdx, 
 								generateBlank, 
 								depth + 1,
 								k,
@@ -783,10 +783,11 @@ public class PDFSurveyManager {
 						parentRecords.add(0, record);		// Push this record in at the beginning of the list as we want to search most recent first
 						repIndexes[depth] = k;
 						processForm(
-								sd, parser, document, r.subForm.get(k), survey, 
+								parser, 
+								document, 
+								r.subForm.get(k),
 								basePath, 
 								serverRoot,
-								languageIdx, 
 								generateBlank, 
 								depth + 1,
 								k,
@@ -811,9 +812,8 @@ public class PDFSurveyManager {
 					} else if(question.type.equals("end group")) {
 						//ignore
 					} else {
-						Row row = prepareRow(record, survey, j, languageIdx, gv, length, appendix, parentRecords, generateBlank);
+						Row row = prepareRow(record, survey, j, gv, length, appendix, parentRecords, generateBlank);
 						PdfPTable newTable = processRow(
-								sd, 
 								parser, 
 								row, 
 								basePath, 
@@ -900,7 +900,6 @@ public class PDFSurveyManager {
 			} 
 		}
 
-
 		return include;
 	}
 
@@ -909,7 +908,6 @@ public class PDFSurveyManager {
 	 * Add the table row to the document
 	 */
 	private PdfPTable processRow(
-			Connection sd, 
 			Parser parser, 
 			Row row, 
 			String basePath,
@@ -937,7 +935,7 @@ public class PDFSurveyManager {
 		int numberItems = row.items.size();
 		for(DisplayItem di : row.items) {
 
-			PdfPCell cell = new PdfPCell(addDisplayItem(sd, parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, survey));
+			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, survey));
 			//cell.addElement(addDisplayItem(parser, di, basePath, generateBlank, gv));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
@@ -993,7 +991,6 @@ public class PDFSurveyManager {
 			ArrayList<Result> record, 
 			org.smap.sdal.model.Survey survey, 
 			int offset,
-			int languageIdx,
 			GlobalVariables gv,
 			int recNumber,
 			boolean appendix,
@@ -1025,7 +1022,7 @@ public class PDFSurveyManager {
 					gv.cols = updateCols;			// Can only update the number of columns with the first question of the row
 				}
 
-				includeQuestion(row.items, gv, i, label, question, offset, survey, languageIdx, r, isNewPage, 
+				includeQuestion(row.items, gv, i, label, question, offset, survey, r, isNewPage, 
 						recNumber,
 						record,
 						parentRecords);
@@ -1043,7 +1040,6 @@ public class PDFSurveyManager {
 								question, 
 								offset, 
 								survey, 
-								languageIdx, 
 								r, 
 								isNewPage, 
 								recNumber,
@@ -1072,7 +1068,6 @@ public class PDFSurveyManager {
 			org.smap.sdal.model.Question question,
 			int offset,
 			org.smap.sdal.model.Survey survey,
-			int languageIdx,
 			Result r,
 			boolean isNewPage,
 			int recNumber,
@@ -1096,6 +1091,7 @@ public class PDFSurveyManager {
 		di.name = question.name;
 		di.value = r.value;
 		di.isNewPage = isNewPage;
+		/*
 		di.choices = convertChoiceListToDisplayItems(
 				survey, 
 				question,
@@ -1103,8 +1099,10 @@ public class PDFSurveyManager {
 				languageIdx,
 				record,
 				parentRecords);
+				*/
 		setQuestionFormats(question.appearance, di);
 		di.fIdx = r.fIdx;
+		di.qIdx = r.qIdx;
 		di.rec_number = recNumber;
 
 		items.add(di);
@@ -1350,7 +1348,6 @@ public class PDFSurveyManager {
 			org.smap.sdal.model.Survey survey, 
 			org.smap.sdal.model.Question question,
 			//ArrayList<Result> choiceResults,
-			int languageIdx,
 			ArrayList<Result> record,
 			ArrayList<ArrayList<Result>> parentRecords) {
 
@@ -1378,7 +1375,6 @@ public class PDFSurveyManager {
 	 * Add the question label, hint, and any media
 	 */
 	private PdfPTable addDisplayItem(
-			Connection sd,
 			Parser parser, 
 			DisplayItem di, 
 			String basePath,
@@ -1386,7 +1382,7 @@ public class PDFSurveyManager {
 			boolean generateBlank,
 			GlobalVariables gv,
 			String remoteUser,
-			org.smap.sdal.model.Survey survey) throws BadElementException, MalformedURLException, IOException {
+			Survey survey) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPCell labelCell = new PdfPCell();
 		PdfPCell valueCell = new PdfPCell();
@@ -1460,7 +1456,7 @@ public class PDFSurveyManager {
 
 		// Set the content of the value cell
 		try {
-			updateValueCell(sd, valueCell, di, generateBlank, basePath, serverRoot, gv);
+			updateValueCell(valueCell, di, generateBlank, basePath, serverRoot, gv);
 		} catch (Exception e) {
 			log.info("Error updating value cell, continuing: " + basePath + " : " + di.value);
 			log.log(Level.SEVERE, "Exception", e);
@@ -1500,7 +1496,6 @@ public class PDFSurveyManager {
 	 * Set the contents of the value cell
 	 */
 	private void updateValueCell(
-			Connection sd,
 			PdfPCell valueCell, 
 			DisplayItem di, 
 			boolean generateBlank, 
@@ -1674,8 +1669,11 @@ public class PDFSurveyManager {
 		 *   The form is not blank and the value is "other" and their are 1 or more dependent questions
 		 *   In this case we assume that its only the values of the dependent questions that are needed
 		 */
+		
 		if(generateBlank) {
-			for(DisplayItem aChoice : di.choices) {
+			// TODO get real choices using choice manager
+			ArrayList<DisplayItem> choices = new ArrayList<> ();
+			for(DisplayItem aChoice : choices) {
 
 				lang = GeneralUtilityMethods.getLanguage(aChoice.text);
 				f = getFont(lang);
@@ -1713,11 +1711,39 @@ public class PDFSurveyManager {
 
 		} else {
 			if(deps == null || (di.value != null && !di.value.trim().toLowerCase().equals("other"))) {
+				System.out.println("Set value: " + di.value + " for " + di.type);
+				String value = di.value;
+				if(di.type.equals("select1")) {
+					
+					Form form = survey.forms.get(di.fIdx);
+					Question question = form.questions.get(di.qIdx);
+					
+					String nameValue = di.value;
+					value = choiceManager.getLabel(sd, survey.id, question.l_id, nameValue, question.external_choices, question.external_table, 
+							survey.languages.get(languageIdx).name);
+				} else if(di.type.equals("select")) {
+					String nameValue = value;
+					if(nameValue != null) {
+						String vArray [] = nameValue.split(" ");
+						value = "";
+						Form form = survey.forms.get(di.fIdx);
+						Question question = form.questions.get(di.qIdx);
+						for(int i = 0; i < vArray.length; i++) {
+							String vx = choiceManager.getLabel(sd, survey.id, question.l_id, vArray[i], question.external_choices, question.external_table, 
+									survey.languages.get(languageIdx).name);
+							if(value.length() > 0) {
+								value += ", ";
+							}
+							value += GeneralUtilityMethods.unesc(vx);
+						}
+					}
+				}
+				
 				//stringValue = getSelectValue(isSelectMultiple, di, deps);
-				if(GeneralUtilityMethods.isRtlLanguage(stringValue)) {
+				if(GeneralUtilityMethods.isRtlLanguage(di.value)) {
 					cell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 				}
-				cell.addElement(getPara(di.value, di, gv, deps, null));
+				cell.addElement(getPara(value, di, gv, deps, null));
 			}
 		
 		}

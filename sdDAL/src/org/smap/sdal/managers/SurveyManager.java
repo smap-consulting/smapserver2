@@ -728,7 +728,8 @@ public class SurveyManager {
 				+ "q.f_id,"
 				+ "q.compressed,"
 				+ "q.external_choices,"
-				+ "q.external_table "
+				+ "q.external_table,"
+				+ "q.l_id "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "where q.f_id = ? ";
@@ -902,10 +903,11 @@ public class SurveyManager {
 				q.linked_target = rsGetQuestions.getString(27);
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
-				q.compressed = rsGetQuestions.getBoolean(30);
-				
+				q.compressed = rsGetQuestions.getBoolean(30);				
 				String exChoices = rsGetQuestions.getString(31);
 				String exTable = rsGetQuestions.getString(32);
+				q.l_id = rsGetQuestions.getInt(33);
+				
 				if(exChoices == null) {
 					if(q.type.startsWith("select")) {
 						GeneralUtilityMethods.transitionExternalCSV(sd, q);

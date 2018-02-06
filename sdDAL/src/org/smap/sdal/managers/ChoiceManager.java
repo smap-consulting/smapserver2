@@ -37,7 +37,7 @@ public class ChoiceManager {
 	}
 	
 	
-	public String getLabel(Connection sd, int sId, String value, boolean external_choices, String external_table, String languageName) {
+	public String getLabel(Connection sd, int sId, int l_id, String value, boolean external_choices, String external_table, String languageName) {
 		
 		
 		String label = null;
@@ -47,11 +47,11 @@ public class ChoiceManager {
 			 * 1. Search choices which are stored in the survey meta definition
 			 */
 			if(!external_choices) {
-				label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, value);
+				label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, value);
 			}
 			
 			/*
-			 * 2. TODO Search choices which are stored in an eternal table
+			 * 2. TODO Search choices which are stored in an external table
 			 */
 		
 		} catch (Exception e) {
@@ -61,7 +61,7 @@ public class ChoiceManager {
 		}
 		
 		if(label == null) {
-			// return the original value
+			// No label found, return the original value as the label
 			label = value;
 		}
 		

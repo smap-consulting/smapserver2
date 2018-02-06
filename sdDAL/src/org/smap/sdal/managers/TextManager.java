@@ -248,7 +248,8 @@ public class TextManager {
 					Form form = survey.forms.get(r.fIdx);
 					Question question = form.questions.get(r.qIdx);
 					
-					value = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+					String nameValue = r.value;
+					value = choiceManager.getLabel(sd, survey.id, question.l_id, nameValue, question.external_choices, question.external_table, 
 							survey.languages.get(languageIdx).name);
 					/*
 					for(Result c : r.choices) {
@@ -265,13 +266,14 @@ public class TextManager {
 					*/
 				} else if(r.type.equals("select")) {
 					
-					if(value != null) {
+					String nameValue = r.value;
+					if(nameValue != null) {
 						String vArray [] = value.split(" ");
 						value = "";
 						Form form = survey.forms.get(r.fIdx);
 						Question question = form.questions.get(r.qIdx);
 						for(int i = 0; i < vArray.length; i++) {
-							String vx = choiceManager.getLabel(sd, survey.id, value, question.external_choices, question.external_table, 
+							String vx = choiceManager.getLabel(sd, survey.id, question.l_id, vArray[i], question.external_choices, question.external_table, 
 									survey.languages.get(languageIdx).name);
 							if(value.length() > 0) {
 								value += ", ";

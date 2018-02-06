@@ -107,26 +107,23 @@ public class CreatePDF extends Application {
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 			
-			PDFSurveyManager pm = new PDFSurveyManager(localisation);  
 			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), sId, true, basePath, 
 					instanceId, true, generateBlank, true, false, true, "real", false, false, 
 					superUser, utcOffset, "geojson");
+			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, cResults, survey);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
 			pm.createPdf(
-					connectionSD,
-					cResults,
 					response.getOutputStream(),
 					basePath, 
 					urlprefix,
 					request.getRemoteUser(),
 					language, 
-					survey,
 					generateBlank,
 					filename,
 					landscape,
