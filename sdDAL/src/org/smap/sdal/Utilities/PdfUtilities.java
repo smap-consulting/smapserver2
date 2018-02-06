@@ -6,6 +6,8 @@ import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +23,7 @@ import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
+import com.itextpdf.text.pdf.AcroFields.FieldPosition;
 import com.itextpdf.text.pdf.ColumnText;
 import com.itextpdf.text.pdf.PdfStamper;
 import com.itextpdf.text.pdf.PushbuttonField;
@@ -47,8 +50,12 @@ public class PdfUtilities {
 		} else {
 	
 			String imageUrl = serverRoot + value;
-			try {
-				Rectangle targetPosition = pdfForm.getFieldPositions(fieldName).get(0).position;
+
+			List<FieldPosition> posList = pdfForm.getFieldPositions(fieldName);
+			if(posList == null) {
+				log.info("Field not found for: " + fieldName);
+			} else {
+				Rectangle targetPosition = posList.get(0).position;
 				int page = pdfForm.getFieldPositions(fieldName).get(0).page;
 			    Anchor url = new Anchor("\uf08e", Symbols);
 			    url.setReference(imageUrl);
@@ -57,9 +64,8 @@ public class PdfUtilities {
 			    data.setSimpleColumn(url, targetPosition.getLeft(), targetPosition.getBottom(), targetPosition.getRight(), targetPosition.getTop(), 
 			    		targetPosition.getWidth() / 2, Element.ALIGN_CENTER);
 			    data.go();
-			} catch (Exception e) {
-				log.info("Field not found for: " + fieldName);
 			}
+			
 		    
 		    /*
 			Anchor anchor = new Anchor(serverRoot + value);

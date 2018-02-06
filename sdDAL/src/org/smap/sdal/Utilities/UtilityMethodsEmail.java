@@ -719,7 +719,6 @@ public class UtilityMethodsEmail {
 			pstmt.setInt(3,  l_id);
 			pstmt.setString(4, value);
 
-			log.info("Get label: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();		
 			while(resultSet.next()) {
 
