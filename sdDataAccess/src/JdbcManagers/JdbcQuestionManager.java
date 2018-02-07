@@ -196,7 +196,11 @@ public class JdbcQuestionManager {
 		pstmt.setString(28, q.getAutoPlay());
 		pstmt.setString(29, q.getAccuracy());
 		pstmt.setString(30, q.getDataType());
-		pstmt.setBoolean(31, q.isCompressed());
+		if(q.getType().equals("select")) {
+			pstmt.setBoolean(31, true);			// Set all select multiple to compressed
+		} else {
+			pstmt.setBoolean(31, false);
+		}
 		
 		log.info("Write question   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx: " + pstmt.toString());
 		pstmt.executeUpdate();

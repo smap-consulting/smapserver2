@@ -566,7 +566,9 @@ public class XLSTemplateUploadManager {
 		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum, null); 
 		
 		// 18. Compressed
-		q.compressed = getBooleanColumn(row, "compressed", surveyHeader, lastCellNum);	 
+		if(q.type.equals("select")) {
+			q.compressed = true;
+		} 
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {

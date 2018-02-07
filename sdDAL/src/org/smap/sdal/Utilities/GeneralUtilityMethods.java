@@ -1704,6 +1704,8 @@ public class GeneralUtilityMethods {
 		 * Important! loading options from a CSV file into choices for a question has been deprecated
 		 * As an interim implementation and select multiple questions that uses a CSV file will be marked as compressed
 		 * This will mean it will not depend on these options to store results
+		 * 
+		 * deprecate this!
 		 */
 		if(qType.equals("select")) {
 			String sqlHasExternal = "select count(*) from option where l_id = ? and externalfile;";

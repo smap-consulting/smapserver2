@@ -48,6 +48,7 @@ public class QuestionInfo {
 	private String qType;
 	private String qCalculate = null;
 	private String qAppearance = null;
+	private boolean compressed = false;
 	private boolean qExternalChoices = false;
 	private boolean isCalc;
 	private String fn = null;
@@ -71,7 +72,8 @@ public class QuestionInfo {
 		sId = surveyId;
 		
 		
-		String sql = "SELECT f.table_name, f.f_id, f.parentform, q.qname, q.column_name, q.qtype, t.value, q.calculate, q.appearance" + 
+		String sql = "SELECT f.table_name, f.f_id, f.parentform, q.qname, q.column_name, q.qtype, t.value, q.calculate, "
+				+ "q.appearance, q.compressed" + 
 				" FROM survey s " +
 				" INNER JOIN form f " +
 				" ON s.s_id = f.s_id" +
@@ -106,6 +108,7 @@ public class QuestionInfo {
 					qLabel = resultSet.getString(7);
 					qCalculate = resultSet.getString(8);
 					qAppearance = resultSet.getString(9);		// Used to determine if choices come from external file
+					compressed = resultSet.getBoolean(10);
 					
 					log.info("Table:"  + tableName + ":" + fId + ":" + parentFId + ":" + qName + ":" + qType + " : " + 
 							qLabel + ":" + qCalculate + ":" + qAppearance );
@@ -243,6 +246,7 @@ public class QuestionInfo {
 								" AND o.l_id = q.l_id" +
 								" ORDER BY o.seq";
 						
+						if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 						pstmt = connection.prepareStatement(sql);
 						pstmt.setInt(1,  qId);
 						log.info("Getting options for question " + pstmt.toString());
@@ -426,7 +430,7 @@ public class QuestionInfo {
 		if(o != null){
 			for(int i = 0; i < o.size(); i++) {
 				OptionInfo aO = o.get(i);
-				if(aO.getColumnName().equals(name)) {
+				if(aO.getValue().equals(name)) {
 					return aO.getLabel();
 				}
 			}
@@ -442,6 +446,10 @@ public class QuestionInfo {
 		} else {
 			return qType;
 		} 
+	}
+	
+	public boolean isCompressed() {
+		return compressed;
 	}
 	
 	public ArrayList<OptionInfo> getOptions() {
@@ -521,7 +529,7 @@ public class QuestionInfo {
 	public String getSelect() {
 		String sqlFrag = "";
 		log.info("get select: " + tableName + ":" + columnName + ":" + qType + " : " + qType);
-		if(qType != null && qType.equals("select")) {
+		if(qType != null && qType.equals("select") && !compressed) {
 			// Add primary key with each question, assume only one question per query
 			sqlFrag = tableName + ".prikey as prikey";
 			for(int i = 0; i < o.size(); i++) {

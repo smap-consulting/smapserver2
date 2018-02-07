@@ -332,6 +332,7 @@ public class Results extends Application {
 			JSONObject featureCollection = new JSONObject();
 			JSONArray featuresArray = new JSONArray();
 			JSONArray columns = new JSONArray();
+			JSONArray types = new JSONArray();
 			JSONArray groups = new JSONArray();
 
 			results.put(featureCollection);
@@ -349,6 +350,7 @@ public class Results extends Application {
 			featureCollection.put("qtype", aQ.getType());
 			featureCollection.put("survey", survey.getDisplayName());
 			featureCollection.put("cols", columns);
+			featureCollection.put("types", types);
 			if(aQ.getUnits() != null) {
 				featureCollection.put("units", aQ.getUnits());
 			}
@@ -443,7 +445,7 @@ public class Results extends Application {
 				
 				if(hasGroup) {
 					
-					if(group.getType().equals("select")) {
+					if(group.getType().equals("select") && !group.isCompressed()) {
 						ArrayList<OptionInfo> options = group.getOptions();
 						for(int i = 0; i < options.size(); i++) {
 							OptionInfo anOption = options.get(i);
@@ -452,6 +454,26 @@ public class Results extends Application {
 								String oResult = resultSet.getString(groupValue);
 								if(oResult.equals("1")) {
 									matchingGroups.add(timeValue + groupValue);
+								}
+							}
+						}
+					} else if(group.getType().equals("select") && group.isCompressed()) {
+						ArrayList<OptionInfo> options = group.getOptions();
+						groupValue = resultSet.getString(group.getColumnName());
+						if(groupValue != null) {
+							String [] grpValueArray = groupValue.split(" ");
+						
+							if(grpValueArray.length > 0) {
+								for(int i = 0; i < options.size(); i++) {
+									OptionInfo anOption = options.get(i);
+									groupValue = anOption.getValue();
+									if(groupValue != null && groupValue.trim().length() > 0) {
+										for(int j = 0; j < grpValueArray.length; j++) {
+											if(grpValueArray[j].equals(groupValue.trim())) {
+												matchingGroups.add(timeValue + groupValue);
+											}
+										}
+									}
 								}
 							}
 						}
@@ -575,8 +597,20 @@ public class Results extends Application {
 								String optionValue = null;
 								OptionInfo oi = options.get(k);
 								String value = null;
-								if(aQ.getType().equals("select")) {
+								if(aQ.getType().equals("select") && !aQ.isCompressed()) {
 									value = resultSet.getString(oi.getColumnName());
+								} else if(aQ.getType().equals("select") && aQ.isCompressed()) {
+									optionValue = resultSet.getString(aQ.getColumnName());
+									if(optionValue != null) {
+										String [] selMulVals = optionValue.split(" ");
+										value = "0";
+										for(int m = 0; m < selMulVals.length; m++) {
+											if(selMulVals[m].equals(oi.getValue())) {
+												value = "1";
+											}
+										}
+									}
+									//value = resultSet.getString(oi.getColumnName());
 								} else {
 									optionValue = resultSet.getString(aQ.getColumnName());
 									if(optionValue != null && optionValue.equals(oi.getValue())) {
@@ -589,17 +623,24 @@ public class Results extends Application {
 								// Add to the values array
 								if(fn.equals("none")) {
 									if(firstTime) {		// Store the column names in an array
-										columns.put(oi.getLabel());   // Store the column names in an array
+										if(!aQ.isCompressed()) {
+											columns.put(oi.getLabel());   // Store the column names in an array
+											types.put("");
+										} else {
+											columns.put(aQ.getColumnName());
+											types.put(aQ.getType());
+										}
 									}
 									if(hasGroup) {
 										// Grouped results without an aggregating function - put in an array
+										JSONArray propArray = null;
 										try {
-											JSONArray propArray = (JSONArray) groupInfo.featureProps.get(oi.getLabel());
+											propArray = (JSONArray) groupInfo.featureProps.get(oi.getLabel());
 										} catch (JSONException e) {
-											JSONArray propArray = new JSONArray();
+											propArray = new JSONArray();
 											groupInfo.featureProps.put(oi.getLabel(), propArray);
 										}
-										JSONArray propArray = (JSONArray) groupInfo.featureProps.get(oi.getLabel());
+										
 										propArray.put(value);
 									} else {
 										groupInfo.featureProps.put(oi.getLabel(), value);
@@ -627,16 +668,17 @@ public class Results extends Application {
 							if(fn.equals("none")) {
 								if(firstTime) {		// Store the column names in an array
 									columns.put(aQ.getColumnName());
+									types.put(aQ.getType());
 								}
 								if(hasGroup) {
 									// Grouped results without an aggregating function - put in an array
+									JSONArray propArray = null;
 									try {
-										JSONArray propArray = (JSONArray) groupInfo.featureProps.get(aQ.getColumnName());
+										propArray = (JSONArray) groupInfo.featureProps.get(aQ.getColumnName());
 									} catch (JSONException e) {
-										JSONArray propArray = new JSONArray();
+										propArray = new JSONArray();
 										groupInfo.featureProps.put(aQ.getColumnName(), propArray);
 									}
-									JSONArray propArray = (JSONArray) groupInfo.featureProps.get(aQ.getColumnName());
 									propArray.put(value);
 								} else {
 									groupInfo.featureProps.put(aQ.getColumnName(), value);

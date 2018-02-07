@@ -323,8 +323,10 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(26, q.display_name);
 				if(q.type.equals("select")) {
 					// Default a select question to compressed if its data comes from a CSV file
-					ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, null);
-					pstmtInsertQuestion.setBoolean(27, q.compressed || mi.changed);
+					//ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, null);
+					//pstmtInsertQuestion.setBoolean(27, q.compressed || mi.changed);
+					
+					pstmtInsertQuestion.setBoolean(27, true);		// All select questions now default to compressed
 				} else {
 					pstmtInsertQuestion.setBoolean(27, false);
 				}
