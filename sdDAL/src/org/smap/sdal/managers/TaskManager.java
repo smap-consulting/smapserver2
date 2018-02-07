@@ -815,8 +815,8 @@ public class TaskManager {
 				sql.append(", ST_AsText(the_geom)");
 			}
 			if(assign_data != null && assign_data.trim().length() > 0) {
-				SqlFrag frag = new SqlFrag(localisation);
-				frag.addSqlFragment(assign_data, false);
+				SqlFrag frag = new SqlFrag();
+				frag.addSqlFragment(assign_data, false, localisation);
 				sql.append(",").append(frag.sql.toString()).append(" as _assign_key");;
 			}
 			

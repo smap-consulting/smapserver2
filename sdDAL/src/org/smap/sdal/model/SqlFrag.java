@@ -24,12 +24,6 @@ public class SqlFrag {
 
 	private static Logger log = Logger.getLogger(SqlFrag.class.getName());
 	
-	private ResourceBundle localisation;
-	
-	public SqlFrag(ResourceBundle l) {
-		localisation = l;
-	}
-	
 	// Set the original expression used to create this SQlFrag
 	public void setExpression(String in) {
 		expression = new StringBuffer(in);
@@ -57,7 +51,7 @@ public class SqlFrag {
 	/*
 	 * Add an SQL expression
 	 */
-	public void addSqlFragment(String in, boolean isCondition) throws Exception {
+	public void addSqlFragment(String in, boolean isCondition, ResourceBundle localisation) throws Exception {
 		
 		ArrayList<SqlFragParam> tempParams = new ArrayList<SqlFragParam> ();
 		
@@ -131,7 +125,7 @@ public class SqlFrag {
 			if(p.getType().equals("sql")) {
 				String [] token = p.sValue.split("[\\s]");  // Split on white space
 				for(int j = 0; j < token.length; j++) {
-					String s = sqlToken(token[j]);
+					String s = sqlToken(token[j], localisation);
 					
 					if(s.length() > 0) {
 						sql.append(" " + s + " ");
@@ -151,7 +145,7 @@ public class SqlFrag {
 	/*
 	 * Process a single sql token
 	 */
-	public String sqlToken(String token) throws Exception {
+	public String sqlToken(String token, ResourceBundle localisation) throws Exception {
 		String out = "";
 		
 		token = token.trim();
