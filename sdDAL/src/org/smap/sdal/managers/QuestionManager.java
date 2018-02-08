@@ -218,7 +218,6 @@ public class QuestionManager {
 				if(q.type.startsWith("select")) {	// Get the list id
 					q.l_id = GeneralUtilityMethods.getListId(sd, sId, q.list_name);
 				} else if(q.type.equals("calculate")) {
-					q.type = "string";
 					q.visible = false;
 				} else if(q.type.equals("begin repeat") 
 						|| q.type.equals("begin group")

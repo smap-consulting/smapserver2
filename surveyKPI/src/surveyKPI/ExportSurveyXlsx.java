@@ -102,18 +102,18 @@ public class ExportSurveyXlsx extends Application {
 
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
+		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export as: xlsx");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export as: xlsx");
 
 		String escapedFileName = null;
 		try {
@@ -134,7 +134,7 @@ public class ExportSurveyXlsx extends Application {
 			try {
 
 				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");				
@@ -148,12 +148,12 @@ public class ExportSurveyXlsx extends Application {
 				 */
 				ArrayList<QueryForm> queryList = null;
 				QueryManager qm = new QueryManager();				
-				queryList = qm.getFormList(connectionSD, sId, fId);		// Get a form list for this survey / form combo
+				queryList = qm.getFormList(sd, sId, fId);		// Get a form list for this survey / form combo
 
-				QueryForm startingForm = qm.getQueryTree(connectionSD, queryList);	// Convert the query list into a tree
+				QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 
 				// Get the SQL for this query
-				SqlDesc sqlDesc = QueryGenerator.gen(connectionSD, 
+				SqlDesc sqlDesc = QueryGenerator.gen(sd, 
 						cResults,
 						localisation,
 						sId,
@@ -315,12 +315,13 @@ public class ExportSurveyXlsx extends Application {
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
+				lm.writeLog(sd, sId, request.getRemoteUser(), "error", e.getMessage());
 				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 			} finally {	
 
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
-				SDDataSource.closeConnection("surveyKPI-ExportSurvey", connectionSD);
+				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
 				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", cResults);
 			}
 		}

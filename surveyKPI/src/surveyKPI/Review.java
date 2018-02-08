@@ -48,6 +48,8 @@ import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -177,6 +179,10 @@ public class Review extends Application {
 		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Review of text data");
 		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			dConnection = ResultsDataSource.getConnection("surveyKPI-Review");
 
 			if(sort != null) {
@@ -220,10 +226,9 @@ public class Review extends Application {
 					log.info("Target name: " + targetName);
 					
 				}
-				
-				
-				if(!qtype.equals("string") && !qtype.equals("select1")) {
-					throw new ApplicationException("Unsupported question type: " + qtype);
+								
+				if(!qtype.equals("string") && !qtype.equals("select1") && !qtype.equals("calculate") && !qtype.equals("note")) {
+					throw new ApplicationException(localisation.getString("tu_us") + " " + qtype);
 				}
 				
 				if (pstmt != null) {

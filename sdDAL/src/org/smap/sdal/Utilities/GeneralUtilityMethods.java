@@ -3624,9 +3624,7 @@ public class GeneralUtilityMethods {
 
 		String out = in;
 
-		if (in.equals("note")) {
-			out = "string";
-		} else if (in.equals("begin repeat") && name.startsWith("geopolygon")) {
+		if (in.equals("begin repeat") && name.startsWith("geopolygon")) {
 			out = "geopolygon";
 		} else if (in.equals("begin repeat") && name.startsWith("geolinestring")) {
 			out = "geolinestring";

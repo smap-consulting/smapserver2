@@ -513,7 +513,7 @@ public class QuestionInfo {
 						break;
 					}
 				}
-			} else if(qType.equals("select1") || qType.equals("string")) {
+			} else if(qType.equals("select1") || qType.equals("string") || qType.equals("calculate")) {
 				filter = tableName + "." + columnName + " =  '" + value1 + "' ";
 			} else if(value2 != null && (qType.equals("date") || qType.equals("dateTime"))) {
 				filter = tableName + "." + columnName + " between  '" + value1 + "' and  '" + value2 + "' ";

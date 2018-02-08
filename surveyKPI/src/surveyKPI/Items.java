@@ -347,6 +347,10 @@ public class Items extends Application {
 					Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 					filter = gson.fromJson(sFilter, type);
 					
+					if(filter.value != null) {
+						filter.value = filter.value.replace("'", "''");	// Escape apostrophes
+					}
+					
 					QuestionInfo fQ = new QuestionInfo(sId, filter.qId, sd);	
 					tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
 					log.info("Filter expression: " + fQ.getFilterExpression(filter.value, null));
