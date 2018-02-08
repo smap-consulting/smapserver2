@@ -9,9 +9,14 @@ import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
@@ -116,10 +121,10 @@ public class PDFSurveyManager {
 	private ChoiceManager choiceManager = null;
 	private Survey survey;
 	private Connection sd;
-	private Connection cResults;
 	
 	// Other global values
 	int languageIdx = 0;
+	int utcOffset = 0;
 	
 	private class Parser {
 		XMLParser xmlParser = null;
@@ -145,11 +150,10 @@ public class PDFSurveyManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 	
-	public PDFSurveyManager(ResourceBundle l, Connection c, Connection cr, Survey s) {
+	public PDFSurveyManager(ResourceBundle l, Connection c, Survey s) {
 		localisation = l;
 		choiceManager = new ChoiceManager(l);
 		sd = c;
-		cResults = cr;
 		survey  = s;
 	}
 
@@ -176,6 +180,7 @@ public class PDFSurveyManager {
 		}
 
 		mExcludeEmpty = survey.exclude_empty;
+		this.utcOffset = utcOffset;
 
 		User user = null;
 
@@ -539,10 +544,28 @@ public class PDFSurveyManager {
 						}
 					}
 					*/
+				} else if(r.type.equals("dateTime")) {
+					
+					value = null;
+					if(r.value != null) {
+						// Convert date to local time
+						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						df.setTimeZone(TimeZone.getTimeZone("GMT"));
+						Date date = df.parse(r.value);
+						
+						if(utcOffset != 0) { 
+							df.setTimeZone(TimeZone.getTimeZone("GMT+" + (utcOffset / 60)));
+						}
+						value = df.format(date);
+					}
+
+
 				} else {
 					value = r.value;
 				}
 
+				
+				
 				/*
 				 * Add the value to the form
 				 * Alternatively remove the fieldName if the value is empty.
@@ -553,12 +576,15 @@ public class PDFSurveyManager {
 					} catch (Exception e) {
 						log.info("Error removing field: " + fieldName + ": " + e.getMessage());
 					}
+				
 				} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") || r.type.startsWith("geolinestring_")) {
 
 					Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom, gv.mapbox_key);
 					PdfUtilities.addMapImageTemplate(pdfForm, fieldName, img);
+				
 				} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")) {
 					PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
+				
 				} else {				
 					if(hideLabel) {
 						try {
@@ -1502,7 +1528,7 @@ public class PDFSurveyManager {
 			String basePath,
 			String serverRoot,
 			GlobalVariables gv
-			) throws BadElementException, MalformedURLException, IOException, SQLException {
+			) throws BadElementException, MalformedURLException, IOException, SQLException, ParseException {
 
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
@@ -1550,6 +1576,7 @@ public class PDFSurveyManager {
 			} else {
 				valueCell.addElement(getPara(" ", di, gv, deps, null));
 			}
+			
 		} else if(di.isBarcode) { 
 			BarcodeQRCode qrcode = new BarcodeQRCode(di.value.trim(), 1, 1, null);
 			Image qrcodeImage = qrcode.getImage();
@@ -1557,8 +1584,11 @@ public class PDFSurveyManager {
 			qrcodeImage.scalePercent(200);
 
 			valueCell.addElement((qrcodeImage));
+			
 		} else {
 			// Todo process other question types
+			String value = null;
+			
 			if(di.value == null || di.value.trim().length() == 0) {
 				di.value = " ";	// Need a space to show a blank row
 			} else {
@@ -1567,8 +1597,21 @@ public class PDFSurveyManager {
 						valueCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 					}
 				}
+				
+				if(di.type.equals("dateTime")) {		// Set date time to local time
+					
+					DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					df.setTimeZone(TimeZone.getTimeZone("GMT"));
+					Date date = df.parse(di.value);
+					
+					if(utcOffset != 0) { 
+						df.setTimeZone(TimeZone.getTimeZone("GMT+" + (utcOffset / 60)));
+					}
+					value = df.format(date);
+				}
+
 			}
-			valueCell.addElement(getPara(di.value, di, gv, deps, null));
+			valueCell.addElement(getPara(value, di, gv, deps, null));
 
 		}
 
@@ -1656,7 +1699,6 @@ public class PDFSurveyManager {
 		list.setAutoindent(false);
 		list.setSymbolIndent(24);
 
-		String stringValue = null;
 		String lang;
 
 		boolean isSelectMultiple = di.type.equals("select") ? true : false;
@@ -1711,7 +1753,7 @@ public class PDFSurveyManager {
 
 		} else {
 			if(deps == null || (di.value != null && !di.value.trim().toLowerCase().equals("other"))) {
-				System.out.println("Set value: " + di.value + " for " + di.type);
+				
 				String value = di.value;
 				if(di.type.equals("select1")) {
 					

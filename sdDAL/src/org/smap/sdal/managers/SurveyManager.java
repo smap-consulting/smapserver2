@@ -2681,19 +2681,19 @@ public class SurveyManager {
 					pstmt.setInt(1, parentKey);
 				}
 
-				if(utcOffset != 0) {
-					log.info("Time zone: " + pstmtUtcOffset.toString());
-					pstmtUtcOffset.execute();
-				}
+				//cResults.setAutoCommit(false);		// Set time to local
+				//if(utcOffset != 0) {
+				//	log.info("Time zone: " + pstmtUtcOffset.toString());
+				//	pstmtUtcOffset.execute();
+				///}
 				log.info("Get results: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
-
 			}
 
 			if (resultSet != null) {
 				// For each record returned from the database add the data values to the instance
 				while(resultSet.next()) {
-
+					
 					ArrayList<Result> record = new ArrayList<Result> ();
 
 					String priKey = resultSet.getString(1);
@@ -2707,7 +2707,7 @@ public class SurveyManager {
 						ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
 						for(MetaItem mi : preloads) {
 							if(mi.isPreload) {
-								record.add(new Result(mi.columnName, mi.name, resultSet.getString(mi.columnName), false, fIdx, -1, 0, null, null));
+								record.add(new Result(mi.columnName, mi.type, resultSet.getString(mi.columnName), false, fIdx, -1, 0, null, null));
 							}
 						}
 						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));

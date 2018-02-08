@@ -115,7 +115,7 @@ public class CreatePDF extends Application {
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), sId, true, basePath, 
 					instanceId, true, generateBlank, true, false, true, "real", false, false, 
 					superUser, utcOffset, "geojson");
-			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, cResults, survey);
+			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, survey);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
 			pm.createPdf(
