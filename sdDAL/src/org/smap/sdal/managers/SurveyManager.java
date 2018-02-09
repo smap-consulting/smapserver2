@@ -64,8 +64,6 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -3327,6 +3325,38 @@ public class SurveyManager {
 
 
 		return out;
+	}
+	
+	/*
+	 * Get the group surveys
+	 * Get the forms for the passed in group surveyId
+	 */
+	public ArrayList<Integer> getGroupSurveys(Connection sd, int groupSurveyId) throws SQLException {
+		
+		ArrayList<Integer> groupSurveys = new ArrayList<> ();
+		
+		String sql = "select distinct s_id from survey where group_survey_id = ? or s_id = ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2, groupSurveyId);
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupSurveys.add(rs.getInt(1));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return groupSurveys;
 	}
 	
 	/*

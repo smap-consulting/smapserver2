@@ -33,9 +33,12 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
+import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.Question;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -63,11 +66,11 @@ public class SurveyResults extends Application {
 			Response response = null;
 			
 			// Authorisation - Access
-			Connection connectionSD = SDDataSource.getConnection("surveyKPI-SurveyResults");
-			a.isAuthorised(connectionSD, request.getRemoteUser());
+			Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults");
+			a.isAuthorised(sd, request.getRemoteUser());
 			// End Authorisation
 			
-			lm.writeLog(connectionSD, sId, request.getRemoteUser(), "delete", "Delete results");
+			lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results");
 			
 			ArrayList<String> tables = new ArrayList<String> ();
 			// Escape any quotes
@@ -84,7 +87,7 @@ public class SurveyResults extends Application {
 				Statement stmtRel = null;
 				try {
 					// Get the users locale
-					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 					ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 					
 					connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
@@ -92,10 +95,10 @@ public class SurveyResults extends Application {
 					// Delete tables associated with this survey
 					
 					String sqlUnPublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?);";
-					pstmtUnPublish = connectionSD.prepareStatement(sqlUnPublish);
+					pstmtUnPublish = sd.prepareStatement(sqlUnPublish);
 					
 					String sqlUnPublishOption = "update option set published = 'false' where l_id in (select l_id from listname where s_id = ?);";
-					pstmtUnPublishOption = connectionSD.prepareStatement(sqlUnPublishOption);
+					pstmtUnPublishOption = sd.prepareStatement(sqlUnPublishOption);
 					
 					String sqlRemoveChangeHistory = "delete from change_history where s_id = ?;";
 					pstmtRemoveChangeHistory = connectionRel.prepareStatement(sqlRemoveChangeHistory);
@@ -105,8 +108,9 @@ public class SurveyResults extends Application {
 					
 					String sqlGetSoftDeletedQuestions = "select q.f_id, q.qname from question q where soft_deleted = 'true' "
 							+ "and q.f_id in (select f_id from form where s_id = ?);";
-					pstmtGetSoftDeletedQuestions = connectionSD.prepareStatement(sqlGetSoftDeletedQuestions);
+					pstmtGetSoftDeletedQuestions = sd.prepareStatement(sqlGetSoftDeletedQuestions);
 					
+					/*
 					sql = "select distinct f.table_name, f.f_id FROM form f " +
 							"where f.s_id = ? " +
 							"order by f.table_name;";						
@@ -117,13 +121,25 @@ public class SurveyResults extends Application {
 						
 					while (resultSet.next()) {					
 						tables.add(resultSet.getString(1));
-					}
+					}				
 					
 					resultSet.close();
+					*/
 					
-					for (int i = 0; i < tables.size(); i++) {	
+					/*
+					 * Get the surveys and tables that are part of the group that this survey belongs to
+					 */
+					SurveyManager sm = new SurveyManager(localisation);
+					ArrayList<Integer> surveys = sm.getGroupSurveys(sd, sId);
+					HashMap<String, String> tableMap = sm.getGroupForms(sd, sId);
+					
+					/*
+					 * Delete data from each form
+					 */
+					for(String formname : tableMap.keySet()) {
+					//for (int i = 0; i < tables.size(); i++) {	
 						
-						String tableName = tables.get(i);					
+						String tableName = tableMap.get(formname);					
 
 						sql = "drop TABLE " + tableName + ";";
 						log.info("Delete table contents and drop table: " + sql);
@@ -138,32 +154,38 @@ public class SurveyResults extends Application {
 						log.info("userevent: " + request.getRemoteUser() + " : delete results : " + tableName + " in survey : "+ sId); 
 					}
 					
-					pstmtUnPublish.setInt(1, sId);			// Mark questions as un-published
-					pstmtUnPublish.executeUpdate();
-					
-					pstmtUnPublishOption.setInt(1, sId);			// Mark options as un-published
-					log.info("Marking options as unpublished: " + pstmtUnPublishOption.toString());
-					pstmtUnPublishOption.executeUpdate();
-					
-					pstmtRemoveChangeHistory.setInt(1, sId);
-					pstmtRemoveChangeHistory.executeUpdate();
-					
-					pstmtRemoveChangeset.setInt(1, sId);
-					pstmtRemoveChangeset.executeUpdate();
-					
-					// Delete any soft deleted questions from the survey definitions
-					QuestionManager qm = new QuestionManager(localisation);
-					ArrayList<org.smap.sdal.model.Question> questions = new ArrayList<org.smap.sdal.model.Question> ();
-					pstmtGetSoftDeletedQuestions.setInt(1, sId);
-					ResultSet rs = pstmtGetSoftDeletedQuestions.executeQuery();
-					while(rs.next()) {
-						org.smap.sdal.model.Question q = new org.smap.sdal.model.Question();
-						q.fId = rs.getInt(1);
-						q.name = rs.getString(2);
-						questions.add(q);
-					}
-					if(questions.size() > 0) {
-						qm.delete(connectionSD, connectionRel, sId, questions, false, false);
+					/*
+					 * Clean up the surveys
+					 */
+					for(int groupSurveyId : surveys) {
+						pstmtUnPublish.setInt(1, groupSurveyId);			// Mark questions as un-published
+						log.info("Marking questions as unpublished: " + pstmtUnPublish.toString());
+						pstmtUnPublish.executeUpdate();
+						
+						pstmtUnPublishOption.setInt(1, groupSurveyId);			// Mark options as un-published
+						log.info("Marking options as unpublished: " + pstmtUnPublishOption.toString());
+						pstmtUnPublishOption.executeUpdate();
+						
+						pstmtRemoveChangeHistory.setInt(1, groupSurveyId);
+						pstmtRemoveChangeHistory.executeUpdate();
+						
+						pstmtRemoveChangeset.setInt(1, groupSurveyId);
+						pstmtRemoveChangeset.executeUpdate();
+						
+						// Delete any soft deleted questions from the survey definitions
+						QuestionManager qm = new QuestionManager(localisation);
+						ArrayList<Question> questions = new ArrayList<Question> ();
+						pstmtGetSoftDeletedQuestions.setInt(1, groupSurveyId);
+						ResultSet rs = pstmtGetSoftDeletedQuestions.executeQuery();
+						while(rs.next()) {
+							Question q = new Question();
+							q.fId = rs.getInt(1);
+							q.name = rs.getString(2);
+							questions.add(q);
+						}
+						if(questions.size() > 0) {
+							qm.delete(sd, connectionRel, groupSurveyId, questions, false, false);
+						}
 					}
 					response = Response.ok("").build();
 					
@@ -184,7 +206,7 @@ public class SurveyResults extends Application {
 					try {if (pstmtRemoveChangeHistory != null) {pstmtRemoveChangeHistory.close();}} catch (SQLException e) {}
 					try {if (pstmtGetSoftDeletedQuestions != null) {pstmtGetSoftDeletedQuestions.close();}} catch (SQLException e) {}
 
-					SDDataSource.closeConnection("surveyKPI-SurveyResults", connectionSD);
+					SDDataSource.closeConnection("surveyKPI-SurveyResults", sd);
 					ResultsDataSource.closeConnection("surveyKPI-SurveyResults", connectionRel);
 				}
 			}
