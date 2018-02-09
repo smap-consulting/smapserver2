@@ -80,7 +80,10 @@ public class ExternalFileManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
+			log.info("Linker changed: " + pstmt.toString());
 			pstmt.executeUpdate();
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Linker changed", e);
 		} finally {
 			if (pstmt != null) {
 				try {

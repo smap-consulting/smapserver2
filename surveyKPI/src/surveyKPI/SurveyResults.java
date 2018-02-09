@@ -31,6 +31,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -157,6 +158,7 @@ public class SurveyResults extends Application {
 					/*
 					 * Clean up the surveys
 					 */
+					ExternalFileManager efm = new ExternalFileManager(localisation);
 					for(int groupSurveyId : surveys) {
 						pstmtUnPublish.setInt(1, groupSurveyId);			// Mark questions as un-published
 						log.info("Marking questions as unpublished: " + pstmtUnPublish.toString());
@@ -186,6 +188,9 @@ public class SurveyResults extends Application {
 						if(questions.size() > 0) {
 							qm.delete(sd, connectionRel, groupSurveyId, questions, false, false);
 						}
+						
+						// Force regeneration of any dynamic CSV files that this survey links to
+						efm.linkerChanged(sd, groupSurveyId);
 					}
 					response = Response.ok("").build();
 					
