@@ -528,11 +528,12 @@ public class SurveyManager {
 			if(existing) {
 				pstmtCreateSurvey.setString(5,  existingMeta);
 			} else {
-				meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false, null));
-				meta.add(new MetaItem("string", "instanceName", null, "instancename", null, false, null));
-				meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true, "start"));
-				meta.add(new MetaItem("dateTime", "_end", "end", "_end", "timestamp", true, "end"));
-				meta.add(new MetaItem("string", "_device", "deviceid", "_device", "property", true, "device"));
+				int metaId = -1000;
+				meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null));
+				meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null));
+				meta.add(new MetaItem(metaId--, "dateTime", "_start", "start", "_start", "timestamp", true, "start"));
+				meta.add(new MetaItem(metaId--, "dateTime", "_end", "end", "_end", "timestamp", true, "end"));
+				meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device"));
 				pstmtCreateSurvey.setString(5,  gson.toJson(meta));
 			}
 

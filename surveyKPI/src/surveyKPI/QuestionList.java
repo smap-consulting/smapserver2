@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.QuestionLite;
 
 import com.google.gson.Gson;
@@ -94,12 +95,28 @@ public class QuestionList extends Application {
 		
 		JSONArray jaQuestions = new JSONArray();
 		String response = null;
-
-		log.info("Get questions: " + single_type + " : " + exc_read_only);
+		
+		
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSSC = null;
 		try {
+			
+			// Get metaItems
+			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(connectionSD, sId);	
+			int metaId = -1000;		// Backward compatability to when meta items did not have an id
+			for(MetaItem mi : items) {
+				if(mi.isPreload) {
+					JSONObject joQuestion = new JSONObject();
+					int id = (mi.id <= -1000) ? mi.id : metaId--;
+					joQuestion.put("id", mi.id);
+					joQuestion.put("type", mi.dataType);
+					joQuestion.put("q", mi.display_name);
+					joQuestion.put("name", mi.name);
+					jaQuestions.put(joQuestion);			
+				}
+			}
+			
 			String sql = null;
 			String sql1 = null;
 			String sqlro = null;

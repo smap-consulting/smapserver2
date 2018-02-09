@@ -70,8 +70,6 @@ public class MetaList extends Application {
 	
 	/*
 	 * Return a list of all meta items in the survey
-	 * Deprecate.  This service has been replaced by the next one. It should be deleted however 
-	 *  there appears to be quite a lot of existing code that depends on the question ID being returned as a string.
 	 */
 	@GET
 	@Produces("application/json")

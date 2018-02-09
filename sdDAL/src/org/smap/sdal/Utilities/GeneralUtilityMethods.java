@@ -5738,28 +5738,28 @@ public class GeneralUtilityMethods {
 	 * Get a preload item from the type
 	 * If this is not a preload return null
 	 */
-	public static MetaItem getPreloadItem(String type, String name, String display_name) {
+	public static MetaItem getPreloadItem(String type, String name, String display_name, int metaItem) throws Exception {
 
 		MetaItem item = null;
 
 		if(type.equals("start")) {
-			item = new MetaItem("dateTime", name, type, cleanName(name, true, true, false), "timestamp", true, display_name);
+			item = new MetaItem(metaItem, "dateTime", name, type, cleanName(name, true, true, false), "timestamp", true, display_name);
 		} else if(type.equals("end")) {
-			item = new MetaItem("dateTime", name, type, cleanName(name, true, true, false), "timestamp", true, display_name);
+			item = new MetaItem(metaItem, "dateTime", name, type, cleanName(name, true, true, false), "timestamp", true, display_name);
 		} else if(type.equals("today")) {
-			item = new MetaItem("date", name, type, cleanName(name, true, true, false), "date", true, display_name);
+			item = new MetaItem(metaItem, "date", name, type, cleanName(name, true, true, false), "date", true, display_name);
 		} else if(type.equals("deviceid")) {
-			item = new MetaItem("string", name, type, cleanName(name, true, true, false), "property", true, display_name);
+			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name);
 		} else if(type.equals("subscriberid")) {
-			item = new MetaItem("string", name, type, cleanName(name, true, true, false), "property", true, display_name);
+			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name);
 		} else if(type.equals("simserial")) {
-			item = new MetaItem("string", name, type, cleanName(name, true, true, false), "property", true, display_name);
+			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name);
 		} else if(type.equals("phonenumber")) {
-			item = new MetaItem("string", name, type, cleanName(name, true, true, false), "property", true, display_name);
+			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name);
 		} else if(type.equals("username")) {
-			item = new MetaItem("string", name, type, cleanName(name, true, true, false), "property", true, display_name);
+			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name);
 		} else if(type.equals("email")) {
-			item = new MetaItem("string", name, type, cleanName(name, true, true, false), "property", true, display_name);
+			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name);
 		} 
 
 		return item;

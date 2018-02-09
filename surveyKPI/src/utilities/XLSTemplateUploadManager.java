@@ -82,6 +82,7 @@ public class XLSTemplateUploadManager {
 	boolean inFieldList = false;												// Only some questions are allowed inside a field list
 	
 	boolean useDefaultLanguage = false;
+	int metaId = -1000;
 
 	Survey survey = null;
 	ResourceBundle localisation = null;
@@ -138,8 +139,8 @@ public class XLSTemplateUploadManager {
 		survey.loadedFromXLS = true;
 		survey.deleted = false;
 		survey.blocked = false;
-		survey.meta.add(new MetaItem("string", "instanceID", null, "instanceid", null, false, null));
-		survey.meta.add(new MetaItem("string", "instanceName", null, "instancename", null, false, null));
+		survey.meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null));
+		survey.meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null));
 
 		surveySheet = wb.getSheet("survey");
 		choicesSheet = wb.getSheet("choices");
@@ -250,13 +251,13 @@ public class XLSTemplateUploadManager {
 		 * Add default preloads
 		 */
 		if(!hasMeta("start")) {
-			survey.meta.add(new MetaItem("dateTime", "_start", "start", "_start", "timestamp", true, "start"));
+			survey.meta.add(new MetaItem(metaId--, "dateTime", "_start", "start", "_start", "timestamp", true, "start"));
 		}
 		if(!hasMeta("end")) {
-			survey.meta.add(new MetaItem("dateTime", "_end", "end", "_end", "timestamp", true, "end"));
+			survey.meta.add(new MetaItem(metaId--, "dateTime", "_end", "end", "_end", "timestamp", true, "end"));
 		}
 		if(!hasMeta("deviceid")) {
-			survey.meta.add(new MetaItem("string", "_device", "deviceid", "_device", "property", true, "device"));
+			survey.meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device"));
 		}
 		
 		validateSurvey();	// 4. Final Validation
@@ -442,8 +443,9 @@ public class XLSTemplateUploadManager {
 			if(row != null) {
 				Question q = getQuestion(row, thisFormIndex, f.questions.size());				
 				if(q != null) {
-					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name);
+					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name, metaId);
 					if(item != null) {
+						metaId--;
 						validateQuestion(q, rowNumSurvey);
 						survey.meta.add(item);
 					} else {
@@ -701,13 +703,13 @@ public class XLSTemplateUploadManager {
 		return type;
 	}
 
-	private boolean convertVisible(String type) {
+	private boolean convertVisible(String type) throws Exception {
 		boolean visible = true;
 		if(type.equals("calculate")) {
 			visible = false;
 		} else if(type.equals("end group")) {
 			visible = false;
-		} else if(GeneralUtilityMethods.getPreloadItem(type, "", "") != null) {
+		} else if(GeneralUtilityMethods.getPreloadItem(type, "", "", -2000) != null) {
 			visible = false;
 		}
 

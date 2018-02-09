@@ -30,6 +30,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.MetaItem;
 
 public class QuestionInfo {
 	
@@ -552,6 +553,8 @@ public class QuestionInfo {
 	/*
 	 * Set the values for predefined data values that are not included in survey definitions
 	 * For example the upload time
+	 * 
+	 * Also check for preloads
 	 */
 	private void setForPreDefinedQuestion(Connection connection, int sId, int qId) throws Exception {
 		Form f = GeneralUtilityMethods.getTopLevelForm(connection, sId);
@@ -564,6 +567,22 @@ public class QuestionInfo {
 			columnName = "_upload_time";
 			qType = "dateTime";
 			qLabel = "Upload Time";
+		} else if (qId <= 1000) {
+			// preloads
+			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(connection, sId);	
+			int metaId = -1000;
+			for(MetaItem mi : items) {
+				if(mi.id > -1000 ) {
+					mi.id = metaId--;		// Backward compatability
+				}
+				if(mi.id == qId) {
+					qName = mi.name;
+					columnName = mi.columnName;
+					qType = mi.type;
+					qLabel = mi.display_name;
+					break;
+				}
+			}
 		} else {
 			throw new Exception("Invalid question id: " + qId);
 		}
