@@ -247,13 +247,13 @@ public class ExternalFileManager {
 				if (sqlDef.hasRbacFilter) {
 					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtData, sqlDef.rfArray, paramCount);
 				}
-				log.info("Get CSV data: " + pstmtData.toString());
 
 				// 6. Create the file
 				if (linked_s_pd && non_unique_key) {
 
 					log.info("create linked file for linked_s_pd: " + sIdent);
 
+					log.info("Get CSV data: " + pstmtData.toString());
 					rs = pstmtData.executeQuery();
 
 					BufferedWriter bw = new BufferedWriter(
