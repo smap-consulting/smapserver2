@@ -405,11 +405,13 @@ public class GetHtml {
 		}
 
 		// Add appearances
-		String[] appList = q.appearance.split(" ");
-		for (int i = 0; i < appList.length; i++) {
-			if (appList[i] != null && appList[i].trim().length() > 0) {
-				classVal.append(" or-appearance-");
-				classVal.append(appList[i].toLowerCase().trim());
+		if(q.appearance != null) {
+			String[] appList = q.appearance.split(" ");
+			for (int i = 0; i < appList.length; i++) {
+				if (appList[i] != null && appList[i].trim().length() > 0) {
+					classVal.append(" or-appearance-");
+					classVal.append(appList[i].toLowerCase().trim());
+				}
 			}
 		}
 		elem.setAttribute("class", classVal.toString());

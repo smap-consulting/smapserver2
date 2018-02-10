@@ -273,14 +273,13 @@ public class ReportListSvcDeprecate extends Application {
 				pstmt.setLong(2, fromDate);
 				pstmt.setLong(3, toDate);
 				pstmt.setString(4, geomValue);
-				log.info(sql + " : " + projectId + " : " + fromDate + " : " + toDate);
 			} else {
 				sql = sqlReport + sqlReportList;
 				pstmt = connection.prepareStatement(sql);	
 				pstmt.setInt(1, projectId);
-				log.info(sql + " : " + projectId);
 			}
 			
+			log.info(pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while (resultSet.next()) {		
