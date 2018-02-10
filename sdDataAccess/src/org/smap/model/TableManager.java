@@ -83,44 +83,15 @@ public class TableManager {
 	public boolean createTable(Connection cResults, Connection sd, String tableName, String sName, 
 			int sId,
 			int managedId) throws Exception {
-		boolean tableCreated = false;
-		String sql = "select count(*) from information_schema.tables where table_name =?;";
 
-		PreparedStatement pstmt = null;
-		try {
-			pstmt = cResults.prepareStatement(sql);
-			pstmt.setString(1, tableName);
-			log.info("SQL: " + pstmt.toString());
-			ResultSet res = pstmt.executeQuery();
-			int count = 0;
+	
+		
+		SurveyTemplate template = new SurveyTemplate(localisation); 
+		template.readDatabase(sd, sName, false);	
+		writeAllTableStructures(sd, cResults, template);
+		
 
-			if(res.next()) {
-				count = res.getInt(1);
-			}
-			if(count > 0) {
-				log.info("        Table Exists");
-			} else {
-				log.info("        Table does not exist");
-				SurveyTemplate template = new SurveyTemplate(localisation);   
-				template.readDatabase(sd, sName, false);	
-				writeAllTableStructures(sd, cResults, template);
-				tableCreated = true;
-			}
-		} catch (Exception e) {
-			log.info("        Error checking for existence of table:" + e.getMessage());
-		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-		}
-
-		if(tableCreated) {
-			markPublished(sd, sId);
-			markAllChangesApplied(sd, sId);
-		}
-
-		if(tableCreated || managedId > 0) {
-			addManagementColumns(cResults, sd, sId, managedId);
-		}
-
+		
 		return tableCreated;
 	}
 
@@ -351,6 +322,9 @@ public class TableManager {
 		boolean hasHrk = (template.getHrk() != null);
 		boolean resAutoCommitSetFalse = false;
 
+		boolean tableCreated = false;
+		String sql = "select count(*) from information_schema.tables where table_name =?";		
+		PreparedStatement pstmt = null;
 		try {
 			//Class.forName(dbClass);	 
 
@@ -361,11 +335,40 @@ public class TableManager {
 				cResults.setAutoCommit(false);
 			}
 			
-			for(Form form : forms) {	
+			for(Form form : forms) {
 				if(!form.getReference()) {
-					writeTableStructure(form, sd, cResults, hasHrk, template);
+					
+					// Test to see if this table already exists
+					try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
+					pstmt = cResults.prepareStatement(sql);
+					pstmt.setString(1, form.getTableName());
+					log.info("SQL: " + pstmt.toString());
+					ResultSet res = pstmt.executeQuery();
+					int count = 0;
+					if(res.next()) {
+						count = res.getInt(1);
+					}
+					
+					if(count > 0) {
+						log.info("        Table Exists");
+					} else {
+						// Create the table
+						log.info("        Table does not exist");
+						writeTableStructure(form, sd, cResults, hasHrk, template);
+						tableCreated = true;
+					}
 				}
 				cResults.commit();
+				
+				if(tableCreated) {
+					markPublished(sd, sId);
+					markAllChangesApplied(sd, sId);
+				}
+
+				if(tableCreated || managedId > 0) {
+					addManagementColumns(cResults, sd, sId, managedId);
+				}
+
 			}	
 			
 
@@ -383,6 +386,7 @@ public class TableManager {
 			}
 
 		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
 			if(resAutoCommitSetFalse) {
 				log.info("Set autocommit results true");
 				resAutoCommitSetFalse = false;
