@@ -684,7 +684,7 @@ public class XLSTemplateUploadManager {
 			type = "string";
 		} else if(type.startsWith("select_one") || type.startsWith("select_multiple")) {
 			
-			String [] array = type.split(" ");
+			String [] array = type.split("\\s+");
 			if(array.length <= 1) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_mln", rowNumSurvey, "survey", in.trim(), null, null);
 			}
@@ -1004,10 +1004,10 @@ public class XLSTemplateUploadManager {
 			out = "decimal";
 		} else if (type.startsWith("select_one") || type.startsWith("select one")) {
 			int idx = type.indexOf("one");
-			out = "select_one " + in.substring(idx + 3);
+			out = "select_one " + in.substring(idx + 3).trim();
 		} else if (type.startsWith("select_multiple") || type.startsWith("select multiple")) {
 			int idx = type.indexOf("multiple");
-			out = "select_multiple " + in.substring(idx + 8);;
+			out = "select_multiple " + in.substring(idx + 8).trim();
 		} else if (type.equals("note")) {
 			out = "note";
 		} else if (type.equals("geopoint") || type.equals("location")) {

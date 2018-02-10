@@ -688,6 +688,10 @@ public class GetXForm {
 			type = "binary";
 		} else if (type.equals("begin repeat") && count) {
 			type = "string"; // For a calculate
+		} else if (type.equals("calculate")) {
+			type = "string";
+		} else if (type.equals("note")) {
+			type = "string";
 		}
 		if (!type.equals("begin group") && !type.equals("begin repeat") && !type.equals("geopolygon")
 				&& !type.equals("geolinestring")) {
