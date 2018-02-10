@@ -1590,7 +1590,7 @@ public class PDFSurveyManager {
 			String value = null;
 			
 			if(di.value == null || di.value.trim().length() == 0) {
-				di.value = " ";	// Need a space to show a blank row
+				value = " ";	// Need a space to show a blank row
 			} else {
 				if(di.value != null && di.value.length() > 0) {
 					if(GeneralUtilityMethods.isRtlLanguage(di.value)) {
@@ -1608,6 +1608,8 @@ public class PDFSurveyManager {
 						df.setTimeZone(TimeZone.getTimeZone("GMT+" + (utcOffset / 60)));
 					}
 					value = df.format(date);
+				} else {
+					value = di.value;
 				}
 
 			}

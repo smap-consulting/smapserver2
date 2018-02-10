@@ -2,7 +2,7 @@ package org.smap.sdal.model;
 
 //MetaItem ids start from -1000 and go down
 public class MetaItem {
-	public int id;	// An integer id for preloads so they can be used in lists with questions that are idnetified by their id
+	public int id;	// An integer id for preloads so they can be used in lists with questions that are identified by their id
 	public String type;
 	public String name;		
 	public String sourceParam;

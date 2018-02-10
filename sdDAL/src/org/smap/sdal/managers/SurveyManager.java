@@ -64,6 +64,8 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -839,7 +841,19 @@ public class SurveyManager {
 
 			/*
 			 * Add HRK
-			 */
+			 *
+			if(getHrk) {
+				// add the hrk column if it exists
+
+				Question q = new Question();
+				q.name="_hrk";
+				q.columnName="_hrk";
+				q.type = "string";
+				q.published = GeneralUtilityMethods.hasColumn(cResults, f.tableName, "_hrk");
+				q.source = "system";
+				f.questions.add(q);
+			}
+			*/
 			if(getHrk && f.parentform == 0) {
 				if(s.hrk != null && s.hrk.trim().length() > 0
 						&& GeneralUtilityMethods.columnType(cResults, f.tableName, "_hrk") != null) {
@@ -857,6 +871,31 @@ public class SurveyManager {
 						q.labels.add(l);
 					}
 					f.questions.add(q);
+				}
+			}
+			
+			// Get preloads if they have been requested xxxx
+			if(getPropertyTypeQuestions && f.parentform == 0) {
+				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
+				for(MetaItem mi : preloads) {
+					if(mi.isPreload) {
+						Question q = new Question();
+						q.name = mi.name;
+						q.columnName = mi.columnName;
+						q.type = mi.type;
+						q.source = "preload";
+						if(q.type != null && q.type.equals("timestamp")) {
+							q.type = "dateTime";
+						}
+						q.published = true;		// TODO has it been published
+						q.labels = new ArrayList<Label> ();
+						for(int i = 0; i < s.languages.size(); i++ ) {
+							Label l = new Label();
+							l.text = mi.name;
+							q.labels.add(l);
+						}
+						f.questions.add(q);
+					}
 				}
 			}
 			
@@ -965,18 +1004,6 @@ public class SurveyManager {
 				UtilityMethodsEmail.getLabels(sd, s, q.text_id, q.hint_id, q.labels, basePath, oId);
 				//q.labels_orig = q.labels;		// Set the original label values
 
-				f.questions.add(q);
-			}
-
-			if(getHrk) {
-				// add the hrk column if it exists
-
-				Question q = new Question();
-				q.name="_hrk";
-				q.columnName="_hrk";
-				q.type = "string";
-				q.published = GeneralUtilityMethods.hasColumn(cResults, f.tableName, "_hrk");
-				q.source = "system";
 				f.questions.add(q);
 			}
 
@@ -2605,6 +2632,7 @@ public class SurveyManager {
 		/*
 		 * Hack: Remove questions that have not been published.
 		 * This code should be modified to reuse the function to get columns used by results export
+		 * xxxx
 		 */
 		if(!generateDummyValues) {
 			for(int i = questions.size() - 1; i >= 0; i--) {
@@ -2655,12 +2683,6 @@ public class SurveyManager {
 				 * Add questions from meta
 				 */
 				if(form.parentform == 0) {
-					ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
-					for(MetaItem mi : preloads) {
-						if(mi.isPreload) {
-							sql += "," + mi.columnName;
-						}
-					}
 					
 					// Add instancename which is not in meta
 					sql += "," + "instancename";
@@ -2703,12 +2725,6 @@ public class SurveyManager {
 						String user = resultSet.getString(2);
 						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));
 						
-						ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
-						for(MetaItem mi : preloads) {
-							if(mi.isPreload) {
-								record.add(new Result(mi.columnName, mi.type, resultSet.getString(mi.columnName), false, fIdx, -1, 0, null, null));
-							}
-						}
 						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));
 						
 					}
