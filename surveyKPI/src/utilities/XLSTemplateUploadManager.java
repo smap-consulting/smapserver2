@@ -682,15 +682,9 @@ public class XLSTemplateUploadManager {
 		// Do type conversions
 		if (type.equals("text")) {
 			type = "string";
-		} else if(in.startsWith("select_one") || in.startsWith("select_multiple")) {
+		} else if(type.startsWith("select_one") || type.startsWith("select_multiple")) {
 			
-			if(in.startsWith("select_one")) {
-				type = "select1";
-			} else if(in.startsWith("select_multiple")) {
-				type = "select";
-			}
-			
-			String [] array = in.split(" ");
+			String [] array = type.split(" ");
 			if(array.length <= 1) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_mln", rowNumSurvey, "survey", in.trim(), null, null);
 			}
@@ -698,8 +692,14 @@ public class XLSTemplateUploadManager {
 			if(q.list_name.length() == 0) {
 				q.list_name = null;
 			}
+			
+			if(type.startsWith("select_one")) {
+				type = "select1";
+			} else if(type.startsWith("select_multiple")) {
+				type = "select";
+			}
 		} 
-		
+
 		return type;
 	}
 
@@ -993,7 +993,8 @@ public class XLSTemplateUploadManager {
 	private String getValidQuestionType(String in) {
 		
 		String out = null;	
-		String type = in.toLowerCase().trim();
+		in = in.trim();
+		String type = in.toLowerCase();
 		
 		if(type.equals("text")) {
 			out = "text";
@@ -1002,10 +1003,10 @@ public class XLSTemplateUploadManager {
 		} else if (type.equals("decimal")) {
 			out = "decimal";
 		} else if (type.startsWith("select_one") || type.startsWith("select one")) {
-			int idx = in.indexOf("one");
+			int idx = type.indexOf("one");
 			out = "select_one " + in.substring(idx + 3);
 		} else if (type.startsWith("select_multiple") || type.startsWith("select multiple")) {
-			int idx = in.indexOf("multiple");
+			int idx = type.indexOf("multiple");
 			out = "select_multiple " + in.substring(idx + 8);;
 		} else if (type.equals("note")) {
 			out = "note";
