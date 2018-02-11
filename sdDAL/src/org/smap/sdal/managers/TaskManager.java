@@ -536,6 +536,7 @@ public class TaskManager {
 				}
 				int target_s_id = rs.getInt(4);
 
+				log.info("Assign Survey String: " + rs.getString(2));
 				log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
 
 				/*
@@ -709,6 +710,7 @@ public class TaskManager {
 			 */
 			int userId = as.user_id;
 			int roleId = as.role_id;
+			log.info("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
 			int fixedRoleId = as.fixed_role_id;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, target_s_id);
 			if(tid.ident != null) {

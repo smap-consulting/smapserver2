@@ -38,6 +38,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -1276,19 +1277,22 @@ public class AllAssignments extends Application {
 			 */
 			TableManager tm = new TableManager(localisation);
 			FormDesc topForm = formList.get(0);
-			boolean tableCreated = tm.createTable(results, sd, topForm.table_name, sIdent, sId, 0);
+			
+			SurveyTemplate template = new SurveyTemplate(localisation); 
+			template.readDatabase(sd, sIdent, false);	
+			tm.writeAllTableStructures(sd, results, sId, template,  0);
+			
 			boolean tableChanged = false;
 			boolean tablePublished = false;
 
 			// Apply any updates that have been made to the table structure since the last submission
-			if(!tableCreated) {
-				tableChanged = tm.applyTableChanges(sd, results, sId);
 
-				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
-				if(tableChanged || tablePublished) {
-					tm.markPublished(sd, sId);		// only mark published if there have been changes made
-				}
+			tableChanged = tm.applyTableChanges(sd, results, sId);
+
+			// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
+			tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
+			if(tableChanged || tablePublished) {
+				tm.markPublished(sd, sId);		// only mark published if there have been changes made
 			}
 
 			/*

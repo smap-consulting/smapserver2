@@ -200,7 +200,6 @@ public class SurveyInstance {
 					}
 					if(temp_att == null) {
 						IE ie = new IE(n.getNodeName(), n.getTextContent());
-						
 	
 						// Save the device name so it can be recorded by the survey upload monitor
 						if(n.getNodeName().equals("_device")) {

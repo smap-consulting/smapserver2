@@ -77,23 +77,6 @@ public class TableManager {
 		localisation = l;
 	}
 	
-	/*
-	 * Create the table if it does not already exit in the database
-	 */
-	public boolean createTable(Connection cResults, Connection sd, String tableName, String sName, 
-			int sId,
-			int managedId) throws Exception {
-
-	
-		
-		SurveyTemplate template = new SurveyTemplate(localisation); 
-		template.readDatabase(sd, sName, false);	
-		writeAllTableStructures(sd, cResults, template);
-		
-
-		
-		return tableCreated;
-	}
 
 	public void addManagementColumns(Connection cResults, Connection sd, int sId, int managedId) throws Exception {
 
@@ -170,24 +153,21 @@ public class TableManager {
 	}
 
 	/*
-	 * Mark all the questions and options in the survey as published
-	 * Mark as published any questions in other surveys that share this results table
+	 * Mark all the questions and options in the form as published
+	 * Mark as published any questions in other forms that share this results table
 	 */
-	public void markPublished(Connection sd, int sId) throws SQLException {
+	public void markPublished(Connection sd, int fId) throws SQLException {
 
 		class FormDetail {
 			boolean isSubmitter;
 			int fId;
 			int submittingFormId;
-			String table_name;
 		}
 		ArrayList<FormDetail> forms = new ArrayList<FormDetail> ();
 
 
-		String sqlGetSharingForms = "select f.s_id, f.f_id, f.table_name from form f, survey s "
-				+ "where s.s_id = f.s_id "
-				+ "and s.deleted = 'false' "
-				+ "and f.table_name in (select table_name from form where s_id = ?);";
+		String sqlGetSharingForms = "select f.f_id from form f "
+				+ "where f.table_name in (select table_name from form where f_id = ?);";
 
 		String sqlSetPublishedThisForm = "update question set published = 'true' where f_id = ?;";
 
@@ -217,33 +197,20 @@ public class TableManager {
 			pstmtSetOptionsPublishedSharedForm = sd.prepareStatement(sqlSetOptionsPublishedSharedForm);
 
 			// 1. Get all the affected forms
-			pstmtGetForms.setInt(1, sId);
-
+			pstmtGetForms.setInt(1, fId);
 			log.info("Get sharing forms: " + pstmtGetForms.toString());
 			ResultSet rs = pstmtGetForms.executeQuery();
 
 			while(rs.next()) {
 
 				FormDetail fd = new FormDetail();
-				fd.isSubmitter = (sId == rs.getInt(1));
-				fd.fId = rs.getInt(2);
-				fd.table_name = rs.getString(3);
+				fd.fId = rs.getInt(1);
+				fd.isSubmitter = (fId == fd.fId);
+				fd.submittingFormId = fId;
 				forms.add(fd);
 			}
 
-			// 2. For all shared forms record the matching formId of the submitting form
-			for(FormDetail fd : forms) {
-				if(!fd.isSubmitter) {
-					for(FormDetail fd2 : forms) {
-						if(fd2.isSubmitter && fd.table_name.equals(fd2.table_name)) {
-							fd.submittingFormId = fd2.fId;
-							break;
-						}
-					}
-				}
-			}
-
-			// 3. Mark the forms published
+			// 2. Mark the forms published
 			for(FormDetail fd : forms) {
 
 				if(fd.isSubmitter) {
@@ -316,7 +283,7 @@ public class TableManager {
 	/*
 	 * Create the tables for the survey
 	 */
-	private void writeAllTableStructures(Connection sd, Connection cResults, SurveyTemplate template) {
+	public void writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
 
 		String response = null;
 		boolean hasHrk = (template.getHrk() != null);
@@ -361,11 +328,12 @@ public class TableManager {
 				cResults.commit();
 				
 				if(tableCreated) {
-					markPublished(sd, sId);
-					markAllChangesApplied(sd, sId);
+					markPublished(sd, form.getId());
+					//markAllChangesApplied(sd, sId);
 				}
 
-				if(tableCreated || managedId > 0) {
+				// Add managed columns if a top level form has been created or a mangedId was passed
+				if((tableCreated && !form.hasParent()) || managedId > 0) {
 					addManagementColumns(cResults, sd, sId, managedId);
 				}
 

@@ -31,6 +31,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -215,10 +216,17 @@ public class ManagedForms extends Application {
 			TableManager tm = new TableManager(localisation);
 			
 			// 0. Ensure that the form data columns are fully published, don't add managed columns at this stage
-			String sIdent = null;
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
+			SurveyTemplate template = new SurveyTemplate(localisation);
+			template.readDatabase(sd, sIdent, false);	
 			if(am.manageId > 0) {
-				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
-				boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, 0);
+			
+				tm.writeAllTableStructures(sd, cResults, am.sId, template,  0);
+				
+				// Apply any updates that have been made to the table structure since the last submission
+				boolean tableChanged = tm.applyTableChanges(sd, cResults, am.sId);
+				
+				//boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, 0);
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
 				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
 				if(tableChanged || tablePublished) {
@@ -244,13 +252,15 @@ public class ManagedForms extends Application {
 			
 			// 3. Create results tables if they do not exist
 			if(am.manageId > 0) {
-				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
-				boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, am.manageId);
+				
+				tm.writeAllTableStructures(sd, cResults, am.sId, template,  am.manageId);
+				
+				//boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sName, am.sId, am.manageId);
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
-				if(tableChanged || tablePublished) {
-					tm.markPublished(sd, am.sId);		// only mark published if there have been changes made
-				}
+				//boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
+				//if(tableChanged || tablePublished) {
+				//	tm.markPublished(sd, am.sId);		// only mark published if there have been changes made
+				//}
 			}
 			
 			// 4. Clear the auto update indicators if the managed form is being removed

@@ -64,8 +64,6 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -871,31 +869,6 @@ public class SurveyManager {
 						q.labels.add(l);
 					}
 					f.questions.add(q);
-				}
-			}
-			
-			// Get preloads if they have been requested xxxx
-			if(getPropertyTypeQuestions && f.parentform == 0) {
-				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
-				for(MetaItem mi : preloads) {
-					if(mi.isPreload) {
-						Question q = new Question();
-						q.name = mi.name;
-						q.columnName = mi.columnName;
-						q.type = mi.type;
-						q.source = "preload";
-						if(q.type != null && q.type.equals("timestamp")) {
-							q.type = "dateTime";
-						}
-						q.published = true;		// TODO has it been published
-						q.labels = new ArrayList<Label> ();
-						for(int i = 0; i < s.languages.size(); i++ ) {
-							Label l = new Label();
-							l.text = mi.name;
-							q.labels.add(l);
-						}
-						f.questions.add(q);
-					}
 				}
 			}
 			

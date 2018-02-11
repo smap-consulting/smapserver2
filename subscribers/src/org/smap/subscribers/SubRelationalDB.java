@@ -44,6 +44,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
+import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -654,7 +655,7 @@ public class SubRelationalDB extends Subscriber {
 	private  Keys writeTableContent(
 			IE element, 
 			int parent_key, 
-			String sName, 
+			String sIdent, 
 			String remoteUser, 
 			String server, 
 			String device, 
@@ -695,7 +696,12 @@ public class SubRelationalDB extends Subscriber {
 				keys.duplicateKeys = new ArrayList<Integer>();
 				TableManager tm = new TableManager(localisation);
 				if (parent_key == 0) { // top level survey has a parent key of 0
-					boolean tableCreated = tm.createTable(cRel, cMeta, tableName, sName, sId, 0);
+					
+					// Create new tables
+					SurveyTemplate template = new SurveyTemplate(localisation); 
+					template.readDatabase(cMeta, sIdent, false);	
+					tm.writeAllTableStructures(cMeta, cRel, sId, template,  0);
+					
 					boolean tableChanged = false;
 					boolean tablePublished = false;
 					keys.duplicateKeys = checkDuplicate(cRel, tableName, uuid);
@@ -705,18 +711,15 @@ public class SubRelationalDB extends Subscriber {
 					}
 					// Apply any updates that have been made to the table structure since the last
 					// submission
-					if (!tableCreated) {
-						tableChanged = tm.applyTableChanges(cMeta, cRel, sId);
+					tableChanged = tm.applyTableChanges(cMeta, cRel, sId);
 
-						// Add any previously unpublished columns not in a changeset (Occurs if this is
-						// a new survey sharing an existing table)
-						tablePublished = tm.addUnpublishedColumns(cMeta, cRel, sId, tableName);
+					// Add any previously unpublished columns not in a changeset (Occurs if this is
+					// a new survey sharing an existing table)
+					tablePublished = tm.addUnpublishedColumns(cMeta, cRel, sId, tableName);
 
-						if (tableChanged || tablePublished) {
-							tm.markPublished(cMeta, sId); // only mark published if there have been changes made
-						}
+					if (tableChanged || tablePublished) {
+						tm.markPublished(cMeta, sId); // only mark published if there have been changes made
 					}
-
 				}
 
 				boolean isBad = false;
@@ -787,7 +790,7 @@ public class SubRelationalDB extends Subscriber {
 						sql += ", ?";
 					}
 
-					sql += addSqlValues(columns, sName, device, server, false, hasAltitude);
+					sql += addSqlValues(columns, sIdent, device, server, false, hasAltitude);
 					sql += ");";
 
 					pstmt = cRel.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -848,7 +851,7 @@ public class SubRelationalDB extends Subscriber {
 						|| (child.getQType() != null && child.getQType().equals("geolinestring"))
 						|| (child.getQType() != null && child.getQType().equals("begin group")))) {
 					
-					writeTableContent(child, parent_key, sName, remoteUser, server, device, uuid, formStatus, version,
+					writeTableContent(child, parent_key, sIdent, remoteUser, server, device, uuid, formStatus, version,
 							surveyNotes, locationTrigger, cRel, cMeta, sId, uploadTime,
 							auditPath + "/" + child.getName() + "[" + recCounter + "]");
 					recCounter++;
@@ -1270,6 +1273,7 @@ public class SubRelationalDB extends Subscriber {
 		for(IE col : columns) {
 			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
 			String colType = col.getQType();
+			System.out.println("Coltype: " + colType);
 
 			if(colType.equals("select") && !col.isCompressed()) {
 				List<IE> options = col.getChildren();
@@ -1332,6 +1336,7 @@ public class SubRelationalDB extends Subscriber {
 
 				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") 
 						|| qType.equals("acknowledge")
+						|| qType.equals("note")
 						|| qType.equals("select")) {		// Compressed select
 					value = "'" + value + "'";
 

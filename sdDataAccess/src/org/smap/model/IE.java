@@ -178,6 +178,7 @@ public class IE {
 					if(qt != null) {
 						if(qt.equals("string") 		// simple questions
 								|| qt.equals("int")
+								|| qt.equals("note")
 								|| qt.equals("date")
 								|| qt.equals("decimal")
 								|| qt.equals("select")
