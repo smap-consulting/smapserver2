@@ -5893,17 +5893,36 @@ public class GeneralUtilityMethods {
 		int group = 0;
 		String sql = "select group_survey_id from survey where s_id = ?";
 		PreparedStatement pstmt = null;
+		
+		String sql2 = "select count(*) from survey where group_survey_id = ?";
+		PreparedStatement pstmt2 = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1,  sId);
+			log.info("Check if this survey is in a group: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next())  {
 				group = rs.getInt(1);
 			}
+			
+			if(group == 0) {
+				// Perhaps this survey is the main survey in the group
+				pstmt2 = sd.prepareStatement(sql2);
+				pstmt2.setInt(1,  sId);
+				log.info("Check if this survey is the main survey: " + pstmt2.toString());
+				rs = pstmt2.executeQuery();			
+				if(rs.next())  {
+					if(rs.getInt(1) > 0) {
+						// Its the parent form
+						group = sId;
+					}
+				}
+			}
 
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+			if(pstmt2 != null) try {pstmt2.close();} catch(Exception e) {}
 		}
 
 		return group;
