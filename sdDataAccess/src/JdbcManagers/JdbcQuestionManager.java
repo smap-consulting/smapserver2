@@ -202,7 +202,6 @@ public class JdbcQuestionManager {
 			pstmt.setBoolean(31, false);
 		}
 		
-		log.info("Write question   xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx: " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		ResultSet rs = pstmt.getGeneratedKeys();
@@ -244,7 +243,6 @@ public class JdbcQuestionManager {
 		Stack<String> paths = new Stack<String>();
 		String currentPath = "";
 		
-		log.info("Get question list: " + pstmtGet.toString());
 		ResultSet rs = pstmtGet.executeQuery();
 		while(rs.next()) {
 			Question q = new Question();

@@ -37,6 +37,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChoiceList;
@@ -53,6 +54,7 @@ import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
@@ -60,6 +62,9 @@ import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TaskFeature;
+import org.smap.sdal.model.User;
+import org.smap.sdal.model.UserGroup;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -5990,6 +5995,31 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 		
+	}
+	
+	public static String createTempUser(Connection sd, int oId, String email, String assignee_name, int pId, TaskFeature tf) throws Exception {
+		UserManager um = new UserManager();
+		String tempUserId = "u" + String.valueOf(UUID.randomUUID());
+		User u = new User();
+		u.ident = tempUserId;
+		u.email = email;
+		u.name = assignee_name;
+
+		// Only allow access to the project used by this task
+		u.projects = new ArrayList<Project> ();
+		Project p = new Project();
+		p.id = pId;
+		u.projects.add(p);
+
+		// Only allow enum access
+		u.groups = new ArrayList<UserGroup> ();
+		u.groups.add(new UserGroup(Authorise.ENUM_ID, Authorise.ENUM));
+		int assignee = um.createTemporaryUser(sd, u, oId);
+		if(tf != null) {
+			tf.properties.assignee = assignee;
+		}
+		
+		return tempUserId;
 	}
 
 }

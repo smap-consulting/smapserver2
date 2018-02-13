@@ -280,6 +280,51 @@ public class Survey extends Application {
 	}
 
 	/*
+	 * Get a public link to a webform for this survey
+	 */
+	@Path("/link/")
+	@GET
+	@Produces("application/json")
+	public Response getLink(@Context HttpServletRequest request,
+			@PathParam("sId") int sId) { 
+
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getLink");
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		try {
+			System.out.println("Get Link");
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
+			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			String tempUserId = GeneralUtilityMethods.createTempUser(
+					sd,
+					oId,
+					null, 
+					"", 
+					pId,
+					null);
+			String link = request.getServerName() + "/webForm/id/" + tempUserId + 
+					"/" + sIdent;
+			
+			System.out.println("Link: " + link);
+			response = Response.ok(link).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection("surveyKPI-Survey-getLink", sd);
+		}
+		
+		return response;
+	}
+	
+	/*
 	 * Get the Survey Meta data
 	 */
 	private class DateInfo {	// Temporary storage of the array of date questions

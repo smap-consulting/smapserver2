@@ -62,10 +62,9 @@ public class XLSTaskManager {
 	private class Column {
 		String name;
 		String human_name;
-		int colNumber;
+
 		
 		public Column(ResourceBundle localisation, int col, String n) {
-			colNumber = col;
 			name = n;
 			//human_name = localisation.getString(n);
 			human_name = n;		// Need to work out how to use translations when the file needs to be imported again
@@ -165,8 +164,6 @@ public class XLSTaskManager {
         TaskListGeoJson tl = new TaskListGeoJson();
         tl.features = new ArrayList<TaskFeature> ();
         HashMap<String, Integer> header = null;
-        String sv= null;
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
 		String tz = "GMT";
         
 		if(type != null && type.equals("xls")) {

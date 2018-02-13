@@ -70,6 +70,7 @@ public class Survey {
 	public boolean projectTasksOnly;
 	public int groupSurveyId;
 	public String groupSurveyDetails;
+	public String publicLink;
 	
 	// Getters
 	public int getId() {return id;}; 

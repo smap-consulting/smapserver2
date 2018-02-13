@@ -964,23 +964,13 @@ public class TaskManager {
 			 */
 			String tempUserId = null;
 			if(tf.properties.generate_user) {
-				UserManager um = new UserManager();
-				tempUserId = "u" + String.valueOf(UUID.randomUUID());
-				User u = new User();
-				u.ident = tempUserId;
-				u.email = tf.properties.email;
-				u.name = tf.properties.assignee_name;
-
-				// Only allow access to the project used by this task
-				u.projects = new ArrayList<Project> ();
-				Project p = new Project();
-				p.id = pId;
-				u.projects.add(p);
-
-				// Only allow enum access
-				u.groups = new ArrayList<UserGroup> ();
-				u.groups.add(new UserGroup(Authorise.ENUM_ID, Authorise.ENUM));
-				tf.properties.assignee = um.createTemporaryUser(sd, u, oId);
+				tempUserId = GeneralUtilityMethods.createTempUser(
+						sd,
+						oId,
+						tf.properties.email, 
+						tf.properties.assignee_name, 
+						pId,
+						tf);
 
 			} else if(tf.properties.assignee <= 0 && tf.properties.assignee_ident != null && tf.properties.assignee_ident.trim().length() > 0) {
 

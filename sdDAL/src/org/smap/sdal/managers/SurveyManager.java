@@ -106,7 +106,7 @@ public class SurveyManager {
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, p.name, p.id, p.tasks_only,"
-				+ "group_survey_id "
+				+ "s.group_survey_id, s.public_link "
 				+ "from survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -166,6 +166,7 @@ public class SurveyManager {
 				s.setProjectId(resultSet.getInt(11));
 				s.setProjectTasksOnly(resultSet.getBoolean(12));
 				s.groupSurveyId = resultSet.getInt(13);
+				s.publicLink = resultSet.getString(14);
 	
 				if(getGroupDetails && s.groupSurveyId > 0) {
 					pstmtGetGroupDetails.setInt(1, s.groupSurveyId);
