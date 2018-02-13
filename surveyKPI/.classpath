@@ -74,5 +74,6 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
+	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/kxml2-2.3.0.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

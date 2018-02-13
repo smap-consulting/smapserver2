@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 import model.MediaResponse;
 import utilities.XLSCustomReportsManager;
 import utilities.XLSTemplateUploadManager;
+import utilities.XLSUtilities;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
@@ -612,6 +613,25 @@ public class UploadFiles extends Application {
 				 */
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
 				
+				try {
+					XLSUtilities.javaRosaSurveyValidation(localisation, s.id);
+				} catch (Exception e) {
+					// Delete the survey we just created
+					sm.delete(sd, 
+							cResults, 
+							s.id, 
+							true,		// hard
+							false,		// Do not delete the data 
+							user, 
+							basePath,
+							"no",		// Do not delete the tables
+							0,		// New Survey Id for replacement 
+							null);	// New survey ident to enter into the replacement redirect table	
+					
+					throw new ApplicationException(e.getMessage());	// report the error
+				}
+				
+				
 				if(action.equals("replace")) {
 					/*
 					 * Soft delete the old survey
@@ -653,7 +673,7 @@ public class UploadFiles extends Application {
 
 				// 2. Save the file
 				File savedFile = new File(filePath);
-				fileItem.write(savedFile);
+				fileItem.write(savedFile);				
 				
 			}
 			

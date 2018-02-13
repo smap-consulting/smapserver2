@@ -1,14 +1,16 @@
 package utilities;
 
+import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
@@ -31,8 +33,18 @@ import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFHyperlink;
+import org.javarosa.core.model.condition.IFunctionHandler;
+import org.javarosa.core.model.data.IAnswerData;
+import org.javarosa.core.model.instance.InstanceInitializationFactory;
+import org.javarosa.core.model.instance.TreeElement;
+import org.javarosa.core.model.utils.IPreloadHandler;
+import org.javarosa.form.api.FormEntryModel;
+import org.javarosa.model.xform.XFormsModule;
+import org.javarosa.xform.util.XFormUtils;
+import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.server.utilities.GetXForm;
 
 import surveyKPI.ExportSurveyXls;
 
@@ -503,5 +515,88 @@ public class XLSUtilities {
 			}
 		}        
 	}
+	
+
+    /*
+     * Validate a survey stored in the database using the javarosa api
+     * Will throw an exception on errors
+     */
+    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId) throws Exception {
+		
+    		class FakePreloadHandler implements IPreloadHandler {
+
+            String preloadHandled;
+
+
+            public FakePreloadHandler(String preloadHandled) {
+                this.preloadHandled = preloadHandled;
+            }
+
+
+            public boolean handlePostProcess(TreeElement arg0, String arg1) {
+                // TODO Auto-generated method stub
+                return false;
+            }
+
+
+            public IAnswerData handlePreload(String arg0) {
+                // TODO Auto-generated method stub
+                return null;
+            }
+
+
+            public String preloadHandled() {
+                // TODO Auto-generated method stub
+                return preloadHandled;
+            }
+
+        }
+    	
+    	
+    		String result = null;
+		
+		new XFormsModule().registerModule();
+		
+		SurveyTemplate template = new SurveyTemplate(localisation);
+		template.readDatabase(sId, false);
+		GetXForm xForm = new GetXForm();
+
+		String xmlForm = xForm.get(template, false, true, false);
+		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
+		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
+		FormEntryModel fem = new FormEntryModel(fd);
+		
+		// make sure properties get loaded
+        fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));
+
+        // update evaluation context for function handlers
+        fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
+
+            public String getName() {
+                return "pulldata";
+            }
+
+            public List<Class[]> getPrototypes() {
+                return new ArrayList<Class[]>();
+            }
+
+            public boolean rawArgs() {
+                return true;
+            }
+
+            public boolean realTime() {
+                return false;
+            }
+
+			@Override
+			public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
+				// TODO Auto-generated method stub
+				return arg0[0];
+			}});
+        
+		fd.initialize(true, new InstanceInitializationFactory());
+
+	}
+    
 	
 }
