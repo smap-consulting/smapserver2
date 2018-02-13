@@ -613,6 +613,9 @@ public class UploadFiles extends Application {
 				 */
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
 				
+				/*
+				 * Validate the survey using the JavaRosa API
+				 */
 				try {
 					XLSUtilities.javaRosaSurveyValidation(localisation, s.id);
 				} catch (Exception e) {
