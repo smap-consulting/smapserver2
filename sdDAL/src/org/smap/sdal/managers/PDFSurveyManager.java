@@ -554,7 +554,9 @@ public class PDFSurveyManager {
 						Date date = df.parse(r.value);
 						
 						if(utcOffset != 0) { 
-							df.setTimeZone(TimeZone.getTimeZone("GMT" + String.valueOf(utcOffset / 60)));
+							df.setTimeZone(TimeZone.getTimeZone("GMT" + 
+									((utcOffset > 0) ? "+" : "") +
+									String.valueOf(utcOffset / 60)));
 						}
 						value = df.format(date);
 					}
@@ -1605,7 +1607,10 @@ public class PDFSurveyManager {
 					Date date = df.parse(di.value);
 					
 					if(utcOffset != 0) { 
-						df.setTimeZone(TimeZone.getTimeZone("GMT" + String.valueOf(utcOffset / 60)));
+						String tzString = "GMT" + 
+								(utcOffset > 0 ? "+" : "") +
+								String.valueOf(utcOffset / 60);
+						df.setTimeZone(TimeZone.getTimeZone(tzString));
 					}
 					value = df.format(date);
 				} else {
