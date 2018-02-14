@@ -571,7 +571,7 @@ public class UploadFiles extends Application {
 			} else if(action.equals("replace")) {
 				existingSurvey = sm.getById(sd, cResults, user, surveyId, 
 						false, basePath, null, false, false, false, 
-						false, false, null, false, false, superUser, 0, null);
+						false, false, null, false, false, superUser, null);
 				displayName = existingSurvey.displayName;
 				existingVersion = existingSurvey.version;
 			}

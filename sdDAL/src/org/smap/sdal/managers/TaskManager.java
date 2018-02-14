@@ -524,7 +524,7 @@ public class TaskManager {
 					// Get the forms - this is required by the test filter
 					survey = sm.getById(sd, cResults, remoteUser, source_s_id, true, "", 
 							instanceId, false, false, true, false, true, "real", 
-							false, false, false, 0, "geojson");
+							false, false, false, "geojson");
 				}
 
 				int tgId = rs.getInt(1);

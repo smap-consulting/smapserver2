@@ -114,7 +114,7 @@ public class CreatePDF extends Application {
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), sId, true, basePath, 
 					instanceId, true, generateBlank, true, false, true, "real", false, false, 
-					superUser, utcOffset, "geojson");
+					superUser, "geojson");
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, survey);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";

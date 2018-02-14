@@ -181,7 +181,7 @@ public class PDFSurveyManager {
 
 		mExcludeEmpty = survey.exclude_empty;
 		this.utcOffset = utcOffset;
-
+		
 		User user = null;
 
 		ServerManager serverManager = new ServerManager();
@@ -554,7 +554,7 @@ public class PDFSurveyManager {
 						Date date = df.parse(r.value);
 						
 						if(utcOffset != 0) { 
-							df.setTimeZone(TimeZone.getTimeZone("GMT+" + (utcOffset / 60)));
+							df.setTimeZone(TimeZone.getTimeZone("GMT" + String.valueOf(utcOffset / 60)));
 						}
 						value = df.format(date);
 					}
@@ -1605,7 +1605,7 @@ public class PDFSurveyManager {
 					Date date = df.parse(di.value);
 					
 					if(utcOffset != 0) { 
-						df.setTimeZone(TimeZone.getTimeZone("GMT+" + (utcOffset / 60)));
+						df.setTimeZone(TimeZone.getTimeZone("GMT" + String.valueOf(utcOffset / 60)));
 					}
 					value = df.format(date);
 				} else {

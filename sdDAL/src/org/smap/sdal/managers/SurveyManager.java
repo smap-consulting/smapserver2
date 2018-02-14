@@ -317,7 +317,6 @@ public class SurveyManager {
 			boolean getChangeHistory,	
 			boolean getRoles,					// Only applies if "full" has been specified
 			boolean superUser,
-			int utcOffset,
 			String geomFormat
 			) throws SQLException, Exception {
 
@@ -421,7 +420,6 @@ public class SurveyManager {
 							0, 
 							s, 
 							generateDummyValues,
-							utcOffset,
 							geomFormat,
 							s.o_id);
 					ArrayList<Result> topForm = s.instance.results.get(0);
@@ -2575,7 +2573,6 @@ public class SurveyManager {
 			int parentKey,
 			Survey s,
 			boolean generateDummyValues,
-			int utcOffset,
 			String geomFormat,
 			int oId) throws SQLException{
 
@@ -2586,9 +2583,6 @@ public class SurveyManager {
 		 *  Select questions are retrieved using a separate query as there are multiple 
 		 *  columns per question
 		 */
-		String sqlUtcOffset = "set local timezone=" + utcOffset/60;
-		PreparedStatement pstmtUtcOffset = null;
-
 		String sql = null;
 		boolean isTopLevel = false;
 		if(parentKey == 0) {
@@ -2621,9 +2615,6 @@ public class SurveyManager {
 			 * Get the result set of data if an instanceID was passed or if 
 			 * this request is for a child form and real data is required
 			 */
-			if(utcOffset != 0) {
-				pstmtUtcOffset = cResults.prepareStatement(sqlUtcOffset);
-			}
 
 			if(instanceId != null || parentKey > 0) {
 				
@@ -2675,11 +2666,6 @@ public class SurveyManager {
 					pstmt.setInt(1, parentKey);
 				}
 
-				//cResults.setAutoCommit(false);		// Set time to local
-				//if(utcOffset != 0) {
-				//	log.info("Time zone: " + pstmtUtcOffset.toString());
-				//	pstmtUtcOffset.execute();
-				///}
 				log.info("Get results: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 			}
@@ -2721,7 +2707,6 @@ public class SurveyManager {
 							pstmtSelect,
 							isTopLevel,
 							generateDummyValues,
-							utcOffset,
 							geomFormat,
 							oId);
 
@@ -2755,7 +2740,6 @@ public class SurveyManager {
 						pstmtSelect,
 						isTopLevel,
 						generateDummyValues,
-						utcOffset,
 						geomFormat,
 						oId);
 
@@ -2766,7 +2750,6 @@ public class SurveyManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
-			if(pstmtUtcOffset != null) try {pstmtUtcOffset.close();} catch(Exception e) {};
 		}
 
 		return output;
@@ -2791,7 +2774,6 @@ public class SurveyManager {
 			PreparedStatement pstmtSelect,
 			boolean isTopLevel,
 			boolean generateDummyValues,
-			int utcOffset,
 			String geomFormat,
 			int oId) throws SQLException {
 		/*
@@ -2829,7 +2811,6 @@ public class SurveyManager {
 							newParentKey,
 							s,
 							generateDummyValues,
-							utcOffset,
 							geomFormat,
 							oId);
 

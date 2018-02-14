@@ -207,7 +207,6 @@ public class Surveys extends Application {
 					getChanges,
 					false,
 					superUser,
-					0,
 					null);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(survey);
@@ -289,7 +288,7 @@ public class Surveys extends Application {
 			survey = sm.getById(sd, 
 					cResults,  request.getRemoteUser(), sId, true, 
 					basePath, null, false, false, true, true, false,
-					"internal", false, false, true, 0, null);
+					"internal", false, false, true, null);
 			log.info("userevent: " + request.getRemoteUser() + " : create empty survey : " + name + " in project " + projectId);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(survey);
@@ -368,7 +367,7 @@ public class Surveys extends Application {
 			org.smap.sdal.model.Survey  survey = sm.getById(sd, 
 					null,  request.getRemoteUser(), sId, true, 
 					basePath, null, false, false, true, true, false,
-					"internal", false, false, true, 0, null);
+					"internal", false, false, true, null);
 			
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager();
