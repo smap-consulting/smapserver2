@@ -1273,7 +1273,6 @@ public class SubRelationalDB extends Subscriber {
 		for(IE col : columns) {
 			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
 			String colType = col.getQType();
-			System.out.println("Coltype: " + colType);
 
 			if(colType.equals("select") && !col.isCompressed()) {
 				List<IE> options = col.getChildren();

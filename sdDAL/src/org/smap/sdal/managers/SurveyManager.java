@@ -3538,16 +3538,17 @@ public class SurveyManager {
 		
 		PreparedStatement pstmt = null;
 		
-		String sqlReplace = "insert into replacement (old_id, old_ident, new_ident) values(?, ?, ?)";
-		PreparedStatement pstmtReplace = null;
+		//String sqlReplace = "insert into replacement (old_id, old_ident, new_ident) values(?, ?, ?)";
+		//PreparedStatement pstmtReplace = null;
 	
-		String sqlRedirect = "update replacement set new_ident = ? where new_ident = ?";
-		PreparedStatement pstmtRedirect = null;
+		//String sqlRedirect = "update replacement set new_ident = ? where new_ident = ?";
+		//PreparedStatement pstmtRedirect = null;
 		
-		String sqlRedirectDelete = "delete from replacement where new_ident = ?";
-		PreparedStatement pstmtRedirectDelete = null;
+		//String sqlRedirectDelete = "delete from replacement where new_ident = ?";
+		//PreparedStatement pstmtRedirectDelete = null;
 		
-		
+		String sqlUpdateIdent = "update survey set ident = ? where s_id = ?";
+		PreparedStatement pstmtUpdateIdent = null;		
 		
 		try {
 			pstmtIdent = sd.prepareStatement(sql);
@@ -3709,8 +3710,27 @@ public class SurveyManager {
 			
 			/*
 			 * Update the replacement table
+			 *  Set the new survey ident to be the same as the old one
+			 *  Extend the old survey ident in the now deleted survey
 			 */
+			
 			if(newSurveyId > 0) {
+				pstmtUpdateIdent = sd.prepareStatement(sqlUpdateIdent);
+				sd.setAutoCommit(false);
+				
+				// Modify the ident of the old survey
+				pstmtUpdateIdent.setString(1, surveyIdent + "_" + newSurveyId);
+				pstmtUpdateIdent.setInt(2, sId);
+				pstmtUpdateIdent.executeUpdate();
+				
+				// Set the ident of the new survey to be the same as the old
+				pstmtUpdateIdent.setString(1, surveyIdent);
+				pstmtUpdateIdent.setInt(2, newSurveyId);
+				pstmtUpdateIdent.executeUpdate();
+				
+				sd.commit();
+				
+				/*
 				// add redirect
 				pstmtReplace = sd.prepareStatement(sqlReplace);
 				pstmtReplace.setInt(1, sId);
@@ -3723,22 +3743,28 @@ public class SurveyManager {
 				pstmtRedirect.setString(1, newSurveyIdent);
 				pstmtRedirect.setString(2, surveyIdent);
 				pstmtRedirect.executeUpdate();
+				*/
 			}
 			
+			/*
 			// Delete any redirects to the deleted survey
 			pstmtRedirectDelete = sd.prepareStatement(sqlRedirectDelete);
 			pstmtRedirectDelete.setString(1, surveyIdent);
 			pstmtRedirectDelete.executeUpdate();
+			*/
 				
-		
+		} catch (Exception e) {
+			try {sd.rollback();} catch (Exception ex) {}
+			throw e;
 			
 		} finally {
 			try {if (pstmtIdent != null) {pstmtIdent.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtReplace != null) {pstmtReplace.close();}} catch (SQLException e) {}
-			try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
-			try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
-			try {if (pstmtRedirectDelete != null) {pstmtRedirectDelete.close();}} catch (SQLException e) {}
+			//try {if (pstmtReplace != null) {pstmtReplace.close();}} catch (SQLException e) {}
+			//try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
+			//try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
+			//try {if (pstmtRedirectDelete != null) {pstmtRedirectDelete.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdateIdent != null) {pstmtUpdateIdent.close();}} catch (SQLException e) {}
 		}
 	}
 	

@@ -619,7 +619,7 @@ public class UploadFiles extends Application {
 				try {
 					XLSUtilities.javaRosaSurveyValidation(localisation, s.id);
 				} catch (Exception e) {
-					// Delete the survey we just created
+					// Error! Delete the survey we just created
 					sm.delete(sd, 
 							cResults, 
 							s.id, 
