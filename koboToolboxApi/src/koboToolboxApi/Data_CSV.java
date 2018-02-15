@@ -423,8 +423,6 @@ public class Data_CSV extends Application {
 
 				}
 
-				outWriter.flush();
-				outWriter.close();
 			}
 
 			} catch (Exception e) {
@@ -436,6 +434,9 @@ public class Data_CSV extends Application {
 				;
 			} finally {
 
+				outWriter.flush();
+				outWriter.close();
+				
 				try {
 					if (pstmt != null) {
 						pstmt.close();
