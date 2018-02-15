@@ -218,7 +218,7 @@ public class ActionService extends Application {
 
 		SurveyManager sm = new SurveyManager(localisation);
 		Survey s = sm.getById(sd, cResults, uIdent, a.sId, false, null, null, false, false, false, false, false, null,
-				false, false, false, 0, null);
+				false, false, false, null);
 		if (s == null) {
 			throw new Exception(localisation.getString("mf_snf"));
 		}

@@ -384,7 +384,7 @@ public class AllAssignments extends Application {
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
-					null, false, false, false, false, false, "real", false, false, superUser, 0, "geojson");	
+					null, false, false, false, false, false, "real", false, false, superUser, "geojson");	
 			
 			/*
 			 * Create the task group if an existing task group was not specified
@@ -1292,7 +1292,9 @@ public class AllAssignments extends Application {
 			// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
 			tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
 			if(tableChanged || tablePublished) {
-				tm.markPublished(sd, sId);		// only mark published if there have been changes made
+				for(FormDesc f : formList) {
+					tm.markPublished(sd, f.f_id);		// only mark published if there have been changes made
+				}
 			}
 
 			/*

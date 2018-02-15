@@ -59,6 +59,7 @@ import java.sql.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -230,7 +231,10 @@ public class ManagedForms extends Application {
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
 				boolean tablePublished = tm.addUnpublishedColumns(sd, cResults, am.sId, f.tableName);			
 				if(tableChanged || tablePublished) {
-					tm.markPublished(sd, am.sId);		// only mark published if there have been changes made
+					List<org.smap.server.entities.Form> forms = template.getAllForms();	
+					for(org.smap.server.entities.Form form : forms) {
+						tm.markPublished(sd, form.getId());		// only mark published if there have been changes made
+					}
 				}
 			}
 			

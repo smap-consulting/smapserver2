@@ -80,7 +80,7 @@ public class SpssManager {
 			 */
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, remoteUser);
 			survey = sm.getById(connectionSD, null, remoteUser, sId, true, null, null, 
-					false, false, true, false, false, "real", false, false, superUser, 0, null);
+					false, false, true, false, false, "real", false, false, superUser, null);
 			int languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			
 			/*

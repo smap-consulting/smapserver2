@@ -411,20 +411,6 @@ public class NotificationManager {
 			Locale locale = new Locale(organisation.locale);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			// Time Zone
-			int utcOffset = 0;	
-			LocalDateTime dt = LocalDateTime.now();
-			if(organisation.timeZone != null) {
-				try {
-					ZoneId zone = ZoneId.of(organisation.timeZone);
-				    ZonedDateTime zdt = dt.atZone(zone);
-				    ZoneOffset offset = zdt.getOffset();
-				    utcOffset = offset.getTotalSeconds() / 60;
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-			}
-			
 			pstmtGetNotifications.setInt(1, sId);
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();
@@ -441,7 +427,7 @@ public class NotificationManager {
 				SurveyManager sm = new SurveyManager(localisation);
 				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
-						false, false, false, utcOffset, "geojson");
+						false, false, false, "geojson");
 				
 				/*
 				 * Test the filter
@@ -544,7 +530,7 @@ public class NotificationManager {
 		SurveyManager sm = new SurveyManager(localisation);
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
-				false, false, true, utcOffset, "geojson");
+				false, false, true, "geojson");
 		
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey);
 		
@@ -573,7 +559,6 @@ public class NotificationManager {
 			msg.content = text.get(1);
 			
 			if(msg.attach != null && !msg.attach.equals("none")) {
-				System.out.println("Attaching link to email: " + msg.attach);
 				
 				if(msg.attach.startsWith("pdf")) {
 					docURL = null;

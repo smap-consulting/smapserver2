@@ -55,6 +55,7 @@ import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.Survey;
+import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
 import org.smap.server.utilities.UtilityMethods;
@@ -718,7 +719,10 @@ public class SubRelationalDB extends Subscriber {
 					tablePublished = tm.addUnpublishedColumns(cMeta, cRel, sId, tableName);
 
 					if (tableChanged || tablePublished) {
-						tm.markPublished(cMeta, sId); // only mark published if there have been changes made
+						List<Form> forms = template.getAllForms();	
+						for(Form f : forms) {
+							tm.markPublished(cMeta, f.getId()); // only mark published if there have been changes made
+						}
 					}
 				}
 

@@ -116,7 +116,6 @@ public class MessagingManagerApply {
 				 */
 				pstmtConfirm.setString(1, "Sending");
 				pstmtConfirm.setInt(2, id);
-				log.info(pstmtConfirm.toString());
 				pstmtConfirm.executeUpdate();
 				
 				if(topic.equals("task")) {
@@ -276,7 +275,6 @@ public class MessagingManagerApply {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("xxxxxxxxxxxxxxxxxxx Get survey users: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));

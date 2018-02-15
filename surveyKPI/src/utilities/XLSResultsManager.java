@@ -253,7 +253,7 @@ public class XLSResultsManager {
 
 				SurveyManager sm = new SurveyManager(localisation);
 				org.smap.sdal.model.Survey survey = sm.getById(sd, connectionResults, request.getRemoteUser(), sId, true, basePath, 
-						null, false, false, false, false, false, "real", false, false, superUser, 0, "geojson");
+						null, false, false, false, false, false, "real", false, false, superUser, "geojson");
 
 				if(embedImages) {
 					basePath = GeneralUtilityMethods.getBasePath(request);

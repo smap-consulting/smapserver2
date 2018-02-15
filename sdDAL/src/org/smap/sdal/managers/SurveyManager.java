@@ -318,7 +318,6 @@ public class SurveyManager {
 			boolean getChangeHistory,	
 			boolean getRoles,					// Only applies if "full" has been specified
 			boolean superUser,
-			int utcOffset,
 			String geomFormat
 			) throws SQLException, Exception {
 
@@ -422,7 +421,6 @@ public class SurveyManager {
 							0, 
 							s, 
 							generateDummyValues,
-							utcOffset,
 							geomFormat,
 							s.o_id);
 					ArrayList<Result> topForm = s.instance.results.get(0);
@@ -2576,7 +2574,6 @@ public class SurveyManager {
 			int parentKey,
 			Survey s,
 			boolean generateDummyValues,
-			int utcOffset,
 			String geomFormat,
 			int oId) throws SQLException{
 
@@ -2587,9 +2584,6 @@ public class SurveyManager {
 		 *  Select questions are retrieved using a separate query as there are multiple 
 		 *  columns per question
 		 */
-		String sqlUtcOffset = "set local timezone=" + utcOffset/60;
-		PreparedStatement pstmtUtcOffset = null;
-
 		String sql = null;
 		boolean isTopLevel = false;
 		if(parentKey == 0) {
@@ -2622,9 +2616,6 @@ public class SurveyManager {
 			 * Get the result set of data if an instanceID was passed or if 
 			 * this request is for a child form and real data is required
 			 */
-			if(utcOffset != 0) {
-				pstmtUtcOffset = cResults.prepareStatement(sqlUtcOffset);
-			}
 
 			if(instanceId != null || parentKey > 0) {
 				
@@ -2676,11 +2667,6 @@ public class SurveyManager {
 					pstmt.setInt(1, parentKey);
 				}
 
-				//cResults.setAutoCommit(false);		// Set time to local
-				//if(utcOffset != 0) {
-				//	log.info("Time zone: " + pstmtUtcOffset.toString());
-				//	pstmtUtcOffset.execute();
-				///}
 				log.info("Get results: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 			}
@@ -2722,7 +2708,6 @@ public class SurveyManager {
 							pstmtSelect,
 							isTopLevel,
 							generateDummyValues,
-							utcOffset,
 							geomFormat,
 							oId);
 
@@ -2756,7 +2741,6 @@ public class SurveyManager {
 						pstmtSelect,
 						isTopLevel,
 						generateDummyValues,
-						utcOffset,
 						geomFormat,
 						oId);
 
@@ -2767,7 +2751,6 @@ public class SurveyManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
-			if(pstmtUtcOffset != null) try {pstmtUtcOffset.close();} catch(Exception e) {};
 		}
 
 		return output;
@@ -2792,7 +2775,6 @@ public class SurveyManager {
 			PreparedStatement pstmtSelect,
 			boolean isTopLevel,
 			boolean generateDummyValues,
-			int utcOffset,
 			String geomFormat,
 			int oId) throws SQLException {
 		/*
@@ -2830,7 +2812,6 @@ public class SurveyManager {
 							newParentKey,
 							s,
 							generateDummyValues,
-							utcOffset,
 							geomFormat,
 							oId);
 
@@ -3539,16 +3520,17 @@ public class SurveyManager {
 		
 		PreparedStatement pstmt = null;
 		
-		String sqlReplace = "insert into replacement (old_id, old_ident, new_ident) values(?, ?, ?)";
-		PreparedStatement pstmtReplace = null;
+		//String sqlReplace = "insert into replacement (old_id, old_ident, new_ident) values(?, ?, ?)";
+		//PreparedStatement pstmtReplace = null;
 	
-		String sqlRedirect = "update replacement set new_ident = ? where new_ident = ?";
-		PreparedStatement pstmtRedirect = null;
+		//String sqlRedirect = "update replacement set new_ident = ? where new_ident = ?";
+		//PreparedStatement pstmtRedirect = null;
 		
-		String sqlRedirectDelete = "delete from replacement where new_ident = ?";
-		PreparedStatement pstmtRedirectDelete = null;
+		//String sqlRedirectDelete = "delete from replacement where new_ident = ?";
+		//PreparedStatement pstmtRedirectDelete = null;
 		
-		
+		String sqlUpdateIdent = "update survey set ident = ? where s_id = ?";
+		PreparedStatement pstmtUpdateIdent = null;		
 		
 		try {
 			pstmtIdent = sd.prepareStatement(sql);
@@ -3710,8 +3692,27 @@ public class SurveyManager {
 			
 			/*
 			 * Update the replacement table
+			 *  Set the new survey ident to be the same as the old one
+			 *  Extend the old survey ident in the now deleted survey
 			 */
+			
 			if(newSurveyId > 0) {
+				pstmtUpdateIdent = sd.prepareStatement(sqlUpdateIdent);
+				sd.setAutoCommit(false);
+				
+				// Modify the ident of the old survey
+				pstmtUpdateIdent.setString(1, surveyIdent + "_" + newSurveyId);
+				pstmtUpdateIdent.setInt(2, sId);
+				pstmtUpdateIdent.executeUpdate();
+				
+				// Set the ident of the new survey to be the same as the old
+				pstmtUpdateIdent.setString(1, surveyIdent);
+				pstmtUpdateIdent.setInt(2, newSurveyId);
+				pstmtUpdateIdent.executeUpdate();
+				
+				sd.commit();
+				
+				/*
 				// add redirect
 				pstmtReplace = sd.prepareStatement(sqlReplace);
 				pstmtReplace.setInt(1, sId);
@@ -3724,22 +3725,28 @@ public class SurveyManager {
 				pstmtRedirect.setString(1, newSurveyIdent);
 				pstmtRedirect.setString(2, surveyIdent);
 				pstmtRedirect.executeUpdate();
+				*/
 			}
 			
+			/*
 			// Delete any redirects to the deleted survey
 			pstmtRedirectDelete = sd.prepareStatement(sqlRedirectDelete);
 			pstmtRedirectDelete.setString(1, surveyIdent);
 			pstmtRedirectDelete.executeUpdate();
+			*/
 				
-		
+		} catch (Exception e) {
+			try {sd.rollback();} catch (Exception ex) {}
+			throw e;
 			
 		} finally {
 			try {if (pstmtIdent != null) {pstmtIdent.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtReplace != null) {pstmtReplace.close();}} catch (SQLException e) {}
-			try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
-			try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
-			try {if (pstmtRedirectDelete != null) {pstmtRedirectDelete.close();}} catch (SQLException e) {}
+			//try {if (pstmtReplace != null) {pstmtReplace.close();}} catch (SQLException e) {}
+			//try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
+			//try {if (pstmtRedirect != null) {pstmtRedirect.close();}} catch (SQLException e) {}
+			//try {if (pstmtRedirectDelete != null) {pstmtRedirectDelete.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdateIdent != null) {pstmtUpdateIdent.close();}} catch (SQLException e) {}
 		}
 	}
 	

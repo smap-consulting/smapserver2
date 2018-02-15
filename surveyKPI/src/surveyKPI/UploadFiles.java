@@ -34,6 +34,7 @@ import javax.ws.rs.core.Response;
 import model.MediaResponse;
 import utilities.XLSCustomReportsManager;
 import utilities.XLSTemplateUploadManager;
+import utilities.XLSUtilities;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
@@ -570,7 +571,7 @@ public class UploadFiles extends Application {
 			} else if(action.equals("replace")) {
 				existingSurvey = sm.getById(sd, cResults, user, surveyId, 
 						false, basePath, null, false, false, false, 
-						false, false, null, false, false, superUser, 0, null);
+						false, false, null, false, false, superUser, null);
 				displayName = existingSurvey.displayName;
 				existingVersion = existingSurvey.version;
 			}
@@ -611,6 +612,28 @@ public class UploadFiles extends Application {
 				 * Save the survey to the database
 				 */
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
+				
+				/*
+				 * Validate the survey using the JavaRosa API
+				 */
+				try {
+					XLSUtilities.javaRosaSurveyValidation(localisation, s.id);
+				} catch (Exception e) {
+					// Error! Delete the survey we just created
+					sm.delete(sd, 
+							cResults, 
+							s.id, 
+							true,		// hard
+							false,		// Do not delete the data 
+							user, 
+							basePath,
+							"no",		// Do not delete the tables
+							0,		// New Survey Id for replacement 
+							null);	// New survey ident to enter into the replacement redirect table	
+					
+					throw new ApplicationException(e.getMessage());	// report the error
+				}
+				
 				
 				if(action.equals("replace")) {
 					/*
@@ -653,7 +676,7 @@ public class UploadFiles extends Application {
 
 				// 2. Save the file
 				File savedFile = new File(filePath);
-				fileItem.write(savedFile);
+				fileItem.write(savedFile);				
 				
 			}
 			
