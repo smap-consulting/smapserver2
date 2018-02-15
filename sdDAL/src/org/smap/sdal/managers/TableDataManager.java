@@ -186,6 +186,8 @@ public class TableDataManager {
 			}
 
 			log.info("Get data: " + pstmt.toString());
+		} else {
+			log.info("Table does not exist");
 		}
 		return pstmt;
 
@@ -292,6 +294,101 @@ public class TableDataManager {
 		}
 
 		return ja;
+
+	}
+	
+	/*
+	 * Get the next record of data
+	 */
+	public JSONObject getNextRecord(
+			ResultSet rs,
+			ArrayList<TableColumn> columns, 
+			String urlprefix, 
+			boolean group, 
+			boolean isDt, 
+			int limit)
+			throws SQLException, Exception {
+
+		JSONObject jr = null;
+		
+		if (rs.next()) {
+
+			jr = new JSONObject();
+			if (group) {
+				jr.put("_group", ""); // _group for duplicate queries
+			}
+			for (int i = 0; i < columns.size(); i++) {
+
+				TableColumn c = columns.get(i);
+				String name = null;
+				String value = null;
+
+				if (c.isGeometry()) {
+					// Add Geometry (assume one geometry type per table)
+					String geomValue = rs.getString(i + 1);
+					if (geomValue == null) {
+						geomValue = "{}";
+					}
+					name = "_geolocation";
+					/*
+					 * JSONArray coords = null; if(geomValue != null) { JSONObject jg = new
+					 * JSONObject(geomValue); coords = jg.getJSONArray("coordinates"); } else {
+					 * coords = new JSONArray(); }
+					 */
+
+					jr.put(name, new JSONObject(geomValue));
+
+				} else {
+
+					// String name = rsMetaData.getColumnName(i);
+					// name = c.humanName;
+					name = c.humanName;
+
+					if (c.type != null && c.type.equals("decimal")) {
+						Double dValue = rs.getDouble(i + 1);
+						dValue = Math.round(dValue * 10000.0) / 10000.0;
+						value = String.valueOf(dValue);
+					} else if (c.type.equals("dateTime")) {
+						value = rs.getString(i + 1);
+						if (value != null) {
+							value = value.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
+						}
+					} else if (c.type != null && c.type.equals("calculate")) {
+						// This calculation may be a decimal - give it a go
+						String v = rs.getString(i + 1);
+						if (v != null && v.indexOf('.') > -1) {
+							try {
+								Double dValue = rs.getDouble(i + 1);
+								dValue = Math.round(dValue * 10000.0) / 10000.0;
+								value = String.valueOf(dValue);
+							} catch (Exception e) {
+								value = rs.getString(i + 1); // Assume text
+							}
+						} else {
+							value = rs.getString(i + 1); // Assume text
+						}
+
+					} else {
+						value = rs.getString(i + 1);
+					}
+
+					if (value == null) {
+						value = "";
+					}
+
+					if (name != null) {
+						if (!isDt) {
+							name = GeneralUtilityMethods.translateToKobo(name);
+						}
+						jr.put(name, value);
+					}
+				}
+
+			}
+
+		}
+
+		return jr;
 
 	}
 

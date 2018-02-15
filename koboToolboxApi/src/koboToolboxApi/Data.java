@@ -18,12 +18,15 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import managers.DataManager;
 import model.DataEndPoint;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -137,7 +140,8 @@ public class Data extends Application {
 	@GET
 	@Produces("application/json")
 	@Path("/{sId}")
-	public Response getDataRecords(@Context HttpServletRequest request,
+	public void getDataRecords(@Context HttpServletRequest request,
+			@Context HttpServletResponse response,
 			@PathParam("sId") int sId,
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
@@ -153,8 +157,6 @@ public class Data extends Application {
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("audit") String audit_set		// if yes return audit data
 			) { 
-
-		Response response = null;
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records");
@@ -206,8 +208,11 @@ public class Data extends Application {
 			isDt = true;
 		}
 
+		PrintWriter outWriter = null;
 		try {
 
+			outWriter = response.getWriter();
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -221,7 +226,7 @@ public class Data extends Application {
 				if(rs.next()) {
 					managedId = rs.getInt(1);
 				}
-				rs.close();
+				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 			}
 
 			if(fId == 0) {
@@ -234,7 +239,7 @@ public class Data extends Application {
 					fId = rs.getInt(1);
 					table_name = rs.getString(2);
 				}
-				rs.close();
+				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 			} else {
 				getParkey = true;
 				pstmtGetForm = sd.prepareStatement(sqlGetForm);
@@ -242,12 +247,13 @@ public class Data extends Application {
 				pstmtGetForm.setInt(2,fId);
 
 				log.info("Getting specific form: " + pstmtGetForm.toString() );
+				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				rs = pstmtGetForm.executeQuery();
 				if(rs.next()) {
 					parentform = rs.getInt(1);
 					table_name = rs.getString(2);
 				}
-				rs.close();
+				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 			}
 
 			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
@@ -279,7 +285,6 @@ public class Data extends Application {
 			}
 
 			TableDataManager tdm = new TableDataManager(localisation);
-			JSONArray ja = null;
 
 			pstmt = tdm.getPreparedStatement(
 					sd, 
@@ -306,7 +311,15 @@ public class Data extends Application {
 					null				// no custom filter
 					);
 			
+			// Write array start
+			if(isDt) {
+				outWriter.print("{\"data\":");
+			}
+			outWriter.print("[");
+			
 			if(pstmt != null) {
+				/*
+				 * Get the data as a jason array
 				ja = tdm.getData(
 						pstmt,
 						columns,
@@ -315,28 +328,54 @@ public class Data extends Application {
 						isDt,
 						limit
 						);
+						*/
+				/*
+				 * Get the data record by record so it can be streamed
+				 */
+				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				rs = pstmt.executeQuery();
+				JSONObject jo = new JSONObject();
+				int index = 0;
+				while(jo != null) {
+					
+					jo =  tdm.getNextRecord(
+							rs,
+							columns,
+							urlprefix,
+							group,
+							isDt,
+							limit
+							);
+					if(jo != null) {
+						if(index > 0) {
+							outWriter.print(",");
+						}
+						outWriter.print(jo.toString());
+					}
+					
+					index++;
+					if (limit > 0 && index >= limit) {
+						break;
+					}
+
+				}
+				
 			}
 			
-			if(ja == null) {
-				ja = new JSONArray();
-			}
-			
+			outWriter.print("]");
 			if(isDt) {
-				JSONObject dt  = new JSONObject();
-				dt.put("data", ja);
-				response = Response.ok(dt.toString()).build();
-			} else {
-				response = Response.ok(ja.toString()).build();
+				outWriter.print("}");
 			}
-
-
-
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
+			outWriter.print(e.getMessage());
+			//response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 
+			outWriter.flush(); 
+			outWriter.close();
+			
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetMainForm != null) {pstmtGetMainForm.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}
@@ -346,7 +385,7 @@ public class Data extends Application {
 			SDDataSource.closeConnection("koboToolboxApi - get data records", sd);
 		}
 
-		return response;
+		//return response;
 
 	}
 
