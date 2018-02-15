@@ -284,7 +284,7 @@ public class Survey extends Application {
 	 */
 	@Path("/link/")
 	@GET
-	@Produces("application/json")
+	@Produces("application/text")
 	public Response getLink(@Context HttpServletRequest request,
 			@PathParam("sId") int sId) { 
 
@@ -293,10 +293,12 @@ public class Survey extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getLink");
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, false);
 		// End Authorisation
 		
+		String sql = "update survey set public_link = ? where s_id = ?";
+		PreparedStatement pstmt = null;
 		try {
-			System.out.println("Get Link");
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
@@ -311,14 +313,67 @@ public class Survey extends Application {
 			String link = request.getServerName() + "/webForm/id/" + tempUserId + 
 					"/" + sIdent;
 			
-			System.out.println("Link: " + link);
+			// Store the link with the survey
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, link);
+			pstmt.setInt(2, sId);
+			pstmt.executeUpdate();
+			
 			response = Response.ok(link).build();
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection("surveyKPI-Survey-getLink", sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Delete a public link to a webform for this survey
+	 */
+	@Path("/deletelink/{ident}")
+	@DELETE
+	@Produces("application/text")
+	public Response deleteLink(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("ident") String ident) { 
+
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-deleteLink");
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, false);
+		// End Authorisation
+		
+
+		String sql = "update survey set public_link = null where s_id = ?";
+		PreparedStatement pstmt = null;;
+		try {
+			
+			/*
+			 * Delete the temporary user
+			 */
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
+			GeneralUtilityMethods.deleteTempUser(sd, oId, ident);
+			
+			// Delete the link from the survey
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.executeUpdate();
+			
+			response = Response.ok("").build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection("surveyKPI-Survey-deleteLink", sd);
 		}
 		
 		return response;

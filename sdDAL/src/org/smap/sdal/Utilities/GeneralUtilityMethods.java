@@ -5997,6 +5997,9 @@ public class GeneralUtilityMethods {
 		
 	}
 	
+	/*
+	 * Create a temporary user
+	 */
 	public static String createTempUser(Connection sd, int oId, String email, String assignee_name, int pId, TaskFeature tf) throws Exception {
 		UserManager um = new UserManager();
 		String tempUserId = "u" + String.valueOf(UUID.randomUUID());
@@ -6020,6 +6023,37 @@ public class GeneralUtilityMethods {
 		}
 		
 		return tempUserId;
+	}
+	
+	/*
+	 * Delete a temporary user
+	 */
+	public static void deleteTempUser(Connection sd, int oId, String uIdent) throws Exception {
+		
+		String sql = "delete from users " 
+				+ "where ident = ? "
+				+ "and temporary = 'true' "
+				+ "and o_id = ?";	
+		PreparedStatement pstmt = null;
+
+		if(uIdent != null) {
+
+			try {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, uIdent);
+				pstmt.setInt(2,  oId);
+				log.info("Delete temporary user: " + pstmt.toString());
+				int count = pstmt.executeUpdate();
+				if(count == 0) {
+					log.info("error: failed to delete temporay user: " + uIdent);
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			}
+
+		} else {
+			throw new Exception("Null User Ident");
+		}
 	}
 
 }

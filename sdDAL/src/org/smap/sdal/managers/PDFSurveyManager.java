@@ -1619,10 +1619,7 @@ public class PDFSurveyManager {
 
 			}
 			valueCell.addElement(getPara(value, di, gv, deps, null));
-
 		}
-
-
 	}
 
 	private Paragraph getPara(String value, DisplayItem di, GlobalVariables gv, ArrayList<String> deps, Anchor anchor) {
