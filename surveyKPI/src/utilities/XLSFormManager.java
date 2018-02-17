@@ -67,7 +67,6 @@ public class XLSFormManager {
 		public static final int COL_ACCURACY = 18;
 		public static final int COL_PARAMETERS = 19;
 		public static final int COL_ROLE = 20;
-		public static final int COL_COMPRESSED = 21;
 
 		public static final int COL_LIST_NAME = 100;
 		public static final int COL_CHOICE_NAME = 101;
@@ -80,6 +79,7 @@ public class XLSFormManager {
 		public static final int COL_KEY = 203;
 		public static final int COL_KEY_POLICY = 204;
 		public static final int COL_ROLE_ROW = 205;
+		public static final int COL_ALLOW_IMPORT = 206;
 
 
 		String name;
@@ -309,6 +309,9 @@ public class XLSFormManager {
 				if(r != null) {
 					value = r.row_filter;
 				}
+
+			} else if(type == COL_ALLOW_IMPORT) {				
+				value = survey.task_file ? "yes" : "no";
 
 			} else {
 				System.out.println("Unknown option type: " + type);
@@ -692,6 +695,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "style", Column.COL_STYLE, 0, "style"));
 		cols.add(new Column(colNumber++, "key", Column.COL_KEY, 0, "key"));
 		cols.add(new Column(colNumber++, "key_policy", Column.COL_KEY_POLICY, 0, "key_policy"));
+		cols.add(new Column(colNumber++, "allow_import", Column.COL_ALLOW_IMPORT, 0, "allow_import"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
