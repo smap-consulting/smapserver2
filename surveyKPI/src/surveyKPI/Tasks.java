@@ -280,7 +280,7 @@ public class Tasks extends Application {
 					fileName = item.getName();
 					fileItem = item;
 					
-					if(fileName.endsWith("xlsx")) {
+					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
 						filetype = "xlsx";
 					} else if(fileName.endsWith("xls")) {
 						filetype = "xls";
@@ -523,7 +523,7 @@ public class Tasks extends Application {
 						", File Size = "+item.getSize());
 					
 					fileName = item.getName();
-					if(fileName.endsWith("xlsx")) {
+					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
 						filetype = "xlsx";
 					} else if(fileName.endsWith("xls")) {
 						filetype = "xls";

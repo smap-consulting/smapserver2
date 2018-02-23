@@ -446,7 +446,7 @@ public class XLSTaskManager {
 			if(idx <= lastCellNum) {
 				Cell c = row.getCell(idx);
 				if(c != null) {
-					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC || c.getCellType() == Cell.CELL_TYPE_FORMULA) {
 						if (HSSFDateUtil.isCellDateFormatted(c)) {
 							dateValue = c.getDateCellValue();
 							value = dateFormat.format(dateValue);
