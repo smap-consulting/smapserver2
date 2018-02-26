@@ -282,7 +282,7 @@ public class XLSTemplateUploadManager {
 		o.optionList = listName;
 
 		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum, null);
-		getLabels(row, lastCellNum, choicesHeader, o.labels);
+		getLabels(row, lastCellNum, choicesHeader, o.labels, "choice");
 		
 		if(merge) {
 			// Attempt to get existing column name
@@ -502,7 +502,7 @@ public class XLSTemplateUploadManager {
 		}	
 		
 		// 3. Labels
-		getLabels(row, lastCellNum, surveyHeader, q.labels);	
+		getLabels(row, lastCellNum, surveyHeader, q.labels, q.type);	
 		
 		if(merge) {
 			String n = questionNames.get(q.name);
@@ -628,12 +628,13 @@ public class XLSTemplateUploadManager {
 	/*
 	 * For media try under the default column heading if the language specific is null
 	 */
-	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels) throws ApplicationException, Exception {
+	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels, String type) throws ApplicationException, Exception {
 		
 		// Get the label language values
+		String defaultLabel = getDefaultLabel(type);
 		if(useDefaultLanguage) {
 			Label lab = new Label();
-			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum, "-");
+			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum, defaultLabel);
 			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
 			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
 			lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum, null);
@@ -669,7 +670,13 @@ public class XLSTemplateUploadManager {
 
 	}
 
-
+	private String getDefaultLabel(String type) {
+		String def = "-";
+		if (type.equals("begin group")) {
+			def = null;
+		}
+		return def;
+	}
 	private String convertType(String in, Question q) throws ApplicationException {
 
 		String type = getValidQuestionType(in);		

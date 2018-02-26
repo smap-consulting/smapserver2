@@ -4922,12 +4922,14 @@ public class GeneralUtilityMethods {
 	public static boolean isLanguage(String s, int start, int end) {
 
 		// Check a maximum of 10 characters
-		int len = (s.length() > 10) ? 10 : s.length();
-		for (int i = 0; i < len;) {
-			int c = s.codePointAt(i);
-			if (c >= start && c <= end)
-				return true;
-			i += Character.charCount(c);
+		if(s != null) {
+			int len = (s.length() > 10) ? 10 : s.length();
+			for (int i = 0; i < len;) {
+				int c = s.codePointAt(i);
+				if (c >= start && c <= end)
+					return true;
+				i += Character.charCount(c);
+			}
 		}
 		return false;
 
