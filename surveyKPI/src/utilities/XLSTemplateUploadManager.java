@@ -672,7 +672,7 @@ public class XLSTemplateUploadManager {
 
 	private String getDefaultLabel(String type) {
 		String def = "-";
-		if (type.equals("begin group")) {
+		if (type.equals("begin group") || type.equals("end group")) {
 			def = null;
 		}
 		return def;
