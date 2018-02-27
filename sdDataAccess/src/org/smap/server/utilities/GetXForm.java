@@ -1688,6 +1688,8 @@ public class GetXForm {
 		 */
 		boolean isReference = form.getReference();
 		
+		log.info("Get results for form: " + form.getName() + " reference: " + isReference);
+		
 		if(isReference) {
 			/*
 			 * Get the form that has the data referred to from this reference form

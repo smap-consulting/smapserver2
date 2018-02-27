@@ -230,13 +230,13 @@ public class TableManager {
 					// 3.1b Update questions in the shared form
 					pstmtSetPublishedSharedForm.setInt(1, fd.fId);
 					pstmtSetPublishedSharedForm.setInt(2, fd.submittingFormId);
-					log.info("Mark published: " + pstmtSetPublishedSharedForm.toString());
+					log.info("Mark shared questions published: " + pstmtSetPublishedSharedForm.toString());
 					pstmtSetPublishedSharedForm.executeUpdate();
 
 					// 3.1b Update options in the shared form
 					pstmtSetOptionsPublishedSharedForm.setInt(1, fd.fId);
 					pstmtSetOptionsPublishedSharedForm.setInt(2, fd.submittingFormId);
-					log.info("Mark published: " + pstmtSetOptionsPublishedSharedForm.toString());
+					log.info("Mark shared options published: " + pstmtSetOptionsPublishedSharedForm.toString());
 					pstmtSetOptionsPublishedSharedForm.executeUpdate();
 				}
 

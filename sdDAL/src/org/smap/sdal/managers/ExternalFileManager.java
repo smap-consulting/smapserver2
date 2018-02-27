@@ -198,7 +198,7 @@ public class ExternalFileManager {
 
 			// 2. Determine whether or not the file needs to be regenerated
 			log.info("Test for regenerate of file: " + f.getAbsolutePath() + " File exists: " + f.exists());
-			regenerate = regenerateFile(sd, cRel, linked_sId, sId, f.exists(), f.getAbsolutePath(), userName);
+			regenerate = regenerateFile(sd, cRel, linked_sId, sId, f, userName);
 
 			// 3.Get columns from appearance
 			if (regenerate) {
@@ -390,28 +390,11 @@ public class ExternalFileManager {
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			lm.writeLog(sd, sId, userName, "error", "Creating CSV file: " + e.getMessage());
-			// throw new Exception(e.getMessage());
 		} finally {
-			if (pstmtAppearance != null)
-				try {
-					pstmtAppearance.close();
-				} catch (Exception e) {
-				}
-			if (pstmtCalculate != null)
-				try {
-					pstmtCalculate.close();
-				} catch (Exception e) {
-				}
-			if (pstmtData != null)
-				try {
-					pstmtData.close();
-				} catch (Exception e) {
-				}
-			if (pstmtPulldata != null)
-				try {
-					pstmtPulldata.close();
-				} catch (Exception e) {
-				}
+			if (pstmtAppearance != null)	{try {pstmtAppearance.close();} catch (Exception e) {}}
+			if (pstmtCalculate != null) {try {pstmtCalculate.close();	} catch (Exception e) {}}
+			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}
+			if (pstmtPulldata != null) {	try {pstmtPulldata.close();} catch (Exception e) {}}
 		}
 
 		return regenerate;
@@ -474,9 +457,11 @@ public class ExternalFileManager {
 	 * then also increment the version of the linking form so that it will get the
 	 * new version
 	 */
-	private boolean regenerateFile(Connection sd, Connection cRel, int linked_sId, int linker_sId, boolean fileExists,
-			String filepath, String user) throws SQLException {
+	private boolean regenerateFile(Connection sd, Connection cRel, int linked_sId, int linker_sId, File f, String user) throws SQLException {
 
+		boolean fileExists = f.exists();
+		String filepath = f.getAbsolutePath();
+		
 		boolean regenerate = false;
 		boolean tableExists = true;
 
@@ -521,6 +506,8 @@ public class ExternalFileManager {
 					} else {
 						log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
+						// Delete the file if it exists
+						f.delete();					
 					}
 
 				}

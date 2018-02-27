@@ -966,7 +966,7 @@ public class SubRelationalDB extends Subscriber {
 				hrk = rs.getString(1);
 			}
 
-			// Get the prikey of the source table
+			// Get the prikey of the source record
 			int sourceKey = 0;
 			pstmtSource = cRel.prepareStatement(sqlSource);
 			pstmtSource.setString(1, hrk);
@@ -1008,7 +1008,7 @@ public class SubRelationalDB extends Subscriber {
 
 				}
 
-				// Add the child records from the merged survey to the new survey (TODO) possibly these should be replicated
+				// Add the child records from the merged survey to the new survey
 				
 				ResultSet rsc = null;
 				int groupId = GeneralUtilityMethods.getSurveyGroup(cMeta, sId);

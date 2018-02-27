@@ -131,14 +131,14 @@ public class SurveyResults extends Application {
 					 * Get the surveys and tables that are part of the group that this survey belongs to
 					 */
 					SurveyManager sm = new SurveyManager(localisation);
-					ArrayList<Integer> surveys = sm.getGroupSurveys(sd, sId);
-					HashMap<String, String> tableMap = sm.getGroupForms(sd, sId);
+					int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
+					ArrayList<Integer> surveys = sm.getGroupSurveys(sd, groupSurveyId);
+					HashMap<String, String> tableMap = sm.getGroupForms(sd, groupSurveyId);
 					
 					/*
 					 * Delete data from each form
 					 */
 					for(String formname : tableMap.keySet()) {
-					//for (int i = 0; i < tables.size(); i++) {	
 						
 						String tableName = tableMap.get(formname);					
 
@@ -159,25 +159,25 @@ public class SurveyResults extends Application {
 					 * Clean up the surveys
 					 */
 					ExternalFileManager efm = new ExternalFileManager(localisation);
-					for(int groupSurveyId : surveys) {
-						pstmtUnPublish.setInt(1, groupSurveyId);			// Mark questions as un-published
+					for(int id : surveys) {
+						pstmtUnPublish.setInt(1, id);			// Mark questions as un-published
 						log.info("Marking questions as unpublished: " + pstmtUnPublish.toString());
 						pstmtUnPublish.executeUpdate();
 						
-						pstmtUnPublishOption.setInt(1, groupSurveyId);			// Mark options as un-published
+						pstmtUnPublishOption.setInt(1, id);			// Mark options as un-published
 						log.info("Marking options as unpublished: " + pstmtUnPublishOption.toString());
 						pstmtUnPublishOption.executeUpdate();
 						
-						pstmtRemoveChangeHistory.setInt(1, groupSurveyId);
+						pstmtRemoveChangeHistory.setInt(1, id);
 						pstmtRemoveChangeHistory.executeUpdate();
 						
-						pstmtRemoveChangeset.setInt(1, groupSurveyId);
+						pstmtRemoveChangeset.setInt(1, id);
 						pstmtRemoveChangeset.executeUpdate();
 						
 						// Delete any soft deleted questions from the survey definitions
 						QuestionManager qm = new QuestionManager(localisation);
 						ArrayList<Question> questions = new ArrayList<Question> ();
-						pstmtGetSoftDeletedQuestions.setInt(1, groupSurveyId);
+						pstmtGetSoftDeletedQuestions.setInt(1, id);
 						ResultSet rs = pstmtGetSoftDeletedQuestions.executeQuery();
 						while(rs.next()) {
 							Question q = new Question();
@@ -186,11 +186,11 @@ public class SurveyResults extends Application {
 							questions.add(q);
 						}
 						if(questions.size() > 0) {
-							qm.delete(sd, connectionRel, groupSurveyId, questions, false, false);
+							qm.delete(sd, connectionRel, id, questions, false, false);
 						}
 						
 						// Force regeneration of any dynamic CSV files that this survey links to
-						efm.linkerChanged(sd, groupSurveyId);
+						efm.linkerChanged(sd, id);
 					}
 					response = Response.ok("").build();
 					
