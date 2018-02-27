@@ -432,6 +432,7 @@ public class XLSTemplateUploadManager {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
 		setFormReference(parameters, f);
+		setFormMerge(parameters, f);
 		survey.forms.add(f);
 		
 		int thisFormIndex = survey.forms.size() - 1;
@@ -648,7 +649,7 @@ public class XLSTemplateUploadManager {
 				String lang = survey.languages.get(i).name;
 				
 				Label lab = new Label();
-				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, "-");
+				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, defaultLabel);
 				lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null);
 				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, header, lastCellNum, null);
 				if(lab.image == null) {
@@ -672,7 +673,8 @@ public class XLSTemplateUploadManager {
 
 	private String getDefaultLabel(String type) {
 		String def = "-";
-		if (type.equals("begin group") || type.equals("end group")) {
+		if (type.equals("begin group") || type.equals("end group")
+				|| type.equals("begin repeat") || type.equals("end repeat")) {
 			def = null;
 		}
 		return def;
@@ -1104,6 +1106,16 @@ public class XLSTemplateUploadManager {
 			if(ref != null) {
 				f.reference = true;			
 				f.referenceName = ref;
+			}
+			
+		}
+	}
+	
+	private void setFormMerge(String parameters, Form f) throws ApplicationException {
+		if(parameters != null) {
+			String ref = GeneralUtilityMethods.getSurveyParameter("merge", parameters);
+			if(ref != null) {
+				f.merge = true;			
 			}
 			
 		}

@@ -925,16 +925,6 @@ public class SubRelationalDB extends Subscriber {
 				+ "order by prikey desc limit 1";
 		PreparedStatement pstmtSource = null;
 
-		String sqlCols = "select column_name from information_schema.columns where table_name = ? "
-				+ "and column_name not like '\\_%' "
-				+ "and column_name != 'prikey' "
-				+ "and column_name != 'parkey' "
-				+ "and column_name != 'instanceid'";
-		PreparedStatement pstmtCols = null;
-
-		PreparedStatement pstmtGetTarget = null;
-		PreparedStatement pstmtUpdateTarget = null;
-
 		String sqlCloseSource = "update " + table + " set _bad = 'true', _bad_reason = ? "
 				+ "where _hrk = ? "
 				+ "and _bad = 'false' "
@@ -955,6 +945,15 @@ public class SubRelationalDB extends Subscriber {
 
 		PreparedStatement pstmtChildUpdate = null;
 
+		String sqlTableMerge = "select table_name from form "
+				+ "where s_id = ? "
+				+ "and reference = 'false' "
+				+ "and merge = 'true'";
+		PreparedStatement pstmtTableMerge = null;
+		
+		PreparedStatement pstmtChildKeys = null;
+		PreparedStatement pstmtCopyChild = null;
+		
 		try {
 
 			// Get the HRK that identifies duplicates
@@ -975,41 +974,20 @@ public class SubRelationalDB extends Subscriber {
 			if(rs.next()) {
 				sourceKey = rs.getInt(1);
 
-				// Get the columns to merge
-				pstmtCols = cRel.prepareStatement(sqlCols);
-				pstmtCols.setString(1, table);
-				ResultSet rsCols = pstmtCols.executeQuery();
-				int count = 0;
-				while(rsCols.next()) {
-					String col = rsCols.getString(1);
-					String sqlGetTarget = "select " + col + " from " + table + " where prikey = ?";
+				mergeRecords(cRel, table, prikey, sourceKey);
 
-					if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
-					pstmtGetTarget = cRel.prepareStatement(sqlGetTarget);
-					pstmtGetTarget.setInt(1, prikey);
-					ResultSet rsGetTarget = pstmtGetTarget.executeQuery();
-					if(rsGetTarget.next()) {
-						String val = rsGetTarget.getString(1);
-
-						if( val == null || val.trim().length() == 0) {
-
-							String sqlUpdateTarget = "update " + table + " set " + col + " = (select " + col + " from " + table + " where prikey = ?) "
-									+ "where prikey = ?";
-							if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
-							pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);
-							pstmtUpdateTarget.setInt(1, sourceKey);
-							pstmtUpdateTarget.setInt(2, prikey);
-							if(count++ == 0) {		// Only log the first merge
-								log.info(("Merging col: " + pstmtUpdateTarget.toString()));
-							}
-							pstmtUpdateTarget.executeUpdate();
-						}
-					}
-
+				// Get the per table merge policy for this survey
+				pstmtTableMerge = cMeta.prepareStatement(sqlTableMerge);
+				pstmtTableMerge.setInt(1, sId);
+				ResultSet rtm = pstmtTableMerge.executeQuery();
+				ArrayList<String> mergeTables = new ArrayList<> ();
+				while(rtm.next()) {
+					mergeTables.add(rtm.getString(1));
+					System.out.println("Need to merge table " + rtm.getString(1));
 				}
-
-				// Add the child records from the merged survey to the new survey
 				
+				
+				// Add the child records from the merged survey to the new survey
 				ResultSet rsc = null;
 				int groupId = GeneralUtilityMethods.getSurveyGroup(cMeta, sId);
 				if(groupId > 0) {
@@ -1029,14 +1007,55 @@ public class SubRelationalDB extends Subscriber {
 				}
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
-					if(GeneralUtilityMethods.tableExists(cMeta, tableName)) {
-						String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?;";
-						pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
-		
-						pstmtChildUpdate.setInt(1, prikey);
-						pstmtChildUpdate.setInt(2, sourceKey);
-						log.info("Updating parent keys: " + pstmtChildUpdate.toString());
-						pstmtChildUpdate.executeUpdate();
+					if(GeneralUtilityMethods.tableExists(cRel, tableName)) {
+						if(mergeTables.contains(tableName)) {
+							System.out.println("Merging not appending");
+							
+							/*
+							 * Transfer data from the source key to the primary key in sequence
+							 */
+							String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
+							pstmtChildKeys = cRel.prepareStatement(sqlGetChildKeys);
+							ArrayList<Integer> childPrikeys = new ArrayList<> ();
+							ArrayList<Integer> childSourcekeys = new ArrayList<> ();
+							
+							pstmtChildKeys.setInt(1, prikey);
+							ResultSet gk = pstmtChildKeys.executeQuery();
+							while(gk.next()) {
+								childPrikeys.add(gk.getInt(1));
+							}
+							pstmtChildKeys.setInt(1, sourceKey);
+							gk = pstmtChildKeys.executeQuery();
+							while(gk.next()) {
+								childSourcekeys.add(gk.getInt(1));
+							}
+							log.info("Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							
+							String sqlCopyChild = "update " + tableName + " set parkey = ? where prikey = ?";
+							pstmtCopyChild = cRel.prepareStatement(sqlCopyChild);
+							for(int i = 0; i < childSourcekeys.size(); i++) {
+								if(i < childPrikeys.size()) {
+									// merge
+									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
+									mergeRecords(cRel, tableName, childPrikeys.get(i), childSourcekeys.get(i));
+								} else {
+									// copy
+									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey);
+									pstmtCopyChild.setInt(1, prikey);
+									pstmtCopyChild.setInt(2, childSourcekeys.get(i));
+									pstmtCopyChild.executeUpdate();
+								}
+							}
+							
+						} else {
+							String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?";
+							pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
+			
+							pstmtChildUpdate.setInt(1, prikey);
+							pstmtChildUpdate.setInt(2, sourceKey);
+							log.info("Updating parent keys: " + pstmtChildUpdate.toString());
+							pstmtChildUpdate.executeUpdate();
+						}
 					} else {
 						log.info("Skipping update of parent keys for non existent table: " + tableName);
 					}
@@ -1055,19 +1074,74 @@ public class SubRelationalDB extends Subscriber {
 
 
 		} finally {
-			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {}
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
-			if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
-			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
 			if(pstmtCloseSource != null) try{pstmtCloseSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
 			if(pstmtChildUpdate != null) try{pstmtChildUpdate.close();}catch(Exception e) {}
+			if(pstmtTableMerge != null) try{pstmtTableMerge.close();}catch(Exception e) {}
+			if(pstmtChildKeys != null) try{pstmtChildKeys.close();}catch(Exception e) {}
+			if(pstmtCopyChild != null) try{pstmtCopyChild.close();}catch(Exception e) {}
 		}
 
 	}
 
+	/*
+	 * Merge records in a table
+	 */
+	private void mergeRecords(Connection cRel, String table, int prikey, int sourceKey) throws SQLException {
+		
+		String sqlCols = "select column_name from information_schema.columns where table_name = ? "
+				+ "and column_name not like '\\_%' "
+				+ "and column_name != 'prikey' "
+				+ "and column_name != 'parkey' "
+				+ "and column_name != 'instanceid'";
+		PreparedStatement pstmtCols = null;
+		
+		PreparedStatement pstmtGetTarget = null;
+		PreparedStatement pstmtUpdateTarget = null;
+		
+		try {
+			pstmtCols = cRel.prepareStatement(sqlCols);
+			pstmtCols.setString(1, table);
+			ResultSet rsCols = pstmtCols.executeQuery();
+			int count = 0;
+			while(rsCols.next()) {
+				String col = rsCols.getString(1);
+				String sqlGetTarget = "select " + col + " from " + table + " where prikey = ?";
+	
+				if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
+				pstmtGetTarget = cRel.prepareStatement(sqlGetTarget);
+				pstmtGetTarget.setInt(1, prikey);
+				ResultSet rsGetTarget = pstmtGetTarget.executeQuery();
+				if(rsGetTarget.next()) {
+					String val = rsGetTarget.getString(1);
+	
+					if( val == null || val.trim().length() == 0) {
+	
+						String sqlUpdateTarget = "update " + table + " set " + col + " = (select " + col + " from " + table + " where prikey = ?) "
+								+ "where prikey = ?";
+						if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
+						pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);
+						pstmtUpdateTarget.setInt(1, sourceKey);
+						pstmtUpdateTarget.setInt(2, prikey);
+						if(count++ == 0) {		// Only log the first merge
+							log.info(("Merging col: " + pstmtUpdateTarget.toString()));
+						}
+						pstmtUpdateTarget.executeUpdate();
+					}
+				}
+	
+			}
+		} finally {
+			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}
+			if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
+			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
+		}
+
+	}
+	
 	/*
 	 * Method to discard new submission
 	 * Called if the policy is discard

@@ -18,6 +18,7 @@ public class Form {
 	public int parentQuestionIndex;
 	public String tableName;			// Name of the table that holds the results for this form
 	public boolean reference;		// True if this form does not contain its own data and just presents a reference view of another forms data
+	public boolean merge;			// True if this forms results should be merged with existing repeats
 	public ArrayList<Question> questions = new ArrayList<Question> ();
 
 	// Basic constructor

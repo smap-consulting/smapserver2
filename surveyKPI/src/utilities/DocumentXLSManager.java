@@ -71,8 +71,6 @@ public class DocumentXLSManager {
 	LogManager lm = new LogManager();		// Application log
 	
 	XSSFWorkbook wb = null;
-
-	
 	
 	public DocumentXLSManager() {
 	
