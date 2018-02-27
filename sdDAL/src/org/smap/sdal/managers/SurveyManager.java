@@ -3680,6 +3680,31 @@ public class SurveyManager {
 				pstmt.executeUpdate();
 			}
 			
+			/*
+			 * Update group ids
+			 */
+			if(newSurveyId == 0) {
+				sql = "update survey "
+						+ "set group_survey_id = 0 "
+						+ "where group_survey_id = ?";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				log.info("Update group survey ids: " + pstmt.toString());
+				pstmt.executeUpdate();
+			} else {
+				
+				sql = "update survey "
+						+ "set group_survey_id = ?"
+						+ "where group_survey_id = ?";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, sId);
+				log.info("Update group survey ids: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
 			
 			/*
 			 * Update the replacement table

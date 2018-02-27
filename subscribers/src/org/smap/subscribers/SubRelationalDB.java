@@ -946,7 +946,7 @@ public class SubRelationalDB extends Subscriber {
 				+ "and reference = 'false'";
 		PreparedStatement pstmtChildTables = null;
 		
-		String sqlChildTablesInGroup = "select table_name from form "
+		String sqlChildTablesInGroup = "select distinct table_name from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
 				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
@@ -1028,14 +1028,18 @@ public class SubRelationalDB extends Subscriber {
 					rsc = pstmtChildTables.executeQuery();
 				}
 				while(rsc.next()) {
-	
-					String sqlChildUpdate = "update " + rsc.getString(1) + " set parkey = ? where parkey = ?;";
-					pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
-	
-					pstmtChildUpdate.setInt(1, prikey);
-					pstmtChildUpdate.setInt(2, sourceKey);
-					log.info("Updating parent keys: " + pstmtChildUpdate.toString());
-					pstmtChildUpdate.executeUpdate();
+					String tableName = rsc.getString(1);
+					if(GeneralUtilityMethods.tableExists(cMeta, tableName)) {
+						String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?;";
+						pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
+		
+						pstmtChildUpdate.setInt(1, prikey);
+						pstmtChildUpdate.setInt(2, sourceKey);
+						log.info("Updating parent keys: " + pstmtChildUpdate.toString());
+						pstmtChildUpdate.executeUpdate();
+					} else {
+						log.info("Skipping update of parent keys for non existent table: " + tableName);
+					}
 				}
 				
 
