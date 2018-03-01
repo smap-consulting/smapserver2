@@ -788,7 +788,7 @@ public class SubscriberBatch {
 				String host = remoteUrl.substring(idx + 2);
 
 				sub.setEnabled(true);
-				sub.setSubscriberName("fwd_" + sId + "_" + host + remote_sId);
+				sub.setSubscriberName("fwd_" + sId + "_" + host + remote_sId + "_" + f.id);
 				sub.setSurveyId(sId);	
 				sub.setSurveyIdRemote(remote_sId);
 				sub.setUser(f.remote_user);
