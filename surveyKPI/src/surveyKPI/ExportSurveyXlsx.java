@@ -71,6 +71,10 @@ public class ExportSurveyXlsx extends Application {
 		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
 	}
+	
+	/*
+	 * Get an export with a user authenticated by the web server
+	 */
 	@GET
 	public Response exportSurveyXlsx (@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
@@ -91,12 +95,58 @@ public class ExportSurveyXlsx extends Application {
 			
 			@Context HttpServletResponse response) {
 
-		ResponseBuilder builder = Response.ok();
+		return getReport(
+				request.getRemoteUser(),
+				request,
+				response,
+				sId,
+				filename,
+				split_locn,
+				merge_select_multiple,
+				language,
+				exp_ro,
+				embedImages,
+				excludeParents,
+				hxl,
+				fId,
+				startDate,
+				endDate,
+				dateId,
+				filter,
+				meta);
+
+	}
+
+	/*
+	 * Return the report
+	 */
+	private Response getReport(
+			String username,
+			HttpServletRequest request,
+			HttpServletResponse response,
+			int sId, 
+			String filename, 
+			boolean split_locn, 
+			boolean merge_select_multiple,
+			String language,
+			boolean exp_ro,
+			boolean embedImages,
+			boolean excludeParents,
+			boolean hxl,
+			int fId,
+			Date startDate,
+			Date endDate,
+			int dateId,
+			String filter,
+			boolean meta) {
+		
+		System.out.println("getReport");
+		
 		Response responseVal = null;
 
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 
-		log.info("userevent: " + request.getRemoteUser() + " Export " + sId + " as an xlsx file to " + filename + " starting from form " + fId);
+		log.info("userevent: " + username + " Export " + sId + " as an xlsx file to " + filename + " starting from form " + fId);
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
@@ -105,15 +155,15 @@ public class ExportSurveyXlsx extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, username);
 		} catch (Exception e) {
 		}
 
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isAuthorised(sd, username);
+		a.isValidSurvey(sd, username, sId, false, superUser);
 		// End Authorisation
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export as: xlsx");
+		lm.writeLog(sd, sId, username, "view", "Export as: xlsx");
 
 		String escapedFileName = null;
 		try {
@@ -134,7 +184,7 @@ public class ExportSurveyXlsx extends Application {
 			try {
 
 				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, username));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");				
@@ -170,7 +220,7 @@ public class ExportSurveyXlsx extends Application {
 						null,
 						null,
 						null,
-						request.getRemoteUser(),
+						username,
 						startDate,
 						endDate,
 						dateId,
@@ -315,7 +365,7 @@ public class ExportSurveyXlsx extends Application {
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				lm.writeLog(sd, sId, request.getRemoteUser(), "error", e.getMessage());
+				lm.writeLog(sd, sId, username, "error", e.getMessage());
 				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 			} finally {	
 
@@ -327,8 +377,6 @@ public class ExportSurveyXlsx extends Application {
 		}
 
 		return responseVal;
-
 	}
-
 
 }
