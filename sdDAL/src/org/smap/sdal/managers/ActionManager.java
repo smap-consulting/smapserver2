@@ -22,7 +22,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.User;
@@ -225,20 +224,8 @@ public class ActionManager {
 		String resource = gson.toJson(a);
 		String tempUserId = null;
 		String link = null;
-
-		// String sqlResourceHasUser = "select ident from users where action_details =
-		// ?";
-		// PreparedStatement pstmtResourceHasUser = null;
-
-		try {
-			// If a temporary user already exists then use that user
-			// pstmtResourceHasUser = sd.prepareStatement(sqlResourceHasUser);
-			// pstmtResourceHasUser.setString(1, resource);
-			// log.info("Check for resource with user: " + pstmtResourceHasUser);
-			// ResultSet rs2 = pstmtResourceHasUser.executeQuery();
-			// if(rs2.next()) {
-			// tempUserId = rs2.getString(1);
-			// }
+		
+		try {		
 
 			if (tempUserId == null) {
 				UserManager um = new UserManager();

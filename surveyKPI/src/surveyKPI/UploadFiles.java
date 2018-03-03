@@ -232,7 +232,7 @@ public class UploadFiles extends Application {
 			
 			if(getlist) {
 				MediaResponse mResponse = new MediaResponse ();
-				mResponse.files = mediaInfo.get();			
+				mResponse.files = mediaInfo.get(sId);			
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(mResponse);
 				log.info("Responding with " + mResponse.files.size() + " files");
@@ -286,7 +286,7 @@ public class UploadFiles extends Application {
 			mediaInfo.setFolder(basePath, request.getRemoteUser(), null, connectionSD, false);				 
 
 			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get();			
+			mResponse.files = mediaInfo.get(0);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();	
@@ -333,7 +333,7 @@ public class UploadFiles extends Application {
 			mediaInfo.setFolder(basePath, 0, sIdent, connectionSD);
 
 			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get();			
+			mResponse.files = mediaInfo.get(0);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();	
@@ -392,7 +392,7 @@ public class UploadFiles extends Application {
 
 		PreparedStatement pstmt = null;		
 		try {
-
+			
 			// Get the path to the media folder	
 			if(sId > 0) {
 				mediaInfo.setFolder(basePath, sId, null, connectionSD);
@@ -403,7 +403,7 @@ public class UploadFiles extends Application {
 			log.info("Media query on: " + mediaInfo.getPath());
 
 			MediaResponse mResponse = new MediaResponse();
-			mResponse.files = mediaInfo.get();			
+			mResponse.files = mediaInfo.get(sId);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();		
