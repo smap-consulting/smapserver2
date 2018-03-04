@@ -716,7 +716,7 @@ public class TableManager {
 
 							}
 						} else {
-							log.info("Option column name for list: " + listId + " and value: " + ci.option.value + " was not found.");
+							log.info("Option column name for list: " + listId + " was not found.");
 						}
 
 
