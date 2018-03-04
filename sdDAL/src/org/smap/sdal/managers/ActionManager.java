@@ -219,9 +219,6 @@ public class ActionManager {
 
 	public String getLink(Connection sd, Action a, int oId) throws Exception {
 
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-
-		String resource = gson.toJson(a);
 		String tempUserId = null;
 		String link = null;
 		
@@ -233,7 +230,7 @@ public class ActionManager {
 				User u = new User();
 				u.ident = tempUserId;
 				u.name = a.notify_person;
-				u.action_details = resource;
+				u.action_details = a;
 
 				// Add the project that contains the survey
 				u.projects = new ArrayList<Project>();

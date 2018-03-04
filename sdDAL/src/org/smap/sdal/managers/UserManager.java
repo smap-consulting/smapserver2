@@ -26,6 +26,9 @@ import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 /*****************************************************************************
 
 This file is part of SMAP.
@@ -415,13 +418,15 @@ public class UserManager {
 		
 		PreparedStatement pstmt = null;
 		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, u.ident);
 			pstmt.setInt(2, o_id);
 			pstmt.setString(3, u.email);
 			pstmt.setString(4, u.name);
-			pstmt.setString(5, u.action_details);
+			pstmt.setString(5, gson.toJson(u.action_details));
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

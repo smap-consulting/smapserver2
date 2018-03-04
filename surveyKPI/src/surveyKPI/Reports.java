@@ -156,6 +156,8 @@ public class Reports extends Application {
 			action.filter = filter;
 			action.meta = meta;
 			
+			action.pId = GeneralUtilityMethods.getProjectId(sd, sId);
+			
 			if(roles != null) {
 				String [] rArray = roles.split(",");
 				if(rArray.length > 0) {
