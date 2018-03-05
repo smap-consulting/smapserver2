@@ -45,6 +45,7 @@ import org.smap.sdal.model.ActionLink;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.Filter;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Link;
 import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.Role;
@@ -92,10 +93,12 @@ public class Reports extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/link/{sId}")
+	@Path("/link/{name}/{sId}")
 	public Response getLink(
 			@Context HttpServletRequest request, 
+			@PathParam("name") String name,
 			@PathParam("sId") int sId,
+			@QueryParam("reportType") String type,
 			@QueryParam("roles") String roles,
 			@QueryParam("filename") String filename,
 			@QueryParam("split_locn") boolean split_locn,
@@ -105,7 +108,7 @@ public class Reports extends Application {
 			@QueryParam("embedimages") boolean embedImages,
 			@QueryParam("excludeparents") boolean excludeParents,
 			@QueryParam("hxl") boolean hxl,
-			@QueryParam("form") int fId,
+			@QueryParam("form") int form,
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
@@ -129,8 +132,8 @@ public class Reports extends Application {
 		try {
 
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int pId = 0;
@@ -140,23 +143,53 @@ public class Reports extends Application {
 			action.sId = sId;
 			action.pId = pId;	
 			
-			// report specific
-			action.filename = filename;
-			action.split_locn = split_locn;
-			action.merge_select_multiple = merge_select_multiple;
-			action.language = language;
-			action.exp_ro = exp_ro;
-			action.embedImages = embedImages;
-			action.excludeParents = excludeParents;
-			action.hxl = hxl;
-			action.fId = fId;
-			action.startDate = startDate;
-			action.endDate = endDate;
-			action.dateId = dateId;
-			action.filter = filter;
-			action.meta = meta;
-			
 			action.pId = GeneralUtilityMethods.getProjectId(sd, sId);
+			action.reportType = type;
+			action.name = name;
+			action.filename = (filename == null) ? "report" : filename;
+			
+			// Parameters
+			action.parameters = new ArrayList<KeyValueSimp> ();
+			
+			if(split_locn) {
+				action.parameters.add(new KeyValueSimp("split_locn", "true"));
+			}
+			if(merge_select_multiple) {
+				action.parameters.add(new KeyValueSimp("merge_select_multiple", "true"));
+			}
+			if(language != null) {
+				action.parameters.add(new KeyValueSimp("language", language));
+			}
+			if(exp_ro) {
+				action.parameters.add(new KeyValueSimp("exp_ro", "true"));
+			}
+			if(embedImages) {
+				action.parameters.add(new KeyValueSimp("embed_images", "true"));
+			}
+			if(excludeParents) {
+				action.parameters.add(new KeyValueSimp("excludeParents", "true"));
+			}
+			if(hxl) {
+				action.parameters.add(new KeyValueSimp("hxl", "true"));
+			}
+			if(form > 0) {
+				action.parameters.add(new KeyValueSimp("form", String.valueOf(form)));
+			}
+			if(startDate != null) {
+				action.parameters.add(new KeyValueSimp("startDate", String.valueOf(startDate)));
+			}
+			if(endDate != null) {
+				action.parameters.add(new KeyValueSimp("endDate", String.valueOf(endDate)));
+			}
+			if(dateId > 0) {
+				action.parameters.add(new KeyValueSimp("dateId", String.valueOf(dateId)));
+			}
+			if(filter != null) {
+				action.parameters.add(new KeyValueSimp("filter", filter));
+			}
+			if(meta) {
+				action.parameters.add(new KeyValueSimp("meta", "true"));
+			}
 			
 			if(roles != null) {
 				String [] rArray = roles.split(",");
