@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
+import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
@@ -251,13 +252,14 @@ public class ExportSurveyXlsx extends Application {
 				int dataColumn = 0;
 				while(dataColumn < sqlDesc.colNames.size()) {
 					ColValues values = new ColValues();
+					ColDesc item = sqlDesc.colNames.get(dataColumn);
 					dataColumn = GeneralUtilityMethods.getColValues(
 							null, 
 							values, 
 							dataColumn,
 							sqlDesc.colNames, 
 							merge_select_multiple);	
-		
+						
 					if(split_locn && values.name.equals("the_geom")) {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
@@ -266,6 +268,12 @@ public class ExportSurveyXlsx extends Application {
 						cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Longitude");
+					} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
+						for(int i = 0; i < item.choices.size(); i++) {
+							Cell cell = headerRow.createCell(colNumber++);
+							cell.setCellStyle(headerStyle);
+							cell.setCellValue(values.name + " - " + item.choices.get(i).k);
+						}
 					} else {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
@@ -286,6 +294,7 @@ public class ExportSurveyXlsx extends Application {
 					dataColumn = 0;
 					while(dataColumn < sqlDesc.colNames.size()) {
 						ColValues values = new ColValues();
+						ColDesc item = sqlDesc.colNames.get(dataColumn);
 						dataColumn = GeneralUtilityMethods.getColValues(
 								rs, 
 								values, 
@@ -341,6 +350,33 @@ public class ExportSurveyXlsx extends Application {
 									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
 							//out.add(new CellItem("", CellItem.STRING));
 							//out.add(new CellItem("", CellItem.STRING));
+						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
+							
+							String [] vArray = null;
+							if(values.value != null) {
+								vArray = values.value.split(" ");
+							} 
+							
+							for(int i = 0; i < item.choices.size(); i++) {
+								
+								
+								String v = "0";
+								if(vArray != null) {
+									
+									String choiceValue = item.choices.get(i).k;
+									for(int k = 0; k < vArray.length; k++) {
+										if(vArray[k].equals(choiceValue)) {
+											v = "1";
+											break;
+										}
+									}
+								}
+								Cell cell = dataRow.createCell(colNumber++);
+								cell.setCellStyle(headerStyle);
+								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
+										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+									
+							}
 						} else {
 							Cell cell = dataRow.createCell(colNumber++);
 							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 

@@ -23,6 +23,7 @@ public class TableColumn {
 	public String startName = null;
 	public String endName = null;
 	public int l_id;
+	public boolean compressed = false;
 	
 	// Manage updating of data
 	public boolean readonly;	// Can't be modified by form management

@@ -3070,12 +3070,32 @@ public class GeneralUtilityMethods {
 					c.readonly = ro;
 					c.hxlCode = hxlCode;
 					c.l_id = l_id;
+					c.compressed = compressed;
 					if (GeneralUtilityMethods.isPropertyType(source_param, question_column_name)) {
 						if (includePreloads) {
 							columnList.add(c);
 						}
 					} else {
 						realQuestions.add(c);
+					}
+					
+					if (qType.equals("select")) {
+		
+						// Compressed select multiple add the options
+						pstmtSelectMultiple.setInt(1, qId);
+						pstmtSelectMultiple.setBoolean(2, false);	// No external
+						ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
+
+						c.choices = new ArrayList<KeyValue> ();						
+						while (rsMultiples.next()) {
+							// Get the choices
+
+							String optionName = rsMultiples.getString(1);
+							String optionLabel = rsMultiples.getString(2);
+
+							c.choices.add(new KeyValue(optionName, optionLabel));
+							
+						}
 					}
 				}
 
@@ -5814,7 +5834,7 @@ public class GeneralUtilityMethods {
 		ColDesc item = columns.get(dataColumn);
 		StringBuffer selMulValue = new StringBuffer("");
 
-		if(merge_select_multiple && item.qType.equals("select") && item.choices != null) {
+		if(merge_select_multiple && item.qType != null && item.qType.equals("select") && item.choices != null && !item.compressed) {
 			if(rs != null) {
 				for(KeyValue choice : item.choices) {
 					int smv = rs.getInt(dataColumn + 1);
