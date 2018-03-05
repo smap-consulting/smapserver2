@@ -17,7 +17,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  ******************************************************************************/
 
-package surveyMobileAPI;
+package surveyKPI;
 
 import java.io.IOException;
 import java.sql.Connection;
