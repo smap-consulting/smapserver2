@@ -63,6 +63,7 @@ import java.util.logging.Logger;
 public class Review extends Application {
 	
 	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise aView = null;
 	
 	LogManager lm = new LogManager();		// Application log
 	
@@ -73,6 +74,13 @@ public class Review extends Application {
 		public InvalidUndoException(String msg) {
 			super(msg);
 		}
+	}
+	
+	public Review() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		aView = new Authorise(authorisations, null);
 	}
 	
 	boolean autoCommit;
@@ -172,8 +180,8 @@ public class Review extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		aView.isAuthorised(connectionSD, request.getRemoteUser());
+		aView.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Review of text data");

@@ -44,8 +44,6 @@ import java.util.logging.Logger;
  */
 @Path("/myProjectList")
 public class MyProjectList extends Application {
-	
-	//Authorise a = new Authorise(Authorise.ANALYST);
 
 	private static Logger log =
 			 Logger.getLogger(MyProjectList.class.getName());
