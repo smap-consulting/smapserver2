@@ -12,6 +12,7 @@ public class Action {
 	
 	// Attributes specific to an action type
 	public int sId;
+	public String surveyName;
 	public int pId;
 	public int managedId;
 	public int prikey;

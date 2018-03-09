@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -39,6 +40,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LinkageManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
@@ -131,10 +133,6 @@ public class Reports extends Application {
 		
 		try {
 
-			// Get the users locale
-			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
-			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int pId = 0;
 		
@@ -146,6 +144,7 @@ public class Reports extends Application {
 			action.pId = GeneralUtilityMethods.getProjectId(sd, sId);
 			action.reportType = type;
 			action.name = name;
+			action.surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 			action.filename = (filename == null) ? "report" : filename;
 			
 			// Parameters
@@ -230,5 +229,40 @@ public class Reports extends Application {
 	}
 	
 
+	@DELETE
+	@Path("/link/{ident}")
+	public Response delReport(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String ident) { 
+		
+		Response response = null;
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI - delete reports");
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation			
+			
+		String sql = "delete from users where ident = ? and temporary = 'true' and o_id in "
+				+ "(select o_id from users where ident = ?)";
+		PreparedStatement pstmt = null;
+		
+		try {	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  ident);
+			pstmt.setString(2, request.getRemoteUser());		
+			pstmt.executeUpdate();
+			
+			response = Response.ok().build();			
+		}  catch (Exception ex) {
+			log.log(Level.SEVERE, ex.getMessage());
+			response = Response.serverError().entity(ex.getMessage()).build();
+			
+		} finally {	
+			try {pstmt.close();} catch(Exception e) {}
+			SDDataSource.closeConnection("surveyKPI - delete reports", sd);
+		}
+		
+		return response;
+	}
 }
 
