@@ -50,6 +50,7 @@ import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
 
 import utilities.XLSUtilities;
+import utilities.XLSXReportsManager;
 
 /*
  * Export a survey in XLSX format
@@ -96,323 +97,63 @@ public class ExportSurveyXlsx extends Application {
 			
 			@Context HttpServletResponse response) {
 
-		return getReport(
-				request.getRemoteUser(),
-				request,
-				response,
-				sId,
-				filename,
-				split_locn,
-				merge_select_multiple,
-				language,
-				exp_ro,
-				embedImages,
-				excludeParents,
-				hxl,
-				fId,
-				startDate,
-				endDate,
-				dateId,
-				filter,
-				meta);
-
-	}
-
-	/*
-	 * Return the report
-	 */
-	private Response getReport(
-			String username,
-			HttpServletRequest request,
-			HttpServletResponse response,
-			int sId, 
-			String filename, 
-			boolean split_locn, 
-			boolean merge_select_multiple,
-			String language,
-			boolean exp_ro,
-			boolean embedImages,
-			boolean excludeParents,
-			boolean hxl,
-			int fId,
-			Date startDate,
-			Date endDate,
-			int dateId,
-			String filter,
-			boolean meta) {
+		Response responseVal;
 		
-		System.out.println("getReport");
-		
-		Response responseVal = null;
-
-		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
-
-		log.info("userevent: " + username + " Export " + sId + " as an xlsx file to " + filename + " starting from form " + fId);
-
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-
-
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, username);
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 
-		a.isAuthorised(sd, username);
-		a.isValidSurvey(sd, username, sId, false, superUser);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-
-		lm.writeLog(sd, sId, username, "view", "Export as: xlsx");
-
-		String escapedFileName = null;
-		try {
-			escapedFileName = URLDecoder.decode(filename, "UTF-8");
-			escapedFileName = URLEncoder.encode(escapedFileName, "UTF-8");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}
-
-		escapedFileName = escapedFileName.replace("+", " "); // Spaces ok for file name within quotes
-		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
 		
-		if(sId != 0) {
-
-			Connection cResults = null;
-			PreparedStatement pstmt = null;
-
-			try {
-
-				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, username));
-				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-				
-				cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");				
-
-				if(language == null) {	// ensure a language is set
-					language = "none";
-				}
-
-				/*
-				 * Get the list of forms and surveys to be exported
-				 */
-				ArrayList<QueryForm> queryList = null;
-				QueryManager qm = new QueryManager();				
-				queryList = qm.getFormList(sd, sId, fId);		// Get a form list for this survey / form combo
-
-				QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
-
-				// Get the SQL for this query
-				SqlDesc sqlDesc = QueryGenerator.gen(sd, 
-						cResults,
-						localisation,
-						sId,
-						fId,
-						language, 
-						"xlsx", 
-						urlprefix, 
-						true,
-						exp_ro,
-						excludeParents,
-						labelListMap,
-						false,
-						false,
-						null,
-						null,
-						null,
-						username,
-						startDate,
-						endDate,
-						dateId,
-						false,				// Super user - always apply filters
-						startingForm,
-						filter,
-						meta);
-
-				String basePath = GeneralUtilityMethods.getBasePath(request);					
-				
-				/*
-				 * Create XLSX File
-				 */
-				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
-				Workbook wb = null;
-				int rowNumber = 0;
-				wb = new SXSSFWorkbook(10);		// Serialised output
-				Sheet dataSheet = wb.createSheet("data");
-				
-				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
-				CellStyle headerStyle = styles.get("header");
-				
-				/*
-				 * Write Question Name Header
-				 */
-				Row headerRow = dataSheet.createRow(rowNumber++);				
-				int colNumber = 0;
-				int dataColumn = 0;
-				while(dataColumn < sqlDesc.colNames.size()) {
-					ColValues values = new ColValues();
-					ColDesc item = sqlDesc.colNames.get(dataColumn);
-					dataColumn = GeneralUtilityMethods.getColValues(
-							null, 
-							values, 
-							dataColumn,
-							sqlDesc.colNames, 
-							merge_select_multiple);	
-						
-					if(split_locn && values.name.equals("the_geom")) {
-						Cell cell = headerRow.createCell(colNumber++);
-						cell.setCellStyle(headerStyle);
-						cell.setCellValue("Latitude");
-						
-						cell = headerRow.createCell(colNumber++);
-						cell.setCellStyle(headerStyle);
-						cell.setCellValue("Longitude");
-					} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
-						for(int i = 0; i < item.choices.size(); i++) {
-							Cell cell = headerRow.createCell(colNumber++);
-							cell.setCellStyle(headerStyle);
-							cell.setCellValue(values.name + " - " + item.choices.get(i).k);
-						}
-					} else {
-						Cell cell = headerRow.createCell(colNumber++);
-						cell.setCellStyle(headerStyle);
-						cell.setCellValue(values.name);
-					}
-				}
-				
-				/*
-				 * Write each row of data
-				 */
-				pstmt = cResults.prepareStatement(sqlDesc.sql);
-				ResultSet rs = pstmt.executeQuery();
-				while(rs.next()) {
-					
-					Row dataRow = dataSheet.createRow(rowNumber++);	
-					
-					colNumber = 0;
-					dataColumn = 0;
-					while(dataColumn < sqlDesc.colNames.size()) {
-						ColValues values = new ColValues();
-						ColDesc item = sqlDesc.colNames.get(dataColumn);
-						dataColumn = GeneralUtilityMethods.getColValues(
-								rs, 
-								values, 
-								dataColumn,
-								sqlDesc.colNames, 
-								merge_select_multiple);						
-
-						if(split_locn && values.value != null && values.value.startsWith("POINT")) {
-
-							String coords [] = GeneralUtilityMethods.getLonLat(values.value);
-
-							if(coords.length > 1) {
-								Cell cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[1], 
-										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-								cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[0], 
-										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-								//out.add(new CellItem(coords[1], CellItem.DECIMAL));
-								//out.add(new CellItem(coords[0], CellItem.DECIMAL)); 
-							} else {
-								Cell cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
-								cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
-								//out.add(new CellItem(value, CellItem.STRING));
-								//out.add(new CellItem(value, CellItem.STRING));
-							}
-
-
-						} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
-
-							// Can't split linestrings and polygons, leave latitude and longitude as blank
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							//out.add(new CellItem("", CellItem.STRING));
-							//out.add(new CellItem("", CellItem.STRING));
-
-
-						} else if(split_locn && values.type != null & values.type.equals("geopoint") ) {
-							// Geopoint that needs to be split but there is no data
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							//out.add(new CellItem("", CellItem.STRING));
-							//out.add(new CellItem("", CellItem.STRING));
-						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
-							
-							String [] vArray = null;
-							if(values.value != null) {
-								vArray = values.value.split(" ");
-							} 
-							
-							for(int i = 0; i < item.choices.size(); i++) {
-								
-								
-								String v = "0";
-								if(vArray != null) {
-									
-									String choiceValue = item.choices.get(i).k;
-									for(int k = 0; k < vArray.length; k++) {
-										if(vArray[k].equals(choiceValue)) {
-											v = "1";
-											break;
-										}
-									}
-								}
-								Cell cell = dataRow.createCell(colNumber++);
-								cell.setCellStyle(headerStyle);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-									
-							}
-						} else {
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-									values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-						}
-					}
-					
-				}
-				
-				OutputStream outputStream = response.getOutputStream();
-				wb.write(outputStream);
-				wb.close();
-				outputStream.close();
-				((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
-
-
-			} catch (ApplicationException e) {
-				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				// Return an OK status so the message gets added to the web page
-				// Prepend the message with "Error: ", this will be removed by the client
-				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
-			} catch (Exception e) {
-				log.log(Level.SEVERE, "Error", e);
-				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				lm.writeLog(sd, sId, username, "error", e.getMessage());
-				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
-			} finally {	
-
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-
-				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
-				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", cResults);
-			}
+		Connection cResults = null;
+		try {
+			cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");		
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			XLSXReportsManager rm = new XLSXReportsManager(localisation);
+			responseVal = rm.getNewReport(
+					sd,
+					cResults,
+					request.getRemoteUser(),
+					request,
+					response,
+					sId,
+					filename,
+					split_locn,
+					merge_select_multiple,
+					language,
+					exp_ro,
+					embedImages,
+					excludeParents,
+					hxl,
+					fId,
+					startDate,
+					endDate,
+					dateId,
+					filter,
+					meta);
+		} catch(Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+			response.setHeader("Content-type",  "text/html; charset=UTF-8");
+			lm.writeLog(sd, sId, request.getRemoteUser(), "error", e.getMessage());
+			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
+			ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", cResults);
 		}
-
+		
 		return responseVal;
+
 	}
+
+
 
 }

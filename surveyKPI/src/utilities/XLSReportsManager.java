@@ -31,6 +31,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFHyperlink;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.ChartColumn;
 import org.smap.sdal.model.ChartData;
 import org.smap.sdal.model.ChartRow;
@@ -48,6 +49,8 @@ public class XLSReportsManager {
 	
 	private static Logger log =
 			 Logger.getLogger(SurveyInfo.class.getName());
+	
+	LogManager lm = new LogManager();		// Application log
 	
 	Workbook wb = null;
 	boolean isXLSX = false;
@@ -370,7 +373,5 @@ public class XLSReportsManager {
 			}
 		}
 	}
-	
-	
 
 }

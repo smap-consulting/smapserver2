@@ -60,7 +60,7 @@ import com.google.gson.GsonBuilder;
 
 /*
  * Allow a temporary user to complete an action
- * There is an action service in both surveyMobileAPI and in surveyKPI.  The reason beign only surveyKPI currently
+ * There is an action service in both surveyMobileAPI and in surveyKPI.  The reason being only surveyKPI currently
  *  has access to Apache POI for reports
  */
 
