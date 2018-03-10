@@ -570,6 +570,7 @@ public class Surveys extends Application {
 		String fileName = null;
 		String newSurveyName = null;
 		String settings = null;
+		String pdfSet = "no";
 		int version = 0;
 				
 		PreparedStatement pstmt = null;
@@ -596,6 +597,12 @@ public class Surveys extends Application {
 					if(item.getFieldName().equals("settings")) {
 						try {
 							settings = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
+						} catch (Exception e) {
+							
+						}
+					} else if(item.getFieldName().equals("pdfSet")) {
+						try {
+							pdfSet = item.getString("UTF-8");  // Set encoding type to UTF-8 as per http://stackoverflow.com/questions/22025999/sending-files-and-text-with-ajax-multipart-form-data-utf-8-encoding
 						} catch (Exception e) {
 							
 						}
@@ -727,12 +734,22 @@ public class Surveys extends Application {
 			connectionSD.commit();
 			connectionSD.setAutoCommit(true);
 			
+			/*
+			 * PDF Template
+			 */
+			String templateName = null;
 			if(fileName != null) {  // Save the file				
-	            writePdf(request, survey.displayName, pdfItem, survey.p_id);				
-			} else {
+	            templateName = writePdf(request, survey.displayName, pdfItem, survey.p_id);				
+			} else if(pdfSet.equals("no")) {
 				// Try to delete the template file if it exists
 				delPdf(request, survey.displayName, survey.p_id);
+			} else {
+				// If the survey name has been changed then change the name of the template
+				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
+					templateName = renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
+				}
 			}
+			// If the survey has been renamed then rename the survey template
 			
 			// If the project id has changed update the project in the upload events so that the monitor will still show all events
 			if(originalProjectId != survey.p_id) {
@@ -752,7 +769,7 @@ public class Surveys extends Application {
 			MessagingManager mm = new MessagingManager();
 			mm.surveyChange(connectionSD, sId, 0);
 		
-			response = Response.ok().build();
+			response = Response.ok(templateName).build();
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"sql error", e);
@@ -914,7 +931,7 @@ public class Surveys extends Application {
 	/*
 	 * Write the PDF to disk
 	 */
-	private void writePdf(HttpServletRequest request, 
+	private String writePdf(HttpServletRequest request, 
 			String fileName, 
 			FileItem pdfItem,
 			int pId) {
@@ -936,6 +953,7 @@ public class Surveys extends Application {
 			e.printStackTrace();
 		}
 	 
+	    return fileName;
 	}
 	
 	/*
@@ -960,8 +978,36 @@ public class Surveys extends Application {
 			delFile.delete();
 		} catch (Exception e) {
 			e.printStackTrace();
+		} 
+	}
+	
+	/*
+	 * Rename the pdf template
+	 */
+	private String renamePdf(HttpServletRequest request, 
+			String originalName,
+			String newName, 
+			int pId) {
+	
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		newName = GeneralUtilityMethods.getSafeTemplateName(newName) + "_template.pdf";
+		originalName = GeneralUtilityMethods.getSafeTemplateName(originalName) + "_template.pdf";
+		
+		String folderPath = basePath + "/templates/" + pId ;						
+		String newFilePath = folderPath + "/" + newName;
+		String originalFilePath = folderPath + "/" + originalName;
+	    
+		File newFile = new File(newFilePath);
+		File renFile = new File(originalFilePath);
+	   
+	    try {
+			renFile.renameTo(newFile);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	 
+	    return newName;
 	}
 	
 	
