@@ -109,7 +109,7 @@ public class QuestionList extends Application {
 				if(mi.isPreload) {
 					JSONObject joQuestion = new JSONObject();
 					int id = (mi.id <= -1000) ? mi.id : metaId--;
-					joQuestion.put("id", mi.id);
+					joQuestion.put("id", id);
 					joQuestion.put("type", mi.dataType);
 					joQuestion.put("q", mi.display_name);
 					joQuestion.put("name", mi.name);

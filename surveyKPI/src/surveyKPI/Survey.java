@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.server.utilities.GetXForm;
 
@@ -407,8 +408,8 @@ public class Survey extends Application {
 		String topTableName = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey-getSurveyMeta");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getSurveyMeta");
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 
 		JSONObject jo = new JSONObject();
@@ -427,7 +428,7 @@ public class Survey extends Application {
 					+ "where f.s_id = ? "
 					+ "and f.reference = 'false' " 
 					+ "order by f.table_name";		
-			pstmtTables = connectionSD.prepareStatement(sqlTables);	
+			pstmtTables = sd.prepareStatement(sqlTables);	
 
 			String sqlGeom = "select q.q_id "
 					+ "from form f, question q "
@@ -439,8 +440,11 @@ public class Survey extends Application {
 					+ "or q.qtype='geotrace') "
 					+ "and f.f_id = ? "
 					+ "and f.s_id = ?";
-			pstmtGeom = connectionSD.prepareStatement(sqlTables);	
+			pstmtGeom = sd.prepareStatement(sqlTables);	
 
+			// Get the preloads
+			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+			
 			// Add the sId to the response so that it is available in the survey meta object
 			jo.put("sId", sId);
 
@@ -483,7 +487,7 @@ public class Survey extends Application {
 				if(extended) {
 
 					// Get the surveys that link to this one
-					ArrayList<SurveyLinkDetails> sList = GeneralUtilityMethods.getLinkingSurveys(connectionSD, currentSurveyId);
+					ArrayList<SurveyLinkDetails> sList = GeneralUtilityMethods.getLinkingSurveys(sd, currentSurveyId);
 					if(sList.size() > 0) {
 						for(SurveyLinkDetails link : sList) {
 							completeLinks.put(link.getId(), link);
@@ -498,7 +502,7 @@ public class Survey extends Application {
 					}
 
 					// Get the surveys that this survey links to
-					sList = GeneralUtilityMethods.getLinkedSurveys(connectionSD, currentSurveyId);
+					sList = GeneralUtilityMethods.getLinkedSurveys(sd, currentSurveyId);
 					if(sList.size() > 0) {
 						for(SurveyLinkDetails link : sList) {
 							completeLinks.put(link.getId(), link);
@@ -542,7 +546,7 @@ public class Survey extends Application {
 					}
 
 					// Get any geometry questions for this table
-					pstmtGeom = connectionSD.prepareStatement(sqlGeom);
+					pstmtGeom = sd.prepareStatement(sqlGeom);
 					pstmtGeom.setInt(1, fId);
 					pstmtGeom.setInt(2, sId);
 					resultSetTable = pstmtGeom.executeQuery();
@@ -631,7 +635,7 @@ public class Survey extends Application {
 
 				for(Integer surveyId : completedSurveys.keySet()) {
 					JSONObject js = new JSONObject();
-					String sName = GeneralUtilityMethods.getSurveyName(connectionSD, surveyId);
+					String sName = GeneralUtilityMethods.getSurveyName(sd, surveyId);
 					js.put("sId", surveyId);
 					js.put("name", sName);
 					jSurveys.put(js);
@@ -655,7 +659,7 @@ public class Survey extends Application {
 					+ "and f.s_id = ?"; 	
 
 
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			resultSet = pstmt.executeQuery();
 
@@ -668,6 +672,7 @@ public class Survey extends Application {
 				dateInfoList.add(di);
 			}	
 
+			// Add upload time
 			if(GeneralUtilityMethods.columnType(connectionRel, topTableName, "_upload_time") != null) {
 				DateInfo di = new DateInfo();
 
@@ -675,6 +680,20 @@ public class Survey extends Application {
 				di.name = "Upload Time";
 				di.qId = SurveyManager.UPLOAD_TIME_ID;
 				dateInfoList.add(di);
+			}
+			
+			// Add preloads
+			int metaId = -1000;		// Backward compatability to when meta items did not have an id
+			for(MetaItem mi : preloads) {
+				if(mi.type.equals("dateTime") || mi.type.equals("date")) {
+					DateInfo di = new DateInfo();
+
+					int id = (mi.id <= -1000) ? mi.id : metaId--;
+					di.columnName = mi.columnName;
+					di.name = mi.display_name;
+					di.qId = id;
+					dateInfoList.add(di);
+				}
 			}
 
 			ja = new JSONArray();
@@ -719,7 +738,7 @@ public class Survey extends Application {
 					+ "where s.s_id = ?";
 
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			resultSet = pstmt.executeQuery();
 
@@ -749,7 +768,7 @@ public class Survey extends Application {
 			try {if (pstmtTables != null) {pstmtTables.close();}} catch (SQLException e) {}
 			try {if (pstmtGeom != null) {pstmtGeom.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-Survey-getSurveyMeta", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Survey-getSurveyMeta", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Survey-getSurveyMeta", connectionRel);
 		}
 
