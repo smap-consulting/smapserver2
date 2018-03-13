@@ -273,7 +273,7 @@ public class XLSXReportsManager {
 							//out.add(new CellItem("", CellItem.STRING));
 
 
-						} else if(split_locn && values.type != null & values.type.equals("geopoint") ) {
+						} else if(split_locn && values.type != null && values.type.equals("geopoint") ) {
 							// Geopoint that needs to be split but there is no data
 							Cell cell = dataRow.createCell(colNumber++);
 							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 

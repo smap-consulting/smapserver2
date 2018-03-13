@@ -189,10 +189,6 @@ public class Reports extends Application {
 			if(ident == null) {
 				// Create new link
 				link = am.getLink(sd, action, oId);
-				al.link = request.getScheme() +
-						"://" +
-						request.getServerName() + 
-						am.getLink(sd, action, oId);
 			} else {
 				// Update link
 				link = am.updateLink(sd, action, oId, ident);
