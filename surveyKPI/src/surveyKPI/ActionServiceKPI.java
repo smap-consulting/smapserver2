@@ -180,7 +180,7 @@ public class ActionServiceKPI extends Application {
 					request,
 					response,
 					a.sId,
-					a.filename,
+					a.name,		// File name
 					split_locn,
 					merge_select_multiple,
 					language,
