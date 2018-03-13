@@ -252,6 +252,29 @@ public class ActionManager {
 
 		return link;
 	}
+	
+	public String updateLink(Connection sd, Action a, int oId, String userIdent) throws Exception {
+
+
+		String sql = "update users set action_details = ? where temporary = true and ident = ?";
+		PreparedStatement pstmt = null;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, gson.toJson(a));
+			pstmt.setString(2, userIdent);
+			log.info("Update action details: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {
+				if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return "/action/" + userIdent;
+		
+	}
+
 
 	/*
 	 * Process an update request that came either from an anonymous form or from the

@@ -133,7 +133,7 @@ public class ActionServiceKPI extends Application {
 			Date endDate = null;			// TODO
 			int dateId = 0;
 			String filter = null;
-			boolean meta = true;
+			boolean meta = false;
 			
 			for(KeyValueSimp p : a.parameters) {
 				if(p.k.equals("form")) {

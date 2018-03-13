@@ -19,11 +19,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -32,39 +29,18 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import org.smap.model.SurveyTemplate;
-import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
-import org.smap.sdal.managers.LinkageManager;
-import org.smap.sdal.managers.RoleManager;
-import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
-import org.smap.sdal.model.AutoUpdate;
-import org.smap.sdal.model.Filter;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
-import org.smap.sdal.model.Link;
-import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.sql.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -115,7 +91,8 @@ public class Reports extends Application {
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,
-			@QueryParam("meta") boolean meta
+			@QueryParam("meta") boolean meta,
+			@QueryParam("ident") String ident		// Used when updating a link
 			) { 
 		
 		Response response = null;
@@ -206,12 +183,22 @@ public class Reports extends Application {
 				}
 			}
 			
-			log.info("Creating action for report: " + "");	// TODO
+			log.info("Creating action for report: " + "");	
 			ActionLink al = new ActionLink();
-			al.link = request.getScheme() +
-					"://" +
-					request.getServerName() + 
-					am.getLink(sd, action, oId);
+			String link = null;
+			if(ident == null) {
+				// Create new link
+				link = am.getLink(sd, action, oId);
+				al.link = request.getScheme() +
+						"://" +
+						request.getServerName() + 
+						am.getLink(sd, action, oId);
+			} else {
+				// Update link
+				link = am.updateLink(sd, action, oId, ident);
+			}
+			
+			al.link = request.getScheme() + "://" + request.getServerName() + link;					
 			
 			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(al, ActionLink.class);
