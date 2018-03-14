@@ -3303,19 +3303,20 @@ public class SurveyManager {
 	
 	/*
 	 * Get the group surveys
-	 * Get the forms for the passed in group surveyId
+	 * Get the forms for the passed in group surveyId and surveyId
 	 */
-	public ArrayList<Integer> getGroupSurveys(Connection sd, int groupSurveyId) throws SQLException {
+	public ArrayList<Integer> getGroupSurveys(Connection sd, int groupSurveyId, int sId) throws SQLException {
 		
 		ArrayList<Integer> groupSurveys = new ArrayList<> ();
+		groupSurveys.add(sId);
 		
-		String sql = "select distinct s_id from survey where group_survey_id = ? or s_id = ?";
+		String sql = "select distinct s_id from survey where group_survey_id = ? and group_survey_id > 0";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2, groupSurveyId);
+
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -3338,20 +3339,62 @@ public class SurveyManager {
 	 * Get the forms for the passed in group surveyId
 	 */
 	public HashMap<String, String> getGroupForms(Connection sd, int groupSurveyId) throws SQLException {
+		
 		HashMap<String, String> groupForms = new HashMap<> ();
 		
 		String sql = "select name, table_name from form where s_id in "
-				+ "(select s_id from survey where group_survey_id = ?) or s_id = ?";
+				+ "(select s_id from survey where group_survey_id = ? and group_survey_id > 0) or s_id = ?";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, groupSurveyId);
 			pstmt.setInt(2, groupSurveyId);
+			log.info("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
 				groupForms.put(rs.getString(1), rs.getString(2));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return groupForms;
+	}
+	
+	/*
+	 * Get the group tables
+	 * Get all the tables that are part of the passed in group surveyId
+	 */
+	public ArrayList<String> getGroupTables(Connection sd, int groupSurveyId, int oId, int sId) throws SQLException {
+		
+		ArrayList<String> groupForms = new ArrayList<> ();
+		
+		String sql = "select distinct f.table_name "
+				+ "from form f, project p, survey s  "
+				+ "where f.s_id = s.s_id "
+				+ "and s.p_id = p.id "
+				+ "and p.o_id = ? "
+				+ "and (f.s_id in "
+				+ "(select s_id from survey where group_survey_id > 0 and group_survey_id = ?) or f.s_id = ?)";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, groupSurveyId);
+			pstmt.setInt(3, sId);
+			log.info("Get group forms: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupForms.add(rs.getString(1));
 			}
 		} finally {
 			try {
