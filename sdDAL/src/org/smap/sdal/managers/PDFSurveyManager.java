@@ -603,6 +603,7 @@ public class PDFSurveyManager {
 							PdfUtilities.addMapImageTemplate(pdfForm, fieldName, qrcodeImage);
 						} else {
 							pdfForm.setField(fieldName, value);
+							
 						}
 					}	
 				} 

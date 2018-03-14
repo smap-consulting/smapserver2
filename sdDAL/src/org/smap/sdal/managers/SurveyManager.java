@@ -857,7 +857,7 @@ public class SurveyManager {
 				if(s.hrk != null && s.hrk.trim().length() > 0
 						&& GeneralUtilityMethods.columnType(cResults, f.tableName, "_hrk") != null) {
 					Question q = new Question();
-					q.name = "Key";
+					q.name = "_hrk";
 					q.published = true;
 					q.columnName = "_hrk";
 					q.source = "user";

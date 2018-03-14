@@ -1204,7 +1204,7 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "parkey";
 				col.type = "int";
-			} else if(qName.equals("Key")) {
+			} else if(qName.equals("Key") || qName.equals("_hrk")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_hrk";
