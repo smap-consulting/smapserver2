@@ -161,7 +161,8 @@ public class ServerManager {
 					String tableName = resultSet.getString(1);
 					
 					ArrayList<String> surveys = sharedTables.get(tableName);
-					if(surveys != null && surveys.size() > 1) {
+					if(surveys != null && surveys.size() > 0) {
+						log.info("Table " + tableName + " not erased as it is used by " + surveys.toString());
 						lm.writeLog(sd, sId, user, "erase", "Table " + tableName + " not erased as it is used by " + surveys.toString());
 					} else {				
 					

@@ -3426,6 +3426,7 @@ public class SurveyManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, sId);
+			log.info("Get shared tables: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
