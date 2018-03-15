@@ -1303,7 +1303,7 @@ public class XLSResultsManager {
 
 	}
 
-	private String getQuestion(Connection conn, String colName, int sId, FormDesc form, String language, boolean merge_select_multiple) throws SQLException {
+	public String getQuestion(Connection conn, String colName, int sId, FormDesc form, String language, boolean merge_select_multiple) throws SQLException {
 		String questionText = "";
 		String qColName = null;
 		String optionColName = null;

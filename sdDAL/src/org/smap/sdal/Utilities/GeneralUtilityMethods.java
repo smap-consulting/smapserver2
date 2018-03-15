@@ -5852,12 +5852,12 @@ public class GeneralUtilityMethods {
 			}
 
 			values.name = item.question_name;
-			values.label = item.question_name;
+			values.label = item.label;
 			values.value = selMulValue.toString();
 
 		} else {
 			values.name = item.name;
-			values.label = item.question_name;
+			values.label = item.label;
 			if(rs != null) {
 				values.value = rs.getString(dataColumn + 1);
 			}

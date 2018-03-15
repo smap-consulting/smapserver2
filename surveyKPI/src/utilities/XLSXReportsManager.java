@@ -181,37 +181,39 @@ public class XLSXReportsManager {
 				 * Write the labels if language has been set
 				 */
 				if(language != null && !language.equals("none")) {
+					XLSResultsManager xm = new XLSResultsManager("xlsx", localisation);
 					Row headerRow = dataSheet.createRow(rowNumber++);				
 					int colNumber = 0;
 					int dataColumn = 0;
 					while(dataColumn < sqlDesc.colNames.size()) {
 						ColValues values = new ColValues();
 						ColDesc item = sqlDesc.colNames.get(dataColumn);
+						
 						dataColumn = GeneralUtilityMethods.getColValues(
 								null, 
 								values, 
 								dataColumn,
 								sqlDesc.colNames, 
 								merge_select_multiple);	
-							
+						
 						if(split_locn && values.name.equals("the_geom")) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
-							cell.setCellValue("Latitude");
+							cell.setCellValue(values.label);
 							
 							cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
-							cell.setCellValue("Longitude");
+							cell.setCellValue(values.label);
 						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
 							for(int i = 0; i < item.choices.size(); i++) {
 								Cell cell = headerRow.createCell(colNumber++);
 								cell.setCellStyle(headerStyle);
-								cell.setCellValue(values.name + " - " + item.choices.get(i).k);
+								cell.setCellValue(values.label + " - " + item.choices.get(i).k);
 							}
 						} else {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
-							cell.setCellValue(values.name);
+							cell.setCellValue(values.label);
 						}
 					}
 				}
