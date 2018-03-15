@@ -62,7 +62,7 @@ public class JdbcUploadEventManager {
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?);";
 	
-	PreparedStatement pstmtFailed = null;
+	PreparedStatement pstmtUnprocessed = null;
 	String sqlGet = "select "
 			+ "ue.ue_id, "
 			+ "ue.upload_time, "
@@ -97,13 +97,15 @@ public class JdbcUploadEventManager {
 	PreparedStatement pstmtFailedForward = null;
 	String sqlForwardFilter = " and ue.s_id = ?";
 	
+	String sqlOrder = " order by ue.ue_id asc";
+	
 	/*
 	 * Constructor
 	 */
 	public JdbcUploadEventManager(Connection sd) throws SQLException {
 		pstmt = sd.prepareStatement(sql);
-		pstmtFailed = sd.prepareStatement(sqlGet);
-		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlForwardFilter);
+		pstmtUnprocessed = sd.prepareStatement(sqlGet + sqlOrder);
+		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlForwardFilter + sqlOrder);
 	}
 	
 	/*
@@ -140,8 +142,8 @@ public class JdbcUploadEventManager {
 	 * Get Uplaods that have not been processed by the subscriber
 	 */
 	public List<UploadEvent> getFailed(String subscriber) throws SQLException {
-		pstmtFailed.setString(1, subscriber);
-		return getUploadEventList(pstmtFailed);
+		pstmtUnprocessed.setString(1, subscriber);
+		return getUploadEventList(pstmtUnprocessed);
 	}
 	
 	public List<UploadEvent> getFailedForward(String subscriber, int sId) throws SQLException {
@@ -155,7 +157,7 @@ public class JdbcUploadEventManager {
 	 */
 	public void close() {
 		try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
-		try {if(pstmtFailed != null) {pstmtFailed.close();}} catch(Exception e) {};
+		try {if(pstmtUnprocessed != null) {pstmtUnprocessed.close();}} catch(Exception e) {};
 		try {if(pstmtFailedForward != null) {pstmtFailedForward.close();}} catch(Exception e) {};
 	}
 	
