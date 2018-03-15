@@ -3045,6 +3045,7 @@ public class GeneralUtilityMethods {
 							c.l_id = l_id;
 							c.qId = qId;
 							c.type = qType;
+							c.compressed = false;
 							c.readonly = ro;
 							if (hxlCode != null) {
 								c.hxlCode = hxlCode + "+label";

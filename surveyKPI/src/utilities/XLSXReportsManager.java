@@ -94,8 +94,6 @@ public class XLSXReportsManager {
 			String filter,
 			boolean meta) {
 		
-		System.out.println("getReport");
-		
 		Response responseVal = null;
 
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
@@ -210,6 +208,17 @@ public class XLSXReportsManager {
 								cell.setCellStyle(headerStyle);
 								cell.setCellValue(values.label + " - " + item.choices.get(i).k);
 							}
+						} else if(item.qType != null && item.qType.equals("select1") && item.optionLabels != null) {
+							StringBuffer label = new StringBuffer(values.label);
+							label.append(" (");
+							for(OptionDesc o : item.optionLabels) {
+								label.append(" ").append(o.value).append("=").append(o.label);
+								
+							}
+							label.append(")");
+							Cell cell = headerRow.createCell(colNumber++);
+							cell.setCellStyle(headerStyle);
+							cell.setCellValue(label.toString());
 						} else {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
@@ -258,6 +267,7 @@ public class XLSXReportsManager {
 				 * Write each row of data
 				 */
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
+				log.info("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				while(rs.next()) {
 					

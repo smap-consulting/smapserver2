@@ -757,7 +757,7 @@ public class TableManager {
 									} else {
 										columns.add(qd.columnName);		// Usually this is the case unless the question is a select multiple
 	
-										if (qd.type.equals("select")) {
+										if (qd.type.equals("select") && !qd.compressed) {
 											qd.type = "integer";
 	
 											columns.clear();

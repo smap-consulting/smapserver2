@@ -507,7 +507,7 @@ public class QueryGenerator {
 				
 				// Get the question type
 				pstmtQType.setString(1, form.table);
-				if(name.contains("__")) {
+				if(type.equals("select") && !col.compressed) {
 					// Select multiple question
 					String [] mNames = name.split("__");
 					pstmtQType.setString(2, mNames[0]);
@@ -518,7 +518,7 @@ public class QueryGenerator {
 				
 				boolean isAttachment = false;
 				if(rsType.next()) {
-					qType = rsType.getString(1);
+					qType = col.type;
 					boolean ro = rsType.getBoolean(2);
 					text_id = rsType.getString(3);
 					qId = rsType.getInt(4);
