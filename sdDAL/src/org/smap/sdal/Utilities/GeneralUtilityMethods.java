@@ -3045,6 +3045,7 @@ public class GeneralUtilityMethods {
 							c.l_id = l_id;
 							c.qId = qId;
 							c.type = qType;
+							c.compressed = false;
 							c.readonly = ro;
 							if (hxlCode != null) {
 								c.hxlCode = hxlCode + "+label";
@@ -5852,12 +5853,12 @@ public class GeneralUtilityMethods {
 			}
 
 			values.name = item.question_name;
-			values.label = item.question_name;
+			values.label = item.label;
 			values.value = selMulValue.toString();
 
 		} else {
 			values.name = item.name;
-			values.label = item.question_name;
+			values.label = item.label;
 			if(rs != null) {
 				values.value = rs.getString(dataColumn + 1);
 			}
