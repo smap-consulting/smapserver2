@@ -36,15 +36,16 @@ import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Question;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -118,8 +119,8 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation);
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<Integer> surveys = sm.getGroupSurveys(sd, groupSurveyId, sId);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser());
 				
 				/*
 				 * Delete data from each form
@@ -127,7 +128,7 @@ public class SurveyResults extends Application {
 				for(String tableName : tableList) {				
 
 					sql = "drop TABLE " + tableName + ";";
-					log.info("Delete table contents and drop table: " + sql);
+					log.info("*********************************  Delete table contents and drop table: " + sql);
 					
 					try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
 					stmtRel = connectionRel.createStatement();
@@ -143,25 +144,25 @@ public class SurveyResults extends Application {
 				 * Clean up the surveys
 				 */
 				ExternalFileManager efm = new ExternalFileManager(localisation);
-				for(int id : surveys) {
-					pstmtUnPublish.setInt(1, id);			// Mark questions as un-published
+				for(GroupDetails gd : surveys) {
+					pstmtUnPublish.setInt(1, gd.sId);			// Mark questions as un-published
 					log.info("Marking questions as unpublished: " + pstmtUnPublish.toString());
 					pstmtUnPublish.executeUpdate();
 					
-					pstmtUnPublishOption.setInt(1, id);			// Mark options as un-published
+					pstmtUnPublishOption.setInt(1, gd.sId);			// Mark options as un-published
 					log.info("Marking options as unpublished: " + pstmtUnPublishOption.toString());
 					pstmtUnPublishOption.executeUpdate();
 					
-					pstmtRemoveChangeHistory.setInt(1, id);
+					pstmtRemoveChangeHistory.setInt(1, gd.sId);
 					pstmtRemoveChangeHistory.executeUpdate();
 					
-					pstmtRemoveChangeset.setInt(1, id);
+					pstmtRemoveChangeset.setInt(1, gd.sId);
 					pstmtRemoveChangeset.executeUpdate();
 					
 					// Delete any soft deleted questions from the survey definitions
 					QuestionManager qm = new QuestionManager(localisation);
 					ArrayList<Question> questions = new ArrayList<Question> ();
-					pstmtGetSoftDeletedQuestions.setInt(1, id);
+					pstmtGetSoftDeletedQuestions.setInt(1, gd.sId);
 					ResultSet rs = pstmtGetSoftDeletedQuestions.executeQuery();
 					while(rs.next()) {
 						Question q = new Question();
@@ -170,11 +171,11 @@ public class SurveyResults extends Application {
 						questions.add(q);
 					}
 					if(questions.size() > 0) {
-						qm.delete(sd, connectionRel, id, questions, false, false);
+						qm.delete(sd, connectionRel, gd.sId, questions, false, false);
 					}
 					
 					// Force regeneration of any dynamic CSV files that this survey links to
-					efm.linkerChanged(sd, id);
+					efm.linkerChanged(sd, gd.sId);
 				}
 				response = Response.ok("").build();
 				
@@ -204,7 +205,7 @@ public class SurveyResults extends Application {
 	}
 	
 	/*
-	 * Delete results for a survey
+	 * Restore results for a survey
 	 */
 	@GET
 	@Path("/restore")
@@ -237,21 +238,19 @@ public class SurveyResults extends Application {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
 
-				// Delete tables associated with this survey
-				
+				// Delete tables associated with this survey				
 				String sqlRestore = "delete from subscriber_event "
 						+ "where se_id in "
 						+ "(select se.se_id from upload_event ue, subscriber_event se where ue.ue_id = se.ue_id and ue.s_id = ?);";
-				pstmtRestore = sd.prepareStatement(sqlRestore);
-				
+				pstmtRestore = sd.prepareStatement(sqlRestore);			
 				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
 				SurveyManager sm = new SurveyManager(localisation);
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<Integer> surveys = sm.getGroupSurveys(sd, groupSurveyId, sId);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser());
 				
 				/*
 				 * Delete data from each form ready for reload
@@ -259,7 +258,7 @@ public class SurveyResults extends Application {
 				for(String tableName : tableList) {				
 
 					sql = "drop TABLE " + tableName + ";";
-					log.info("Delete table contents and drop table prior to restore: " + sql);
+					log.info("################################# Delete table contents and drop table prior to restore: " + sql);
 					
 					try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
 					stmtRel = connectionRel.createStatement();
@@ -270,20 +269,19 @@ public class SurveyResults extends Application {
 					}
 					log.info("userevent: " + request.getRemoteUser() + " : delete results : " + tableName + " in survey : "+ sId); 
 				}
-				
-				
+					
 				/*
 				 * Reload the surveys
 				 */
 				ExternalFileManager efm = new ExternalFileManager(localisation);
 				connectionRel.setAutoCommit(false);
-				for(int id : surveys) {
-					pstmtRestore.setInt(1, id);			// Mark questions as un-published
-					log.info("Restoreing survey " + id + ": " + pstmtRestore.toString());
+				for(GroupDetails gd : surveys) {
+					pstmtRestore.setInt(1, gd.sId);			// Mark questions as un-published
+					log.info("Restoreing survey " + gd.sId + ": " + pstmtRestore.toString());
 					pstmtRestore.executeUpdate();
 								
 					// Force regeneration of any dynamic CSV files that this survey links to
-					efm.linkerChanged(sd, id);
+					efm.linkerChanged(sd, gd.sId);
 				}
 				connectionRel.commit();
 				
@@ -309,6 +307,65 @@ public class SurveyResults extends Application {
 				
 				SDDataSource.closeConnection("surveyKPI-SurveyResults", sd);
 				ResultsDataSource.closeConnection("surveyKPI-SurveyResults", connectionRel);
+			}
+		}
+
+		return response; 
+	}
+	
+	/*
+	 * Get surveys belonging to a group
+	 */
+	@GET
+	@Path("/groups")
+	public Response getGroups(@Context HttpServletRequest request,
+			@PathParam("sId") int sId) { 
+		
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults - getGroups");
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		if(sId > 0) {
+		
+			PreparedStatement pstmt = null;
+			PreparedStatement pstmtRestore = null;
+			
+			Statement stmtRel = null;
+			try {
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				/*
+				 * Get the surveys and tables that are part of the group that this survey belongs to
+				 */
+				SurveyManager sm = new SurveyManager(localisation);
+				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
+				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId);
+				
+				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				response = Response.ok(gson.toJson(groups)).build();
+				
+			} catch (Exception e) {
+				String msg = e.getMessage();
+				if(msg != null && msg.contains("does not exist")) {
+					response = Response.ok("").build();
+				} else {
+					log.log(Level.SEVERE, "Survey: Restore Results");
+					e.printStackTrace();
+					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtRestore != null) {pstmtRestore.close();}} catch (SQLException e) {}
+				
+				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
+		
+				
+				SDDataSource.closeConnection("surveyKPI-SurveyResults - getGroups", sd);
 			}
 		}
 

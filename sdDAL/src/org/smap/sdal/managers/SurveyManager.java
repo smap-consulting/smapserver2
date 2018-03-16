@@ -48,6 +48,7 @@ import org.smap.sdal.model.ChangeLog;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.InstanceMeta;
 import org.smap.sdal.model.Language;
@@ -3305,22 +3306,24 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Get the forms for the passed in group surveyId and surveyId
 	 */
-	public ArrayList<Integer> getGroupSurveys(Connection sd, int groupSurveyId, int sId) throws SQLException {
+	public ArrayList<GroupDetails> getGroupDetails(Connection sd, int groupSurveyId) throws SQLException {
 		
-		ArrayList<Integer> groupSurveys = new ArrayList<> ();
-		groupSurveys.add(sId);
+		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		String sql = "select distinct s_id from survey where group_survey_id = ? and group_survey_id > 0";
+		String sql = "select distinct s_id, display_name from survey "
+				+ "where (group_survey_id = ? and group_survey_id > 0) or s_id = ?";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, groupSurveyId);
-
+			pstmt.setInt(2,  groupSurveyId);
+				
+			log.info("Get group surveys: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupSurveys.add(rs.getInt(1));
+				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2)));
 			}
 		} finally {
 			try {
@@ -3372,15 +3375,18 @@ public class SurveyManager {
 	 * Get the group tables
 	 * Get all the tables that are part of the passed in group surveyId
 	 */
-	public ArrayList<String> getGroupTables(Connection sd, int groupSurveyId, int oId, int sId) throws SQLException {
+	public ArrayList<String> getGroupTables(Connection sd, int groupSurveyId, int oId, String user) throws SQLException {
 		
 		ArrayList<String> groupForms = new ArrayList<> ();
 		
 		String sql = "select distinct f.table_name "
-				+ "from form f, project p, survey s  "
+				+ "from form f, project p, survey s, users u, user_project up  "
 				+ "where f.s_id = s.s_id "
 				+ "and s.p_id = p.id "
 				+ "and p.o_id = ? "
+				+ "and s.p_id = up.p_id "
+				+ "and u.id = up.u_id "
+				+ "and u.ident = ? "
 				+ "and (f.s_id in "
 				+ "(select s_id from survey where group_survey_id > 0 and group_survey_id = ?) or f.s_id = ?)";
 
@@ -3388,8 +3394,9 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
-			pstmt.setInt(2, groupSurveyId);
-			pstmt.setInt(3, sId);
+			pstmt.setString(2, user);
+			pstmt.setInt(3, groupSurveyId);
+			pstmt.setInt(4, groupSurveyId);
 			log.info("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
