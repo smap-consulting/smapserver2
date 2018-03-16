@@ -1412,7 +1412,7 @@ public class GeneralUtilityMethods {
 
 		if (qId == SurveyManager.UPLOAD_TIME_ID) {
 			column_name = "_upload_time";
-		} else {
+		} else if(qId > 0) {
 			try {
 
 				pstmt = sd.prepareStatement(sql);
@@ -1434,6 +1434,8 @@ public class GeneralUtilityMethods {
 				} catch (SQLException e) {
 				}
 			}
+		} else {
+			column_name = getPreloadColumnName(sd, sId, qId);		
 		}
 
 		return column_name;
@@ -5792,6 +5794,18 @@ public class GeneralUtilityMethods {
 
 		return item;
 
+	}
+	
+	public static String getPreloadColumnName(Connection sd, int sId, int preloadId) throws SQLException {
+		String colname = null;
+		ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+		for(MetaItem item : preloads) {
+			if(item.id == preloadId) {
+				colname = item.columnName;
+				break;
+			}
+		}
+		return colname;
 	}
 
 	/*
