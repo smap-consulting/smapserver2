@@ -65,17 +65,16 @@ public class Reports extends Application {
 		a = new Authorise(authorisations, null);		
 	}
 
-	
 	/*
 	 * Get link to a report
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/link/{name}/{sId}")
+	@Path("/link/{sId}")
 	public Response getLink(
 			@Context HttpServletRequest request, 
-			@PathParam("name") String name,
 			@PathParam("sId") int sId,
+			@QueryParam("name") String name,
 			@QueryParam("reportType") String type,
 			@QueryParam("roles") String roles,
 			@QueryParam("filename") String filename,
@@ -87,7 +86,7 @@ public class Reports extends Application {
 			@QueryParam("excludeparents") boolean excludeParents,
 			@QueryParam("hxl") boolean hxl,
 			@QueryParam("form") int form,
-			@QueryParam("from") Date startDate,
+			@QueryParam("from") java.util.Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,
@@ -157,7 +156,7 @@ public class Reports extends Application {
 			if(endDate != null) {
 				action.parameters.add(new KeyValueSimp("endDate", String.valueOf(endDate)));
 			}
-			if(dateId > 0) {
+			if(dateId != 0) {
 				action.parameters.add(new KeyValueSimp("dateId", String.valueOf(dateId)));
 			}
 			if(filter != null) {

@@ -690,7 +690,12 @@ public class Survey extends Application {
 
 					int id = (mi.id <= -1000) ? mi.id : metaId--;
 					di.columnName = mi.columnName;
-					di.name = mi.display_name;
+					if(mi.display_name != null) {
+						di.name = mi.display_name;
+					} else {
+						di.name = mi.name;
+					}
+					
 					di.qId = id;
 					dateInfoList.add(di);
 				}
