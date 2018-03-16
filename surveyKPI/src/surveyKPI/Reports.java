@@ -86,7 +86,7 @@ public class Reports extends Application {
 			@QueryParam("excludeparents") boolean excludeParents,
 			@QueryParam("hxl") boolean hxl,
 			@QueryParam("form") int form,
-			@QueryParam("from") java.util.Date startDate,
+			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,

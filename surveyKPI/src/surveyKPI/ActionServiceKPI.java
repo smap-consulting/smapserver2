@@ -129,8 +129,8 @@ public class ActionServiceKPI extends Application {
 			boolean embedImages = false;
 			boolean excludeParents = false;
 			boolean hxl = false;	
-			Date startDate = null;		// TODO
-			Date endDate = null;			// TODO
+			Date startDate = null;
+			Date endDate = null;	
 			int dateId = 0;
 			String filter = null;
 			boolean meta = false;
@@ -152,10 +152,10 @@ public class ActionServiceKPI extends Application {
 					excludeParents = Boolean.parseBoolean(p.v);
 				} else if(p.k.equals("hxl")) {
 					hxl = Boolean.parseBoolean(p.v);
-				//} else if(p.k.equals("startDate")) {
-				//	startDate = p.v;
-				//} else if(p.k.equals("endDate")) {
-				//	endDate = p.v;
+				} else if(p.k.equals("startDate")) {
+					startDate = Date.valueOf(p.v);
+				} else if(p.k.equals("endDate")) {
+					endDate = Date.valueOf(p.v);
 				} else if(p.k.equals("dateId")) {
 					dateId = Integer.parseInt(p.v);
 				} else if(p.k.equals("filter")) {
