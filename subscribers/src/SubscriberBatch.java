@@ -614,6 +614,7 @@ public class SubscriberBatch {
 					+ "ident,"
 					+ "display_name "
 					+ "from survey where deleted "
+					+ "and hidden = 'false' "
 					+ "and ((last_updated_time < now() - interval '100 days') or last_updated_time is null) "
 					+ "order by last_updated_time;";
 			pstmt = sd.prepareStatement(sql);

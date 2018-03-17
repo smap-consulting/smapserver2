@@ -113,7 +113,8 @@ public class SurveyManager {
 				+ "and p.id = up.p_id "
 				+ "and s.p_id = up.p_id "
 				+ "and p.o_id = u.o_id "
-				+ "and u.ident = ? ");
+				+ "and u.ident = ? "
+				+ "and s.hidden = 'false' ");
 
 		if(!superUser) {					// Add RBAC
 			sql.append(GeneralUtilityMethods.getSurveyRBAC());
@@ -3304,26 +3305,32 @@ public class SurveyManager {
 	
 	/*
 	 * Get the group surveys
-	 * Get the forms for the passed in group surveyId and surveyId
+	 * Always add the survey corresponding to sId to the group
 	 */
-	public ArrayList<GroupDetails> getGroupDetails(Connection sd, int groupSurveyId) throws SQLException {
+	public ArrayList<GroupDetails> getGroupDetails(Connection sd, int groupSurveyId, String user, int sId) throws SQLException {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		String sql = "select distinct s_id, display_name from survey "
-				+ "where (group_survey_id = ? and group_survey_id > 0) or s_id = ?";
+		String sql = "select distinct s.s_id, s.display_name, s.ident "
+				+ "from survey s, users u, user_project up "
+				+ "where s.p_id = up.p_id "
+				+ "and up.u_id = u.id "
+				+ "and u.ident = ? "
+				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2,  groupSurveyId);
+			pstmt.setString(1, user);
+			pstmt.setInt(2, groupSurveyId);
+			pstmt.setInt(3,  groupSurveyId);
+			pstmt.setInt(4,  sId);
 				
 			log.info("Get group surveys: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2)));
+				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), rs.getString(3)));
 			}
 		} finally {
 			try {
@@ -3375,7 +3382,7 @@ public class SurveyManager {
 	 * Get the group tables
 	 * Get all the tables that are part of the passed in group surveyId
 	 */
-	public ArrayList<String> getGroupTables(Connection sd, int groupSurveyId, int oId, String user) throws SQLException {
+	public ArrayList<String> getGroupTables(Connection sd, int groupSurveyId, int oId, String user, int sId) throws SQLException {
 		
 		ArrayList<String> groupForms = new ArrayList<> ();
 		
@@ -3388,7 +3395,7 @@ public class SurveyManager {
 				+ "and u.id = up.u_id "
 				+ "and u.ident = ? "
 				+ "and (f.s_id in "
-				+ "(select s_id from survey where group_survey_id > 0 and group_survey_id = ?) or f.s_id = ?)";
+				+ "(select s_id from survey where group_survey_id > 0 and group_survey_id = ?) or f.s_id = ? or f.s_id = ?)";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -3397,6 +3404,7 @@ public class SurveyManager {
 			pstmt.setString(2, user);
 			pstmt.setInt(3, groupSurveyId);
 			pstmt.setInt(4, groupSurveyId);
+			pstmt.setInt(5, sId);
 			log.info("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
@@ -3556,8 +3564,7 @@ public class SurveyManager {
 			String user, 
 			String basePath,
 			String tables,
-			int newSurveyId,		// If greater than 0 then this survey is being replaced
-			String newSurveyIdent
+			int newSurveyId		// If greater than 0 then this survey is being replaced
 			) throws SQLException, IOException {
 		
 		// Get the survey ident and name
@@ -3565,15 +3572,22 @@ public class SurveyManager {
 		String surveyName = null;
 		String surveyDisplayName = null;
 		int projectId = 0;
+		boolean hidden = false;
 		
-		String sql = "select s.name, s.ident, s.display_name, s.p_id "
+		String sql = "select s.name, s.ident, s.display_name, s.p_id, s.hidden "
 				+ "from survey s "
 				+ "where s.s_id = ?";
 		PreparedStatement pstmtIdent = null;
 		
+		String sqlreplaced = "select s.s_id, s.name, s.ident, s.display_name, s.p_id "
+				+ "from survey s "
+				+ "where s.original_ident = ? "
+				+ "and s.hidden = true";
+		PreparedStatement pstmtReplaced = null;
+		
 		PreparedStatement pstmt = null;
 		
-		String sqlUpdateIdent = "update survey set ident = ? where s_id = ?";
+		String sqlUpdateIdent = "update survey set ident = ?, original_ident = ?, hidden = ? where s_id = ?";
 		PreparedStatement pstmtUpdateIdent = null;		
 		
 		try {
@@ -3593,18 +3607,48 @@ public class SurveyManager {
 			 */
 			if(hard) {
 	
-				ServerManager sm = new ServerManager();
-				sm.deleteSurvey(
-						sd, 
-						cRel,
-						user,
-						projectId,
-						sId,
-						surveyIdent,
-						surveyDisplayName,
-						basePath,
-						delData,
-						tables);
+				// Only do a hard delete if a survey is not hidden
+				if(!hidden) {
+					ServerManager sm = new ServerManager();
+					
+					// Get the surveys that were replaced by this one
+					pstmtReplaced = sd.prepareStatement(sqlreplaced);
+					pstmtReplaced.setString(1, surveyIdent);
+					log.info("Get replaced surveys: " + pstmtReplaced);
+					ResultSet rs = pstmtReplaced.executeQuery();
+					while (rs.next()) {
+						int rSId = rs.getInt("s_id");
+						String rSurveyName = rs.getString("name");
+						String rSurveyIdent = rs.getString("ident");
+						String rSurveyDisplayName = rs.getString("display_name");
+						int rProjectId = rs.getInt("p_id");
+						
+						sm.deleteSurvey(		// Delete the replaced survey
+								sd, 
+								cRel,
+								user,
+								rProjectId,
+								rSId,
+								rSurveyIdent,
+								rSurveyDisplayName,
+								basePath,
+								delData,
+								tables);
+						
+					}
+					
+					sm.deleteSurvey(
+							sd, 
+							cRel,
+							user,
+							projectId,
+							sId,
+							surveyIdent,
+							surveyDisplayName,
+							basePath,
+							delData,
+							tables);
+				}
 	
 			} else {
 	
@@ -3770,12 +3814,16 @@ public class SurveyManager {
 				
 				// Modify the ident of the old survey
 				pstmtUpdateIdent.setString(1, surveyIdent + "_" + newSurveyId);
-				pstmtUpdateIdent.setInt(2, sId);
+				pstmtUpdateIdent.setString(2, surveyIdent);	// Original Ident
+				pstmtUpdateIdent.setBoolean(3, true);		// Set hidden
+				pstmtUpdateIdent.setInt(4, sId);
 				pstmtUpdateIdent.executeUpdate();
 				
 				// Set the ident of the new survey to be the same as the old
-				pstmtUpdateIdent.setString(1, surveyIdent);
-				pstmtUpdateIdent.setInt(2, newSurveyId);
+				pstmtUpdateIdent.setString(1, surveyIdent);			
+				pstmtUpdateIdent.setString(2, null);			// Original Ident (set to null as the current ident is the original)
+				pstmtUpdateIdent.setBoolean(3, false);		// Visible
+				pstmtUpdateIdent.setInt(4, newSurveyId);
 				pstmtUpdateIdent.executeUpdate();
 				
 				sd.commit();				
@@ -3807,6 +3855,7 @@ public class SurveyManager {
 			try {if (pstmtIdent != null) {pstmtIdent.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdateIdent != null) {pstmtUpdateIdent.close();}} catch (SQLException e) {}
+			try {if (pstmtReplaced != null) {pstmtReplaced.close();}} catch (SQLException e) {}
 		}
 	}
 	

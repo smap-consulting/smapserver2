@@ -119,8 +119,8 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation);
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser());
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
 				
 				/*
 				 * Delete data from each form
@@ -145,6 +145,8 @@ public class SurveyResults extends Application {
 				 */
 				ExternalFileManager efm = new ExternalFileManager(localisation);
 				for(GroupDetails gd : surveys) {
+					log.info("Clean survey: " + gd.surveyName);
+					
 					pstmtUnPublish.setInt(1, gd.sId);			// Mark questions as un-published
 					log.info("Marking questions as unpublished: " + pstmtUnPublish.toString());
 					pstmtUnPublish.executeUpdate();
@@ -241,7 +243,7 @@ public class SurveyResults extends Application {
 				// Delete tables associated with this survey				
 				String sqlRestore = "delete from subscriber_event "
 						+ "where se_id in "
-						+ "(select se.se_id from upload_event ue, subscriber_event se where ue.ue_id = se.ue_id and ue.s_id = ?);";
+						+ "(select se.se_id from upload_event ue, subscriber_event se where ue.ue_id = se.ue_id and ue.ident = ?);";
 				pstmtRestore = sd.prepareStatement(sqlRestore);			
 				
 				/*
@@ -249,8 +251,8 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation);
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser());
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
 				
 				/*
 				 * Delete data from each form ready for reload
@@ -276,8 +278,8 @@ public class SurveyResults extends Application {
 				ExternalFileManager efm = new ExternalFileManager(localisation);
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
-					pstmtRestore.setInt(1, gd.sId);			// Mark questions as un-published
-					log.info("Restoreing survey " + gd.sId + ": " + pstmtRestore.toString());
+					pstmtRestore.setString(1, gd.surveyIdent);			// Mark questions as un-published
+					log.info("Restoring survey " + gd.surveyIdent + ": " + pstmtRestore.toString());
 					pstmtRestore.executeUpdate();
 								
 					// Force regeneration of any dynamic CSV files that this survey links to
@@ -344,7 +346,7 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation);
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId);
+				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
 				
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				response = Response.ok(gson.toJson(groups)).build();

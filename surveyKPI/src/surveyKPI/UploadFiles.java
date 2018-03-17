@@ -628,8 +628,8 @@ public class UploadFiles extends Application {
 							user, 
 							basePath,
 							"no",		// Do not delete the tables
-							0,		// New Survey Id for replacement 
-							null);	// New survey ident to enter into the replacement redirect table	
+							0);		// New Survey Id for replacement 
+							
 					
 					throw new ApplicationException(e.getMessage());	// report the error
 				}
@@ -643,13 +643,13 @@ public class UploadFiles extends Application {
 					sm.delete(sd, 
 							cResults, 
 							surveyId, 
-							false,		// soft 
+							false,		// set soft 
 							false,		// Do not delete the data 
 							user, 
 							basePath,
 							"no",		// Do not delete the tables
-							s.id,		// New Survey Id for replacement 
-							s.ident);	// New survey ident to enter into the replacement redirect table	
+							s.id		   // New Survey Id for replacement 
+						);	
 					
 				}
 				
