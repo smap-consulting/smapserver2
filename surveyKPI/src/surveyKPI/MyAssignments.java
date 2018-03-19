@@ -343,44 +343,40 @@ public class MyAssignments extends Application {
 			
 			for (org.smap.sdal.model.Survey survey : surveys) {
 				
-				boolean newManifestFile = false;
+				boolean hasManifest = translationMgr.hasManifest(connectionSD, request.getRemoteUser(), survey.id);
 
-				/*
-				 * For each form that has a manifest that links to another form
-				 *  generate the new CSV files if the linked data has changed
-				 */
-				List<ManifestValue> manifestList = translationMgr.
-						getSurveyManifests(connectionSD, survey.id, survey.ident, null, 0, true);		// Get linked only
-
-				for( ManifestValue m : manifestList) {
-
-					String filepath = null;
-					boolean fileRegenerated = false;
-
-					log.info("Linked file:" + m.fileName);
-
+				if(hasManifest) {
 					/*
-					 * The file is unique per survey and by user name due to the use of roles to
-					 *  restrict columns and rows per user
+					 * For each form that has a manifest that links to another form
+					 *  generate the new CSV files if the linked data has changed
 					 */
-					ExternalFileManager efm = new ExternalFileManager(localisation);
-					String basepath = GeneralUtilityMethods.getBasePath(request);
-					String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
-					filepath =  dirPath + m.fileName;
-
-					// Make sure the destination exists
-					File dir = new File(dirPath);
-					dir.mkdirs();
-
-					log.info("CSV File is:  " + dirPath + " : directory path created");
-
-					fileRegenerated = efm.createLinkedFile(connectionSD, cRel, survey.id, m.fileName , filepath, userName);
-					if(fileRegenerated) {
-						newManifestFile = true;
+					List<ManifestValue> manifestList = translationMgr.
+							getSurveyManifests(connectionSD, survey.id, survey.ident, null, 0, true);		// Get linked only
+	
+					for( ManifestValue m : manifestList) {
+	
+						String filepath = null;
+	
+						log.info("Linked file:" + m.fileName);
+	
+						/*
+						 * The file is unique per survey and by user name due to the use of roles to
+						 *  restrict columns and rows per user
+						 */
+						ExternalFileManager efm = new ExternalFileManager(localisation);
+						String basepath = GeneralUtilityMethods.getBasePath(request);
+						String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
+						filepath =  dirPath + m.fileName;
+	
+						// Make sure the destination exists
+						File dir = new File(dirPath);
+						dir.mkdirs();
+	
+						log.info("CSV File is:  " + dirPath + " : directory path created");
+	
+						efm.createLinkedFile(connectionSD, cRel, survey.id, m.fileName , filepath, userName);
 					}
-					newManifestFile = true;  // Set to be always true, instead of this fieldTask should download manifests where checksum has changed
 				}
-
 
 				FormLocator fl = new FormLocator();
 				
@@ -392,8 +388,8 @@ public class MyAssignments extends Application {
 				fl.tasks_only = survey.projectTasksOnly;
 				fl.hasManifest = translationMgr.hasManifest(connectionSD, userName, survey.id);
 
-				// If a new manifest then mark the form dirty so it will be downloaded
-				if(newManifestFile) {
+				// If a new manifest then mark the form dirty so it will be checked to see if it needs to be downloaded
+				if(hasManifest) {
 					fl.dirty = true;
 				} else {
 					fl.dirty = false;

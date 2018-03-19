@@ -43,10 +43,9 @@ public class TranslationManager {
 			 Logger.getLogger(TranslationManager.class.getName());
 
 	private String manifestQuerySql = 
-			" from translation t, survey s, users u " +
+			" from translation t, survey s " +
 					" where s.s_id = t.s_id " +
 					" and (t.type = 'image' or t.type = 'video' or t.type = 'audio') " +
-					" and u.ident = ? " +
 					" and t.s_id = ?; ";
 	
 	public List<ManifestValue> getManifestBySurvey(Connection sd, 
@@ -70,9 +69,9 @@ public class TranslationManager {
 			 * Get Question and Option level manifests from the translation table
 			 */
 			pstmtQuestionLevel = sd.prepareStatement(sqlQuestionLevel);	 			
-			pstmtQuestionLevel.setString(1, user);
-			pstmtQuestionLevel.setInt(2, surveyId);
+			pstmtQuestionLevel.setInt(1, surveyId);
 
+			System.out.println("Get question level manifests: " + pstmtQuestionLevel.toString());
 			ResultSet rs = pstmtQuestionLevel.executeQuery();
 			
 			while (rs.next()) {								
@@ -265,7 +264,7 @@ public class TranslationManager {
 	}
 	
 	/*
-	 * Returns true if the user can access the survey and that survey has a survey level manifest
+	 * Returns true if the user can access the survey and that survey has a manifest at either the survey or question level
 	 */
 	public boolean hasManifest(Connection sd, 
 			String user, 
@@ -279,7 +278,7 @@ public class TranslationManager {
 				manifestQuerySql;
 		
 		// Test for a survey level manifest
-		String sqlSurveyLevel = "select count(*) from survey where s_id = ? and manifest is not null";
+		String sqlSurveyLevel = "select manifest from survey where s_id = ? and manifest is not null";
 		
 		PreparedStatement pstmtQuestionLevel = null;
 		PreparedStatement pstmtSurveyLevel = null;
@@ -307,8 +306,9 @@ public class TranslationManager {
 				resultSet = pstmtSurveyLevel.executeQuery();
 				
 				if(resultSet.next()) {
-					if(resultSet.getInt(1) > 0) {
-						hasManifest = true;
+					String manifest = resultSet.getString(1);	
+					if(manifest.trim().length() > 0) {
+						hasManifest = true;			
 					}
 				}
 			}

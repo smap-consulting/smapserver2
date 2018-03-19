@@ -35,7 +35,6 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.ContentType;
@@ -59,8 +58,6 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.HostUnreachableException;
@@ -940,8 +937,6 @@ public class SubscriberBatch {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-
-
 		}
 
 		return success;

@@ -216,9 +216,7 @@ public class MessagingManagerApply {
 			// For each user send a notification to each of their devices
 			for(String user : usersImpacted.keySet()) {
 				emitDevice.notify(serverName, user);
-			}
-			
-			
+			}		
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
