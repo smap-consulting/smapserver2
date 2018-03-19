@@ -179,7 +179,6 @@ public class XLSXReportsManager {
 				 * Write the labels if language has been set
 				 */
 				if(language != null && !language.equals("none")) {
-					XLSResultsManager xm = new XLSResultsManager("xlsx", localisation);
 					Row headerRow = dataSheet.createRow(rowNumber++);				
 					int colNumber = 0;
 					int dataColumn = 0;
@@ -259,7 +258,11 @@ public class XLSXReportsManager {
 					} else {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
-						cell.setCellValue(values.name);
+						if(item.humanName != null && item.humanName.trim().length() > 0) {
+							cell.setCellValue(item.humanName);
+						} else {
+							cell.setCellValue(values.name);
+						}
 					}
 				}
 				
