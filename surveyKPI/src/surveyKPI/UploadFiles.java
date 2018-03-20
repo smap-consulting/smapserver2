@@ -51,6 +51,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeItem;
@@ -117,6 +118,7 @@ public class UploadFiles extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
+		int oId = 0;
 		Connection connectionSD = null; 
 		Connection cResults = null;
 		boolean superUser = false;
@@ -192,7 +194,8 @@ public class UploadFiles extends Application {
 						mediaInfo.setFolder(basePath, sId, null, connectionSD);
 					} else {	
 						// Upload to organisations folder
-						mediaInfo.setFolder(basePath, user, null, connectionSD, false);				 
+						oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);
+						mediaInfo.setFolder(basePath, user, oId, connectionSD, false);				 
 					}
 					mediaInfo.setServer(request.getRequestURL().toString());
 
@@ -222,6 +225,13 @@ public class UploadFiles extends Application {
 							applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
 						}
 
+						// Set a message so that devices are notified of the change
+						MessagingManager mm = new MessagingManager();
+						if(sId > 0) {
+							mm.surveyChange(connectionSD, sId, 0);
+						} else {
+							mm.resourceChange(connectionSD, oId, fileName);
+						}
 
 					} else {
 						log.log(Level.SEVERE, "Media folder not found");
@@ -269,6 +279,7 @@ public class UploadFiles extends Application {
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UploadFiles");
 		auth.isAuthorised(connectionSD, request.getRemoteUser());
+		auth.isValidOrganisation(connectionSD, request.getRemoteUser(), oId);
 		// End Authorisation		
 
 		try {
@@ -283,7 +294,7 @@ public class UploadFiles extends Application {
 
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
-			mediaInfo.setFolder(basePath, request.getRemoteUser(), null, connectionSD, false);				 
+			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, connectionSD, false);				 
 
 			MediaResponse mResponse = new MediaResponse ();
 			mResponse.files = mediaInfo.get(0);			
@@ -392,12 +403,13 @@ public class UploadFiles extends Application {
 
 		PreparedStatement pstmt = null;		
 		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);
 			
 			// Get the path to the media folder	
 			if(sId > 0) {
 				mediaInfo.setFolder(basePath, sId, null, connectionSD);
 			} else {		
-				mediaInfo.setFolder(basePath, user, null, connectionSD, false);				 
+				mediaInfo.setFolder(basePath, user, oId, connectionSD, false);				 
 			}
 
 			log.info("Media query on: " + mediaInfo.getPath());
@@ -1158,7 +1170,7 @@ public class UploadFiles extends Application {
 					mediaInfo.setFolder(basePath, sId, null, sd);
 				} else {	
 					// Upload to organisations folder
-					mediaInfo.setFolder(basePath, user, null, sd, false);				 
+					mediaInfo.setFolder(basePath, user, oId, sd, false);				 
 				}
 				mediaInfo.setServer(request.getRequestURL().toString());
 				

@@ -18,6 +18,7 @@ import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.OrgResourceMessage;
 import org.smap.sdal.model.SurveyMessage;
 import org.smap.sdal.model.TaskMessage;
 import org.smap.sdal.model.UserMessage;
@@ -71,6 +72,7 @@ public class MessagingManagerApply {
 		HashMap<Integer, TaskMessage> changedTasks = new HashMap<> ();
 		HashMap<Integer, SurveyMessage> changedSurveys = new HashMap<> ();
 		HashMap<Integer, ProjectMessage> changedProjects = new HashMap<> ();
+		HashMap<String, OrgResourceMessage> changedResources = new HashMap<> ();
 		HashMap<String, String> usersImpacted =   new HashMap<> ();
 
 		String sqlGetMessages = "select id, "
@@ -137,6 +139,11 @@ public class MessagingManagerApply {
 					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);
 					
 					changedProjects.put(pm.id, pm);
+					
+				} else if(topic.equals("resource")) {
+					OrgResourceMessage orm = gson.fromJson(data, OrgResourceMessage.class);
+					
+					changedResources.put(orm.resourceName, orm);
 					
 				} else if(topic.equals("submission")) {
 					SubmissionMessage sm = gson.fromJson(data, SubmissionMessage.class);
@@ -213,6 +220,14 @@ public class MessagingManagerApply {
 				}				
 			}
 			
+			// Get a list of users impacted by  resource changes
+			for(String fileName : changedResources.keySet()) {
+				ArrayList<String> users = getResourceUsers(sd, fileName, changedResources.get(fileName).orgId);
+				for(String user : users) {
+					usersImpacted.put(user, user);
+				}				
+			}
+			
 			// For each user send a notification to each of their devices
 			for(String user : usersImpacted.keySet()) {
 				emitDevice.notify(serverName, user);
@@ -263,7 +278,7 @@ public class MessagingManagerApply {
 				+ "and u.id = ug.u_id "
 				+ "and ug.g_id = 3 "			// enum
 				+ "and s.p_id = up.p_id "
-				+ "and s.s_id = ? and not temporary "
+				+ "and s.s_id = ? and not u.temporary "
 				+ "and ((s.s_id not in (select s_id from survey_role where enabled = true)) or "
 				+ " (s.s_id in (select s_id from users ux, user_role ur, survey_role sr "
 				+ "where ux.ident = u.ident and sr.enabled = true and ux.id = ur.u_id and ur.r_id = sr.r_id)))";
@@ -296,6 +311,7 @@ public class MessagingManagerApply {
 				+ "from users u, user_project up, user_group ug "
 				+ "where u.id = up.u_id "
 				+ "and u.id = ug.u_id "
+				+ "and not u.temporary "
 				+ "and ug.g_id = 3 "			// enum
 				+ "and up.p_id = ?";
 
@@ -305,6 +321,45 @@ public class MessagingManagerApply {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, pId);
 			log.info("Get Project users: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				users.add(rs.getString(1));
+			}
+		} finally {
+
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+
+		}
+		
+		return users;
+	}
+	
+	/*
+	 * Get users of an organisational resource
+	 */
+	ArrayList<String> getResourceUsers(Connection sd, String fileName, int oId) throws SQLException {
+		
+		ArrayList<String> users = new ArrayList<String> ();
+		String sql = "select distinct u.ident "
+				+ "from users u, user_project up, user_group ug, project p, translation t, survey s "
+				+ "where u.id = up.u_id "
+				+ "and u.id = ug.u_id "
+				+ "and up.p_id = p.id "
+				+ "and s.p_id = p.id "
+				+ "and s.s_id = t.s_id "
+				+ "and p.o_id = ? "
+				+ "and not u.temporary "
+				+ "and ug.g_id = 3 "		// enum
+				+ "and (t.type = 'image' or t.type = 'video' or t.type = 'audio')"			
+				+ "and t.value = ?";
+
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, fileName);
+			log.info("Get resource users: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				users.add(rs.getString(1));
@@ -329,6 +384,7 @@ public class MessagingManagerApply {
 				+ "from tasks t, assignments a, users u "
 				+ "where a.task_id = t.id " 
 				+ "and a.assignee = u.id "
+				+ "and not u.temporary "
 				+ "and t.id = ? ";
 
 		PreparedStatement pstmt = null;

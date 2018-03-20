@@ -95,15 +95,13 @@ public class MediaInfo {
 	 */
 	public boolean setFolder(String basePath, 
 			String user, 
-			String organisationId, 
+			int organisationId, 
 			Connection sd, 
 			boolean settings) {
 		boolean status = false;
 		
 		try {
-			if(organisationId == null) {
-				organisationId = String.valueOf(GeneralUtilityMethods.getOrganisationId(sd, user, 0));
-			}
+			
 			folderUrl = "media/organisation/" + organisationId;
 			if(settings) {
 				folderUrl += "/settings";

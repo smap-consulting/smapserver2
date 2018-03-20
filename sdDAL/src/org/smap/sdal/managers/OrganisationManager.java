@@ -109,7 +109,7 @@ public class OrganisationManager {
 	
 			// Save the logo, if it has been passed
 			if(fileName != null) {
-				writeLogo(connectionSD, fileName, logoItem, String.valueOf(o.id), basePath, userIdent, requestUrl);
+				writeLogo(connectionSD, fileName, logoItem, o.id, basePath, userIdent, requestUrl);
 			}
 		} catch (SQLException e) {
 			throw e;
@@ -213,7 +213,7 @@ public class OrganisationManager {
             
 			// Save the logo, if it has been passed
 			if(fileName != null) {			
-				writeLogo(connectionSD, fileName, logoItem, String.valueOf(o_id), basePath, userIdent, requestUrl);
+				writeLogo(connectionSD, fileName, logoItem, o_id, basePath, userIdent, requestUrl);
 	        } 
 	            
 		} catch (SQLException e) {
@@ -234,13 +234,13 @@ public class OrganisationManager {
 			Connection connectionSD, 
 			String fileName, 
 			FileItem logoItem,
-			String organisationId,
+			int oId,
 			String basePath,
 			String userIdent,
 			String requestUrl) {
 		
 		MediaInfo mediaInfo = new MediaInfo();
-		mediaInfo.setFolder(basePath, userIdent, organisationId, connectionSD, true);				 
+		mediaInfo.setFolder(basePath, userIdent, oId, connectionSD, true);				 
 		mediaInfo.setServer(requestUrl);
 		
 		String folderPath = mediaInfo.getPath();
