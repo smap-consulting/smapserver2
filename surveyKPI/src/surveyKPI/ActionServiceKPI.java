@@ -127,6 +127,7 @@ public class ActionServiceKPI extends Application {
 			String language = "none";
 			boolean exp_ro = false;
 			boolean embedImages = false;
+			boolean landscape = false;
 			boolean excludeParents = false;
 			boolean hxl = false;	
 			Date startDate = null;
@@ -162,6 +163,8 @@ public class ActionServiceKPI extends Application {
 					filter = p.v;
 				} else if(p.k.equals("meta")) {
 					meta = Boolean.parseBoolean(p.v);
+				} else if(p.k.equals("landscape")) {
+					landscape = Boolean.parseBoolean(p.v);
 				}
 			}
 			
@@ -172,28 +175,35 @@ public class ActionServiceKPI extends Application {
 			}
 			
 			// 4. Get report
-			XLSXReportsManager rm = new XLSXReportsManager(localisation);
-			responseVal = rm.getNewReport(
-					sd,
-					cResults,
-					request.getRemoteUser(),
-					request,
-					response,
-					a.sId,
-					a.name,		// File name
-					split_locn,
-					merge_select_multiple,
-					language,
-					exp_ro,
-					embedImages,
-					excludeParents,
-					hxl,
-					fId,
-					startDate,
-					endDate,
-					dateId,
-					filter,
-					meta);
+			
+			if(a.reportType == null || a.reportType.equals("xlsx")) {
+				XLSXReportsManager rm = new XLSXReportsManager(localisation);
+				responseVal = rm.getNewReport(
+						sd,
+						cResults,
+						request.getRemoteUser(),
+						request,
+						response,
+						a.sId,
+						a.name,		// File name
+						split_locn,
+						merge_select_multiple,
+						language,
+						exp_ro,
+						embedImages,
+						excludeParents,
+						hxl,
+						fId,
+						startDate,
+						endDate,
+						dateId,
+						filter,
+						meta);
+			} else if(a.reportType.equals("pdf")) {
+				System.out.println("PDF report");
+			} else {
+				throw new Exception(localisation.getString("Unknow report type: " + a.reportType));
+			}
 
 			responseVal = Response.status(Status.OK).entity(outputString.toString()).build();
 		} catch (Exception e) {
