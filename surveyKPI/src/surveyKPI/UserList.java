@@ -36,6 +36,7 @@ import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.UserManager;
@@ -218,7 +219,7 @@ public class UserList extends Application {
 				users.add(user);
 			}
 			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -250,59 +251,19 @@ public class UserList extends Application {
 		Response response = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
-		
-		String sql = "select id,"
-				+ "ident, "
-				+ "name, "
-				+ "action_details "
-				+ "from users "
-				+ "where users.o_id = ? "
-				+ "and users.temporary "
-				+ "order by id desc";
-		PreparedStatement pstmt = null;
-				
-		ArrayList<User> users = new ArrayList<User> ();
+			
+		ActionManager am = new ActionManager();		
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(connectionSD, request.getRemoteUser(), 0);
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
-			pstmt = connectionSD.prepareStatement(sql);
-			ResultSet rs = null;
-
-			
-			pstmt.setInt(1, o_id);
-			log.info("Get user list: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-			while(rs.next()) {
-				User user = new User();
-				
-				user.id = rs.getInt("id");
-				user.ident = rs.getString("ident");
-				user.name = rs.getString("name");				
-				Action a = gson.fromJson(rs.getString("action_details"), Action.class);
-				
-				// Filter out non matching options
-				if(action != null && !action.equals("none") && (a == null || a.action == null)) {
-					continue;	// A filter was specified but the action does not exist
-				} else if(action != null && action.equals("none") && a != null && a.action != null) {
-					continue;	// filter of none was specified but the action exists
-				} else if(action != null) {
-					if(!a.action.equals(action)) {
-						continue;	// Action does not match the specified filter
-					}			
-				}
-				
-				user.action_details = a;
-				users.add(user);
-			}
-			
+			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0);			
 			String resp = gson.toJson(users);
-			response = Response.ok(resp).build();
-						
+			response = Response.ok(resp).build();			
 			
 		} catch (Exception e) {
 			
@@ -310,8 +271,8 @@ public class UserList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		    
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-UserList", connectionSD);
+		
+			SDDataSource.closeConnection("surveyKPI-UserList", sd);
 		}
 
 		return response;

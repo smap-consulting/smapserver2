@@ -455,4 +455,63 @@ public class ActionManager {
 		return response;
 	}
 
+	/*
+	 * Get temporary users
+	 */
+	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, int sId) throws SQLException {
+		
+		String sql = "select id,"
+				+ "ident, "
+				+ "name, "
+				+ "action_details "
+				+ "from users "
+				+ "where users.o_id = ? "
+				+ "and users.temporary "
+				+ "order by id desc";
+		
+		ArrayList<User> users = new ArrayList<User> ();
+		PreparedStatement pstmt = null;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = null;
+
+			
+			pstmt.setInt(1, o_id);
+			log.info("Get user list: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+			while(rs.next()) {
+				User user = new User();
+				
+				user.id = rs.getInt("id");
+				user.ident = rs.getString("ident");
+				user.name = rs.getString("name");				
+				Action a = gson.fromJson(rs.getString("action_details"), Action.class);
+				
+				// Filter out non matching actions
+				if(action != null && !action.equals("none") && (a == null || a.action == null)) {
+					continue;	// A filter was specified but the action does not exist
+				} else if(action != null && action.equals("none") && a != null && a.action != null) {
+					continue;	// filter of none was specified but the action exists
+				} else if(action != null) {
+					if(!a.action.equals(action)) {
+						continue;	// Action does not match the specified filter
+					}			
+				}
+				
+				// Filter out non matching surveys
+				if(sId > 0 && (a == null || a.sId != sId)) {
+					continue;
+				}
+				
+				user.action_details = a;
+				users.add(user);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return users;
+	}
 }

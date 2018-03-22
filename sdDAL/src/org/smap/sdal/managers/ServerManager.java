@@ -7,35 +7,15 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Response;
-
 import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.model.AssignFromSurvey;
-import org.smap.sdal.model.Assignment;
-import org.smap.sdal.model.Location;
 import org.smap.sdal.model.ServerData;
-import org.smap.sdal.model.Task;
-import org.smap.sdal.model.TaskAssignment;
-import org.smap.sdal.model.TaskBulkAction;
-import org.smap.sdal.model.TaskFeature;
-import org.smap.sdal.model.TaskGroup;
-import org.smap.sdal.model.TaskListGeoJson;
-import org.smap.sdal.model.TaskProperties;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
 
 /*****************************************************************************
 
@@ -216,7 +196,6 @@ public class ServerManager {
 					log.info("Error deleting attachments directory:" + fileFolder + " : " + e.getMessage());
 				}
 
-
 				/*
 				 * Delete any raw upload data
 				 */
@@ -264,6 +243,7 @@ public class ServerManager {
 				pstmt.setInt(1, sId);
 				log.info("Delete changeset data: " + pstmt.toString());
 				pstmt.execute();
+				
 			}
 
 

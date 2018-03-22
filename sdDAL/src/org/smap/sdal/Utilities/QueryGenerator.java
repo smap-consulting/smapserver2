@@ -72,7 +72,8 @@ public class QueryGenerator {
 			boolean superUser,
 			QueryForm form,
 			String filter,
-			boolean meta) throws Exception {
+			boolean meta,
+			boolean instanceIdOnly) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -153,7 +154,8 @@ public class QueryGenerator {
 					form,
 					tables,
 					true,
-					meta
+					meta,
+					instanceIdOnly
 					);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
@@ -386,7 +388,8 @@ public class QueryGenerator {
 			QueryForm form,
 			ArrayList<String> tables,
 			boolean first,
-			boolean meta
+			boolean meta,
+			boolean instanceIdOnly
 			) throws SQLException {
 		
 		int colLimit = 10000;
@@ -396,28 +399,38 @@ public class QueryGenerator {
 		
 		tables.add(form.table);
 
-		
-		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
-				connectionSD,
-				connectionResults,
-				localisation,
-				sId,
-				user,
-				form.parent,
-				form.form,
-				form.table,
-				exp_ro,
-				false,				// Don't include parent key
-				false,				// Don't include "bad" columns
-				false,				// Don't include instance id
-				first && meta,		// Include other meta data if meta set
-				first && meta,		// Include preloads if meta set
-				first && meta,		// Include Instance Name in first form if meta set
-				false,				// Survey duration
-				superUser,
-				false,				// HXL only include with XLS exports
-				false				// Don't include audit data
-				);
+		ArrayList<TableColumn> cols = null;
+		if(instanceIdOnly) {
+			cols = new ArrayList<TableColumn> ();
+			TableColumn c = new TableColumn();
+			c.name = "instanceid";
+			c.humanName = "instanceid";
+			c.type = "";
+			cols.add(c);
+			
+		} else {
+			cols = GeneralUtilityMethods.getColumnsInForm(
+					connectionSD,
+					connectionResults,
+					localisation,
+					sId,
+					user,
+					form.parent,
+					form.form,
+					form.table,
+					exp_ro,
+					false,				// Don't include parent key
+					false,				// Don't include "bad" columns
+					false,				// Don't include instance id
+					first && meta,		// Include other meta data if meta set
+					first && meta,		// Include preloads if meta set
+					first && meta,		// Include Instance Name in first form if meta set
+					false,				// Survey duration
+					superUser,
+					false,				// HXL only include with XLS exports
+					false				// Don't include audit data
+					);
+		}
 		
 		StringBuffer colBuf = new StringBuffer();
 		int idx = 0;
@@ -660,7 +673,8 @@ public class QueryGenerator {
 						form.childForms.get(i),
 						tables,
 						false,
-						meta
+						meta,
+						instanceIdOnly
 						);
 			}
 		}

@@ -174,8 +174,7 @@ public class ActionServiceKPI extends Application {
 				fId = f.id;
 			}
 			
-			// 4. Get report
-			
+			// 4. Get report		
 			if(a.reportType == null || a.reportType.equals("xlsx")) {
 				XLSXReportsManager rm = new XLSXReportsManager(localisation);
 				responseVal = rm.getNewReport(
