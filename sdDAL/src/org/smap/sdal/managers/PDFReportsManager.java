@@ -2,89 +2,29 @@ package org.smap.sdal.managers;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.io.StringReader;
-import java.lang.reflect.Type;
-import java.net.MalformedURLException;
+import java.io.FileOutputStream;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
-import java.util.logging.Level;
+import java.util.UUID;
 import java.util.logging.Logger;
-import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.PdfPageSizer;
-import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.QueryGenerator;
-import org.smap.sdal.model.DisplayItem;
+import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.Label;
-import org.smap.sdal.model.Option;
 import org.smap.sdal.model.QueryForm;
-import org.smap.sdal.model.Question;
-import org.smap.sdal.model.Result;
-import org.smap.sdal.model.Row;
-import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.User;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.itextpdf.text.Anchor;
-import com.itextpdf.text.BadElementException;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Element;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.List;
-import com.itextpdf.text.ListItem;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.AcroFields;
-import com.itextpdf.text.pdf.BarcodeQRCode;
-import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfReader;
-import com.itextpdf.text.pdf.PdfStamper;
-import com.itextpdf.text.pdf.PdfWriter;
-import com.itextpdf.text.pdf.PushbuttonField;
-import com.itextpdf.tool.xml.ElementList;
-import com.itextpdf.tool.xml.XMLWorker;
-import com.itextpdf.tool.xml.XMLWorkerFontProvider;
-import com.itextpdf.tool.xml.XMLWorkerHelper;
-import com.itextpdf.tool.xml.css.CssFile;
-import com.itextpdf.tool.xml.css.StyleAttrCSSResolver;
-import com.itextpdf.tool.xml.html.CssAppliers;
-import com.itextpdf.tool.xml.html.CssAppliersImpl;
-import com.itextpdf.tool.xml.html.Tags;
-import com.itextpdf.tool.xml.parser.XMLParser;
-import com.itextpdf.tool.xml.pipeline.css.CSSResolver;
-import com.itextpdf.tool.xml.pipeline.css.CssResolverPipeline;
-import com.itextpdf.tool.xml.pipeline.end.ElementHandlerPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext;
 
 /*****************************************************************************
 
@@ -115,7 +55,6 @@ public class PDFReportsManager {
 	// Global values set in constructor
 	private ResourceBundle localisation;
 	private Survey survey;
-	private Connection sd;
 	
 	// Other global values
 	int languageIdx = 0;
@@ -125,15 +64,14 @@ public class PDFReportsManager {
 	
 
 	
-	public PDFReportsManager(ResourceBundle l, Connection c) {
+	public PDFReportsManager(ResourceBundle l) {
 		localisation = l;
-		sd = c;
 	}
 	
 	/*
-	 * Create the new style XLSX report
+	 * Create the PDF Report
 	 */
-	public Response getNewReport(
+	public Response getReport(
 			Connection sd,
 			Connection cResults,
 			String username,
@@ -146,8 +84,7 @@ public class PDFReportsManager {
 			Date startDate,
 			Date endDate,
 			int dateId,
-			String filter,
-			boolean meta) throws Exception {
+			String filter) throws Exception {
 		
 		Response responseVal = null;
 		String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -180,7 +117,7 @@ public class PDFReportsManager {
 					false,
 					null,
 					false,
-					true,
+					false,			// suid
 					request.getServerName().toLowerCase(),
 					null,
 					null,
@@ -192,20 +129,60 @@ public class PDFReportsManager {
 					startingForm,
 					filter,
 					true,
-					true);		// Just get the instanceId
+					true);		// Include the keys instanceid, instancename, prikey, hrk
 			
 			pstmt = cResults.prepareStatement(sqlDesc.sql);
+			log.info("Get records to convert to PDF's: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
+			
+			String filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());
+			File folder = new File(filePath);
+			folder.mkdir();
+			
+			ArrayList<FileDescription> files = new ArrayList<> ();
+		
 			while(rs.next()) {
 				String instanceId = rs.getString("instanceid");
+				
+				// Get a name for the report
+				String name = rs.getString("instancename");		// Try the instance name
+				if(name == null || name.trim().length() == 0) {
+					name = rs.getString("_hrk");					// Then try the HRK
+				}
+				if(name == null || name.trim().length() == 0) {
+					name = "r";									// Then, if there is still no name, Use the primary key
+				}
+				name += rs.getString("prikey") + ".pdf";					// Add the primary key to guarantee uniqueness
+					
+				// Write the pdf to a temporary file
 	 			Survey survey = sm.getById(sd, cResults, username, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
-						false, false, true, "geojson");
-				
+						false, false, true, "geojson");				
 				PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey);
 				
+				String tempFilePath = filePath + "/" + name;
+				File tempFile = new File(tempFilePath);
+				FileOutputStream tempFileStream = new FileOutputStream(tempFile);
+				pm.createPdf(tempFileStream, 
+						basePath, 
+						urlprefix, 
+						request.getRemoteUser(), 
+						language, 
+						false, 
+						filename, 
+						landscape, 
+						response, 
+						dateId);
+				
+				files.add(new FileDescription(name, tempFilePath));
 				System.out.println("Instance Id: " + instanceId);
 			}
+			
+			GeneralUtilityMethods.setFilenameInResponse(filename + ".zip", response);
+			response.setHeader("Content-type",  "application/octet-stream; charset=UTF-8");
+			
+			GeneralUtilityMethods.writeFilesToZipOutputStream(response, files);
+			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}

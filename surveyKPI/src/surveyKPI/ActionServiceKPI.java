@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
+import org.smap.sdal.managers.PDFReportsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
@@ -92,7 +93,6 @@ public class ActionServiceKPI extends Application {
 	 */
 	@GET
 	@Path("/{ident}")
-	@Produces(MediaType.TEXT_HTML)
 	public Response getAnonymousReport(
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
@@ -199,7 +199,20 @@ public class ActionServiceKPI extends Application {
 						filter,
 						meta);
 			} else if(a.reportType.equals("pdf")) {
-				System.out.println("PDF report");
+				PDFReportsManager prm = new PDFReportsManager(localisation);
+				prm.getReport(sd, 
+						cResults, 
+						request.getRemoteUser(), 
+						request, 
+						response, 
+						a.sId, 
+						a.filename, 
+						landscape, 
+						language, 
+						startDate, 
+						endDate, 
+						dateId, 
+						filter);
 			} else {
 				throw new Exception(localisation.getString("Unknow report type: " + a.reportType));
 			}

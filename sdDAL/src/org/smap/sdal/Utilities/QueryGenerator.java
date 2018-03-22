@@ -73,7 +73,7 @@ public class QueryGenerator {
 			QueryForm form,
 			String filter,
 			boolean meta,
-			boolean instanceIdOnly) throws Exception {
+			boolean includeKeys) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -155,7 +155,7 @@ public class QueryGenerator {
 					tables,
 					true,
 					meta,
-					instanceIdOnly
+					includeKeys
 					);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
@@ -389,7 +389,7 @@ public class QueryGenerator {
 			ArrayList<String> tables,
 			boolean first,
 			boolean meta,
-			boolean instanceIdOnly
+			boolean includeKeys
 			) throws SQLException {
 		
 		int colLimit = 10000;
@@ -400,40 +400,63 @@ public class QueryGenerator {
 		tables.add(form.table);
 
 		ArrayList<TableColumn> cols = null;
-		if(instanceIdOnly) {
-			cols = new ArrayList<TableColumn> ();
+		cols = GeneralUtilityMethods.getColumnsInForm(
+				connectionSD,
+				connectionResults,
+				localisation,
+				sId,
+				user,
+				form.parent,
+				form.form,
+				form.table,
+				exp_ro,
+				false,				// Don't include parent key
+				false,				// Don't include "bad" columns
+				false,				// Don't include instance id
+				first && meta,		// Include other meta data if meta set
+				first && meta,		// Include preloads if meta set
+				first && meta,		// Include Instance Name in first form if meta set
+				false,				// Survey duration
+				superUser,
+				false,				// HXL only include with XLS exports
+				false				// Don't include audit data
+				);
+	
+		StringBuffer colBuf = new StringBuffer();
+		int idx = 0;
+		
+		if(includeKeys) {
+				
 			TableColumn c = new TableColumn();
+				
 			c.name = "instanceid";
 			c.humanName = "instanceid";
 			c.type = "";
-			cols.add(c);
+			cols.add(c);			
+			sqlDesc.availableColumns.add("instanceid");
+			sqlDesc.numberFields++;
 			
-		} else {
-			cols = GeneralUtilityMethods.getColumnsInForm(
-					connectionSD,
-					connectionResults,
-					localisation,
-					sId,
-					user,
-					form.parent,
-					form.form,
-					form.table,
-					exp_ro,
-					false,				// Don't include parent key
-					false,				// Don't include "bad" columns
-					false,				// Don't include instance id
-					first && meta,		// Include other meta data if meta set
-					first && meta,		// Include preloads if meta set
-					first && meta,		// Include Instance Name in first form if meta set
-					false,				// Survey duration
-					superUser,
-					false,				// HXL only include with XLS exports
-					false				// Don't include audit data
-					);
+			c.name = "instancename";
+			c.humanName = "instancename";
+			c.type = "";
+			cols.add(c);			
+			sqlDesc.availableColumns.add("instancename");
+			sqlDesc.numberFields++;
+				
+			sqlDesc.cols = "prikey, instanceid, instancename";
+				
+			if(GeneralUtilityMethods.hasColumn(connectionResults, form.table, "_hrk")) {
+				c = new TableColumn();
+				c.name = "_hrk";
+				c.humanName = "_hrk";
+				c.type = "";
+				cols.add(c);
+					
+				sqlDesc.cols += ",_hrk";
+			}
+				
 		}
 		
-		StringBuffer colBuf = new StringBuffer();
-		int idx = 0;
 		for(TableColumn col : cols) {
 			
 			String name = null;
@@ -674,11 +697,10 @@ public class QueryGenerator {
 						tables,
 						false,
 						meta,
-						instanceIdOnly
+						includeKeys
 						);
 			}
 		}
-		
 	}
 	
 	/*

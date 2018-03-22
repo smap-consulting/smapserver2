@@ -223,16 +223,16 @@ public class TableReports extends Application {
 					for(int i = 0; i < chartArray.size(); i++) {
 						Chart chart = chartArray.get(i);
 						ZipEntry ze= new ZipEntry(chart.entry);
-			    		zos.putNextEntry(ze);
-			    		FileInputStream in = new FileInputStream(chart.filePath);
+			    			zos.putNextEntry(ze);
+			    			FileInputStream in = new FileInputStream(chart.filePath);
 			    		
-			    		int len;
-			    		while ((len = in.read(buffer)) > 0) {
-			    			zos.write(buffer, 0, len);
-			    		}
+			    			int len;
+			    			while ((len = in.read(buffer)) > 0) {
+			    				zos.write(buffer, 0, len);
+			    			}
 
-			    		in.close();
-			    		zos.closeEntry();
+			    			in.close();
+			    			zos.closeEntry();
 					}
 					zos.close();
 					
