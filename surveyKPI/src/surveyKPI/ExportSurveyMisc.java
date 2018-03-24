@@ -243,7 +243,8 @@ public class ExportSurveyMisc extends Application {
 						false,			// superUser - Always apply filters
 						startingForm,
 						filter,
-						true);
+						true,
+						false);			// Get all columns (not just instanceid)
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique

@@ -159,7 +159,8 @@ public class XLSXReportsManager {
 						false,				// Super user - always apply filters
 						startingForm,
 						filter,
-						meta);
+						meta,
+						false);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				

@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
+import org.smap.sdal.managers.PDFReportsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
@@ -92,7 +93,6 @@ public class ActionServiceKPI extends Application {
 	 */
 	@GET
 	@Path("/{ident}")
-	@Produces(MediaType.TEXT_HTML)
 	public Response getAnonymousReport(
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
@@ -127,6 +127,7 @@ public class ActionServiceKPI extends Application {
 			String language = "none";
 			boolean exp_ro = false;
 			boolean embedImages = false;
+			boolean landscape = false;
 			boolean excludeParents = false;
 			boolean hxl = false;	
 			Date startDate = null;
@@ -162,6 +163,8 @@ public class ActionServiceKPI extends Application {
 					filter = p.v;
 				} else if(p.k.equals("meta")) {
 					meta = Boolean.parseBoolean(p.v);
+				} else if(p.k.equals("landscape")) {
+					landscape = Boolean.parseBoolean(p.v);
 				}
 			}
 			
@@ -171,29 +174,48 @@ public class ActionServiceKPI extends Application {
 				fId = f.id;
 			}
 			
-			// 4. Get report
-			XLSXReportsManager rm = new XLSXReportsManager(localisation);
-			responseVal = rm.getNewReport(
-					sd,
-					cResults,
-					request.getRemoteUser(),
-					request,
-					response,
-					a.sId,
-					a.name,		// File name
-					split_locn,
-					merge_select_multiple,
-					language,
-					exp_ro,
-					embedImages,
-					excludeParents,
-					hxl,
-					fId,
-					startDate,
-					endDate,
-					dateId,
-					filter,
-					meta);
+			// 4. Get report		
+			if(a.reportType == null || a.reportType.equals("xlsx")) {
+				XLSXReportsManager rm = new XLSXReportsManager(localisation);
+				responseVal = rm.getNewReport(
+						sd,
+						cResults,
+						request.getRemoteUser(),
+						request,
+						response,
+						a.sId,
+						a.name,		// File name
+						split_locn,
+						merge_select_multiple,
+						language,
+						exp_ro,
+						embedImages,
+						excludeParents,
+						hxl,
+						fId,
+						startDate,
+						endDate,
+						dateId,
+						filter,
+						meta);
+			} else if(a.reportType.equals("pdf")) {
+				PDFReportsManager prm = new PDFReportsManager(localisation);
+				prm.getReport(sd, 
+						cResults, 
+						request.getRemoteUser(), 
+						request, 
+						response, 
+						a.sId, 
+						a.filename, 
+						landscape, 
+						language, 
+						startDate, 
+						endDate, 
+						dateId, 
+						filter);
+			} else {
+				throw new Exception(localisation.getString("Unknow report type: " + a.reportType));
+			}
 
 			responseVal = Response.status(Status.OK).entity(outputString.toString()).build();
 		} catch (Exception e) {

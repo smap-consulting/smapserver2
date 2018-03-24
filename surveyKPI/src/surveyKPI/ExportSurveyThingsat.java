@@ -221,7 +221,8 @@ public class ExportSurveyThingsat extends Application {
 					false,			// superUser - Always apply filters
 					startingForm,
 					filter,
-					true);
+					true,
+					false);		// Get all columns (not just instanceid)
 			
 			pstmt = connectionResults.prepareStatement(sqlDesc.sql + ";");
 			ResultSet rs = pstmt.executeQuery();
@@ -249,6 +250,7 @@ public class ExportSurveyThingsat extends Application {
 			log.log(Level.SEVERE, "Exception", e);
 		} finally {
 
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			SDDataSource.closeConnection("surveyKPI-ExportSurvey", connectionSD);
 			ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
 		}	

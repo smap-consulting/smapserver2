@@ -234,7 +234,8 @@ public class ExportSurveyMedia extends Application {
 						false,		// superUser - Always apply filters
 						startingForm,
 						filter,
-						true);
+						true,
+						false);		// Get all columns (not just instanceid)
 				
 				/*
 				 * 1. Create the target folder

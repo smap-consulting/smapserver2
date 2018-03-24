@@ -91,6 +91,7 @@ public class Reports extends Application {
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,
 			@QueryParam("meta") boolean meta,
+			@QueryParam("landscape") boolean landscape,
 			@QueryParam("ident") String ident		// Used when updating a link
 			) { 
 		
@@ -164,6 +165,9 @@ public class Reports extends Application {
 			}
 			if(meta) {
 				action.parameters.add(new KeyValueSimp("meta", "true"));
+			}
+			if(landscape) {
+				action.parameters.add(new KeyValueSimp("landscape", "true"));
 			}
 			
 			if(roles != null) {

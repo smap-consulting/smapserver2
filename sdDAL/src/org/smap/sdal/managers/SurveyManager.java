@@ -42,6 +42,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeLog;
@@ -51,6 +52,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.InstanceMeta;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedSurvey;
@@ -65,6 +67,8 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.User;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -3802,6 +3806,34 @@ public class SurveyManager {
 				pstmt.executeUpdate();
 			}
 			
+			// Delete or update any reports for this survey
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			ActionManager am = new ActionManager();
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			ArrayList<User> usersToDelete = am.getTemporaryUsers(sd, o_id, null, sId);
+			if(newSurveyId == 0) {
+				sql = "delete from users where temporary is true and ident = ?";	
+				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+				pstmt = sd.prepareStatement(sql);
+				for(User u : usersToDelete) {
+					pstmt.setString(1, u.ident);
+					log.info("Delete temporary user: " + pstmt.toString());
+					pstmt.execute();
+				}
+			} else {
+				sql = "update users set action_details = ? where temporary is true and ident = ?";	
+				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+				pstmt = sd.prepareStatement(sql);
+				for(User u : usersToDelete) {
+					replaceFormInAction(sd, u.action_details, u.action_details.sId, newSurveyId);
+					u.action_details.sId = newSurveyId;
+					pstmt.setString(1, gson.toJson(u.action_details));
+					pstmt.setString(2, u.ident);
+					log.info("update temporary user: " + pstmt.toString());
+					pstmt.execute();
+				}
+			}
+			
 			
 			/*
 			 * Update the replacement table
@@ -3848,6 +3880,7 @@ public class SurveyManager {
 			pstmt.executeUpdate();
 				
 		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			try {sd.rollback();} catch (Exception ex) {}
 			throw e;
 			
@@ -3868,5 +3901,42 @@ public class SurveyManager {
 		return meta;
 	}
 	
-
+	/*
+	 * If a form is replaced the form will need to be replaced in the report
+	 */
+	private void replaceFormInAction(Connection sd, Action action, int origSurveyId, int newSurveyId) throws SQLException {
+		
+		String sql = "select f_id from form where s_id = ? and table_name in "
+				+ "(select table_name from form where s_id = ? and f_id = ?)";
+		PreparedStatement pstmt = null;
+		int originalfId = 0;
+		int newFid;
+		try {
+			for(KeyValueSimp p : action.parameters) {
+				if(p.k.equals("form")) {
+					originalfId = Integer.parseInt(p.v);
+					break;
+				}
+			}
+			if(originalfId > 0) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, origSurveyId);
+				pstmt.setInt(3, originalfId);
+				log.info("Get new form id for report: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					newFid = rs.getInt(1);
+					for(KeyValueSimp p : action.parameters) {
+						if(p.k.equals("form")) {
+							p.v = String.valueOf(newFid);
+							break;
+						}
+					}
+				}
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+	}
 }

@@ -72,7 +72,8 @@ public class QueryGenerator {
 			boolean superUser,
 			QueryForm form,
 			String filter,
-			boolean meta) throws Exception {
+			boolean meta,
+			boolean includeKeys) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -153,7 +154,8 @@ public class QueryGenerator {
 					form,
 					tables,
 					true,
-					meta
+					meta,
+					includeKeys
 					);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
@@ -386,7 +388,8 @@ public class QueryGenerator {
 			QueryForm form,
 			ArrayList<String> tables,
 			boolean first,
-			boolean meta
+			boolean meta,
+			boolean includeKeys
 			) throws SQLException {
 		
 		int colLimit = 10000;
@@ -396,8 +399,8 @@ public class QueryGenerator {
 		
 		tables.add(form.table);
 
-		
-		ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
+		ArrayList<TableColumn> cols = null;
+		cols = GeneralUtilityMethods.getColumnsInForm(
 				connectionSD,
 				connectionResults,
 				localisation,
@@ -418,9 +421,42 @@ public class QueryGenerator {
 				false,				// HXL only include with XLS exports
 				false				// Don't include audit data
 				);
-		
+	
 		StringBuffer colBuf = new StringBuffer();
 		int idx = 0;
+		
+		if(includeKeys) {
+				
+			TableColumn c = new TableColumn();
+				
+			c.name = "instanceid";
+			c.humanName = "instanceid";
+			c.type = "";
+			cols.add(c);			
+			sqlDesc.availableColumns.add("instanceid");
+			sqlDesc.numberFields++;
+			
+			c.name = "instancename";
+			c.humanName = "instancename";
+			c.type = "";
+			cols.add(c);			
+			sqlDesc.availableColumns.add("instancename");
+			sqlDesc.numberFields++;
+				
+			sqlDesc.cols = "prikey, instanceid, instancename";
+				
+			if(GeneralUtilityMethods.hasColumn(connectionResults, form.table, "_hrk")) {
+				c = new TableColumn();
+				c.name = "_hrk";
+				c.humanName = "_hrk";
+				c.type = "";
+				cols.add(c);
+					
+				sqlDesc.cols += ",_hrk";
+			}
+				
+		}
+		
 		for(TableColumn col : cols) {
 			
 			String name = null;
@@ -660,11 +696,11 @@ public class QueryGenerator {
 						form.childForms.get(i),
 						tables,
 						false,
-						meta
+						meta,
+						includeKeys
 						);
 			}
 		}
-		
 	}
 	
 	/*

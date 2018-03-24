@@ -264,7 +264,7 @@ public class TranslationManager {
 	}
 	
 	/*
-	 * Returns true if the user can access the survey and that survey has a manifest at either the survey or question level
+	 * Returns true if the survey has a manifest at either the survey or question level
 	 */
 	public boolean hasManifest(Connection sd, 
 			String user, 
@@ -286,8 +286,7 @@ public class TranslationManager {
 		try {
 			ResultSet resultSet = null;
 			pstmtQuestionLevel = sd.prepareStatement(sqlQuestionLevel);	 			
-			pstmtQuestionLevel.setString(1, user);
-			pstmtQuestionLevel.setInt(2, surveyId);
+			pstmtQuestionLevel.setInt(1, surveyId);
 			
 			resultSet = pstmtQuestionLevel.executeQuery();
 			
