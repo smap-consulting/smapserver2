@@ -1174,7 +1174,7 @@ public class UploadFiles extends Application {
 				}
 				mediaInfo.setServer(request.getRequestURL().toString());
 				
-				applyCSVChanges(sd, null, localisation, user, sId, fileName, null, null, basePath, mediaInfo);
+				//applyCSVChanges(sd, null, localisation, user, sId, fileName, null, null, basePath, mediaInfo);
 			}
 
 			f.delete();		
@@ -1280,5 +1280,3 @@ public class UploadFiles extends Application {
 	}
 
 }
-
-
