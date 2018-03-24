@@ -221,9 +221,9 @@ public class UploadFiles extends Application {
 						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);
 
 						// Apply changes from CSV files to survey definition if requested by the user through setting the webform parameter
-						if(contentType.equals("text/csv") || fileName.endsWith(".csv") && webform) {
-							applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
-						}
+						//if(contentType.equals("text/csv") || fileName.endsWith(".csv") && webform) {
+						//	applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
+						//}
 
 						// Set a message so that devices are notified of the change
 						MessagingManager mm = new MessagingManager();
@@ -666,6 +666,7 @@ public class UploadFiles extends Application {
 				}
 				
 				// Create external options if there is a CSV file referenced by this survey
+				/*
 				writeExternalChoices(
 						sd, 
 						cResults, 
@@ -674,6 +675,7 @@ public class UploadFiles extends Application {
 						basePath, 
 						user,
 						warnings);
+						*/
 				
 				/*
 				 * Save the file to disk
@@ -1201,7 +1203,7 @@ public class UploadFiles extends Application {
 	
 	/*
 	 * Add the options from any external CSV files
-	 */
+	 *
 	private void writeExternalChoices(
 			Connection sd, 
 			Connection cResults, 
@@ -1278,5 +1280,6 @@ public class UploadFiles extends Application {
 		sm.applyChangeSetArray(sd, cResults, survey.getId(), user, changes, false);
 		
 	}
+	*/
 
 }
