@@ -180,7 +180,7 @@ public class ActionServiceKPI extends Application {
 				responseVal = rm.getNewReport(
 						sd,
 						cResults,
-						request.getRemoteUser(),
+						userIdent,
 						request,
 						response,
 						a.sId,
@@ -202,7 +202,7 @@ public class ActionServiceKPI extends Application {
 				PDFReportsManager prm = new PDFReportsManager(localisation);
 				prm.getReport(sd, 
 						cResults, 
-						request.getRemoteUser(), 
+						userIdent, 
 						request, 
 						response, 
 						a.sId, 

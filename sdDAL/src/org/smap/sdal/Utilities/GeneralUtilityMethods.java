@@ -2846,6 +2846,7 @@ public class GeneralUtilityMethods {
 			durationColumn.name = "_duration";
 			durationColumn.humanName = localisation.getString("a_sd");
 			durationColumn.type = "duration";
+			durationColumn.isMeta = true;
 			columnList.add(durationColumn);
 		}
 
@@ -2870,6 +2871,7 @@ public class GeneralUtilityMethods {
 			c.name = "_user";
 			c.humanName = localisation.getString("a_user");
 			c.type = "";
+			c.isMeta = true;
 			columnList.add(c);
 
 			if (GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
@@ -2882,12 +2884,14 @@ public class GeneralUtilityMethods {
 				c.name = "_upload_time";
 				c.humanName = localisation.getString("a_ut");
 				c.type = "dateTime";
+				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "_s_id";
 				c.humanName = localisation.getString("a_name");
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 			}
 
@@ -2896,6 +2900,7 @@ public class GeneralUtilityMethods {
 				c.name = "_version";
 				c.humanName = localisation.getString("a_v");
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 			}
 
@@ -2904,6 +2909,7 @@ public class GeneralUtilityMethods {
 				c.name = "_complete";
 				c.humanName = localisation.getString("a_comp");
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 			}
 
@@ -2913,6 +2919,7 @@ public class GeneralUtilityMethods {
 				c.name = "instanceid";
 				c.humanName = "instanceid";
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 			}
 
@@ -2921,18 +2928,21 @@ public class GeneralUtilityMethods {
 				c.name = "_survey_notes";
 				c.humanName = localisation.getString("a_sn");
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "_location_trigger";
 				c.humanName = localisation.getString("a_lt");
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "instancename";
 				c.humanName = localisation.getString("a_inst");
 				c.type = "";
+				c.isMeta = true;
 				columnList.add(c);
 			}
 

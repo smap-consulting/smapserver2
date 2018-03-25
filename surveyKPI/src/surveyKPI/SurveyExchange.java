@@ -96,8 +96,7 @@ public class SurveyExchange extends Application {
 			String filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
 			File folder = new File(filePath);
 			folder.mkdir();
-
-			
+	
 			/*
 			 * Save the XLS export into the folder
 			 */
@@ -111,8 +110,6 @@ public class SurveyExchange extends Application {
 					filePath,
 					superUser,
 					media);
-			
-			System.out.println("Created "+ files.size() + "  exchange files");
 			
 			GeneralUtilityMethods.writeFilesToZipOutputStream(response, files);			
 			responseVal = Response.ok("").build();

@@ -24,6 +24,7 @@ public class TableColumn {
 	public String endName = null;
 	public int l_id;
 	public boolean compressed = false;
+	public boolean isMeta = false;
 	
 	// Manage updating of data
 	public boolean readonly;	// Can't be modified by form management

@@ -145,9 +145,14 @@ public class PDFReportsManager {
 				String instanceId = rs.getString("instanceid");
 				
 				// Get a name for the report
-				String name = rs.getString("instancename");		// Try the instance name
+				String name = null;
+				try {
+					name = rs.getString("instancename");		// Try the instance name
+				} catch(Exception e) {}
 				if(name == null || name.trim().length() == 0) {
-					name = rs.getString("_hrk");					// Then try the HRK
+					try {
+						name = rs.getString("_hrk");					// Then try the HRK
+					} catch(Exception e) {}
 				}
 				if(name == null || name.trim().length() == 0) {
 					name = "r";									// Then, if there is still no name, Use the primary key

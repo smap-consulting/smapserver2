@@ -178,7 +178,6 @@ public class ExchangeManager {
 					sheet = wb.createSheet("d_" + f.name);	
 					
 					TableColumn c;
-					String geomType = null;
 					int parentId = 0;
 					if(f.parent > 0) {
 						parentId = f.parent;
@@ -220,6 +219,10 @@ public class ExchangeManager {
 						String selectMultipleQuestionName = null;
 						String optionName = null;
 						
+						// Hack for meta values use the column name as the human name may have been translated
+						if(c.isMeta) {
+							humanName = name;
+						}
 						if(qType.equals("select")) {
 							isSelectMultiple = true;
 							selectMultipleQuestionName = c.question_name;
@@ -247,7 +250,6 @@ public class ExchangeManager {
 						String selName = null;
 						if(c.isGeometry()) {
 							selName = "ST_AsTEXT(" + name + ") ";
-							geomType = c.type;
 						} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
 							selName = "timezone('UTC', " + name + ") as " + name;	
 						} else {
@@ -1209,42 +1211,42 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_hrk";
 				col.type = "string";
-			} else if(qName.equals("User")) {
+			} else if(qName.equals("User") || qName.equals("_user")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_user";
 				col.type = "string";
-			} else if(qName.equals("Survey Name")) {
+			} else if(qName.equals("Survey Name") || qName.equals("_s_id")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_s_id";
 				col.type = "int";
-			} else if(qName.equals("Survey Notes")) {
+			} else if(qName.equals("Survey Notes") || qName.equals("_survey_notes")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_survey_notes";
 				col.type = "int";
-			} else if(qName.equals("Location Trigger")) {
+			} else if(qName.equals("Location Trigger") || qName.equals("_location_trigger")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_location_trigger";
 				col.type = "int";
-			} else if(qName.equals("Upload Time") || qName.equals("metasubmissiondate")) {
+			} else if(qName.equals("Upload Time") || qName.equals("_upload_time") || qName.equals("metasubmissiondate")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_upload_time";
 				col.type = "dateTime";
-			} else if(qName.equals("Version")) {
+			} else if(qName.equals("Version") || qName.equals("_version")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_version";
 				col.type = "int";
-			} else if(qName.equals("Complete") || qName.equals("metaiscomplete")) {
+			} else if(qName.equals("Complete") || qName.equals("_complete") || qName.equals("metaiscomplete")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "_complete";
 				col.type = "boolean";
-			} else if(qName.equals("Instance Name")) {
+			} else if(qName.equals("Instance Name") || qName.equals("instancename")) {
 				col = new Column();
 				col.name = qName;
 				col.columnName = "instancename";
