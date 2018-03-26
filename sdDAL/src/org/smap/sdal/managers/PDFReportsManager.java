@@ -193,7 +193,6 @@ public class PDFReportsManager {
 						dateId);
 				
 				files.add(new FileDescription(name, tempFilePath));
-				System.out.println("Instance Id: " + instanceId);
 			}
 			
 			GeneralUtilityMethods.setFilenameInResponse(filename + ".zip", response);
