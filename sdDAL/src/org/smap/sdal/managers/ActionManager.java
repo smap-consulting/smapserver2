@@ -458,7 +458,7 @@ public class ActionManager {
 	/*
 	 * Get temporary users
 	 */
-	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, int sId) throws SQLException {
+	public ArrayList<User> getTemporaryUsers(Connection sd, int o_id, String action, int sId, int pId) throws SQLException {
 		
 		String sql = "select id,"
 				+ "ident, "
@@ -500,8 +500,13 @@ public class ActionManager {
 					}			
 				}
 				
-				// Filter out non matching surveys
+				// Filter out non matching surveys when suvey Id specified
 				if(sId > 0 && (a == null || a.sId != sId)) {
+					continue;
+				}
+				
+				// Filter out non matching reports when project id specified
+				if(pId > 0 && (a == null || a.pId != pId)) {
 					continue;
 				}
 				

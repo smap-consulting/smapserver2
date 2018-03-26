@@ -245,7 +245,8 @@ public class UserList extends Application {
 	@Produces("application/json")
 	public Response getTemporaryUsers(
 			@Context HttpServletRequest request,
-			@QueryParam("action") String action		
+			@QueryParam("action") String action,
+			@QueryParam("pId") int pId
 			) { 
 
 		Response response = null;
@@ -261,7 +262,7 @@ public class UserList extends Application {
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
-			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0);			
+			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0, pId);			
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();			
 			

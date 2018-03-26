@@ -3,6 +3,8 @@ package org.smap.sdal.managers;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -10,6 +12,7 @@ import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -121,7 +124,7 @@ public class PDFReportsManager {
 					request.getServerName().toLowerCase(),
 					null,
 					null,
-					request.getRemoteUser(),
+					username,
 					startDate,
 					endDate,
 					dateId,
@@ -144,7 +147,7 @@ public class PDFReportsManager {
 			while(rs.next()) {
 				String instanceId = rs.getString("instanceid");
 				
-				// Get a name for the report
+				// Get a name for the pdf file
 				String name = null;
 				try {
 					name = rs.getString("instancename");		// Try the instance name
@@ -157,8 +160,18 @@ public class PDFReportsManager {
 				if(name == null || name.trim().length() == 0) {
 					name = "r";									// Then, if there is still no name, Use the primary key
 				}
-				name += rs.getString("prikey") + ".pdf";					// Add the primary key to guarantee uniqueness
-					
+				String escapedName = null;
+				try {
+					escapedName = URLDecoder.decode(name, "UTF-8");
+					escapedName = URLEncoder.encode(escapedName, "UTF-8");
+				} catch (Exception e) {
+					log.log(Level.SEVERE, "Encoding pdf name Error", e);
+				}
+				escapedName = escapedName.replace("+", " "); // Spaces ok for file name within quotes
+				escapedName = escapedName.replace("%2C", ","); // Commas ok for file name within quotes
+				
+				name = escapedName + rs.getString("prikey") + ".pdf";					// Add the primary key to guarantee uniqueness
+
 				// Write the pdf to a temporary file
 	 			Survey survey = sm.getById(sd, cResults, username, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
@@ -171,7 +184,7 @@ public class PDFReportsManager {
 				pm.createPdf(tempFileStream, 
 						basePath, 
 						urlprefix, 
-						request.getRemoteUser(), 
+						username, 
 						language, 
 						false, 
 						filename, 

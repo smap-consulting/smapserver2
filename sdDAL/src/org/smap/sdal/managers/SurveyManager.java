@@ -3810,7 +3810,7 @@ public class SurveyManager {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			ActionManager am = new ActionManager();
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
-			ArrayList<User> usersToDelete = am.getTemporaryUsers(sd, o_id, null, sId);
+			ArrayList<User> usersToDelete = am.getTemporaryUsers(sd, o_id, null, sId, 0);
 			if(newSurveyId == 0) {
 				sql = "delete from users where temporary is true and ident = ?";	
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}

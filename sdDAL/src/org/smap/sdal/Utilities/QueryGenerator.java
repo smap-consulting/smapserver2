@@ -425,7 +425,7 @@ public class QueryGenerator {
 		StringBuffer colBuf = new StringBuffer();
 		int idx = 0;
 		
-		if(includeKeys) {
+		if(includeKeys && level == 0) {
 				
 			TableColumn c = new TableColumn();
 				
@@ -436,15 +436,18 @@ public class QueryGenerator {
 			sqlDesc.availableColumns.add("instanceid");
 			sqlDesc.numberFields++;
 			
+			/*
 			c.name = "instancename";
 			c.humanName = "instancename";
 			c.type = "";
 			cols.add(c);			
 			sqlDesc.availableColumns.add("instancename");
 			sqlDesc.numberFields++;
-				
-			sqlDesc.cols = "prikey, instanceid, instancename";
-				
+			*/
+			
+			//sqlDesc.cols = "prikey, instanceid, instancename";
+			sqlDesc.cols = "instanceid";
+			/*
 			if(GeneralUtilityMethods.hasColumn(connectionResults, form.table, "_hrk")) {
 				c = new TableColumn();
 				c.name = "_hrk";
@@ -454,6 +457,7 @@ public class QueryGenerator {
 					
 				sqlDesc.cols += ",_hrk";
 			}
+			*/
 				
 		}
 		
