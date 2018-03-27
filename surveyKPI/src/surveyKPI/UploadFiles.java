@@ -49,6 +49,7 @@ import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
@@ -104,7 +105,6 @@ public class UploadFiles extends Application {
 	public Response sendMedia(
 			@QueryParam("getlist") boolean getlist,
 			@QueryParam("survey_id") int sId,
-			@QueryParam("webform") String wf,
 			@Context HttpServletRequest request
 			) throws IOException {
 
@@ -122,10 +122,6 @@ public class UploadFiles extends Application {
 		Connection connectionSD = null; 
 		Connection cResults = null;
 		boolean superUser = false;
-		boolean webform = true;
-		if(wf != null && (wf.equals("no") || wf.equals("false"))) {
-			webform = false;
-		}
 		
 		try {
 			
@@ -220,12 +216,12 @@ public class UploadFiles extends Application {
 						// Create thumbnails
 						UtilityMethodsEmail.createThumbnail(fileName, folderPath, savedFile);
 
-						// Apply changes from CSV files to survey definition if requested by the user through setting the webform parameter
-						//if(contentType.equals("text/csv") || fileName.endsWith(".csv") && webform) {
-						//	applyCSVChanges(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
-						//}
+						// Upload any CSV data into a table
+						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
+							putCsvIntoTable(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
+						}
 
-						// Set a message so that devices are notified of the change
+						// Create a message so that devices are notified of the change
 						MessagingManager mm = new MessagingManager();
 						if(sId > 0) {
 							mm.surveyChange(connectionSD, sId, 0);
@@ -1008,6 +1004,27 @@ public class UploadFiles extends Application {
 
 	}
 	/*
+	 * Put the CSV file into a database table
+	 */
+	private void putCsvIntoTable(
+		Connection sd, 
+		Connection cResults,
+		ResourceBundle localisation,
+		String user, 
+		int sId, 
+		String csvFileName, 
+		File csvFile,
+		File oldCsvFile,
+		String basePath,
+		MediaInfo mediaInfo) throws Exception {
+		
+		int oId = GeneralUtilityMethods.getUserId(sd, user);
+		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, csvFileName);
+		csvMgr.updateTable(csvFile, oldCsvFile);
+		
+	}
+	
+	/*
 	 * Update the survey with any changes resulting from the uploaded CSV file
 	 */
 	private void applyCSVChanges(Connection connectionSD, 
@@ -1020,9 +1037,7 @@ public class UploadFiles extends Application {
 			File oldCsvFile,
 			String basePath,
 			MediaInfo mediaInfo) throws Exception {
-		/*
-		 * Find surveys that use this CSV file
-		 */
+		
 		if(sId > 0) { 
 
 			applyCSVChangesToSurvey(connectionSD,  cResults, localisation, user, sId, csvFileName, csvFile, oldCsvFile);
@@ -1084,9 +1099,7 @@ public class UploadFiles extends Application {
 			// Create one change set per question
 			for(org.smap.sdal.model.Question q : questions) {
 	
-				/*
-				 * Create a changeset
-				 */
+			
 				if(csvFile != null) {
 					if(q.type.startsWith("select")) {
 						ChangeSet cs = qm.getCSVChangeSetForQuestion(connectionSD, 
@@ -1122,7 +1135,7 @@ public class UploadFiles extends Application {
 		}
 
 	}
-
+	
 	/*
 	 * Delete the file
 	 */

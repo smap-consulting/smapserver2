@@ -154,6 +154,35 @@ public class GeneralUtilityMethods {
 
 		return out;
 	}
+	
+	/*
+	 * Remove any characters from the name that will prevent it being used as a
+	 * database column name
+	 */
+	static public String cleanNameNoRand(String in) {
+
+		String out = null;
+
+		if (in != null) {
+			out = in.trim().toLowerCase();
+
+			out = out.replace(" ", ""); // Remove spaces
+			out = out.replaceAll("[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]", "x"); // Remove special
+			// characters ;
+
+			/*
+			 * Rename fields that are the same as postgres / sql reserved words
+			 */
+			for (int i = 0; i < reservedSQL.length; i++) {
+				if (out.equals(reservedSQL[i])) {
+					out = "__" + out;
+					break;
+				}
+			}
+		}
+
+		return out;
+	}
 
 	/*
 	 * Escape characters reserved for HTML
