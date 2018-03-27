@@ -4719,6 +4719,35 @@ public class GeneralUtilityMethods {
 		}
 		return (count > 0);
 	}
+	
+	/*
+	 * Check for the existence of a table
+	 */
+	public static boolean tableExistsInSchema(Connection conn, String tableName, String schema) throws SQLException {
+
+		String sqlTableExists = "select count(*) from information_schema.tables where table_name = ? and table_schema = ?";
+		PreparedStatement pstmt = null;
+		int count = 0;
+
+		try {
+			pstmt = conn.prepareStatement(sqlTableExists);
+			pstmt.setString(1, tableName);
+			pstmt.setString(2, schema);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				count = rs.getInt(1);
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		return (count > 0);
+	}
 
 	/*
 	 * Method to check for presence of the specified column
