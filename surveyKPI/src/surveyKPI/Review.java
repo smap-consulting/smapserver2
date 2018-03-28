@@ -38,7 +38,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
+import org.smap.sdal.model.MetaItem;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -205,16 +207,31 @@ public class Review extends Application {
 					" where f.f_id = q.f_id" +
 					" and q.q_id = ?";
 	
-			pstmt = connectionSD.prepareStatement(sql);	
-			pstmt.setInt(1, qId);
-			log.info("Get question: " + pstmt.toString());
-			ResultSet resultSet = pstmt.executeQuery();
+			if(qId > 0) {
+				// Standard Question
 
-			if(resultSet.next()) {
-				table = resultSet.getString(1);
-				qtype = resultSet.getString(3);
-				name = resultSet.getString(4);
-				
+				pstmt = connectionSD.prepareStatement(sql);	
+				pstmt.setInt(1, qId);
+				log.info("Get question: " + pstmt.toString());
+				ResultSet resultSet = pstmt.executeQuery();
+
+				if(resultSet.next()) {
+					table = resultSet.getString(1);
+					qtype = resultSet.getString(3);
+					name = resultSet.getString(4);
+				}
+			} else {
+				// Meta question
+				MetaItem item = GeneralUtilityMethods.getPreloadDetails(connectionSD, sId, qId);
+				if(item != null) {
+					Form f = GeneralUtilityMethods.getTopLevelForm(connectionSD, sId);
+					table = f.tableName;
+					qtype = item.type;
+					name = item.columnName;
+				}
+			}
+			
+			if(table != null) {
 				// If data for a target question is also required then ensure it is in the same table and get the question name
 				if(targetQId > 0) {
 					String sqlTarget = "select q.qname, qtype from form f, question q " +
@@ -239,9 +256,7 @@ public class Review extends Application {
 					throw new ApplicationException(localisation.getString("tu_us") + " " + qtype);
 				}
 				
-				if (pstmt != null) {
-					pstmt.close();
-				}
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				
 				/*
 				 * Get the data
@@ -257,7 +272,7 @@ public class Review extends Application {
 						" order by " + name + targetN;
 				pstmt = dConnection.prepareStatement(sql);
 				log.info("Getting data for review: " + pstmt.toString());
-				resultSet = pstmt.executeQuery();
+				ResultSet resultSet = pstmt.executeQuery();
 				
 				while(resultSet.next()) {
 					

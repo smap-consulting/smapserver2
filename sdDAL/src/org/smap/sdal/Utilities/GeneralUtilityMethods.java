@@ -5849,6 +5849,45 @@ public class GeneralUtilityMethods {
 
 		return preloads;
 	}
+	
+	/*
+	 * Get details for a preload
+	 */
+	public static MetaItem getPreloadDetails(Connection sd, int sId, int metaId) throws SQLException {
+		MetaItem item = null;
+		ArrayList<MetaItem> preloads = null;
+
+		String sql = "select meta from survey where s_id = ?;";
+		PreparedStatement pstmt = null;
+
+		String metaString = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next())  {
+				metaString = rs.getString(1);
+			}
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+
+		if(metaString != null) {
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			preloads = gson.fromJson(metaString, new TypeToken<ArrayList<MetaItem>>() {}.getType());
+			for(MetaItem mi : preloads) {
+				if(mi.id == metaId) {
+					item = mi;
+					break;
+				}
+			}
+		} else {
+			preloads = new ArrayList <>();
+		}
+
+		return item;
+	}
 
 	/*
 	 * Get Column Values from a result set created using ColDesc
