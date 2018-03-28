@@ -82,7 +82,7 @@ public class GetFile extends Application {
 			@QueryParam("settings") boolean settings,
 			@QueryParam("org") int requestedOrgId) throws Exception {
 		
-		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings);
+		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false);
 	}
 	
 	/*
@@ -102,7 +102,7 @@ public class GetFile extends Application {
 		String user = null;		
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Get File Key");
 		
-		System.out.println("Getting file authenticated with a key");
+		log.info("Getting file authenticated with a key");
 		try {
 			user = GeneralUtilityMethods.getDynamicUser(connectionSD, key);
 		} catch (SQLException e) {
@@ -115,7 +115,23 @@ public class GetFile extends Application {
 			log.info("User not found for key");
 			throw new AuthorisationException();
 		}
-		return getOrganisationFile(request, response, user, requestedOrgId, filename, settings);
+		return getOrganisationFile(request, response, user, requestedOrgId, filename, settings, false);
+	}
+	
+	/*
+	 * Get file for anonymous user
+	 */
+	@GET
+	@Produces("application/x-download")
+	@Path("/organisation/user/{ident}")
+	public Response getOrganisationFileAnon(
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("filename") String filename,
+			@PathParam("ident") String user) throws SQLException {
+				
+		log.info("Getting file authenticated with a key");
+		return getOrganisationFile(request, response, user, 0, filename, false, true);
 	}
 	
 	@GET
@@ -276,13 +292,17 @@ public class GetFile extends Application {
 	 */
 	private Response getOrganisationFile(HttpServletRequest request, 
 			HttpServletResponse response, 
-			String user, int requestedOrgId, String filename, boolean settings) {
+			String user, int requestedOrgId, String filename, boolean settings,
+			boolean isTemporaryUser) {
 		
 		int oId = 0;
 		Response r = null;
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("Get Organisation File");	
+		if (isTemporaryUser) {
+			a.isValidTemporaryUser(connectionSD, user);
+		}
 		a.isAuthorised(connectionSD, user);		
 		try {		
 			oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);

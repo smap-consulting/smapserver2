@@ -3103,8 +3103,8 @@ public class GeneralUtilityMethods {
 						while (rsMultiples.next()) {
 							// Get the choices
 
-							String optionName = rsMultiples.getString(1);
-							String optionLabel = rsMultiples.getString(2);
+							String optionName = rsMultiples.getString(2);	// Set to choice value
+							String optionLabel = rsMultiples.getString(2);	// ALso set to choice value
 
 							c.choices.add(new KeyValue(optionName, optionLabel));
 							
