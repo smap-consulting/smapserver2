@@ -4785,6 +4785,81 @@ public class GeneralUtilityMethods {
 
 		return hasColumn;
 	}
+	
+	/*
+	 * Method to check for presence of the specified column
+	 */
+	public static boolean hasColumnInSchema(Connection cRel, String tablename, String columnName, String schema) {
+
+		boolean hasColumn = false;
+
+		String sql = "select column_name " + "from information_schema.columns "
+				+ "where table_name = ? and table_schema = ? and column_name = ?;";
+
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, tablename);
+			pstmt.setString(2, schema);
+			pstmt.setString(3, columnName);
+			//log.info("SQL: " + pstmt.toString());
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				hasColumn = true;
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+			}
+		}
+
+		return hasColumn;
+	}
+	
+	/*
+	 * Get the columns from a table in a specific schema
+	 */
+	public static ArrayList<String> getColumnsInSchema(Connection cRel, String tablename, String schema) {
+
+		ArrayList<String> cols = new ArrayList<String> ();
+		
+		String sql = "select column_name from information_schema.columns "
+				+ "where table_name = ? and table_schema = ?;";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, tablename);
+			pstmt.setString(2, schema);
+			//log.info("SQL: " + pstmt.toString());
+
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				cols.add(rs.getString(1));
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+			}
+		}
+
+		return cols;
+	}
+
 
 	/*
 	 * Get the table that contains a question name If there is a duplicate question
