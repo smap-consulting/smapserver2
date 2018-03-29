@@ -830,7 +830,7 @@ public class TableManager {
 				+ "q.q_id, q.qtype, q.column_name, q.l_id, q.appearance, f.table_name, q.compressed "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
-				+ "and q.published = 'false' "
+				+ "and (q.published = 'false' or (q.compressed = 'false' and q.qtype = 'select')) "
 				+ "and f.reference = 'false' "
 				+ "and q.soft_deleted = 'false' "
 				+ "and f.s_id = ?";
@@ -871,38 +871,34 @@ public class TableManager {
 				if(qType.equals("begin group") || qType.equals("end group")) {
 					// Ignore group changes
 				} else if(qType.equals("begin repeat")) {
-					// TODO
 
-				} else {
-					columns.add(columnName);		// Usually this is the case unless the question is a select multiple
+				} else if (qType.equals("select") && !compressed) {
+					qType = "integer";
 
-					if (qType.equals("select") && !compressed) {
-						qType = "integer";
+					pstmtGetUnpublishedOptions.setInt(1, l_id);
 
-						columns.clear();
-						pstmtGetUnpublishedOptions.setInt(1, l_id);
+					log.info("Get unpublished options to add: "+ pstmtGetUnpublishedOptions.toString());
+					ResultSet rsOptions = pstmtGetUnpublishedOptions.executeQuery();
+					while(rsOptions.next()) {			
+						// Create if its an external choice and this question uses external choices
+						//  or its not an external choice and this question does not use external choices
+						String o_col_name = rsOptions.getString(2);
+						boolean externalFile = rsOptions.getBoolean(3);
 
-						log.info("Get unpublished options to add: "+ pstmtGetUnpublishedOptions.toString());
-						ResultSet rsOptions = pstmtGetUnpublishedOptions.executeQuery();
-						while(rsOptions.next()) {			
-							// Create if its an external choice and this question uses external choices
-							//  or its not an external choice and this question does not use external choices
-							String o_col_name = rsOptions.getString(2);
-							boolean externalFile = rsOptions.getBoolean(3);
-
-							if(hasExternalOptions && externalFile || !hasExternalOptions && !externalFile) {
-								String column =  columnName + "__" + o_col_name;
-								columns.add(column);
-							}
+						if(hasExternalOptions && externalFile || !hasExternalOptions && !externalFile) {
+							String column =  columnName + "__" + o_col_name;
+							columns.add(column);
 						}
 					}
-
 					// Apply each column
 					for(String col : columns) {
 						alterColumn(cResults, table_name, qType, col, compressed);
 						tablePublished = true;
-					}					
-				} 
+					}	
+				} else {
+					alterColumn(cResults, table_name, qType, columnName, compressed);
+					tablePublished = true;
+				}
 
 			}
 
