@@ -195,7 +195,7 @@ public class Survey {
 	 *   2. questions and choices will only be created if they do not already exist in the form
 	 */
 	public void write(Connection sd, Connection cRel, ResourceBundle localisation, 
-			String userIdent, HashMap<String, String> groupForms) throws Exception {
+			String userIdent, HashMap<String, String> groupForms, int existingSurveyId) throws Exception {
 		
 		try {
 			log.info("Set autocommit false");
@@ -206,7 +206,7 @@ public class Survey {
 			writeSurvey(sd, gson);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
-			writeForms(sd, groupForms);	
+			writeForms(sd, groupForms, existingSurveyId);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
 			writeRoles(sd, localisation, gson, userIdent);
 			
@@ -399,7 +399,7 @@ public class Survey {
 	 * 2. Write the forms
 	 * This creates an initial entry for a form and then gets the resultant form ID
 	 */
-	private void writeForms(Connection sd, HashMap<String, String> groupForms) throws Exception {
+	private void writeForms(Connection sd, HashMap<String, String> groupForms, int existingSurveyId) throws Exception {
 		
 		String sql = "insert into form ("
 				+ "f_id, "
@@ -443,7 +443,6 @@ public class Survey {
 				if(tableName == null) {
 					tableName = "s" + id + "_" + cleanName;		
 				}
-
 				
 				pstmt.setString(2, f.name);
 				pstmt.setString(3, tableName);
@@ -459,6 +458,10 @@ public class Survey {
 				// Write Form questions
 				int idx = 0;
 				for(Question q : f.questions) {
+					if(existingSurveyId > 0 && q.type != null && q.type.equals("select")) {
+						// If replacing a survey then set the compress flag to the same value as the existing select question
+						q.compressed = getExistingCompressedFlag(sd, tableName,existingSurveyId, q.name);
+					}
 					writeQuestion(sd, q, f.id, idx++, pstmtSetLabels);
 				}
 				
@@ -470,7 +473,31 @@ public class Survey {
 	}
 	
 	/*
-	 * 2. Update the forms with
+	 * If replacing a form we don't want to change an uncompressed select to a compressed select
+	 */
+	private boolean getExistingCompressedFlag(Connection sd, String tableName, int existingSurveyId, String qName) throws SQLException {
+		boolean compressed = true;
+		String sql = "select compressed from question where qName = ? and f_id = "
+				+ "(select f_id from form where s_id = ? and table_name = ?)";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, qName);
+			pstmt.setInt(2,  existingSurveyId);
+			pstmt.setString(3,  tableName);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				compressed = rs.getBoolean(1);
+			}	
+		} finally {
+			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
+		}
+		return compressed;
+	}
+	
+	/*
+	 * Update the forms with
 	 *  parent form
 	 *  parent question
 	 *  repeats TODO
@@ -702,9 +729,8 @@ public class Survey {
 			pstmt.setString(27, q.accuracy);
 			pstmt.setString(28, q.dataType);
 			
-			// Default all select questions to compresed
 			if(q.type.equals("select")) {
-				pstmt.setBoolean(29, true);
+				pstmt.setBoolean(29, q.compressed);
 			} else {
 				pstmt.setBoolean(29, false);
 			}

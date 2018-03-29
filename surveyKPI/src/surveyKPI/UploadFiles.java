@@ -471,6 +471,7 @@ public class UploadFiles extends Application {
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();
 		String action = null;
+		int existingSurveyId = 0;	// The ID of a survey that is being replaced
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -586,6 +587,7 @@ public class UploadFiles extends Application {
 						false, false, null, false, false, superUser, null);
 				displayName = existingSurvey.displayName;
 				existingVersion = existingSurvey.version;
+				existingSurveyId = existingSurvey.id;
 			}
 
 			// If the survey display name already exists on this server, for this project, then throw an error		
@@ -623,7 +625,7 @@ public class UploadFiles extends Application {
 				/*
 				 * Save the survey to the database
 				 */
-				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms);
+				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
 				
 				/*
 				 * Validate the survey using the JavaRosa API
@@ -664,18 +666,6 @@ public class UploadFiles extends Application {
 						);	
 					
 				}
-				
-				// Create external options if there is a CSV file referenced by this survey
-				/*
-				writeExternalChoices(
-						sd, 
-						cResults, 
-						localisation,
-						s,
-						basePath, 
-						user,
-						warnings);
-						*/
 				
 				/*
 				 * Save the file to disk

@@ -3033,6 +3033,7 @@ public class GeneralUtilityMethods {
 					// file but not both
 					pstmtSelectMultiple.setInt(1, qId);
 					pstmtSelectMultiple.setBoolean(2, external);
+					log.info("Get choices for select multiple question: " + pstmtSelectMultiple.toString());
 					ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
 
 					HashMap<String, String> uniqueColumns = new HashMap<String, String>();
@@ -5937,7 +5938,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setPublished(Connection sd, Connection cRel, int sId) throws SQLException {
 
-		String sql = "select f.table_name, q.column_name, q.q_id, q.qtype, q.compressed "
+		String sql = "select f.table_name, q.column_name, q.q_id, q.qtype, q.compressed, q.l_id "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = ? "
@@ -5948,6 +5949,12 @@ public class GeneralUtilityMethods {
 
 		String sqlUpdate = "update question set published = true where q_id = ?";
 		PreparedStatement pstmtUpdate = null;
+		
+		String sqlGetChoices = "select o_id, column_name from option where l_id = ?";
+		PreparedStatement pstmtGetChoices = null;
+		
+		String sqlUpdateChoices = "update option set published = true where o_id = ?";
+		PreparedStatement pstmtUpdateChoices = null;
 		try {
 			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 
@@ -5959,19 +5966,28 @@ public class GeneralUtilityMethods {
 				boolean compressed = rs.getBoolean(5);
 				if(qType.equals("select") && !compressed) {
 					// Automatically set published the publish status of options determine if data is actually available 
+					pstmtUpdateChoices = sd.prepareStatement(sqlUpdateChoices);
+					pstmtGetChoices = sd.prepareStatement(sqlGetChoices);
+					pstmtGetChoices.setInt(1, rs.getInt(6));
+					ResultSet rsChoices = pstmtGetChoices.executeQuery();
+					while(rsChoices.next()) {
+						if(hasColumn(cRel, rs.getString(1), rs.getString(2) + "__" + rsChoices.getString(2))) {
+							pstmtUpdateChoices.setInt(1, rsChoices.getInt(1));
+							pstmtUpdateChoices.executeUpdate();
+						}
+					}
+				} 
+				if(hasColumn(cRel, rs.getString(1), rs.getString(2))) {
 					pstmtUpdate.setInt(1, rs.getInt(3));
 					pstmtUpdate.executeUpdate();
-				} else {
-					if(hasColumn(cRel, rs.getString(1), rs.getString(2))) {
-						pstmtUpdate.setInt(1, rs.getInt(3));
-						pstmtUpdate.executeUpdate();
-					}
 				}
 			}
 
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 			if(pstmtUpdate != null) try {pstmtUpdate.close();} catch(Exception e) {}
+			if(pstmtGetChoices != null) try {pstmtGetChoices.close();} catch(Exception e) {}
+			if(pstmtUpdateChoices != null) try {pstmtUpdateChoices.close();} catch(Exception e) {}
 		}
 
 	}
