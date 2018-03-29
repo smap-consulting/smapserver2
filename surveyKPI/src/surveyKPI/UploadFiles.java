@@ -287,7 +287,10 @@ public class UploadFiles extends Application {
 			String serverName = request.getServerName();
 
 			deleteFile(request, connectionSD, localisation, basePath, serverName, null, oId, filename, request.getRemoteUser());
-
+			if(filename.endsWith(".csv")) {
+				deleteCsvTables(connectionSD, oId, 0, filename);
+			}
+			
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
 			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, connectionSD, false);				 
@@ -334,7 +337,12 @@ public class UploadFiles extends Application {
 			String serverName = request.getServerName(); 
 
 			deleteFile(request, connectionSD, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
-
+			if(filename.endsWith(".csv")) {
+				int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, request.getRemoteUser(), 0);
+				int sId = GeneralUtilityMethods.getSurveyId(connectionSD, sIdent);
+				deleteCsvTables(connectionSD, oId, sId, filename);
+			}
+			
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
 			mediaInfo.setFolder(basePath, 0, sIdent, connectionSD);
@@ -1285,4 +1293,45 @@ public class UploadFiles extends Application {
 	}
 	*/
 
+	/*
+	 * Delete tables containing CSV data
+	 */
+	private void deleteCsvTables(Connection sd, int oId, int sId, String filename) throws SQLException {
+		String sql = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
+		PreparedStatement pstmt = null;
+		
+		PreparedStatement pstmtDrop = null;
+		
+		String sqlClear = "delete from csvtable where o_id = ? and s_id = ? and filename = ?";
+		PreparedStatement pstmtClear = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  oId);
+			pstmt.setInt(2, sId);
+			pstmt.setString(3, filename);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				int id = rs.getInt(1);
+				
+				// Drop the CSV table
+				if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
+				String sqlDrop = "drop table csv.csv" + id;
+				pstmtDrop = sd.prepareStatement(sqlDrop);
+				pstmtDrop.executeUpdate();
+			}
+			
+			pstmtClear = sd.prepareStatement(sqlClear);
+			pstmtClear.setInt(1,  oId);
+			pstmtClear.setInt(2, sId);
+			pstmtClear.setString(3, filename);
+			pstmtClear.executeUpdate();
+			
+			
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+			if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
+			if(pstmtClear != null) {try{pstmtClear.close();}catch(Exception e) {}}
+		}
+	}
 }

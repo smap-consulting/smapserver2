@@ -208,13 +208,15 @@ public class CsvTableManager {
 			ArrayList<String> listDel = null;
 			int recordCount = recordCount();
 		
-			if(delta) {			
-				while (newLine != null) {
-					newLine = brNew.readLine();
-					if(newLine != null) {
-						listNew.add(newLine);
-					}
+			while (newLine != null) {
+				newLine = brNew.readLine();
+				if(newLine != null) {
+					listNew.add(newLine);
 				}
+			}
+			
+			if(delta) {			
+			
 				newLine = brOld.readLine();	// Skip over header
 				while (newLine != null) {
 					newLine = brOld.readLine();
@@ -285,6 +287,8 @@ public class CsvTableManager {
 		} finally {
 			if(pstmtCreateTable != null) {try{pstmtCreateTable.close();} catch(Exception e) {}}
 			if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
+			if(brNew != null) {try{brNew.close();}catch(Exception e) {}}
+			if(brOld != null) {try{brOld.close();}catch(Exception e) {}}
 		}
 		
 	}
@@ -346,6 +350,10 @@ public class CsvTableManager {
 	 */
 	private void insert(ArrayList<String> records) throws SQLException, IOException {
 		
+		if(records.size() == 0) {
+			return;
+		}
+		
 		// Create sql
 		StringBuffer sql = new StringBuffer("insert into ").append(fullTableName).append( " (");
 		StringBuffer params = new StringBuffer("");
@@ -370,7 +378,6 @@ public class CsvTableManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			for(String r : records) {
-				System.out.println("Add record: " + r);
 				String[] data = parser.parseLine(r);
 				for(int i = 0; i < data.length; i++) {
 					pstmt.setString(i + 1, data[i]);
@@ -389,6 +396,10 @@ public class CsvTableManager {
 	 * Remove a CSV record from the table
 	 */
 	private void remove(ArrayList<String> records) throws SQLException, IOException {
+		
+		if(records.size() == 0) {
+			return;
+		}
 		
 		// Create sql
 		StringBuffer sql = new StringBuffer("delete from ").append(fullTableName).append( " where ");
