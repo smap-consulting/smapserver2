@@ -67,6 +67,9 @@ public class CsvTableManager {
 	private String schema = "csv";
 	private String fullTableName = null;
 	private ArrayList<CsvHeader> headers = null;
+	CSVParser parser = new CSVParser();
+	
+	private final String TSCOL = "_changed_ts";
 	
 	public CsvTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
 			throws Exception {
@@ -133,7 +136,7 @@ public class CsvTableManager {
 		boolean delta = true;			// If set true then apply a delta between the new and old file
 
 		PreparedStatement pstmtCreateTable = null;
-		PreparedStatement pstmtAddColumn = null;
+		PreparedStatement pstmtAlterColumn = null;
 		
 		try {
 			// Open the files
@@ -157,7 +160,9 @@ public class CsvTableManager {
 				headers.add(new CsvHeader(n, GeneralUtilityMethods.cleanNameNoRand(n)));
 			}
 			
-			// Create or modify the table
+			/*
+			 * 1. Create or modify the table
+			 */
 			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
 			if(!tableExists) {
 				delta = false;
@@ -172,33 +177,121 @@ public class CsvTableManager {
 				if(idx++ > 0) {
 					sqlCreate.append(",");
 				}
-				sqlCreate.append("changed_ts TIMESTAMP WITH TIME ZONE");
+				sqlCreate.append(TSCOL + " TIMESTAMP WITH TIME ZONE");
 				sqlCreate.append(")");
 				pstmtCreateTable = sd.prepareStatement(sqlCreate.toString());
 				pstmtCreateTable.executeUpdate();
 				
 			} else {
-				System.out.println("Do a table merge");
 				
 				// Add any new columns, old unused columns will be deleted after loading of data as 
 				//  they may be needed in order to identify rows to delete
 				for(CsvHeader c : headers) {
-					if(!GeneralUtilityMethods.hasColumn(sd, fullTableName, c.tName)) {
+					if(!GeneralUtilityMethods.hasColumnInSchema(sd, tableName, c.tName, schema)) {
 						String sqlAddColumn = "alter table " + fullTableName + " add column " + c.tName + " text";
-						if(pstmtAddColumn != null) {try{pstmtAddColumn.close();} catch(Exception e) {}}
-						pstmtAddColumn = sd.prepareStatement(sqlAddColumn);
-						pstmtAddColumn.executeUpdate();
+						if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
+						pstmtAlterColumn = sd.prepareStatement(sqlAddColumn);
+						pstmtAlterColumn.executeUpdate();
 					}
 				}
 			}
 			updateHeaders();		// Store the csv headers information with the match between file name and table name
+			
+			/*
+			 * 2. Read in the CSV file 
+			 * Get the differences between this load and the previous load
+			 * For performance check to see if there are more than 100 deletes in a delta if so replace the entire file
+			 */
+			ArrayList<String> listNew = new ArrayList<String> ();
+			ArrayList<String> listOld = new ArrayList<String> ();
+			ArrayList<String> listAdd = null;
+			ArrayList<String> listDel = null;
+			int recordCount = recordCount();
+		
+			if(delta) {			
+				while (newLine != null) {
+					newLine = brNew.readLine();
+					if(newLine != null) {
+						listNew.add(newLine);
+					}
+				}
+				newLine = brOld.readLine();	// Skip over header
+				while (newLine != null) {
+					newLine = brOld.readLine();
+					if(newLine != null) {
+						listOld.add(newLine);
+					}
+				}
+				
+				listAdd = new ArrayList<String>(listNew);
+				listDel = new ArrayList<String>(listOld);
+				
+				if(recordCount != listOld.size()) {
+					// mismatch between the current size of the table and the old csv file - just reload the whole thing
+					delta = false;
+					listOld = null;
+				} else {
+					listAdd.removeAll(listOld);
+					listDel.removeAll(listNew);
+					
+					System.out.println("Applying delta add: " + listAdd.size() + " delete: " + listDel.size());
+					if(listDel.size() > 200 || listDel.size() == recordCount) {
+						// Too many records to delete or all of the records need to be deleted just load the new data into an empty table
+						delta = false;
+						listOld = null;
+						listAdd = null;
+						listDel = null;
+					}
+				}
+			}
+			
+			/*
+			 * 3. Upload the data
+			 */
+			if(delta) {
+				insert(listAdd);
+				remove(listDel);
+			} else {
+				truncate();
+				insert(listNew);
+			}		
+			
+			/*
+			 * 4. Delete any columns that are no longer used
+			 */
+			ArrayList<String> tableCols = GeneralUtilityMethods.getColumnsInSchema(sd, tableName, schema);
+			if(tableCols.size() != headers.size() + 1) {		// If the number of columns match then table cannot have any columns that need deleting
+				log.info("Checking for columns in csv file that need to be deleted");
+				for(String tableCol : tableCols) {
+					if(tableCol.equals(TSCOL)) {
+						continue;
+					}
+					boolean missing = true;
+					for(CsvHeader h : headers) {
+						if(h.tName.equals(tableCol)) {
+							missing = false;
+							break;
+						}
+					}
+					if(missing) {
+						String sqlAddColumn = "alter table " + fullTableName + " drop column " + tableCol;
+						if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
+						pstmtAlterColumn = sd.prepareStatement(sqlAddColumn);
+						pstmtAlterColumn.executeUpdate();
+					}
+				}
+			}
+			
 		} finally {
 			if(pstmtCreateTable != null) {try{pstmtCreateTable.close();} catch(Exception e) {}}
-			if(pstmtAddColumn != null) {try{pstmtAddColumn.close();} catch(Exception e) {}}
+			if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
 		}
 		
 	}
 	
+	/*
+	 * Save the headers so that when generating csv output we can use the original file name header
+	 */
 	private void updateHeaders() throws SQLException {
 		String sql = "Update csvtable set headers = ? where id = ?";
 		PreparedStatement pstmt = null;
@@ -209,6 +302,119 @@ public class CsvTableManager {
 			pstmt.setString(1, gson.toJson(headers));
 			pstmt.setInt(2,  tableId);
 			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Get the number of records from the csv table
+	 */
+	private int recordCount() throws SQLException {
+		String sql = "select count(*) from " + fullTableName;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				count = rs.getInt(1);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return count;
+	}
+	
+	/*
+	 * Truncate the csv table
+	 */
+	private void truncate() throws SQLException {
+		String sql = "truncate " + fullTableName;
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Insert a csv record into the table
+	 */
+	private void insert(ArrayList<String> records) throws SQLException, IOException {
+		
+		// Create sql
+		StringBuffer sql = new StringBuffer("insert into ").append(fullTableName).append( " (");
+		StringBuffer params = new StringBuffer("");
+		int idx = 0;
+		for(CsvHeader h : headers) {
+			if(idx++ > 0) {
+				sql.append(",");
+				params.append(",");
+			}
+			sql.append(h.tName);
+			params.append("?");
+		}
+		if(idx++ > 0) {
+			sql.append(",");
+			params.append(",");
+		}
+		sql.append(TSCOL);
+		params.append("now()");
+		sql.append(") values (").append(params).append(")");
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			for(String r : records) {
+				System.out.println("Add record: " + r);
+				String[] data = parser.parseLine(r);
+				for(int i = 0; i < data.length; i++) {
+					pstmt.setString(i + 1, data[i]);
+				}
+				log.info("Inserting record: "  + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+
+	}
+	
+	/*
+	 * Remove a CSV record from the table
+	 */
+	private void remove(ArrayList<String> records) throws SQLException, IOException {
+		
+		// Create sql
+		StringBuffer sql = new StringBuffer("delete from ").append(fullTableName).append( " where ");
+		int idx = 0;
+		for(CsvHeader h : headers) {
+			if(idx++ > 0) {
+				sql.append(" and ");
+			}
+			sql.append(h.tName);
+			sql.append(" = ?");
+		}
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			for(String r : records) {
+				System.out.println("Remove record: " + r);
+				String[] data = parser.parseLine(r);
+				for(int i = 0; i < data.length; i++) {
+					pstmt.setString(i + 1, data[i]);
+				}
+				log.info("Removing record: "  + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
