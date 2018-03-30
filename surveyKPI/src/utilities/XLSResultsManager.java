@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
@@ -88,25 +89,25 @@ public class XLSResultsManager {
 			this.v = v;
 			this.type = type;
 		}
-		
+
 		public String getStringType() {
 			String stringType = "string";
 			switch (type) {
-				case DECIMAL: stringType = "decimal";
-				break;
-				case INTEGER: stringType = "int";
-				break;
-				case STRING: stringType = "string";
-				break;
-				case DATE: stringType = "date";
-				break;
-				case DATETIME: stringType = "dateTime";
-				break;
+			case DECIMAL: stringType = "decimal";
+			break;
+			case INTEGER: stringType = "int";
+			break;
+			case STRING: stringType = "string";
+			break;
+			case DATE: stringType = "date";
+			break;
+			case DATETIME: stringType = "dateTime";
+			break;
 			}
 			return stringType;
 		}
 	}
-	
+
 
 	private class RecordDesc {
 		String prikey;
@@ -396,6 +397,7 @@ public class XLSResultsManager {
 
 							boolean isAttachment = false;
 							boolean isSelectMultiple = false;
+							boolean splitCompressed = false;
 							String selectMultipleQuestionDisplayName = null;
 							String optionName = null;
 
@@ -411,9 +413,12 @@ public class XLSResultsManager {
 								isSelectMultiple = true;
 								selectMultipleQuestionDisplayName = c.question_name;
 								optionName = c.option_name;
+								if(c.compressed && !merge_select_multiple) {
+									splitCompressed = true;
+								}
 							}
 
-							if(isSelectMultiple && merge_select_multiple) {
+							if(isSelectMultiple && merge_select_multiple && !c.compressed) {
 								humanName = selectMultipleQuestionDisplayName;
 
 								// Add the name of sql column to a look up table for the get data stage
@@ -430,7 +435,7 @@ public class XLSResultsManager {
 
 							// If the user has requested that select multiples be merged then we only want the question added once
 							boolean skipSelectMultipleOption = false;
-							if(isSelectMultiple && merge_select_multiple) {
+							if(isSelectMultiple && merge_select_multiple && !c.compressed) {
 								String n = selectMultipleColumnNames.get(humanName);
 								if(n != null) {
 									skipSelectMultipleOption = true;
@@ -439,12 +444,26 @@ public class XLSResultsManager {
 								}
 							}
 
-							if(!name.equals("prikey") && !skipSelectMultipleOption) {	// Primary key is only added once for all the tables
-								if(f.visible) {	// Add column headings if the form is visible
-
-									addToHeader(sd, cols, language, humanName, name, hxlCode, qType, split_locn, sId, f,
-											merge_select_multiple);
-
+							if(f.visible) {		// Add column headings if the form is visible
+								if(!name.equals("prikey") && !skipSelectMultipleOption && !splitCompressed) {	// Primary key is only added once for all the tables
+									addToHeader(sd, cols, language, humanName, name, hxlCode, qType, 
+											split_locn, 
+											sId, 
+											f, 
+											merge_select_multiple, 
+											null,
+											isSelectMultiple);
+								} else if(splitCompressed) {
+									// Add a column header for each option
+									for(KeyValue choice : c.choices) {
+										addToHeader(sd, cols, language, humanName, name, hxlCode, qType, 
+												split_locn, 
+												sId, 
+												f, 
+												merge_select_multiple,
+												choice.k,
+												true);
+									}
 								}
 							}
 
@@ -507,7 +526,7 @@ public class XLSResultsManager {
 							if(f.visible) {	// Add column headings if the form is visible
 
 								addToHeader(sd, cols, language, colName, colName, null, sscType, split_locn, sId, f,
-										merge_select_multiple);
+										merge_select_multiple, null, false);
 
 							}
 
@@ -808,16 +827,21 @@ public class XLSResultsManager {
 			boolean split_locn, 
 			int sId, 
 			FormDesc f,
-			boolean merge_select_multiple) throws SQLException {
+			boolean merge_select_multiple,
+			String choiceName,
+			boolean selectType) throws SQLException {
 
 		String label = null;
 		if(!language.equals("none")) {
-			label = getQuestion(sd, colName, sId, f, language, merge_select_multiple);
+			label = getQuestion(sd, colName, sId, f, language, merge_select_multiple, choiceName, selectType);
 		}
 
 		if(split_locn && qType != null && qType.equals("geopoint")) {
 			cols.add(new Column("Latitude", "Latitude", "Latitude", "#geo+lat"));
 			cols.add(new Column("Longitude", "Longitude", "Longitude", "+geo+lon"));
+		} else if(choiceName != null) {
+			Column col = new Column(colName + "__" + choiceName, label, human_name + " - " + choiceName, hxlTag);
+			cols.add(col);
 		} else {
 			Column col = new Column(colName, label, human_name, hxlTag);
 			if(qType.equals("image")) {
@@ -833,14 +857,30 @@ public class XLSResultsManager {
 	 * Return the text
 	 */
 	private ArrayList<CellItem> getContent(Connection con, String value, boolean firstCol, String columnName,
-			String columnType, boolean split_locn) throws NumberFormatException, SQLException {
+			String columnType, boolean split_locn,
+			boolean splitSelect,
+			TableColumn c) throws NumberFormatException, SQLException {
 
 		ArrayList<CellItem> out = new ArrayList<CellItem>();
 		if(value == null) {
 			value = "";
 		}
 
-		if(split_locn && value.startsWith("POINT")) {
+		if(splitSelect && c.choices != null) {
+			String sel [] = value.split(" ");
+			for(KeyValue k : c.choices) {
+				String choiceValue = "0";
+				if(sel != null && sel.length > 0) {
+					for(int j = 0; j < sel.length; j++) {
+						if(k.v.equals(sel[j])) {
+							choiceValue = "1";
+							break;
+						}
+					}
+				}
+				out.add(new CellItem(choiceValue, CellItem.INTEGER));	
+			}
+		} else if(split_locn && value.startsWith("POINT")) {
 
 			String coords [] = GeneralUtilityMethods.getLonLat(value);
 
@@ -1039,7 +1079,7 @@ public class XLSResultsManager {
 				// If this is the top level form reset the current parents and add the primary key
 				if(f.parkey == null || f.parkey.equals("0")) {
 					f.clearRecords();
-					record.addAll(getContent(sd, prikey, true, "prikey", "key", split_locn));
+					record.addAll(getContent(sd, prikey, true, "prikey", "key", split_locn, false, null));
 				}
 
 
@@ -1049,6 +1089,7 @@ public class XLSResultsManager {
 				for(int i = 1; i < f.columnList.size(); i++) {
 
 					TableColumn c = f.columnList.get(i);
+					boolean splitSelect = c.compressed && !merge_select_multiple;
 
 					String columnName = c.name;
 					String columnType = c.type;
@@ -1058,7 +1099,7 @@ public class XLSResultsManager {
 						value = "";	
 					}
 
-					if(merge_select_multiple) {
+					if(merge_select_multiple && !c.compressed) {
 						String choice = choiceNames.get(columnName);
 						if(choice != null) {
 							// Have to handle merge of select multiple
@@ -1073,10 +1114,10 @@ public class XLSResultsManager {
 								//  Its the end of the record		
 								multipleChoiceValue = XLSUtilities.updateMultipleChoiceValue(value, choice, multipleChoiceValue);
 
-								record.addAll(getContent(sd, multipleChoiceValue, false, columnName, columnType, split_locn));
+								record.addAll(getContent(sd, multipleChoiceValue, false, columnName, columnType, split_locn, splitSelect, c));
 							} else {
 								// A second select multiple directly after the first - write out the previous
-								record.addAll(getContent(sd, multipleChoiceValue, false, currentSelectMultipleQuestionName, "select", split_locn));
+								record.addAll(getContent(sd, multipleChoiceValue, false, currentSelectMultipleQuestionName, "select", split_locn, splitSelect, c));
 
 								// Restart process for the new select multiple
 								currentSelectMultipleQuestionName = selectMultipleQuestionName;
@@ -1086,16 +1127,16 @@ public class XLSResultsManager {
 						} else {
 							if(currentSelectMultipleQuestionName != null) {
 								// Write out the previous multiple choice value before continuing with the non multiple choice value
-								record.addAll(getContent(sd, multipleChoiceValue, false, currentSelectMultipleQuestionName, "select", split_locn));
+								record.addAll(getContent(sd, multipleChoiceValue, false, currentSelectMultipleQuestionName, "select", split_locn, splitSelect, c));
 
 								// Restart Process
 								multipleChoiceValue = null;
 								currentSelectMultipleQuestionName = null;
 							}
-							record.addAll(getContent(sd, value, false, columnName, columnType, split_locn));
+							record.addAll(getContent(sd, value, false, columnName, columnType, split_locn, splitSelect, c));
 						}
 					} else {
-						record.addAll(getContent(sd, value, false, columnName, columnType, split_locn));
+						record.addAll(getContent(sd, value, false, columnName, columnType, split_locn, splitSelect, c));
 					}
 				}
 				f.addRecord(prikey, f.parkey, record);
@@ -1138,7 +1179,7 @@ public class XLSResultsManager {
 
 					//f.printRecords(4, true);
 					appendToOutput(sd, new ArrayList<CellItem> (), 
-							formList.get(0), formList, 0, null, resultsSheet, styles, embedImages);
+							formList.get(0), formList, 0, null, resultsSheet, styles, embedImages, merge_select_multiple);
 
 				}
 			}
@@ -1162,7 +1203,8 @@ public class XLSResultsManager {
 			String parent,
 			Sheet resultsSheet, 
 			Map<String, CellStyle> styles,
-			boolean embedImages
+			boolean embedImages,
+			boolean merge_select_multiple
 			) throws NumberFormatException, SQLException, IOException {
 
 		int number_records = 0;
@@ -1184,14 +1226,16 @@ public class XLSResultsManager {
 				for(int i = number_records; i < f.maxRepeats; i++) {
 					ArrayList<CellItem> record = new ArrayList<CellItem>();
 					for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
-						record.addAll(getContent(sd, "",  false, "", "empty", false));
+						TableColumn c = f.columnList.get(j);
+						boolean splitSelect = c.compressed && !merge_select_multiple;
+						record.addAll(getContent(sd, "",  false, "", "empty", false, splitSelect, c));
 					}
 					newRec.addAll(record);
 				}
 
 				if(index < formList.size() - 1) {
 					appendToOutput(sd,  newRec , formList.get(index + 1), 
-							formList, index + 1, null, resultsSheet, styles, embedImages);
+							formList, index + 1, null, resultsSheet, styles, embedImages, merge_select_multiple);
 				} else {
 					closeRecord(newRec, resultsSheet, styles, embedImages);
 				}
@@ -1208,13 +1252,15 @@ public class XLSResultsManager {
 						ArrayList<CellItem> newRec = new ArrayList<CellItem> ();
 						newRec.addAll(in);
 						for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
-							newRec.addAll(getContent(sd, "", false, "", "empty", false));
+							TableColumn c = f.columnList.get(j);
+							boolean splitSelect = c.compressed && !merge_select_multiple;
+							newRec.addAll(getContent(sd, "", false, "", "empty", false, splitSelect, c));
 						}
 
 						FormDesc nextForm = formList.get(index + 1);
 						String filter = null;
 
-						appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages);
+						appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages, merge_select_multiple);
 					} else {
 						closeRecord(in, resultsSheet, styles, embedImages);
 					}
@@ -1248,7 +1294,8 @@ public class XLSResultsManager {
 								if(nextForm.parent.equals(f.f_id)) {
 									filter = rd.prikey;
 								}
-								appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages);
+								appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, 
+										embedImages, merge_select_multiple);
 							} else {
 								closeRecord(newRec, resultsSheet, styles, embedImages);
 							} 
@@ -1270,13 +1317,15 @@ public class XLSResultsManager {
 									ArrayList<CellItem> newRec = new ArrayList<CellItem> ();
 									newRec.addAll(in);
 									for(int j = 1; j < f.columnCount; j++) {	// Start from one to ignore primary key
-										newRec.addAll(getContent(sd, "",  false, "", "empty", false));
+										TableColumn c = f.columnList.get(j);
+										boolean splitSelect = c.compressed && !merge_select_multiple;
+										newRec.addAll(getContent(sd, "",  false, "", "empty", false, splitSelect, c));
 									}
 
 									FormDesc nextForm = formList.get(index + 1);
 									String filter = null;
 
-									appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages);
+									appendToOutput(sd, newRec , nextForm, formList, index + 1, filter, resultsSheet, styles, embedImages, merge_select_multiple);
 								} else {
 									/*
 									 * Add the record if there are no matching records for this form
@@ -1295,7 +1344,7 @@ public class XLSResultsManager {
 			// Proceed with any lower level forms
 			if(index < formList.size() - 1) {
 				appendToOutput(sd,  in , formList.get(index + 1), 
-						formList, index + 1, null, resultsSheet, styles, embedImages);
+						formList, index + 1, null, resultsSheet, styles, embedImages, merge_select_multiple);
 			} else {
 				closeRecord(in, resultsSheet, styles, embedImages);
 			}
@@ -1303,9 +1352,13 @@ public class XLSResultsManager {
 
 	}
 
-	public String getQuestion(Connection conn, String colName, int sId, FormDesc form, String language, boolean merge_select_multiple) throws SQLException {
+	public String getQuestion(Connection conn, String colName, int sId, FormDesc form, String language, 
+			boolean merge_select_multiple,
+			String choiceName,
+			boolean selectQuestion) throws SQLException {
 		String questionText = "";
 		String qColName = null;
+		String optionName = null;
 		String optionColName = null;
 		String qType = null;
 		PreparedStatement pstmt = null;
@@ -1315,12 +1368,17 @@ public class XLSResultsManager {
 		if(colName != null && language != null) {
 			// Split the column name into the question and option part
 			// Assume that double underscore is a unique separator
-			int idx = colName.indexOf("__");
-			if(idx == -1) {
+			if(choiceName != null) {
+				optionName = choiceName;
 				qColName = colName;
-			} else {
-				qColName = colName.substring(0, idx);
-				optionColName = colName.substring(idx+2);
+			} else if(selectQuestion) {
+				int idx = colName.indexOf("__");
+				if(idx == -1) {
+					qColName = colName;
+				} else {
+					qColName = colName.substring(0, idx);
+					optionColName = colName.substring(idx+2);
+				}
 			}
 
 			String sql = null;
@@ -1359,18 +1417,24 @@ public class XLSResultsManager {
 				pstmt.setInt(1, qId);
 				pstmt.setString(2, language);
 				pstmt.setInt(3, sId);
+				System.out.println("Get oprtions: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 
 				while (resultSet.next()) {
 					String name = resultSet.getString("ovalue");
-					String columnName = resultSet.getString("column_name").toLowerCase();
+					String cName = resultSet.getString("column_name");
 					String label = resultSet.getString("otext");
 					if(qType.equals("select1") || merge_select_multiple) {
 						// Put all options in the same column
 						questionText += " " + name + "=" + label;
 					} else if(optionColName != null) {
 						// Only one option in each column
-						if(columnName.equals(optionColName)) {
+						if(cName.equals(optionColName)) {
+							questionText += " " + label;
+						}
+					} else if(optionName != null) {
+						// Only one option in each column
+						if(name.equals(optionName)) {
 							questionText += " " + label;
 						}
 					}
