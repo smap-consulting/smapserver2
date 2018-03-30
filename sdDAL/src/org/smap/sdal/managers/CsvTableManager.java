@@ -69,7 +69,13 @@ public class CsvTableManager {
 	private ArrayList<CsvHeader> headers = null;
 	CSVParser parser = new CSVParser();
 	
+	private final String PKCOL = "_id";
+	private final String ACOL = "_action";
 	private final String TSCOL = "_changed_ts";
+	
+	private final int ADD_ENTRY = 1;
+	private final int UPDATE_ENTRY = 2;
+	private final int DELETE_ENTRY = 3;
 	
 	public CsvTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
 			throws Exception {
@@ -135,6 +141,7 @@ public class CsvTableManager {
 		BufferedReader brOld = null;
 		boolean delta = true;			// If set true then apply a delta between the new and old file
 
+		PreparedStatement pstmtCreateSeq = null;
 		PreparedStatement pstmtCreateTable = null;
 		PreparedStatement pstmtAlterColumn = null;
 		
@@ -166,20 +173,27 @@ public class CsvTableManager {
 			boolean tableExists = GeneralUtilityMethods.tableExistsInSchema(sd, tableName, schema);
 			if(!tableExists) {
 				delta = false;
-				StringBuffer sqlCreate = new StringBuffer("create table ").append(fullTableName).append("(");
-				int idx = 0;
+				// Create the key sequence
+				String sequenceName = fullTableName + "_seq";
+				StringBuffer sqlCreate = new StringBuffer("create sequence ").append(sequenceName).append(" start 1");
+				pstmtCreateSeq = sd.prepareStatement(sqlCreate.toString());
+				try { 
+					pstmtCreateSeq.executeUpdate();
+				} catch(Exception e) {
+					log.info(e.getMessage());  // Ignore error
+				}
+				
+						// Create the table
+				sqlCreate = new StringBuffer("create table ").append(fullTableName).append("(");
+				sqlCreate.append(PKCOL).append(" integer default nextval('").append(sequenceName).append("')");
+				sqlCreate.append(",").append(ACOL + " integer");
+				sqlCreate.append(",").append(TSCOL + " TIMESTAMP WITH TIME ZONE");
 				for(CsvHeader c : headers) {
-					if(idx++ > 0) {
-						sqlCreate.append(",");
-					}
-					sqlCreate.append(c.tName).append(" text");
-				}
-				if(idx++ > 0) {
-					sqlCreate.append(",");
-				}
-				sqlCreate.append(TSCOL + " TIMESTAMP WITH TIME ZONE");
+					sqlCreate.append(",").append(c.tName).append(" text");
+				}				
 				sqlCreate.append(")");
 				pstmtCreateTable = sd.prepareStatement(sqlCreate.toString());
+				log.info("Create table: " + pstmtCreateTable.toString());
 				pstmtCreateTable.executeUpdate();
 				
 			} else {
@@ -237,7 +251,7 @@ public class CsvTableManager {
 					listDel.removeAll(listNew);
 					
 					System.out.println("Applying delta add: " + listAdd.size() + " delete: " + listDel.size());
-					if(listDel.size() > 200 || listDel.size() == recordCount) {
+					if(listDel.size() > 100 || listDel.size() == recordCount) {
 						// Too many records to delete or all of the records need to be deleted just load the new data into an empty table
 						delta = false;
 						listOld = null;
@@ -265,7 +279,7 @@ public class CsvTableManager {
 			if(tableCols.size() != headers.size() + 1) {		// If the number of columns match then table cannot have any columns that need deleting
 				log.info("Checking for columns in csv file that need to be deleted");
 				for(String tableCol : tableCols) {
-					if(tableCol.equals(TSCOL)) {
+					if(tableCol.equals(PKCOL) || tableCol.equals(ACOL) || tableCol.equals(TSCOL)) {
 						continue;
 					}
 					boolean missing = true;
@@ -285,6 +299,7 @@ public class CsvTableManager {
 			}
 			
 		} finally {
+			if(pstmtCreateSeq != null) {try{pstmtCreateSeq.close();} catch(Exception e) {}}
 			if(pstmtCreateTable != null) {try{pstmtCreateTable.close();} catch(Exception e) {}}
 			if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
 			if(brNew != null) {try{brNew.close();}catch(Exception e) {}}
@@ -315,11 +330,12 @@ public class CsvTableManager {
 	 * Get the number of records from the csv table
 	 */
 	private int recordCount() throws SQLException {
-		String sql = "select count(*) from " + fullTableName;
+		String sql = "select count(*) from " + fullTableName + " where not _action = ?";
 		PreparedStatement pstmt = null;
 		int count = 0;
 		try {
 			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, DELETE_ENTRY);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				count = rs.getInt(1);
@@ -357,21 +373,21 @@ public class CsvTableManager {
 		// Create sql
 		StringBuffer sql = new StringBuffer("insert into ").append(fullTableName).append( " (");
 		StringBuffer params = new StringBuffer("");
-		int idx = 0;
+
+		sql.append(PKCOL);
+		params.append("nextval('").append(fullTableName).append("_seq')");
+		
+		sql.append(",").append(ACOL);
+		params.append(",").append(ADD_ENTRY);		
+		sql.append(",").append(TSCOL);
+		params.append(",").append("now()");
+		
 		for(CsvHeader h : headers) {
-			if(idx++ > 0) {
-				sql.append(",");
-				params.append(",");
-			}
-			sql.append(h.tName);
-			params.append("?");
+			sql.append(",").append(h.tName);
+			params.append(",").append("?");
 		}
-		if(idx++ > 0) {
-			sql.append(",");
-			params.append(",");
-		}
-		sql.append(TSCOL);
-		params.append("now()");
+		
+		
 		sql.append(") values (").append(params).append(")");
 		PreparedStatement pstmt = null;
 		
@@ -402,7 +418,9 @@ public class CsvTableManager {
 		}
 		
 		// Create sql
-		StringBuffer sql = new StringBuffer("delete from ").append(fullTableName).append( " where ");
+		StringBuffer sql = new StringBuffer("update ").append(fullTableName);
+		sql.append(" set ").append(ACOL).append(" = ").append(DELETE_ENTRY);
+		sql.append( " where ");
 		int idx = 0;
 		for(CsvHeader h : headers) {
 			if(idx++ > 0) {

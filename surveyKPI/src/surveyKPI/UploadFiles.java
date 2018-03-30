@@ -1314,9 +1314,14 @@ public class UploadFiles extends Application {
 			while(rs.next()) {
 				int id = rs.getInt(1);
 				
-				// Drop the CSV table
+				// Drop the CSV table and seq
 				if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
 				String sqlDrop = "drop table csv.csv" + id;
+				pstmtDrop = sd.prepareStatement(sqlDrop);
+				pstmtDrop.executeUpdate();
+				
+				if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
+				sqlDrop = "drop sequence if exists csv.csv" + id;
 				pstmtDrop = sd.prepareStatement(sqlDrop);
 				pstmtDrop.executeUpdate();
 			}
