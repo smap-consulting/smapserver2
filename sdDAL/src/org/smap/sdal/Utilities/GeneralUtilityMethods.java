@@ -154,6 +154,35 @@ public class GeneralUtilityMethods {
 
 		return out;
 	}
+	
+	/*
+	 * Remove any characters from the name that will prevent it being used as a
+	 * database column name
+	 */
+	static public String cleanNameNoRand(String in) {
+
+		String out = null;
+
+		if (in != null) {
+			out = in.trim().toLowerCase();
+
+			out = out.replace(" ", ""); // Remove spaces
+			out = out.replaceAll("[\\.\\[\\\\^\\$\\|\\?\\*\\+\\(\\)\\]\"\';,:!@#&%/{}<>-]", "x"); // Remove special
+			// characters ;
+
+			/*
+			 * Rename fields that are the same as postgres / sql reserved words
+			 */
+			for (int i = 0; i < reservedSQL.length; i++) {
+				if (out.equals(reservedSQL[i])) {
+					out = "__" + out;
+					break;
+				}
+			}
+		}
+
+		return out;
+	}
 
 	/*
 	 * Escape characters reserved for HTML
@@ -4691,6 +4720,35 @@ public class GeneralUtilityMethods {
 		}
 		return (count > 0);
 	}
+	
+	/*
+	 * Check for the existence of a table
+	 */
+	public static boolean tableExistsInSchema(Connection conn, String tableName, String schema) throws SQLException {
+
+		String sqlTableExists = "select count(*) from information_schema.tables where table_name = ? and table_schema = ?";
+		PreparedStatement pstmt = null;
+		int count = 0;
+
+		try {
+			pstmt = conn.prepareStatement(sqlTableExists);
+			pstmt.setString(1, tableName);
+			pstmt.setString(2, schema);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				count = rs.getInt(1);
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		return (count > 0);
+	}
 
 	/*
 	 * Method to check for presence of the specified column
@@ -4728,6 +4786,81 @@ public class GeneralUtilityMethods {
 
 		return hasColumn;
 	}
+	
+	/*
+	 * Method to check for presence of the specified column
+	 */
+	public static boolean hasColumnInSchema(Connection cRel, String tablename, String columnName, String schema) {
+
+		boolean hasColumn = false;
+
+		String sql = "select column_name " + "from information_schema.columns "
+				+ "where table_name = ? and table_schema = ? and column_name = ?;";
+
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, tablename);
+			pstmt.setString(2, schema);
+			pstmt.setString(3, columnName);
+			//log.info("SQL: " + pstmt.toString());
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				hasColumn = true;
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+			}
+		}
+
+		return hasColumn;
+	}
+	
+	/*
+	 * Get the columns from a table in a specific schema
+	 */
+	public static ArrayList<String> getColumnsInSchema(Connection cRel, String tablename, String schema) {
+
+		ArrayList<String> cols = new ArrayList<String> ();
+		
+		String sql = "select column_name from information_schema.columns "
+				+ "where table_name = ? and table_schema = ?;";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, tablename);
+			pstmt.setString(2, schema);
+			//log.info("SQL: " + pstmt.toString());
+
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				cols.add(rs.getString(1));
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (Exception e) {
+			}
+		}
+
+		return cols;
+	}
+
 
 	/*
 	 * Get the table that contains a question name If there is a duplicate question

@@ -285,8 +285,7 @@ public class ActionManager {
 
 		Response response = null;
 
-		Type type = new TypeToken<ArrayList<Update>>() {
-		}.getType();
+		Type type = new TypeToken<ArrayList<Update>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(settings, type);
 
