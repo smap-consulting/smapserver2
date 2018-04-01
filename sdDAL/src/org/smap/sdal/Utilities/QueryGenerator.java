@@ -390,7 +390,7 @@ public class QueryGenerator {
 			boolean first,
 			boolean meta,
 			boolean includeKeys
-			) throws SQLException {
+			) throws Exception {
 		
 		int colLimit = 10000;
 		if(format.equals("shape")) {	// Shape files limited to 244 columns plus the geometry column
@@ -404,6 +404,7 @@ public class QueryGenerator {
 				connectionSD,
 				connectionResults,
 				localisation,
+				language,
 				sId,
 				user,
 				form.parent,

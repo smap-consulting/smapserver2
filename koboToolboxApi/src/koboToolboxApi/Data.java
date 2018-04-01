@@ -169,6 +169,7 @@ public class Data extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
+		String language = "none";
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk));
 
 		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get data records");
@@ -260,6 +261,7 @@ public class Data extends Application {
 					sd,
 					cResults,
 					localisation,
+					language,
 					sId,
 					request.getRemoteUser(),
 					parentform,
@@ -419,6 +421,7 @@ public class Data extends Application {
 		aSuper.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
+		String language = "none";
 		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get similar data records");
 
 		String sqlGetMainForm = "select f_id, table_name from form where s_id = ? and parentform = 0;";
@@ -496,6 +499,7 @@ public class Data extends Application {
 					sd,
 					cResults,
 					localisation,
+					language,
 					sId,
 					request.getRemoteUser(),
 					parentform,

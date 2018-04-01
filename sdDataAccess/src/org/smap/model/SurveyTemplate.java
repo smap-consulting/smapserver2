@@ -1656,7 +1656,7 @@ public class SurveyTemplate {
 	
 	/*
 	 * Add the options from the csv file
-	 */
+	 *
 	public void writeExternalChoices() {
 		
 		org.smap.sdal.managers.SurveyManager sm = new org.smap.sdal.managers.SurveyManager(localisation);
@@ -1737,4 +1737,5 @@ public class SurveyTemplate {
 		}
 			
 	}
+	*/
 }

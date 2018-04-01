@@ -117,7 +117,7 @@ public class Items extends Application {
 		boolean bMustHaveGeom = true;
 		int maxRec = 0;
 		int recCount = 0;
-
+		String language = "none";
 		ArrayList<String> colNames = new ArrayList<String> ();
 		HashMap<String, String> surveyNames = new HashMap<String, String> ();
 		
@@ -218,6 +218,7 @@ public class Items extends Application {
 						sd,
 						connection,
 						localisation,
+						language,
 						sId,
 						request.getRemoteUser(),
 						parent,

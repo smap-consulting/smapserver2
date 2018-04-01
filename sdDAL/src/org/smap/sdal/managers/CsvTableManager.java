@@ -17,6 +17,9 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.ActionManager.Update;
+import org.smap.sdal.model.Label;
+import org.smap.sdal.model.LanguageItem;
+import org.smap.sdal.model.Option;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -77,6 +80,9 @@ public class CsvTableManager {
 	private final int UPDATE_ENTRY = 2;
 	private final int DELETE_ENTRY = 3;
 	
+	/*
+	 * Constructor to create a table to hold the CSV data if it does not already exist
+	 */
 	public CsvTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
 			throws Exception {
 		
@@ -92,8 +98,8 @@ public class CsvTableManager {
 		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
 		PreparedStatement pstmtGetCsvTable = null;
 		
-		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, headers) "
-				+ "values(nextval('csv_seq'), ?, ?, ?, ?)";
+		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, headers, ts_initialised) "
+				+ "values(nextval('csv_seq'), ?, ?, ?, ?, now())";
 		PreparedStatement pstmtInsertCsvTable = null;
 		try {
 			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
@@ -132,6 +138,17 @@ public class CsvTableManager {
 		}
 	}
 
+	/*
+	 * Constructor that does not attempt to connect to a table or create a new table
+	 */
+	public CsvTableManager(Connection sd, ResourceBundle l)
+			throws Exception {
+		
+		this.sd = sd;
+		this.localisation = l;
+		
+	}
+	
 	/*
 	 * Update the table with data from the file
 	 */
@@ -265,11 +282,12 @@ public class CsvTableManager {
 			 * 3. Upload the data
 			 */
 			if(delta) {
-				insert(listAdd);
 				remove(listDel);
+				insert(listAdd);
 			} else {
 				truncate();
 				insert(listNew);
+				updateInitialisationTimetamp();
 			}		
 			
 			/*
@@ -309,7 +327,96 @@ public class CsvTableManager {
 	}
 	
 	/*
+	 * Get choices from the table
+	 */
+	public ArrayList<Option> getChoices(int oId, int sId, String fileName, String ovalue, ArrayList<LanguageItem> items) throws SQLException {
+		ArrayList<Option> choices = null;
+		
+		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+		PreparedStatement pstmtGetCsvTable = null;	
+		try {
+			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
+			pstmtGetCsvTable.setInt(1, oId);
+			pstmtGetCsvTable.setInt(2, sId);
+			pstmtGetCsvTable.setString(3, fileName);
+			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+			ResultSet rs = pstmtGetCsvTable.executeQuery();
+			if(rs.next()) {
+				choices = readChoicesFromTable(rs.getInt(1), ovalue, items);				
+			} else {
+				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
+				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+				ResultSet rsx = pstmtGetCsvTable.executeQuery();
+				if(rsx.next()) {
+					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items);	
+				}
+				
+			}
+		} finally {
+			try {pstmtGetCsvTable.close();} catch(Exception e) {}
+		}
+		return choices;
+	}
+	
+	/*
+	 * Read the choices out of a file
+	 */
+	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items) throws SQLException {
+			
+		ArrayList<Option> choices = new ArrayList<Option> ();
+		
+		String table = "csv.csv" + tableId;
+		PreparedStatement pstmt = null;
+		try {
+			StringBuffer sql = new StringBuffer("select distinct ");
+			sql.append(GeneralUtilityMethods.cleanNameNoRand(ovalue));
+			for(LanguageItem item : items) {
+				sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
+			}
+			sql.append(" from ").append(table);
+			pstmt = sd.prepareStatement(sql.toString());
+			log.info("Get CSV values: " + pstmt.toString());
+			ResultSet rsx = pstmt.executeQuery();
+			while(rsx.next()) {
+				int idx = 1;
+				Option o = new Option();
+				o.value = rsx.getString(idx++);
+				o.labels = new ArrayList<Label> ();
+				o.externalLabel = items;
+				o.externalFile = true;
+				for(LanguageItem item : items) {
+					Label l = new Label();
+					l.text = rsx.getString(idx++);
+					o.labels.add(l);
+				}
+				choices.add(o);
+			}	
+		} finally {
+			try {pstmt.close();} catch(Exception e) {}
+		}
+		return choices;
+	}
+	
+	/*
 	 * Save the headers so that when generating csv output we can use the original file name header
+	 */
+	private void updateInitialisationTimetamp() throws SQLException {
+		String sql = "Update csvtable set ts_initialised = now() where id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  tableId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Update the initialisation timestamp
+	 * Any request for the CSV data where the date of the request is older than this timestamp will result in the
+	 * csv data on the device being reinitialised
 	 */
 	private void updateHeaders() throws SQLException {
 		String sql = "Update csvtable set headers = ? where id = ?";

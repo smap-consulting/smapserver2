@@ -95,7 +95,7 @@ public class GetHtml {
 			Element parent;
 			parent = populateRoot();
 			// populateHead(sd, outputHtml, b, parent);
-			createForm(parent, true, true);
+			createForm(sd, parent, true, true);
 
 			// Write the survey to a string and return it to the calling program
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
@@ -132,7 +132,7 @@ public class GetHtml {
 		return rootElement;
 	}
 
-	public void createForm(Element parent, boolean isWebForms, boolean useNodesets) throws Exception {
+	public void createForm(Connection sd, Element parent, boolean isWebForms, boolean useNodesets) throws Exception {
 
 		Element bodyElement = outputDoc.createElement("form");
 		bodyElement.setAttribute("novalidate", "novalidate");
@@ -142,11 +142,11 @@ public class GetHtml {
 		bodyElement.setAttribute("dir", "ltr");
 		bodyElement.setAttribute("id", survey.getIdent());
 
-		populateForm(bodyElement);
+		populateForm(sd, bodyElement);
 		parent.appendChild(bodyElement);
 	}
 
-	private void populateForm(Element parent) throws Exception {
+	private void populateForm(Connection sd, Element parent) throws Exception {
 
 		// logo
 		Element bodyElement = outputDoc.createElement("section");
@@ -185,7 +185,7 @@ public class GetHtml {
 		for (Form form : survey.forms) {
 			if (form.parentform == 0) { // Start with top level form
 				addPaths(form, "/");
-				processQuestions(parent, form);
+				processQuestions(sd, parent, form);
 				processPreloads(parent, form);
 				processCalculations(parent, form);
 				break;
@@ -250,7 +250,7 @@ public class GetHtml {
 	/*
 	 * Process the main block of questions Skip over: - preloads - meta group
 	 */
-	private void processQuestions(Element parent, Form form) throws Exception {
+	private void processQuestions(Connection sd, Element parent, Form form) throws Exception {
 
 		Element bodyElement = null;
 		Element currentParent = parent;
@@ -296,7 +296,7 @@ public class GetHtml {
 						Element extraFieldsetElement = outputDoc.createElement("fieldset");
 						bodyElement.appendChild(extraFieldsetElement);
 
-						addSelectContents(extraFieldsetElement, qLabel, form, true);
+						addSelectContents(sd, extraFieldsetElement, qLabel, form, true);
 						currentParent.appendChild(bodyElement);
 					}
 
@@ -305,7 +305,7 @@ public class GetHtml {
 					elementStack.push(currentParent);
 					currentParent = addGroupWrapper(currentParent, q, true, form);
 
-					addRepeat(currentParent, q, form);
+					addRepeat(sd, currentParent, q, form);
 
 					// repeat into
 					Element repeatInfo = outputDoc.createElement("div");
@@ -342,8 +342,8 @@ public class GetHtml {
 						bodyElement = outputDoc.createElement("label");
 						setQuestionClass(q, bodyElement);
 
-						if (hasNodeset(q, form)) {
-							addMinimalSelectContentsItemset(bodyElement, q, form);
+						if (hasNodeset(sd, q, form)) {
+							addMinimalSelectContentsItemset(sd, bodyElement, q, form);
 						} else {
 							addMinimalSelectContents(bodyElement, q, form);
 						}
@@ -356,7 +356,7 @@ public class GetHtml {
 						Element extraFieldsetElement = outputDoc.createElement("fieldset");
 						bodyElement.appendChild(extraFieldsetElement);
 						
-						addSelectContents(extraFieldsetElement, q, form, false);
+						addSelectContents(sd, extraFieldsetElement, q, form, false);
 						currentParent.appendChild(bodyElement);
 					}
 
@@ -624,7 +624,7 @@ public class GetHtml {
 	/*
 	 * Add the contents of a select that has nodesets - minimal - autocomplete - search
 	 */
-	private void addMinimalSelectContentsItemset(Element parent, Question q, Form form) throws Exception {
+	private void addMinimalSelectContentsItemset(Connection sd, Element parent, Question q, Form form) throws Exception {
 
 		// Add labels
 		addLabels(parent, q, form);
@@ -667,7 +667,7 @@ public class GetHtml {
 		optionElement.setAttribute("data-label-type", "itext");
 		optionElement.setAttribute("data-label-ref", "itextId");
 
-		addOptionLabels(optionElement, q, form, true);
+		addOptionLabels(sd, optionElement, q, form, true);
 
 	}
 
@@ -675,7 +675,7 @@ public class GetHtml {
 	 * Add the contents of a select
 	 * 
 	 */
-	private void addSelectContents(Element parent, Question q, Form form, boolean tableList)
+	private void addSelectContents(Connection sd, Element parent, Question q, Form form, boolean tableList)
 			throws Exception {
 
 		// legend
@@ -690,7 +690,7 @@ public class GetHtml {
 		optionWrapperElement.setAttribute("class", "option-wrapper");
 
 		// options
-		addOptions(optionWrapperElement, q, form, tableList);
+		addOptions(sd, optionWrapperElement, q, form, tableList);
 	}
 
 	/*
@@ -765,10 +765,10 @@ public class GetHtml {
 		parent.appendChild(bodyElement);
 	}
 
-	private void addOptions(Element parent, Question q, Form form, boolean tableList) throws Exception {
+	private void addOptions(Connection sd, Element parent, Question q, Form form, boolean tableList) throws Exception {
 
 		// Itemset Template
-		if (hasNodeset(q, form)) {
+		if (hasNodeset(sd, q, form)) {
 			Element labelElement = outputDoc.createElement("label");
 			parent.appendChild(labelElement);
 			labelElement.setAttribute("class", "itemset-template");
@@ -806,17 +806,17 @@ public class GetHtml {
 			optionElement.setAttribute("data-label-type", "itext");
 			optionElement.setAttribute("data-label-ref", "itextId");
 
-			addOptionLabels(optionElement, q, form, tableList);
+			addOptionLabels(sd, optionElement, q, form, tableList);
 
 		} else {
-			addOptionLabels(parent, q, form, tableList);
+			addOptionLabels(sd, parent, q, form, tableList);
 		}
 
 	}
 
-	private void addOptionLabels(Element parent, Question q, Form form, boolean tableList) throws Exception {
+	private void addOptionLabels(Connection sd, Element parent, Question q, Form form, boolean tableList) throws Exception {
 
-		boolean hasNodeset = hasNodeset(q, form);
+		boolean hasNodeset = hasNodeset(sd, q, form);
 		Element labelElement = null;
 
 		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
@@ -889,7 +889,7 @@ public class GetHtml {
 	/*
 	 * Add a wrapper for a repeat then return the new parent
 	 */
-	private Form addRepeat(Element parent, Question q, Form form) throws Exception {
+	private Form addRepeat(Connection sd, Element parent, Question q, Form form) throws Exception {
 
 		Form newForm = null;
 
@@ -900,7 +900,7 @@ public class GetHtml {
 		// Process sub form
 		for (Form subForm : survey.forms) {
 			if (subForm.parentQuestion == q.id) { // continue with next form
-				processQuestions(bodyElement, subForm);
+				processQuestions(sd, bodyElement, subForm);
 				newForm = subForm;
 				break;
 			}
@@ -1220,10 +1220,12 @@ public class GetHtml {
 	/*
 	 * Return true if this question has a nodeset
 	 */
-	private boolean hasNodeset(Question q, Form form) throws Exception {
+	private boolean hasNodeset(Connection sd, Question q, Form form) throws Exception {
 
 		if (q.nodeset == null || q.nodeset.trim().length() == 0) {
 			return false;
+		} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
+			return false;	// External choices won't use a nodeset
 		} else {
 			return true;
 		}

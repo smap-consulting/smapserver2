@@ -9,7 +9,7 @@ public class LanguageItem {
 	public String language;
 	
 	public LanguageItem(String l, String t) {
-		text = t;
 		language = l;
+		text = t;
 	}
 }

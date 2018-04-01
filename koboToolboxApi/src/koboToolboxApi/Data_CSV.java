@@ -187,6 +187,7 @@ public class Data_CSV extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
+		String language = "none";
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "API CSV view");
 
 		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get data records csv");
@@ -278,7 +279,9 @@ public class Data_CSV extends Application {
 			}
 
 			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(sd, cResults, 
-					localisation, sId,
+					localisation,
+					language,
+					sId,
 					request.getRemoteUser(), parentform, fId, table_name, false, getParkey, // Include parent key if the
 					// form is not the top level
 					// form (fId is 0)

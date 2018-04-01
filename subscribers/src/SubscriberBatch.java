@@ -135,6 +135,7 @@ public class SubscriberBatch {
 				+ "values (nextval('se_seq'), ?, ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 
+		String language = "none";
 		try {
 			db = dbf.newDocumentBuilder();
 			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
@@ -446,6 +447,7 @@ public class SubscriberBatch {
 											sd,
 											cResults,
 											localisation,
+											language,
 											sId,
 											null,		// No need for user - we are super user
 											topForm.parentform,

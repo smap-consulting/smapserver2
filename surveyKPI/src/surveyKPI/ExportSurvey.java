@@ -397,6 +397,7 @@ public class ExportSurvey extends Application {
 							sd,
 							connectionResults,
 							localisation,
+							language,
 							sId,
 							request.getRemoteUser(),
 							parentId,

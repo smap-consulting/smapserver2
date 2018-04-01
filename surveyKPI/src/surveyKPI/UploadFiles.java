@@ -1024,7 +1024,7 @@ public class UploadFiles extends Application {
 	
 	/*
 	 * Update the survey with any changes resulting from the uploaded CSV file
-	 */
+	 *
 	private void applyCSVChanges(Connection connectionSD, 
 			Connection cResults,
 			ResourceBundle localisation,
@@ -1066,8 +1066,9 @@ public class UploadFiles extends Application {
 			}
 		}
 	}
+	*/
 
-
+	/*
 	private void applyCSVChangesToSurvey(
 			Connection connectionSD, 
 			Connection cResults,
@@ -1133,6 +1134,7 @@ public class UploadFiles extends Application {
 		}
 
 	}
+	*/
 	
 	/*
 	 * Delete the file

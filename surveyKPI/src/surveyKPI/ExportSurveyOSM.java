@@ -253,6 +253,7 @@ public class ExportSurveyOSM extends Application {
 							connectionSD,
 							connectionResults,
 							localisation,
+							language,
 							sId,
 							request.getRemoteUser(),
 							f.parent,

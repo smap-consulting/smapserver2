@@ -304,6 +304,7 @@ public class ManagedForms extends Application {
 		
 		StringBuffer compatibleMsg = new StringBuffer("");
 		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();
+		String language = "none";
 			
 		if(managedId > 0 && sId > 0) {
 				
@@ -316,6 +317,7 @@ public class ManagedForms extends Application {
 				ArrayList<TableColumn> formColumns = GeneralUtilityMethods.getColumnsInForm(sd, 
 						cResults,
 						localisation,
+						language,
 						sId,
 						user,
 						0,

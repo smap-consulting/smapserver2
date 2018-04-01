@@ -1265,7 +1265,7 @@ public class QuestionManager {
 
 	/*
 	 * Get a changeset with option updates for a question from a CSV file
-	 */
+	 *
 	public ChangeSet getCSVChangeSetForQuestion(
 			Connection sd, 
 			ResourceBundle localisation,
@@ -1303,7 +1303,7 @@ public class QuestionManager {
 
 		return cs;
 	}
-
+	*/
 	/*
 	 * Duplicate a form
 	 */

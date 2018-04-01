@@ -928,7 +928,7 @@ public class SurveyManager {
 				
 				if(exChoices == null) {
 					if(q.type.startsWith("select")) {
-						GeneralUtilityMethods.transitionExternalCSV(sd, q);
+						GeneralUtilityMethods.setExternalFileValues(sd, q);
 					} else {
 						q.external_choices = false;
 					}
@@ -1029,53 +1029,59 @@ public class SurveyManager {
 			String listName = rsGetLists.getString(2);
 
 			OptionList optionList = new OptionList ();
-			optionList.options = new ArrayList<Option> ();
 
 			boolean external = false;
+			int selectQuestion = 0;
 			if(getExternalOptions.equals("external")) {
 				external = true;
 			} else if(getExternalOptions.equals("internal")) {
 				external = false;
 			} else if(getExternalOptions.equals("real")) {
-				external = GeneralUtilityMethods.listHasExternalChoices(sd, listId);
+				external = GeneralUtilityMethods.listHasExternalChoices(sd, s.id, listId);
 			}
 
-			pstmtGetOptions.setInt(1, listId);
-			pstmtGetOptions.setBoolean(2, external);
-			if(idx++ == 0) {
-				log.info("SQL Get options: " + pstmtGetOptions.toString());
-			}
-			rsGetOptions = pstmtGetOptions.executeQuery();
-
-			Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
-			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-
-			while(rsGetOptions.next()) {
-				Option o = new Option();
-				o.id = rsGetOptions.getInt(1);
-				o.value = rsGetOptions.getString(2);
-				o.text_id = rsGetOptions.getString(3);
-				o.externalFile = rsGetOptions.getBoolean(4);
-				String cascade_filters = rsGetOptions.getString(5);
-				if(cascade_filters != null && !cascade_filters.equals("null")) {
-					try {
-						o.cascade_filters = gson.fromJson(cascade_filters, hmType);
-						for (String key : o.cascade_filters.keySet()) {
-							s.filters.put(key, true);
-						}
-
-					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
-					}
-				} else {
-					o.cascade_filters = new HashMap<String, String> ();	// An empty object
+			if(external) {
+				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
+				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, s.id, qId, listId);
+			} else {
+				optionList.options = new ArrayList<Option> ();
+				pstmtGetOptions.setInt(1, listId);
+				pstmtGetOptions.setBoolean(2, external);
+				if(idx++ == 0) {
+					log.info("SQL Get options: " + pstmtGetOptions.toString());
 				}
-				o.columnName = rsGetOptions.getString(6);
-				o.published = rsGetOptions.getBoolean(7);
-
-				// Get the labels for the option
-				UtilityMethodsEmail.getLabels(sd, s, o.text_id, null, o.labels, basePath, oId);
-				optionList.options.add(o);
+				rsGetOptions = pstmtGetOptions.executeQuery();
+	
+				Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
+				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+	
+				while(rsGetOptions.next()) {
+					Option o = new Option();
+					o.id = rsGetOptions.getInt(1);
+					o.value = rsGetOptions.getString(2);
+					o.text_id = rsGetOptions.getString(3);
+					o.externalFile = rsGetOptions.getBoolean(4);
+					String cascade_filters = rsGetOptions.getString(5);
+					if(cascade_filters != null && !cascade_filters.equals("null")) {
+						try {
+							o.cascade_filters = gson.fromJson(cascade_filters, hmType);
+							for (String key : o.cascade_filters.keySet()) {
+								s.filters.put(key, true);
+							}
+	
+						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
+						}
+					} else {
+						o.cascade_filters = new HashMap<String, String> ();	// An empty object
+					}
+					o.columnName = rsGetOptions.getString(6);
+					o.published = rsGetOptions.getBoolean(7);
+	
+					// Get the labels for the option
+					UtilityMethodsEmail.getLabels(sd, s, o.text_id, null, o.labels, basePath, oId);
+					optionList.options.add(o);
+				}
 			}
 
 			s.optionLists.put(listName, optionList);
@@ -1287,7 +1293,7 @@ public class SurveyManager {
 					} else if(cs.changeType.equals("option") && cs.source != null && cs.source.equals("file")) {
 
 						// Apply changes to options loaded from a csv file
-						applyOptionUpdates(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.source, logIndividualChangeSets);
+						//applyOptionUpdates(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.source, logIndividualChangeSets);
 
 					} else if(cs.changeType.equals("property") && !cs.type.equals("option")) {
 
@@ -1613,7 +1619,7 @@ public class SurveyManager {
 	 *  2) Attempt to get the text_id for the passed in option
 	 *     3a) If the text_id can't be found create a new option
 	 *     3b) Else update the label value for the option 
-	 */
+	 *
 	public void applyOptionUpdates(Connection connectionSD,
 			PreparedStatement pstmtChangeLog, 
 			ArrayList<ChangeItem> changeItemList, 
@@ -1760,7 +1766,8 @@ public class SurveyManager {
 			try {if (pstmtTranslationDelete != null) {pstmtTranslationDelete.close();}} catch (SQLException e) {}
 		}
 	}
-
+	*/
+	
 	/*
 	 * Apply question property changes
 	 * This can be any simple property type such as relevance
@@ -3089,7 +3096,7 @@ public class SurveyManager {
 	 * Add the options any CSV files referenced by this question
 	 * This code largely duplicates the code in SurveyTemplate.java however it references the SDAL
 	 *  version of a question object rather than the old sdDataAccess version of Question
-	 */
+	 *
 	public void writeExternalChoicesForQuestions(
 			Connection sd, 
 			Connection cResults, 
@@ -3171,6 +3178,7 @@ public class SurveyManager {
 		} 
 
 	}
+	*/
 
 	/*
 	 * Get the questions for a survey

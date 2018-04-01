@@ -366,6 +366,7 @@ public class XLSResultsManager {
 							sd,
 							connectionResults,
 							localisation,
+							language,
 							sId,
 							user,
 							parentId,

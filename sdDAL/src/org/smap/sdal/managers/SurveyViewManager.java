@@ -76,6 +76,7 @@ public class SurveyViewManager {
 		SurveyViewDefn svd = new SurveyViewDefn(viewId, sId, managedId, 0);		// Todo Query id
 		
 		ArrayList<TableColumnConfig> configColumns = new ArrayList<TableColumnConfig> ();
+		String language = "none";
 		
 		// SQL to get view details
 		String sql = "select view, map_view, chart_view "
@@ -142,6 +143,7 @@ public class SurveyViewManager {
 					sd,
 					cResults,
 					localisation,
+					language,
 					sId,
 					uIdent,
 					0,

@@ -140,6 +140,7 @@ public class ExchangeManager {
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 		surveyNames = new HashMap<String, String> ();
 		String basePath = null;
+		String language = "none";
 		
 		String dateName = null;
 		int dateForm = 0;
@@ -189,6 +190,7 @@ public class ExchangeManager {
 							sd,
 							connectionResults,
 							localisation,
+							language,
 							sId,
 							user,
 							parentId,

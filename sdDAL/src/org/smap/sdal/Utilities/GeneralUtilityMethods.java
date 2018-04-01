@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -1663,7 +1664,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get a list of options from an external file
-	 */
+	 *
 	public static void getOptionsFromFile(
 			Connection sd, 
 			ResourceBundle localisation, 
@@ -1742,7 +1743,7 @@ public class GeneralUtilityMethods {
 		 * This will mean it will not depend on these options to store results
 		 * 
 		 * deprecate this!
-		 */
+		 *
 		if(qType.equals("select")) {
 			String sqlHasExternal = "select count(*) from option where l_id = ? and externalfile;";
 			PreparedStatement pstmtHasExternal = null;
@@ -1771,7 +1772,7 @@ public class GeneralUtilityMethods {
 		}
 		/*
 		 * End code Migration
-		 */
+		 *
 		HashMap<String, String> optionValues = new HashMap<String, String> ();	// Ensure uniqueness of values
 		List<OptionItem> listNew = new ArrayList<OptionItem>();
 		List<OptionItem> listOld = new ArrayList<OptionItem>();
@@ -1809,7 +1810,7 @@ public class GeneralUtilityMethods {
 			 * on:
 			 * https://stackoverflow.com/questions/31426187/want-to-find-content-difference-
 			 * between-two-text-files-with-java
-			 */
+			 *
 			while (newLine != null) {
 				newLine = brNew.readLine();
 				if(newLine != null) {
@@ -1874,7 +1875,7 @@ public class GeneralUtilityMethods {
 			/*
 			 * Create a list of items to add that are in the new list but not in the old
 			 * Create a list of items to remove that are in the old list but not in the new
-			 */
+			 *
 			ArrayList<OptionItem> listAdd = new ArrayList<OptionItem>(listNew);
 			listAdd.removeAll(listOld);
 			ArrayList<OptionItem> listDel = new ArrayList<OptionItem>(listOld);
@@ -1886,7 +1887,7 @@ public class GeneralUtilityMethods {
 				 * Delete Items 
 				 * Do this first as presumably its possible that the new option could have identical identifiers to an 
 				 * option its replacing but with a different label
-				 */
+				 *
 				log.info("There are " + listDel.size() + " items to delete");
 				for (OptionItem item : listDel) {
 	
@@ -1905,7 +1906,7 @@ public class GeneralUtilityMethods {
 	
 				/*
 				 * Add new items
-				 */
+				 *
 				log.info("Adding " + listAdd.size() + " items");
 				for (OptionItem item : listAdd) {
 	
@@ -1930,7 +1931,8 @@ public class GeneralUtilityMethods {
 			if (brOld != null) {	try {brNew.close();} catch (Exception e) {}};
 		}
 	}
-
+	*/
+	
 	/*
 	 * Check for existence of an option
 	 */
@@ -2783,6 +2785,7 @@ public class GeneralUtilityMethods {
 			Connection sd, 
 			Connection cResults, 
 			ResourceBundle localisation,
+			String language,
 			int sId, 
 			String user,
 			int formParent, 
@@ -2799,8 +2802,9 @@ public class GeneralUtilityMethods {
 			boolean superUser,
 			boolean hxl,
 			boolean audit)
-					throws SQLException {
+					throws Exception {
 
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property
 		// questions can be added first
@@ -3124,20 +3128,35 @@ public class GeneralUtilityMethods {
 					
 					if (qType.equals("select")) {
 		
-						// Compressed select multiple add the options
-						pstmtSelectMultiple.setInt(1, qId);
-						pstmtSelectMultiple.setBoolean(2, false);	// No external
-						ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
-
-						c.choices = new ArrayList<KeyValue> ();						
-						while (rsMultiples.next()) {
-							// Get the choices
-
-							String optionName = rsMultiples.getString(2);	// Set to choice value
-							String optionLabel = rsMultiples.getString(2);	// ALso set to choice value
-
-							c.choices.add(new KeyValue(optionName, optionLabel));
-							
+						c.choices = new ArrayList<KeyValue> ();	
+						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id);
+							for(Option o : options) {
+								String label ="";
+								if(o.externalLabel != null) {
+									for(LanguageItem el : o.externalLabel) {
+										if(el.language.equals(language)) {
+											label = el.text;
+										}
+									}
+								}
+								c.choices.add(new KeyValue(o.value, label));
+							}
+						} else {
+							// Compressed select multiple add the options
+							pstmtSelectMultiple.setInt(1, qId);
+							pstmtSelectMultiple.setBoolean(2, false);	// No external
+							ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
+						
+							while (rsMultiples.next()) {
+								// Get the choices
+	
+								String optionName = rsMultiples.getString(2);	// Set to choice value
+								String optionLabel = rsMultiples.getString(2);	// ALso set to choice value
+	
+								c.choices.add(new KeyValue(optionName, optionLabel));
+								
+							}
 						}
 					}
 				}
@@ -3744,29 +3763,44 @@ public class GeneralUtilityMethods {
 	public static boolean hasExternalChoices(Connection sd, int qId) throws SQLException {
 
 		boolean external = false;
-		String sql = "select count(*) from option o, question q where o.l_id = q.l_id and q.q_id = ? and o.externalfile = 'true';";
+		String sqlLegacy = "select count(*) from option o, question q where o.l_id = q.l_id and q.q_id = ? and o.externalfile = 'true';";
+		PreparedStatement pstmtLegacy = null;
+		
 		PreparedStatement pstmt = null;
+		String sql = "select q.appearance from question q "
+				+ "where q.q_id = ? "
+				+ "and q.appearance like '%search(%'";
 
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, qId);
-			ResultSet rs = pstmt.executeQuery();
+			// Deprecate need to check appearance
+			pstmtLegacy = sd.prepareStatement(sqlLegacy);
+			pstmtLegacy.setInt(1, qId);
+			ResultSet rs = pstmtLegacy.executeQuery();
 			if (rs.next()) {
 				if (rs.getInt(1) > 0) {
 					external = true;
 				}
 			}
 
+			if(external == false) {
+				// Try new check
+				pstmt = sd.prepareStatement(sql);
+				
+				pstmt.setInt(1, qId);
+				rs = pstmt.executeQuery();
+				if (rs.next()) {			
+					external = true;
+				}
+			}
+
+			
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtLegacy != null) {pstmtLegacy.close();}} catch (SQLException e) {}
 		}
 
 		return external;
@@ -3810,35 +3844,105 @@ public class GeneralUtilityMethods {
 	/*
 	 * Check to see if there are any choices from an external file for a question
 	 */
-	public static boolean listHasExternalChoices(Connection sd, int listId) throws SQLException {
+	public static boolean listHasExternalChoices(Connection sd, int sId, int listId) throws SQLException {
 
-		boolean external = false;
-		String sql = "select count(*) from option o where o.l_id = ? and o.externalfile = 'true';";
+		boolean hasExternal = false;
+		// String sql = "select count(*) from option o where o.l_id = ? and o.externalfile = 'true';";
 		PreparedStatement pstmt = null;
-
+		String sql = "select q.appearance from question q, form f "
+				+ "where f.s_id = ? "
+				+ "and f.f_id = q.f_id "
+				+ "and q.l_id = ? "
+				+ "and q.appearance like '%search(%'";
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, listId);
+			
+			pstmt.setInt(1, sId);
+			pstmt.setInt(2, listId);
 			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				if (rs.getInt(1) > 0) {
-					external = true;
-				}
+			if (rs.next()) {			
+				hasExternal = true;
 			}
 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
-		return external;
+		return hasExternal;
+	}
+	
+	/*
+	 * Get choices from an external file
+	 */
+	public static ArrayList<Option> getExternalChoices(Connection sd, ResourceBundle localisation, 
+			int oId, int sId, int qId, int l_id) throws Exception {
+
+		ArrayList<Option> choices = null;		
+		String sql = "select q.external_table from question q where q.q_id = ?";
+		PreparedStatement pstmt = null;
+		
+		String sqlChoices = "select ovalue, label_id from option where l_id = ?";
+		PreparedStatement pstmtChoices = null;
+			
+		String sqlLabels = "select t.value, t.language " 
+						+ "from translation t "
+						+ "where t.text_id = ? "
+						+ "and t.type = 'none' "
+						+ "and t.s_id = ? "
+						+ "order by t.language asc";
+		PreparedStatement pstmtLabels = null;
+		
+		try {
+			String filename = null;
+			
+			pstmt = sd.prepareStatement(sql);			
+			pstmt.setInt(1, qId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {		
+				
+				filename = rs.getString(1);
+				
+				if(filename != null) {
+					
+					pstmtChoices = sd.prepareStatement(sqlChoices);
+					pstmtChoices.setInt(1, l_id);
+					ResultSet rsChoices = pstmtChoices.executeQuery();
+					if(rsChoices.next()) {
+						String ovalue = rsChoices.getString(1);
+						String oLabelId = rsChoices.getString(2);
+						
+						pstmtLabels = sd.prepareCall(sqlLabels);
+						pstmtLabels.setString(1, oLabelId);
+						pstmtLabels.setInt(2,  sId);
+						log.info(pstmtLabels.toString());
+						ResultSet rsLabels = pstmtLabels.executeQuery();
+						ArrayList<LanguageItem> languageItems = new ArrayList<LanguageItem> ();
+						while(rsLabels.next()) {
+							String label = rsLabels.getString(1);
+							String language = rsLabels.getString(2);
+							System.out.println("------- " + filename + ", " + ovalue + ", " + label + ", " + language);
+							languageItems.add(new LanguageItem(language, label));
+						}
+						
+						if(languageItems.size() > 0) {
+							CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
+							choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems);
+						}
+					}
+					
+				} 
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtChoices != null) {pstmtChoices.close();}} catch (SQLException e) {}
+			try {if (pstmtLabels != null) {pstmtLabels.close();}} catch (SQLException e) {}
+		}
+
+		return choices;
 	}
 
 	/*
@@ -5368,6 +5472,42 @@ public class GeneralUtilityMethods {
 
 		return filterQuestion;
 	}
+	
+	/*
+	 * Get the first question that uses the specified list and that is in the specified survey
+	 */
+	public static int getQuestionFromList(Connection sd, int sId, int listId) throws SQLException {
+
+		int qId = 0;
+
+		String sql = "select q.q_id from question q, form f "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = ? "
+				+ "and q.l_id = ? ";
+
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setInt(2, listId);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				qId = rs.getInt(1);
+			}
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
+			throw e;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {
+			}
+		}
+
+		return qId;
+	}
+
 
 	/*
 	 * Get centroid of geoJson Used when converting searches into cascading selects
@@ -6202,9 +6342,8 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Update settings in question that identify if choices are in an external file
-	 * This is only required until all select type questions have been converted
 	 */
-	public static void transitionExternalCSV(Connection sd, Question q) throws SQLException {
+	public static void setExternalFileValues(Connection sd, Question q) throws SQLException {
 		
 		if(q.type.startsWith("select") && isAppearanceExternalFile(q.appearance)) {
 			ManifestInfo mi = addManifestFromAppearance(q.appearance, null);
@@ -6212,6 +6351,7 @@ public class GeneralUtilityMethods {
 			q.external_table = mi.filename;
 		} else {
 			q.external_choices = false;
+			q.external_table = null;
 		}
 		
 		String sql = "update question "
