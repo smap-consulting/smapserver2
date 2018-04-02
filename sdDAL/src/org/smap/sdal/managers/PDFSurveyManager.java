@@ -282,7 +282,7 @@ public class PDFSurveyManager {
 				}
 			}
 			gv.mapbox_key = serverData.mapbox_default;
-
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser, survey.id);
 
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			if(templateFile.exists()) {
@@ -295,7 +295,7 @@ public class PDFSurveyManager {
 				
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
-							basePath, null, i, serverRoot, stamper);
+							basePath, null, i, serverRoot, stamper, oId);
 				}
 				if(user != null) {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, basePath);
@@ -348,7 +348,8 @@ public class PDFSurveyManager {
 							gv,
 							false,
 							parentRecords,
-							remoteUser);		
+							remoteUser,
+							oId);		
 				}
 
 				fillNonTemplateUserDetails(document, user, basePath);
@@ -372,7 +373,8 @@ public class PDFSurveyManager {
 								gv,
 								true, 
 								parentRecords,
-								remoteUser);		
+								remoteUser,
+								oId);		
 					}
 				}
 
@@ -457,7 +459,8 @@ public class PDFSurveyManager {
 			String formName,
 			int repeatIndex,
 			String serverRoot,
-			PdfStamper stamper) throws IOException, DocumentException {
+			PdfStamper stamper,
+			int oId) throws IOException, DocumentException {
 		try {
 
 			for(Result r : record) {
@@ -482,16 +485,18 @@ public class PDFSurveyManager {
 				 */
 				if(r.type.equals("form")) {
 					for(int k = 0; k < r.subForm.size(); k++) {
-						fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper);
+						fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper, oId);
 					} 
 				} else if(r.type.equals("select1")) {
 					
 					Form form = survey.forms.get(r.fIdx);
 					Question question = form.questions.get(r.qIdx);
 					
-					String nameValue = r.value;
-					value = choiceManager.getLabel(sd, survey.id, question.l_id, nameValue, question.external_choices, question.external_table, 
-							survey.languages.get(languageIdx).name);
+					ArrayList<String> matches = new ArrayList<String> ();
+					matches.add(r.value);
+					value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id, 
+							question.external_choices, question.external_table, 
+							survey.languages.get(languageIdx).name, matches);
 					
 					
 					/*
@@ -515,17 +520,17 @@ public class PDFSurveyManager {
 					String nameValue = r.value;
 					if(nameValue != null) {
 						String vArray [] = nameValue.split(" ");
-						value = "";
+						ArrayList<String> matches = new ArrayList<String> ();
+						if(vArray != null) {
+							for(String v : vArray) {
+								matches.add(v);
+							}
+						}
 						Form form = survey.forms.get(r.fIdx);
 						Question question = form.questions.get(r.qIdx);
-						for(int i = 0; i < vArray.length; i++) {
-							String vx = choiceManager.getLabel(sd, survey.id, question.l_id, vArray[i], question.external_choices, question.external_table, 
-									survey.languages.get(languageIdx).name);
-							if(value.length() > 0) {
-								value += ", ";
-							}
-							value += GeneralUtilityMethods.unesc(vx);
-						}
+						value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id,  question.external_choices, 
+								question.external_table, 
+								survey.languages.get(languageIdx).name, matches);
 					}
 					/*
 					value = "";		// Going to append multiple selections to value
@@ -773,7 +778,8 @@ public class PDFSurveyManager {
 			GlobalVariables gv,
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
-			String remoteUser) throws DocumentException, IOException {
+			String remoteUser,
+			int oId) throws DocumentException, IOException {
 
 		// Check that the depth of repeats hasn't exceeded the maximum
 		if(depth > repIndexes.length - 1) {
@@ -804,7 +810,8 @@ public class PDFSurveyManager {
 								gv,
 								appendix,
 								null,
-								remoteUser);
+								remoteUser,
+								oId);
 					}
 				} else {
 					for(int k = 0; k < r.subForm.size(); k++) {
@@ -824,7 +831,8 @@ public class PDFSurveyManager {
 								gv,
 								appendix,
 								parentRecords,
-								remoteUser);
+								remoteUser,
+								oId);
 					} 
 				}
 			} else if(r.qIdx >= 0) {
@@ -852,7 +860,8 @@ public class PDFSurveyManager {
 								repIndexes, 
 								gv,
 								remoteUser,
-								survey);
+								survey,
+								oId);
 
 						newTable.setWidthPercentage(100);
 
@@ -946,7 +955,8 @@ public class PDFSurveyManager {
 			int[] repIndexes,
 			GlobalVariables gv,
 			String remoteUser,
-			org.smap.sdal.model.Survey survey) throws BadElementException, MalformedURLException, IOException {
+			Survey survey,
+			int oId) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPTable table = new PdfPTable(depth + NUMBER_TABLE_COLS);	// Add a column for each level of repeats so that the repeat number can be shown
 
@@ -964,7 +974,7 @@ public class PDFSurveyManager {
 		int numberItems = row.items.size();
 		for(DisplayItem di : row.items) {
 
-			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, survey));
+			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, survey, oId));
 			//cell.addElement(addDisplayItem(parser, di, basePath, generateBlank, gv));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
@@ -1411,7 +1421,8 @@ public class PDFSurveyManager {
 			boolean generateBlank,
 			GlobalVariables gv,
 			String remoteUser,
-			Survey survey) throws BadElementException, MalformedURLException, IOException {
+			Survey survey,
+			int oId) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPCell labelCell = new PdfPCell();
 		PdfPCell valueCell = new PdfPCell();
@@ -1485,7 +1496,7 @@ public class PDFSurveyManager {
 
 		// Set the content of the value cell
 		try {
-			updateValueCell(valueCell, di, generateBlank, basePath, serverRoot, gv);
+			updateValueCell(valueCell, di, generateBlank, basePath, serverRoot, gv, oId);
 		} catch (Exception e) {
 			log.info("Error updating value cell, continuing: " + basePath + " : " + di.value);
 			log.log(Level.SEVERE, "Exception", e);
@@ -1530,14 +1541,15 @@ public class PDFSurveyManager {
 			boolean generateBlank, 
 			String basePath,
 			String serverRoot,
-			GlobalVariables gv
-			) throws BadElementException, MalformedURLException, IOException, SQLException, ParseException {
+			GlobalVariables gv,
+			int oId
+			) throws Exception {
 
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
 		if(di.type.startsWith("select")) {
-			processSelect(valueCell, di, generateBlank, gv);
+			processSelect(valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
 				if(di.isHyperlink) {
@@ -1694,7 +1706,7 @@ public class PDFSurveyManager {
 
 	private void processSelect(PdfPCell cell, DisplayItem di,
 			boolean generateBlank,
-			GlobalVariables gv) {
+			GlobalVariables gv, int oId) throws Exception {
 
 		Font f = null;
 		boolean isRtl = false;
@@ -1765,24 +1777,26 @@ public class PDFSurveyManager {
 					Form form = survey.forms.get(di.fIdx);
 					Question question = form.questions.get(di.qIdx);
 					
-					String nameValue = di.value;
-					value = choiceManager.getLabel(sd, survey.id, question.l_id, nameValue, question.external_choices, question.external_table, 
-							survey.languages.get(languageIdx).name);
+					ArrayList<String> matches = new ArrayList<String> ();
+					matches.add(di.value);
+					value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id, 
+							question.external_choices, question.external_table, 
+							survey.languages.get(languageIdx).name, matches);
 				} else if(di.type.equals("select")) {
 					String nameValue = value;
 					if(nameValue != null) {
 						String vArray [] = nameValue.split(" ");
-						value = "";
+						ArrayList<String> matches = new ArrayList<String> ();
+						if(vArray != null) {
+							for(String v : vArray) {
+								matches.add(v);
+							}
+						}
 						Form form = survey.forms.get(di.fIdx);
 						Question question = form.questions.get(di.qIdx);
-						for(int i = 0; i < vArray.length; i++) {
-							String vx = choiceManager.getLabel(sd, survey.id, question.l_id, vArray[i], question.external_choices, question.external_table, 
-									survey.languages.get(languageIdx).name);
-							if(value.length() > 0) {
-								value += ", ";
-							}
-							value += GeneralUtilityMethods.unesc(vx);
-						}
+						value = choiceManager.getLabel(sd, oId, survey.id, question.id, 
+									question.l_id, question.external_choices, question.external_table, 
+									survey.languages.get(languageIdx).name, matches);
 					}
 				}
 				

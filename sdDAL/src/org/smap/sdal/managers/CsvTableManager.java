@@ -329,7 +329,10 @@ public class CsvTableManager {
 	/*
 	 * Get choices from the table
 	 */
-	public ArrayList<Option> getChoices(int oId, int sId, String fileName, String ovalue, ArrayList<LanguageItem> items) throws SQLException {
+	public ArrayList<Option> getChoices(int oId, int sId, String fileName, String ovalue, 
+			ArrayList<LanguageItem> items,
+			ArrayList<String> matches) throws SQLException {
+		
 		ArrayList<Option> choices = null;
 		
 		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
@@ -342,13 +345,13 @@ public class CsvTableManager {
 			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				choices = readChoicesFromTable(rs.getInt(1), ovalue, items);				
+				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items);	
+					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches);	
 				}
 				
 			}
@@ -361,22 +364,42 @@ public class CsvTableManager {
 	/*
 	 * Read the choices out of a file
 	 */
-	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items) throws SQLException {
+	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
+			ArrayList<String> matches) throws SQLException {
 			
 		ArrayList<Option> choices = new ArrayList<Option> ();
 		
 		String table = "csv.csv" + tableId;
 		PreparedStatement pstmt = null;
 		try {
+			String cValue = GeneralUtilityMethods.cleanNameNoRand(ovalue);
 			StringBuffer sql = new StringBuffer("select distinct ");
-			sql.append(GeneralUtilityMethods.cleanNameNoRand(ovalue));
+			sql.append(cValue);
 			for(LanguageItem item : items) {
 				sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
 			}
 			sql.append(" from ").append(table);
-			pstmt = sd.prepareStatement(sql.toString());
+			if(matches != null && matches.size() > 0) {
+				sql.append(" where ").append(cValue).append(" in (");
+				int idx = 0;
+				for(String match : matches) {
+					if(idx++ > 0) {
+						sql.append(", ");
+					}					
+					sql.append("?");
+				}
+				sql.append(")");
+			}			
+			pstmt = sd.prepareStatement(sql.toString());		
+			if(matches != null && matches.size() > 0) {
+				int idx = 1;
+				for(String match : matches) {									
+					pstmt.setString(idx++, match);;
+				}
+			}
 			log.info("Get CSV values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
+			
 			while(rsx.next()) {
 				int idx = 1;
 				Option o = new Option();

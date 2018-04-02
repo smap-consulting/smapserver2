@@ -3130,7 +3130,7 @@ public class GeneralUtilityMethods {
 		
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
-							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id);
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, null);
 							for(Option o : options) {
 								String label ="";
 								if(o.externalLabel != null) {
@@ -3878,7 +3878,7 @@ public class GeneralUtilityMethods {
 	 * Get choices from an external file
 	 */
 	public static ArrayList<Option> getExternalChoices(Connection sd, ResourceBundle localisation, 
-			int oId, int sId, int qId, int l_id) throws Exception {
+			int oId, int sId, int qId, int l_id, ArrayList<String> matches) throws Exception {
 
 		ArrayList<Option> choices = null;		
 		String sql = "select q.external_table from question q where q.q_id = ?";
@@ -3929,7 +3929,7 @@ public class GeneralUtilityMethods {
 						
 						if(languageItems.size() > 0) {
 							CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
-							choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems);
+							choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches);
 						}
 					}
 					

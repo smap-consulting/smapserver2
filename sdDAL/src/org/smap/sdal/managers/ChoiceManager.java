@@ -1,10 +1,15 @@
 package org.smap.sdal.managers;
 
 import java.sql.Connection;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Label;
+import org.smap.sdal.model.LanguageItem;
+import org.smap.sdal.model.Option;
 
 /*****************************************************************************
 
@@ -37,35 +42,58 @@ public class ChoiceManager {
 	}
 	
 	
-	public String getLabel(Connection sd, int sId, int l_id, String value, boolean external_choices, String external_table, String languageName) {
+	public String getLabel(Connection sd, int oId, int sId, int qId, int l_id, boolean external_choices, String external_table, String languageName,
+			ArrayList<String> matches) throws Exception {
 		
+		StringBuffer labels = new StringBuffer("");
 		
-		String label = null;
-		
-		try {
-			/*
-			 * 1. Search choices which are stored in the survey meta definition
-			 */
-			if(!external_choices) {
-				label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, value);
+		if(!external_choices) {
+			// 1. Search choices which are stored in the survey meta definition
+			int idx = 0;
+			for(String match : matches) {
+				if(idx++ > 0) {
+					labels.append(", ");
+				}
+				labels.append(UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match));
 			}
-			
-			/*
-			 * 2. TODO Search choices which are stored in an external table
-			 */
-		
-		} catch (Exception e) {
-			
-		} finally {
-			
+		} else {
+			// 2. TODO Search choices which are stored in an external table
+			ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, matches);
+			int idx = 0;
+			int languageIdx = 0;
+			for(Option choice : choices) {
+				if(idx++ == 0) {
+					// Get the language index
+					for(LanguageItem item : choice.externalLabel) {
+						if(languageName == null || languageName.equals("none") || languageName.equals(languageName)) {
+							break;
+						} else {
+							languageIdx++;
+						}
+					}
+				} else {
+					labels.append(", ");
+				}
+				if(choice.labels != null && choice.labels.size() > languageIdx) {
+					labels.append(choice.labels.get(languageIdx).text);
+				}
+			}
+				
+				
 		}
 		
-		if(label == null) {
+		if(labels.length() == 0) {
 			// No label found, return the original value as the label
-			label = value;
+			int idx = 0;
+			for(String match : matches) {
+				if(idx++ > 0) {
+					labels.append(", ");
+				}
+				labels.append(match);
+			}
 		}
 		
-		return label;
+		return labels.toString();
 	}
 
 }

@@ -1042,7 +1042,7 @@ public class SurveyManager {
 
 			if(external) {
 				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
-				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, s.id, qId, listId);
+				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, s.id, qId, listId, null);
 			} else {
 				optionList.options = new ArrayList<Option> ();
 				pstmtGetOptions.setInt(1, listId);

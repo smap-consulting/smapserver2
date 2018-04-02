@@ -554,7 +554,8 @@ public class NotificationManager {
 						msg.user,
 						survey,
 						utcOffset,
-						"none");
+						"none",
+						organisation.id);
 			msg.subject = text.get(0);
 			msg.content = text.get(1);
 			
