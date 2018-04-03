@@ -104,7 +104,7 @@ public class ServerManager {
 			String surveyDisplayName,
 			String basePath,
 			boolean delData,
-			String delTables) throws SQLException {
+			String delTables) throws Exception {
 
 		/*
 		 * Get the tables associated with this survey
@@ -221,6 +221,11 @@ public class ServerManager {
 				}
 
 
+				// Delete the survey  resources 
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
+			    CsvTableManager tm = new CsvTableManager(sd, localisation);
+			    tm.delete(oId, sId, null);		
+			    
 				// Delete the templates
 				try {
 					GeneralUtilityMethods.deleteTemplateFiles(surveyDisplayName, basePath, projectId );

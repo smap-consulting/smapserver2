@@ -440,10 +440,12 @@ public class ExternalFileManager {
 				if(vList != null) {
 					int idx = 0;
 					for(String v : vList) {
-						if(idx++ > 0) {
-							bw.write(":");
+						if(v != null) {
+							if(idx++ > 0) {
+								bw.write(":");
+							}
+							bw.write(v);
 						}
-						bw.write(v);
 					}
 				}
 			}

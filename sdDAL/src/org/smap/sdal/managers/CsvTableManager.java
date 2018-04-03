@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.CSVParser;
@@ -359,6 +360,68 @@ public class CsvTableManager {
 			try {pstmtGetCsvTable.close();} catch(Exception e) {}
 		}
 		return choices;
+	}
+	
+	/*
+	 * Delete csv tables
+	 */
+	public void delete(int oId, int sId, String fileName) throws SQLException {
+		
+		String sqlFile = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
+		String sqlSurvey = "select id from csvtable where o_id = ? and s_id = ?";
+		String sqlOrg = "select id from csvtable where o_id = ?";
+		PreparedStatement pstmt = null;
+		
+		PreparedStatement pstmtDrop = null;
+		
+		String sqlDelete = "delete from csvtable where id = ?";
+		PreparedStatement pstmtDelete = null;
+				
+		try {
+			pstmtDelete = sd.prepareStatement(sqlDelete);
+			
+			if(fileName != null) {
+				pstmt = sd.prepareStatement(sqlFile);	// If the filename is specified then just delete that
+				pstmt.setInt(1, oId);
+				pstmt.setInt(2,  sId);
+				pstmt.setString(3, fileName);
+			} else if(sId > 0) {
+				pstmt = sd.prepareStatement(sqlSurvey);	// If the survey id is specified then just resources for that survey
+				pstmt.setInt(1, oId);
+				pstmt.setInt(2,  sId);
+			} else if(oId > 0) {
+				pstmt = sd.prepareStatement(sqlOrg);	// If the organisation id is specified then just resources for that organisation
+				pstmt.setInt(1, oId);
+			}
+			
+			log.info("Get shared resources to delete: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				int id = rs.getInt(1);
+				String sqlDrop = "drop table csv.csv" + id;
+				String sqlDropSeq = "drop sequence if exists csv.csv" + id + "_seq cascade";
+				
+				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
+				pstmtDrop = sd.prepareStatement(sqlDrop);
+				log.info("Dropping resource table: "  + pstmtDrop.toString());
+				pstmtDrop.executeUpdate();
+				
+				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
+				pstmtDrop = sd.prepareStatement(sqlDropSeq);
+				log.info("Dropping resource sequence: "  + pstmtDrop.toString());
+				pstmtDrop.executeUpdate();
+				
+				pstmtDelete.setInt(1, id);
+				pstmtDelete.executeUpdate();
+			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			try {pstmt.close();} catch(Exception e) {}
+			try {pstmtDrop.close();} catch(Exception e) {}
+			try {pstmtDelete.close();} catch(Exception e) {}
+		}
 	}
 	
 	/*

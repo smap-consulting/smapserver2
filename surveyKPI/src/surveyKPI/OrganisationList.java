@@ -39,6 +39,7 @@ import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
@@ -56,6 +57,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -436,7 +439,7 @@ public class OrganisationList extends Application {
 
 	
 	/*
-	 * Delete project
+	 * Delete an organisation
 	 */
 	@DELETE
 	@Consumes("application/json")
@@ -453,7 +456,13 @@ public class OrganisationList extends Application {
 		ArrayList<Organisation> oArray = new Gson().fromJson(organisations, type);
 		
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtDrop = null;
 		try {	
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String sql = null;
 			ResultSet resultSet = null;
 			connectionSD.setAutoCommit(false);
@@ -493,6 +502,10 @@ public class OrganisationList extends Application {
 				log.info("SQL: " + sql + ":" + o.id);
 				pstmt.executeUpdate();
 				
+			    // Delete the organisation shared resources - not necessary
+			    CsvTableManager tm = new CsvTableManager(connectionSD, localisation);
+			    tm.delete(o.id, 0, null);		
+			    
 				// Delete the organisation folder
 				String basePath = GeneralUtilityMethods.getBasePath(request);
 				String fileFolder = basePath + "/media/organisation/" + o.id;
@@ -502,9 +515,8 @@ public class OrganisationList extends Application {
 					FileUtils.deleteDirectory(folder);
 				} catch (IOException e) {
 					log.info("Error deleting organisation folder:" + fileFolder + " : " + e.getMessage());
-				}
+				}	    
 			}
-
 			
 			response = Response.ok().build();
 			connectionSD.commit();
@@ -529,6 +541,7 @@ public class OrganisationList extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtDrop != null) {pstmtDrop.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-OrganisationList-delOrganisation", connectionSD);
 		}

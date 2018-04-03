@@ -3577,7 +3577,7 @@ public class SurveyManager {
 			String basePath,
 			String tables,
 			int newSurveyId		// If greater than 0 then this survey is being replaced
-			) throws SQLException, IOException {
+			) throws Exception {
 		
 		// Get the survey ident and name
 		String surveyIdent = null;

@@ -288,7 +288,9 @@ public class UploadFiles extends Application {
 
 			deleteFile(request, connectionSD, localisation, basePath, serverName, null, oId, filename, request.getRemoteUser());
 			if(filename.endsWith(".csv")) {
-				deleteCsvTables(connectionSD, oId, 0, filename);
+				  // Delete the organisation shared resources - not necessary
+			    CsvTableManager tm = new CsvTableManager(connectionSD, localisation);
+			    tm.delete(oId, 0, filename);		
 			}
 			
 			MediaInfo mediaInfo = new MediaInfo();
@@ -340,7 +342,9 @@ public class UploadFiles extends Application {
 			if(filename.endsWith(".csv")) {
 				int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, request.getRemoteUser(), 0);
 				int sId = GeneralUtilityMethods.getSurveyId(connectionSD, sIdent);
-				deleteCsvTables(connectionSD, oId, sId, filename);
+				  // Delete the organisation shared resources - not necessary
+			    CsvTableManager tm = new CsvTableManager(connectionSD, localisation);
+			    tm.delete(oId, sId, null);		
 			}
 			
 			MediaInfo mediaInfo = new MediaInfo();
@@ -1001,6 +1005,7 @@ public class UploadFiles extends Application {
 		return response;
 
 	}
+	
 	/*
 	 * Put the CSV file into a database table
 	 */
@@ -1016,7 +1021,7 @@ public class UploadFiles extends Application {
 		String basePath,
 		MediaInfo mediaInfo) throws Exception {
 		
-		int oId = GeneralUtilityMethods.getUserId(sd, user);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
 		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, csvFileName);
 		csvMgr.updateTable(csvFile, oldCsvFile);
 		
@@ -1295,50 +1300,4 @@ public class UploadFiles extends Application {
 	}
 	*/
 
-	/*
-	 * Delete tables containing CSV data
-	 */
-	private void deleteCsvTables(Connection sd, int oId, int sId, String filename) throws SQLException {
-		String sql = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
-		PreparedStatement pstmt = null;
-		
-		PreparedStatement pstmtDrop = null;
-		
-		String sqlClear = "delete from csvtable where o_id = ? and s_id = ? and filename = ?";
-		PreparedStatement pstmtClear = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1,  oId);
-			pstmt.setInt(2, sId);
-			pstmt.setString(3, filename);
-			ResultSet rs = pstmt.executeQuery();
-			while(rs.next()) {
-				int id = rs.getInt(1);
-				
-				// Drop the CSV table and seq
-				if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
-				String sqlDrop = "drop table csv.csv" + id;
-				pstmtDrop = sd.prepareStatement(sqlDrop);
-				pstmtDrop.executeUpdate();
-				
-				if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
-				sqlDrop = "drop sequence if exists csv.csv" + id;
-				pstmtDrop = sd.prepareStatement(sqlDrop);
-				pstmtDrop.executeUpdate();
-			}
-			
-			pstmtClear = sd.prepareStatement(sqlClear);
-			pstmtClear.setInt(1,  oId);
-			pstmtClear.setInt(2, sId);
-			pstmtClear.setString(3, filename);
-			pstmtClear.executeUpdate();
-			
-			
-		} finally {
-			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
-			if(pstmtDrop != null) {try{pstmtDrop.close();}catch(Exception e) {}}
-			if(pstmtClear != null) {try{pstmtClear.close();}catch(Exception e) {}}
-		}
-	}
 }
