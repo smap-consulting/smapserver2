@@ -1806,6 +1806,7 @@ public class SurveyManager {
 		PreparedStatement pstmtUpdateNodeset = null;
 		PreparedStatement pstmtUpdateQuestionNodeset = null;
 		PreparedStatement pstmtAddNodeset = null;
+		PreparedStatement pstmtClearNodeset = null;
 
 		PreparedStatement pstmtForm = null;
 		String sqlForm = "insert into form(f_id, s_id, name, label, table_name, "
@@ -1973,8 +1974,18 @@ public class SurveyManager {
 								+ "nodeset_value = 'name', "
 								+ "nodeset_label = 'jr:itext(itextId)',"
 								+ "l_id = ? "
-								+ "where q_id = ?";
+								+ "where q_id = ? "
+								+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?)";
 						pstmtAddNodeset = sd.prepareStatement(sqlAddNodeset);
+						
+						String sqlClearNodeset = "update question "
+								+ "set nodeset = null,"
+								+ "nodeset_value = null, "
+								+ "nodeset_label = null,"
+								+ "l_id = 0 "
+								+ "where q_id = ?"
+								+ "and q_id in (select q_id from question q, form f where f.f_id = q.f_id and f.s_id = ?)";
+						pstmtClearNodeset = sd.prepareStatement(sqlClearNodeset);
 
 						// Update for dependent properties
 						String sqlDependent = "update question set visible = ?, source = ? " +
@@ -2100,13 +2111,19 @@ public class SurveyManager {
 							count = pstmtProperty2.executeUpdate();
 
 							// If this question is being converted to q select then add the list id and nodeset
-							if(count > 0 && property.equals("qtype") && (ci.property.oldVal == null || !ci.property.oldVal.startsWith("select"))) {
+							if(count > 0 && property.equals("qtype") && ci.property.newVal.startsWith("select") && (ci.property.oldVal == null || !ci.property.oldVal.startsWith("select"))) {
 								String listName = GeneralUtilityMethods.getNameForQuestion(sd, ci.property.qId);
 								int l_id = GeneralUtilityMethods.getListId(sd, sId, listName);
 								pstmtAddNodeset.setInt(1, l_id);
 								pstmtAddNodeset.setInt(2, ci.property.qId);
+								pstmtAddNodeset.setInt(3, sId);
 								log.info("Add nodeset: " + pstmtAddNodeset.toString());
 								pstmtAddNodeset.executeUpdate();
+							} else if(count > 0 && property.equals("qtype") && !ci.property.newVal.startsWith("select")) {
+								pstmtClearNodeset.setInt(1, ci.property.qId);
+								pstmtClearNodeset.setInt(2, sId);
+								log.info("Clear nodeset: " + pstmtClearNodeset.toString());
+								pstmtClearNodeset.executeUpdate();
 							}
 						}
 
@@ -2361,6 +2378,7 @@ public class SurveyManager {
 			try {if (pstmtUpdateNodeset != null) {pstmtUpdateNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdateQuestionNodeset != null) {pstmtUpdateQuestionNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtAddNodeset != null) {pstmtAddNodeset.close();}} catch (SQLException e) {}
+			try {if (pstmtClearNodeset != null) {pstmtClearNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtForm != null) {pstmtForm.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtSource != null) {pstmtSource.close();}} catch (SQLException e) {}
