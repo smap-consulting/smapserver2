@@ -79,6 +79,9 @@ public class Question {
 		ArrayList<Option> externalChoices = new ArrayList<Option> ();
 		OptionList ol = s.optionLists.get(list_name);
 		ArrayList<Option> choiceArray = ol.options;
+		if(choiceArray == null) {
+			choiceArray = new ArrayList<Option> ();
+		}
 		boolean external = false;
 		for(int i = 0; i < choiceArray.size(); i++) {
 			if(choiceArray.get(i).externalFile) {
