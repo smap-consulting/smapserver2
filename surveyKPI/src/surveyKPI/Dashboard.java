@@ -112,7 +112,8 @@ public class Dashboard extends Application {
 					"d.ds_from_date as fromDate, " +
 					"d.ds_to_date as toDate, " +
 					"d.ds_q_is_calc as qId_is_calc, " +
-					"d.ds_filter as filter " +
+					"d.ds_filter as filter, " +
+					"d.ds_advanced_filter as advanced_filter " +
 					" from dashboard_settings d, users u, user_project up, survey s " +
 					" where u.id = up.u_id " +
 					" and up.p_id = ? " +
@@ -161,6 +162,7 @@ public class Dashboard extends Application {
 				s.toDate = resultSet.getDate("toDate");
 				s.qId_is_calc = resultSet.getBoolean("qId_is_calc");
 				s.filter = resultSet.getString("filter");
+				s.advanced_filter = resultSet.getString("advanced_filter");
 				
 				sArray.add(s);
 				
@@ -229,8 +231,8 @@ public class Dashboard extends Application {
 					"ds_state, ds_seq, ds_title, ds_s_id, ds_s_name, ds_type, ds_layer_id, ds_region," +
 					" ds_lang, ds_q_id, ds_date_question_id, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, " +
 					" ds_group_question_id, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group," +
-					" ds_from_date, ds_to_date, ds_q_is_calc, ds_filter) values (" +
-					"?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+					" ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter) values (" +
+					"?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 			pstmtAddView = connectionSD.prepareStatement(sqlAddView);	 			
 			
 			String sqlReplaceView = "update dashboard_settings set " +
@@ -257,7 +259,8 @@ public class Dashboard extends Application {
 					" ds_from_date = ?," +
 					" ds_to_date = ?," +
 					" ds_q_is_calc = ?," +
-					" ds_filter = ?" +
+					" ds_filter = ?," +
+					" ds_advanced_filter = ?" +
 					" where ds_id = ? " +
 					" and ds_user_ident = ?;";						
 			pstmtReplaceView = connectionSD.prepareStatement(sqlReplaceView);
@@ -304,6 +307,7 @@ public class Dashboard extends Application {
 						pstmtAddView.setDate(23, s.toDate);
 						pstmtAddView.setBoolean(24, s.qId_is_calc);
 						pstmtAddView.setString(25, s.filter);
+						pstmtAddView.setString(26, s.advanced_filter);
 						log.info("Add view: " + pstmtAddView.toString());
 						pstmtAddView.executeUpdate();		
 
@@ -334,8 +338,9 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setDate(22, s.toDate);
 						pstmtReplaceView.setBoolean(23, s.qId_is_calc);
 						pstmtReplaceView.setString(24, s.filter);
-						pstmtReplaceView.setInt(25, s.id);
-						pstmtReplaceView.setString(26, user);
+						pstmtReplaceView.setString(25, s.advanced_filter);
+						pstmtReplaceView.setInt(26, s.id);
+						pstmtReplaceView.setString(27, user);
 						
 						log.info("Update view: " + pstmtReplaceView.toString());
 						pstmtReplaceView.executeUpdate();
