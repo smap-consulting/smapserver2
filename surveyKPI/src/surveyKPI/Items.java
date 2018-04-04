@@ -110,7 +110,8 @@ public class Items extends Application {
 			@QueryParam("dateId") int dateId,		// Id of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
-			@QueryParam("filter") String sFilter) { 
+			@QueryParam("filter") String sFilter,
+			@QueryParam("advanced_filter") String advanced_filter) { 
 		
 		JSONObject jo = new JSONObject();
 		boolean bGeom = true;
@@ -149,6 +150,7 @@ public class Items extends Application {
 	
 		Tables tables = new Tables(sId);
 		boolean hasRbacRowFilter = false;
+		StringBuffer message = new StringBuffer("");
 		
 		if(fId > 0) {
 			
@@ -160,6 +162,7 @@ public class Items extends Application {
 			int parent = 0;
 			String tName = null;
 			String formName = null;
+			int totalCount = 0;
 			 
 			try {
 				
@@ -200,7 +203,8 @@ public class Items extends Application {
 				pstmt = connection.prepareStatement(sql);	 			
 				ResultSet resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
-					jTotals.put("total_count", resultSet.getInt(1));
+					totalCount = resultSet.getInt(1);
+					jTotals.put("total_count", totalCount);
 				}
 				
 				// Get the number of bad records
@@ -212,7 +216,6 @@ public class Items extends Application {
 				if(resultSet.next()) {
 					jTotals.put("bad_count", resultSet.getInt(1));
 				}
-	
 				
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
@@ -326,6 +329,7 @@ public class Items extends Application {
 
 				}
 				
+				String sqlFilterCount = "";
 				String sqlFilter = "";
 				if(start_key > 0) {
 					sqlFilter = tName + ".prikey < " +  start_key;
@@ -361,6 +365,50 @@ public class Items extends Application {
 					} else {
 						sqlFilter = fQ.getFilterExpression(filter.value, null);
 					}
+					if(sqlFilterCount.length() > 0) {
+						sqlFilterCount += " and " + fQ.getFilterExpression(filter.value, null);
+					} else {
+						sqlFilterCount = fQ.getFilterExpression(filter.value, null);
+					}
+				}
+				
+				/*
+				 * Validate the advanced filter and convert to an SQL Fragment
+				 */
+				SqlFrag advancedFilterFrag = null;
+				if(advanced_filter != null && advanced_filter.length() > 0) {
+
+					advancedFilterFrag = new SqlFrag();
+					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation);
+
+
+					for(String filterCol : advancedFilterFrag.columns) {
+						boolean valid = false;
+						for(String q : colNames) {
+							if(filterCol.equals(q)) {
+								valid = true;
+								break;
+							}
+						}
+						if(!valid) {
+							String msg = localisation.getString("inv_qn_misc");
+							msg = msg.replace("%s1", filterCol);
+							throw new Exception(msg);
+						}
+					}
+				}
+				// Add the advanced filter fragment
+				if(advancedFilterFrag != null) {
+					if(sqlFilter.length() > 0) {
+						sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
+					} else {
+						sqlFilter = "(" + advancedFilterFrag.sql + ")";
+					}	
+					if(sqlFilterCount.length() > 0) {
+						sqlFilterCount += " and " + "(" + advancedFilterFrag.sql + ")";
+					} else {
+						sqlFilterCount = "(" + advancedFilterFrag.sql + ")";
+					}
 				}
 				
 				/*
@@ -391,6 +439,11 @@ public class Items extends Application {
 								sqlFilter += " and " + "(" + rfString + ")";
 							} else {
 								sqlFilter = "(" + rfString + ")";
+							}
+							if(sqlFilterCount.length() > 0) {
+								sqlFilterCount += " and " + "(" + rfString + ")";
+							} else {
+								sqlFilterCount = "(" + rfString + ")";
 							}
 						}
 					}
@@ -437,6 +490,7 @@ public class Items extends Application {
 					}
 					whereClause += sqlFilter;
 				}
+				
 				if(date != null) {
 					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, date.getColumnName());
 					if(sqlRestrictToDateRange.trim().length() > 0) {
@@ -447,10 +501,48 @@ public class Items extends Application {
 							doneWhere = true;
 						}
 						whereClause += sqlRestrictToDateRange;
+						sqlFilterCount += sqlRestrictToDateRange;
+
 					}
 				}
 				sql2.append(whereClause);
 				sql2.append(" order by " + tName + ".parkey desc, " + tName + ".prikey desc " + sqlLimit +";");
+				
+				// Get the number of filtered records			
+				if(sqlFilterCount.trim().length() > 0) {
+					sql = "SELECT count(*) FROM " + tName ;
+					sql += " where ";
+					sql += sqlFilterCount;
+					log.info("Get the number of bad records: " + sql);
+					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+					pstmt = connection.prepareStatement(sql);
+					int attribIdx = 1;					
+					if(advancedFilterFrag != null) {
+						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+					}		
+					// RBAC row filter
+					if(hasRbacRowFilter) {
+						attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
+					}				
+					// dates
+					if(dateId != 0) {
+						if(startDate != null) {
+							pstmt.setDate(attribIdx++, startDate);
+						}
+						if(endDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
+						}
+					}
+					resultSet = pstmt.executeQuery();
+					if(resultSet.next()) {
+						jTotals.put("filtered_count", resultSet.getInt(1));
+					} else {
+						jTotals.put("filtered_count", 0);
+					}
+				} else {
+					jTotals.put("filtered_count", totalCount);
+				}
+
 				
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = connection.prepareStatement(sql2.toString());
@@ -459,6 +551,10 @@ public class Items extends Application {
 				 * Set prepared statement values
 				 */
 				int attribIdx = 1;
+				
+				if(advancedFilterFrag != null) {
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+				}
 				
 				// RBAC row filter
 				if(hasRbacRowFilter) {
@@ -557,6 +653,11 @@ public class Items extends Application {
 				
 				// Apply the parameters again
 				attribIdx = 1;
+				
+				if(advancedFilterFrag != null) {
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+				}
+				
 				// RBAC row filter
 				if(hasRbacRowFilter) {
 					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
@@ -588,12 +689,11 @@ public class Items extends Application {
 			    log.info("Did not get items for table - " + tName + ", Message=" + e.getMessage());
 				String msg = e.getMessage();
 				if(!msg.contains("does not exist") || msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
-					log.log(Level.SEVERE,"SQL Error", e);
+					message.append(msg);
 				}
-			} catch (JSONException e) {
-				log.log(Level.SEVERE,"JSON Error", e);
+				
 			} catch (Exception e) {
-				log.log(Level.SEVERE,"Error", e);
+				message.append(e.getMessage());
 			} finally {
 				
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
@@ -605,6 +705,11 @@ public class Items extends Application {
 			}
 		}
 
+		try {
+			jo.put("message", message);
+		} catch (Exception e) {
+			
+		}
 		return jo.toString();
 	}
 	

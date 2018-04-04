@@ -30,4 +30,5 @@ public class Settings {
 	public Date fromDate;
 	public Date toDate;
 	public String filter;
+	public String advanced_filter;
 }
