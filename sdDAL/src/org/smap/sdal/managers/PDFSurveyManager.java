@@ -498,23 +498,6 @@ public class PDFSurveyManager {
 							question.external_choices, question.external_table, 
 							survey.languages.get(languageIdx).name, matches);
 					
-					
-					/*
-					for(Result c : r.choices) {
-						if(c.isSet) {
-							// value = c.name;
-							if(c.name.equals("other")) {
-								hideLabel = true;
-							}
-
-							Option option = survey.optionLists.get(c.listName).options.get(c.cIdx);
-							Label label = option.labels.get(languageIdx);
-							value = GeneralUtilityMethods.unesc(label.text);
-
-							break;
-						}
-					}
-					*/
 				} else if(r.type.equals("select")) {
 					
 					String nameValue = r.value;
@@ -1130,15 +1113,7 @@ public class PDFSurveyManager {
 		di.name = question.name;
 		di.value = r.value;
 		di.isNewPage = isNewPage;
-		/*
-		di.choices = convertChoiceListToDisplayItems(
-				survey, 
-				question,
-				//r.choices, 
-				languageIdx,
-				record,
-				parentRecords);
-				*/
+		
 		setQuestionFormats(question.appearance, di);
 		di.fIdx = r.fIdx;
 		di.qIdx = r.qIdx;

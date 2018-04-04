@@ -1453,22 +1453,43 @@ public class GeneralUtilityMethods {
 					column_name = rs.getString(1);
 				}
 
-			} catch (SQLException e) {
-				log.log(Level.SEVERE, "Error", e);
-				throw e;
 			} finally {
-				try {
-					if (pstmt != null) {
-						pstmt.close();
-					}
-				} catch (SQLException e) {
-				}
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}
 		} else {
 			column_name = getPreloadColumnName(sd, sId, qId);		
 		}
 
 		return column_name;
+	}
+
+	/*
+	 * Get a question details
+	 */
+	static public Question getQuestion(Connection sd, int qId) throws SQLException {
+
+		Question question = new Question();
+
+		String sql = "select appearance " 
+				+ "from question "
+				+ "where q_id = ?;";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, qId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				question.appearance = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		} 
+	
+		return question;
 	}
 
 	/*

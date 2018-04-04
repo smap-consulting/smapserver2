@@ -10,6 +10,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.Question;
 
 /*****************************************************************************
 
@@ -47,39 +48,45 @@ public class ChoiceManager {
 		
 		StringBuffer labels = new StringBuffer("");
 		
-		if(!external_choices) {
-			// 1. Search choices which are stored in the survey meta definition
-			int idx = 0;
-			for(String match : matches) {
-				if(idx++ > 0) {
-					labels.append(", ");
-				}
-				labels.append(UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match));
-			}
-		} else {
-			// 2. TODO Search choices which are stored in an external table
-			ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, matches);
-			int idx = 0;
-			int languageIdx = 0;
-			for(Option choice : choices) {
-				if(idx++ == 0) {
-					// Get the language index
-					for(LanguageItem item : choice.externalLabel) {
-						if(languageName == null || languageName.equals("none") || languageName.equals(languageName)) {
-							break;
-						} else {
-							languageIdx++;
-						}
+		// Only check the labels if the pdfvalue appearance is not set
+		Question q = GeneralUtilityMethods.getQuestion(sd,  qId);
+		boolean checkLabels = true;
+		if(q != null && q.appearance != null && q.appearance.contains("pdfvalue")) {
+			checkLabels = false;
+		}
+		if(checkLabels) {
+			if(!external_choices) {
+				// 1. Search choices which are stored in the survey meta definition
+				int idx = 0;
+				for(String match : matches) {
+					if(idx++ > 0) {
+						labels.append(", ");
 					}
-				} else {
-					labels.append(", ");
+					labels.append(UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match));
 				}
-				if(choice.labels != null && choice.labels.size() > languageIdx) {
-					labels.append(choice.labels.get(languageIdx).text);
-				}
+			} else {
+				// 2. TODO Search choices which are stored in an external table
+				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, matches);
+				int idx = 0;
+				int languageIdx = 0;
+				for(Option choice : choices) {
+					if(idx++ == 0) {
+						// Get the language index
+						for(LanguageItem item : choice.externalLabel) {
+							if(languageName == null || languageName.equals("none") || languageName.equals(item.language)) {
+								break;
+							} else {
+								languageIdx++;
+							}
+						}
+					} else {
+						labels.append(", ");
+					}
+					if(choice.labels != null && choice.labels.size() > languageIdx) {
+						labels.append(choice.labels.get(languageIdx).text);
+					}
+				}			
 			}
-				
-				
 		}
 		
 		if(labels.length() == 0) {
