@@ -225,6 +225,7 @@ public class XLSCustomReportsManager {
 			
 			lastRowNum = sheet.getLastRowNum();
 			boolean needHeader = true;
+			boolean foundData = false;
 			TableColumn currentCol = null;
 			boolean processingConditions = false;
 			PreparedStatement pstmtGetRoleId = null;
@@ -250,7 +251,8 @@ public class XLSCustomReportsManager {
 	                	} else {
 	                		String rowType = XLSUtilities.getColumn(row, "row type", header, lastCellNum, null);
 	                		
-	                		if(rowType != null) {
+	                		if(rowType != null && rowType.trim().length() > 0) {
+	                			foundData = true;
 	                			rowType = rowType.trim().toLowerCase();
 	                			
 	                			// Close of any condition type calculations
@@ -516,6 +518,9 @@ public class XLSCustomReportsManager {
 		                					" " + localisation.getString("mf_or") + ": " + (j + 1));
 		                		}
 	                		}	
+	                		if(!foundData) {
+	                			throw new Exception(localisation.getString("mf_nd"));
+	                		}
 	                		
 	                	}
 	                	
