@@ -69,21 +69,23 @@ public class ChoiceManager {
 				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, matches);
 				int idx = 0;
 				int languageIdx = 0;
-				for(Option choice : choices) {
-					if(idx++ == 0) {
-						// Get the language index
-						for(LanguageItem item : choice.externalLabel) {
-							if(languageName == null || languageName.equals("none") || languageName.equals(item.language)) {
-								break;
-							} else {
-								languageIdx++;
+				if(choices != null && choices.size() > 0) {
+					for(Option choice : choices) {
+						if(idx++ == 0) {
+							// Get the language index
+							for(LanguageItem item : choice.externalLabel) {
+								if(languageName == null || languageName.equals("none") || languageName.equals(item.language)) {
+									break;
+								} else {
+									languageIdx++;
+								}
 							}
+						} else {
+							labels.append(", ");
 						}
-					} else {
-						labels.append(", ");
-					}
-					if(choice.labels != null && choice.labels.size() > languageIdx) {
-						labels.append(choice.labels.get(languageIdx).text);
+						if(choice.labels != null && choice.labels.size() > languageIdx) {
+							labels.append(choice.labels.get(languageIdx).text);
+						}
 					}
 				}			
 			}
