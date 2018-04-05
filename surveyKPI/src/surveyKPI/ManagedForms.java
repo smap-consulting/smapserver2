@@ -409,7 +409,7 @@ public class ManagedForms extends Application {
 		// Check to see if the referenced column is in the form that is being attached to
 		if(!referenceExists) {
 			for(TableColumn fc2 : formColumns) {
-				if(refColumn.equals(fc2.name)) {
+				if(refColumn.equals(fc2.humanName)) {
 					refDetails.type = fc2.type;
 					referenceExists = true;
 					break;
