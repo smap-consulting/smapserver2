@@ -186,6 +186,9 @@ public class Log extends Application {
 					}
 				}
 				li.userIdent = rs.getString("user_ident");
+				if(li.userIdent == null) {
+					li.userIdent = "";
+				}
 				li.event = rs.getString("event");
 				li.note = rs.getString("note");
 						
