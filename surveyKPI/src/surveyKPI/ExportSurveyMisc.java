@@ -131,7 +131,6 @@ public class ExportSurveyMisc extends Application {
 		ResponseBuilder builder = Response.ok();
 		Response responseVal = null;
 
-		System.out.println("Merge Select Multiple:" + merge_select_multiple);
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 
 		log.info("userevent: " + request.getRemoteUser() + " Export " + targetId + " as a "+ format + " file to " + filename + " starting from form " + fId);
@@ -361,18 +360,32 @@ public class ExportSurveyMisc extends Application {
 					// Write the variable commands
 					for(int i = 0; i < sqlDesc.colNames.size(); i++) {
 						ColDesc cd = sqlDesc.colNames.get(i);
-						w.println("\n* variable: " + cd.name);
-						writeStataDataConversion(w, cd);
-						writeStataQuestionLabel(w,cd);
-						if(cd.qType != null && cd.qType.equals("select1")) {
-							String valueLabel = labelListMap.get(cd.optionLabels);
-							if(cd.needsReplace) {
-								writeStataEncodeString(w, cd, valueLabel);
+						if(cd.qType != null && cd.qType.equals("select") && cd.compressed) {			
+							if(!merge_select_multiple && cd.choices != null) {
+								for(int j = 0; j < cd.choices.size(); j++) {
+									String selName = cd.name + "__" + cd.choices.get(j).k;
+									String selLabel = cd.label + " - " + cd.choices.get(j).v;
+									w.println("\n* variable: " + selName);
+									w.println("label variable " + selName + " \"" + selLabel +"\"");
+									w.println("label values " + selName + " yesno");
+								}
+							} else {
+								w.println("label values " + cd.name + " yesno");
 							}
-							w.println("label values " + cd.name + " " + valueLabel);
-						}
-						if(cd.qType != null && cd.qType.equals("select")) {
-							w.println("label values " + cd.name + " yesno");
+						} else {
+							w.println("\n* variable: " + cd.name);
+							writeStataDataConversion(w, cd);
+							writeStataQuestionLabel(w,cd);
+							if(cd.qType != null && cd.qType.equals("select1")) {
+								String valueLabel = labelListMap.get(cd.optionLabels);
+								if(cd.needsReplace) {
+									writeStataEncodeString(w, cd, valueLabel);
+								}
+								w.println("label values " + cd.name + " " + valueLabel);
+							}
+							if(cd.qType != null && cd.qType.equals("select")) {	
+								w.println("label values " + cd.name + " yesno");
+							}
 						}
 					}
 
@@ -407,13 +420,21 @@ public class ExportSurveyMisc extends Application {
 				 * Export the data 
 				 */
 				int code = 0;
+				boolean fastExport = true;
 				String modifiedFormat = format;
 				if(format.equals("spss")) {
 					modifiedFormat = "stata";		// hack to generate a zip file with a csv file in it
+					fastExport = false;
+					merge_select_multiple = false;
+				} else if(format.equals("stata")) {
+					fastExport = false;
+					merge_select_multiple = false;
+				} else if(format.equals("shape")) {
+					fastExport = true;
+					merge_select_multiple = true;
 				}
 				
 				boolean split_locn = false;						// TODO
-				boolean fastExport = merge_select_multiple;		// Fast export if we don't need to merge select multiples
 				
 				if(fastExport) {
 					Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
@@ -427,8 +448,8 @@ public class ExportSurveyMisc extends Application {
 
 					log.info("Process exitValue: " + code);
 				} else {
-					System.out.println("############## Slow export");
-					System.out.println(sqlDesc.sql);
+					log.info("############## Slow export");
+					log.info(sqlDesc.sql);
 					
 					// Create the file
 					FileUtils.forceMkdir(new File(filepath));
@@ -455,13 +476,13 @@ public class ExportSurveyMisc extends Application {
 							addValueToBuf(header, "Longitude");
 						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null && item.compressed) {
 							for(int i = 0; i < item.choices.size(); i++) {
-								addValueToBuf(header, values.name + " - " + item.choices.get(i).k);
+								addValueToBuf(header, values.name + "__" + item.choices.get(i).k);
 							}
 						} else {
-							if(item.humanName != null && item.humanName.trim().length() > 0) {
+							if((item.qType == null || !item.qType.equals("select")) && (item.humanName != null && item.humanName.trim().length() > 0)) {
 								addValueToBuf(header, item.humanName);
 							} else {
-								addValueToBuf(header, values.name);
+								addValueToBuf(header, item.name);
 							}
 						}
 					}
@@ -600,13 +621,13 @@ public class ExportSurveyMisc extends Application {
 	 * Generate Stata do file commands to convert date/time/geometry fields to stata format
 	 */
 	void writeStataDataConversion(PrintWriter w, ColDesc cd) {
-		if(cd.qType != null && cd.qType.equals("date")) {
+		if((cd.qType != null && cd.qType.equals("date")) || (cd.db_type != null && cd.db_type.equals("date"))) {
 			w.println("generate double `temp' = date(" + cd.name + ", \"YMD\")");		// Convert to double
 			w.println("format %-tdCCYY-NN-DD `temp'");
 		} else if(cd.qType != null && cd.qType.equals("time")) {
 			w.println("generate double `temp' = clock(" + cd.name + ", \"hms\")");		// Convert to double
 			w.println("format %-tcHH:MM:SS `temp'");
-		} else if(cd.qType != null && cd.qType.equals("dateTime")) {
+		} else if((cd.qType != null && cd.qType.equals("dateTime")) || (cd.db_type != null && cd.db_type.equals("dateTime"))) {
 			w.println("generate double `temp' = clock(" + cd.name + ", \"YMDhms\")");		// Convert to double
 			w.println("format %-tcCCYY-NN-DD_HH:MM:SS `temp'");
 		} else if(cd.db_type.equals("timestamptz")) {

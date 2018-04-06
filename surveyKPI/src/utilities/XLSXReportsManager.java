@@ -259,11 +259,12 @@ public class XLSXReportsManager {
 					} else {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
-						if(item.humanName != null && item.humanName.trim().length() > 0) {
-							cell.setCellValue(item.humanName);
-						} else {
-							cell.setCellValue(values.name);
-						}
+						cell.setCellValue(values.name);
+						//if(item.humanName != null && item.humanName.trim().length() > 0) {
+						//	cell.setCellValue(item.humanName);
+						//} else {
+						//	cell.setCellValue(values.name);
+						//}
 					}
 				}
 				
@@ -300,8 +301,6 @@ public class XLSXReportsManager {
 								cell = dataRow.createCell(colNumber++);
 								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[0], 
 										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-								//out.add(new CellItem(coords[1], CellItem.DECIMAL));
-								//out.add(new CellItem(coords[0], CellItem.DECIMAL)); 
 							} else {
 								Cell cell = dataRow.createCell(colNumber++);
 								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
@@ -309,10 +308,7 @@ public class XLSXReportsManager {
 								cell = dataRow.createCell(colNumber++);
 								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
 										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
-								//out.add(new CellItem(value, CellItem.STRING));
-								//out.add(new CellItem(value, CellItem.STRING));
 							}
-
 
 						} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
 
@@ -323,8 +319,6 @@ public class XLSXReportsManager {
 							cell = dataRow.createCell(colNumber++);
 							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
 									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							//out.add(new CellItem("", CellItem.STRING));
-							//out.add(new CellItem("", CellItem.STRING));
 
 
 						} else if(split_locn && values.type != null && values.type.equals("geopoint") ) {
@@ -335,8 +329,7 @@ public class XLSXReportsManager {
 							cell = dataRow.createCell(colNumber++);
 							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
 									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							//out.add(new CellItem("", CellItem.STRING));
-							//out.add(new CellItem("", CellItem.STRING));
+
 						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null  && item.compressed) {
 							
 							String [] vArray = null;
