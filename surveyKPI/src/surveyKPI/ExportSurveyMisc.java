@@ -44,7 +44,9 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -67,6 +69,8 @@ import org.w3c.dom.Element;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
+import utilities.XLSUtilities;
 
 /*
  * Various types of export related to a survey
@@ -171,6 +175,7 @@ public class ExportSurveyMisc extends Application {
 			Connection connectionResults = null;
 			PreparedStatement pstmtDefLang = null;
 			PreparedStatement pstmtDefLang2 = null;
+			PreparedStatement pstmt = null;
 
 			try {
 
@@ -461,21 +466,88 @@ public class ExportSurveyMisc extends Application {
 						}
 					}
 					
-					w.print(header.toString());
+					w.println(header.toString());
 					
 					/*
 					 * Write the data
 					 */
+					pstmt = connectionResults.prepareStatement(sqlDesc.sql);
+					log.info("Get results for slow export: " + pstmt.toString());
+					ResultSet rs = pstmt.executeQuery();
+					while(rs.next()) {
+						
+						dataColumn = 0;
+						StringBuffer dataBuffer = new StringBuffer("");
+						while(dataColumn < sqlDesc.colNames.size()) {
+							ColValues values = new ColValues();
+							ColDesc item = sqlDesc.colNames.get(dataColumn);
+							dataColumn = GeneralUtilityMethods.getColValues(
+									rs, 
+									values, 
+									dataColumn,
+									sqlDesc.colNames, 
+									merge_select_multiple);						
+
+							if(split_locn && values.value != null && values.value.startsWith("POINT")) {
+
+								String coords [] = GeneralUtilityMethods.getLonLat(values.value);
+
+								if(coords.length > 1) {
+									addValueToBuf(dataBuffer, coords[1]);
+									addValueToBuf(dataBuffer, coords[0]);
+								} else {
+									addValueToBuf(dataBuffer, values.value);
+									addValueToBuf(dataBuffer, values.value);
+								}
+							} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
+
+								// Can't split linestrings and polygons, leave latitude and longitude as blank
+								addValueToBuf(dataBuffer, values.value);
+								addValueToBuf(dataBuffer, values.value);
+
+							} else if(split_locn && values.type != null && values.type.equals("geopoint") ) {
+								// Geopoint that needs to be split but there is no data
+								addValueToBuf(dataBuffer, "");
+								addValueToBuf(dataBuffer, "");
+							} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null  && item.compressed) {
+								
+								String [] vArray = null;
+								if(values.value != null) {
+									vArray = values.value.split(" ");
+								} 
+								
+								for(int i = 0; i < item.choices.size(); i++) {
+									
+									
+									String v = "0";
+									if(vArray != null) {
+										
+										String choiceValue = item.choices.get(i).k;
+										for(int k = 0; k < vArray.length; k++) {
+											if(vArray[k].equals(choiceValue)) {
+												v = "1";
+												break;
+											}
+										}
+									}
+									addValueToBuf(dataBuffer, v);
+										
+								}
+							} else {
+								addValueToBuf(dataBuffer, values.value);
+							}
+						}
+						w.println(dataBuffer.toString());
+						
+					}
 					w.close();	
 					
 					/*
 					 * Zip the directory contents
 					 */
 					File zip = new File(filepath + ".zip");
-					File zipdir = new File(filepath);
-				
-					GeneralUtilityMethods.writeDirToZipOutputStream(new ZipOutputStream(new FileOutputStream(zip)), zipdir);
-					
+					File zipdir = new File(filepath);			
+					GeneralUtilityMethods.writeDirToZipOutputStream(new ZipOutputStream(new FileOutputStream(zip)), zipdir);				
 				}
 
 				if(code == 0) {
@@ -513,6 +585,7 @@ public class ExportSurveyMisc extends Application {
 
 				try {if (pstmtDefLang != null) {pstmtDefLang.close();}} catch (SQLException e) {}
 				try {if (pstmtDefLang2 != null) {pstmtDefLang2.close();}} catch (SQLException e) {}	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 
 				SDDataSource.closeConnection("surveyKPI-ExportSurvey", connectionSD);
 				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
@@ -572,7 +645,8 @@ public class ExportSurveyMisc extends Application {
 		if(buf.length() > 0) {
 			buf.append(",");
 		}
-		buf.append(value);
+		String escaped = StringEscapeUtils.escapeCsv(value);
+		buf.append(escaped);
 	}
 
 
