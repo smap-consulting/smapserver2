@@ -501,7 +501,11 @@ public class Items extends Application {
 							doneWhere = true;
 						}
 						whereClause += sqlRestrictToDateRange;
-						sqlFilterCount += sqlRestrictToDateRange;
+						if(sqlFilterCount.length() > 0) {
+							sqlFilterCount += " and " + sqlRestrictToDateRange;
+						} else {
+							sqlFilterCount += sqlRestrictToDateRange;
+						}
 
 					}
 				}
@@ -513,7 +517,7 @@ public class Items extends Application {
 					sql = "SELECT count(*) FROM " + tName ;
 					sql += " where ";
 					sql += sqlFilterCount;
-					log.info("Get the number of bad records: " + sql);
+					log.info("Get the number of filtered records: " + sql);
 					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 					pstmt = connection.prepareStatement(sql);
 					int attribIdx = 1;					
@@ -688,11 +692,13 @@ public class Items extends Application {
 			} catch (SQLException e) {
 			    log.info("Did not get items for table - " + tName + ", Message=" + e.getMessage());
 				String msg = e.getMessage();
-				if(!msg.contains("does not exist") || msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
-					message.append(msg);
+				message.append(msg);
+				if(!msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+					log.log(Level.SEVERE, message.toString(), e);
 				}
 				
 			} catch (Exception e) {
+				log.log(Level.SEVERE, message.toString(), e);
 				message.append(e.getMessage());
 			} finally {
 				
@@ -708,7 +714,6 @@ public class Items extends Application {
 		try {
 			jo.put("message", message);
 		} catch (Exception e) {
-			
 		}
 		return jo.toString();
 	}
