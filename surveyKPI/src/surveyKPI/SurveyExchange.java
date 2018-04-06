@@ -110,8 +110,8 @@ public class SurveyExchange extends Application {
 					filePath,
 					superUser,
 					media);
-			
-			GeneralUtilityMethods.writeFilesToZipOutputStream(response, files);			
+						
+			GeneralUtilityMethods.writeFilesToZipOutputStream(new ZipOutputStream(response.getOutputStream()), files);			
 			responseVal = Response.ok("").build();
 			
 		}  catch (Exception e) {

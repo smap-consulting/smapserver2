@@ -1,6 +1,7 @@
 package surveyKPI;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
@@ -21,6 +22,7 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -42,6 +44,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.poi.ss.usermodel.Cell;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -52,7 +55,9 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.managers.SpssManager;
 import org.smap.sdal.model.ColDesc;
+import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.ExportForm;
+import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
@@ -116,11 +121,13 @@ public class ExportSurveyMisc extends Application {
 			@QueryParam("dateId") int dateId,
 			@QueryParam("query") boolean query,			// Set true if the value in sId is a query id rather than a survey id
 			@QueryParam("filter") String filter,
+			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
 			@Context HttpServletResponse response) {
 
 		ResponseBuilder builder = Response.ok();
 		Response responseVal = null;
 
+		System.out.println("Merge Select Multiple:" + merge_select_multiple);
 		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 
 		log.info("userevent: " + request.getRemoteUser() + " Export " + targetId + " as a "+ format + " file to " + filename + " starting from form " + fId);
@@ -350,7 +357,6 @@ public class ExportSurveyMisc extends Application {
 					for(int i = 0; i < sqlDesc.colNames.size(); i++) {
 						ColDesc cd = sqlDesc.colNames.get(i);
 						w.println("\n* variable: " + cd.name);
-						log.info("Stata types: " + cd.db_type + " : " + cd.qType);
 						writeStataDataConversion(w, cd);
 						writeStataQuestionLabel(w,cd);
 						if(cd.qType != null && cd.qType.equals("select1")) {
@@ -400,16 +406,77 @@ public class ExportSurveyMisc extends Application {
 				if(format.equals("spss")) {
 					modifiedFormat = "stata";		// hack to generate a zip file with a csv file in it
 				}
-				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
-						database_name + " " +
-						sqlDesc.target_table + " " +
-						"\"" + sqlDesc.sql + "\" " +
-						filepath + 
-						" " + modifiedFormat +
-				" >> /var/log/tomcat7/survey.log 2>&1"});
-				code = proc.waitFor();
+				
+				boolean split_locn = false;						// TODO
+				boolean fastExport = merge_select_multiple;		// Fast export if we don't need to merge select multiples
+				
+				if(fastExport) {
+					Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
+							database_name + " " +
+							sqlDesc.target_table + " " +
+							"\"" + sqlDesc.sql + "\" " +
+							filepath + 
+							" " + modifiedFormat +
+					" >> /var/log/tomcat7/survey.log 2>&1"});
+					code = proc.waitFor();
 
-				log.info("Process exitValue: " + code);
+					log.info("Process exitValue: " + code);
+				} else {
+					System.out.println("############## Slow export");
+					System.out.println(sqlDesc.sql);
+					
+					// Create the file
+					FileUtils.forceMkdir(new File(filepath));
+					File f = new File(filepath, sqlDesc.target_table + ".csv");
+					PrintWriter w = new PrintWriter(f);
+
+					/*
+					 * Write the header
+					 */
+					int dataColumn = 0;
+					StringBuffer header = new StringBuffer("");
+					while(dataColumn < sqlDesc.colNames.size()) {
+						ColValues values = new ColValues();
+						ColDesc item = sqlDesc.colNames.get(dataColumn);
+						dataColumn = GeneralUtilityMethods.getColValues(
+								null, 
+								values, 
+								dataColumn,
+								sqlDesc.colNames, 
+								merge_select_multiple);	
+							
+						if(split_locn && values.name.equals("the_geom")) {
+							addValueToBuf(header, "Latitude");
+							addValueToBuf(header, "Longitude");
+						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null && item.compressed) {
+							for(int i = 0; i < item.choices.size(); i++) {
+								addValueToBuf(header, values.name + " - " + item.choices.get(i).k);
+							}
+						} else {
+							if(item.humanName != null && item.humanName.trim().length() > 0) {
+								addValueToBuf(header, item.humanName);
+							} else {
+								addValueToBuf(header, values.name);
+							}
+						}
+					}
+					
+					w.print(header.toString());
+					
+					/*
+					 * Write the data
+					 */
+					w.close();	
+					
+					/*
+					 * Zip the directory contents
+					 */
+					File zip = new File(filepath + ".zip");
+					File zipdir = new File(filepath);
+				
+					GeneralUtilityMethods.writeDirToZipOutputStream(new ZipOutputStream(new FileOutputStream(zip)), zipdir);
+					
+				}
 
 				if(code == 0) {
 					File file = new File(filepath + ".zip");
@@ -501,7 +568,12 @@ public class ExportSurveyMisc extends Application {
 		}
 	}
 
-
+	void addValueToBuf(StringBuffer buf, String value) {
+		if(buf.length() > 0) {
+			buf.append(",");
+		}
+		buf.append(value);
+	}
 
 
 

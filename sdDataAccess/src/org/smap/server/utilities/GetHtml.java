@@ -5,7 +5,6 @@ import java.io.Writer;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.logging.Level;
@@ -1240,14 +1239,16 @@ public class GetHtml {
 		parent.appendChild(bodyElement);
 		bodyElement.setAttribute("value", "");
 		bodyElement.setTextContent("...");
-		for (Option o : options) {
-
-			bodyElement = outputDoc.createElement("option");
-			parent.appendChild(bodyElement);
-			bodyElement.setAttribute("value", o.value);
-			String label = UtilityMethods.convertAllxlsNames(o.labels.get(languageIndex).text, true, paths, form.id,
-					true, o.value);
-			bodyElement.setTextContent(label);
+		if(options != null) {
+			for (Option o : options) {
+	
+				bodyElement = outputDoc.createElement("option");
+				parent.appendChild(bodyElement);
+				bodyElement.setAttribute("value", o.value);
+				String label = UtilityMethods.convertAllxlsNames(o.labels.get(languageIndex).text, true, paths, form.id,
+						true, o.value);
+				bodyElement.setTextContent(label);
+			}
 		}
 
 	}
@@ -1255,20 +1256,21 @@ public class GetHtml {
 	private void addOptionTranslations(Element parent, Question q, Form form) throws Exception {
 
 		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
-		for (Option o : options) {
-			int idx = 0;
-			Element bodyElement = null;
-			for (Language lang : survey.languages) {
-				bodyElement = outputDoc.createElement("span");
-				parent.appendChild(bodyElement);
-				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("data-option-value", o.value);
-				String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value);
-				bodyElement.setTextContent(label);
-
-				idx++;
+		if(options != null) {
+			for (Option o : options) {
+				int idx = 0;
+				Element bodyElement = null;
+				for (Language lang : survey.languages) {
+					bodyElement = outputDoc.createElement("span");
+					parent.appendChild(bodyElement);
+					bodyElement.setAttribute("lang", lang.name);
+					bodyElement.setAttribute("data-option-value", o.value);
+					String label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value);
+					bodyElement.setTextContent(label);
+	
+					idx++;
+				}
 			}
-
 		}
 
 	}

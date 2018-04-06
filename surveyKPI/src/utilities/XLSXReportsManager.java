@@ -202,7 +202,7 @@ public class XLSXReportsManager {
 							cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.label);
-						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
+						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null &&  item.compressed) {
 							for(int i = 0; i < item.choices.size(); i++) {
 								Cell cell = headerRow.createCell(colNumber++);
 								cell.setCellStyle(headerStyle);
@@ -250,7 +250,7 @@ public class XLSXReportsManager {
 						cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Longitude");
-					} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
+					} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null  && item.compressed) {
 						for(int i = 0; i < item.choices.size(); i++) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
@@ -337,7 +337,7 @@ public class XLSXReportsManager {
 									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
 							//out.add(new CellItem("", CellItem.STRING));
 							//out.add(new CellItem("", CellItem.STRING));
-						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null) {
+						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null  && item.compressed) {
 							
 							String [] vArray = null;
 							if(values.value != null) {

@@ -198,7 +198,7 @@ public class PDFReportsManager {
 			GeneralUtilityMethods.setFilenameInResponse(filename + ".zip", response);
 			response.setHeader("Content-type",  "application/octet-stream; charset=UTF-8");
 			
-			GeneralUtilityMethods.writeFilesToZipOutputStream(response, files);
+			GeneralUtilityMethods.writeFilesToZipOutputStream(new ZipOutputStream(response.getOutputStream()), files);
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

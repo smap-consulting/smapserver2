@@ -5599,15 +5599,39 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get zip output stream
 	 */
-	public static void writeFilesToZipOutputStream(HttpServletResponse response, ArrayList<FileDescription> files)
+	public static void writeFilesToZipOutputStream(ZipOutputStream zos, ArrayList<FileDescription> files)
 			throws IOException {
-		ZipOutputStream zos = new ZipOutputStream(response.getOutputStream());
+		
 		byte[] buffer = new byte[1024];
 		for (int i = 0; i < files.size(); i++) {
 			FileDescription file = files.get(i);
 			ZipEntry ze = new ZipEntry(file.name);
 			zos.putNextEntry(ze);
 			FileInputStream in = new FileInputStream(file.path);
+
+			int len;
+			while ((len = in.read(buffer)) > 0) {
+				zos.write(buffer, 0, len);
+			}
+
+			in.close();
+			zos.closeEntry();
+		}
+		zos.close();
+	}
+	
+	/*
+	 * Write a directory to a Zip output stream
+	 */
+	public static void writeDirToZipOutputStream(ZipOutputStream zos, File dir)
+			throws IOException {
+		
+		byte[] buffer = new byte[1024];
+		
+		for (File file : dir.listFiles()) {
+			ZipEntry ze = new ZipEntry(file.getName());
+			zos.putNextEntry(ze);
+			FileInputStream in = new FileInputStream(file);
 
 			int len;
 			while ((len = in.read(buffer)) > 0) {
@@ -6215,7 +6239,11 @@ public class GeneralUtilityMethods {
 			values.value = selMulValue.toString();
 
 		} else {
-			values.name = item.name;
+			if(item.humanName != null) {
+				values.name = item.humanName;
+			} else {
+				values.name = item.name;
+			}
 			values.label = item.label;
 			if(rs != null) {
 				values.value = rs.getString(dataColumn + 1);
