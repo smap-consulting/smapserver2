@@ -155,7 +155,8 @@ public class Data extends Application {
 			@QueryParam("hrk") String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
-			@QueryParam("audit") String audit_set		// if yes return audit data
+			@QueryParam("audit") String audit_set,		// if yes return audit data
+			@QueryParam("merge_select_multiple") boolean mergeSelectMultiple	// If set then do not put choices from select multiple questions in separate objects
 			) { 
 
 		// Authorisation - Access
@@ -321,17 +322,6 @@ public class Data extends Application {
 			
 			if(pstmt != null) {
 				/*
-				 * Get the data as a jason array
-				ja = tdm.getData(
-						pstmt,
-						columns,
-						urlprefix,
-						group,
-						isDt,
-						limit
-						);
-						*/
-				/*
 				 * Get the data record by record so it can be streamed
 				 */
 				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
@@ -346,7 +336,8 @@ public class Data extends Application {
 							urlprefix,
 							group,
 							isDt,
-							limit
+							limit,
+							mergeSelectMultiple
 							);
 					if(jo != null) {
 						if(index > 0) {

@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.TableColumn;
@@ -306,7 +307,8 @@ public class TableDataManager {
 			String urlprefix, 
 			boolean group, 
 			boolean isDt, 
-			int limit)
+			int limit,
+			boolean mergeSelectMultiple)
 			throws SQLException, Exception {
 
 		JSONObject jr = null;
@@ -330,18 +332,32 @@ public class TableDataManager {
 						geomValue = "{}";
 					}
 					name = "_geolocation";
-					/*
-					 * JSONArray coords = null; if(geomValue != null) { JSONObject jg = new
-					 * JSONObject(geomValue); coords = jg.getJSONArray("coordinates"); } else {
-					 * coords = new JSONArray(); }
-					 */
 
 					jr.put(name, new JSONObject(geomValue));
 
+				} if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
+					// Split the select multiple into its choices
+					name = c.humanName;
+					value = rs.getString(i + 1);
+					if (value == null) {
+						value = "";
+					}
+					String[] selected = {""};
+					selected = value.split(" ");
+					for(KeyValue kv: c.choices) {
+						String choiceName = name + " - " + kv.k;
+						boolean addChoice = false;
+						for(String selValue : selected) {
+							if(selValue.equals(kv.v)) {
+								addChoice = true;
+								break;
+							}	
+						}
+						String choiceValue = addChoice ? "1" : "0";
+						jr.put(choiceName, choiceValue);
+					}
 				} else {
 
-					// String name = rsMetaData.getColumnName(i);
-					// name = c.humanName;
 					name = c.humanName;
 
 					if (c.type != null && c.type.equals("decimal")) {
