@@ -690,10 +690,12 @@ public class Items extends Application {
 				 jo.put("formName", formName);
 				
 			} catch (SQLException e) {
-			    log.info("Did not get items for table - " + tName + ", Message=" + e.getMessage());
+			    
 				String msg = e.getMessage();
-				message.append(msg);
-				if(!msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+				if(msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+					// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+				} else {
+					message.append(msg);
 					log.log(Level.SEVERE, message.toString(), e);
 				}
 				

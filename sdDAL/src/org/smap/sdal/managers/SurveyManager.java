@@ -1290,11 +1290,6 @@ public class SurveyManager {
 
 						applyLabel(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, logIndividualChangeSets);
 
-					} else if(cs.changeType.equals("option") && cs.source != null && cs.source.equals("file")) {
-
-						// Apply changes to options loaded from a csv file
-						//applyOptionUpdates(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.source, logIndividualChangeSets);
-
 					} else if(cs.changeType.equals("property") && !cs.type.equals("option")) {
 
 						// Update a property
@@ -2110,20 +2105,29 @@ public class SurveyManager {
 							log.info("Update question property: " + pstmtProperty2.toString());
 							count = pstmtProperty2.executeUpdate();
 
-							// If this question is being converted to q select then add the list id and nodeset
-							if(count > 0 && property.equals("qtype") && ci.property.newVal.startsWith("select") && (ci.property.oldVal == null || !ci.property.oldVal.startsWith("select"))) {
-								String listName = GeneralUtilityMethods.getNameForQuestion(sd, ci.property.qId);
-								int l_id = GeneralUtilityMethods.getListId(sd, sId, listName);
-								pstmtAddNodeset.setInt(1, l_id);
-								pstmtAddNodeset.setInt(2, ci.property.qId);
-								pstmtAddNodeset.setInt(3, sId);
-								log.info("Add nodeset: " + pstmtAddNodeset.toString());
-								pstmtAddNodeset.executeUpdate();
-							} else if(count > 0 && property.equals("qtype") && !ci.property.newVal.startsWith("select")) {
-								pstmtClearNodeset.setInt(1, ci.property.qId);
-								pstmtClearNodeset.setInt(2, sId);
-								log.info("Clear nodeset: " + pstmtClearNodeset.toString());
-								pstmtClearNodeset.executeUpdate();
+							// Type dependent changes
+							if(count > 0 && property.equals("qtype")) {
+								// If this question is being converted to q select then add the list id and nodeset
+								if(ci.property.newVal.startsWith("select") && (ci.property.oldVal == null || !ci.property.oldVal.startsWith("select"))) {
+									String listName = GeneralUtilityMethods.getNameForQuestion(sd, ci.property.qId);
+									int l_id = GeneralUtilityMethods.getListId(sd, sId, listName);
+									pstmtAddNodeset.setInt(1, l_id);
+									pstmtAddNodeset.setInt(2, ci.property.qId);
+									pstmtAddNodeset.setInt(3, sId);
+									log.info("Add nodeset: " + pstmtAddNodeset.toString());
+									pstmtAddNodeset.executeUpdate();
+								} else if(!ci.property.newVal.startsWith("select")) {
+									pstmtClearNodeset.setInt(1, ci.property.qId);
+									pstmtClearNodeset.setInt(2, sId);
+									log.info("Clear nodeset: " + pstmtClearNodeset.toString());
+									pstmtClearNodeset.executeUpdate();
+								} 
+								
+								if(ci.property.newVal.equals("begin group")) {
+									ci.property.setVisible = true;
+									ci.property.visibleValue = true;
+									ci.property.sourceValue = null;
+								}
 							}
 						}
 
@@ -3109,94 +3113,6 @@ public class SurveyManager {
 			if(pstmtClear != null) try {pstmtClear.close();} catch(Exception e) {}
 		}
 	}
-
-	/*
-	 * Add the options any CSV files referenced by this question
-	 * This code largely duplicates the code in SurveyTemplate.java however it references the SDAL
-	 *  version of a question object rather than the old sdDataAccess version of Question
-	 *
-	public void writeExternalChoicesForQuestions(
-			Connection sd, 
-			Connection cResults, 
-			String basePath,
-			String user,
-			int sId) throws Exception {
-
-		//org.smap.sdal.managers.SurveyManager sm = new org.smap.sdal.managers.SurveyManager();
-
-		ArrayList<Question> questionList = getQuestionsForSurvey(sd, sId, false);
-		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
-
-		try {
-			for(Question q : questionList) {
-
-				if(q.type.equals("select1")) {
-
-					// Check to see if this appearance references a manifest file
-					String appearance = q.appearance;
-					if(appearance != null && appearance.toLowerCase().trim().contains("search(")) {
-						// Yes it references a manifest
-
-						int idx1 = appearance.indexOf('(');
-						int idx2 = appearance.indexOf(')');
-						if(idx1 > 0 && idx2 > idx1) {
-							String criteriaString = appearance.substring(idx1 + 1, idx2);
-
-							String criteria [] = criteriaString.split(",");
-							if(criteria.length > 0) {
-
-								if(criteria[0] != null && criteria[0].length() > 2) {	// allow for quotes
-									String filename = criteria[0].trim();
-									filename = filename.substring(1, filename.length() -1);
-									filename += ".csv";
-									//log.info("We have found a manifest link to " + filename);
-
-									ChangeSet cs = new ChangeSet();
-									cs.changeType = "option";
-									cs.source = "file";
-									cs.items = new ArrayList<ChangeItem> ();
-									changes.add(cs);
-
-									int oId = org.smap.sdal.Utilities.GeneralUtilityMethods.getOrganisationId(sd, user, 0);
-
-									String filepath = basePath + "/media/organisation/" + oId + "/" + filename;		
-									File file = new File(filepath);
-
-									try {
-										GeneralUtilityMethods.getOptionsFromFile(
-												sd,
-												localisation,
-												user,
-												sId,
-												cs.items,
-												file,
-												null,			// ignore any previous versions of the CSV file
-												filename,
-												q.columnName,
-												q.l_id,
-												q.id,				
-												"select",
-												appearance);
-									} catch(ApplicationWarning w) {
-										// ignore warnings
-									}
-
-								}
-							}
-						}
-					}
-				}
-			}
-
-			applyChangeSetArray(sd, cResults, sId, user, changes, false);
-
-		} catch(Exception e) {
-			// Record exception but otherwise ignore
-			e.printStackTrace();
-		} 
-
-	}
-	*/
 
 	/*
 	 * Get the questions for a survey
