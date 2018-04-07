@@ -32,7 +32,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/xml-apis.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
-	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/postgresql-42.1.4.jar"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java SE 8 [1.8.0_45]">
 		<attributes>
 			<attribute name="owner.project.facets" value="java"/>
