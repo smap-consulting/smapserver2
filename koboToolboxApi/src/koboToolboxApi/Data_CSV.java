@@ -56,6 +56,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.GeoPoint;
+import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 
@@ -174,7 +175,9 @@ public class Data_CSV extends Application {
 			@QueryParam("format") String format, // dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad, // yes | only | none Include records marked as bad
 			@QueryParam("filename") String filename, 
-			@QueryParam("audit") String audit_set) {
+			@QueryParam("audit") String audit_set,
+			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate columns
+			) {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records csv");
@@ -221,6 +224,11 @@ public class Data_CSV extends Application {
 		boolean audit = false;
 		if (audit_set != null && audit_set.equals("yes")) {
 			audit = true;
+		}
+		
+		boolean mergeSelectMultiple = false;
+		if(merge != null && merge.equals("yes")) {
+			mergeSelectMultiple = true;
 		}
 
 		if (include_bad == null) {
@@ -313,7 +321,20 @@ public class Data_CSV extends Application {
 						columnHeadings.append(",");
 					}
 					colHeadingAdded = true;
-					columnHeadings.append(c.humanName);
+					if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
+						// Split the select multiple into its choices
+						int idx = 0;
+						for(KeyValue kv: c.choices) {
+							if(idx++ > 0) {
+								columnHeadings.append(",");
+							}
+							String choiceName = c.name + " - " + kv.k;
+							columnHeadings.append(choiceName);
+							
+						}
+					} else {
+						columnHeadings.append(c.humanName);
+					}
 				}
 			}
 
@@ -382,7 +403,30 @@ public class Data_CSV extends Application {
 							if (i > 0) {
 								record.append(",");
 							}
-							record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
+							if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
+								// Split the select multiple into its choices
+								
+								String[] selected = {""};
+								selected = val.split(" ");
+								int idx = 0;
+								for(KeyValue kv: c.choices) {
+									boolean addChoice = false;
+									for(String selValue : selected) {
+										if(selValue.equals(kv.v)) {
+											addChoice = true;
+											break;
+										}	
+									}
+									if(idx++ > 0) {
+										record.append(",");
+									}
+									String choiceValue = addChoice ? "1" : "0";
+									record.append("\"" + choiceValue + "\"");
+									
+								}
+							} else {
+								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
+							}
 						} else {
 							auditData = gson.fromJson(val, Audit.class);
 						}

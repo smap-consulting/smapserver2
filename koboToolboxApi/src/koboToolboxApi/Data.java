@@ -156,7 +156,7 @@ public class Data extends Application {
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("audit") String audit_set,		// if yes return audit data
-			@QueryParam("merge_select_multiple") boolean mergeSelectMultiple	// If set then do not put choices from select multiple questions in separate objects
+			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate objects
 			) { 
 
 		// Authorisation - Access
@@ -199,6 +199,11 @@ public class Data extends Application {
 		boolean audit=false;
 		if(audit_set != null && audit_set.equals("yes")) {
 			audit = true;
+		}
+		
+		boolean mergeSelectMultiple = false;
+		if(merge != null && merge.equals("yes")) {
+			mergeSelectMultiple = true;
 		}
 
 		if(include_bad == null) {
