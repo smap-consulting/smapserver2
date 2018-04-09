@@ -229,7 +229,8 @@ public class QuestionList extends Application {
 			@PathParam("language") String language,
 			@QueryParam("single_type") String single_type,
 			@QueryParam("exc_read_only") boolean exc_read_only,
-			@QueryParam("exc_ssc") boolean exc_ssc) { 
+			@QueryParam("exc_ssc") boolean exc_ssc,
+			@QueryParam("inc_meta") boolean inc_meta) { 
 
 	
 		Response response = null;
@@ -251,6 +252,24 @@ public class QuestionList extends Application {
 		PreparedStatement pstmtSSC = null;
 		try {
 			Form tf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+			
+			if(inc_meta) {
+				ArrayList<MetaItem> metaItems = GeneralUtilityMethods.getPreloads(sd, sId);
+				for(MetaItem mi : metaItems) {
+					if(mi.isPreload) {
+						QuestionLite q = new QuestionLite();
+						q.id = mi.id;
+						q.name = mi.name;
+						q.f_id = tf.id;
+						q.type = mi.type;
+						q.is_ssc = false;
+						
+						questions.add(q);
+					}
+					
+					
+				}
+			}
 			
 			StringBuffer combinedSql = new StringBuffer("");
 			String sql = null;
@@ -284,8 +303,8 @@ public class QuestionList extends Application {
 				sqlro = "";
 			}
 			
-			if(single_type != null) {
-				sqlst = " and q.qtype = ? ";
+			if(single_type != null && single_type.equals("string")) {
+				sqlst = " and (q.qtype = 'string' or q.qtype = 'calculate' or q.qtype = 'barcode') ";
 			} else {
 				sqlst = "";
 			}
@@ -301,9 +320,6 @@ public class QuestionList extends Application {
 			pstmt = sd.prepareStatement(sql);	 
 			pstmt.setString(1,  language);
 			pstmt.setInt(2,  sId);
-			if(single_type != null) {
-				pstmt.setString(3,  single_type);
-			}
 
 			log.info("Get questions: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();

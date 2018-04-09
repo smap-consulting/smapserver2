@@ -234,7 +234,7 @@ public class Review extends Application {
 			if(table != null) {
 				// If data for a target question is also required then ensure it is in the same table and get the question name
 				if(targetQId > 0) {
-					String sqlTarget = "select q.qname, qtype from form f, question q " +
+					String sqlTarget = "select q.column_name, qtype from form f, question q " +
 							" where f.f_id = q.f_id" +
 							" and f.table_name = ?" +
 							" and q.q_id = ?";
@@ -250,6 +250,16 @@ public class Review extends Application {
 					}
 					log.info("Target name: " + targetName);
 					
+				} else {
+					// Meta question
+					MetaItem item = GeneralUtilityMethods.getPreloadDetails(connectionSD, sId, targetQId);
+					if(item != null) {
+						Form f = GeneralUtilityMethods.getTopLevelForm(connectionSD, sId);
+						table = f.tableName;
+						qtype = item.type;
+						targetName = item.columnName;
+						hasTarget = true;
+					}
 				}
 								
 				if(!qtype.equals("string") && !qtype.equals("select1") && !qtype.equals("calculate") && !qtype.equals("note")) {
@@ -719,17 +729,20 @@ public class Review extends Application {
 		Connection dConnection = null;
 				
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Review");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Review");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			ArrayList<UpdateItem> uiList = new ArrayList<UpdateItem> ();
 			
 			/*
@@ -738,7 +751,7 @@ public class Review extends Application {
 			dConnection = ResultsDataSource.getConnection("surveyKPI-Review");
 			
 			String sqlGetUserName = "select name from users where ident = ?;";
-			pstmtGetUserName = connectionSD.prepareStatement(sqlGetUserName);
+			pstmtGetUserName = sd.prepareStatement(sqlGetUserName);
 			
 			String sqlInsertChangeset = "insert into changeset(user_name, s_id, change_reason, description) " +
 					" values(?, ?, ?, ?);";
@@ -748,13 +761,13 @@ public class Review extends Application {
 					" where f.f_id = q.f_id" +
 					" and f.s_id = ? " +		// Verify that the question is in the specified survey (authorisation)
 					" and q.q_id = ?";
-			pstmtGetTable = connectionSD.prepareStatement(sqlGetTable);	
+			pstmtGetTable = sd.prepareStatement(sqlGetTable);	
 			
 			String sqlGetOptionColumnName = "select o.column_name from option o, question q " +
 					" where q.l_id = o.l_id" +
 					" and q.q_id = ? " +
 					" and o.ovalue = ?;";
-			pstmtGetOptionColumnName = connectionSD.prepareStatement(sqlGetOptionColumnName);	
+			pstmtGetOptionColumnName = sd.prepareStatement(sqlGetOptionColumnName);	
 			
 			String sqlInsertChangeHistory = "insert into change_history(c_id, q_id, r_id, old_value, " +
 					"new_value, qname, qtype, tablename, oname, question_column_name, option_column_name) " +
@@ -771,19 +784,29 @@ public class Review extends Application {
 			}
 						
 			// Get table name, question name and question type for all update items
+			Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			for(int i = 0; i < u.reviewItems.size(); i++) {
 				ReviewItem ri = u.reviewItems.get(i);
-				pstmtGetTable.setInt(1, sId);
-				pstmtGetTable.setInt(2, ri.q_id);
-				resultSet = pstmtGetTable.executeQuery();
-
-				if(resultSet.next()) {
-					ri.table = resultSet.getString(1);
-					ri.qname = resultSet.getString(2);
-					ri.qtype = resultSet.getString(3);
-					ri.questionColumnName = resultSet.getString(4);
+				if(ri.q_id < 0) {
+					// Preload / meta
+					ri.table = topForm.tableName;
+					MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, ri.q_id);
+					ri.qtype = item.type;
+					ri.questionColumnName  = item.columnName;
+					
 				} else {
-					throw new ApplicationException("Table not found for question: " + ri.q_id);
+					pstmtGetTable.setInt(1, sId);
+					pstmtGetTable.setInt(2, ri.q_id);
+					resultSet = pstmtGetTable.executeQuery();
+	
+					if(resultSet.next()) {
+						ri.table = resultSet.getString(1);
+						ri.qname = resultSet.getString(2);
+						ri.qtype = resultSet.getString(3);
+						ri.questionColumnName = resultSet.getString(4);
+					} else {
+						throw new ApplicationException("Table not found for question: " + ri.q_id);
+					}
 				}
 				
 				if(ri.qtype.equals("select")) {
@@ -803,6 +826,10 @@ public class Review extends Application {
 			}
 			
 			// Create an array of update items for each update item in each record
+			String target_filter_question_name = null;
+			String target_filter_name = null;
+			String target_filter_table = null;
+			String target_filter_type = null;
 			if(u.r_id > 0) {
 				
 				addUpdateItem(
@@ -811,9 +838,10 @@ public class Review extends Application {
 						uiList, 
 						sId,
 						u.r_id, 
-						u.reviewItems);
+						u.reviewItems,
+						null);
 			
-			} else if (u.qFilter > 0 ) {
+			} else if (u.qFilter != 0 ) {
 				
 				boolean hasTargetFilter = false;
 				if(u.qFilterTarget > 0) {
@@ -821,46 +849,84 @@ public class Review extends Application {
 				}
 				
 				// Get the record ids using the question filter
-				String filter_name = null;
-				String target_filter_name = null;
-				String table = null;
+				String filter_question_name = null;
+				String filter_name = null;			
+				String filter_table = null;
+				String filter_type = null;
+				//String table = null;
 				
 				// Get the filter question name and type
-				pstmtGetTable.setInt(1, sId);
-				pstmtGetTable.setInt(2, u.qFilter);
-				resultSet = pstmtGetTable.executeQuery();
-
-				if(resultSet.next()) {
-					table = resultSet.getString(1);
-					filter_name = resultSet.getString(4);
+				if(u.qFilter < 0) {
+					// preload
+					filter_table = topForm.tableName;
+					MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, u.qFilter);
+					filter_type = item.type;
+					filter_name  = item.columnName;
 				} else {
-					throw new ApplicationException("Table not found for question: " + u.qFilter);
+					pstmtGetTable.setInt(1, sId);
+					pstmtGetTable.setInt(2, u.qFilter);
+					resultSet = pstmtGetTable.executeQuery();
+	
+					if(resultSet.next()) {
+						filter_table = resultSet.getString(1);
+						filter_question_name = resultSet.getString(3);
+						filter_type = resultSet.getString(3);
+						filter_name = resultSet.getString(4);
+					} else {
+						throw new ApplicationException("Table not found for question: " + u.qFilter);
+					}
 				}
 				
 				if(hasTargetFilter) {
-					pstmtGetTable.setInt(2, u.qFilterTarget);
-					resultSet = pstmtGetTable.executeQuery();
-					if(resultSet.next()) {
-						// Table should be the same as for the primary question filter
-						target_filter_name = resultSet.getString(4);
+					if(u.qFilterTarget < 0) {
+						// preload
+						target_filter_table = topForm.tableName;
 					} else {
-						throw new ApplicationException("Table not found for question: " + u.qFilterTarget);
+						pstmtGetTable.setInt(2, u.qFilterTarget);
+						resultSet = pstmtGetTable.executeQuery();
+						if(resultSet.next()) {
+							target_filter_table = resultSet.getString(1);
+							target_filter_question_name = resultSet.getString(2);
+							target_filter_type = resultSet.getString(3);
+							target_filter_name = resultSet.getString(4);
+						} else {
+							throw new ApplicationException("Table not found for question: " + u.qFilterTarget);
+						}
 					}
-					
+					if(!filter_table.equals(target_filter_table)) {
+						String msg = localisation.getString("rev_tab_mismatch");
+						msg.replaceAll("%s1", filter_question_name);
+						msg.replaceAll("%s2", target_filter_question_name);
+						throw new ApplicationException(msg);
+					}		
 				}
 				
 				String targetFilter = "";
+				boolean addParam = true;
 				if(hasTargetFilter) {
-					targetFilter = "and " + target_filter_name + " = ? ";
+					if((target_filter_type.equals("int") || target_filter_type.equals("decimal")) && u.targetValueFilter.equals("")) {
+						targetFilter = "and " + target_filter_name + " is null ";
+						addParam = false;
+					} else {
+						targetFilter = "and " + target_filter_name + " = ? ";
+					}
+					
 				}
-				// Get the record ids that match the filter
-				String sqlGetRecords = "select prikey from " +  table + " where " + filter_name + " = ? " + targetFilter +";";
+				// Get the record id's that match the filter
+				String sqlGetRecords = "select prikey from " +  filter_table + " where " + filter_name + " = ? " + targetFilter +";";
 				pstmtGetRecords = dConnection.prepareStatement(sqlGetRecords);
 				pstmtGetRecords.setString(1, u.valueFilter);
-				if(hasTargetFilter) {
-					pstmtGetRecords.setString(2, u.targetValueFilter);
+				if(hasTargetFilter && addParam) {
+					if(target_filter_type.equals("int")) {
+						pstmtGetRecords.setInt(2, Integer.parseInt(u.targetValueFilter));
+					} else if(target_filter_type.equals("decimal")) {
+						pstmtGetRecords.setDouble(2, Double.parseDouble(u.targetValueFilter));
+					} else {
+						pstmtGetRecords.setString(2, u.targetValueFilter);
+					}
 				}
 				
+				log.info("Get target records: " + pstmtGetRecords.toString());
 				ResultSet resultSet3 = pstmtGetRecords.executeQuery();
 				while(resultSet3.next()) {
 					
@@ -871,7 +937,8 @@ public class Review extends Application {
 							uiList, 
 							sId,
 							prikey, 
-							u.reviewItems);
+							u.reviewItems,
+							target_filter_type);
 				}
 			} else {
 				throw new ApplicationException("Can't get records to update");
@@ -905,7 +972,7 @@ public class Review extends Application {
 
 		} catch (ApplicationException e) {
 			
-			try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { dConnection.rollback();} catch (Exception ex){}
 			
 		    String msg = e.getMessage();
 		    log.info(msg);
@@ -913,7 +980,7 @@ public class Review extends Application {
 
 		} catch (SQLException e) {
 			
-			try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { dConnection.rollback();} catch (Exception ex){}
 			
 		    log.log(Level.SEVERE,"Exception", e);
 		    String msg = e.getMessage();
@@ -923,14 +990,14 @@ public class Review extends Application {
 
 		} catch (Exception e) {
 			
-			try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { dConnection.rollback();} catch (Exception ex){}
 			
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		
 		} finally {
 			
-			try {connectionSD.setAutoCommit(true);} catch (Exception e) {}	
+			try {sd.setAutoCommit(true);} catch (Exception e) {}	
 			try {dConnection.setAutoCommit(true);} catch (Exception e) {}
 			try {if (pstmtGetTable != null) {pstmtGetTable.close();}} catch (SQLException e) {}
 			try {if (pstmtData != null) {pstmtData.close();}} catch (SQLException e) {}
@@ -941,7 +1008,7 @@ public class Review extends Application {
 			try {if (pstmtGetRecords != null) {pstmtGetRecords.close();}} catch (SQLException e) {}
 			try {if (pstmtGetOptionColumnName != null) {pstmtGetOptionColumnName.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Review", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Review", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Review", dConnection);
 		}
 
@@ -955,7 +1022,8 @@ public class Review extends Application {
 			ArrayList<UpdateItem> uiList, 
 			int sId,
 			int rId, 
-			ArrayList<ReviewItem> riList) throws ApplicationException, SQLException, Exception {
+			ArrayList<ReviewItem> riList,
+			String targetFilterType) throws ApplicationException, SQLException, Exception {
 		
 		for(int i = 0; i < riList.size(); i++) {
 			ReviewItem ri = riList.get(i);
@@ -963,7 +1031,11 @@ public class Review extends Application {
 			ui.qId = ri.q_id;
 			ui.sId = sId;
 			ui.qname = ri.qname;
-			ui.qtype = ri.qtype;
+			if(targetFilterType != null) {
+				ui.qtype = targetFilterType;
+			} else {
+				ui.qtype = ri.qtype;
+			}
 			ui.table = ri.table;
 			ui.rId = rId;
 			ui.newValue = ri.newValue;
@@ -1021,8 +1093,13 @@ public class Review extends Application {
 			/*
 			 * Update data
 			 */
+			boolean addParam = true;
+			int idx = 1;
 			if(ui.qtype.equals("select")) {
 				sqlData = "update " + ui.table + " set " + ui.questionColumnName + "__" + ui.optionColumnName + " = ? where prikey = ?;";
+			} else if((ui.qtype.equals("int") || ui.qtype.equals("decimal")) && (ui.newValue == null || ui.newValue.equals(""))) {
+				sqlData = "update " + ui.table + " set " + ui.questionColumnName + " = null where prikey = ?;";	
+				addParam = false;
 			} else {
 				sqlData = "update " + ui.table + " set " + ui.questionColumnName + " = ? where prikey = ?;";	
 			}
@@ -1030,15 +1107,22 @@ public class Review extends Application {
 			try {if (pstmtData != null) {pstmtData.close();}} catch (SQLException e) {}
 			pstmtData = dConnection.prepareStatement(sqlData);
 			int ovalue = 0;
-			if(ui.qtype.equals("select")) {
-				if(ui.set) {
-					ovalue = 1;
+			if(addParam) {
+				if(ui.qtype.equals("select")) {
+					if(ui.set) {
+						ovalue = 1;
+					}
+					pstmtData.setInt(idx++, ovalue);
+				} else if(ui.qtype.equals("int")) {
+					pstmtData.setInt(idx++, Integer.parseInt(ui.newValue));
+				} else if (ui.qtype.equals("decimal")) {
+					pstmtData.setDouble(idx++, Double.parseDouble(ui.newValue));
+				} else {
+					pstmtData.setString(idx++, ui.newValue);
 				}
-				pstmtData.setInt(1, ovalue);
-			} else {
-				pstmtData.setString(1, ui.newValue);
 			}
-			pstmtData.setInt(2, ui.rId);
+			
+			pstmtData.setInt(idx++, ui.rId);
 			
 			log.info("Modifying data record: " + pstmtData.toString());
 			pstmtData.executeUpdate();
@@ -1233,7 +1317,7 @@ public class Review extends Application {
 		} catch (InvalidUndoException e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+				try { dConnection.rollback();} catch (Exception ex){}
 			}
 		    String msg = e.getMessage();
 		    log.info(msg);
@@ -1242,7 +1326,7 @@ public class Review extends Application {
 		} catch (ApplicationException e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+				try { dConnection.rollback();} catch (Exception ex){}
 			}
 			
 		    String msg = e.getMessage();
@@ -1252,7 +1336,7 @@ public class Review extends Application {
 		} catch (SQLException e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+				try { dConnection.rollback();} catch (Exception ex){}
 			}
 		    log.log(Level.SEVERE,"Exception", e);
 		    String msg = e.getMessage();
@@ -1263,7 +1347,7 @@ public class Review extends Application {
 		} catch (Exception e) {
 			
 			if(!autoCommit) {
-				try { dConnection.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+				try { dConnection.rollback();} catch (Exception ex) {}
 			}
 			
 			log.log(Level.SEVERE,"Exception", e);
