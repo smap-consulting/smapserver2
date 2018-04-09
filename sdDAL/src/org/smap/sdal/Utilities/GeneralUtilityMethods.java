@@ -3151,7 +3151,7 @@ public class GeneralUtilityMethods {
 		
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
-							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, null);
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
 							for(Option o : options) {
 								String label ="";
 								if(o.externalLabel != null) {
@@ -3899,10 +3899,10 @@ public class GeneralUtilityMethods {
 	 * Get choices from an external file
 	 */
 	public static ArrayList<Option> getExternalChoices(Connection sd, ResourceBundle localisation, 
-			int oId, int sId, int qId, int l_id, ArrayList<String> matches) throws Exception {
+			int oId, int sId, int qId, ArrayList<String> matches) throws Exception {
 
 		ArrayList<Option> choices = null;		
-		String sql = "select q.external_table from question q where q.q_id = ?";
+		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
 		String sqlChoices = "select ovalue, label_id from option where l_id = ? and not externalfile";
@@ -3925,6 +3925,7 @@ public class GeneralUtilityMethods {
 			if (rs.next()) {		
 				
 				filename = rs.getString(1);
+				int l_id = rs.getInt(2);
 				
 				if(filename != null) {
 					
@@ -3944,7 +3945,6 @@ public class GeneralUtilityMethods {
 						while(rsLabels.next()) {
 							String label = rsLabels.getString(1);
 							String language = rsLabels.getString(2);
-							System.out.println("------- " + filename + ", " + ovalue + ", " + label + ", " + language);
 							languageItems.add(new LanguageItem(language, label));
 						}
 						

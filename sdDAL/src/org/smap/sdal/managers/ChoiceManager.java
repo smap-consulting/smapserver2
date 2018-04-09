@@ -66,7 +66,7 @@ public class ChoiceManager {
 				}
 			} else {
 				// 2. TODO Search choices which are stored in an external table
-				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, l_id, matches);
+				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, matches);
 				int idx = 0;
 				int languageIdx = 0;
 				if(choices != null && choices.size() > 0) {

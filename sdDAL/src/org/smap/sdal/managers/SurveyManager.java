@@ -844,21 +844,6 @@ public class SurveyManager {
 			f.reference = rsGetForms.getBoolean(6);
 			f.merge = rsGetForms.getBoolean(7);
 
-			/*
-			 * Add HRK
-			 *
-			if(getHrk) {
-				// add the hrk column if it exists
-
-				Question q = new Question();
-				q.name="_hrk";
-				q.columnName="_hrk";
-				q.type = "string";
-				q.published = GeneralUtilityMethods.hasColumn(cResults, f.tableName, "_hrk");
-				q.source = "system";
-				f.questions.add(q);
-			}
-			*/
 			if(getHrk && f.parentform == 0) {
 				if(s.hrk != null && s.hrk.trim().length() > 0
 						&& GeneralUtilityMethods.columnType(cResults, f.tableName, "_hrk") != null) {
@@ -1031,7 +1016,6 @@ public class SurveyManager {
 			OptionList optionList = new OptionList ();
 
 			boolean external = false;
-			int selectQuestion = 0;
 			if(getExternalOptions.equals("external")) {
 				external = true;
 			} else if(getExternalOptions.equals("internal")) {
@@ -1042,7 +1026,7 @@ public class SurveyManager {
 
 			if(external) {
 				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
-				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, s.id, qId, listId, null);
+				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, s.id, qId, null);
 			} else {
 				optionList.options = new ArrayList<Option> ();
 				pstmtGetOptions.setInt(1, listId);
