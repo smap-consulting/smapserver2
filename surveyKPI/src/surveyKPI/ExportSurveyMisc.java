@@ -425,13 +425,15 @@ public class ExportSurveyMisc extends Application {
 				if(format.equals("spss")) {
 					modifiedFormat = "stata";		// hack to generate a zip file with a csv file in it
 					fastExport = false;
-					merge_select_multiple = false;
+					merge_select_multiple = false;	// Ignore merge select multiple setting
 				} else if(format.equals("stata")) {
 					fastExport = false;
-					merge_select_multiple = false;
+					merge_select_multiple = false;	// Ignore merge select multiple setting
 				} else if(format.equals("shape")) {
 					fastExport = true;
-					merge_select_multiple = true;
+					merge_select_multiple = true;	// Ignore merge select multiple setting
+				} else if(format.equals("csv") && !merge_select_multiple) {
+					fastExport = false;
 				}
 				
 				boolean split_locn = false;						// TODO
@@ -665,6 +667,9 @@ public class ExportSurveyMisc extends Application {
 	void addValueToBuf(StringBuffer buf, String value) {
 		if(buf.length() > 0) {
 			buf.append(",");
+		}
+		if(value == null) {
+			value = "";
 		}
 		String escaped = StringEscapeUtils.escapeCsv(value);
 		buf.append(escaped);
