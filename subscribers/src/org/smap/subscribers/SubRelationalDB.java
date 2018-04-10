@@ -557,18 +557,19 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Update any Human readable keys if this survey has them
 			 */
-			String topLevelTable = null;
+			org.smap.sdal.model.Form topLevelForm = null;
 			if(hasHrk) {
-				topLevelTable = GeneralUtilityMethods.getMainResultsTable(cMeta, cResults, sId);
-				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelTable, "_hrk")) {
+				topLevelForm = GeneralUtilityMethods.getTopLevelForm(cMeta, sId);
+				
+				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelForm.tableName, "_hrk")) {
 					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
-					log.info("Error:  _hrk being created for table " + topLevelTable + " this column should already be there");
-					String sqlAddHrk = "alter table " + topLevelTable + " add column _hrk text;";
+					log.info("Error:  _hrk being created for table " + topLevelForm.tableName + " this column should already be there");
+					String sqlAddHrk = "alter table " + topLevelForm.tableName + " add column _hrk text;";
 					pstmtAddHrk = cResults.prepareStatement(sqlAddHrk);
 					pstmtAddHrk.executeUpdate();
 				}
 
-				String sql = "update " + topLevelTable + " set _hrk = "
+				String sql = "update " + topLevelForm.tableName + " set _hrk = "
 						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, cMeta);
 
 				sql += " where _hrk is null;";
@@ -585,10 +586,10 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Apply add policy - no action");
 				} else if(keyPolicy.equals("merge")) {
 					log.info("Apply merge policy");
-					mergeTableContent(cMeta, cResults, sId, topLevelTable, keys.newKey);
+					mergeTableContent(cMeta, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id);
 				} else if(keyPolicy.equals("discard")) {
 					log.info("Apply discard policy");
-					discardTableContent(cResults, topLevelTable, keys.newKey);
+					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
 				}
 			}
 
@@ -914,7 +915,8 @@ public class SubRelationalDB extends Subscriber {
 			Connection cRel,
 			int sId,
 			String table,
-			int prikey) throws SQLException, Exception {
+			int prikey,
+			int f_id) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -924,12 +926,6 @@ public class SubRelationalDB extends Subscriber {
 				+ "and _bad = 'false' "
 				+ "order by prikey desc limit 1";
 		PreparedStatement pstmtSource = null;
-
-		String sqlCloseSource = "update " + table + " set _bad = 'true', _bad_reason = ? "
-				+ "where _hrk = ? "
-				+ "and _bad = 'false' "
-				+ "and prikey != ?";
-		PreparedStatement pstmtCloseSource = null;
 
 		String sqlChildTables = "select table_name from form "
 				+ "where parentform in (select f_id from form where parentform = 0 and s_id = ?) "
@@ -971,8 +967,10 @@ public class SubRelationalDB extends Subscriber {
 			pstmtSource.setString(1, hrk);
 			pstmtSource.setInt(2, prikey);
 			rs = pstmtSource.executeQuery();
+			ArrayList<Integer> sourceArray = new ArrayList<Integer> ();
 			if(rs.next()) {
 				sourceKey = rs.getInt(1);
+				sourceArray.add(sourceKey);
 
 				mergeRecords(cRel, table, prikey, sourceKey);
 
@@ -985,7 +983,6 @@ public class SubRelationalDB extends Subscriber {
 					mergeTables.add(rtm.getString(1));
 					System.out.println("Need to merge table " + rtm.getString(1));
 				}
-				
 				
 				// Add the child records from the merged survey to the new survey
 				ResultSet rsc = null;
@@ -1064,19 +1061,14 @@ public class SubRelationalDB extends Subscriber {
 
 			}
 
-			pstmtCloseSource = cRel.prepareStatement(sqlCloseSource);
-			pstmtCloseSource.setString(1, "Merged with " + prikey);
-			pstmtCloseSource.setString(2, hrk);
-			pstmtCloseSource.setInt(3, prikey);
-			log.info(("Closing Source: " + pstmtCloseSource.toString()));
-			pstmtCloseSource.executeUpdate();
-
-
+			for(int key : sourceArray) {
+				org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, table, 
+						true, "Merged with " + prikey, key, sId, f_id, true, false, user, false);
+			}
 
 		} finally {
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {}
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
-			if(pstmtCloseSource != null) try{pstmtCloseSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
 			if(pstmtChildUpdate != null) try{pstmtChildUpdate.close();}catch(Exception e) {}
@@ -1265,7 +1257,7 @@ public class SubRelationalDB extends Subscriber {
 						
 						// Mark the record being replaced as bad
 						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-								true, bad_reason, dupKey, sId, f_id, true, false, user);
+								true, bad_reason, dupKey, sId, f_id, true, false, user, true);
 						
 						// Set the hrk of the new record to the hrk of the old record
 						// This can only be done for one old record, possibly there is never more than 1
@@ -1292,7 +1284,7 @@ public class SubRelationalDB extends Subscriber {
 					if(!replacedRecordsAreGood) {
 						bad_reason = localisation.getString("t_rep_bad");
 						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-								true, bad_reason, (int) newKey, sId, f_id, true, false, user);
+								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true);
 					}
 				}		
 			

@@ -478,7 +478,7 @@ public class Survey {
 	private boolean getExistingCompressedFlag(Connection sd, String tableName, int existingSurveyId, String qName) throws SQLException {
 		boolean compressed = true;
 		String sql = "select compressed from question where qName = ? and f_id = "
-				+ "(select f_id from form where s_id = ? and table_name = ?)";
+				+ "(select f_id from form where s_id = ? and table_name = ? and not reference)";
 		PreparedStatement pstmt = null;
 		
 		try {

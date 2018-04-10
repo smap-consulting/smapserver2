@@ -46,7 +46,8 @@ public class UtilityMethodsEmail {
 			int fId,
 			boolean modified,
 			boolean isChild,
-			String user) throws Exception {
+			String user,
+			boolean updateChildren) throws Exception {
 
 		String sql = "update " + tName + " set _bad = ?, _bad_reason = ?, _modified = ? " + 
 				" where prikey = ? and _modified = 'false';";
@@ -102,36 +103,38 @@ public class UtilityMethodsEmail {
 				}
 			}
 
-			// Get the child tables
-			sql = "SELECT DISTINCT f.table_name, f_id FROM form f " +
-					" where f.s_id = ? " + 
-					" and f.parentform = ?;";
-
-			if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			pstmt.setInt(2, fId);
-
-			log.info(pstmt.toString());
-			ResultSet tableSet = pstmt.executeQuery();
-			while(tableSet.next()) {
-				String childTable = tableSet.getString(1);
-				int childFormId = tableSet.getInt(2);
-
-				// Get the child records to be updated
-				sql = "select prikey from " + childTable + 
-						" where parkey = ?;";
-
-				if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
-				pstmt2 = cRel.prepareStatement(sql);	
-				pstmt2.setInt(1, key);
-				log.info(pstmt2.toString());
-
-				ResultSet childRecs = pstmt2.executeQuery();
-				while(childRecs.next()) {
-					int childKey = childRecs.getInt(1);
-					markRecord(cRel, sd, localisation, childTable, value, reason, childKey, 
-							sId, childFormId, modified, true, user);
+			if(updateChildren) {
+				// Get the child tables
+				sql = "SELECT DISTINCT f.table_name, f_id FROM form f " +
+						" where f.s_id = ? " + 
+						" and f.parentform = ?;";
+	
+				if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				pstmt.setInt(2, fId);
+	
+				log.info(pstmt.toString());
+				ResultSet tableSet = pstmt.executeQuery();
+				while(tableSet.next()) {
+					String childTable = tableSet.getString(1);
+					int childFormId = tableSet.getInt(2);
+	
+					// Get the child records to be updated
+					sql = "select prikey from " + childTable + 
+							" where parkey = ?;";
+	
+					if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
+					pstmt2 = cRel.prepareStatement(sql);	
+					pstmt2.setInt(1, key);
+					log.info(pstmt2.toString());
+	
+					ResultSet childRecs = pstmt2.executeQuery();
+					while(childRecs.next()) {
+						int childKey = childRecs.getInt(1);
+						markRecord(cRel, sd, localisation, childTable, value, reason, childKey, 
+								sId, childFormId, modified, true, user, updateChildren);
+					}
 				}
 			}
 		} catch (SQLException e) {

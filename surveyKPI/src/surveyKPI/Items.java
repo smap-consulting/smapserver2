@@ -772,7 +772,7 @@ public class Items extends Application {
 				int pId = tableSet.getInt(2);
 				boolean isChild = pId > 0;
 				UtilityMethodsEmail.markRecord(cRel, connectionSD, localisation, tName, value, 
-						reason, key, sId, fId, false, isChild, request.getRemoteUser());
+						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true);
 			} else {
 				throw new Exception("Could not get form id");
 			}
