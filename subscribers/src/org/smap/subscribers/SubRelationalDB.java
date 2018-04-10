@@ -1221,6 +1221,7 @@ public class SubRelationalDB extends Subscriber {
 		 */		
 		String tableName = element.getTableName();
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtCheckBad = null;
 		PreparedStatement pstmtAddHrk = null;
 		PreparedStatement pstmtHrk = null;
 
@@ -1228,14 +1229,12 @@ public class SubRelationalDB extends Subscriber {
 			// Check that the new record is not bad
 			String sql = "select _bad from " + tableName + " where prikey = ?;";
 			boolean isGood = false;
-			pstmt = cRel.prepareStatement(sql);
-			pstmt = cRel.prepareStatement(sql);
-			pstmt.setLong(1, newKey);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				isGood = !rs.getBoolean(1);
+			pstmtCheckBad = cRel.prepareStatement(sql);
+			pstmtCheckBad.setLong(1, newKey);
+			ResultSet rsCheckBad = pstmtCheckBad.executeQuery();
+			if(rsCheckBad.next()) {
+				isGood = !rsCheckBad.getBoolean(1);
 			}
-			pstmt.close();
 
 			if(isGood) {
 				// Get the form id for this table
@@ -1246,16 +1245,28 @@ public class SubRelationalDB extends Subscriber {
 				pstmt = cMeta.prepareStatement(sql);
 				pstmt.setString(1, tableName);
 				pstmt.setInt(2, sId);
-				rs = pstmt.executeQuery();
+				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					f_id = rs.getInt(1);
 
 					// Mark the records replaced
+					boolean replacedRecordsAreGood = false;
 					for(int i = 0; i < existingKeys.size(); i++) {	
 						int dupKey = existingKeys.get(i);
-						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, tableName, 
-								true, bad_reason, dupKey, sId, f_id, true, false);
-
+						
+						// Find out if the record being replaced is bad - If none of them are good then the replacedRecordsAreGood flag will be false
+						pstmtCheckBad.setLong(1, dupKey);
+						rsCheckBad = pstmtCheckBad.executeQuery();
+						if(rsCheckBad.next()) {
+							if(!rsCheckBad.getBoolean(1)) {
+								replacedRecordsAreGood = true;
+							}
+						}
+						
+						// Mark the record being replaced as bad
+						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
+								true, bad_reason, dupKey, sId, f_id, true, false, user);
+						
 						// Set the hrk of the new record to the hrk of the old record
 						// This can only be done for one old record, possibly there is never more than 1
 						if(hasHrk && i == 0) {
@@ -1277,12 +1288,20 @@ public class SubRelationalDB extends Subscriber {
 							pstmtHrk.executeUpdate();
 						}
 					}
-				}	
-
+					// If the records being replaced were all bad then set the new record to bad
+					if(!replacedRecordsAreGood) {
+						bad_reason = localisation.getString("t_rep_bad");
+						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
+								true, bad_reason, (int) newKey, sId, f_id, true, false, user);
+					}
+				}		
+			
 			}
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
+			if(pstmtAddHrk != null) try{pstmtAddHrk.close();}catch(Exception e) {};
+			if(pstmtCheckBad != null) try{pstmtCheckBad.close();}catch(Exception e) {};
 		}
 
 	}

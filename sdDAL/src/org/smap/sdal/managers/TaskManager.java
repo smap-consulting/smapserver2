@@ -66,6 +66,8 @@ public class TaskManager {
 
 	private static Logger log =
 			Logger.getLogger(TaskManager.class.getName());
+	
+	LogManager lm = new LogManager(); // Application log
 
 	private ResourceBundle localisation = null;
 	
@@ -1367,6 +1369,64 @@ public class TaskManager {
 
 			log.info("Delete task: " + pstmt.toString());
 			pstmt.executeUpdate();
+
+		} finally {
+			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+			if(pstmtTempUsers != null) try {	pstmtTempUsers.close(); } catch(SQLException e) {};
+			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
+		}		
+	}
+	
+	/*
+	 * Delete tasks that reference a specific updateId
+	 */
+	public void deleteTaskforUpdateId(Connection sd, int sId, String updateId, String user) throws SQLException {
+
+		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
+				+ "(select a.assignee from assignments a, tasks t where t.update_id = ? "
+				+ "and a.task_id = t.id)"; 
+		PreparedStatement pstmtGetUsers = null;
+
+		String sqlTempUsers = "delete from users where temporary = true and id in "
+				+ "(select a.assignee from assignments a, tasks t where t.update_id = ? "
+				+ "and a.task_id = t.id)"; 
+		PreparedStatement pstmtTempUsers = null;
+
+		String sql = "delete from tasks where update_id = ?"; 
+		PreparedStatement pstmt = null;
+
+		try {
+
+			// Delete any temporary users created for this task
+			pstmtTempUsers = sd.prepareStatement(sqlTempUsers);
+			pstmtTempUsers.setString(1, updateId);
+
+			log.info("Delete temporary user: " + pstmtTempUsers.toString());
+			pstmtTempUsers.executeUpdate();
+
+			// Notify users whose task has been deleted
+			MessagingManager mm = new MessagingManager();
+			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
+			pstmtGetUsers.setString(1, updateId);
+
+			log.info("Get task users: " + pstmtGetUsers.toString());
+			ResultSet rs = pstmtGetUsers.executeQuery();
+			while (rs.next()) {
+				mm.userChange(sd, rs.getString(1));
+			}			
+
+			// Delete the task
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, updateId);
+		
+			log.info("Delete task: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+			if(count > 0) {
+				String msg = localisation.getString("lm_del_task_for_update_id");
+				msg = msg.replaceFirst("%s1", String.valueOf(count));
+				msg = msg.replaceFirst("%s2", updateId);
+				lm.writeLog(sd, sId, user, LogManager.DELETE, msg);
+			}
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};

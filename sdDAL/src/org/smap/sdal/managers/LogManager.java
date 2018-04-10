@@ -55,6 +55,12 @@ public class LogManager {
 	private static Logger log =
 			 Logger.getLogger(LogManager.class.getName());
 	
+	// Event types
+	public static String CREATE = "create";
+	public static String DELETE = "delete";
+	public static String ERASE = "erase";
+	public static String VIEW = "view";
+	
 	/*
 	 * Write a log entry that includes the survey id
 	 */

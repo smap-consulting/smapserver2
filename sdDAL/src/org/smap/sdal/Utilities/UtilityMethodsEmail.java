@@ -12,10 +12,12 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
@@ -32,8 +34,10 @@ public class UtilityMethodsEmail {
 	/*
 	 * Mark a record and all its children as either bad or good
 	 */
-	static public void markRecord(Connection cRel, 
-			Connection cSD, 
+	static public void markRecord(
+			Connection cRel, 
+			Connection sd, 
+			ResourceBundle localisation,
 			String tName, 
 			boolean value, 
 			String reason, 
@@ -41,15 +45,18 @@ public class UtilityMethodsEmail {
 			int sId, 
 			int fId,
 			boolean modified,
-			boolean isChild) throws Exception {
+			boolean isChild,
+			String user) throws Exception {
 
 		String sql = "update " + tName + " set _bad = ?, _bad_reason = ?, _modified = ? " + 
 				" where prikey = ? and _modified = 'false';";
 		String sqlChild = "update " + tName + " set _bad = ?, _bad_reason = ? " + 
 				" where prikey = ?;";
+		String sqlGetInstanceId = "select instanceid from " + tName + " where prikey = ?";
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmt2 = null;
+		PreparedStatement pstmtGetInstanceId = null;
 
 		try {
 
@@ -73,6 +80,27 @@ public class UtilityMethodsEmail {
 			if(count != 1) {
 				throw new Exception("Failed to update record");
 			}
+			
+			/*
+			 * Update any dependencies
+			 */
+			if(!isChild) {
+				try {
+					if(value) {	// Setting bad
+						pstmtGetInstanceId = cRel.prepareStatement(sqlGetInstanceId);
+						pstmtGetInstanceId.setInt(1, key);
+						ResultSet rs = pstmtGetInstanceId.executeQuery();
+						if(rs.next()) {
+							// Delete tasks that referenced this now 'bad' record
+							TaskManager tm = new TaskManager(localisation);
+							tm.deleteTaskforUpdateId(sd, sId, rs.getString(1), user);
+						}
+					}
+				} catch (Exception e) {
+					// Record but otherwise Ignore exceptions
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+			}
 
 			// Get the child tables
 			sql = "SELECT DISTINCT f.table_name, f_id FROM form f " +
@@ -80,7 +108,7 @@ public class UtilityMethodsEmail {
 					" and f.parentform = ?;";
 
 			if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = cSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, fId);
 
@@ -102,8 +130,8 @@ public class UtilityMethodsEmail {
 				ResultSet childRecs = pstmt2.executeQuery();
 				while(childRecs.next()) {
 					int childKey = childRecs.getInt(1);
-					markRecord(cRel, cSD, childTable, value, reason, childKey, 
-							sId, childFormId, modified, true);
+					markRecord(cRel, sd, localisation, childTable, value, reason, childKey, 
+							sId, childFormId, modified, true, user);
 				}
 			}
 		} catch (SQLException e) {
@@ -112,6 +140,7 @@ public class UtilityMethodsEmail {
 		} finally {
 			if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
+			if (pstmtGetInstanceId != null) try {pstmtGetInstanceId.close();} catch(Exception e) {};
 		}
 
 

@@ -751,6 +751,9 @@ public class Items extends Application {
 		Connection cRel = null; 
 		PreparedStatement pstmt = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			log.info("New toggle bad");
 			cRel = ResultsDataSource.getConnection("surveyKPI-Items");
 			
@@ -768,7 +771,8 @@ public class Items extends Application {
 				String tName = tableSet.getString(1);
 				int pId = tableSet.getInt(2);
 				boolean isChild = pId > 0;
-				UtilityMethodsEmail.markRecord(cRel, connectionSD, tName, value, reason, key, sId, fId, false, isChild);
+				UtilityMethodsEmail.markRecord(cRel, connectionSD, localisation, tName, value, 
+						reason, key, sId, fId, false, isChild, request.getRemoteUser());
 			} else {
 				throw new Exception("Could not get form id");
 			}
