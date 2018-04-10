@@ -359,6 +359,11 @@ public class CsvTableManager {
 		} finally {
 			try {pstmtGetCsvTable.close();} catch(Exception e) {}
 		}
+		// Don't return a null list
+		if(choices == null) {
+			choices = new ArrayList<Option> ();
+		}
+		
 		return choices;
 	}
 	

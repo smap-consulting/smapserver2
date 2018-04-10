@@ -3152,16 +3152,18 @@ public class GeneralUtilityMethods {
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
-							for(Option o : options) {
-								String label ="";
-								if(o.externalLabel != null) {
-									for(LanguageItem el : o.externalLabel) {
-										if(el.language.equals(language)) {
-											label = el.text;
+							if(options != null) {
+								for(Option o : options) {
+									String label ="";
+									if(o.externalLabel != null) {
+										for(LanguageItem el : o.externalLabel) {
+											if(el.language.equals(language)) {
+												label = el.text;
+											}
 										}
 									}
+									c.choices.add(new KeyValue(o.value, label));
 								}
-								c.choices.add(new KeyValue(o.value, label));
 							}
 						} else {
 							// Compressed select multiple add the options
