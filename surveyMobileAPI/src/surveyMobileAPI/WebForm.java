@@ -102,6 +102,7 @@ public class WebForm extends Application {
 	ResourceBundle localisation = null;
 	boolean viewOnly = false;
 	String userIdent = null;
+	boolean isTemporaryUser = false;
 	HashMap<String, Integer> gRecordCounts = null;
 
 	/*
@@ -172,10 +173,13 @@ public class WebForm extends Application {
 	@GET
 	@Path("/key/{ident}/{key}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getFormJson(@Context HttpServletRequest request, @PathParam("ident") String formIdent,
-			@PathParam("key") String authorisationKey, @QueryParam("datakey") String datakey, // Optional keys to
-																								// instance data
-			@QueryParam("datakeyvalue") String datakeyvalue, @QueryParam("assignment_id") int assignmentId,
+	public Response getFormJson(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String formIdent,
+			@PathParam("key") String authorisationKey, 
+			@QueryParam("datakey") String datakey, // Optional keys to instance data
+			@QueryParam("datakeyvalue") String datakeyvalue, 
+			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("callback") String callback) throws IOException {
 
 		log.info("Requesting json");
@@ -197,8 +201,8 @@ public class WebForm extends Application {
 		}
 
 		mimeType = "json";
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback, false, false,
-				false);
+		isTemporaryUser = false;
+		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback, false, false);
 	}
 
 	// Respond with HTML
@@ -220,12 +224,14 @@ public class WebForm extends Application {
 		viewOnly = vo;
 
 		userIdent = request.getRemoteUser();
+		isTemporaryUser = false;
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback,
-				false, true, false);
+				false, true);
 	}
 
 	/*
-	 * Respond with HTML Temporary User
+	 * Respond with HTML 
+	 * Called by Temporary User
 	 */
 	//
 	@GET
@@ -247,8 +253,9 @@ public class WebForm extends Application {
 		viewOnly = vo;
 		
 		userIdent = tempUser;
+		isTemporaryUser = true;
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback, false,
-				true, true);
+				true);
 	}
 
 	/*
@@ -256,7 +263,7 @@ public class WebForm extends Application {
 	 */
 	private Response getWebform(HttpServletRequest request, String formIdent, String datakey,
 			String datakeyvalue, int assignmentId, String callback, boolean simplifyMedia,
-			boolean isWebForm, boolean isTemporaryUser) {
+			boolean isWebForm) {
 
 		Response response = null;
 
@@ -603,7 +610,7 @@ public class WebForm extends Application {
 	}
 
 	/*
-	 * Get the "Main" element of an enketo form
+	 * Get the "Main" element of an web form
 	 */
 	private StringBuffer addMain(HttpServletRequest request, String dataToEditId, int orgId,
 			boolean minimal, String surveyClass, boolean superUser)
@@ -621,8 +628,11 @@ public class WebForm extends Application {
 		// Convert escaped XML into HTML
 		html = html.replaceAll("&gt;", ">");
 		html = html.replaceAll("&lt;", "<");
-		//html = html.replaceAll("&quot;", "\\\"");
 		
+		String dynamic = "";
+		if(isTemporaryUser) {
+			dynamic = "/id/" + userIdent;		
+		}
 		for (int i = 0; i < manifestList.size(); i++) {
 			log.info(manifestList.get(i).fileName + " : " + manifestList.get(i).url + " : "
 					+ manifestList.get(i).type);
@@ -642,6 +652,7 @@ public class WebForm extends Application {
 					mv.url = url;
 					jr.manifestList.add(mv);
 				} else {
+					url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
 					html = html.replaceAll("jr://" + type + "/" + name, url);
 				}
 			}

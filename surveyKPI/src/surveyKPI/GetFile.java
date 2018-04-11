@@ -26,6 +26,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -47,6 +49,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.FileManager;
 import org.smap.sdal.model.FileDescription;
 
 /*
@@ -168,7 +171,8 @@ public class GetFile extends Application {
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String filepath = basepath + "/media/users/" + uId + "/" + (type != null ? (type + "/") : "") + filename;
 			log.info("Getting user file: " + filepath);
-			getFile(response, filepath, filename);
+			FileManager fm = new FileManager();
+			fm.getFile(response, filepath, filename);
 			
 			r = Response.ok("").build();
 			
@@ -221,7 +225,8 @@ public class GetFile extends Application {
 			String folderPath = basepath + "/templates/" + pId ;						
 			String filepath = folderPath + "/" + fileName;
 			
-			getFile(response, filepath, fileName);
+			FileManager fm = new FileManager();
+			fm.getFile(response, filepath, fileName);
 			
 			r = Response.ok("").build();
 			
@@ -265,6 +270,7 @@ public class GetFile extends Application {
 		// End Authorisation 
 		
 		try {
+			
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, sId);
 			String filepath = basepath + "/media/" + sIdent+ "/";
@@ -273,7 +279,8 @@ public class GetFile extends Application {
 			}
 			filepath += filename;
 			
-			getFile(response, filepath, filename);
+			FileManager fm = new FileManager();
+			fm.getFile(response, filepath, filename);
 			
 			r = Response.ok("").build();
 			
@@ -287,12 +294,20 @@ public class GetFile extends Application {
 		return r;
 	}
 	
+
+	
+
+	
 	/*
 	 * Get the file at the organisation level
 	 */
-	private Response getOrganisationFile(HttpServletRequest request, 
+	private Response getOrganisationFile(
+			HttpServletRequest request, 
 			HttpServletResponse response, 
-			String user, int requestedOrgId, String filename, boolean settings,
+			String user, 
+			int requestedOrgId, 
+			String filename, boolean 
+			settings,
 			boolean isTemporaryUser) {
 		
 		int oId = 0;
@@ -315,13 +330,12 @@ public class GetFile extends Application {
 		}
 		// End Authorisation 
 		
+		
 		log.info("Get File: " + filename + " for organisation: " + oId);
 		try {
-			String basepath = GeneralUtilityMethods.getBasePath(request);
-			String filepath = basepath + "/media/organisation/" + oId + (settings ? "/settings/" : "/") + filename;
-			getFile(response, filepath, filename);
 			
-			r = Response.ok("").build();
+			FileManager fm = new FileManager();
+			r = fm.getOrganisationFile(connectionSD, request, response, user, requestedOrgId, filename, settings, isTemporaryUser);
 			
 		}  catch (Exception e) {
 			log.info("Error getting file:" + e.getMessage());
@@ -332,31 +346,5 @@ public class GetFile extends Application {
 		
 		return r;
 	}
-	
-	/*
-	 * Add the file to the response stream
-	 */
-	private void getFile(HttpServletResponse response, String filepath, String filename) throws IOException {
-		
-		File f = new File(filepath);
-		response.setContentType(UtilityMethodsEmail.getContentType(filename));
-			
-		response.addHeader("Content-Disposition", "attachment; filename=" + filename);
-		response.setContentLength((int) f.length());
-			
-		FileInputStream fis = new FileInputStream(f);
-		OutputStream responseOutputStream = response.getOutputStream();
-			
-		int bytes;
-		while ((bytes = fis.read()) != -1) {
-			responseOutputStream.write(bytes);
-		}
-		responseOutputStream.flush();
-		responseOutputStream.close();
-		fis.close();
-
-
-	}
-	
 
 }
