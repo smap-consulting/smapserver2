@@ -335,7 +335,7 @@ public class GetFile extends Application {
 		try {
 			
 			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(connectionSD, request, response, user, requestedOrgId, filename, settings, isTemporaryUser);
+			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, filename, settings, isTemporaryUser);
 			
 		}  catch (Exception e) {
 			log.info("Error getting file:" + e.getMessage());
