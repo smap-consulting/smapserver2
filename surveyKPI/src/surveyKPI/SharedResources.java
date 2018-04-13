@@ -66,6 +66,7 @@ public class SharedResources extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.VIEW_DATA);
 		orgLevelAuth = new Authorise(authorisations, null);		
 	}
 	
