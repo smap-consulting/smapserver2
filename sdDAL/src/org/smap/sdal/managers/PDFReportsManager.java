@@ -191,7 +191,7 @@ public class PDFReportsManager {
 						landscape, 
 						response, 
 						dateId);
-				
+				tempFileStream.close();
 				files.add(new FileDescription(name, tempFilePath));
 			}
 			

@@ -329,7 +329,6 @@ public class Items extends Application {
 
 				}
 				
-				String sqlFilterCount = "";
 				String sqlFilter = "";
 				if(start_key > 0) {
 					sqlFilter = tName + ".prikey < " +  start_key;
@@ -365,11 +364,6 @@ public class Items extends Application {
 					} else {
 						sqlFilter = fQ.getFilterExpression(filter.value, null);
 					}
-					if(sqlFilterCount.length() > 0) {
-						sqlFilterCount += " and " + fQ.getFilterExpression(filter.value, null);
-					} else {
-						sqlFilterCount = fQ.getFilterExpression(filter.value, null);
-					}
 				}
 				
 				/*
@@ -390,11 +384,12 @@ public class Items extends Application {
 								break;
 							}
 						}
-						if(!valid) {
-							String msg = localisation.getString("inv_qn_misc");
-							msg = msg.replace("%s1", filterCol);
-							throw new Exception(msg);
-						}
+						// TODO need to check validity across all forms in the survey
+						//if(!valid) {
+						//	String msg = localisation.getString("inv_qn_misc");
+						//	msg = msg.replace("%s1", filterCol);
+						//	throw new Exception(msg);
+						//}
 					}
 				}
 				// Add the advanced filter fragment
@@ -404,10 +399,11 @@ public class Items extends Application {
 					} else {
 						sqlFilter = "(" + advancedFilterFrag.sql + ")";
 					}	
-					if(sqlFilterCount.length() > 0) {
-						sqlFilterCount += " and " + "(" + advancedFilterFrag.sql + ")";
-					} else {
-						sqlFilterCount = "(" + advancedFilterFrag.sql + ")";
+					
+					for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
+						int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
+						QuestionInfo qaf = new QuestionInfo(sId, rqId, sd);
+						tables.add(qaf.getTableName(), qaf.getFId(), qaf.getParentFId());
 					}
 				}
 				
@@ -440,11 +436,6 @@ public class Items extends Application {
 							} else {
 								sqlFilter = "(" + rfString + ")";
 							}
-							if(sqlFilterCount.length() > 0) {
-								sqlFilterCount += " and " + "(" + rfString + ")";
-							} else {
-								sqlFilterCount = "(" + rfString + ")";
-							}
 						}
 					}
 				}
@@ -469,9 +460,12 @@ public class Items extends Application {
 					sqlLimit = "LIMIT " + rec_limit;
 				}
 				StringBuffer sql2 = new StringBuffer("select distinct ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
+				StringBuffer sqlFC = new StringBuffer("select count(*) ");	
 				sql2.append(cols);
 				sql2.append(" from ");
+				sqlFC.append(" from ");
 				sql2.append(tables.getTablesSQL());
+				sqlFC.append(tables.getTablesSQL());
 				
 				String sqlTableJoin = tables.getTableJoinSQL();
 				boolean doneWhere = false;
@@ -501,23 +495,16 @@ public class Items extends Application {
 							doneWhere = true;
 						}
 						whereClause += sqlRestrictToDateRange;
-						if(sqlFilterCount.length() > 0) {
-							sqlFilterCount += " and " + sqlRestrictToDateRange;
-						} else {
-							sqlFilterCount += sqlRestrictToDateRange;
-						}
-
 					}
 				}
 				sql2.append(whereClause);
+				sqlFC.append(whereClause);
 				sql2.append(" order by " + tName + ".parkey desc, " + tName + ".prikey desc " + sqlLimit +";");
 				
 				// Get the number of filtered records			
-				if(sqlFilterCount.trim().length() > 0) {
-					sql = "SELECT count(*) FROM " + tName ;
-					sql += " where ";
-					sql += sqlFilterCount;
-					log.info("Get the number of filtered records: " + sql);
+				if(sqlFC.length() > 0) {
+					sql = sqlFC.toString();
+					
 					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 					pstmt = connection.prepareStatement(sql);
 					int attribIdx = 1;					
@@ -537,6 +524,7 @@ public class Items extends Application {
 							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
 						}
 					}
+					log.info("Get the number of filtered records: " + pstmt.toString());
 					resultSet = pstmt.executeQuery();
 					if(resultSet.next()) {
 						jTotals.put("filtered_count", resultSet.getInt(1));
