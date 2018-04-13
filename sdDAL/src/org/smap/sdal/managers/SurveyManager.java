@@ -3672,6 +3672,26 @@ public class SurveyManager {
 			}
 			
 			/*
+			 * Delete or update any notifications that are sent for this survey
+			 */
+			if(newSurveyId == 0) {
+				sql = "delete from forward where s_id = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				log.info("Delete notifications: " + pstmt.toString());
+				pstmt.executeUpdate();
+			} else {
+				sql = "update forward set s_id = ? where s_id = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, newSurveyId);
+				pstmt.setInt(2, sId);
+				log.info("Update notifications: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+			/*
 			 * Delete or update any task group rules that are to update this survey
 			 */
 			if(newSurveyId == 0) {
