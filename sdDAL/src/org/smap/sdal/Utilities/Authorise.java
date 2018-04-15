@@ -195,6 +195,55 @@ public class Authorise {
 	}
 	
 	/*
+	 * Check to make sure the user is a valid temporary user
+	 */
+	public boolean isValidBillingOrganisation(Connection conn, int oId) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+		String sql = "select count(*) from organisation o " +
+				" where o.id = ? " +
+				" and o.billing_enabled";
+		
+		try {
+			pstmt = conn.prepareStatement(sql); 	
+			pstmt.setInt(1, oId);
+
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"SQL Error during authorisation", e);
+			sqlError = true;
+		} finally {		
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+		// Check to see if the org has billing enabled
+ 		if(count == 0 || sqlError) {
+ 			log.info("Authorisation failed for: " + oId + " billing needs to be enabled for this organisation");
+ 			SDDataSource.closeConnection("isAuthorised", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the user is entitled to access this particular survey
 	 */
 	public boolean isValidSurvey(Connection conn, String user, int sId, boolean isDeleted, boolean superUser)

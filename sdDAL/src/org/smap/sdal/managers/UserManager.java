@@ -96,7 +96,8 @@ public class UserManager {
 					+ "o.allow_facebook, "
 					+ "o.allow_twitter, "
 					+ "o.can_edit, "
-					+ "o.ft_send_location "
+					+ "o.ft_send_location, "
+					+ "o.billing_enabled "
 					+ " from users u, organisation o "
 					+ " where u.ident = ? "
 					+ " and u.o_id = o.id "
@@ -140,6 +141,7 @@ public class UserManager {
 				user.ft_send_location = resultSet.getString("ft_send_location");
 				user.lastalert = resultSet.getString("lastalert");
 				user.seen = resultSet.getBoolean("seen");
+				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 			}
 			
 			/*
