@@ -27,9 +27,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionLite;
@@ -39,6 +41,7 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Locale;
 import java.util.ResourceBundle;
 
@@ -65,11 +68,15 @@ public class Billing extends Application {
 	@Produces("application/json")
 	public String getOptions(@Context HttpServletRequest request,
 			@QueryParam("date") Date date, 
-			@QueryParam("org") int oId) { 
+			@QueryParam("org") int oId) throws Exception { 
 	
+		if(date == null) {
+			throw new ApplicationException("Date must be specified");
+		}
+		
 		// Authorisation - Access
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		Connection sd = SDDataSource.getConnection("surveyKPI-OptionList");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
 		if(oId > 0) {
 			aOrg.isAuthorised(sd, request.getRemoteUser());
 			aOrg.isValidBillingOrganisation(sd, oId);
@@ -79,85 +86,106 @@ public class Billing extends Application {
 		
 		// End Authorisation
 		
-		ArrayList<OptionLite> options = new ArrayList<> ();
+		BillingDetail bill = new BillingDetail();
+		
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
-		PreparedStatement pstmt = null;
+		// SQL to get submissions for all organisations
+		String sqlSubmissions = "select  count(*) from upload_event ue, subscriber_event se "
+				+ "where ue.ue_id = se.ue_id "
+				+ "and se.status = 'success' "
+				+ "and subscriber = 'results_db' "
+				+ "and extract(month from upload_time) = ? "
+				+ "and extract(year from upload_time) = ?";
+		
+		PreparedStatement pstmtSubmissions = null;
+		
+		String sqlDisk = "select  max(total) as total, max(upload) + max(media) + max(template) + max(attachments) as organisation "
+				+ "from disk_usage where o_id = ?  "
+				+ "and extract(month from when_measured) = ? "
+				+ "and extract(year from when_measured) = ?";
+		PreparedStatement pstmtDisk = null;
+		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			// Get the month and year for the query
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(date);
+			int month = cal.get(Calendar.MONTH) + 1;		// Postgres months are 1 - 12
+			int day = cal.get(Calendar.DAY_OF_MONTH);
+			int year = cal.get(Calendar.YEAR);
 			
-			boolean external = GeneralUtilityMethods.hasExternalChoices(sd, qId);
+			System.out.println("Year: " + year);
+			System.out.println("Month: "+ month);
+			bill.oId = oId;
+			bill.year = year;
+			bill.month = "month" + month;	
 			
-			if(external) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
-				ArrayList<Option> oExternal = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
-				int idx = 0;
-				int languageIdx = 0;
-				for(Option o : oExternal) {
-					OptionLite ol = new OptionLite();
-					ol.id = o.id;
-					ol.value = o.value;
-					
-					// Get the label for the passed in language
-					if(idx++ == 0) {		// Get the language index - only need to do this for the first choice					
-						for(LanguageItem item : o.externalLabel) {
-							if(language == null || language.equals("none") || language.equals(item.language)) {
-								break;
-							} else {
-								languageIdx++;
-							}
-						}
-					} 
-					if(o.labels != null && o.labels.size() > languageIdx) {
-						ol.label = o.labels.get(languageIdx).text;
-					}
-					
-					options.add(ol);
+			/*
+			 * Get Billing parameters
+			 */
+			if(oId == 0) {
+				bill.currency = "USD";
+				
+				bill.diskUnitCost = 0.25;
+				bill.freeDisk = 20;
+				
+				bill.submissionUnitCost = 1.0;
+				bill.freeSubmissions = 100;
+			}
+			/*
+			 * Get submisison data
+			 */
+			if(oId == 0) {
+
+				pstmtSubmissions = sd.prepareStatement(sqlSubmissions);
+				pstmtSubmissions.setInt(1, month);
+				pstmtSubmissions.setInt(2, year);
+				
+				ResultSet rs = pstmtSubmissions.executeQuery();
+				if(rs.next()) {
+					bill.submissions = rs.getInt(1);
 				}
-			} else {
-				String sql = null;
-				ResultSet resultSet = null;
-				
-				/*
-				 * Get the internal options for this question
-				 */
-				sql = "SELECT o.o_id, o.ovalue, t.value " +
-						"FROM option o, translation t, question q " +  		
-						"WHERE o.label_id = t.text_id " +
-						"AND t.s_id =  ? " + 
-						"AND t.language = ? " +
-						"AND q.q_id = ? " +
-						"AND q.l_id = o.l_id " +
-						"ORDER BY o.seq;";			
-				
-				pstmt = sd.prepareStatement(sql);	
-				pstmt.setInt(1, sId);
-				pstmt.setString(2, language);
-				pstmt.setInt(3, qId);
-				resultSet = pstmt.executeQuery(); 
-				while(resultSet.next()) {
-					OptionLite o = new OptionLite();
-					
-					o.id = resultSet.getInt(1);
-					o.value = resultSet.getString(2);
-					o.label = resultSet.getString(3);
-	
-					options.add(o);			
+				bill.submissionAmount = (bill.submissions - bill.freeSubmissions) * bill.submissionUnitCost;
+				if(bill.submissionAmount < 0) {
+					bill.submissionAmount = 0.0;
 				}
 			}
-				
+			
+			/*
+			 * Get Disk Usage
+			 */
+			pstmtDisk = sd.prepareStatement(sqlDisk);
+			pstmtDisk.setInt(1, oId);
+			pstmtDisk.setInt(2, month);
+			pstmtDisk.setInt(3, year);
+			
+			ResultSet rs = pstmtDisk.executeQuery();
+			if(rs.next()) {
+				if(oId == 0) {
+					bill.diskUsage = rs.getDouble("total") / 1000.0;
+				} else {
+					bill.diskUsage = rs.getDouble("organisation") / 1000.0;
+				}
+				bill.diskAmount = (bill.diskUsage - bill.freeDisk) * bill.diskUnitCost;
+				if(bill.diskAmount < 0) {
+					bill.diskAmount = 0.0;
+				}
+			}
 		} catch (Exception e) {
 			e.printStackTrace();
+			throw new Exception(e.getMessage());
 		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtSubmissions != null) {pstmtSubmissions.close();}} catch (SQLException e) {}
+			try {if (pstmtDisk != null) {pstmtDisk.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OptionList", sd);
+			SDDataSource.closeConnection("surveyKPI-Billing", sd);
 		}
 
-
-		return gson.toJson(options);
+		return gson.toJson(bill);
 	}
 
 }
