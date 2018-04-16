@@ -1776,6 +1776,7 @@ public class AllAssignments extends Application {
 					for(int j = 0; j < formNames.size(); j++) {
 						formFileMap.put(formNames.get(j), file);
 					}
+					fis.close();
 				}
 			}
 		}

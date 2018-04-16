@@ -95,6 +95,8 @@ public class DocumentXLSManager {
 			templateIS = new FileInputStream(templateFile);
 		} catch (Exception e) {
 			throw e;
+		} finally {
+			templateIS.close();
 		}
 		wb = new XSSFWorkbook(templateIS);
 		templateIS.close();

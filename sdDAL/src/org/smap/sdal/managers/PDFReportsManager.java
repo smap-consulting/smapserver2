@@ -1,7 +1,6 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -14,7 +13,6 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;

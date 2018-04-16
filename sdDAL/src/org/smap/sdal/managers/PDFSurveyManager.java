@@ -684,12 +684,16 @@ public class PDFSurveyManager {
 
 		// CSS
 		CSSResolver cssResolver = new StyleAttrCSSResolver();
+		FileInputStream fis = null;
 		try {
-			CssFile cssFile = XMLWorkerHelper.getCSS( new FileInputStream(DEFAULT_CSS));
+			fis = new FileInputStream(DEFAULT_CSS);
+			CssFile cssFile = XMLWorkerHelper.getCSS(fis);
 			cssResolver.addCss(cssFile);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Failed to get CSS file", e);
 			cssResolver = XMLWorkerHelper.getInstance().getDefaultCssResolver(true);
+		} finally {
+			try {fis.close();} catch (Exception e) {}
 		}
 
 

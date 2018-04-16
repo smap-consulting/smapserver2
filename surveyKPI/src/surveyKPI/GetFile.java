@@ -1,9 +1,6 @@
 package surveyKPI;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+
 
 /*
 This file is part of SMAP.
@@ -26,8 +23,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,11 +41,8 @@ import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.FileManager;
-import org.smap.sdal.model.FileDescription;
 
 /*
  * Authorises the user and then

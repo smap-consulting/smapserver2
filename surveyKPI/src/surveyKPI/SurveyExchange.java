@@ -1,7 +1,6 @@
 package surveyKPI;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -9,7 +8,6 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;

@@ -396,13 +396,20 @@ public class ExchangeManager {
 			pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 			
 			String [] line;
+			FileInputStream fis = null;
+			InputStreamReader isr = null;
 			if(isCSV) {
-				reader = new CSVReader(new InputStreamReader(new FileInputStream(file)));
+				fis = new FileInputStream(file);
+				isr = new InputStreamReader(fis);
+				reader = new CSVReader(isr);
 				line = reader.readNext();
 			} else {
-				xlsReader = new XlsReader(new FileInputStream(file), form.name);
+				fis = new FileInputStream(file);
+				xlsReader = new XlsReader(fis, form.name);
 				line = xlsReader.readNext();
 			}
+			if(fis != null) {fis.close();};
+			if(isr != null) {isr.close();};
 			
 			ArrayList<Column> columns = new ArrayList<Column> ();
 			if(line != null && line.length > 0) {
