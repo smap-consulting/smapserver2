@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -207,7 +208,7 @@ public class FormsManifest {
 					md5 = "md5:" + DigestUtils.md5Hex( fis );
 				}
 			} catch (Exception e) {
-				System.out.println(e.getMessage());
+				log.log(Level.SEVERE, e.getMessage(), e);
 			} finally {
 				try {fis.close();} catch (Exception e) {}
 			}
