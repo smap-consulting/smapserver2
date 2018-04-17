@@ -220,7 +220,7 @@ public class Review extends Application {
 					qtype = resultSet.getString(3);
 					name = resultSet.getString(4);
 				}
-			} else {
+			} else if(qId <= -1000) {
 				// Meta question
 				MetaItem item = GeneralUtilityMethods.getPreloadDetails(connectionSD, sId, qId);
 				if(item != null) {
@@ -229,6 +229,11 @@ public class Review extends Application {
 					qtype = item.type;
 					name = item.columnName;
 				}
+			} else if(qId == -1) {		
+				Form f = GeneralUtilityMethods.getTopLevelForm(connectionSD, sId);
+				table = f.tableName;
+				qtype = "int";
+				name = "prikey";
 			}
 			
 			if(table != null) {
@@ -263,7 +268,11 @@ public class Review extends Application {
 				}
 								
 				if(!qtype.equals("string") && !qtype.equals("select1") && !qtype.equals("calculate") && !qtype.equals("note")) {
-					throw new ApplicationException(localisation.getString("tu_us") + " " + qtype);
+					if(qtype.equals("int") && name.equals("prikey")) {
+						// Special case allow
+					} else {
+						throw new ApplicationException(localisation.getString("tu_us") + " " + qtype);
+					}
 				}
 				
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -856,12 +865,16 @@ public class Review extends Application {
 				//String table = null;
 				
 				// Get the filter question name and type
-				if(u.qFilter < 0) {
+				if(u.qFilter <= -1000) {
 					// preload
 					filter_table = topForm.tableName;
 					MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, u.qFilter);
 					filter_type = item.type;
 					filter_name  = item.columnName;
+				} else if(u.qFilter == -1) { 
+					filter_table = topForm.tableName;
+					filter_type = "int";
+					filter_name  = "prikey";
 				} else {
 					pstmtGetTable.setInt(1, sId);
 					pstmtGetTable.setInt(2, u.qFilter);
@@ -915,7 +928,11 @@ public class Review extends Application {
 				// Get the record id's that match the filter
 				String sqlGetRecords = "select prikey from " +  filter_table + " where " + filter_name + " = ? " + targetFilter +";";
 				pstmtGetRecords = dConnection.prepareStatement(sqlGetRecords);
-				pstmtGetRecords.setString(1, u.valueFilter);
+				if(filter_type.equals("int")) {
+					pstmtGetRecords.setInt(1, Integer.parseInt(u.valueFilter));
+				} else {
+					pstmtGetRecords.setString(1, u.valueFilter);
+				}
 				if(hasTargetFilter && addParam) {
 					if(target_filter_type.equals("int")) {
 						pstmtGetRecords.setInt(2, Integer.parseInt(u.targetValueFilter));
