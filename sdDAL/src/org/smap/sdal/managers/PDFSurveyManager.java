@@ -192,6 +192,8 @@ public class PDFSurveyManager {
 
 		Document document = null;
 		PdfWriter writer = null;
+		PdfReader reader = null;
+		PdfStamper stamper = null;
 		
 		try {
 
@@ -290,8 +292,8 @@ public class PDFSurveyManager {
 				log.info("PDF Template Exists");
 				String templateName = templateFile.getAbsolutePath();
 
-				PdfReader reader = new PdfReader(templateName);
-				PdfStamper stamper = new PdfStamper(reader, outputStream);
+				reader = new PdfReader(templateName);
+				stamper = new PdfStamper(reader, outputStream);
 				
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
@@ -301,7 +303,7 @@ public class PDFSurveyManager {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, basePath);
 				}
 				stamper.setFormFlattening(true);
-				stamper.close();
+			
 			} else {
 				log.info("++++No template exists creating a pdf file programmatically");
 
@@ -379,18 +381,15 @@ public class PDFSurveyManager {
 				}
 
 			}
-			
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-			throw e;
-
-		}  catch (Exception e) {
+		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			throw e;
 		} finally {
 			if(document != null) try {document.close();} catch (Exception e) {};
 			if(writer != null) try {writer.close();} catch (Exception e) {};
+			if(stamper != null) try {stamper.close();} catch (Exception e) {};
+			if(reader != null) try {reader.close();} catch (Exception e) {};
 		}
 
 		return filename;
@@ -684,12 +683,16 @@ public class PDFSurveyManager {
 
 		// CSS
 		CSSResolver cssResolver = new StyleAttrCSSResolver();
+		FileInputStream fis = null;
 		try {
-			CssFile cssFile = XMLWorkerHelper.getCSS( new FileInputStream(DEFAULT_CSS));
+			fis = new FileInputStream(DEFAULT_CSS);
+			CssFile cssFile = XMLWorkerHelper.getCSS(fis);
 			cssResolver.addCss(cssFile);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Failed to get CSS file", e);
 			cssResolver = XMLWorkerHelper.getInstance().getDefaultCssResolver(true);
+		} finally {
+			try {fis.close();} catch (Exception e) {}
 		}
 
 

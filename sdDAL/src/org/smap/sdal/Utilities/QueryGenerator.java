@@ -397,6 +397,7 @@ public class QueryGenerator {
 			colLimit = 244;
 		}
 		
+		
 		tables.add(form.table);
 
 		ArrayList<TableColumn> cols = null;
@@ -544,37 +545,41 @@ public class QueryGenerator {
 				continue;
 			}
 			
+			if(!exp_ro && col.readonly) {
+				continue;			// Drop read only columns if they are not selected to be exported				
+			}
+			
 			if(sqlDesc.numberFields <= colLimit || type.equals("geometry")) {
 				
-				// Get the question type
-				pstmtQType.setString(1, form.table);
-				if(type.equals("select") && !col.compressed) {
-					// Select multiple question
-					String [] mNames = name.split("__");
-					pstmtQType.setString(2, mNames[0]);
-				} else {
-					pstmtQType.setString(2, name);
-				}
-				ResultSet rsType = pstmtQType.executeQuery();
 				
+				// Set flag if this question has an attachment
 				boolean isAttachment = false;
-				if(rsType.next()) {
-					qType = col.type;
-					boolean ro = rsType.getBoolean(2);
-					text_id = rsType.getString(3);
-					qId = rsType.getInt(4);
-					list_name = rsType.getString(5);
-					if(list_name == null) {
-						list_name = name;		// Default list name to question name if it has not been set
-					}
-					list_name = validStataName(list_name);	// Make sure the list name is a valid stata name
-					if(!exp_ro && ro) {
-						continue;			// Drop read only columns if they are not selected to be exported				
+				if(type.equals("image") || type.equals("audio") || type.equals("video")) {
+					isAttachment = true;
+				}
+				
+				// Get the question type
+				if(type.startsWith("select")) {
+					pstmtQType.setString(1, form.table);
+					if(type.equals("select") && !col.compressed) {
+						// Select multiple question
+						String [] mNames = name.split("__");
+						pstmtQType.setString(2, mNames[0]);
+					} else {
+						pstmtQType.setString(2, name);
 					}
 					
-					// Set flag if this question has an attachment
-					if(qType.equals("image") || qType.equals("audio") || qType.equals("video")) {
-						isAttachment = true;
+					ResultSet rsType = pstmtQType.executeQuery();
+					
+					if(rsType.next()) {
+						qType = col.type;
+						text_id = rsType.getString(3);
+						qId = rsType.getInt(4);
+						list_name = rsType.getString(5);
+						if(list_name == null) {
+							list_name = name;		// Default list name to question name if it has not been set
+						}
+						list_name = validStataName(list_name);	// Make sure the list name is a valid stata name
 					}
 				}
 				

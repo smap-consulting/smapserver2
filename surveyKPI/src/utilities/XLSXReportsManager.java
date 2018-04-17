@@ -209,7 +209,12 @@ public class XLSXReportsManager {
 								cell.setCellValue(values.label + " - " + item.choices.get(i).k);
 							}
 						} else if(item.qType != null && item.qType.equals("select1") && item.optionLabels != null) {
-							StringBuffer label = new StringBuffer(values.label);
+							StringBuffer label = null;
+							if(values.label == null) {
+								label = new StringBuffer("");
+							} else {
+								label = new StringBuffer(values.label);
+							}
 							label.append(" (");
 							for(OptionDesc o : item.optionLabels) {
 								label.append(" ").append(o.value).append("=").append(o.label);

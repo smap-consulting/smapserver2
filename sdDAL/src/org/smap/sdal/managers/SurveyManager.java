@@ -1136,6 +1136,11 @@ public class SurveyManager {
 				s.roles.put(r.name, r);
 			}
 		}
+		
+		// Get the Meta Items
+		if(getPropertyTypeQuestions) {
+			s.meta = GeneralUtilityMethods.getPreloads(sd, s.id);
+		}
 
 
 		// Close statements

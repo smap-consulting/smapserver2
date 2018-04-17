@@ -1,7 +1,6 @@
 package org.smap.sdal.managers;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -14,7 +13,6 @@ import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
@@ -93,6 +91,7 @@ public class PDFReportsManager {
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		SurveyManager sm = new SurveyManager(localisation);
 		PreparedStatement pstmt = null;
+		ZipOutputStream zos = null;
 		
 		try {
 					
@@ -198,7 +197,8 @@ public class PDFReportsManager {
 			GeneralUtilityMethods.setFilenameInResponse(filename + ".zip", response);
 			response.setHeader("Content-type",  "application/octet-stream; charset=UTF-8");
 			
-			GeneralUtilityMethods.writeFilesToZipOutputStream(new ZipOutputStream(response.getOutputStream()), files);
+			zos = new ZipOutputStream(response.getOutputStream());
+			GeneralUtilityMethods.writeFilesToZipOutputStream(zos, files);		// zos clased in call
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

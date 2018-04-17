@@ -22,11 +22,9 @@ package surveyMobileAPI;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -46,14 +44,11 @@ import javax.ws.rs.core.MediaType;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.Translation;
 import org.apache.commons.codec.digest.*;
 
 
@@ -213,7 +208,9 @@ public class FormsManifest {
 					md5 = "md5:" + DigestUtils.md5Hex( fis );
 				}
 			} catch (Exception e) {
-				System.out.println(e.getMessage());
+				log.log(Level.SEVERE, e.getMessage(), e);
+			} finally {
+				try {fis.close();} catch (Exception e) {}
 			}
 
 		}
