@@ -569,8 +569,10 @@ public class ExportSurveyMisc extends Application {
 					 * Zip the directory contents
 					 */
 					File zip = new File(filepath + ".zip");
-					File zipdir = new File(filepath);			
-					GeneralUtilityMethods.writeDirToZipOutputStream(new ZipOutputStream(new FileOutputStream(zip)), zipdir);				
+					File zipdir = new File(filepath);
+					FileOutputStream fos = new FileOutputStream(zip);
+					GeneralUtilityMethods.writeDirToZipOutputStream(new ZipOutputStream(fos), zipdir);	
+					fos.close();
 				}
 
 				if(code == 0) {
