@@ -93,6 +93,7 @@ public class Review extends Application {
 	 */
 	private class ReviewItem {
 		int	q_id;
+		int f_id;					// Set if the primary key of the form is to be used as the key
 		String newValue;				// The new value to be written
 		String questionColumnName;		// The question column name 
 		String optionColumnName;		// The option column name if the updated question is a select multiple
@@ -111,6 +112,7 @@ public class Review extends Application {
 		int qFilterTarget;	// Optional secondary filter
 		String targetValueFilter;
 		int r_id;			// If greater than 0 then restrict change to this record
+		int f_id;			// If greater than 0 then update using the primary key of the form
 		
 		String reason;
 		String description;
@@ -158,7 +160,8 @@ public class Review extends Application {
 			@PathParam("sId") int sId,				// Survey Id
 			@PathParam("qId") int qId,				// Question Id 
 			@QueryParam("sort") String sort,
-			@QueryParam("targetQuestion") int targetQId				// Target Question Id 
+			@QueryParam("targetQuestion") int targetQId,				// Target Question Id 
+			@QueryParam("f_id") int f_id
 			) { 
 	
 		Response response = null;
@@ -229,8 +232,8 @@ public class Review extends Application {
 					qtype = item.type;
 					name = item.columnName;
 				}
-			} else if(qId == -1) {		
-				Form f = GeneralUtilityMethods.getTopLevelForm(connectionSD, sId);
+			} else if(f_id > 0) {		
+				Form f = GeneralUtilityMethods.getForm(connectionSD, sId, f_id);
 				table = f.tableName;
 				qtype = "int";
 				name = "prikey";
@@ -803,7 +806,7 @@ public class Review extends Application {
 					ri.qtype = item.type;
 					ri.questionColumnName  = item.columnName;
 					
-				} else {
+				} else if(ri.q_id > 0) {
 					pstmtGetTable.setInt(1, sId);
 					pstmtGetTable.setInt(2, ri.q_id);
 					resultSet = pstmtGetTable.executeQuery();
@@ -816,6 +819,12 @@ public class Review extends Application {
 					} else {
 						throw new ApplicationException("Table not found for question: " + ri.q_id);
 					}
+				} else if(ri.f_id > 0) {
+					Form f = GeneralUtilityMethods.getForm(sd, sId, ri.f_id);
+					ri.table = f.tableName;
+					ri.qname = "prikey";
+					ri.qtype = "int";
+					ri.questionColumnName = "prikey";
 				}
 				
 				if(ri.qtype.equals("select")) {
