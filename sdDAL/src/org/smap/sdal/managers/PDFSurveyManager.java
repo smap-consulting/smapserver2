@@ -568,8 +568,11 @@ public class PDFSurveyManager {
 				
 				} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") || r.type.startsWith("geolinestring_")) {
 
-					Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom, gv.mapbox_key);
-					PdfUtilities.addMapImageTemplate(pdfForm, fieldName, img);
+					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+					if(ad != null) {
+						Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom, gv.mapbox_key);
+						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+					}
 				
 				} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")) {
 					PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
@@ -583,11 +586,14 @@ public class PDFSurveyManager {
 						}
 					} else {
 						if(di.isBarcode) {
-							BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
-							Image qrcodeImage = qrcode.getImage();
-							qrcodeImage.setAbsolutePosition(10,500);
-							qrcodeImage.scalePercent(200);
-							PdfUtilities.addMapImageTemplate(pdfForm, fieldName, qrcodeImage);
+							PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+							if(ad != null) {
+								BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
+								Image qrcodeImage = qrcode.getImage();
+								qrcodeImage.setAbsolutePosition(10,500);
+								qrcodeImage.scalePercent(200);
+								PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, qrcodeImage);
+							}
 						} else {
 							pdfForm.setField(fieldName, value);
 							
@@ -599,11 +605,14 @@ public class PDFSurveyManager {
 				 * Add any QR code values to fields that have been identified using the QR suffix
 				 */
 				if(fieldNameQR != null && value != null && value.trim().length() > 0) {
-					BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
-					Image qrcodeImage = qrcode.getImage();
-					qrcodeImage.setAbsolutePosition(10,500);
-					qrcodeImage.scalePercent(200);
-					PdfUtilities.addMapImageTemplate(pdfForm, fieldNameQR, qrcodeImage);
+					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+					if(ad != null) {
+						BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
+						Image qrcodeImage = qrcode.getImage();
+						qrcodeImage.setAbsolutePosition(10,500);
+						qrcodeImage.scalePercent(200);
+						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldNameQR, qrcodeImage);
+					}
 				}
 
 			}

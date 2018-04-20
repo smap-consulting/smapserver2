@@ -75,9 +75,8 @@ public class PdfUtilities {
 		}
 	}
 	
-	public static void addMapImageTemplate(AcroFields pdfForm, String fieldName, Image img) throws IOException, DocumentException {
+	public static void addMapImageTemplate(AcroFields pdfForm, PushbuttonField ad, String fieldName, Image img) throws IOException, DocumentException {
 		
-		PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 		if(ad != null) {
 			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
 			ad.setProportionalIcon(true);
@@ -88,9 +87,7 @@ public class PdfUtilities {
 			}
 			pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			log.info("Adding image to: " + fieldName);
-		} else {
-			//log.info("Picture field: " + fieldName + " not found");
-		}
+		} 
 	}
 	
 	public static Image getMapImage(Connection sd, 
@@ -145,6 +142,7 @@ public class PdfUtilities {
 			url.append("500x300.png?access_token=");
 			url.append(mapbox_key);
 			try {
+				log.info("Mapbox API call: " + url);
 				img = Image.getInstance(url.toString());
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
