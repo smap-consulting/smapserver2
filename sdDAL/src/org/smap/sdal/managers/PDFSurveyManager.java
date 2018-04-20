@@ -572,6 +572,8 @@ public class PDFSurveyManager {
 					if(ad != null) {
 						Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom, gv.mapbox_key);
 						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+					} else {
+						log.info("No field for image (Mapbox not called: " + fieldName);
 					}
 				
 				} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")) {
