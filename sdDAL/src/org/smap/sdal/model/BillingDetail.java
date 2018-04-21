@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
+
 public class BillingDetail {
 	public int oId;
 	public String oName;
@@ -7,14 +9,6 @@ public class BillingDetail {
 	public String month;				// Month of bill
 	public String currency;			// Currency of bill
 	
-	public int submissions;
-	public int freeSubmissions;
-	public Double submissionUnitCost;
-	public Double submissionAmount;
-	
-	public Double diskUsage;
-	public int freeDisk;
-	public Double diskUnitCost;
-	public Double diskAmount;
+	public ArrayList<BillLineItem> line = new ArrayList<BillLineItem> ();
 
 }
