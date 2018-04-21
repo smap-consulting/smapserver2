@@ -55,6 +55,7 @@ public class User {
 	public Action action_details;
 	public String lastalert;
 	public boolean seen;
+	public boolean billing_enabled;
 	
 	
 }

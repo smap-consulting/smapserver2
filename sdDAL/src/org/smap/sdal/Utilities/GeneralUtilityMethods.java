@@ -249,12 +249,8 @@ public class GeneralUtilityMethods {
 		boolean businessServer = true;
 
 		if (!host.endsWith("zarkman.com") && !host.equals("localhost") && !host.startsWith("10.0")
-				&& !host.endsWith("reachnettechnologies.com") && !host.endsWith("blueoakenergy.com")
-				&& !host.endsWith(".icanreach.com") && !host.endsWith("encontactone.com")
-				&& !host.endsWith(".kontrolid.com") && !host.endsWith(".ezpilot.me")
-				&& !host.endsWith(".smap.com.au")) {
+				&& !host.endsWith(".kontrolid.com")) {
 			businessServer = false;
-			;
 		}
 		return businessServer;
 	}
