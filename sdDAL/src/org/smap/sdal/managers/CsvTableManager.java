@@ -15,6 +15,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.ActionManager.Update;
@@ -332,7 +333,7 @@ public class CsvTableManager {
 	 */
 	public ArrayList<Option> getChoices(int oId, int sId, String fileName, String ovalue, 
 			ArrayList<LanguageItem> items,
-			ArrayList<String> matches) throws SQLException {
+			ArrayList<String> matches) throws SQLException, ApplicationException {
 		
 		ArrayList<Option> choices = null;
 		
@@ -346,13 +347,13 @@ public class CsvTableManager {
 			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches);				
+				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches, fileName);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches);	
+					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches, fileName);	
 				}
 				
 			}
@@ -433,7 +434,7 @@ public class CsvTableManager {
 	 * Read the choices out of a file
 	 */
 	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
-			ArrayList<String> matches) throws SQLException {
+			ArrayList<String> matches, String filename) throws SQLException, ApplicationException {
 			
 		ArrayList<Option> choices = new ArrayList<Option> ();
 		
@@ -482,6 +483,9 @@ public class CsvTableManager {
 				}
 				choices.add(o);
 			}	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
 		} finally {
 			try {pstmt.close();} catch(Exception e) {}
 		}

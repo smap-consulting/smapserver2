@@ -141,7 +141,7 @@ public class Billing extends Application {
 			double diskUnitCost = 0.25;
 			int freeDisk = 20;
 			
-			double submissionUnitCost = 1.0;
+			double submissionUnitCost = 0.01;
 			int freeSubmissions = 100;
 			
 			double staticMapUnitCost = 0.0;
