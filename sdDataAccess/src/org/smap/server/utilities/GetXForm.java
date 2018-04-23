@@ -1688,7 +1688,7 @@ public class GetXForm {
 		 */
 		boolean isReference = form.getReference();
 		
-		log.info("Get results for form: " + form.getName() + " reference: " + isReference);
+		log.info("Get results for form: " + form.getId() + " name : " + form.getName() + " reference: " + isReference);
 		
 		if(isReference) {
 			/*
@@ -1707,9 +1707,7 @@ public class GetXForm {
 		
 
 		/*
-		 * Retrieve the results record from the database (excluding select questions)
-		 * Select questions are retrieved using a separate query as there are multiple
-		 * columns per question
+		 * Retrieve the results record from the database (excluding uncompressed select questions)
 		 */
 		StringBuffer sql = new StringBuffer("select prikey");
 
@@ -1744,7 +1742,7 @@ public class GetXForm {
 						if (qType.equals("geopoint")) {
 							col = "ST_AsText(" + q.getColumnName(isReference) + ")";
 						} else if (qType.equals("select") && !q.isCompressed()) {
-							continue; // Select data columns are retrieved separately as there are multiple columns per question
+							continue; 
 						} else {
 							col = q.getColumnName(isReference);
 						}

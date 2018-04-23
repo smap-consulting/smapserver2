@@ -44,6 +44,8 @@ import utilities.SurveyInfo;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -79,32 +81,38 @@ public class Values extends Application {
 		System.out.println("urlprefix: " + urlprefix);
 		
 		Response response = null;
-		Connection dConnection = null;
+		Connection cResults = null;
 		PreparedStatement pstmt = null;
 				
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Values");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Values");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 					
 		try {
-			dConnection = ResultsDataSource.getConnection("surveyKPI-Values");
+			cResults = ResultsDataSource.getConnection("surveyKPI-Values");
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(cResults, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 			
 			/*
 			 * Get Survey meta data
 			 */
-			SurveyInfo survey = new SurveyInfo(sId, connectionSD);
+			//SurveyInfo survey = new SurveyInfo(sId, connectionSD);
 			
 			/*
 			 * Add the the main question to the array of questions
 			 */
-			QuestionInfo aQ = new QuestionInfo(sId, qId, connectionSD, false, lang, urlprefix);
+			QuestionInfo aQ = new QuestionInfo(localisation, sId, qId, sd, false, lang, urlprefix, oId);
 
 			/*
 			 * Create the sql statement
@@ -113,7 +121,7 @@ public class Values extends Application {
 					" where prikey=?";
 				
 			log.info(sql + " : " + rId);
-			pstmt = dConnection.prepareStatement(sql);
+			pstmt = cResults.prepareStatement(sql);
 			pstmt.setInt(1, rId);
 			ResultSet resultSet = pstmt.executeQuery();
 
@@ -158,8 +166,8 @@ public class Values extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Values", connectionSD);
-			ResultsDataSource.closeConnection("surveyKPI-Values", dConnection);
+			SDDataSource.closeConnection("surveyKPI-Values", sd);
+			ResultsDataSource.closeConnection("surveyKPI-Values", cResults);
 		}
 
 

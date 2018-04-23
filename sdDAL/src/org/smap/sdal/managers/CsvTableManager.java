@@ -445,7 +445,14 @@ public class CsvTableManager {
 			StringBuffer sql = new StringBuffer("select distinct ");
 			sql.append(cValue);
 			for(LanguageItem item : items) {
-				sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
+				if(item.text.contains(",")) {
+					String[] comp = item.text.split(",");
+					for(int i = 0; i < comp.length; i++) {
+						sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(comp[i]));
+					}
+				} else {
+					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
+				}
 			}
 			sql.append(" from ").append(table);
 			if(matches != null && matches.size() > 0) {
@@ -478,7 +485,19 @@ public class CsvTableManager {
 				o.externalFile = true;
 				for(LanguageItem item : items) {
 					Label l = new Label();
-					l.text = rsx.getString(idx++);
+					if(item.text.contains(",")) {
+						String[] comp = item.text.split(",");
+						l.text = "";
+						for(int i = 0; i < comp.length; i++) {
+							if(i > 0) {
+								l.text += ", ";
+							}
+							l.text += rsx.getString(idx++);
+						}
+					} else {
+						l.text = rsx.getString(idx++);
+					}
+					
 					o.labels.add(l);
 				}
 				choices.add(o);

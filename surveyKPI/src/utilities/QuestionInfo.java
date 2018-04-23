@@ -23,6 +23,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -30,7 +31,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Option;
 
 public class QuestionInfo {
 	
@@ -57,20 +60,26 @@ public class QuestionInfo {
 	private String urlprefix = null;		// Added to attachments to complete url
 	private ArrayList<OptionInfo> o = null;	// Option array if this is a select / select1 question
 	
+	private ResourceBundle localisation;
+	
 	/*
 	 * Normal complete constructor
 	 */
-	public QuestionInfo(int surveyId, 
+	public QuestionInfo(
+			ResourceBundle l,
+			int surveyId, 
 			int questionId, 
-			Connection connection, 
+			Connection sd, 
 			boolean isGeomDeprecated, 
 			String lang, 
-			String urlprefix) throws Exception {	
+			String urlprefix,
+			int oId) throws Exception {	
 		
 		//this.isGeom = isGeom;			Don't rely on isGeom parameter
 		this.urlprefix = urlprefix;
 		qId = questionId;
 		sId = surveyId;
+		localisation = l;
 		
 		
 		String sql = "SELECT f.table_name, f.f_id, f.parentform, q.qname, q.column_name, q.qtype, t.value, q.calculate, "
@@ -91,7 +100,7 @@ public class QuestionInfo {
 		
 		try {
 			if(questionId > 0) {	// Question defined in survey
-				pstmt = connection.prepareStatement(sql);	
+				pstmt = sd.prepareStatement(sql);	
 				pstmt.setString(1, lang);
 				pstmt.setInt(2, sId);
 				pstmt.setInt(3, qId);
@@ -146,29 +155,53 @@ public class QuestionInfo {
 								" AND o.externalfile = ?" +
 								" ORDER BY o.seq";
 						
-						if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-						pstmt = connection.prepareStatement(sql);
-						pstmt.setInt(1,  qId);
-						pstmt.setString(2, lang);
-						pstmt.setInt(3, sId);
-						pstmt.setBoolean(4,  qExternalChoices);
-						
-						log.info("Getting options for question: " + pstmt.toString());
-						resultSet = pstmt.executeQuery();
-						
-						boolean select = false;
-						if(qType.equals("select")) {
-							select = true;
-						}
-						while(resultSet.next()) {
-							String value = resultSet.getString(1);
-							String label = resultSet.getString(2);
-							String type = resultSet.getString(3);
-							String oColumnName = resultSet.getString(4);
-							if(select) {
-								oColumnName = columnName + "__" + oColumnName;
-							} 
-							o.add(new OptionInfo(value, label, type, oColumnName));
+						if(!qExternalChoices) {
+							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+							pstmt = sd.prepareStatement(sql);
+							pstmt.setInt(1,  qId);
+							pstmt.setString(2, lang);
+							pstmt.setInt(3, sId);
+							pstmt.setBoolean(4,  qExternalChoices);
+							
+							log.info("Getting options for question: " + pstmt.toString());
+							resultSet = pstmt.executeQuery();
+							
+							boolean select = false;
+							if(qType.equals("select")) {
+								select = true;
+							}
+							while(resultSet.next()) {
+								String value = resultSet.getString(1);
+								String label = resultSet.getString(2);
+								String type = resultSet.getString(3);
+								String oColumnName = resultSet.getString(4);
+								if(select) {
+									oColumnName = columnName + "__" + oColumnName;
+								} 
+								o.add(new OptionInfo(value, label, type, oColumnName));
+							}
+						} else {
+							// External
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
+							int idx = 0;
+							int languageIdx = 0;
+							for(Option oex : options) {
+								// Get the label for the passed in language
+								String label = null;
+								if(idx++ == 0) {		// Get the language index - only need to do this for the first choice					
+									for(LanguageItem item : oex.externalLabel) {
+										if(lang == null || lang.equals("none") || lang.equals(item.language)) {
+											break;
+										} else {
+											languageIdx++;
+										}
+									}
+								} 
+								if(oex.labels != null && oex.labels.size() > languageIdx) {
+									label = oex.labels.get(languageIdx).text;
+								}
+								o.add(new OptionInfo(oex.value, label, "none", oex.value));
+							}
 						}
 					}
 					
@@ -176,7 +209,7 @@ public class QuestionInfo {
 					log.info("Error (QuetionInfo.java) retrieving question data for survey: " + surveyId + " and question: " + questionId);
 				}
 			} else if (questionId < 0) {
-				setForPreDefinedQuestion(connection, sId, questionId);		
+				setForPreDefinedQuestion(sd, sId, questionId);		
 			} 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);

@@ -57,7 +57,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -149,14 +151,14 @@ public class Results extends Application {
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Results");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Results");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 		if(groupId != 0) {
@@ -192,6 +194,11 @@ public class Results extends Application {
 		try {
 			dConnection = ResultsDataSource.getConnection("surveyKPI-Results");
 
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 			/*
 			 * Check that mandatory parameters have been set
 			 */	
@@ -204,7 +211,7 @@ public class Results extends Application {
 			
 			// Get date column information
 			if(dateId != 0) {
-				date = new QuestionInfo(sId, dateId, connectionSD, false, lang, urlprefix);
+				date = new QuestionInfo(localisation, sId, dateId, sd, false, lang, urlprefix, oId);
 				q.add(date);
 				tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 				log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
@@ -212,7 +219,7 @@ public class Results extends Application {
 			
 			// Get group column information
 			if(hasGroup) {
-				group = new QuestionInfo(sId, groupId, connectionSD, hasGeo, lang, urlprefix);	
+				group = new QuestionInfo(localisation, sId, groupId, sd, hasGeo, lang, urlprefix, oId);	
 				q.add(group);
 				tables.add(group.getTableName(), group.getFId(), group.getParentFId());
 			}
@@ -227,21 +234,21 @@ public class Results extends Application {
 			/*
 			 * Get Survey meta data
 			 */
-			SurveyInfo survey = new SurveyInfo(sId, connectionSD);
+			SurveyInfo survey = new SurveyInfo(sId, sd);
 			
 			/*
 			 * Add the the main question to the array of questions
 			 */
 			QuestionInfo aQ = null;
 			if(qId_is_calc) {
-				aQ = new QuestionInfo(sId, qId, connectionSD, false, lang, qId_is_calc, urlprefix);
+				aQ = new QuestionInfo(sId, qId, sd, false, lang, qId_is_calc, urlprefix);
 			} else {
-				aQ = new QuestionInfo(sId, qId, connectionSD, false, lang, urlprefix);
+				aQ = new QuestionInfo(localisation, sId, qId, sd, false, lang, urlprefix, oId);
 			}
 			q.add(aQ);
 			tables.add(aQ.getTableName(), aQ.getFId(),  aQ.getParentFId());			
 			
-			lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "View results for question " + aQ.getName());
+			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View results for question " + aQ.getName());
 			
 			 // Get the filter
 			Filter filter = null;
@@ -251,14 +258,14 @@ public class Results extends Application {
 				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 				filter = gson.fromJson(sFilter, type);
 
-				fQ = new QuestionInfo(sId, filter.qId, connectionSD, hasGeo, lang, urlprefix);	
+				fQ = new QuestionInfo(localisation, sId, filter.qId, sd, hasGeo, lang, urlprefix, oId);	
 				q.add(fQ);
 				tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
 				sqlFilter = " and " + fQ.getFilterExpression(filter.value, null);
 			}
 				
 			// Add any tables required to complete the join
-			tables.addIntermediateTables(connectionSD);
+			tables.addIntermediateTables(sd);
 			
 			/*
 			 * Create the sql statement
@@ -775,7 +782,7 @@ public class Results extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Results", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Results", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Results", dConnection);
 		}
 

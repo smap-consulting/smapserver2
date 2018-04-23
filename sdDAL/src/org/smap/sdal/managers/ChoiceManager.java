@@ -65,7 +65,7 @@ public class ChoiceManager {
 					labels.append(UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match));
 				}
 			} else {
-				// 2. TODO Search choices which are stored in an external table
+				// 2. Search choices which are stored in an external table
 				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, matches);
 				int idx = 0;
 				int languageIdx = 0;

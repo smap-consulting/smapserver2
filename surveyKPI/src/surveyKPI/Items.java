@@ -154,7 +154,7 @@ public class Items extends Application {
 		
 		if(fId > 0) {
 			
-			Connection connection = null;
+			Connection cResults = null;
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtSSC = null;
 			PreparedStatement pstmtFDetails = null;
@@ -170,8 +170,9 @@ public class Items extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 				// Connect to the results database
-				connection = ResultsDataSource.getConnection("surveyKPI-Items");	
+				cResults = ResultsDataSource.getConnection("surveyKPI-Items");	
 				
 				// Prepare the statement to get the form details
 				String sqlFDetails = "select f.table_name, f.parentform, name from question q, form f " +
@@ -200,7 +201,7 @@ public class Items extends Application {
 				// Get the number of records
 				String sql = "SELECT count(*) FROM " + tName + ";";
 				log.info("Get the number of records: " + sql);	
-				pstmt = connection.prepareStatement(sql);	 			
+				pstmt = cResults.prepareStatement(sql);	 			
 				ResultSet resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					totalCount = resultSet.getInt(1);
@@ -211,7 +212,7 @@ public class Items extends Application {
 				sql = "SELECT count(*) FROM " + tName + " where _bad = 'true';";
 				log.info("Get the number of bad records: " + sql);
 				if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-				pstmt = connection.prepareStatement(sql);	 			
+				pstmt = cResults.prepareStatement(sql);	 			
 				resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					jTotals.put("bad_count", resultSet.getInt(1));
@@ -219,7 +220,7 @@ public class Items extends Application {
 				
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
-						connection,
+						cResults,
 						localisation,
 						language,
 						sId,
@@ -446,7 +447,7 @@ public class Items extends Application {
 				// Get date column information
 				QuestionInfo date = null;
 				if((dateId != 0) && (startDate != null || endDate != null)) {
-					date = new QuestionInfo(sId, dateId, sd, false, "", urlprefix);	// Not interested in label any language will do
+					date = new QuestionInfo(localisation, sId, dateId, sd, false, "", urlprefix, oId);	// Not interested in label any language will do
 					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
 				}
@@ -506,7 +507,7 @@ public class Items extends Application {
 					sql = sqlFC.toString();
 					
 					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-					pstmt = connection.prepareStatement(sql);
+					pstmt = cResults.prepareStatement(sql);
 					int attribIdx = 1;					
 					if(advancedFilterFrag != null) {
 						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
@@ -537,7 +538,7 @@ public class Items extends Application {
 
 				
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = connection.prepareStatement(sql2.toString());
+				pstmt = cResults.prepareStatement(sql2.toString());
 				
 				/*
 				 * Set prepared statement values
@@ -641,7 +642,7 @@ public class Items extends Application {
 				// Determine if there are more records to be returned
 				sql = "SELECT count(*) FROM " + tables.getTablesSQL() + maxRecordWhere + ";";
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = connection.prepareStatement(sql);	
+				pstmt = cResults.prepareStatement(sql);	
 				
 				// Apply the parameters again
 				attribIdx = 1;
@@ -697,7 +698,7 @@ public class Items extends Application {
 				try {if (pstmtFDetails != null) {pstmtFDetails.close();	}} catch (SQLException e) {	}
 				
 				SDDataSource.closeConnection("surveyKPI-Items", sd);
-				ResultsDataSource.closeConnection("surveyKPI-Items", connection);	
+				ResultsDataSource.closeConnection("surveyKPI-Items", cResults);	
 			}
 		}
 

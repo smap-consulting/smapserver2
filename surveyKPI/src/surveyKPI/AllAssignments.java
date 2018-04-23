@@ -555,7 +555,8 @@ public class AllAssignments extends Application {
 							} else if(as.filter != null && as.filter.qId > 0) {
 								String fValue = null;
 								String fValue2 = null;
-								filterQuestion = new QuestionInfo(sId, as.filter.qId, connectionSD, false, as.filter.lang, urlprefix);
+								filterQuestion = new QuestionInfo(localisation, sId, as.filter.qId, connectionSD, 
+										false, as.filter.lang, urlprefix, oId);
 								log.info("Filter question type: " + as.filter.qType);
 								if(as.filter.qType != null) {
 									if(as.filter.qType.startsWith("select")) {
