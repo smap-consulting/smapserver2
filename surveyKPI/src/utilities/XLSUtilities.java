@@ -232,8 +232,10 @@ public class XLSUtilities {
 			if(cell != null) {
 				name = cell.getStringCellValue();
 				if(name != null && name.trim().length() > 0) {
-					if(!name.contains("::")) {
-						name = name.toLowerCase();
+					if(name.toLowerCase().equals("list name") ||
+							name.toLowerCase().equals("name")
+							|| name.toLowerCase().equals("label")) {
+						name = name.toLowerCase();	// Automatically set colums that need to be lowe case to lower case		
 					}
 					Integer exists = header.get(name);
 					if(exists == null) {
