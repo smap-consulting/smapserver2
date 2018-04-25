@@ -305,9 +305,7 @@ public class QueryGenerator {
 		}
 		
 		sqlDesc.sql = pstmtConvert.toString();
-		
-		log.info("Generated SQL: " + shpSqlBuf);
-		
+
 		return sqlDesc;
 	}
 	
