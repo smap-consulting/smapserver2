@@ -188,7 +188,7 @@ public class Survey extends Application {
 					try {
 						SurveyTemplate template = new SurveyTemplate(localisation);
 						template.readDatabase(sId, false);
-						GetXForm xForm = new GetXForm();
+						GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 
 						boolean useNodesets = !type.equals("codebook");		// For codebooks do not create nodesets in the XML
 						String xmlForm = xForm.get(template, false, useNodesets, false);

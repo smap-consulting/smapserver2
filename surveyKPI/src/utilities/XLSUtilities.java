@@ -523,7 +523,7 @@ public class XLSUtilities {
      * Validate a survey stored in the database using the javarosa api
      * Will throw an exception on errors
      */
-    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId) throws Exception {
+    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId, String user) throws Exception {
 		
     		class FakePreloadHandler implements IPreloadHandler {
 
@@ -561,7 +561,7 @@ public class XLSUtilities {
 		
 		SurveyTemplate template = new SurveyTemplate(localisation);
 		template.readDatabase(sId, false);
-		GetXForm xForm = new GetXForm();
+		GetXForm xForm = new GetXForm(localisation, user);
 
 		String xmlForm = xForm.get(template, false, true, false);
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());

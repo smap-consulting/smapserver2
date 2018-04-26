@@ -100,7 +100,7 @@ public class FormXML extends Application{
 				// Extract the data
 				SurveyTemplate template = new SurveyTemplate(localisation);
 				template.readDatabase(survey.id, false);
-				GetXForm xForm = new GetXForm();
+				GetXForm xForm = new GetXForm(localisation, user);
 				response = xForm.get(template, false, true, false);
 				log.info("userevent: " + user + " : download survey : " + templateName);		
 
@@ -166,7 +166,7 @@ public class FormXML extends Application{
 			SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 			//template.printModel();	// debug
-			GetXForm xForm = new GetXForm();
+			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 			response = xForm.get(template, false, true, false);
 			log.info("userevent Temporary User: " + tempUser + " : download survey : " + templateName);		
 

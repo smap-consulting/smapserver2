@@ -347,7 +347,7 @@ public class WebForm extends Application {
 			String instanceXML = null;
 			String instanceStrToEditId = null;
 			if (datakey != null && datakeyvalue != null) {
-				GetXForm xForm = new GetXForm();
+				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 				instanceXML = xForm.getInstance(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm);
 				instanceStrToEditId = xForm.getInstanceId();
@@ -569,7 +569,7 @@ public class WebForm extends Application {
 	private String getModelStr(HttpServletRequest request)
 			throws TransformerFactoryConfigurationError, Exception {
 
-		GetXForm xForm = new GetXForm();
+		GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 		String model = xForm.get(template, true, true, true);
 		
 		//String dataDoc = transform(request, formXML, "/XSL/openrosa2xmlmodel.xsl").replace("\n", "").replace("\r", "");
@@ -947,7 +947,7 @@ public class WebForm extends Application {
 			String instanceXML = null;
 			String dataKey = "instanceid";
 
-			GetXForm xForm = new GetXForm();
+			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 			instanceXML = xForm.getInstance(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false);
 
 			SurveyData sd = new SurveyData();

@@ -123,7 +123,7 @@ public class InstanceXML extends Application{
            	SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 			
-			GetXForm xForm = new GetXForm();
+			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 			String instanceXML = xForm.getInstance(survey.id, templateName, template, key, keyval, priKey, false, false);	
 			
 			response = Response.ok(instanceXML).build();

@@ -16,6 +16,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ResourceBundle;
 import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -39,6 +40,7 @@ import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
@@ -72,11 +74,18 @@ public class GetXForm {
 	private boolean modelInstanceOnly = false;
 	private boolean isWebForms = false;
 	private boolean useNodesets = false;
+	private ResourceBundle localisation = null;
+	String remoteUser = null;
 	
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
 	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
+	public GetXForm(ResourceBundle l, String user) {
+		localisation = l;
+		remoteUser = user;
+	}
+	
 	/*
 	 * Get the XForm as a string
 	 */
@@ -91,7 +100,7 @@ public class GetXForm {
 		String response = null;
 
 		if (isWebForms) {
-			embedExternalSearch = true; // Webforms do not support search there fore embed the choices in the html
+			embedExternalSearch = true; // Webforms do not support search therefore embed the choices in the html
 		}
 
 		Connection sd = null;
@@ -190,7 +199,8 @@ public class GetXForm {
 	/*
 	 * Populate the model
 	 */
-	private void populateModel(Connection sd, Document outputDoc, DocumentBuilder documentBuilder, Element parent)
+	private void populateModel(Connection sd, Document outputDoc, DocumentBuilder documentBuilder, 
+			Element parent)
 			throws Exception {
 
 		if (!modelInstanceOnly) {
@@ -222,15 +232,22 @@ public class GetXForm {
 			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId());
 			for (int i = 0; i < manifests.size(); i++) {
 				ManifestValue mv = manifests.get(i);
-				if (mv.filePath != null) {
+				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {
 					Element pulldataElement = outputDoc.createElement("instance");
 					pulldataElement.setAttribute("id", mv.baseName);
 					pulldataElement.setAttribute("src", "jr://csv/" + mv.baseName + ".csv");
 					parent.appendChild(pulldataElement);
 					Element rootElement = outputDoc.createElement("root");
 					pulldataElement.appendChild(rootElement);
-					populateCSVElements(outputDoc, rootElement, mv.filePath);
-				}
+					
+					if(mv.filePath != null) {
+						populateCSVElements(outputDoc, rootElement, mv.filePath);
+					} else {
+						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser, mv.sId);
+						SurveyTableManager stm = new SurveyTableManager(sd, localisation, oId, mv.sId, mv.fileName);
+						//populateCSVElementsFromSurvey(outputDoc, rootElement, mv.filePath);
+					}
+				} 
 			}
 		}
 

@@ -49,9 +49,9 @@ import com.google.gson.reflect.TypeToken;
  * Manage the table that stores details on the forwarding of data onto other
  * systems
  */
-public class CsvTableManager {
+public class SurveyTableManager {
 
-	private static Logger log = Logger.getLogger(CsvTableManager.class.getName());
+	private static Logger log = Logger.getLogger(SurveyTableManager.class.getName());
 
 	private class CsvHeader {
 		String fName;			// Name in file
@@ -85,7 +85,7 @@ public class CsvTableManager {
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
 	 */
-	public CsvTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
+	public SurveyTableManager(Connection sd, ResourceBundle l, int oId, int sId, String fileName)
 			throws Exception {
 		
 		this.sd = sd;
@@ -143,7 +143,7 @@ public class CsvTableManager {
 	/*
 	 * Constructor that does not attempt to connect to a table or create a new table
 	 */
-	public CsvTableManager(Connection sd, ResourceBundle l)
+	public SurveyTableManager(Connection sd, ResourceBundle l)
 			throws Exception {
 		
 		this.sd = sd;
