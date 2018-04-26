@@ -36,6 +36,7 @@ import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Question;
 
@@ -178,6 +179,12 @@ public class SurveyResults extends Application {
 					
 					// Force regeneration of any dynamic CSV files that this survey links to
 					efm.linkerChanged(sd, gd.sId);	// deprecated
+					try {
+						SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+						stm.delete(sId);			// Delete references to this survey in the csv table so that they get regenerated
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
 					
 				}
 				response = Response.ok("").build();

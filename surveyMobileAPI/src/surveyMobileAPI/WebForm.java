@@ -570,7 +570,7 @@ public class WebForm extends Application {
 			throws TransformerFactoryConfigurationError, Exception {
 
 		GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
-		String model = xForm.get(template, true, true, true);
+		String model = xForm.get(template, true, true, true, request.getRemoteUser());
 		
 		//String dataDoc = transform(request, formXML, "/XSL/openrosa2xmlmodel.xsl").replace("\n", "").replace("\r", "");
 

@@ -236,13 +236,19 @@ public class TranslationManager {
 					//log.info("Looking for pulldata manifests: " + pstmtPull.toString());
 					rs = pstmtPull.executeQuery();
 					if(rs.next() && rs.getInt(1) > 0) {
+						String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
 						if(m.type.equals("csv")) {
-							String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
 							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
 							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, "/smap", oId, surveyId);
 						} else {
 							// TODO location depends on user
 							//m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";
+						}
+						
+						if(m.fileName.equals("linked_self")) {
+							m.fileName = "linked_" + surveyIdent;
+						} else if(m.fileName.equals("linked_s_pd_self")) {
+							m.fileName = "linked_s_pd_" + surveyIdent;
 						}
 						
 						manifests.add(m);

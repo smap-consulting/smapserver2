@@ -722,7 +722,7 @@ public class SubRelationalDB extends Subscriber {
 					if (tableChanged || tablePublished) {
 						List<Form> forms = template.getAllForms();	
 						for(Form f : forms) {
-							tm.markPublished(cMeta, f.getId()); // only mark published if there have been changes made
+							tm.markPublished(cMeta, f.getId(), sId); // only mark published if there have been changes made
 						}
 					}
 				}

@@ -42,6 +42,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
 import org.smap.server.entities.Form;
@@ -89,7 +90,8 @@ public class GetXForm {
 	/*
 	 * Get the XForm as a string
 	 */
-	public String get(SurveyTemplate template, boolean isWebForms, boolean useNodesets, boolean modelInstanceOnly) throws Exception {
+	public String get(SurveyTemplate template, boolean isWebForms, boolean useNodesets, 
+			boolean modelInstanceOnly, String user) throws Exception {
 
 		// Set Globals
 		this.modelInstanceOnly = modelInstanceOnly;
@@ -104,8 +106,10 @@ public class GetXForm {
 		}
 
 		Connection sd = null;
+		Connection cResults = null;
 		try {
 			sd = SDDataSource.getConnection("getXForm");
+			cResults = ResultsDataSource.getConnection("getXForm");
 
 			// Create a new XML Document
 			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -126,10 +130,10 @@ public class GetXForm {
 			if (modelInstanceOnly) {
 				parent = outputXML.createElement("model");
 				outputXML.appendChild(parent);
-				populateModel(sd, outputXML, b, parent);
+				populateModel(sd, cResults, outputXML, b, parent, user);
 			} else {
 				parent = populateRoot(outputXML);
-				populateHead(sd, outputXML, b, parent);
+				populateHead(sd, cResults, outputXML, b, parent, user);
 				populateBody(sd, outputXML, parent);
 			}
 
@@ -146,6 +150,7 @@ public class GetXForm {
 
 		} finally {
 			SDDataSource.closeConnection("getXForm", sd);
+			ResultsDataSource.closeConnection("getXForm", cResults);
 		}
 
 		return response;
@@ -176,7 +181,8 @@ public class GetXForm {
 	 * 
 	 * @param outputXML
 	 */
-	public void populateHead(Connection sd, Document outputDoc, DocumentBuilder documentBuilder, Element parent)
+	public void populateHead(Connection sd, Connection cResults, Document outputDoc, 
+			DocumentBuilder documentBuilder, Element parent, String user)
 			throws Exception {
 
 		Survey s = template.getSurvey();
@@ -192,15 +198,15 @@ public class GetXForm {
 		Element modelElement = outputDoc.createElement("model");
 		headElement.appendChild(modelElement);
 
-		populateModel(sd, outputDoc, documentBuilder, modelElement);
+		populateModel(sd, cResults, outputDoc, documentBuilder, modelElement, user);
 
 	}
 
 	/*
 	 * Populate the model
 	 */
-	private void populateModel(Connection sd, Document outputDoc, DocumentBuilder documentBuilder, 
-			Element parent)
+	private void populateModel(Connection sd, Connection cResults, Document outputDoc, DocumentBuilder documentBuilder, 
+			Element parent, String user)
 			throws Exception {
 
 		if (!modelInstanceOnly) {
@@ -244,8 +250,8 @@ public class GetXForm {
 						populateCSVElements(outputDoc, rootElement, mv.filePath);
 					} else {
 						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser, mv.sId);
-						SurveyTableManager stm = new SurveyTableManager(sd, localisation, oId, mv.sId, mv.fileName);
-						//populateCSVElementsFromSurvey(outputDoc, rootElement, mv.filePath);
+						SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, mv.sId, mv.fileName, user);
+						populateCSVElementsFromSurvey(outputDoc, rootElement, stm);
 					}
 				} 
 			}
@@ -1241,6 +1247,35 @@ public class GetXForm {
 			;
 		}
 	}
+	
+	public void populateCSVElementsFromSurvey(Document outputXML, Element parent, SurveyTableManager stm) throws Exception {
+
+		
+		PreparedStatement pstmt = null;
+		ArrayList<KeyValueSimp> line = null;
+		try {
+			stm.initData(pstmt);
+			line = stm.getLine();
+			while(line != null) {
+				// process line
+				Element item = outputXML.createElement("item");
+				parent.appendChild(item);
+				Element elem = null;
+				System.out.println("------");
+				for(KeyValueSimp kv : line) {
+					elem = outputXML.createElement(kv.k);
+					elem.setTextContent(kv.v);
+					item.appendChild(elem);
+					System.out.println("    " + kv.k + " : " + kv.v);
+				}
+				line = stm.getLine();
+				
+			}
+
+		} finally {
+			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {};
+		}
+	}
 
 	/*
 	 * Get the instance data for an XForm
@@ -1384,12 +1419,7 @@ public class GetXForm {
 				e.printStackTrace();
 			}
 		} finally {
-			if (pstmt != null)
-				try {
-					pstmt.close();
-				} catch (Exception e) {
-				}
-			;
+			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {};
 		}
 
 		return isValid;

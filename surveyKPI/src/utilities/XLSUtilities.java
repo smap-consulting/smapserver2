@@ -563,7 +563,7 @@ public class XLSUtilities {
 		template.readDatabase(sId, false);
 		GetXForm xForm = new GetXForm(localisation, user);
 
-		String xmlForm = xForm.get(template, false, true, false);
+		String xmlForm = xForm.get(template, false, true, false, user);
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
 		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
 		FormEntryModel fem = new FormEntryModel(fd);

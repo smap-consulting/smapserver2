@@ -233,7 +233,7 @@ public class ManagedForms extends Application {
 				if(tableChanged || tablePublished) {
 					List<org.smap.server.entities.Form> forms = template.getAllForms();	
 					for(org.smap.server.entities.Form form : forms) {
-						tm.markPublished(sd, form.getId());		// only mark published if there have been changes made
+						tm.markPublished(sd, form.getId(), am.sId);		// only mark published if there have been changes made
 					}
 				}
 			}

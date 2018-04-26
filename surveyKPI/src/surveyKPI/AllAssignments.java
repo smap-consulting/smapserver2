@@ -1294,7 +1294,7 @@ public class AllAssignments extends Application {
 			tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
 			if(tableChanged || tablePublished) {
 				for(FormDesc f : formList) {
-					tm.markPublished(sd, f.f_id);		// only mark published if there have been changes made
+					tm.markPublished(sd, f.f_id, sId);		// only mark published if there have been changes made
 				}
 			}
 

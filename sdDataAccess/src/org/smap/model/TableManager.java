@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.MetaItem;
@@ -156,7 +157,7 @@ public class TableManager {
 	 * Mark all the questions and options in the form as published
 	 * Mark as published any questions in other forms that share this results table
 	 */
-	public void markPublished(Connection sd, int fId) throws SQLException {
+	public void markPublished(Connection sd, int fId, int sId) throws SQLException {
 
 		class FormDetail {
 			boolean isSubmitter;
@@ -241,6 +242,13 @@ public class TableManager {
 				}
 
 			}
+			try {
+				SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+				stm.delete(sId);			// Delete references to this survey in the csv table so that they get regenerated
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			
 		} catch (SQLException e) {
 			e.printStackTrace();
 			throw e;
@@ -328,7 +336,7 @@ public class TableManager {
 				cResults.commit();
 				
 				if(tableCreated) {
-					markPublished(sd, form.getId());
+					markPublished(sd, form.getId(), sId);
 					//markAllChangesApplied(sd, sId);
 				}
 

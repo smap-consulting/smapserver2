@@ -4240,6 +4240,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get manifest parameters from appearance or calculations
+	 *  replaceSelf is set to True for embedding itemsets in webforms
 	 */
 	public static ArrayList<String> getManifestParams(Connection sd, int qId, String property, String filename,
 			boolean isAppearance, String sIdent) throws SQLException {
