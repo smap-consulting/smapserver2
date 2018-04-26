@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeResponse;
@@ -102,14 +103,14 @@ public class Surveys extends Application {
 			) { 
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
 		if(getDeleted) {
-			aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
+			aUpdate.isAuthorised(sd, request.getRemoteUser());
 		} else {
-			aGet.isAuthorised(connectionSD, request.getRemoteUser());
+			aGet.isAuthorised(sd, request.getRemoteUser());
 		}
 		if(projectId > 0) {
-			aGet.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+			aGet.isValidProject(sd, request.getRemoteUser(), projectId);
 		}
 		// End Authorisation
 		
@@ -120,13 +121,13 @@ public class Surveys extends Application {
 		
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation);
-			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			
-			surveys = sm.getSurveys(connectionSD, pstmt,
+			surveys = sm.getSurveys(sd, pstmt,
 					request.getRemoteUser(), 
 					getDeleted, 
 					getBlocked, 
@@ -149,7 +150,7 @@ public class Surveys extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
 			
 		}
 
@@ -170,14 +171,14 @@ public class Surveys extends Application {
 		
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Surveys");	
+		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");	
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
-		aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		org.smap.sdal.model.Survey survey = null;
@@ -190,11 +191,11 @@ public class Surveys extends Application {
 		
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation);
-			survey = sm.getById(connectionSD, cResults,  request.getRemoteUser(), sId, 
+			survey = sm.getById(sd, cResults,  request.getRemoteUser(), sId, 
 					true, 
 					basePath, 
 					null, 
@@ -221,7 +222,7 @@ public class Surveys extends Application {
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", connectionSD);	
+			SDDataSource.closeConnection("surveyKPI-Surveys", sd);	
 			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
 			
 		}
@@ -468,14 +469,14 @@ public class Surveys extends Application {
 		ArrayList<ChangeSet> changes = gson.fromJson(changesString, type);	
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());	
-		aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());	
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
 		
@@ -488,7 +489,7 @@ public class Surveys extends Application {
 					if(!ci.property.type.equals("option") 
 							&& !ci.property.type.equals("optionlist")) {
 						log.info("Validating question for type: " + ci.property.type);
-						aUpdate.isValidQuestion(connectionSD, request.getRemoteUser(), sId, ci.property.qId);
+						aUpdate.isValidQuestion(sd, request.getRemoteUser(), sId, ci.property.qId);
 						
 						if(ci.property.type.equals("appearance")) {
 							updateExternalChoices = true;
@@ -506,11 +507,11 @@ public class Surveys extends Application {
 		try {
 	
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation);
-			ChangeResponse resp = sm.applyChangeSetArray(connectionSD, cResults, sId, request.getRemoteUser(), changes, true);
+			ChangeResponse resp = sm.applyChangeSetArray(sd, cResults, sId, request.getRemoteUser(), changes, true);
 			
 			// Add any options that this survey links to in an an external file
 			/*
@@ -522,19 +523,23 @@ public class Surveys extends Application {
 			
 			// Force regeneration of any dynamic CSV files that this survey links to
 			ExternalFileManager efm = new ExternalFileManager(localisation);
-			efm.linkerChanged(connectionSD, sId);
+			
+			efm.linkerChanged(sd, sId);	// deprecated
+			
+			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+			stm.delete(sId);			// Delete references to this survey in the csv table so that they get regenerated
 			
 			String respString = gson.toJson(resp);	// Create the response	
 			response = Response.ok(respString).build();
 			
 			
 		}  catch (Exception e) {
-			try {connectionSD.rollback();} catch (Exception ex) {};
+			try {sd.rollback();} catch (Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", connectionSD);		
+			SDDataSource.closeConnection("surveyKPI-Surveys", sd);		
 			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
 			
 		}
@@ -557,14 +562,14 @@ public class Surveys extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
-		aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 		FileItem pdfItem = null;
@@ -631,11 +636,11 @@ public class Surveys extends Application {
 			org.smap.sdal.model.Survey survey = gson.fromJson(settings, type);
 			
 			// Start transaction
-			connectionSD.setAutoCommit(false);
+			sd.setAutoCommit(false);
 			
 			// Get the existing survey display name, plain old name and project id
 			String sqlGet = "select name, display_name, p_id, version from survey where s_id = ?";
-			pstmtGet = connectionSD.prepareStatement(sqlGet);	
+			pstmtGet = sd.prepareStatement(sqlGet);	
 			pstmtGet.setInt(1, sId);
 			
 			String originalDisplayName = null;
@@ -675,7 +680,7 @@ public class Surveys extends Application {
 			if(survey.surveyClass != null && survey.surveyClass.equals("none")) {
 				survey.surveyClass = null;
 			}
-			pstmt = connectionSD.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, survey.displayName);
 			pstmt.setString(2, newSurveyName);
 			pstmt.setString(3, survey.def_lang);
@@ -698,7 +703,7 @@ public class Surveys extends Application {
 			} else {
 				log.info("Info: Survey updated");
 				
-				int userId = GeneralUtilityMethods.getUserId(connectionSD, request.getRemoteUser());
+				int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 				
 				ChangeElement change = new ChangeElement();
 				change.action = "settings_update";
@@ -708,7 +713,7 @@ public class Surveys extends Application {
 						+ ", Key Policy: " + survey.key_policy;
 				
 				// Write to the change log
-				pstmtChangeLog = connectionSD.prepareStatement(sqlChangeLog);
+				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 				// Write the change log
 				pstmtChangeLog.setInt(1, sId);
 				pstmtChangeLog.setInt(2, version);
@@ -721,7 +726,7 @@ public class Surveys extends Application {
 			// If the human readable key (HRK) is not null then make sure the HRK column exists in the results file
 			if(survey.hrk != null) {
 				cResults = ResultsDataSource.getConnection("surveyKPI-Surveys-saveSettings");
-				String tableName = GeneralUtilityMethods.getMainResultsTable(connectionSD, cResults, sId);
+				String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 				if(tableName != null){
 					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, tableName, "_hrk");
 					if(!hasHrk) {
@@ -732,8 +737,8 @@ public class Surveys extends Application {
 				}
 			}
 			
-			connectionSD.commit();
-			connectionSD.setAutoCommit(true);
+			sd.commit();
+			sd.setAutoCommit(true);
 			
 			/*
 			 * PDF Template
@@ -754,7 +759,7 @@ public class Surveys extends Application {
 			
 			// If the project id has changed update the project in the upload events so that the monitor will still show all events
 			if(originalProjectId != survey.p_id) {
-				GeneralUtilityMethods.updateUploadEvent(connectionSD, survey.p_id, sId);
+				GeneralUtilityMethods.updateUploadEvent(sd, survey.p_id, sId);
 			}
 			
 			// If the display name or project id has changed rename template files
@@ -768,20 +773,20 @@ public class Surveys extends Application {
 			
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager();
-			mm.surveyChange(connectionSD, sId, 0);
+			mm.surveyChange(sd, sId, 0);
 		
 			response = Response.ok(templateName).build();
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"sql error", e);
-			try{connectionSD.rollback();} catch(Exception ex) {};
+			try{sd.rollback();} catch(Exception ex) {};
 		    response = Response.serverError().entity(e.getMessage()).build();
-		    try {connectionSD.setAutoCommit(true);} catch(Exception ex) {}
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
-			try{connectionSD.rollback();} catch(Exception ex) {};
+			try{sd.rollback();} catch(Exception ex) {};
 		    response = Response.serverError().entity(e.getMessage()).build();
-		    try {connectionSD.setAutoCommit(true);} catch(Exception ex) {}
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		} finally {
 			
 			if (pstmtGet != null) try {pstmtGet.close();} catch (SQLException e) {}
@@ -789,7 +794,7 @@ public class Surveys extends Application {
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 			if (pstmtAddHrk != null) try {pstmtAddHrk.close();} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Survey", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Survey", cResults);
 			
 		}
@@ -810,14 +815,14 @@ public class Surveys extends Application {
 		int version;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
-		aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 				
@@ -832,16 +837,16 @@ public class Surveys extends Application {
 			 * Lock the survey
 			 * update version number of survey and get the new version
 			 */
-			connectionSD.setAutoCommit(false);
+			sd.setAutoCommit(false);
 			
 			String sqlUpdateVersion = "update survey set version = version + 1 where s_id = ?";
 			String sqlGetVersion = "select version from survey where s_id = ?";
-			pstmt = connectionSD.prepareStatement(sqlUpdateVersion);
+			pstmt = sd.prepareStatement(sqlUpdateVersion);
 			pstmt.setInt(1, sId);
 			pstmt.execute();
 			pstmt.close();
 			
-			pstmt = connectionSD.prepareStatement(sqlGetVersion);
+			pstmt = sd.prepareStatement(sqlGetVersion);
 			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
 			rs.next();
@@ -852,7 +857,7 @@ public class Surveys extends Application {
 				// Set all questions to not required
 				String sqlNotRequired = "update question set mandatory = 'false' "
 						+ "where f_id in (select f_id from form where s_id = ?);";
-				pstmtNotRequired = connectionSD.prepareStatement(sqlNotRequired);	
+				pstmtNotRequired = sd.prepareStatement(sqlNotRequired);	
 				pstmtNotRequired.setInt(1, sId);
 				
 				log.info("SQL: Setting questions not required: " + pstmtNotRequired.toString());
@@ -869,7 +874,7 @@ public class Surveys extends Application {
 						+ "and qtype != 'geolinestring' "
 						+ "and f_id in (select f_id from form where s_id = ?);"; 
 			
-				pstmtRequired = connectionSD.prepareStatement(sqlRequired);	
+				pstmtRequired = sd.prepareStatement(sqlRequired);	
 				pstmtRequired.setInt(1, sId);
 				
 				log.info("SQL: Setting questions required: " + pstmtRequired.toString());
@@ -877,7 +882,7 @@ public class Surveys extends Application {
 			}
 				
 			// Write the change log
-			int userId = GeneralUtilityMethods.getUserId(connectionSD, request.getRemoteUser());
+			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 				
 			ChangeElement change = new ChangeElement();
 			change.action = "set_required";
@@ -888,7 +893,7 @@ public class Surveys extends Application {
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
-			pstmtChangeLog = connectionSD.prepareStatement(sqlChangeLog);
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 				
 			// Write the change log
 			pstmtChangeLog.setInt(1, sId);
@@ -898,22 +903,22 @@ public class Surveys extends Application {
 			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
 			pstmtChangeLog.execute();
 
-			connectionSD.commit();
-			connectionSD.setAutoCommit(true);
+			sd.commit();
+			sd.setAutoCommit(true);
 			
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager();
-			mm.surveyChange(connectionSD, sId, 0);
+			mm.surveyChange(sd, sId, 0);
 		
 			response = Response.ok().build();
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"sql error", e);
-		    try {connectionSD.setAutoCommit(true);} catch(Exception ex) {}
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
-		    try {connectionSD.setAutoCommit(true);} catch(Exception ex) {}
+		    try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
@@ -922,7 +927,7 @@ public class Surveys extends Application {
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Survey", sd);
 			
 		}
 

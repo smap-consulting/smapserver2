@@ -46,8 +46,7 @@ import com.google.gson.reflect.TypeToken;
  ******************************************************************************/
 
 /*
- * Manage the table that stores details on the forwarding of data onto other
- * systems
+ * Manage the csvtable entries that point to survey data rather than data loaded directly from a CSV
  */
 public class SurveyTableManager {
 
@@ -97,11 +96,11 @@ public class SurveyTableManager {
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
-		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and survey and filename = ?";
 		PreparedStatement pstmtGetCsvTable = null;
 		
-		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, headers, ts_initialised) "
-				+ "values(nextval('csv_seq'), ?, ?, ?, ?, now())";
+		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, headers, survey, ts_initialised) "
+				+ "values(nextval('csv_seq'), ?, ?, ?, ?, true, now())";
 		PreparedStatement pstmtInsertCsvTable = null;
 		try {
 			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
@@ -371,61 +370,19 @@ public class SurveyTableManager {
 	/*
 	 * Delete csv tables
 	 */
-	public void delete(int oId, int sId, String fileName) throws SQLException {
+	public void delete(int sId) throws SQLException {
 		
-		String sqlFile = "select id from csvtable where o_id = ? and s_id = ? and filename = ?";
-		String sqlSurvey = "select id from csvtable where o_id = ? and s_id = ?";
-		String sqlOrg = "select id from csvtable where o_id = ?";
-		PreparedStatement pstmt = null;
-		
-		PreparedStatement pstmtDrop = null;
-		
-		String sqlDelete = "delete from csvtable where id = ?";
+		String sqlDelete = "delete from csvtable where s_id = ? and survey";
 		PreparedStatement pstmtDelete = null;
 				
 		try {
 			pstmtDelete = sd.prepareStatement(sqlDelete);
-			
-			if(fileName != null) {
-				pstmt = sd.prepareStatement(sqlFile);	// If the filename is specified then just delete that
-				pstmt.setInt(1, oId);
-				pstmt.setInt(2,  sId);
-				pstmt.setString(3, fileName);
-			} else if(sId > 0) {
-				pstmt = sd.prepareStatement(sqlSurvey);	// If the survey id is specified then just resources for that survey
-				pstmt.setInt(1, oId);
-				pstmt.setInt(2,  sId);
-			} else if(oId > 0) {
-				pstmt = sd.prepareStatement(sqlOrg);	// If the organisation id is specified then just resources for that organisation
-				pstmt.setInt(1, oId);
-			}
-			
-			log.info("Get shared resources to delete: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			
-			while(rs.next()) {
-				int id = rs.getInt(1);
-				String sqlDrop = "drop table csv.csv" + id;
-				String sqlDropSeq = "drop sequence if exists csv.csv" + id + "_seq cascade";
-				
-				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
-				pstmtDrop = sd.prepareStatement(sqlDrop);
-				log.info("Dropping resource table: "  + pstmtDrop.toString());
-				pstmtDrop.executeUpdate();
-				
-				if(pstmtDrop != null) {try {pstmtDrop.close();} catch(Exception e) {}}
-				pstmtDrop = sd.prepareStatement(sqlDropSeq);
-				log.info("Dropping resource sequence: "  + pstmtDrop.toString());
-				pstmtDrop.executeUpdate();
-				
-				pstmtDelete.setInt(1, id);
-				pstmtDelete.executeUpdate();
-			}
+			pstmtDelete.setInt(1, sId);
+			pstmtDelete.executeUpdate();
+					
 		} catch(Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
-			try {pstmt.close();} catch(Exception e) {}
-			try {pstmtDrop.close();} catch(Exception e) {}
 			try {pstmtDelete.close();} catch(Exception e) {}
 		}
 	}

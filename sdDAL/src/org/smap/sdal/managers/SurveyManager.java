@@ -3813,6 +3813,12 @@ public class SurveyManager {
 			}
 			
 			/*
+			 * Delete any entries in the csvtable
+			 */
+			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+			stm.delete(sId);			// Delete references to this survey in the csv table so that they get regenerated
+			
+			/*
 			 * The following tables reference the survey ident
 			 * Delete any entries that reference the deleted survey ident
 			 */

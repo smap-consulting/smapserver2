@@ -177,7 +177,8 @@ public class SurveyResults extends Application {
 					}
 					
 					// Force regeneration of any dynamic CSV files that this survey links to
-					efm.linkerChanged(sd, gd.sId);
+					efm.linkerChanged(sd, gd.sId);	// deprecated
+					
 				}
 				response = Response.ok("").build();
 				
@@ -283,7 +284,7 @@ public class SurveyResults extends Application {
 					pstmtRestore.executeUpdate();
 								
 					// Force regeneration of any dynamic CSV files that this survey links to
-					efm.linkerChanged(sd, gd.sId);
+					efm.linkerChanged(sd, gd.sId);	// deprecated
 				}
 				connectionRel.commit();
 				
