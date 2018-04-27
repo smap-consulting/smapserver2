@@ -1101,6 +1101,8 @@ public class XLSTemplateUploadManager {
 			out = "calculate";
 		} else if (type.equals("label")) {			// Commcare 
 			out = "note";
+		} else if (type.equals("trigger")) {			// Commcare 
+			out = "trigger";
 		}
 				
 		return out;

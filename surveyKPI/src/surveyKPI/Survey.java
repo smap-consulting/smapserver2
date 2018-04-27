@@ -361,11 +361,15 @@ public class Survey extends Application {
 		PreparedStatement pstmt = null;;
 		try {
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Delete the temporary user
 			 */
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
-			GeneralUtilityMethods.deleteTempUser(sd, oId, ident);
+			GeneralUtilityMethods.deleteTempUser(sd, localisation, oId, ident);
 			
 			// Delete the link from the survey
 			pstmt = sd.prepareStatement(sql);

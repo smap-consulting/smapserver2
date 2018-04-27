@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Project;
@@ -520,47 +521,70 @@ public class UserList extends Application {
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtGetIdent = null;
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {	
-			String sql = null;
 			int o_id;
 			ResultSet resultSet = null;
 			
-			/*
-			 * Get the organisation of the person calling this service
-			 */
-			sql = "SELECT u.o_id " +
-					" FROM users u " +  
-					" WHERE u.ident = ?;";				
-						
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, request.getRemoteUser());
-			log.info("Get user organisation and id: " + pstmt.toString());
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			// Get the organisation of the person calling this service
+			String sql = "SELECT u.o_id " +
+					" FROM users u " +  
+					" WHERE u.ident = ?;";										
+			pstmt = connectionSD.prepareStatement(sql);
+			
+			// Get the ident of the person to be deleted
+			String sqlGetIdent = "select u.ident "
+					+ "from users u "
+					+ "where u.id = ? "
+					+ "and u.o_id = ?";								
+			pstmtGetIdent = connectionSD.prepareStatement(sqlGetIdent);
+			
+			// Delete the user
+			String sqlUpdate = "DELETE FROM users u " +  
+					" WHERE u.id = ? " +			// Ensure the user is in the same organisation as the administrator doing the editing
+					" AND u.o_id = ?;";					
+			pstmtUpdate = connectionSD.prepareStatement(sqlUpdate);
+			
+			// Get the organisation id
+			pstmt.setString(1, request.getRemoteUser());
+			log.info("Get user organisation and id: " + pstmt.toString());			
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				o_id = resultSet.getInt(1);
 				
 				for(int i = 0; i < uArray.size(); i++) {
 					User u = uArray.get(i);
+					String ident = null;
 					
-					// Ensure the user is in the same organisation as the administrator doing the editing
-					sql = "DELETE FROM users u " +  
-							" WHERE u.id = ? " +
-							" AND u.o_id = ?;";				
-								
-					pstmtUpdate = connectionSD.prepareStatement(sql);
+					// Get the user ident to use in deleting dependent records
+					pstmtGetIdent.setInt(1, u.id);
+					pstmtGetIdent.setInt(2,o_id);
+					ResultSet rs = pstmtGetIdent.executeQuery();
+					if(rs.next()) {
+						ident = rs.getString(1);
+					}
+					
+					// Peform the delete
 					pstmtUpdate.setInt(1, u.id);
 					pstmtUpdate.setInt(2, o_id);
 					log.info("Delete user: " + pstmt.toString());
 					
 					int count = pstmtUpdate.executeUpdate();
 					
-					// If a user was deleted then delete their directories
-					if(count > 0) {						
+					if(count > 0) {	
+						// If a user was deleted then delete their directories
 						GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
-					}					
+						
+						// Delete any csv table definitions that they have
+						SurveyTableManager stm = new SurveyTableManager(connectionSD, localisation);
+						stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
+					}	
 
 				}
 		
@@ -584,6 +608,7 @@ public class UserList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
+			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-UserList", connectionSD);
 		}

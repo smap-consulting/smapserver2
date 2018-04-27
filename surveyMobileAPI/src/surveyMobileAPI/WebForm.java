@@ -294,7 +294,7 @@ public class WebForm extends Application {
 			
 			// Get the users locale
 			try {
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, userIdent));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			} catch (Exception e) {
 
@@ -310,7 +310,7 @@ public class WebForm extends Application {
 				throw new NotFoundException();
 			}
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, userIdent);
 			} catch (Exception e) {
 			}
 			a.isValidSurvey(connectionSD, userIdent, survey.id, false, superUser); // Validate that the user has access																			
@@ -569,10 +569,8 @@ public class WebForm extends Application {
 	private String getModelStr(HttpServletRequest request)
 			throws TransformerFactoryConfigurationError, Exception {
 
-		GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
-		String model = xForm.get(template, true, true, true, request.getRemoteUser());
-		
-		//String dataDoc = transform(request, formXML, "/XSL/openrosa2xmlmodel.xsl").replace("\n", "").replace("\r", "");
+		GetXForm xForm = new GetXForm(localisation, userIdent);
+		String model = xForm.get(template, true, true, true, userIdent);
 
 		// We only want the model - remove any XML preanble
 		int modelIdx = model.indexOf("<model>");
@@ -920,7 +918,7 @@ public class WebForm extends Application {
 			}
 
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, userIdent);
 			} catch (Exception e) {
 			}
 			a.isValidSurvey(connectionSD, user, survey.id, false, superUser); // Validate that the user can access this
@@ -947,7 +945,7 @@ public class WebForm extends Application {
 			String instanceXML = null;
 			String dataKey = "instanceid";
 
-			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
+			GetXForm xForm = new GetXForm(localisation, userIdent);
 			instanceXML = xForm.getInstance(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false);
 
 			SurveyData sd = new SurveyData();
@@ -964,7 +962,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + e.getMessage());
+			lm.writeLog(connectionSD, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage());
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 

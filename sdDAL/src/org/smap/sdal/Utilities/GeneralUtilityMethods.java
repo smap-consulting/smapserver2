@@ -38,6 +38,7 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChangeItem;
@@ -6451,7 +6452,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Delete a temporary user
 	 */
-	public static void deleteTempUser(Connection sd, int oId, String uIdent) throws Exception {
+	public static void deleteTempUser(Connection sd, ResourceBundle localisation, int oId, String uIdent) throws Exception {
 		
 		String sql = "delete from users " 
 				+ "where ident = ? "
@@ -6462,6 +6463,7 @@ public class GeneralUtilityMethods {
 		if(uIdent != null) {
 
 			try {
+			
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, uIdent);
 				pstmt.setInt(2,  oId);
@@ -6470,6 +6472,10 @@ public class GeneralUtilityMethods {
 				if(count == 0) {
 					log.info("error: failed to delete temporay user: " + uIdent);
 				}
+				// Delete any csv table definitions that they have
+				SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+				stm.deleteForUsers(uIdent);			// Delete references to this survey in the csv table 
+				
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}

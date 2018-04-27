@@ -81,17 +81,23 @@ public class SurveyTableManager {
 		
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
-		String sqlGetCsvTable = "select id, sqldef from csvtable where o_id = ? and s_id = ? and survey and filename = ?";
+		String sqlGetCsvTable = "select id, sqldef from csvtable "
+				+ "where o_id = ? "
+				+ "and s_id = ? "
+				+ "and survey "
+				+ "and filename = ? "
+				+ "and user_ident = ?";
 		PreparedStatement pstmtGetCsvTable = null;
 		
-		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, headers, survey, ts_initialised) "
-				+ "values(nextval('csv_seq'), ?, ?, ?, ?, true, now())";
+		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, survey, user_ident, ts_initialised) "
+				+ "values(nextval('csv_seq'), ?, ?, ?, true, ?, now())";
 		PreparedStatement pstmtInsertCsvTable = null;
 		try {
 			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
+			pstmtGetCsvTable.setString(4, user);
 			log.info("Getting csv table id: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			
@@ -106,7 +112,7 @@ public class SurveyTableManager {
 				pstmtInsertCsvTable.setInt(1, oId);
 				pstmtInsertCsvTable.setInt(2, sId);
 				pstmtInsertCsvTable.setString(3, fileName);
-				pstmtInsertCsvTable.setString(4, null);
+				pstmtInsertCsvTable.setString(4, user);
 				log.info("Create a new csv file entry: " + pstmtInsertCsvTable.toString());
 				pstmtInsertCsvTable.executeUpdate();
 				ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
@@ -172,11 +178,6 @@ public class SurveyTableManager {
 		
 		if(rs != null && rs.next()) {
 			line = new ArrayList<KeyValueSimp> ();
-			if (non_unique_key) {
-				
-			} else {
-				
-			}
 			for (int i = 0; i < sqlDef.colNames.size(); i++) {
 				String col = sqlDef.colNames.get(i);
 				String value = rs.getString(col);
@@ -200,6 +201,26 @@ public class SurveyTableManager {
 		try {
 			pstmtDelete = sd.prepareStatement(sqlDelete);
 			pstmtDelete.setInt(1, sId);
+			pstmtDelete.executeUpdate();
+					
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			try {pstmtDelete.close();} catch(Exception e) {}
+		}
+	}
+	
+	/*
+	 * Delete entries in csv table for a use
+	 */
+	public void deleteForUsers(String user) throws SQLException {
+		
+		String sqlDelete = "delete from csvtable where user_ident = ? and survey";
+		PreparedStatement pstmtDelete = null;
+				
+		try {
+			pstmtDelete = sd.prepareStatement(sqlDelete);
+			pstmtDelete.setString(1, user);
 			pstmtDelete.executeUpdate();
 					
 		} catch(Exception e) {
