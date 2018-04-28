@@ -12,6 +12,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
@@ -164,6 +165,7 @@ public class SurveyTableManager {
 			if (sqlDef.hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount);
 			}
+			log.info("Init data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 		} else {
 			rs = null;
@@ -331,6 +333,9 @@ public class SurveyTableManager {
 			} else {
 				linked_sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 			}
+			if(linked_sId == 0) {
+				throw new ApplicationException("Error: Survey with identifier " + sIdent + " was not found");
+			}
 
 			// 3.Get columns from appearance
 			pstmtAppearance = sd.prepareStatement(sqlAppearance);
@@ -389,9 +394,6 @@ public class SurveyTableManager {
 			
 			
 
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			lm.writeLog(sd, sId, user, "error", "Creating CSV file: " + e.getMessage());
 		} finally {
 			if (pstmtAppearance != null)	{try {pstmtAppearance.close();} catch (Exception e) {}}
 			if (pstmtCalculate != null) {try {pstmtCalculate.close();	} catch (Exception e) {}}
@@ -439,7 +441,6 @@ public class SurveyTableManager {
 			pstmtGetCol.setInt(2, sId);
 
 			boolean first = true;
-			;
 			if (linked_s_pd) {
 				linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, sId, sd);
 				sql.append(linked_s_pd_sel);
