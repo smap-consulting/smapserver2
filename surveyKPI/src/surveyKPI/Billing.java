@@ -19,26 +19,42 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.BillingManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.TaskGroup;
+import org.smap.sdal.model.TaskListGeoJson;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+
+import utilities.XLSBillingManager;
+import utilities.XLSTaskManager;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /*
  * Returns a list of all options for the specified question
@@ -48,6 +64,9 @@ public class Billing extends Application {
 
 	Authorise aOrg = null;
 	Authorise aServer = null;
+	
+	private static Logger log =
+			 Logger.getLogger(Tasks.class.getName());
 	
 	public Billing() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -61,7 +80,7 @@ public class Billing extends Application {
 	
 	@GET
 	@Produces("application/json")
-	public String getOptions(@Context HttpServletRequest request,
+	public String getServer(@Context HttpServletRequest request,
 			@QueryParam("month") int month,
 			@QueryParam("year") int year,
 			@QueryParam("org") int oId) throws Exception { 
@@ -235,6 +254,134 @@ public class Billing extends Application {
 		}
 
 		return gson.toJson(bill);
+	}
+	
+	@GET
+	@Path("/organisations")
+	@Produces("application/json")
+	public Response getOrganisations(@Context HttpServletRequest request,
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("org") int oId) throws Exception { 
+	
+		Response responseVal = null;
+		
+		if(month < 1 || month > 12) {
+			throw new ApplicationException("Month must be specified and be between 1 and 12");
+		}
+		if(year == 0) {
+			throw new ApplicationException("Year must be specified");
+		}
+		
+		
+		// Authorisation - Access
+		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		if(oId > 0) {
+			aOrg.isAuthorised(sd, request.getRemoteUser());
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			if(!superUser) {
+				aOrg.isValidBillingOrganisation(sd, oId);
+			}
+		} else {
+			aServer.isAuthorised(sd, request.getRemoteUser());
+		}	
+		// End Authorisation
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<BillingDetail> bills = null;
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			BillingManager bm = new BillingManager(localisation);
+			bills = bm.getOrganisationBillData(sd, year, month);
+
+			responseVal = Response.status(Status.OK).entity(gson.toJson(bills)).build();
+		} catch (Exception e) {
+			e.printStackTrace();
+			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
+		} finally {
+			
+			SDDataSource.closeConnection("surveyKPI-Billing", sd);
+		}
+
+		return responseVal;
+	}
+	
+	/*
+	 * Export Tasks for a task group in an XLS file
+	 */
+	@GET
+	@Path ("/organisations/xlsx")
+	@Produces("application/x-download")
+	public Response getOrganisationReport (
+			@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@QueryParam("month") int month,
+			@QueryParam("year") int year,
+			@QueryParam("org") int oId) throws Exception { 
+
+		if(month < 1 || month > 12) {
+			throw new ApplicationException("Month must be specified and be between 1 and 12");
+		}
+		if(year == 0) {
+			throw new ApplicationException("Year must be specified");
+		}
+		
+		// Authorisation - Access
+		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		if(oId > 0) {
+			aOrg.isAuthorised(sd, request.getRemoteUser());
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			if(!superUser) {
+				aOrg.isValidBillingOrganisation(sd, oId);
+			}
+		} else {
+			aServer.isAuthorised(sd, request.getRemoteUser());
+		}	
+		// End Authorisation
+
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<BillingDetail> bills = null;
+		
+		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			BillingManager bm = new BillingManager(localisation);
+			bills = bm.getOrganisationBillData(sd, year, month);
+			
+			GeneralUtilityMethods.setFilenameInResponse("bill_" + year + "_" + month + "_" + oId + ".xlsx", response); // Set file name
+			
+			// Create Billing report
+			XLSBillingManager xbm = new XLSBillingManager(localisation);
+			xbm.createXLSBillFile(response.getOutputStream(), bills, localisation, year, month);
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection("createXLSTasks", sd);	
+			
+		}
+		return Response.ok("").build();
 	}
 
 }
