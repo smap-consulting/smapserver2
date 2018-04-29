@@ -214,7 +214,7 @@ public class SubRelationalDB extends Subscriber {
 				" where ue.ue_id = ? and ue.assignment_id is not null;";
 
 
-		String sql = "UPDATE assignments a SET status = 'submitted' " +
+		String sql = "UPDATE assignments a SET status = 'submitted', submitted_date = now() " +
 				"where a.id = ? " + 
 				"and a.assignee IN (SELECT id FROM users u " +
 				"where u.ident = ?);";
