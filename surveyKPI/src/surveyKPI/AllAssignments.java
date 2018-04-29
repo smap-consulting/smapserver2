@@ -371,6 +371,7 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtGetSurveyIdent = null;
 		PreparedStatement pstmtUniqueTg = null;
 
+		int taskGroupId = -1;
 		try {
 			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
 			log.info("Set autocommit sd false");
@@ -390,7 +391,6 @@ public class AllAssignments extends Application {
 			 * Create the task group if an existing task group was not specified
 			 */
 			int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, userName, sId);
-			int taskGroupId = -1;
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			ResultSet rsKeys = null;
 			if(as.task_group_id <= 0) {
@@ -459,25 +459,25 @@ public class AllAssignments extends Application {
 						"geo_type, ";
 
 				String insertSql2 =	
-						"initial_data, " +
-								"update_id," +
-								"address," +
-								"schedule_at," +
-								"location_trigger) " +
-								"values (" +
-								"?, " + 
-								"?, " + 
-								"'xform', " +
-								"?, " +
-								"?, " +
-								"?, " +
-								"?, " +	
-								"ST_GeomFromText(?, 4326), " +
-								"?, " +
-								"?, " +
-								"?," +
-								"now() + interval '7 days'," +  // Schedule for 1 week (TODO allow user to set)
-								"?)";		
+						"initial_data, "
+								+ "update_id,"
+								+ "address,"
+								+ "schedule_at,"
+								+ "location_trigger) "
+								+ "values ("
+								+ "?, "
+								+ "?, " 
+								+ "'xform', "
+								+ "?, "
+								+ "?, "
+								+ "?, "
+								+ "?, "	
+								+ "ST_GeomFromText(?, 4326), "
+								+ "?, "
+								+ "?, "
+								+ "?,"
+								+ "now() + interval '7 days',"  // Schedule for 1 week (TODO allow user to set)
+								+ "?)";		
 
 				String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
 				pstmtAssign = connectionSD.prepareStatement(assignSQL);
@@ -946,7 +946,7 @@ public class AllAssignments extends Application {
 				String msg = "The survey results do not have coordinates " + as.source_survey_name;
 				response = Response.status(Status.NO_CONTENT).entity(msg).build();
 			} else if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
-				response = Response.ok("{\"tg_id\": 0}").build();	// No problem
+				response = Response.ok("{\"tg_id\": " + taskGroupId + "}").build();	// No problem
 			} else {
 				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"", e);

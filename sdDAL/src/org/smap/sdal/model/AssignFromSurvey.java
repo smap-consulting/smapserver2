@@ -20,4 +20,9 @@ public class AssignFromSurvey {
 	public NewTasks new_tasks;			// Set if tasks created on the client are to be set
 	public ArrayList<TaskAddressSettings> address_columns;
 	public SqlWhereClause filter;
+	public int taskStart;				// ID of question that determines start time
+	public int taskAfter;				// How long after start date
+	public String taskUnits;				// Units for how long after
+	public int taskDuration;				// Duration of the task
+	public String durationUnits;			// Units for the duration 
 }
