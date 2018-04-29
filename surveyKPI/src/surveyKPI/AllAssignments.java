@@ -361,7 +361,7 @@ public class AllAssignments extends Application {
 			lm.writeLog(sd, sId, request.getRemoteUser(), "create tasks", "Create tasks from survey data");
 		}
 
-		Connection connectionRel = null; 
+		Connection cResults = null; 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtAssign = null;
@@ -374,7 +374,7 @@ public class AllAssignments extends Application {
 
 		int taskGroupId = -1;
 		try {
-			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
+			cResults = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
 			log.info("Set autocommit sd false");
 			sd.setAutoCommit(false);
 
@@ -385,7 +385,7 @@ public class AllAssignments extends Application {
 			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			survey = sm.getById(sd, connectionRel, request.getRemoteUser(), sId, true, basePath, 
+			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
 					null, false, false, false, false, false, "real", false, false, superUser, "geojson");	
 			
 			/*
@@ -491,7 +491,7 @@ public class AllAssignments extends Application {
 				pstmtRoles2 = sd.prepareStatement(roleSQL2);
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
-				pstmtCheckGeom = connectionRel.prepareStatement(checkGeomSQL);
+				pstmtCheckGeom = cResults.prepareStatement(checkGeomSQL);
 
 				String getSurveyIdentSQL = "select ident from survey where s_id = ?;";
 				pstmtGetSurveyIdent = sd.prepareStatement(getSurveyIdentSQL);
@@ -602,7 +602,7 @@ public class AllAssignments extends Application {
 							StringBuffer getTaskSql = new StringBuffer("");
 							StringBuffer getTaskSqlWhere = new StringBuffer("");
 							StringBuffer getTaskSqlEnd = new StringBuffer("");
-							boolean hasInstanceName = GeneralUtilityMethods.hasColumn(connectionRel, tableName, "instancename");
+							boolean hasInstanceName = GeneralUtilityMethods.hasColumn(cResults, tableName, "instancename");
 
 							if(hasGeom) {
 								log.info("Has geometry");
@@ -685,8 +685,12 @@ public class AllAssignments extends Application {
 								for(int i = 0; i < as.address_columns.size(); i++) {
 									TaskAddressSettings add = as.address_columns.get(i);
 									if(add.selected) {
-										String qname = add.name.replace("'", "''").trim();
-										getTaskSql.append(",").append(tableName).append(".").append(qname);
+										if(GeneralUtilityMethods.hasColumn(cResults, tableName, add.name)) {
+											getTaskSql.append(",").append(tableName).append(".").append(add.name);
+										} else {
+											add.selected = false;
+										}
+										
 									}
 								}
 							}
@@ -711,7 +715,7 @@ public class AllAssignments extends Application {
 							getTaskSql.append(getTaskSqlEnd);
 
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-							pstmt = connectionRel.prepareStatement(getTaskSql.toString());	
+							pstmt = cResults.prepareStatement(getTaskSql.toString());	
 							
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
@@ -808,15 +812,18 @@ public class AllAssignments extends Application {
 								pstmtInsert.setString(10, addressString);			// Address
 								
 								// Start date
-								Timestamp startTask = null;
+								Timestamp taskStart = null;
 								if(as.taskStart == -1) {									
-									startTask = new Timestamp(System.currentTimeMillis());
+									taskStart = new Timestamp(System.currentTimeMillis());
 								} else {
-									startTask = resultSet.getTimestamp("taskstart");
+									taskStart = resultSet.getTimestamp("taskstart");
+									if(taskStart == null) {
+										taskStart = new Timestamp(System.currentTimeMillis());
+									}
 								}
 								if(as.taskAfter > 0) {
 									Calendar cal = Calendar.getInstance();
-									cal.setTime(startTask);
+									cal.setTime(taskStart);
 									if(as.taskUnits.equals("days")) {
 										cal.add(Calendar.DAY_OF_WEEK, as.taskAfter);
 									} else if(as.taskUnits.equals("hours")) {
@@ -824,9 +831,9 @@ public class AllAssignments extends Application {
 									} else if(as.taskUnits.equals("minutes")) {
 										cal.add(Calendar.MINUTE, as.taskAfter);
 									}
-									startTask.setTime(cal.getTime().getTime());
+									taskStart.setTime(cal.getTime().getTime());
 								}								
-								pstmtInsert.setTimestamp(11, startTask);
+								pstmtInsert.setTimestamp(11, taskStart);
 								
 								pstmtInsert.setString(12, locationTrigger);			// Location that will start task
 								
@@ -1004,7 +1011,7 @@ public class AllAssignments extends Application {
 			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};
 
 			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
-			ResultsDataSource.closeConnection("surveyKPI-AllAssignments", connectionRel);
+			ResultsDataSource.closeConnection("surveyKPI-AllAssignments", cResults);
 
 		}
 

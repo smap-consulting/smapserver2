@@ -23,7 +23,9 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
@@ -78,6 +80,7 @@ public class TaskManager {
 		String address = null;				// data from submission
 		String locationTrigger = null;		// data from task set up
 		String instanceName = null;			// data from task look up
+		Timestamp taskStart = null;			// Start time
 	}
 
 	public TaskManager(ResourceBundle l) {
@@ -563,7 +566,8 @@ public class TaskManager {
 				if(fires) {
 					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
 							" task survey: " + target_s_id);
-					TaskInstanceData tid = getTaskInstanceData(sd, cResults, source_s_id, instanceId, as.assign_data, address); // Get data from new submission
+					TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
+							source_s_id, instanceId, as, address); // Get data from new submission
 					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, source_s_id, 
 							target_s_id, tid, instanceId);  // Write to the database
 				}
@@ -619,7 +623,7 @@ public class TaskManager {
 						+ "?,"
 						+ "?,"
 						+ "?,"
-						+ "now() + interval '7 days',"  // Schedule for 1 week (TODO allow user to set)
+						+ "?,"		// start		
 						+ "?);";	
 
 		String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
@@ -685,7 +689,31 @@ public class TaskManager {
 			} else {
 				throw new Exception ("Unknown location type: " + location);
 			}
-
+			
+			/*
+			 * Start time
+			 */
+			Timestamp taskStart = null;
+			if(as.taskStart == -1) {									
+				taskStart = new Timestamp(System.currentTimeMillis());
+			} else {
+				taskStart = tid.taskStart;
+				if(taskStart == null) {
+					taskStart = new Timestamp(System.currentTimeMillis());
+				}
+			}
+			if(as.taskAfter > 0) {
+				Calendar cal = Calendar.getInstance();
+				cal.setTime(taskStart);
+				if(as.taskUnits.equals("days")) {
+					cal.add(Calendar.DAY_OF_WEEK, as.taskAfter);
+				} else if(as.taskUnits.equals("hours")) {
+					cal.add(Calendar.HOUR_OF_DAY, as.taskAfter);
+				} else if(as.taskUnits.equals("minutes")) {
+					cal.add(Calendar.MINUTE, as.taskAfter);
+				}
+				taskStart.setTime(cal.getTime().getTime());
+			}								
 
 			/*
 			 * Write the task to the database
@@ -702,7 +730,8 @@ public class TaskManager {
 			pstmt.setString(8, initial_data_url);	
 			pstmt.setString(9, targetInstanceId);
 			pstmt.setString(10, tid.address);
-			pstmt.setString(11, tid.locationTrigger);
+			pstmt.setTimestamp(11, taskStart);
+			pstmt.setString(12, tid.locationTrigger);
 
 			log.info("Create a new task: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -798,9 +827,9 @@ public class TaskManager {
 			Connection cResults, 
 			int sId, 
 			String instanceId,
-			String assign_data,
+			AssignFromSurvey as,
 			ArrayList<TaskAddressSettings> address) throws Exception {
-
+		
 		TaskInstanceData tid = new TaskInstanceData();
 		
 		PreparedStatement pstmt = null;		
@@ -818,9 +847,9 @@ public class TaskManager {
 			if(hasGeom) {
 				sql.append(", ST_AsText(the_geom)");
 			}
-			if(assign_data != null && assign_data.trim().length() > 0) {
+			if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 				SqlFrag frag = new SqlFrag();
-				frag.addSqlFragment(assign_data, false, localisation);
+				frag.addSqlFragment(as.assign_data, false, localisation);
 				sql.append(",").append(frag.sql.toString()).append(" as _assign_key");;
 			}
 			
@@ -831,11 +860,23 @@ public class TaskManager {
 							sql.append(",");
 							sql.append(a.name);
 							addressCount++;
-						}
-						
+						}					
 					}
 				}
 			}
+			// Add start date column
+			if(as.taskStart != -1) {
+				String name = null;
+				if(as.taskStart > 0) {
+					Question q = GeneralUtilityMethods.getQuestion(sd, as.taskStart);
+					name = q.name;
+				} else {
+					MetaItem mi = GeneralUtilityMethods.getPreloadDetails(sd, sId, as.taskStart);
+					name = mi.columnName;
+				}
+				sql.append(",").append(topForm.tableName).append(".").append(name).append(" as taskstart");
+			}
+			
 			sql.append(" from ");
 			sql.append(topForm.tableName);
 			sql.append(" where instanceid = ?");
@@ -848,7 +889,7 @@ public class TaskManager {
 			if(rsData.next()) {
 				tid.prikey = rsData.getInt(colIdx++);
 				tid.instanceName = rsData.getString(colIdx++);
-				if(assign_data != null && assign_data.trim().length() > 0) {
+				if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 					tid.ident = rsData.getString("_assign_key");
 				}
 				if(hasGeom) {
@@ -859,6 +900,9 @@ public class TaskManager {
 						guidance.add(new KeyValueTask(address.get(i).name, rsData.getString(colIdx++)));
 					}
 					tid.address = gson.toJson(guidance);
+				}
+				if(as.taskStart != -1) {
+					tid.taskStart = rsData.getTimestamp("taskstart");
 				}
 
 			}
