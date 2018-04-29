@@ -1467,7 +1467,7 @@ public class GeneralUtilityMethods {
 
 		Question question = new Question();
 
-		String sql = "select appearance " 
+		String sql = "select appearance, qname, column_name, qtype " 
 				+ "from question "
 				+ "where q_id = ?;";
 
@@ -1480,6 +1480,9 @@ public class GeneralUtilityMethods {
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				question.appearance = rs.getString(1);
+				question.name = rs.getString(2);
+				question.columnName = rs.getString(3);
+				question.type = rs.getString(4);
 			}
 
 		} finally {
@@ -4151,7 +4154,9 @@ public class GeneralUtilityMethods {
 	public static String getNameForQuestion(Connection sd, int qId) throws SQLException {
 
 		String name = null;
-		String sql = "select qname " + "from question " + "where q_id = ?";
+		String sql = "select qname "
+				+ "from question " 
+				+ "where q_id = ?";
 
 		PreparedStatement pstmt = null;
 

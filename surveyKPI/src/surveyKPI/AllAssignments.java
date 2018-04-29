@@ -55,6 +55,7 @@ import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.Features;
 import org.smap.sdal.model.Geometry;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TaskAddressSettings;
 
@@ -343,21 +344,21 @@ public class AllAssignments extends Application {
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		if(sId > 0) {
-			a.isValidSurvey(connectionSD, userName, sId, false, superUser);	// Validate that the user can access this survey
+			a.isValidSurvey(sd, userName, sId, false, superUser);	// Validate that the user can access this survey
 		}
 		// End Authorisation
 
 		if(sId > 0) {
-			lm.writeLog(connectionSD, sId, request.getRemoteUser(), "create tasks", "Create tasks from survey data");
+			lm.writeLog(sd, sId, request.getRemoteUser(), "create tasks", "Create tasks from survey data");
 		}
 
 		Connection connectionRel = null; 
@@ -375,22 +376,22 @@ public class AllAssignments extends Application {
 		try {
 			connectionRel = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
 			log.info("Set autocommit sd false");
-			connectionSD.setAutoCommit(false);
+			sd.setAutoCommit(false);
 
 			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			survey = sm.getById(connectionSD, connectionRel, request.getRemoteUser(), sId, true, basePath, 
+			survey = sm.getById(sd, connectionRel, request.getRemoteUser(), sId, true, basePath, 
 					null, false, false, false, false, false, "real", false, false, superUser, "geojson");	
 			
 			/*
 			 * Create the task group if an existing task group was not specified
 			 */
-			int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, userName, sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName, sId);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			ResultSet rsKeys = null;
 			if(as.task_group_id <= 0) {
@@ -401,7 +402,7 @@ public class AllAssignments extends Application {
 				 *  groups with duplicate names
 				 */
 				String checkUniqeTg = "select count(*) from task_group where name = ? and p_id = ?;";
-				pstmtUniqueTg = connectionSD.prepareStatement(checkUniqeTg);
+				pstmtUniqueTg = sd.prepareStatement(checkUniqeTg);
 				pstmtUniqueTg.setString(1, as.task_group_name);
 				pstmtUniqueTg.setInt(2, projectId);
 				log.info("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());
@@ -423,7 +424,7 @@ public class AllAssignments extends Application {
 						+ "target_s_id) "
 						+ "values (?, ?, ?, ?, ?, ?);";
 
-				pstmtTaskGroup = connectionSD.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
+				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
 				pstmtTaskGroup.setString(1, as.task_group_name);
 				pstmtTaskGroup.setInt(2, projectId);
 				pstmtTaskGroup.setString(3, addressParams);
@@ -433,7 +434,7 @@ public class AllAssignments extends Application {
 				log.info("Insert into task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 
-				connectionSD.commit();		// Success as TG is created, even if there are no existing tasks ready to go this is good
+				sd.commit();		// Success as TG is created, even if there are no existing tasks ready to go this is good
 
 				rsKeys = pstmtTaskGroup.getGeneratedKeys();
 				if(rsKeys.next()) {
@@ -473,27 +474,27 @@ public class AllAssignments extends Application {
 								+ "?, "
 								+ "?, "	
 								+ "ST_GeomFromText(?, 4326), "
-								+ "?, "
-								+ "?, "
 								+ "?,"
-								+ "now() + interval '7 days',"  // Schedule for 1 week (TODO allow user to set)
+								+ "?,"
+								+ "?,"
+								+ "?,"		// start		
 								+ "?)";		
 
 				String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
-				pstmtAssign = connectionSD.prepareStatement(assignSQL);
+				pstmtAssign = sd.prepareStatement(assignSQL);
 				
 				String roleSQL = "select u_id from user_role where r_id = ?";
-				pstmtRoles = connectionSD.prepareStatement(roleSQL);
+				pstmtRoles = sd.prepareStatement(roleSQL);
 				
 				String roleSQL2 = "select u_id from user_role where r_id = ? and u_id in "
 						+ "(select u_id from user_role where r_id = ?)";
-				pstmtRoles2 = connectionSD.prepareStatement(roleSQL2);
+				pstmtRoles2 = sd.prepareStatement(roleSQL2);
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
 				pstmtCheckGeom = connectionRel.prepareStatement(checkGeomSQL);
 
 				String getSurveyIdentSQL = "select ident from survey where s_id = ?;";
-				pstmtGetSurveyIdent = connectionSD.prepareStatement(getSurveyIdentSQL);
+				pstmtGetSurveyIdent = sd.prepareStatement(getSurveyIdentSQL);
 
 				String hostname = request.getServerName();
 
@@ -522,7 +523,7 @@ public class AllAssignments extends Application {
 							"where f.s_id = ? " + 
 							"order by f.table_name;";		
 
-					pstmt = connectionSD.prepareStatement(sql);	 
+					pstmt = sd.prepareStatement(sql);	 
 					pstmt.setInt(1, sId);
 
 					log.info("Get forms: " + pstmt.toString());
@@ -546,7 +547,7 @@ public class AllAssignments extends Application {
 								
 								StringBuffer filterQuery = new StringBuffer(tableName);
 								filterQuery.append(".instanceid in ");
-								filterQuery.append(GeneralUtilityMethods.getFilterCheck(connectionSD, 
+								filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, 
 										localisation, survey, as.filter.advanced));
 								filterSql = filterQuery.toString();
 								
@@ -555,7 +556,7 @@ public class AllAssignments extends Application {
 							} else if(as.filter != null && as.filter.qId > 0) {
 								String fValue = null;
 								String fValue2 = null;
-								filterQuestion = new QuestionInfo(localisation, sId, as.filter.qId, connectionSD, 
+								filterQuestion = new QuestionInfo(localisation, sId, as.filter.qId, sd, 
 										false, as.filter.lang, urlprefix, oId);
 								log.info("Filter question type: " + as.filter.qType);
 								if(as.filter.qType != null) {
@@ -620,7 +621,7 @@ public class AllAssignments extends Application {
 								log.info("No geom found");
 								// Get a subform that has geometry
 
-								PreparedStatement pstmt2 = connectionSD.prepareStatement(sql);	 
+								PreparedStatement pstmt2 = sd.prepareStatement(sql);	 
 								pstmt2.setInt(1, sId);
 
 								log.info("Get subform with geometry: " + pstmt2.toString());
@@ -679,13 +680,28 @@ public class AllAssignments extends Application {
 								getTaskSql.append(",").append(assignSql).append(" as _assign_key");
 							}
 
+							// Add address columns
 							if(as.address_columns != null) {
 								for(int i = 0; i < as.address_columns.size(); i++) {
 									TaskAddressSettings add = as.address_columns.get(i);
 									if(add.selected) {
-										getTaskSql.append(",").append(tableName).append(".").append(add.name);
+										String qname = add.name.replace("'", "''").trim();
+										getTaskSql.append(",").append(tableName).append(".").append(qname);
 									}
 								}
+							}
+							
+							// Add start date column
+							if(as.taskStart != -1) {
+								String name = null;
+								if(as.taskStart > 0) {
+									Question q = GeneralUtilityMethods.getQuestion(sd, as.taskStart);
+									name = q.name;
+								} else {
+									MetaItem mi = GeneralUtilityMethods.getPreloadDetails(sd, sId, as.taskStart);
+									name = mi.columnName;
+								}
+								getTaskSql.append(",").append(tableName).append(".").append(name).append(" as taskstart");
 							}
 	
 							getTaskSql.append(getTaskSqlWhere);
@@ -740,13 +756,13 @@ public class AllAssignments extends Application {
 								String geoType = null;
 								if(pstmtInsert != null) {pstmtInsert.close();};
 								if(location.startsWith("POINT")) {
-									pstmtInsert = connectionSD.prepareStatement(insertSql1 + "geo_point," + insertSql2, Statement.RETURN_GENERATED_KEYS);
+									pstmtInsert = sd.prepareStatement(insertSql1 + "geo_point," + insertSql2, Statement.RETURN_GENERATED_KEYS);
 									geoType = "POINT";
 								} else if(location.startsWith("POLYGON")) {
-									pstmtInsert = connectionSD.prepareStatement(insertSql1 + "geo_polygon," + insertSql2, Statement.RETURN_GENERATED_KEYS);
+									pstmtInsert = sd.prepareStatement(insertSql1 + "geo_polygon," + insertSql2, Statement.RETURN_GENERATED_KEYS);
 									geoType = "POLYGON";
 								} else if(location.startsWith("LINESTRING")) {
-									pstmtInsert = connectionSD.prepareStatement(insertSql1 + "geo_linestring," + insertSql2, Statement.RETURN_GENERATED_KEYS);
+									pstmtInsert = sd.prepareStatement(insertSql1 + "geo_linestring," + insertSql2, Statement.RETURN_GENERATED_KEYS);
 									geoType = "LINESTRING";
 								} else {
 									log.log(Level.SEVERE, "Unknown location type: " + location);
@@ -790,8 +806,30 @@ public class AllAssignments extends Application {
 								}
 
 								pstmtInsert.setString(10, addressString);			// Address
-								pstmtInsert.setString(11, locationTrigger);			// Location that will start task
-
+								
+								// Start date
+								Timestamp startTask = null;
+								if(as.taskStart == -1) {									
+									startTask = new Timestamp(System.currentTimeMillis());
+								} else {
+									startTask = resultSet.getTimestamp("taskstart");
+								}
+								if(as.taskAfter > 0) {
+									Calendar cal = Calendar.getInstance();
+									cal.setTime(startTask);
+									if(as.taskUnits.equals("days")) {
+										cal.add(Calendar.DAY_OF_WEEK, as.taskAfter);
+									} else if(as.taskUnits.equals("hours")) {
+										cal.add(Calendar.HOUR_OF_DAY, as.taskAfter);
+									} else if(as.taskUnits.equals("minutes")) {
+										cal.add(Calendar.MINUTE, as.taskAfter);
+									}
+									startTask.setTime(cal.getTime().getTime());
+								}								
+								pstmtInsert.setTimestamp(11, startTask);
+								
+								pstmtInsert.setString(12, locationTrigger);			// Location that will start task
+								
 								log.info("Insert Task: " + pstmtInsert.toString());
 
 								int count = pstmtInsert.executeUpdate();
@@ -804,9 +842,9 @@ public class AllAssignments extends Application {
 									if(assignSql != null) {
 										String ident = resultSet.getString("_assign_key");
 										if(as.user_id == -2) {
-											userId = GeneralUtilityMethods.getUserIdOrgCheck(connectionSD, ident, oId);   // Its a user ident
+											userId = GeneralUtilityMethods.getUserIdOrgCheck(sd, ident, oId);   // Its a user ident
 										} else {
-											roleId = GeneralUtilityMethods.getRoleId(connectionSD, ident, oId);   // Its a role name
+											roleId = GeneralUtilityMethods.getRoleId(sd, ident, oId);   // Its a role name
 										}
 									}
 									if(userId > 0 || roleId > 0) {
@@ -861,7 +899,7 @@ public class AllAssignments extends Application {
 					// Assume POINT location, TODO POLYGON, LINESTRING
 					if(pstmtInsert != null) {pstmtInsert.close();};
 					String geoType = "POINT";
-					pstmtInsert = connectionSD.prepareStatement(insertSql1 + "geo_point," + insertSql2, Statement.RETURN_GENERATED_KEYS);
+					pstmtInsert = sd.prepareStatement(insertSql1 + "geo_point," + insertSql2, Statement.RETURN_GENERATED_KEYS);
 
 					// Create a dummy location if this task does not have one
 					if(as.new_tasks.features.length == 0) {
@@ -930,12 +968,12 @@ public class AllAssignments extends Application {
 				
 				// Create a notification for the updated user
 				if(as.user_id > 0) {
-					String userIdent = GeneralUtilityMethods.getUserIdent(connectionSD, as.user_id);
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, as.user_id);
 					MessagingManager mm = new MessagingManager();
-					mm.userChange(connectionSD, userIdent);
+					mm.userChange(sd, userIdent);
 				}
 			}
-			connectionSD.commit();
+			sd.commit();
 
 			log.info("Returning task group id:" + taskGroupId);
 			response = Response.ok().entity("{\"tg_id\": " + taskGroupId + "}").build();
@@ -952,7 +990,7 @@ public class AllAssignments extends Application {
 				log.log(Level.SEVERE,"", e);
 			}	
 
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 
 		} finally {
 
@@ -965,7 +1003,7 @@ public class AllAssignments extends Application {
 			if(pstmtGetSurveyIdent != null) try {	pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};
 
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
 			ResultsDataSource.closeConnection("surveyKPI-AllAssignments", connectionRel);
 
 		}
@@ -1512,7 +1550,10 @@ public class AllAssignments extends Application {
 
 			}
 
-			String sqlUpdate = "update tasks set repeat = ?, schedule_at = ?, location_trigger = ?,  title = ? where id = ?;";
+			String sqlUpdate = "update tasks set repeat = ?, "
+					+ "schedule_at = ?, "
+					+ "location_trigger = ?,  "
+					+ "title = ? where id = ?;";
 			pstmtUpdate = connectionSD.prepareStatement(sqlUpdate);
 			pstmtUpdate.setBoolean(1, repeat);
 			pstmtUpdate.setTimestamp(2, scheduleAt);
