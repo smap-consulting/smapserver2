@@ -627,6 +627,7 @@ public class UploadFiles extends Application {
 					} else {
 						// Set the group survey id to the same value as the original survey
 						s.groupSurveyId = existingSurvey.groupSurveyId;
+						s.publicLink = existingSurvey.publicLink;
 					}
 				}
 				

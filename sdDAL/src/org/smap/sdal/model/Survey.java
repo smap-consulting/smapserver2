@@ -252,8 +252,9 @@ public class Survey {
 				+ "group_survey_id,"
 				+ "hrk,"
 				+ "key_policy,"
-				+ "created) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";		
+				+ "created,"
+				+ "public_link) "
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -278,6 +279,7 @@ public class Survey {
 			pstmt.setInt(12, groupSurveyId);
 			pstmt.setString(13, hrk);	// Key
 			pstmt.setString(14, key_policy);
+			pstmt.setString(15, publicLink);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id

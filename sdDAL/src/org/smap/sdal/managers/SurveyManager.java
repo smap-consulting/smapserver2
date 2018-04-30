@@ -338,7 +338,8 @@ public class SurveyManager {
 				+ "s.key_policy, "
 				+ "s.exclude_empty,"
 				+ "s.meta,"
-				+ "s.group_survey_id "
+				+ "s.group_survey_id,"
+				+ "s.public_link "
 				+ "from survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -399,6 +400,7 @@ public class SurveyManager {
 					getLegacyMeta();
 				}
 				s.groupSurveyId = resultSet.getInt(24);
+				s.publicLink = resultSet.getString(25);
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
