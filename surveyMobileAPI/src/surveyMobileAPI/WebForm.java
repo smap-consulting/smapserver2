@@ -100,6 +100,7 @@ public class WebForm extends Application {
 	private JsonResponse jr = null;
 	SurveyTemplate template = null;
 	ResourceBundle localisation = null;
+	Locale locale = null;
 	boolean viewOnly = false;
 	String userIdent = null;
 	boolean isTemporaryUser = false;
@@ -276,6 +277,7 @@ public class WebForm extends Application {
 		String requester = "surveyMobileAPI-getWebForm";
 		boolean superUser = false;
 
+		
 		/*
 		 * Get the media manifest so we can set the url's of media files used the form
 		 * Also get the google api key
@@ -294,7 +296,7 @@ public class WebForm extends Application {
 			
 			// Get the users locale
 			try {
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, userIdent));
+				locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, userIdent));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			} catch (Exception e) {
 
@@ -421,7 +423,9 @@ public class WebForm extends Application {
 
 		output.append("<!DOCTYPE html>\n");
 
-		output.append("<html lang='en'  class='no-js'");
+		// Append locale
+		output.append("<html lang='").append(locale.toString()).append("'  class='no-js'");
+
 		if (instanceXML == null) {
 			// Single shot requests do not have a manifest
 			// TODO add manifest
@@ -685,7 +689,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
-		output.append("<button class='btn' data-dismiss='modal' aria-hidden='true'>Close</button>\n");
+		output.append("<button class='btn lang' data-lang='alert.default.button' data-dismiss='modal' aria-hidden='true'>Close</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
@@ -705,12 +709,13 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
-		output.append("<button class='negative btn'>Close</button>\n");
-		output.append("<button class='positive btn btn-primary'>Confirm</button>\n");
+		output.append("<button class='negative btn lang' data-lang='alert.default.button'>Close</button>\n");
+		output.append("<button class='positive btn btn-primary' data-lang='confirm.default.posButton'>Confirm</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>   <!-- end dialog-confirm -->\n");
+		// TRANSLATION LIMIT
 
 		output.append(
 				"<div id='dialog-save' class='modal fade' role='dialog' aria-labelledby='save dialog' aria-hidden='true' data-keyboard='true'>\n");
@@ -863,9 +868,9 @@ public class WebForm extends Application {
 
 		output.append("<div class='main-controls'>\n");
 		if (dataToEditId == null) {
-			output.append("<button id='submit-form' class='btn btn-primary btn-large' >Submit</button>\n");
+			output.append("<button id='submit-form' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		} else {
-			output.append("<button id='submit-form-single' class='btn btn-primary btn-large' >Submit</button>\n");
+			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		}
 		if (surveyClass != null && surveyClass.contains("pages")) {
 			output.append("<a class='previous-page disabled' href='#'>Back</a>\n");

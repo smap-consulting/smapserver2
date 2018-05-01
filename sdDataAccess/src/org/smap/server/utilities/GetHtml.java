@@ -397,7 +397,7 @@ public class GetHtml {
 			classVal.append("question");
 			if (!q.isSelect()) {
 				classVal.append(" non-select");
-			} else if (!q.appearance.contains("likert") && !minSelect(q.appearance)) {
+			} else if (!q.appearance.contains("likert") && !minSelect(q.appearance) && !q.appearance.contains("compact")) {
 				classVal.append(" simple-select");
 			}
 		}
@@ -648,6 +648,13 @@ public class GetHtml {
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 		}
 
+		// No option
+		// No option
+		// No option
+		// No option
+		// No option
+		// No option
+		
 		// Add data list
 		Element dlElement = outputDoc.createElement("datalist");
 		parent.appendChild(dlElement);
@@ -694,16 +701,29 @@ public class GetHtml {
 			selectElement.setAttribute("multiple", "multiple");
 		}
 		selectElement.setAttribute("data-type-xml", q.type);
+		// No type text
+		// No list
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			selectElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 		}
+		
 		Element dlOption = outputDoc.createElement("option");
 		selectElement.appendChild(dlOption);
 		dlOption.setAttribute("class", "itemset-template");
 		dlOption.setAttribute("value", "");
 		dlOption.setAttribute("data-items-path", getNodeset(q, form));
 		dlOption.setTextContent("...");
+		
+		// No data list
+		// No data list
+		// No data list
+		// No data list
+		// No data list
+		// No data list
+		// No data list
+		// No data list
+		
 		
 		// Option translations section
 		// <span class="or-option-translations" style="display:none;">
