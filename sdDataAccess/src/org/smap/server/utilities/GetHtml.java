@@ -343,9 +343,10 @@ public class GetHtml {
 
 						if (hasNodeset(sd, q, form)) {
 							if(q.appearance.contains("minimal") || q.type.equals("select")) {
-								addMinimalContentsItemset(sd, bodyElement, q, form);
+								addMinimalContents(sd, bodyElement, q, form, false);		// Not auto complete
 							} else {
-								addAutoCompleteContentsItemset(sd, bodyElement, q, form);
+								addMinimalContents(sd, bodyElement, q, form, true);		// For autocomplete
+								//addAutoCompleteContentsItemset(sd, bodyElement, q, form);
 							}
 						} else {
 							addMinimalSelectContents(bodyElement, q, form);
@@ -684,7 +685,7 @@ public class GetHtml {
 
 	/*
 	 * Add the contents of a select that has nodesets -  autocomplete - search
-	 */
+	 *
 	private void addAutoCompleteContentsItemset(Connection sd, Element parent, Question q, Form form) throws Exception {
 
 		// Add labels
@@ -741,12 +742,14 @@ public class GetHtml {
 		addMinimalOptionLabels(sd, optionElement, q, form);
 
 	}
+	*/
 	
 	/*
 	 * Add the contents of a select that has nodesets - minimal 
 	 */
-	private void addMinimalContentsItemset(Connection sd, Element parent, Question q, Form form) throws Exception {
+	private void addMinimalContents(Connection sd, Element parent, Question q, Form form, boolean autoComplete) throws Exception {
 
+	
 		// Add labels
 		addLabels(parent, q, form);
 
@@ -759,28 +762,33 @@ public class GetHtml {
 			selectElement.setAttribute("multiple", "multiple");
 		}
 		selectElement.setAttribute("data-type-xml", q.type);
-		// No type text
-		// No list
+		if(autoComplete) {
+			selectElement.setAttribute("type", "text");
+			selectElement.setAttribute("list", getListName(paths.get(getRefName(q.name, form))));
+		}
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			selectElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 		}
 		
-		Element dlOption = outputDoc.createElement("option");
-		selectElement.appendChild(dlOption);
-		dlOption.setAttribute("class", "itemset-template");
-		dlOption.setAttribute("value", "");
-		dlOption.setAttribute("data-items-path", getNodeset(q, form));
-		dlOption.setTextContent("...");
+		Element templateOption = outputDoc.createElement("option");
+		selectElement.appendChild(templateOption);
+		templateOption.setAttribute("class", "itemset-template");
+		templateOption.setAttribute("value", "");
+		templateOption.setAttribute("data-items-path", getNodeset(q, form));
+		templateOption.setTextContent("...");
 		
-		// No data list
-		// No data list
-		// No data list
-		// No data list
-		// No data list
-		// No data list
-		// No data list
-		// No data list
+		// Data List
+		if(autoComplete) {
+			Element dlElement = outputDoc.createElement("datalist");
+			parent.appendChild(dlElement);
+			dlElement.setAttribute("id", getListName(paths.get(getRefName(q.name, form))));
+			Element dlOption = outputDoc.createElement("option");
+			dlElement.appendChild(dlOption);
+			dlOption.setAttribute("class", "itemset-template");
+			dlOption.setAttribute("value", "");
+			dlOption.setAttribute("data-items-path", getNodeset(q, form));
+		}
 		
 		
 		// Option translations section

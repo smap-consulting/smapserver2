@@ -660,6 +660,7 @@ public class WebForm extends Application {
 			}
 		}
 
+		//System.out.println("HTML: " + html);
 		output.append(html);
 
 		if (!minimal) {

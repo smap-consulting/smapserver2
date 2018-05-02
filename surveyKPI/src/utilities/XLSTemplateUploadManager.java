@@ -751,6 +751,9 @@ public class XLSTemplateUploadManager {
 
 	private void validateQuestion(Question q, int rowNumber) throws Exception {
 
+		/*
+		 * Check Name
+		 */
 		if (q.name == null || q.name.trim().length() == 0) {
 			// Check for a missing name
 			throw XLSUtilities.getApplicationException(localisation, "tu_mn", rowNumber, "survey", null, null, null);
@@ -759,7 +762,7 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 
-		} else if(!q.type.equals("end group") && qNameMap.get(q.name.toLowerCase()) != null) {
+		} else if(!q.type.equals("end group") && qNameMap.get(q.name.toLowerCase()) != null && !q.name.equals("the_geom")) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
 
