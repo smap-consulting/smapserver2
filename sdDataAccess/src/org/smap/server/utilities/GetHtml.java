@@ -363,6 +363,61 @@ public class GetHtml {
 						currentParent.appendChild(bodyElement);
 					}
 
+				} else if(q.type.equals("acknowledge") || q.type.equals("trigger")) {
+
+					// trigger questions
+					bodyElement = outputDoc.createElement("fieldset");
+					currentParent.appendChild(bodyElement);
+					setQuestionClass(q, bodyElement);
+					//bodyElement.setAttribute("class", "question simple-select trigger");
+					
+					// inner fieldSet
+					Element fieldset = outputDoc.createElement("fieldset");
+					bodyElement.appendChild(fieldset);
+					
+					// legend
+					Element legendElement = outputDoc.createElement("legend");
+					fieldset.appendChild(legendElement);
+					
+					// Label
+					addLabels(legendElement, q, form);
+					
+					// control
+					Element controlElement = outputDoc.createElement("div");
+					fieldset.appendChild(controlElement);
+					controlElement.setAttribute("class", "option-wrapper");
+					
+					// Control label
+					Element controlLabel = outputDoc.createElement("label");
+					controlElement.appendChild(controlLabel);
+					
+					// input
+					//addLabelContents(controlLabel, q, form);
+					Element input = outputDoc.createElement("input");
+					controlLabel.appendChild(input);
+					input.setAttribute("value", "OK");
+					input.setAttribute("type", "radio");
+					input.setAttribute("name", paths.get(getRefName(q.name, form)));
+					input.setAttribute("data-name", paths.get(getRefName(q.name, form)));
+					input.setAttribute("data-type-xml", "string");
+					if (q.readonly) {
+						input.setAttribute("readonly", "readonly");
+					}
+					if (q.required) {
+						input.setAttribute("data-required", "true()");
+					}
+					// relevant
+					if (q.relevant != null && q.relevant.trim().length() > 0) {
+						input.setAttribute("data-relevant",
+								UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+					}
+			
+					// option label
+					Element option_label = outputDoc.createElement("span");
+					controlLabel.appendChild(option_label);
+					option_label.setAttribute("class", "option-label active");
+					option_label.setTextContent("OK");
+					
 				} else {
 
 					// Non select question
@@ -393,6 +448,9 @@ public class GetHtml {
 			} else {
 				classVal.append("or-group-data");
 			}
+		} else if (q.type.equals("trigger") || q.type.equals("acknowledge")) {
+			classVal.append("single-select trigger");
+
 		} else {
 			classVal.append("question");
 			if (!q.isSelect()) {
@@ -952,12 +1010,12 @@ public class GetHtml {
 		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
 		for (Option o : options) {
 			
-			Element inputElement = outputDoc.createElement("span");
-			parent.appendChild(inputElement);
+			//Element inputElement = outputDoc.createElement("span");
+			//parent.appendChild(inputElement);
 			int idx = 0;
 			for (Language lang : survey.languages) {
 				Element optionElement = outputDoc.createElement("span");
-				inputElement.appendChild(optionElement);
+				parent.appendChild(optionElement);
 				optionElement.setAttribute("lang", lang.name);
 				optionElement.setAttribute("class", "option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
 				optionElement.setAttribute("data-itext-id", o.text_id);
@@ -1060,7 +1118,7 @@ public class GetHtml {
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
 				try {
-					label = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
+					hint = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1188,7 +1246,7 @@ public class GetHtml {
 		} else if (q.type.equals("decimal")) {
 			type = "number";
 		} else if (q.type.equals("trigger") || q.type.equals("acknowledge") ) {
-			type = "error";
+			type = "radio";
 		} else {
 			log.info("#### unknown type: " + q.type + " for question " + q.name);
 			type = "text";

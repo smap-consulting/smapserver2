@@ -554,7 +554,7 @@ public class TableManager {
 			colType = "text";
 		} else if(colType.equals("chart")) {
 			colType = "text";
-		} else if(colType.equals("acknowledge")) {
+		} else if(colType.equals("acknowledge") || colType.equals("trigger")) {
 			colType = "text";
 		} else if(colType.equals("range")) {
 			colType = "double precision";
