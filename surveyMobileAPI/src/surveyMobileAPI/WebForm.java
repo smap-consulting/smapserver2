@@ -842,7 +842,7 @@ public class WebForm extends Application {
 			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
 			output.append("</div>\n");
 			output.append("<button onclick='return false;' class='print' title='Print this Form'> </button>\n");
-			output.append("<span class='form-language-selector'><span>Choose Language</span></span>\n");
+			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
 
 			output.append("<span class='logo-wrapper'>\n");
@@ -864,7 +864,7 @@ public class WebForm extends Application {
 		output.append("<section class='form-footer'>\n");
 		output.append("<div class='content'>\n");
 		output.append(
-				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label'>Save as Draft</span></label></div></fieldset>\n");
+				"<fieldset class='draft question'><div class='option-wrapper'><label class='select'><input class='ignore' type='checkbox' name='draft'/><span class='option-label lang' data-lang='formfooter.savedraft.label'>Save as Draft</span></label></div></fieldset>\n");
 
 		output.append("<div class='main-controls'>\n");
 		if (dataToEditId == null) {
