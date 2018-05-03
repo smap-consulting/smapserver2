@@ -482,6 +482,7 @@ public class PDFSurveyManager {
 				 * Set the value based on the result
 				 * Process subforms if this is a repeating group
 				 */
+				log.info("Processing: " + r.name + " : " + r.type);
 				if(r.type.equals("form")) {
 					for(int k = 0; k < r.subForm.size(); k++) {
 						fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper, oId);
@@ -531,7 +532,7 @@ public class PDFSurveyManager {
 						}
 					}
 					*/
-				} else if(r.type.equals("dateTime")) {
+				} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
 					
 					value = null;
 					if(r.value != null) {
@@ -539,13 +540,16 @@ public class PDFSurveyManager {
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 						df.setTimeZone(TimeZone.getTimeZone("GMT"));
 						Date date = df.parse(r.value);
+						String tzString = null;
 						
 						if(utcOffset != 0) { 
-							df.setTimeZone(TimeZone.getTimeZone("GMT" + 
-									((utcOffset > 0) ? "+" : "") +
-									String.valueOf(utcOffset / 60)));
+							tzString = "GMT" + 
+									(utcOffset > 0 ? "+" : "") +
+									String.valueOf(utcOffset / 60);
+							df.setTimeZone(TimeZone.getTimeZone(tzString));
 						}
 						value = df.format(date);
+						log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tzString);
 					}
 
 
@@ -1602,19 +1606,21 @@ public class PDFSurveyManager {
 					}
 				}
 				
-				if(di.type.equals("dateTime")) {		// Set date time to local time
+				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time
 					
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 					df.setTimeZone(TimeZone.getTimeZone("GMT"));
 					Date date = df.parse(di.value);
+					String tzString = null;
 					
 					if(utcOffset != 0) { 
-						String tzString = "GMT" + 
+						tzString = "GMT" + 
 								(utcOffset > 0 ? "+" : "") +
 								String.valueOf(utcOffset / 60);
 						df.setTimeZone(TimeZone.getTimeZone(tzString));
 					}
 					value = df.format(date);
+					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tzString);
 				} else {
 					value = di.value;
 				}

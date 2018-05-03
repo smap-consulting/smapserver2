@@ -2609,8 +2609,6 @@ public class SurveyManager {
 
 		/*
 		 * Retrieve the results record from the database (excluding select questions)
-		 *  Select questions are retrieved using a separate query as there are multiple 
-		 *  columns per question
 		 */
 		String sql = null;
 		boolean isTopLevel = false;
@@ -2644,7 +2642,7 @@ public class SurveyManager {
 			 * Get the result set of data if an instanceID was passed or if 
 			 * this request is for a child form and real data is required
 			 */
-
+			ArrayList<MetaItem> preloads = null;
 			if(instanceId != null || parentKey > 0) {
 				
 				for(Question q : questions) {
@@ -2677,6 +2675,15 @@ public class SurveyManager {
 				 */
 				if(form.parentform == 0) {
 					
+					preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
+					for(MetaItem mi : preloads) {
+						if(mi.isPreload) {			
+							if(GeneralUtilityMethods.hasColumn(cResults, form.tableName, mi.columnName)) {
+								mi.published = true;
+								sql += "," + mi.columnName;				
+							} 
+						}
+					}
 					// Add instancename which is not in meta
 					sql += "," + "instancename";
 				}
@@ -2713,6 +2720,11 @@ public class SurveyManager {
 						String user = resultSet.getString(2);
 						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));
 						
+						for(MetaItem mi : preloads) {
+							if(mi.isPreload && mi.published) {			
+								record.add(new Result(mi.columnName, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, -1, 0, null, null));
+							}
+						}
 						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));
 						
 					}

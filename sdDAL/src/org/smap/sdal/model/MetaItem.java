@@ -11,6 +11,7 @@ public class MetaItem {
 	public String dataType;
 	public boolean isPreload;
 	public String display_name;
+	public boolean published = false;
 	
 	public MetaItem(
 			int id,
