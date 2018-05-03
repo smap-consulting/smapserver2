@@ -326,6 +326,7 @@ public class Data extends Application {
 			outWriter.print("[");
 			
 			if(pstmt != null) {
+				log.info("KoboAPI data: " + pstmt.toString());
 				/*
 				 * Get the data record by record so it can be streamed
 				 */

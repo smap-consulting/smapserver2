@@ -771,12 +771,15 @@ public class GetHtml {
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 		}
 		
-		Element templateOption = outputDoc.createElement("option");
-		selectElement.appendChild(templateOption);
-		templateOption.setAttribute("class", "itemset-template");
-		templateOption.setAttribute("value", "");
-		templateOption.setAttribute("data-items-path", getNodeset(q, form));
-		templateOption.setTextContent("...");
+		// Itemset template option
+		if(!autoComplete) {
+			Element templateOption = outputDoc.createElement("option");
+			selectElement.appendChild(templateOption);
+			templateOption.setAttribute("class", "itemset-template");
+			templateOption.setAttribute("value", "");
+			templateOption.setAttribute("data-items-path", getNodeset(q, form));
+			templateOption.setTextContent("...");
+		}
 		
 		// Data List
 		if(autoComplete) {

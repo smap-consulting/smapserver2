@@ -128,7 +128,7 @@ public class XLSReportsManager {
 					if(name == null || name.trim().length() == 0) {
 						name = "chart " + i;
 					} else {
-						name += i;	// Ensure name is unique
+						name += " (" + i + ")";	// Ensure name is unique
 					}
 					name = name.replaceAll("[\\/\\*\\[\\]:\\?]", "");
 					dataSheet = wb.createSheet(name);
