@@ -355,13 +355,18 @@ public class GetHtml {
 
 					} else {
 						bodyElement = outputDoc.createElement("fieldset");
+						currentParent.appendChild(bodyElement);
+						
 						setQuestionClass(q, bodyElement);
 
 						Element extraFieldsetElement = outputDoc.createElement("fieldset");
 						bodyElement.appendChild(extraFieldsetElement);
 						
 						addSelectContents(sd, extraFieldsetElement, q, form, false);
-						currentParent.appendChild(bodyElement);
+						
+						// Add constraint message at end to the outer fieldset
+						addConstraintMsg(q, bodyElement);
+
 					}
 
 				} else if(q.type.equals("acknowledge") || q.type.equals("trigger")) {
@@ -754,7 +759,12 @@ public class GetHtml {
 		addLabels(parent, q, form);
 
 		// Add search
-		Element selectElement = outputDoc.createElement("select");
+		Element selectElement = null;
+		if(autoComplete) {
+		 selectElement = outputDoc.createElement("input");
+		} else {
+			selectElement = outputDoc.createElement("select");
+		}
 		parent.appendChild(selectElement);
 		selectElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		selectElement.setAttribute("data-name", paths.get(getRefName(q.name, form)));
@@ -940,6 +950,10 @@ public class GetHtml {
 				inputElement.setAttribute("data-relevant",
 						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 			}
+			if(q.constraint != null && q.constraint.length() > 0) {
+				inputElement.setAttribute("data-constraint", q.constraint);
+			}
+			
 			if(q.required) {
 				inputElement.setAttribute("data-required", "true()");
 			}
@@ -981,7 +995,10 @@ public class GetHtml {
 					inputElement.setAttribute("type", getInputType(q));
 					inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 					inputElement.setAttribute("value", o.value);
-					inputElement.setAttribute("data-type-xml", q.type);
+					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
+					if(q.constraint != null && q.constraint.length() > 0) {
+						inputElement.setAttribute("data-constraint", q.constraint);
+					}
 				}
 
 			}
@@ -1143,12 +1160,8 @@ public class GetHtml {
 		}
 
 		// Constraint message
-		if (q.constraint_msg != null && q.constraint_msg.length() > 0) {
-			bodyElement = outputDoc.createElement("span");
-			bodyElement.setAttribute("lang", "");
-			bodyElement.setAttribute("class", "or-constraint-msg active");
-			bodyElement.setTextContent(q.constraint_msg);
-			parent.appendChild(bodyElement);
+		if(!q.type.startsWith("select")) {
+			addConstraintMsg(q, parent);
 		}
 
 		// Required
@@ -1163,6 +1176,18 @@ public class GetHtml {
 		}
 	}
 
+	/*
+	 * Add a constraint
+	 */
+	private void addConstraintMsg(Question q, Element parent) {		
+		if (q.constraint_msg != null && q.constraint_msg.length() > 0) {
+			Element  bodyElement = outputDoc.createElement("span");
+			bodyElement.setAttribute("lang", "");
+			bodyElement.setAttribute("class", "or-constraint-msg active");
+			bodyElement.setTextContent(q.constraint_msg);
+			parent.appendChild(bodyElement);
+		}
+	}
 	/*
 	 * Get the required message
 	 */

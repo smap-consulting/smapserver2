@@ -526,6 +526,9 @@ public class XLSTemplateUploadManager {
 		
 		// 6. Constraint message
 		q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message", surveyHeader, lastCellNum, null); 
+		if(q.constraint_msg == null) {
+			q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint-msg", surveyHeader, lastCellNum, null);   // as used by enketo
+		}
 		
 		// 7. Relevant
 		q.relevant = XLSUtilities.getTextColumn(row, "relevant", surveyHeader, lastCellNum, null);  

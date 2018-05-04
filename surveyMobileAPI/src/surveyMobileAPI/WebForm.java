@@ -451,9 +451,15 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append(
-				"<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,600&subset=latin,cyrillic-ext,cyrillic,greek-ext,greek,vietnamese,latin-ext' rel='stylesheet' type='text/css'>\n");
-
+		//output.append(
+		//		"<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,600&subset=latin,cyrillic-ext,cyrillic,greek-ext,greek,vietnamese,latin-ext' rel='stylesheet' type='text/css'>\n");
+		output.append("<link type=\"text/css\" rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:300,400,500,700\">");
+		output.append("<style type=\"text/css\">.gm-style .gm-style-cc span,.gm-style .gm-style-cc a,.gm-style .gm-style-mtc div{font-size:10px}\n" + 
+				"</style>");
+		output.append("<style type=\"text/css\">@media print {  .gm-style .gmnoprint, .gmnoprint {    display:none  }}@media screen {  .gm-style .gmnoscreen, .gmnoscreen {    display:none  }}</style>");
+		output.append("<style type=\"text/css\">.gm-style-pbc{transition:opacity ease-in-out;background-color:rgba(0,0,0,0.45);text-align:center}.gm-style-pbt{font-size:22px;color:white;font-family:Roboto,Arial,sans-serif;position:relative;margin:0;top:50%;-webkit-transform:translateY(-50%);-ms-transform:translateY(-50%);transform:translateY(-50%)}\n" + 
+				"</style>");
+		
 		output.append("<link type='text/css' href='/build/css/webform.css' media='all' rel='stylesheet' />\n");
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {
 			output.append("<link type='text/css' href='/build/css/grid.css' media='all' rel='stylesheet' />\n");
