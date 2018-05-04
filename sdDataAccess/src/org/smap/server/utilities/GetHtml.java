@@ -1237,7 +1237,11 @@ public class GetHtml {
 		if (q.type.equals("int")) {
 			type = "number";
 		} else if (q.type.equals("string")) {
-			type = "text";
+			if(q.appearance.contains("numbers")) {
+				type = "tel";
+			} else {
+				type = "text";
+			}
 		} else if (q.type.equals("select1")) {
 			type = "radio";
 		} else if (q.type.equals("select")) {

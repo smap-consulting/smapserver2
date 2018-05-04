@@ -45,6 +45,15 @@ public class Manager {
 			subscriberType = args[2];	
 		}
 		
+		/*
+		 * Start asynchronous worker threads in upload processor
+		 * 1. Message processor
+		 */
+		if(subscriberType.equals("upload")) {
+			MessageProcessor mp = new MessageProcessor();
+			mp.go(smapId, fileLocn);
+		}
+		
 		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 4;
 		

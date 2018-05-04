@@ -365,17 +365,7 @@ public class SubscriberBatch {
 				System.out.print("#");
 			}
 
-			if(subscriberType.equals("upload")) {
-				// Send any pending messages
-				File pFile = new File("/smap_bin/resources/properties/aws.properties");
-				if(pFile.exists()) {
-					MessagingManagerApply mma = new MessagingManagerApply();
-					mma.applyOutbound(sd, cResults, serverName);
-				} else {
-					// No message!
-					//log.info("Skipping device messages.  No aws properties file at: /smap_bin/resources/properties/aws.properties");
-				}
-			} else if(subscriberType.equals("forward")) {
+			if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, basePath);
 
