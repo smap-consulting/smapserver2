@@ -170,15 +170,23 @@ public class TableManager {
 		String sqlGetSharingForms = "select f.f_id from form f "
 				+ "where f.table_name in (select table_name from form where f_id = ?);";
 
-		String sqlSetPublishedThisForm = "update question set published = 'true' where f_id = ?;";
-
-		String sqlSetOptionsPublishedThisForm = "update option set published = 'true' "
-				+ "where l_id in (select l_id from question q where f_id = ?);";
+		String sqlSetPublishedThisForm = "update question set published = 'true' "
+				+ "where q_id = (select parentquestion from form where f_id = ?)";
+		
+		String sqlSetPublishedParentQuestion = "update question set published = 'true' "
+				+ "where q_id = (select parentquestion from form where f_id = ?);";
+		
+		String sqlSetPublishedParentQuestionSharedForm = "update question set published = 'true' "
+				+ "where q_id = (select parentquestion from form where f_id = ?)"
+				+ "and column_name in (select column_name from question where f_id = ?);";
 
 		String sqlSetPublishedSharedForm = "update question set published = 'true' "
 				+ "where f_id = ? "
 				+ "and column_name in (select column_name from question where f_id = ?);";
 
+		String sqlSetOptionsPublishedThisForm = "update option set published = 'true' "
+				+ "where l_id in (select l_id from question q where f_id = ?);";
+		
 		String sqlSetOptionsPublishedSharedForm = "update option set published = 'true' "
 				+ "where l_id in (select l_id from question q where f_id = ? "
 				+ "and column_name in (select column_name from question where f_id = ?));";
@@ -186,6 +194,8 @@ public class TableManager {
 		PreparedStatement pstmtGetForms = null;
 		PreparedStatement pstmtSetPublishedThisForm = null;
 		PreparedStatement pstmtSetPublishedSharedForm = null;
+		PreparedStatement pstmtSetPublishedParentQuestion = null;
+		PreparedStatement pstmtSetPublishedParentQuestionSharedForm = null;
 		PreparedStatement pstmtSetOptionsPublishedThisForm = null;
 		PreparedStatement pstmtSetOptionsPublishedSharedForm = null;
 
@@ -194,6 +204,8 @@ public class TableManager {
 			pstmtGetForms = sd.prepareStatement(sqlGetSharingForms);
 			pstmtSetPublishedThisForm = sd.prepareStatement(sqlSetPublishedThisForm);
 			pstmtSetPublishedSharedForm = sd.prepareStatement(sqlSetPublishedSharedForm);
+			pstmtSetPublishedParentQuestion = sd.prepareStatement(sqlSetPublishedParentQuestion);
+			pstmtSetPublishedParentQuestionSharedForm = sd.prepareStatement(sqlSetPublishedParentQuestionSharedForm);
 			pstmtSetOptionsPublishedThisForm = sd.prepareStatement(sqlSetOptionsPublishedThisForm);
 			pstmtSetOptionsPublishedSharedForm = sd.prepareStatement(sqlSetOptionsPublishedSharedForm);
 
@@ -225,6 +237,11 @@ public class TableManager {
 					pstmtSetOptionsPublishedThisForm.setInt(1, fd.fId);
 					log.info("Mark published: " + pstmtSetOptionsPublishedThisForm.toString());
 					pstmtSetOptionsPublishedThisForm.executeUpdate();
+					
+					// 3.3a Update parent question in the submitting form
+					pstmtSetPublishedParentQuestion.setInt(1, fd.fId);
+					log.info("Mark published: " + pstmtSetPublishedParentQuestion.toString());
+					pstmtSetPublishedParentQuestion.executeUpdate();
 
 				} else {
 
@@ -234,11 +251,17 @@ public class TableManager {
 					log.info("Mark shared questions published: " + pstmtSetPublishedSharedForm.toString());
 					pstmtSetPublishedSharedForm.executeUpdate();
 
-					// 3.1b Update options in the shared form
+					// 3.2b Update options in the shared form
 					pstmtSetOptionsPublishedSharedForm.setInt(1, fd.fId);
 					pstmtSetOptionsPublishedSharedForm.setInt(2, fd.submittingFormId);
 					log.info("Mark shared options published: " + pstmtSetOptionsPublishedSharedForm.toString());
 					pstmtSetOptionsPublishedSharedForm.executeUpdate();
+					
+					// 3.3b Update parent question in the shared form
+					pstmtSetPublishedParentQuestionSharedForm.setInt(1, fd.fId);
+					pstmtSetPublishedParentQuestionSharedForm.setInt(2, fd.submittingFormId);
+					log.info("Mark published: " + pstmtSetPublishedParentQuestionSharedForm.toString());
+					pstmtSetPublishedParentQuestionSharedForm.executeUpdate();
 				}
 
 			}
@@ -258,6 +281,8 @@ public class TableManager {
 			try {if (pstmtSetPublishedSharedForm != null) {pstmtSetPublishedSharedForm.close();}} catch (Exception e) {}
 			try {if (pstmtSetOptionsPublishedThisForm != null) {pstmtSetOptionsPublishedThisForm.close();}} catch (Exception e) {}
 			try {if (pstmtSetOptionsPublishedSharedForm != null) {pstmtSetOptionsPublishedSharedForm.close();}} catch (Exception e) {}
+			try {if (pstmtSetPublishedParentQuestion != null) {pstmtSetPublishedParentQuestion.close();}} catch (Exception e) {}
+			try {if (pstmtSetPublishedParentQuestionSharedForm != null) {pstmtSetPublishedParentQuestionSharedForm.close();}} catch (Exception e) {}
 		}
 
 	}
