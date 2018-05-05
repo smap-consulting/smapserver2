@@ -2630,7 +2630,7 @@ public class SurveyManager {
 		 */
 		if(!generateDummyValues) {
 			for(int i = questions.size() - 1; i >= 0; i--) {
-				if(!questions.get(i).published) {
+				if(!questions.get(i).published || questions.get(i).columnName == null) {
 					questions.remove(i);
 				}
 			}
@@ -2647,8 +2647,6 @@ public class SurveyManager {
 				
 				for(Question q : questions) {
 					String col = null;
-
-					q.columnName = q.columnName.replace("'", "''");	
 
 					if(s.getSubForm(form, q) == null || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 						// This question is not a place holder for a subform
@@ -2722,7 +2720,7 @@ public class SurveyManager {
 						
 						for(MetaItem mi : preloads) {
 							if(mi.isPreload && mi.published) {			
-								record.add(new Result(mi.columnName, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, -1, 0, null, null));
+								record.add(new Result(mi.columnName, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, mi.id, 0, null, null));
 							}
 						}
 						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));

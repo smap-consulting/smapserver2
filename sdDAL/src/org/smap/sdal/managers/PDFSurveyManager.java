@@ -472,7 +472,7 @@ public class PDFSurveyManager {
 				DisplayItem di = new DisplayItem();
 				try {
 					Form form = survey.forms.get(r.fIdx);
-					org.smap.sdal.model.Question question = form.questions.get(r.qIdx);	
+					Question question = getQuestionFromResult(sd, r, form);
 					setQuestionFormats(question.appearance, di);
 				} catch (Exception e) {
 					// If we can't get the question details for this data then that is ok
@@ -780,7 +780,7 @@ public class PDFSurveyManager {
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
 			String remoteUser,
-			int oId) throws DocumentException, IOException {
+			int oId) throws DocumentException, IOException, SQLException {
 
 		// Check that the depth of repeats hasn't exceeded the maximum
 		if(depth > repIndexes.length - 1) {
@@ -836,56 +836,76 @@ public class PDFSurveyManager {
 								oId);
 					} 
 				}
-			} else if(r.qIdx >= 0) {
+			} else {
 				// Process the question
 
 				Form form = survey.forms.get(r.fIdx);
-				Question question = form.questions.get(r.qIdx);
+				Question question = getQuestionFromResult(sd, r, form);
+				
+				if(question != null) {
 
-				if(includeResult(r, question, appendix, gv, generateBlank)) {
-					if(question.type.equals("begin group")) {
-						if(question.isNewPage()) {
-							document.newPage();
+					if(includeResult(r, question, appendix, gv, generateBlank)) {
+						if(question.type.equals("begin group")) {
+							if(question.isNewPage()) {
+								document.newPage();
+							}
+						} else if(question.type.equals("end group")) {
+							//ignore
+						} else {
+							Row row = prepareRow(record, survey, j, gv, length, appendix, parentRecords, generateBlank);
+							PdfPTable newTable = processRow(
+									parser, 
+									row, 
+									basePath, 
+									serverRoot,
+									generateBlank, 
+									depth, 
+									repIndexes, 
+									gv,
+									remoteUser,
+									survey,
+									oId);
+	
+							newTable.setWidthPercentage(100);
+	
+							// Add a gap if this is the first question of the record
+							// or the previous row was at a different depth
+							if(firstQuestion) {
+								newTable.setSpacingBefore(5);
+							}
+							firstQuestion = false;
+	
+							// Start a new page if the first question needs to be on a new page
+							if(row.items.get(0).isNewPage) {
+								document.newPage();
+							}
+							document.add(newTable);
+							j += row.items.size() - 1;	// Jump over multiple questions if more than one was added to the row
 						}
-					} else if(question.type.equals("end group")) {
-						//ignore
-					} else {
-						Row row = prepareRow(record, survey, j, gv, length, appendix, parentRecords, generateBlank);
-						PdfPTable newTable = processRow(
-								parser, 
-								row, 
-								basePath, 
-								serverRoot,
-								generateBlank, 
-								depth, 
-								repIndexes, 
-								gv,
-								remoteUser,
-								survey,
-								oId);
-
-						newTable.setWidthPercentage(100);
-
-						// Add a gap if this is the first question of the record
-						// or the previous row was at a different depth
-						if(firstQuestion) {
-							newTable.setSpacingBefore(5);
-						}
-						firstQuestion = false;
-
-						// Start a new page if the first question needs to be on a new page
-						if(row.items.get(0).isNewPage) {
-							document.newPage();
-						}
-						document.add(newTable);
-						j += row.items.size() - 1;	// Jump over multiple questions if more than one was added to the row
 					}
+				} else {
+					log.info("Question Idx not found: " + r.qIdx);
 				}
 
 			}
 		}
 
 		return;
+	}
+	
+	private Question getQuestionFromResult(Connection sd, Result r, Form form) throws SQLException {
+		
+		Question question = null;
+		if(r.qIdx >= 0) {
+			question = form.questions.get(r.qIdx);
+		} if(r.qIdx <= -1000) {
+			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.id, r.qIdx);	// A preload
+		} else if(r.qIdx == -1) {
+			question = new Question();													// Server generated
+			question.name = r.name;
+			question.type = r.type;
+		}
+		return question;
 	}
 
 	/*
@@ -935,7 +955,7 @@ public class PDFSurveyManager {
 				include = false;
 			} else if(r.name.startsWith("_")) {
 				// Don't include questions that start with "_",  these are only added to the letter head
-				include = false;
+				//include = false;
 			} 
 		}
 
@@ -1035,7 +1055,7 @@ public class PDFSurveyManager {
 			int recNumber,
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
-			boolean generateBlank) {
+			boolean generateBlank) throws SQLException {
 
 		Row row = new Row();
 		row.groupWidth = gv.cols.length;
@@ -1044,7 +1064,8 @@ public class PDFSurveyManager {
 			Result r = record.get(i);
 
 			Form form = survey.forms.get(r.fIdx);
-			org.smap.sdal.model.Question question = form.questions.get(r.qIdx);
+			Question question = getQuestionFromResult(sd, r, form);
+
 			Label label = null;
 			if(question.labels.size() > 0) {
 				label = question.labels.get(languageIdx);

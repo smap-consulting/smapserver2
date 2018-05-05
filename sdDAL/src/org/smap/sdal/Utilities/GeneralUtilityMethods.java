@@ -6206,11 +6206,23 @@ public class GeneralUtilityMethods {
 					break;
 				}
 			}
-		} else {
-			preloads = new ArrayList <>();
 		}
 
 		return item;
+	}
+	
+	public static Question getPreloadAsQuestion(Connection sd, int sId, int metaId) throws SQLException {
+		Question q = null;
+		MetaItem item = getPreloadDetails(sd, sId, metaId); 
+		if(item != null) {
+			q = new Question();
+			q.columnName = item.columnName;
+			q.type = item.dataType;
+			q.display_name = item.display_name;
+			q.name = item.name;
+		}
+		
+		return q;
 	}
 
 	/*

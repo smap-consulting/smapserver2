@@ -167,11 +167,12 @@ public class TableManager {
 		ArrayList<FormDetail> forms = new ArrayList<FormDetail> ();
 
 
-		String sqlGetSharingForms = "select f.f_id from form f "
-				+ "where f.table_name in (select table_name from form where f_id = ?);";
+		String sqlGetSharingForms = "select f.f_id from form f, survey s "
+				+ "where f.table_name in (select table_name from form where f_id = ?) "
+				+ "and f.s_id = s.s_id "
+				+ "and not s.deleted";
 
-		String sqlSetPublishedThisForm = "update question set published = 'true' "
-				+ "where q_id = (select parentquestion from form where f_id = ?)";
+		String sqlSetPublishedThisForm = "update question set published = 'true' where f_id = ?";
 		
 		String sqlSetPublishedParentQuestion = "update question set published = 'true' "
 				+ "where q_id = (select parentquestion from form where f_id = ?);";
