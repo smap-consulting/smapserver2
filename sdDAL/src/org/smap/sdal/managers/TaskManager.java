@@ -865,16 +865,24 @@ public class TaskManager {
 				}
 			}
 			// Add start date column
-			if(as.taskStart != -1) {
+			boolean getTaskStartValue = false;
+			if(as.taskStart != -1 && as.taskStart != 0) {
 				String name = null;
 				if(as.taskStart > 0) {
 					Question q = GeneralUtilityMethods.getQuestion(sd, as.taskStart);
-					name = q.name;
+					if(q != null) {
+						name = q.name;
+					}
 				} else {
 					MetaItem mi = GeneralUtilityMethods.getPreloadDetails(sd, sId, as.taskStart);
-					name = mi.columnName;
+					if(mi != null) {
+						name = mi.columnName;
+					}
 				}
-				sql.append(",").append(topForm.tableName).append(".").append(name).append(" as taskstart");
+				if(name != null) {
+					getTaskStartValue = true;
+					sql.append(",").append(topForm.tableName).append(".").append(name).append(" as taskstart");
+				}
 			}
 			
 			sql.append(" from ");
@@ -901,7 +909,7 @@ public class TaskManager {
 					}
 					tid.address = gson.toJson(guidance);
 				}
-				if(as.taskStart != -1) {
+				if(getTaskStartValue) {
 					tid.taskStart = rsData.getTimestamp("taskstart");
 				}
 
