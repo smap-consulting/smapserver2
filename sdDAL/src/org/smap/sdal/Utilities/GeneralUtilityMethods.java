@@ -249,8 +249,11 @@ public class GeneralUtilityMethods {
 
 		boolean businessServer = true;
 
-		if (!host.endsWith("zarkman.com") && !host.equals("localhost") && !host.startsWith("10.0")
-				&& !host.endsWith(".kontrolid.com")) {
+		if (!host.endsWith("zarkman.com") 
+				&& !host.equals("localhost") 
+				&& !host.startsWith("10.0")
+				&& !host.endsWith(".kontrolid.com")
+				&& !host.contains("ezpilot")) {
 			businessServer = false;
 		}
 		return businessServer;
@@ -262,8 +265,11 @@ public class GeneralUtilityMethods {
 	static public void assertSelfRegistrationServer(String host) {
 		log.info("Self registration check: " + host);
 
-		if (!host.equals("sg.smap.com.au") && !host.equals("localhost") && !host.endsWith("reachnettechnologies.com")
-				&& !host.endsWith("datacollect.icanreach.com") && !host.endsWith("encontactone.com")
+		if (!host.equals("sg.smap.com.au") 
+				&& !host.equals("localhost") 
+				&& !host.endsWith("reachnettechnologies.com")
+				&& !host.endsWith("datacollect.icanreach.com") 
+				&& !host.endsWith("encontactone.com")
 				&& !host.equals("app.kontrolid.com")) {
 
 			log.info("Self registration check failed: " + host);

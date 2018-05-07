@@ -1216,7 +1216,7 @@ public class SurveyManager {
 	 * Apply an array of change sets to a survey
 	 * Apply updates
 	 */
-	public ChangeResponse applyChangeSetArray(Connection connectionSD, 
+	public ChangeResponse applyChangeSetArray(Connection sd, 
 			Connection cResults,
 			int sId, String ident, ArrayList<ChangeSet> changes,
 			boolean logIndividualChangeSets) throws Exception {
@@ -1236,19 +1236,19 @@ public class SurveyManager {
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, visible, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?, ?)";
-			pstmtChangeLog = connectionSD.prepareStatement(sqlChangeLog);
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
 
 			/*
 			 * Get the user id
 			 * This should be saved rather than the ident as a user could be deleted
 			 *  then a new user created with the same ident but its a different user
 			 */
-			userId = GeneralUtilityMethods.getUserId(connectionSD, ident);
+			userId = GeneralUtilityMethods.getUserId(sd, ident);
 
-			if(connectionSD.getAutoCommit()) {
+			if(sd.getAutoCommit()) {
 				log.info("Set autocommit sd false");
 				sdAutoCommitSetFalse = true;
-				connectionSD.setAutoCommit(false);
+				sd.setAutoCommit(false);
 			}
 
 			/*
@@ -1257,12 +1257,12 @@ public class SurveyManager {
 			 */
 			String sqlUpdateVersion = "update survey set version = version + 1 where s_id = ?";
 			String sqlGetVersion = "select version from survey where s_id = ?";
-			pstmt = connectionSD.prepareStatement(sqlUpdateVersion);
+			pstmt = sd.prepareStatement(sqlUpdateVersion);
 			pstmt.setInt(1, sId);
 			pstmt.execute();
 			pstmt.close();
 
-			pstmt = connectionSD.prepareStatement(sqlGetVersion);
+			pstmt = sd.prepareStatement(sqlGetVersion);
 			pstmt.setInt(1, sId);
 			rs = pstmt.executeQuery();
 			rs.next();
@@ -1273,33 +1273,33 @@ public class SurveyManager {
 			for(ChangeSet cs : changes) {			
 
 				// Process each change set separately and roll back to a save point if it fails
-				Savepoint sp = connectionSD.setSavepoint();
+				Savepoint sp = sd.setSavepoint();
 				try {
 
 					log.info("SurveyManager, applyChanges. Change set type: " + cs.changeType);
 					if(cs.changeType.equals("label")) {
 
-						applyLabel(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, logIndividualChangeSets);
+						applyLabel(sd, pstmtChangeLog, cs.items, sId, userId, resp.version, logIndividualChangeSets);
 
 					} else if(cs.changeType.equals("property") && !cs.type.equals("option")) {
 
 						// Update a property
-						applyQuestionProperty(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, logIndividualChangeSets);
+						applyQuestionProperty(sd, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, logIndividualChangeSets);
 
 					} else if(cs.changeType.equals("question")) {
 
 						// Add/delete/move questions
-						applyQuestion(connectionSD, cResults, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
+						applyQuestion(sd, cResults, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
 
 					} else if(cs.changeType.equals("option") || (cs.changeType.equals("property") && cs.type.equals("option"))) {
 
 						// Add/delete options changed by the editor
-						applyOptionFromEditor(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
+						applyOptionFromEditor(sd, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
 
 					} else if(cs.changeType.equals("optionlist")) {
 
 						// Add/delete/move questions
-						applyOptionList(connectionSD, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
+						applyOptionList(sd, pstmtChangeLog, cs.items, sId, userId, resp.version, cs.changeType, cs.action, logIndividualChangeSets);
 
 					} else {
 						log.info("Error: unknown changeset type: " + cs.changeType);
@@ -1312,7 +1312,7 @@ public class SurveyManager {
 				} catch (Exception e) {
 
 					// Failure
-					connectionSD.rollback(sp);
+					sd.rollback(sp);
 					log.info("Error: " + e.getMessage());
 					cs.updateFailed = true;
 					cs.errorMsg = e.getMessage();
@@ -1323,17 +1323,17 @@ public class SurveyManager {
 
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager();
-			mm.surveyChange(connectionSD, sId, 0);
+			mm.surveyChange(sd, sId, 0);
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
-			GeneralUtilityMethods.updateFormDependencies(connectionSD, sId);
+			GeneralUtilityMethods.updateFormDependencies(sd, sId);
 
 			if(resp.success > 0) {
-				connectionSD.commit();
+				sd.commit();
 				log.info("Survey update to version: " + resp.version + ". " + 
 						resp.success + " successful changes and " + 
 						resp.failed + " failed changes");
 			} else {
-				connectionSD.rollback();
+				sd.rollback();
 				log.info("Survey version not updated: " + 
 						resp.success + " successful changes and " + 
 						resp.failed + " failed changes");
@@ -1346,7 +1346,7 @@ public class SurveyManager {
 			if(sdAutoCommitSetFalse) {
 				log.info("Set autocommit sd true");
 				sdAutoCommitSetFalse = false;
-				connectionSD.setAutoCommit(true);
+				sd.setAutoCommit(true);
 			}
 			try {if (pstmtChangeLog != null) {pstmtChangeLog.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -1598,161 +1598,6 @@ public class SurveyManager {
 		}  
 
 	}
-
-	/*
-	 * Apply changes to an option from an external file
-	 *  1) Get the maximum sequence number for each question
-	 *  2) Attempt to get the text_id for the passed in option
-	 *     3a) If the text_id can't be found create a new option
-	 *     3b) Else update the label value for the option 
-	 *
-	public void applyOptionUpdates(Connection connectionSD,
-			PreparedStatement pstmtChangeLog, 
-			ArrayList<ChangeItem> changeItemList, 
-			int sId, 
-			int userId,
-			int version,
-			String changeType,
-			String source,
-			boolean logIndividualChangeSets) throws Exception {
-
-		PreparedStatement pstmtLangInsert = null;
-		PreparedStatement pstmtOptionInsert = null;
-		PreparedStatement pstmtMaxSeq = null;
-		PreparedStatement pstmtOptionDelete = null;
-		PreparedStatement pstmtTranslationDelete = null;
-
-		try {
-
-			
-			String sqlOptionInsert = "insert into option  (o_id, l_id, seq, label_id, ovalue, externalfile, column_name, cascade_filters) "
-					+ "values(nextval('o_seq'), ?, ?, ?, ?, 'true', ?, ?);"; 			
-			pstmtOptionInsert = connectionSD.prepareStatement(sqlOptionInsert);
-
-			String sqlTranslationDelete = "delete from translation "
-					+ "where s_id = ? "
-					+ "and text_id in (select label_id from option "
-					+ "where l_id = ? "
-					+ "and ovalue = ? "
-					+ "and externalfile = 'true')";
-			pstmtTranslationDelete = connectionSD.prepareStatement(sqlTranslationDelete);
-
-			String sqlOptionDelete = "delete from option "
-					+ "where l_id = ? "
-					+ "and ovalue = ? "
-					+ "and externalfile = 'true'"; 			
-			pstmtOptionDelete = connectionSD.prepareStatement(sqlOptionDelete);
-
-			String sqlLangInsert = "insert into translation  (t_id, s_id, language, text_id, type, value) values(nextval('t_seq'), ?, ?, ?, ?, ?);"; 			
-			pstmtLangInsert = connectionSD.prepareStatement(sqlLangInsert);
-
-			String sqlMaxSeq = "select max(seq) from option where l_id = ?;";
-			pstmtMaxSeq = connectionSD.prepareStatement(sqlMaxSeq);
-
-			int maxSeq = -1;
-			ResultSet rs = null;
-			int totalCount = 0;		// Total changes for this change set
-
-			for(ChangeItem ci : changeItemList) {
-
-				int count = 0;		// Count of changes for this change item
-
-				// Get current maximum sequence
-				pstmtMaxSeq.setInt(1, ci.option.l_id);
-				rs = pstmtMaxSeq.executeQuery();
-				if(rs.next()) {
-					maxSeq = rs.getInt(1);
-				}			
-
-				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-
-				if(ci.action.equals("delete")) {
-					pstmtTranslationDelete.setInt(1, sId);
-					pstmtTranslationDelete.setInt(2, ci.option.l_id);
-					pstmtTranslationDelete.setString(3, ci.option.value);
-
-					log.info(pstmtTranslationDelete.toString());
-					pstmtTranslationDelete.executeUpdate();
-
-					pstmtOptionDelete.setInt(1, ci.option.l_id);
-					pstmtOptionDelete.setString(2, ci.option.value);
-
-					log.info(pstmtOptionDelete.toString());
-					pstmtOptionDelete.executeUpdate();
-
-				} else {
-
-					// Create a new option
-
-					// Set text id
-					maxSeq++;
-					String text_id = "external_" + ci.option.l_id + "_" + maxSeq;
-					// Insert new option		
-					pstmtOptionInsert.setInt(1, ci.option.l_id);
-					pstmtOptionInsert.setInt(2, maxSeq);
-					pstmtOptionInsert.setString(3, text_id);
-					pstmtOptionInsert.setString(4, ci.option.value);
-					pstmtOptionInsert.setString(5, GeneralUtilityMethods.cleanName(ci.option.value, false, false, false) );
-					pstmtOptionInsert.setString(6, gson.toJson(ci.option.cascade_filters));
-
-					// log.info("===================== Insert new option from file: " + pstmtOptionInsert.toString());
-					count = pstmtOptionInsert.executeUpdate();
-					
-					// Set label
-					pstmtLangInsert.setInt(1, sId);
-					pstmtLangInsert.setString(3, text_id);
-					pstmtLangInsert.setString(4, "none");
-					
-					for(LanguageItem li : ci.option.externalLabel) {
-						pstmtLangInsert.setString(2, li.language);
-						pstmtLangInsert.setString(5, li.text);
-						// log.info("----------------------------- Insert new translation for option from file: " + pstmtLangInsert.toString());
-						
-						Savepoint sp = connectionSD.setSavepoint("label");
-						try {
-							pstmtLangInsert.executeUpdate();
-						} catch (Exception e) {
-							try {connectionSD.rollback(sp);}catch(Exception ex) {}
-							log.info("Error: " + e.getMessage());    // Non fatal error
-						}
-						connectionSD.releaseSavepoint(sp);
-					}
-
-				}
-
-				// Write the change log
-				if(count > 0) {
-					ci.changeType = "option";
-					ci.source = source;
-
-					pstmtChangeLog.setInt(1, sId);
-					pstmtChangeLog.setInt(2, version);
-					pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "external option")));
-					pstmtChangeLog.setInt(4,userId);
-					pstmtChangeLog.setBoolean(5, logIndividualChangeSets);
-					pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
-					pstmtChangeLog.execute();
-				}
-				
-				totalCount += count;
-			}
-
-			if(totalCount == 0) {
-				log.info("Info: No changes applied");	
-			}
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw e;
-		} finally {
-			try {if (pstmtLangInsert != null) {pstmtLangInsert.close();}} catch (SQLException e) {}
-			try {if (pstmtOptionInsert != null) {pstmtOptionInsert.close();}} catch (SQLException e) {}
-			try {if (pstmtMaxSeq != null) {pstmtMaxSeq.close();}} catch (SQLException e) {}
-			try {if (pstmtOptionDelete != null) {pstmtOptionDelete.close();}} catch (SQLException e) {}
-			try {if (pstmtTranslationDelete != null) {pstmtTranslationDelete.close();}} catch (SQLException e) {}
-		}
-	}
-	*/
 	
 	/*
 	 * Apply question property changes

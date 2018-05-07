@@ -55,11 +55,13 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.CustomReportItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.LQAS;
+import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
@@ -489,6 +491,8 @@ public class UploadFiles extends Application {
 		ArrayList<ApplicationWarning> warnings = new ArrayList<> ();
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		PreparedStatement pstmtChangeLog = null;
+		PreparedStatement pstmtUpdateChangeLog = null;
 		
 		try {
 			
@@ -690,7 +694,42 @@ public class UploadFiles extends Application {
 
 				// 2. Save the file
 				File savedFile = new File(filePath);
-				fileItem.write(savedFile);				
+				fileItem.write(savedFile);	
+				
+				/*
+				 * Update the change history for the survey
+				 */
+				int newVersion = existingVersion;
+				if(action.equals("replace")) {
+					newVersion++;
+					String sqlUpdateChangeLog = "insert into survey_change "
+							+ "(s_id, version, changes, user_id, apply_results, visible, updated_time) "
+							+ "select "
+							+ s.id
+							+ ",version, changes, user_id, apply_results, visible, updated_time "
+							+ "from survey_change where s_id = ? "
+							+ "order by version asc";
+					pstmtUpdateChangeLog = sd.prepareStatement(sqlUpdateChangeLog);
+					pstmtUpdateChangeLog.setInt(1, existingSurveyId);
+					pstmtUpdateChangeLog.execute();
+				}
+				/*
+				 * Add a new entry to the change history
+				 */
+				String sqlChangeLog = "insert into survey_change " +
+						"(s_id, version, changes, user_id, apply_results, visible, updated_time) " +
+						"values(?, ?, ?, ?, 'true', ?, ?)";
+				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+				ChangeItem ci = new ChangeItem();
+				ci.fileName = fileItem.getName();
+				ci.origSId = s.id;
+				pstmtChangeLog.setInt(1, s.id);
+				pstmtChangeLog.setInt(2, newVersion);
+				pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "upload_template")));
+				pstmtChangeLog.setInt(4, GeneralUtilityMethods.getUserId(sd, user));	
+				pstmtChangeLog.setBoolean(5,true);	
+				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+				pstmtChangeLog.execute();
 				
 			}
 			
@@ -713,7 +752,8 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} finally {
-	
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (Exception e) {}
+			if(pstmtUpdateChangeLog != null) try {pstmtUpdateChangeLog.close();} catch (Exception e) {}
 			SDDataSource.closeConnection("CreateXLSForm-uploadForm", sd);
 			ResultsDataSource.closeConnection("CreateXLSForm-uploadForm", cResults);
 			
