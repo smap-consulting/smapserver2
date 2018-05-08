@@ -266,7 +266,7 @@ public class TaskManager {
 				+ "left outer join users u "
 				+ "on a.assignee = u.id "
 				+ "where t.tg_id = ? "
-				+ "order by t.schedule_at asc;";
+				+ "order by t.schedule_at desc, t.id desc;";
 		PreparedStatement pstmt = null;
 
 		String sqlPoint = "select ST_AsGeoJSON(geo_point), ST_AsText(geo_point) from tasks where id = ?;";
@@ -610,6 +610,7 @@ public class TaskManager {
 						+ "update_id,"
 						+ "address,"
 						+ "schedule_at,"
+						+ "schedule_finish,"
 						+ "location_trigger) "
 						+ "values ("
 						+ "?, " 
@@ -624,6 +625,7 @@ public class TaskManager {
 						+ "?,"
 						+ "?,"
 						+ "?,"		// start		
+						+ "?,"		// finish		
 						+ "?);";	
 
 		String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
@@ -691,29 +693,10 @@ public class TaskManager {
 			}
 			
 			/*
-			 * Start time
+			 * Start and finish time
 			 */
-			Timestamp taskStart = null;
-			if(as.taskStart == -1) {									
-				taskStart = new Timestamp(System.currentTimeMillis());
-			} else {
-				taskStart = tid.taskStart;
-				if(taskStart == null) {
-					taskStart = new Timestamp(System.currentTimeMillis());
-				}
-			}
-			if(as.taskAfter > 0) {
-				Calendar cal = Calendar.getInstance();
-				cal.setTime(taskStart);
-				if(as.taskUnits.equals("days")) {
-					cal.add(Calendar.DAY_OF_WEEK, as.taskAfter);
-				} else if(as.taskUnits.equals("hours")) {
-					cal.add(Calendar.HOUR_OF_DAY, as.taskAfter);
-				} else if(as.taskUnits.equals("minutes")) {
-					cal.add(Calendar.MINUTE, as.taskAfter);
-				}
-				taskStart.setTime(cal.getTime().getTime());
-			}								
+			Timestamp taskStart = getTaskStartTime(as, tid.taskStart);
+			Timestamp taskFinish = getTaskFinishTime(as, taskStart);
 
 			/*
 			 * Write the task to the database
@@ -731,7 +714,8 @@ public class TaskManager {
 			pstmt.setString(9, targetInstanceId);
 			pstmt.setString(10, tid.address);
 			pstmt.setTimestamp(11, taskStart);
-			pstmt.setString(12, tid.locationTrigger);
+			pstmt.setTimestamp(12, taskFinish);
+			pstmt.setString(13, tid.locationTrigger);
 
 			log.info("Create a new task: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -1485,6 +1469,50 @@ public class TaskManager {
 			if(pstmtTempUsers != null) try {	pstmtTempUsers.close(); } catch(SQLException e) {};
 			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
 		}		
+	}
+	
+	public Timestamp getTaskStartTime(AssignFromSurvey as, Timestamp taskStart) {
+		
+		if(as.taskStart == -1) {									
+			taskStart = new Timestamp(System.currentTimeMillis());
+		} else {
+			if(taskStart == null) {
+				taskStart = new Timestamp(System.currentTimeMillis());
+			}
+		}
+		if(as.taskAfter > 0) {
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(taskStart);
+			if(as.taskUnits.equals("days")) {
+				cal.add(Calendar.DAY_OF_WEEK, as.taskAfter);
+			} else if(as.taskUnits.equals("hours")) {
+				cal.add(Calendar.HOUR_OF_DAY, as.taskAfter);
+			} else if(as.taskUnits.equals("minutes")) {
+				cal.add(Calendar.MINUTE, as.taskAfter);
+			}
+			taskStart.setTime(cal.getTime().getTime());
+		}	
+		
+		return taskStart;
+	}
+	
+	public Timestamp getTaskFinishTime(AssignFromSurvey as, Timestamp taskStart) {
+		Timestamp taskFinish = null;
+							
+		if(as.taskDuration > 0) {
+			taskFinish = new Timestamp(taskStart.getTime());	
+			Calendar cal = Calendar.getInstance();
+			cal.setTime(taskFinish);
+			if(as.durationUnits.equals("days")) {
+				cal.add(Calendar.DAY_OF_WEEK, as.taskDuration);
+			} else if(as.durationUnits.equals("hours")) {
+				cal.add(Calendar.HOUR_OF_DAY, as.taskDuration);
+			} else if(as.durationUnits.equals("minutes")) {
+				cal.add(Calendar.MINUTE, as.taskDuration);
+			}
+			taskFinish.setTime(cal.getTime().getTime());
+		}
+		return taskFinish;
 	}
 }
 

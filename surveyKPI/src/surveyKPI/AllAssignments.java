@@ -111,7 +111,7 @@ public class AllAssignments extends Application {
 
 	/*
 	 * Return the existing assignments
-	 */
+	 *
 	@GET
 	@Path("/{projectId}")
 	@Produces("application/json")
@@ -282,7 +282,7 @@ public class AllAssignments extends Application {
 
 			/*
 			 * Add task group details to the response
-			 */
+			 *
 			String sql = "select tg_id, name, address_params from task_group where p_id = ? order by tg_id;";
 			if(pstmt != null) {pstmt.close();};
 			pstmt = connectionSD.prepareStatement(sql);
@@ -320,6 +320,7 @@ public class AllAssignments extends Application {
 
 		return response;
 	}
+	*/
 
 	/*
 	 * Add a task for every survey
@@ -464,6 +465,7 @@ public class AllAssignments extends Application {
 								+ "update_id,"
 								+ "address,"
 								+ "schedule_at,"
+								+ "schedule_finish,"
 								+ "location_trigger) "
 								+ "values ("
 								+ "?, "
@@ -478,6 +480,7 @@ public class AllAssignments extends Application {
 								+ "?,"
 								+ "?,"
 								+ "?,"		// start		
+								+ "?,"		// finish
 								+ "?)";		
 
 				String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
@@ -811,31 +814,20 @@ public class AllAssignments extends Application {
 
 								pstmtInsert.setString(10, addressString);			// Address
 								
-								// Start date
-								Timestamp taskStart = null;
-								if(as.taskStart == -1) {									
-									taskStart = new Timestamp(System.currentTimeMillis());
-								} else {
-									taskStart = resultSet.getTimestamp("taskstart");
-									if(taskStart == null) {
-										taskStart = new Timestamp(System.currentTimeMillis());
-									}
+								/*
+								 * Start and finish time
+								 */
+								TaskManager tm = new TaskManager(localisation);
+								Timestamp initial = null;
+								if(as.taskStart != -1) {	
+									initial = resultSet.getTimestamp("taskstart");
 								}
-								if(as.taskAfter > 0) {
-									Calendar cal = Calendar.getInstance();
-									cal.setTime(taskStart);
-									if(as.taskUnits.equals("days")) {
-										cal.add(Calendar.DAY_OF_WEEK, as.taskAfter);
-									} else if(as.taskUnits.equals("hours")) {
-										cal.add(Calendar.HOUR_OF_DAY, as.taskAfter);
-									} else if(as.taskUnits.equals("minutes")) {
-										cal.add(Calendar.MINUTE, as.taskAfter);
-									}
-									taskStart.setTime(cal.getTime().getTime());
-								}								
+								Timestamp taskStart = tm.getTaskStartTime(as, initial);
+								Timestamp taskFinish = tm.getTaskFinishTime(as, taskStart);				
 								pstmtInsert.setTimestamp(11, taskStart);
+								pstmtInsert.setTimestamp(12, taskFinish);
 								
-								pstmtInsert.setString(12, locationTrigger);			// Location that will start task
+								pstmtInsert.setString(13, locationTrigger);			// Location that will start task
 								
 								log.info("Insert Task: " + pstmtInsert.toString());
 
