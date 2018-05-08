@@ -109,7 +109,7 @@ public class QueryGenerator {
 					" on q.l_id = l.l_id " +
 					" join form f " +
 					" on q.f_id = f.f_id " +
-					" where f.table_name = ? " +
+					" where f.f_id = ? " +
 					" and q.column_name = ?;";
 			pstmtQType = connectionSD.prepareStatement(sqlQType);
 			
@@ -465,16 +465,16 @@ public class QueryGenerator {
 			
 			String name = null;
 			String type = null;
-			String qType = null;
 			String label = null;
 			String text_id = null;
 			String list_name = null;
 			boolean needsReplace = false;
 			ArrayList<OptionDesc> optionListLabels = null;
-			int qId = 0;
 			
+			int qId = col.qId;			
 			name = col.name;
 			type = col.type;
+
 			if(GeneralUtilityMethods.isGeometry(type)) {
 				type = "geometry";
 			}
@@ -557,29 +557,26 @@ public class QueryGenerator {
 				}
 				
 				// Get the question type
-				if(type.startsWith("select")) {
-					pstmtQType.setString(1, form.table);
-					if(type.equals("select") && !col.compressed) {
-						// Select multiple question
-						String [] mNames = name.split("__");
-						pstmtQType.setString(2, mNames[0]);
-					} else {
-						pstmtQType.setString(2, name);
-					}
-					
-					ResultSet rsType = pstmtQType.executeQuery();
-					
-					if(rsType.next()) {
-						qType = col.type;
-						text_id = rsType.getString(3);
-						qId = rsType.getInt(4);
-						list_name = rsType.getString(5);
-						if(list_name == null) {
-							list_name = name;		// Default list name to question name if it has not been set
-						}
-						list_name = validStataName(list_name);	// Make sure the list name is a valid stata name
-					}
+				pstmtQType.setInt(1, form.form);
+				if(type.equals("select") && !col.compressed) {
+					// Select multiple question
+					String [] mNames = name.split("__");
+					pstmtQType.setString(2, mNames[0]);
+				} else {
+					pstmtQType.setString(2, name);
 				}
+					
+				ResultSet rsType = pstmtQType.executeQuery();
+					
+				if(rsType.next()) {
+					text_id = rsType.getString(3);
+					list_name = rsType.getString(5);
+					if(list_name == null) {
+						list_name = name;		// Default list name to question name if it has not been set
+					}
+					list_name = validStataName(list_name);	// Make sure the list name is a valid stata name
+				}
+
 				
 				/*
 				 * Get the labels if language has been specified
@@ -587,7 +584,7 @@ public class QueryGenerator {
 				if(!language.equals("none")) {
 					label = getQuestionLabel(pstmtQLabel, sId, text_id, language);
 					// Get the list labels if this is a select question
-					if(qType != null && qType.equals("select1")) {
+					if(type != null && type.startsWith("select")) {
 						optionListLabels = new ArrayList<OptionDesc> ();
 						needsReplace = getListLabels(pstmtListLabels, sId, qId, language, optionListLabels);
 					}
@@ -604,15 +601,15 @@ public class QueryGenerator {
 						|| format.equals("thingsat") || format.equals("xlsx"))) {
 					if(sqlDesc.geometry_type.equals("wkbPoint") && (format.equals("csv") || format.equals("stata") || format.equals("spss")) ) {		// Split location into Lon, Lat
 						colBuf.append("ST_Y(" + form.table + "." + name + ") as lat, ST_X(" + form.table + "." + name + ") as lon");
-						sqlDesc.colNames.add(new ColDesc("lat", type, qType, label, null, false, col.question_name, null, false, col.humanName));
-						sqlDesc.colNames.add(new ColDesc("lon", type, qType, label, null, false, col.question_name, null, false, col.humanName));
+						sqlDesc.colNames.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, col.humanName));
+						sqlDesc.colNames.add(new ColDesc("lon", type, type, label, null, false, col.question_name, null, false, col.humanName));
 					} else {																								// Use well known text
 						colBuf.append("ST_AsText(" + form.table + "." + name + ") as the_geom");
-						sqlDesc.colNames.add(new ColDesc("the_geom", type, qType, label, null, false, col.question_name, null, false, col.humanName));
+						sqlDesc.colNames.add(new ColDesc("the_geom", type, type, label, null, false, col.question_name, null, false, col.humanName));
 					}
 				} else {
 				
-					if(qType != null && (qType.equals("date") || qType.equals("dateTime"))) {
+					if(type != null && (type.equals("date") || type.equals("dateTime"))) {
 						colBuf.append("to_char(");
 					} else if(type.equals("timestamptz")) {	// Return all timestamps at UTC with no time zone
 						colBuf.append("timezone('UTC', "); 
@@ -624,9 +621,9 @@ public class QueryGenerator {
 						colBuf.append(form.table + "." + name);
 					}
 				
-					if(qType != null && qType.equals("date")) {
+					if(type != null && type.equals("date")) {
 						colBuf.append(", 'YYYY-MM-DD')");
-					} else if(qType != null && qType.equals("dateTime")) {
+					} else if(type != null && type.equals("dateTime")) {
 						colBuf.append(", 'YYYY-MM-DD HH24:MI:SS')");
 					} else if(type.equals("timestamptz")) { 
 						colBuf.append(")");
@@ -647,7 +644,7 @@ public class QueryGenerator {
 						colBuf.append(form.surveyLevel);	// Differentiate questions from different surveys
 					}
 					
-					sqlDesc.colNames.add(new ColDesc(name, type, qType, label, 
+					sqlDesc.colNames.add(new ColDesc(name, type, type, label, 
 							optionListLabels, needsReplace, col.question_name,
 							col.choices, col.compressed, col.humanName));
 					sqlDesc.names.add(col.name);
@@ -729,14 +726,17 @@ public class QueryGenerator {
 	private static String getQuestionLabel(PreparedStatement pstmt,int sId, String text_id, String language) throws SQLException {
 		String label = null;
 		
-		pstmt.setInt(1, sId);
-		pstmt.setString(2, text_id);
-		pstmt.setString(3, language);
-		
-		ResultSet rs = pstmt.executeQuery();
-		if(rs.next()) {
-			label = rs.getString(1);
-		}
+		//if(text_id != null) {
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, text_id);
+			pstmt.setString(3, language);
+			System.out.println("Get label: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				label = rs.getString(1);
+				System.out.println("Label: " + label);
+			}
+		//}
 		return label;
 	}
 	

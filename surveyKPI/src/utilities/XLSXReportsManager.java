@@ -206,7 +206,11 @@ public class XLSXReportsManager {
 							for(int i = 0; i < item.choices.size(); i++) {
 								Cell cell = headerRow.createCell(colNumber++);
 								cell.setCellStyle(headerStyle);
-								cell.setCellValue(values.label + " - " + item.choices.get(i).k);
+								String label = item.choices.get(i).k;
+								if(i < item.optionLabels.size()) {
+									label = item.optionLabels.get(i).label;
+								}
+								cell.setCellValue(values.label + " - " + label);
 							}
 						} else if(item.qType != null && item.qType.equals("select1") && item.optionLabels != null) {
 							StringBuffer label = null;
