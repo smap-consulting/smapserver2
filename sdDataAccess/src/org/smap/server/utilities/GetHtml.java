@@ -176,7 +176,7 @@ public class GetHtml {
 		ArrayList<MetaItem> preloads = survey.meta;
 		for(MetaItem mi : preloads) {
 			if(mi.isPreload) {
-				paths.put(mi.name, "/smap/" + mi.name);
+				paths.put(mi.name, "/main/" + mi.name);
 			}
 		}
 		

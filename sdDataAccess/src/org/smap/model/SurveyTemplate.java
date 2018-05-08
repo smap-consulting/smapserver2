@@ -1,6 +1,5 @@
 package org.smap.model;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -14,12 +13,9 @@ import java.util.logging.Logger;
 import java.util.Set;
 import java.util.Vector;
 
-import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.model.ChangeItem;
-import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.server.entities.Form;
@@ -1270,7 +1266,7 @@ public class SurveyTemplate {
 			if(preloads != null) {
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
-						questionPaths.put(mi.name, "/smap/" + mi.name);
+						questionPaths.put(mi.name, "/main/" + mi.name);
 					}
 				}
 			}
@@ -1654,88 +1650,4 @@ public class SurveyTemplate {
 		}
 	}
 	
-	/*
-	 * Add the options from the csv file
-	 *
-	public void writeExternalChoices() {
-		
-		org.smap.sdal.managers.SurveyManager sm = new org.smap.sdal.managers.SurveyManager(localisation);
-		List<Question> questionList = new ArrayList<Question>(questions.values());
-		Connection connectionSD = org.smap.sdal.Utilities.SDDataSource.getConnection("fieldManager-SurveyTemplate");
-		Connection cResults = org.smap.sdal.Utilities.ResultsDataSource.getConnection("fieldManager-SurveyTemplate");
-		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
-
-		try {
-			for(Question q : questionList) {
-	
-				if(q.getType().startsWith("select")) {
-					
-					// Check to see if this appearance references a manifest file
-					String appearance = q.getAppearance(false, null);
-					if(appearance != null && appearance.toLowerCase().trim().contains("search(")) {
-						// Yes it references a manifest
-						
-						int idx1 = appearance.indexOf('(');
-						int idx2 = appearance.indexOf(')');
-						if(idx1 > 0 && idx2 > idx1) {
-							String criteriaString = appearance.substring(idx1 + 1, idx2);
-							
-							String criteria [] = criteriaString.split(",");
-							if(criteria.length > 0) {
-								
-								if(criteria[0] != null && criteria[0].length() > 2) {	// allow for quotes
-									String filename = criteria[0].trim();
-									filename = filename.substring(1, filename.length() -1);
-									filename += ".csv";
-									//log.info("We have found a manifest link to " + filename);
-									
-									ChangeSet cs = new ChangeSet();
-									cs.changeType = "option";
-									cs.source = "file";
-									cs.items = new ArrayList<ChangeItem> ();
-									changes.add(cs);
-	
-									int oId = org.smap.sdal.Utilities.GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);
-					
-									String filepath = basePath + "/media/organisation/" + oId + "/" + filename;		
-									File file = new File(filepath);
-	
-									try {
-										GeneralUtilityMethods.getOptionsFromFile(
-											connectionSD,
-											localisation,
-											user,
-											survey.getId(),
-											cs.items,
-											file,
-											null,
-											filename,
-											q.getName(),
-											q.getListId(),
-											q.getId(),				
-											"select",
-											appearance);
-									} catch (ApplicationWarning w) {
-										// ignore warnings
-									}
-					
-								}
-							}
-						}
-					}
-				}
-			}
-			
-			sm.applyChangeSetArray(connectionSD, cResults, survey.getId(), user, changes, false);
-			
-		} catch(Exception e) {
-			// Record exception but otherwise ignore
-			e.printStackTrace();
-		} finally {
-			org.smap.sdal.Utilities.SDDataSource.closeConnection("fieldManager-SurveyTemplate", connectionSD);
-			org.smap.sdal.Utilities.ResultsDataSource.closeConnection("fieldManager-SurveyTemplate", cResults);
-		}
-			
-	}
-	*/
 }
