@@ -35,6 +35,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.commons.io.FileUtils;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -954,6 +955,7 @@ public class Surveys extends Application {
 	    log.info("userevent: " + request.getRemoteUser() + " : saving pdf template : " + filePath);
 	    
 	    try {
+	    	FileUtils.forceMkdir(new File(folderPath));
 			pdfItem.write(savedFile);
 		} catch (Exception e) {
 			e.printStackTrace();
