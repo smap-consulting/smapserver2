@@ -1,6 +1,8 @@
 package surveyKPI;
 
 
+import javax.servlet.ServletInputStream;
+
 /*
 This file is part of SMAP.
 
@@ -505,6 +507,9 @@ public class UploadFiles extends Application {
 			/*
 			 * Parse the request
 			 */
+			//ServletInputStream is = request.getInputStream();
+			//java.util.Scanner sx = new java.util.Scanner(is).useDelimiter("\\A");
+		    //System.out.println(sx.hasNext() ? sx.next() : "");
 			List<?> items = uploadHandler.parseRequest(request);
 			Iterator<?> itr = items.iterator();
 			while(itr.hasNext()) {
