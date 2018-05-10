@@ -5,7 +5,6 @@ import java.util.ArrayList;
 
 public class TaskProperties {
 	public int id;
-	public String type;
 	public String name;
 	public String pid;				// Project id
 	public String url;

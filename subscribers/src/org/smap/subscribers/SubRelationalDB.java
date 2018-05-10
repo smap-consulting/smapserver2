@@ -302,7 +302,8 @@ public class SubRelationalDB extends Subscriber {
 				ident = rs.getString(1);
 				instanceId = rs.getString(2);
 				pId = rs.getInt(3);
-
+				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
+				
 				// Apply notifications
 				String urlprefix = "https://" + server + "/";
 				NotificationManager nm = new NotificationManager(localisation);
@@ -330,6 +331,7 @@ public class SubRelationalDB extends Subscriber {
 						server,
 						instanceId,
 						pId,
+						pName,
 						remoteUser
 						);
 				

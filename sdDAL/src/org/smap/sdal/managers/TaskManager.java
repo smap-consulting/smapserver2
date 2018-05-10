@@ -82,6 +82,8 @@ public class TaskManager {
 		String instanceName = null;			// data from task look up
 		Timestamp taskStart = null;			// Start time
 	}
+	
+
 
 	public TaskManager(ResourceBundle l) {
 		localisation = l;
@@ -136,7 +138,7 @@ public class TaskManager {
 
 			pstmtComplete = sd.prepareStatement(sqlComplete);	
 			pstmtComplete.setInt(1, projectId);
-			log.info("Get task groups totals: " + pstmtComplete.toString());
+			log.info("Get task groups totals complete: " + pstmtComplete.toString());
 			ResultSet rsComplete = pstmtComplete.executeQuery();
 
 			while (rs.next()) {
@@ -234,8 +236,6 @@ public class TaskManager {
 			int userId) throws Exception {
 
 		String sql = "select t.id as t_id, "
-				+ "t.type as type,"
-				+ "t.geo_type as geo_type,"
 				+ "t.title as name,"
 				+ "t.schedule_at as schedule_at,"
 				+ "t.schedule_finish as schedule_finish,"
@@ -249,40 +249,30 @@ public class TaskManager {
 				+ "t.repeat as repeat,"
 				+ "t.repeat_count as repeat_count,"
 				+ "t.url as url,"
-				+ "s.s_id as form_id,"
-				+ "s.display_name as form_name,"
+				+ "t.form_id,"
+				+ "t.survey_name as form_name,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
-				+ "a.id as a_id,"
 				+ "a.status as status,"
-				+ "u.id as assignee,"
-				+ "u.name as assignee_name,"
-				+ "u.ident as assignee_ident "
+				+ "a.assignee,"
+				+ "a.assignee_name,"
+				+ "u.ident as assignee_ident, "				// Get current user ident for notification
+				+ "ST_AsGeoJSON(t.geo_point) as geom, "
+				+ "ST_AsText(t.geo_point) as wkt "
 				+ "from tasks t "
+				+ "left outer join users u "
+				+ "on t.assignee = u.id "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
 				+ "left outer join assignments a "
 				+ "on a.task_id = t.id " 
-				+ "left outer join users u "
-				+ "on a.assignee = u.id "
 				+ "where t.tg_id = ? "
 				+ "order by t.schedule_at desc, t.id desc;";
 		PreparedStatement pstmt = null;
 
-		String sqlPoint = "select ST_AsGeoJSON(geo_point), ST_AsText(geo_point) from tasks where id = ?;";
-		PreparedStatement pstmtPoint = null;
-		String sqlPoly = "select ST_AsGeoJSON(geo_polygon) from tasks where id = ?;";
-		PreparedStatement pstmtLine = null;
-		String sqlLine = "select ST_AsGeoJSON(geo_linestring) from tasks where id = ?;";
-		PreparedStatement pstmtPoly = null;
-
 		TaskListGeoJson tl = new TaskListGeoJson();
 
 		try {
-			// Prepare geo queries
-			pstmtPoint = sd.prepareStatement(sqlPoint);
-			pstmtLine = sd.prepareStatement(sqlLine);
-			pstmtPoly = sd.prepareStatement(sqlPoly);
 
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, taskGroupId);
@@ -314,7 +304,6 @@ public class TaskManager {
 				tf.properties = new TaskProperties();
 
 				tf.properties.id = rs.getInt("t_id");
-				tf.properties.type = rs.getString("type");
 				tf.properties.name = rs.getString("name");
 				tf.properties.from = rs.getTimestamp("schedule_at");
 				tf.properties.to = rs.getTimestamp("schedule_finish");
@@ -338,29 +327,8 @@ public class TaskManager {
 				tf.properties.email = rs.getString("email");
 				tf.properties.repeat = rs.getBoolean("repeat");
 				tf.properties.repeat_count = rs.getInt("repeat_count");
-
-				// Add geometry
-				String geo_type = rs.getString("geo_type");
-				ResultSet rsGeo = null;
-				if(geo_type != null) {
-					if(geo_type.equals("POINT")) {
-						pstmtPoint.setInt(1, tf.properties.id);
-						rsGeo = pstmtPoint.executeQuery();
-					} else if (geo_type.equals("POLYGON")) {
-						pstmtPoly.setInt(1, tf.properties.id);
-						rsGeo = pstmtPoly.executeQuery();
-					} else if (geo_type.equals("LINESTRING")) {
-						pstmtLine.setInt(1, tf.properties.id);
-						rsGeo = pstmtLine.executeQuery();
-					}
-				}
-				if(rsGeo != null && rsGeo.next()) {
-					tf.geometry = parser.parse(rsGeo.getString(1)).getAsJsonObject();	
-					if(geo_type.equals("POINT")) {
-						tf.properties.location = rsGeo.getString(2);
-					}
-				}
-
+				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
+				tf.properties.location = rs.getString("wkt");
 
 				tl.features.add(tf);
 			}
@@ -382,7 +350,9 @@ public class TaskManager {
 	public void writeTaskList(Connection sd, 
 			TaskListGeoJson tl,
 			int pId,
+			String pName,
 			int tgId,
+			String tgName,
 			String urlPrefix,
 			boolean updateResources,
 			int oId) throws Exception {
@@ -392,7 +362,7 @@ public class TaskManager {
 		ArrayList<TaskFeature> features = tl.features;
 		for(int i = 0; i < features.size(); i++) {
 			TaskFeature tf = features.get(i);
-			writeTask(sd, pId, tgId, tf, urlPrefix, updateResources, oId);
+			writeTask(sd, pId, pName, tgId, tgName, tf, urlPrefix, updateResources, oId);
 			if(tf.properties.assignee_ident != null) {
 				userIdents.put(tf.properties.assignee_ident, tf.properties.assignee_ident);
 			}
@@ -502,15 +472,17 @@ public class TaskManager {
 	/*
 	 * Check the task group rules and add any new tasks based on this submission
 	 */
-	public void updateTasksForSubmission(Connection sd, 
+	public void updateTasksForSubmission(
+			Connection sd, 
 			Connection cResults,
 			int source_s_id, 
 			String hostname,
 			String instanceId,
 			int pId,
+			String pName,
 			String remoteUser) throws Exception {
 
-		String sqlGetRules = "select tg_id, rule, address_params, target_s_id from task_group where source_s_id = ?;";
+		String sqlGetRules = "select tg_id, tg_name, rule, address_params, target_s_id from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
 		SurveyManager sm = new SurveyManager(localisation);
@@ -533,15 +505,16 @@ public class TaskManager {
 				}
 
 				int tgId = rs.getInt(1);
+				String tgName = rs.getString(2);
 				AssignFromSurvey as = new Gson().fromJson(rs.getString(2), AssignFromSurvey.class);
-				String addressString = rs.getString(3);
+				String addressString = rs.getString(4);
 				ArrayList<TaskAddressSettings> address = null;
 				if(addressString != null) {
 					address = new Gson().fromJson(addressString, new TypeToken<ArrayList<TaskAddressSettings>>() {}.getType());
 				}
 				int target_s_id = rs.getInt(4);
 
-				log.info("Assign Survey String: " + rs.getString(2));
+				log.info("Assign Survey String: " + rs.getString(3));
 				log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
 
 				/*
@@ -568,7 +541,7 @@ public class TaskManager {
 							" task survey: " + target_s_id);
 					TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 							source_s_id, instanceId, as, address); // Get data from new submission
-					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, pId, source_s_id, 
+					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, tgName, pId, pName, source_s_id, 
 							target_s_id, tid, instanceId);  // Write to the database
 				}
 			}
@@ -579,65 +552,30 @@ public class TaskManager {
 
 		}
 
-
 	}
 
 	/*
 	 * Write the task into the task table
 	 */
-	public void writeTaskCreatedFromSurveyResults(Connection sd,
+	public void writeTaskCreatedFromSurveyResults(
+			Connection sd,
 			AssignFromSurvey as,
 			String hostname,
 			int tgId,
+			String tgName,
 			int pId,
+			String pName,
 			int source_s_id,
 			int target_s_id,
 			TaskInstanceData tid,			// data from submission
 			String instanceId	
 			) throws Exception {
 
-		String insertSql1 = "insert into tasks (" +
-				"p_id, " +
-				"tg_id, " +
-				"type, " +
-				"title, " +
-				"form_id, " +
-				"url, " +
-				"geo_type, ";
 
-		String insertSql2 =	
-				"initial_data,"
-						+ "update_id,"
-						+ "address,"
-						+ "schedule_at,"
-						+ "schedule_finish,"
-						+ "location_trigger) "
-						+ "values ("
-						+ "?, " 
-						+ "?, " 
-						+ "'xform', "
-						+ "?,"
-						+ "?,"
-						+ "?,"
-						+ "?,"	
-						+ "ST_GeomFromText(?, 4326), "
-						+ "?,"
-						+ "?,"
-						+ "?,"
-						+ "?,"		// start		
-						+ "?,"		// finish		
-						+ "?);";	
 
-		String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
-		PreparedStatement pstmtAssign = sd.prepareStatement(assignSQL);
-
-		String roleSQL = "select u_id from user_role where r_id = ?";
-		PreparedStatement pstmtRoles = sd.prepareStatement(roleSQL);
-		
-		String roleSQL2 = "select u_id from user_role where r_id = ? and u_id in "
-				+ "(select u_id from user_role where r_id = ?)";
-		PreparedStatement pstmtRoles2 = sd.prepareStatement(roleSQL2);
-
+		PreparedStatement pstmtAssign = null;
+		PreparedStatement pstmtRoles = null;
+		PreparedStatement pstmtRoles2 = null;
 		PreparedStatement pstmt = null;
 		
 		String title = null;
@@ -651,15 +589,17 @@ public class TaskManager {
 
 		try {
 
+			pstmtAssign = getInsertAssignmentStatement(sd);
+			pstmtRoles = getRoles(sd);
+			pstmtRoles2 = getRoles2(sd);
+			
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
-			String geoType = null;
-			String sql = null;
 			String initial_data_url = null;
 			String targetInstanceId = null;
 
 			/*
-			 * Set data to be update
+			 * Set data to be updated
 			 */
 			if(as.update_results) {
 				initial_data_url = "http://" + hostname + "/instanceXML/" + 
@@ -678,19 +618,6 @@ public class TaskManager {
 					location = location.replaceFirst("LINESTRING", "POINT");
 				}
 			}	 
-
-			if(location.startsWith("POINT")) {
-				sql = insertSql1 + "geo_point," + insertSql2;
-				geoType = "POINT";
-			} else if(location.startsWith("POLYGON")) {
-				sql = insertSql1 + "geo_polygon," + insertSql2;
-				geoType = "POLYGON";
-			} else if(location.startsWith("LINESTRING")) {
-				sql = insertSql1 + "geo_linestring," + insertSql2;
-				geoType = "LINESTRING";
-			} else {
-				throw new Exception ("Unknown location type: " + location);
-			}
 			
 			/*
 			 * Start and finish time
@@ -701,24 +628,25 @@ public class TaskManager {
 			/*
 			 * Write the task to the database
 			 */
-			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-			pstmt.setInt(1, pId);
-			pstmt.setInt(2,  tgId);
-			pstmt.setString(3,  title);
-			pstmt.setInt(4, target_s_id);
-			pstmt.setString(5, formUrl);
-			pstmt.setString(6, geoType);
-			pstmt.setString(7, location);
-			pstmt.setString(8, initial_data_url);	
-			pstmt.setString(9, targetInstanceId);
-			pstmt.setString(10, tid.address);
-			pstmt.setTimestamp(11, taskStart);
-			pstmt.setTimestamp(12, taskFinish);
-			pstmt.setString(13, tid.locationTrigger);
-
-			log.info("Create a new task: " + pstmt.toString());
-			pstmt.executeUpdate();
+			pstmt = getInsertTaskStatement(sd);
+			insertTask(
+					pstmt,
+					pId,
+					pName,
+					tgId,
+					tgName,
+					title,
+					target_s_id,
+					formUrl,
+					initial_data_url,
+					location,
+					targetInstanceId,
+					tid.address,
+					taskStart,
+					taskFinish,
+					tid.locationTrigger,
+					false,
+					null);
 
 			/*
 			 * Assign the user to the new task
@@ -742,52 +670,9 @@ public class TaskManager {
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					int taskId = rsKeys.getInt(1);
-					pstmtAssign.setString(2, "accepted");
-					
-					if(userId > 0) {		// Assign the user to the new task
-
-						pstmtAssign.setInt(1, userId);
-						pstmtAssign.setInt(3, taskId);
-						log.info("Assign user: " + pstmtAssign.toString());
-						pstmtAssign.executeUpdate();
-						
-						// Notify the user of their new assignment
-						String userIdent = GeneralUtilityMethods.getUserIdent(sd, as.user_id);
-						MessagingManager mm = new MessagingManager();
-						mm.userChange(sd, userIdent);	
-
-					} else if(roleId > 0) {		// Assign all users with the current role
-
-						ResultSet rsRoles = null;
-						if(fixedRoleId > 0) {
-							pstmtRoles2.setInt(1, roleId);
-							pstmtRoles2.setInt(2, fixedRoleId);
-							log.info("Get roles2: " + pstmtRoles2.toString());
-							rsRoles = pstmtRoles2.executeQuery();
-						} else {
-							pstmtRoles.setInt(1, roleId);
-							log.info("Get roles: " + pstmtRoles.toString());
-							rsRoles = pstmtRoles.executeQuery();
-						}	
-						
-						int count = 0;
-						while(rsRoles.next()) {
-							count++;
-							pstmtAssign.setInt(1, rsRoles.getInt(1));													
-							pstmtAssign.setInt(3, taskId);
-							log.info("Assign user from role: " + pstmtAssign.toString());
-							pstmtAssign.executeUpdate();
-							
-							// Notify the user of their new assignment
-							String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
-							MessagingManager mm = new MessagingManager();
-							mm.userChange(sd, userIdent);	
-						}
-						if(count == 0) {
-							log.info("No matching users found");
-						}
-					} 
-				}	
+					applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, fixedRoleId);
+				}
+				if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
 
 			} else {
 				log.info("xxxxxxx No matching role");
@@ -910,52 +795,19 @@ public class TaskManager {
 	/*
 	 * Create a new task
 	 */
-	public void writeTask(Connection sd, int pId, int tgId, 
+	public void writeTask(Connection sd, 
+			int pId, 
+			String pName,
+			int tgId,
+			String tgName,
 			TaskFeature tf,
 			String urlPrefix,
 			boolean updateResources,
 			int oId	
 			) throws Exception {
 
-		String insertSql1 = "insert into tasks (" +
-				"p_id, " +
-				"tg_id, " +
-				"type, " +
-				"title, " +
-				"form_id, " +
-				"url, " +
-				"geo_type, ";
-
-		String insertSql2 =	
-				"initial_data,"
-						+ "update_id,"
-						+ "address,"
-						+ "schedule_at,"
-						+ "schedule_finish,"
-						+ "location_trigger,"
-						+ "repeat,"
-						+ "guidance) "
-						+ "values ("
-						+ "?, "
-						+ "?, "
-						+ "'xform', "
-						+ "?, "
-						+ "?, "
-						+ "?, "
-						+ "?, "	
-						+ "ST_GeomFromText(?, 4326), "
-						+ "?, "
-						+ "?, "
-						+ "?,"
-						+ "?,"
-						+ "?,"
-						+ "?,"
-						+ "?,"
-						+ "?);";	
 		PreparedStatement pstmt = null;
-
-		String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?);";
-		PreparedStatement pstmtAssign = sd.prepareStatement(assignSQL);
+		PreparedStatement pstmtAssign = null;
 
 		String sqlGetFormIdFromName = "select s_id from survey where display_name = ? and p_id = ? and deleted = 'false'";
 		PreparedStatement pstmtGetFormId = sd.prepareStatement(sqlGetFormIdFromName);
@@ -1023,8 +875,6 @@ public class TaskManager {
 				}
 			}
 
-
-
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tf.properties.form_id);
 			String webformUrl = null;
 			if(tf.properties.generate_user) {
@@ -1034,8 +884,6 @@ public class TaskManager {
 			} else {
 				webformUrl = urlPrefix + "/webForm/" + targetSurveyIdent;
 			}
-			String geoType = null;
-			String sql = null;
 
 			/*
 			 * 4. Location
@@ -1050,49 +898,33 @@ public class TaskManager {
 				}
 			}	 
 
-			if(location.startsWith("POINT")) {
-				sql = insertSql1 + "geo_point," + insertSql2;
-				geoType = "POINT";
-			} else if(location.startsWith("POLYGON")) {
-				sql = insertSql1 + "geo_polygon," + insertSql2;
-				geoType = "POLYGON";
-			} else if(location.startsWith("LINESTRING")) {
-				sql = insertSql1 + "geo_linestring," + insertSql2;
-				geoType = "LINESTRING";
-			} else {
-				throw new Exception ("Unknown location type: " + location);
-			}
-
-
 			/*
 			 * 5. Write the task to the database
 			 */
-			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-
-			pstmt.setInt(1, pId);
-			pstmt.setInt(2,  tgId);
-			pstmt.setString(3,  tf.properties.name);
-			pstmt.setInt(4, tf.properties.form_id);
-			pstmt.setString(5, webformUrl);
-			pstmt.setString(6, geoType);
-			pstmt.setString(7, location);
-			pstmt.setString(8, tf.properties.initial_data);	
-			pstmt.setString(9, tf.properties.update_id);
-			pstmt.setString(10, tf.properties.address);
 			if(tf.properties.from == null) {
 				Calendar cal = Calendar.getInstance();
 				cal.add(Calendar.HOUR, 7 * 24);
 				tf.properties.from = new Timestamp(cal.getTime().getTime());
 			}
-			pstmt.setTimestamp(11, tf.properties.from);
-
-			pstmt.setTimestamp(12, tf.properties.to);
-			pstmt.setString(13, tf.properties.location_trigger);
-			pstmt.setBoolean(14, tf.properties.repeat);
-			pstmt.setString(15, tf.properties.guidance);
-
-			log.info("Insert Tasks: " + pstmt.toString());
-			pstmt.executeUpdate();
+			pstmt = getInsertTaskStatement(sd);
+			insertTask(
+					pstmt,
+					pId,
+					pName,
+					tgId,
+					tgName,
+					tf.properties.name,
+					tf.properties.form_id,
+					webformUrl,
+					tf.properties.initial_data,
+					location,
+					tf.properties.update_id,
+					tf.properties.address,
+					tf.properties.from,
+					tf.properties.to,
+					tf.properties.location_trigger,
+					tf.properties.repeat,
+					tf.properties.guidance);
 
 			/*
 			 * 6. Assign the user to the new task
@@ -1103,14 +935,8 @@ public class TaskManager {
 				if(keys.next()) {
 					int taskId = keys.getInt(1);
 
-					pstmtAssign = sd.prepareStatement(assignSQL);
-					pstmtAssign.setInt(1, tf.properties.assignee);
-					pstmtAssign.setString(2, "accepted");
-					pstmtAssign.setInt(3, taskId);
-
-					log.info("Assign user to task:" + pstmtAssign.toString());
-
-					pstmtAssign.executeUpdate();
+					pstmtAssign = getInsertAssignmentStatement(sd);
+					insertAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId);
 
 					// Create a notification to alert the new user of the change to the task details
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, tf.properties.assignee);
@@ -1144,8 +970,6 @@ public class TaskManager {
 					}
 				}
 			}
-
-
 
 		} finally {
 			if(pstmt != null) try {pstmt.close(); } catch(SQLException e) {};
@@ -1514,6 +1338,205 @@ public class TaskManager {
 		}
 		return taskFinish;
 	}
-}
+	
+	/*
+	 * Two functions for inserting a task
+	 *   1. Return a prepared statement
+	 *   2. Apply the insert
+	 */
+	
+	/*
+	 * Get the preparedStatement
+	 */
+	public PreparedStatement getInsertTaskStatement(Connection sd) throws SQLException {
 
+		String sql = "insert into tasks ("
+				+ "p_id, "
+				+ "p_name, "
+				+ "tg_id, "
+				+ "tg_name, "
+				+ "title, "
+				+ "form_id, "
+				+ "survey_name, "
+				+ "url, "
+				+ "initial_data,"
+				+ "geo_point,"
+				+ "update_id,"
+				+ "address,"
+				+ "schedule_at,"
+				+ "schedule_finish,"
+				+ "location_trigger,"
+				+ "repeat,"
+				+ "guidance) "
+				+ "values ("
+				+ "?, "		// p_id
+				+ "?, "		// p_name
+				+ "?, "		// tg_id
+				+ "?, "		// tg_name
+				+ "?, "		// title
+				+ "?, "		// form_id
+				+ "(select display_name from survey where s_id = ?), "		// Survey name
+				+ "?, "		// url
+				+ "?, "		// initial_data	
+				+ "ST_GeomFromText(?, 4326), "	// geo_point
+				+ "?, "		// update_id
+				+ "?, "		// address
+				+ "?,"		// schedule_at
+				+ "?,"		// schedule_finish
+				+ "?,"		// location_trigger
+				+ "?,"		// repeat
+				+ "?)";		// guidance
+		
+		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+	}
+	/*
+	 * Insert a task
+	 */
+	public int insertTask(
+			PreparedStatement pstmt,
+			int pId,
+			String pName,
+			int tgId,
+			String tgName,
+			String title,
+			int target_s_id,
+			String formUrl,
+			String initial_data_url,
+			String location,
+			String targetInstanceId,
+			String address,
+			Timestamp taskStart,
+			Timestamp taskFinish,
+			String locationTrigger,
+			boolean repeat,
+			String guidance) throws SQLException {
+		
+		pstmt.setInt(1, pId);
+		pstmt.setString(2,  pName);
+		pstmt.setInt(3,  tgId);
+		pstmt.setString(4,  tgName);
+		pstmt.setString(5,  title);
+		pstmt.setInt(6, target_s_id);			// form id
+		pstmt.setInt(7, target_s_id);			// For survey name
+		pstmt.setString(8, formUrl);				
+		pstmt.setString(9, initial_data_url);	// initial_data
+		pstmt.setString(10, location);			// geopoint
+		pstmt.setString(11, targetInstanceId);	// update id
+		pstmt.setString(12, address);
+		pstmt.setTimestamp(13, taskStart);
+		pstmt.setTimestamp(14, taskFinish);
+		pstmt.setString(15, locationTrigger);
+		pstmt.setBoolean(16, repeat);	// repeat
+		pstmt.setString(17, guidance);	// guidance
+
+		log.info("Create a new task: " + pstmt.toString());
+		return(pstmt.executeUpdate());
+	}
+	
+	/*
+	 * Two functions for inserting an assignment
+	 *   1. Return a prepared statement
+	 *   2. Apply the insert
+	 */
+	
+	/*
+	 * Get the preparedStatement
+	 */
+	public PreparedStatement getInsertAssignmentStatement(Connection sd) throws SQLException {
+
+		String sql = "insert into assignments ("
+				+ "assignee, "
+				+ "assignee_name,"
+				+ "status, "
+				+ "task_id,"
+				+ "assigned_date) "
+				+ "values (?, (select name from users where id = ?), ?, ?, now())";
+		
+		return sd.prepareStatement(sql);
+	}
+	
+	/*
+	 * Insert an assignment
+	 */
+	public int insertAssignment(
+			PreparedStatement pstmt,
+			int assignee,
+			String status,
+			int task_id) throws SQLException {
+		
+		pstmt.setInt(1, assignee);
+		pstmt.setInt(2,  assignee);
+		pstmt.setString(3,  status);			// default the status to accepted for new assignments
+		pstmt.setInt(4,  task_id);
+
+		log.info("Create a new assignment: " + pstmt.toString());
+		return(pstmt.executeUpdate());
+	}
+	
+	/*
+	 * Create all assignments for specific user id or a role
+	 */
+	public void applyAllAssignments(
+			Connection sd,
+			PreparedStatement pstmtRoles, 
+			PreparedStatement pstmtRoles2,
+			PreparedStatement pstmtAssign, 
+			int taskId,
+			int userId, 
+			int roleId,
+			int fixedRoleId) throws SQLException {
+
+		String status = "accepted";
+		
+		if(userId > 0) {		// Assign the user to the new task
+
+			insertAssignment(pstmtAssign, userId, status, taskId);
+			
+			// Notify the user of their new assignment
+			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
+			MessagingManager mm = new MessagingManager();
+			mm.userChange(sd, userIdent);	
+
+		} else if(roleId > 0) {		// Assign all users with the current role
+
+			ResultSet rsRoles = null;
+			if(fixedRoleId > 0) {
+				pstmtRoles2.setInt(1, roleId);
+				pstmtRoles2.setInt(2, fixedRoleId);
+				log.info("Get roles2: " + pstmtRoles2.toString());
+				rsRoles = pstmtRoles2.executeQuery();
+			} else {
+				pstmtRoles.setInt(1, roleId);
+				log.info("Get roles: " + pstmtRoles.toString());
+				rsRoles = pstmtRoles.executeQuery();
+			}	
+			
+			int count = 0;
+			while(rsRoles.next()) {
+				count++;
+		
+				insertAssignment(pstmtAssign, rsRoles.getInt(1), status, taskId);
+				
+				// Notify the user of their new assignment
+				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
+				MessagingManager mm = new MessagingManager();
+				mm.userChange(sd, userIdent);	
+			}
+			if(count == 0) {
+				log.info("No matching users found");
+			}
+		} 
+	}
+	
+	public PreparedStatement getRoles(Connection sd) throws SQLException {
+		String sql = "select u_id from user_role where r_id = ?";
+		return sd.prepareStatement(sql);
+	}
+	
+	public PreparedStatement getRoles2(Connection sd) throws SQLException {
+		String sql = "select u_id from user_role where r_id = ? and u_id in "
+				+ "(select u_id from user_role where r_id = ?)";
+		return sd.prepareStatement(sql);
+	}
+}
 

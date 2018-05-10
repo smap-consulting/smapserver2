@@ -122,6 +122,7 @@ public class AllAssignments extends Application {
 
 		Response response = null;
 		ArrayList<TaskAddress> addressArray = null;
+		String projectName = null;
 
 
 		log.info("++++++++++++++++++++++++++++++++++++++ Assignment:" + settings);
@@ -163,17 +164,19 @@ public class AllAssignments extends Application {
 		try {
 			cResults = ResultsDataSource.getConnection("surveyKPI-AllAssignments");
 			log.info("Set autocommit sd false");
-			sd.setAutoCommit(false);
 
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			projectName = GeneralUtilityMethods.getProjectName(sd, projectId);
 			SurveyManager sm = new SurveyManager(localisation);
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
 					null, false, false, false, false, false, "real", false, false, superUser, "geojson");	
+			
+			sd.setAutoCommit(false);
 			
 			/*
 			 * Create the task group if an existing task group was not specified
@@ -237,47 +240,11 @@ public class AllAssignments extends Application {
 			if(as.target_survey_id > 0 && as.add_current) {
 				String sql = null;
 				ResultSet resultSet = null;
-				String insertSql1 = "insert into tasks (" +
-						"p_id, " +
-						"tg_id, " +
-						"type, " +
-						"title, " +
-						"form_id, " +
-						"url, " +
-						"geo_type, ";
-
-				String insertSql2 =	
-						"initial_data, "
-								+ "update_id,"
-								+ "address,"
-								+ "schedule_at,"
-								+ "schedule_finish,"
-								+ "location_trigger) "
-								+ "values ("
-								+ "?, "
-								+ "?, " 
-								+ "'xform', "
-								+ "?, "
-								+ "?, "
-								+ "?, "
-								+ "?, "	
-								+ "ST_GeomFromText(?, 4326), "
-								+ "?,"
-								+ "?,"
-								+ "?,"
-								+ "?,"		// start		
-								+ "?,"		// finish
-								+ "?)";		
-
-				String assignSQL = "insert into assignments (assignee, status, task_id) values (?, ?, ?)";
-				pstmtAssign = sd.prepareStatement(assignSQL);
-				
-				String roleSQL = "select u_id from user_role where r_id = ?";
-				pstmtRoles = sd.prepareStatement(roleSQL);
-				
-				String roleSQL2 = "select u_id from user_role where r_id = ? and u_id in "
-						+ "(select u_id from user_role where r_id = ?)";
-				pstmtRoles2 = sd.prepareStatement(roleSQL2);
+				TaskManager tm = new TaskManager(localisation);
+				pstmtInsert = tm.getInsertTaskStatement(sd);
+				pstmtAssign = tm.getInsertAssignmentStatement(sd);
+				pstmtRoles = tm.getRoles(sd);
+				pstmtRoles2 = tm.getRoles2(sd);				
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
 				pstmtCheckGeom = cResults.prepareStatement(checkGeomSQL);
@@ -546,34 +513,16 @@ public class AllAssignments extends Application {
 
 								log.info("Location: " + location);
 
-								String geoType = null;
-								if(pstmtInsert != null) {pstmtInsert.close();};
-								if(location.startsWith("POINT")) {
-									pstmtInsert = sd.prepareStatement(insertSql1 + "geo_point," + insertSql2, Statement.RETURN_GENERATED_KEYS);
-									geoType = "POINT";
-								} else if(location.startsWith("POLYGON")) {
-									pstmtInsert = sd.prepareStatement(insertSql1 + "geo_polygon," + insertSql2, Statement.RETURN_GENERATED_KEYS);
-									geoType = "POLYGON";
-								} else if(location.startsWith("LINESTRING")) {
-									pstmtInsert = sd.prepareStatement(insertSql1 + "geo_linestring," + insertSql2, Statement.RETURN_GENERATED_KEYS);
-									geoType = "LINESTRING";
-								} else {
-									log.log(Level.SEVERE, "Unknown location type: " + location);
-								}
-								pstmtInsert.setInt(1, projectId);
-								pstmtInsert.setInt(2, taskGroupId);
+								/*
+								 * Create title
+								 */
+								String title = null;
 								if(instanceName == null || instanceName.trim().length() == 0) {
-									pstmtInsert.setString(3, as.project_name + " : " + as.survey_name + " : " + resultSet.getString(1));
+									title = as.project_name + " : " + as.survey_name + " : " + resultSet.getString(1);
 								} else {
-									pstmtInsert.setString(3, instanceName);
+									title = instanceName;
 								}
-								pstmtInsert.setInt(4, as.target_survey_id);
-								pstmtInsert.setString(5, target_survey_url);	
-								pstmtInsert.setString(6, geoType);
-								pstmtInsert.setString(7, location);
-								pstmtInsert.setString(8, initial_data_url);			// Initial data deprecated
-								pstmtInsert.setString(9, instanceId);				// Initial data
-
+								
 								/*
 								 * Create address JSON string
 								 */
@@ -597,27 +546,38 @@ public class AllAssignments extends Application {
 									gson = new GsonBuilder().disableHtmlEscaping().create();
 									addressString = gson.toJson(addressArray); 
 								}
-
-								pstmtInsert.setString(10, addressString);			// Address
 								
+
 								/*
 								 * Start and finish time
 								 */
-								TaskManager tm = new TaskManager(localisation);
 								Timestamp initial = null;
 								if(as.taskStart != -1) {	
 									initial = resultSet.getTimestamp("taskstart");
 								}
 								Timestamp taskStart = tm.getTaskStartTime(as, initial);
-								Timestamp taskFinish = tm.getTaskFinishTime(as, taskStart);				
-								pstmtInsert.setTimestamp(11, taskStart);
-								pstmtInsert.setTimestamp(12, taskFinish);
+								Timestamp taskFinish = tm.getTaskFinishTime(as, taskStart);	
 								
-								pstmtInsert.setString(13, locationTrigger);			// Location that will start task
-								
-								log.info("Insert Task: " + pstmtInsert.toString());
-
-								int count = pstmtInsert.executeUpdate();
+								// Insert the task
+								int count = tm.insertTask(
+										pstmtInsert,
+										projectId,
+										projectName,
+										taskGroupId,
+										as.task_group_name,
+										title,
+										as.target_survey_id,
+										target_survey_url,
+										initial_data_url,
+										location,
+										instanceId,
+										addressString,
+										taskStart,
+										taskFinish,
+										locationTrigger,
+										false,
+										null);
+			
 								if(count != 1) {
 									log.info("Error: Failed to insert task");
 								} else {
@@ -636,32 +596,8 @@ public class AllAssignments extends Application {
 										rsKeys = pstmtInsert.getGeneratedKeys();
 										if(rsKeys.next()) {
 											int taskId = rsKeys.getInt(1);
-											pstmtAssign.setString(2, "accepted");
-											
-											if(userId > 0) {		// Assign the user to the new task
-
-												pstmtAssign.setInt(1, userId);
-												pstmtAssign.setInt(3, taskId);
-												pstmtAssign.executeUpdate();
-
-											} else if(roleId > 0) {		// Assign all users with the current role
-				
-												ResultSet rsRoles = null;
-												if(fixedRoleId > 0) {
-													pstmtRoles2.setInt(1, roleId);
-													pstmtRoles2.setInt(2, fixedRoleId);
-													rsRoles = pstmtRoles2.executeQuery();
-												} else {
-													pstmtRoles.setInt(1, roleId);
-													rsRoles = pstmtRoles.executeQuery();
-												}												
-												
-												while(rsRoles.next()) {
-													pstmtAssign.setInt(1, rsRoles.getInt(1));													
-													pstmtAssign.setInt(3, taskId);
-													pstmtAssign.executeUpdate();
-												}
-											} 
+											tm.applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, fixedRoleId);
+									
 										}
 										if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
 									}
@@ -684,7 +620,6 @@ public class AllAssignments extends Application {
 					// Assume POINT location, TODO POLYGON, LINESTRING
 					if(pstmtInsert != null) {pstmtInsert.close();};
 					String geoType = "POINT";
-					pstmtInsert = sd.prepareStatement(insertSql1 + "geo_point," + insertSql2, Statement.RETURN_GENERATED_KEYS);
 
 					// Create a dummy location if this task does not have one
 					if(as.new_tasks.features.length == 0) {
@@ -701,26 +636,33 @@ public class AllAssignments extends Application {
 						Features f = as.new_tasks.features[i];
 						log.info("Creating task at " + f.geometry.coordinates[0] + " : " + f.geometry.coordinates[1]);
 
-						pstmtInsert.setInt(1, projectId);
-						pstmtInsert.setInt(2, taskGroupId);
 						String title = null;
 						if(f.properties != null && f.properties.title != null && !f.properties.title.equals("null")) {
 							title = as.project_name + " : " + as.survey_name + " : " + f.properties.title;
 						} else {
 							title = as.project_name + " : " + as.survey_name;
 						}
-						pstmtInsert.setString(3, title);
-						pstmtInsert.setInt(4, as.target_survey_id);
-						pstmtInsert.setString(5, target_survey_url);	
-						pstmtInsert.setString(6, "POINT");
-						pstmtInsert.setString(7, "POINT(" + f.geometry.coordinates[0] + " " + f.geometry.coordinates[1] + ")");	// The location
-						pstmtInsert.setString(8, null);			// Initial data url
-						pstmtInsert.setString(9, instanceId);
-						pstmtInsert.setString(10, null);		// Address TBD
-						pstmtInsert.setString(11, locationTrigger);
+						
+						// Insert the task
+						int count = tm.insertTask(
+								pstmtInsert,
+								projectId,
+								projectName,
+								taskGroupId,
+								as.task_group_name,
+								title,
+								as.target_survey_id,
+								target_survey_url,
+								null,		// Initial data url
+								"POINT(" + f.geometry.coordinates[0] + " " + f.geometry.coordinates[1] + ")",
+								instanceId,
+								null,		// address
+								null,
+								null,
+								locationTrigger,
+								false,
+								null);
 
-						log.info("Insert task: " + pstmtInsert.toString()); 
-						int count = pstmtInsert.executeUpdate();
 						if(count != 1) {
 							log.info("Error: Failed to insert task");
 						} else if((f.properties != null && f.properties.userId > 0) || as.user_id > 0) {	// Assign the user to the new task
@@ -728,20 +670,18 @@ public class AllAssignments extends Application {
 							rsKeys = pstmtInsert.getGeneratedKeys();
 							if(rsKeys.next()) {
 								int taskId = rsKeys.getInt(1);
-
+								int userId = 0;
+								String status = null;
 								if(f.properties != null && f.properties.userId > 0) {
-									pstmtAssign.setInt(1, f.properties.userId);
-									pstmtAssign.setString(2, f.properties.assignment_status);
+									userId = f.properties.userId;
+									status = f.properties.assignment_status;
 								} else {
-									pstmtAssign.setInt(1, as.user_id);
-									pstmtAssign.setString(2, "accepted");
+									userId = as.user_id;
+									status = "accepted";
 								}
 
-								pstmtAssign.setInt(3, taskId);
+								tm.insertAssignment(pstmtAssign, userId, status, taskId);
 
-								log.info("Assign status: " + pstmtAssign.toString());
-								pstmtAssign.executeUpdate();
-								
 								// TODO assign from roles
 							}
 							if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
