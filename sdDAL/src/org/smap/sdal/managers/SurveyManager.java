@@ -3517,11 +3517,21 @@ public class SurveyManager {
 			 * Delete or update any tasks that are to update this survey
 			 */
 			if(newSurveyId == 0) {
-				sql = "delete from tasks where form_id = ?;";	
+				// tasks
+				sql = "update tasks set deleted = 'true', deleted_at = now() where form_id = ?;";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				log.info("Delete tasks: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				// assignments
+				sql = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
+						+ "(select id from tasks where form_id = ?)";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				log.info("Delete assignments: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
 				sql = "update tasks set form_id = ? where form_id = ?;";	

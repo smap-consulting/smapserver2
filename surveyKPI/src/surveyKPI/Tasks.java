@@ -142,7 +142,6 @@ public class Tasks extends Application {
 	public Response getTasks(
 			@Context HttpServletRequest request,
 			@PathParam("tgId") int tgId,
-			@QueryParam("completed") boolean completed,
 			@QueryParam("user") int userId
 			) throws IOException {
 		
@@ -161,7 +160,7 @@ public class Tasks extends Application {
 			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation);
-			TaskListGeoJson t = tm.getTasks(sd, tgId, completed, userId);		
+			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -719,7 +718,7 @@ public class Tasks extends Application {
 	
 		
 		log.info("userevent: " + request.getRemoteUser() + " : bulk action for : " + tgId + " " 
-					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.taskIds.toString());
+					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.tasks.toString());
 		
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));

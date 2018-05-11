@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 
 public class Task {
 	public int id;
-	public String type;
 	public String title;
 	public String pid;				// Project id
 	public String url;

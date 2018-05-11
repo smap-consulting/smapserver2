@@ -5,6 +5,7 @@ import java.util.ArrayList;
 
 public class TaskProperties {
 	public int id;
+	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
 	public String name;
 	public String pid;				// Project id
 	public String url;

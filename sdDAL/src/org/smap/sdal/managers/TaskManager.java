@@ -9,34 +9,26 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.ResourceBundle;
-import java.util.UUID;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Request;
-
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
-import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
+import org.smap.sdal.model.TaskAssignmentPair;
 import org.smap.sdal.model.TaskBulkAction;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
-import org.smap.sdal.model.User;
-import org.smap.sdal.model.UserGroup;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
@@ -105,6 +97,7 @@ public class TaskManager {
 				+ "left outer join assignments a "
 				+ "on a.task_id = t.id " 
 				+ "and a.status != 'deleted' "
+				+ "and a.status != 'cancelled' "
 				+ "where tg.p_id = ? "
 				+ "group by tg.tg_id "
 				+ "order by tg.tg_id asc;";
@@ -251,8 +244,10 @@ public class TaskManager {
 				+ "t.url as url,"
 				+ "t.form_id,"
 				+ "t.survey_name as form_name,"
+				+ "t.deleted,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
+				+ "a.id as assignment_id,"
 				+ "a.status as status,"
 				+ "a.assignee,"
 				+ "a.assignee_name,"
@@ -267,7 +262,7 @@ public class TaskManager {
 				+ "left outer join assignments a "
 				+ "on a.task_id = t.id " 
 				+ "where t.tg_id = ? "
-				+ "order by t.schedule_at desc, t.id desc;";
+				+ "order by t.schedule_at desc, t.id, a.id desc;";
 		PreparedStatement pstmt = null;
 
 		TaskListGeoJson tl = new TaskListGeoJson();
@@ -283,7 +278,10 @@ public class TaskManager {
 			while (rs.next()) {
 
 				String status = rs.getString("status");
-				if(status == null) {
+				boolean deleted = rs.getBoolean("deleted");
+				if(deleted) {
+					status = "deleted";
+				} else if(status == null) {
 					status = "new";
 				}
 
@@ -304,6 +302,7 @@ public class TaskManager {
 				tf.properties = new TaskProperties();
 
 				tf.properties.id = rs.getInt("t_id");
+				tf.properties.a_id = rs.getInt("assignment_id");
 				tf.properties.name = rs.getString("name");
 				tf.properties.from = rs.getTimestamp("schedule_at");
 				tf.properties.to = rs.getTimestamp("schedule_finish");
@@ -482,7 +481,7 @@ public class TaskManager {
 			String pName,
 			String remoteUser) throws Exception {
 
-		String sqlGetRules = "select tg_id, tg_name, rule, address_params, target_s_id from task_group where source_s_id = ?;";
+		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
 		SurveyManager sm = new SurveyManager(localisation);
@@ -826,9 +825,12 @@ public class TaskManager {
 
 		try {
 
-			// 1. Delete the existing task if it is being updated
+			// 1. Update the existing task if it is being updated
 			if(tf.properties.id > 0) {
-				deleteTask(sd, tf.properties.id, pId);		// Delete the task
+				// Throw an exception if the task has been deleted
+				if(isTaskDeleted(sd, tf.properties.id, tf.properties.a_id)) {
+					throw new Exception("Task has been deleted and cannot be edited");
+				}
 			}
 
 			// 2. Get the form id, if only the form name is specified
@@ -850,7 +852,7 @@ public class TaskManager {
 
 			/*
 			 * 3. If a temporary user is to be created then create the user
-			 *   Else Get the assignee id, if only the assignee ident is specified
+			 *   Else get the assignee id, if only the assignee ident is specified
 			 */
 			String tempUserId = null;
 			if(tf.properties.generate_user) {
@@ -903,47 +905,74 @@ public class TaskManager {
 			 */
 			if(tf.properties.from == null) {
 				Calendar cal = Calendar.getInstance();
-				cal.add(Calendar.HOUR, 7 * 24);
 				tf.properties.from = new Timestamp(cal.getTime().getTime());
 			}
-			pstmt = getInsertTaskStatement(sd);
-			insertTask(
-					pstmt,
-					pId,
-					pName,
-					tgId,
-					tgName,
-					tf.properties.name,
-					tf.properties.form_id,
-					webformUrl,
-					tf.properties.initial_data,
-					location,
-					tf.properties.update_id,
-					tf.properties.address,
-					tf.properties.from,
-					tf.properties.to,
-					tf.properties.location_trigger,
-					tf.properties.repeat,
-					tf.properties.guidance);
+			
+			if(tf.properties.id > 0) {
+				pstmt = getUpdateTaskStatement(sd);
+				updateTask(
+						pstmt,
+						tf.properties.id,
+						tgId,
+						tf.properties.name,
+						tf.properties.form_id,
+						webformUrl,
+						location,
+						tf.properties.address,
+						tf.properties.from,
+						tf.properties.to,
+						tf.properties.location_trigger,
+						tf.properties.repeat,
+						tf.properties.guidance);
+			} else {
+				pstmt = getInsertTaskStatement(sd);
+				insertTask(
+						pstmt,
+						pId,
+						pName,
+						tgId,
+						tgName,
+						tf.properties.name,
+						tf.properties.form_id,
+						webformUrl,
+						tf.properties.initial_data,
+						location,
+						tf.properties.update_id,
+						tf.properties.address,
+						tf.properties.from,
+						tf.properties.to,
+						tf.properties.location_trigger,
+						tf.properties.repeat,
+						tf.properties.guidance);
+			}
 
 			/*
-			 * 6. Assign the user to the new task
+			 * 6. Assign the user to the task
 			 */
 			if(tf.properties.assignee > 0) {
 
-				ResultSet keys = pstmt.getGeneratedKeys();
-				if(keys.next()) {
-					int taskId = keys.getInt(1);
-
-					pstmtAssign = getInsertAssignmentStatement(sd);
-					insertAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId);
-
-					// Create a notification to alert the new user of the change to the task details
-					String userIdent = GeneralUtilityMethods.getUserIdent(sd, tf.properties.assignee);
-					MessagingManager mm = new MessagingManager();
-					mm.userChange(sd, userIdent);
+				int taskId = tf.properties.id;
+				if(taskId == 0) {
+					ResultSet keys = pstmt.getGeneratedKeys();
+					if(keys.next()) {
+						taskId = keys.getInt(1);
+					}
 				}
 
+				if(tf.properties.a_id > 0) {
+					// Update user
+					pstmtAssign = getUpdateAssignmentStatement(sd);
+					updateAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId, tf.properties.a_id);
+				} else {
+					// Insert user
+					pstmtAssign = getInsertAssignmentStatement(sd);
+					insertAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId);
+				}
+				
+				// Create a notification to alert the new user of the change to the task details
+				String userIdent = GeneralUtilityMethods.getUserIdent(sd, tf.properties.assignee);
+				MessagingManager mm = new MessagingManager();
+				mm.userChange(sd, userIdent);
 			}
 
 			/*
@@ -987,30 +1016,33 @@ public class TaskManager {
 	 */
 	public void applyBulkAction(Connection sd, int pId, TaskBulkAction action) throws Exception {
 
-		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
+		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select a.assignee from assignments a, tasks t "
-				+ "where a.task_id = t.id "
-				+ "and t.p_id = ? "
-				+ "and a.task_id in ("; 
+				+ "where a.task_id = t.id and t.p_id = ? and a.id in ("; 
 
-		String sqlUsers = "delete from users where temporary = true and id in "
+		String sqlDeleteAssignedTemporaryUsers = "delete from users where temporary = true and id in "
 				+ "(select a.assignee from assignments a, tasks t "
-				+ "where a.task_id = t.id "
-				+ "and t.p_id = ? "
-				+ "and a.task_id in (";  
+				+ "where a.task_id = t.id and t.p_id = ? and a.id in ("; 
 
-		String deleteSql = "delete from tasks where p_id = ? and id in (";
-		String assignSql = "update assignments set assignee = ? "
+		String deleteTaskSql = "update tasks t set deleted = 'true', deleted_at = now() "
+				+ "where t.p_id = ? "		// Authorisation
+				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled') = 0 "
+				+ "and t.id in (";		
+		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
-				+ "and task_id in (";
+				+ "and id in (";
+		
+		String assignSql = "update assignments set assignee = ?, assigned_date = now() "
+				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "and id in (";
 		String sqlGetUnassigned = "select id from tasks "
 				+ "where id not in (select task_id from assignments) "
 				+ "and id in (";
 		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date) "
 				+ "values(?, 'accepted', ?, now())";
-		String sqlDeleteAssignments = "delete from assignments where task_id in (";
-		String whereSql = "";
 
+		String whereTasksSql = "";
+		String whereAssignmentsSql = "";
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGetUnassigned = null;
@@ -1020,48 +1052,82 @@ public class TaskManager {
 
 		try {
 
-			if(action.taskIds.size() == 0) {
+			if(action.tasks.size() == 0) {
 				throw new Exception("No tasks");
 			} 
-
-			for(int i = 0; i < action.taskIds.size(); i++) {
-				if(i > 0) {
-					whereSql += ",";
+			
+			// Create a task / Assignment hierarchy
+			HashMap<Integer, ArrayList<Integer>> hierarchyHash = new HashMap<> ();
+			for(TaskAssignmentPair pair : action.tasks) {
+				ArrayList<Integer> a = hierarchyHash.get(pair.taskId);
+				if(a == null) {
+					a = new ArrayList<Integer> ();				
+					hierarchyHash.put(pair.taskId, a);
 				}
-				whereSql += action.taskIds.get(i).toString();
+				if(pair.assignmentId > 0) {
+					a.add(pair.assignmentId);
+				}
 			}
-			whereSql += ")";
+			List<Integer> taskList = new ArrayList<Integer>(hierarchyHash.keySet());
+			
+			// Create a select list for affected tasks and assignments
+			for(Integer taskId : taskList) {
+				if(whereTasksSql.length() > 0) {
+					whereTasksSql += ",";
+				}
+				whereTasksSql += taskId.toString();
+				
+				ArrayList<Integer> a = hierarchyHash.get(taskId);
+				for(Integer assignmentId : a) {
+					if(assignmentId > 0) {
+						if(whereAssignmentsSql.length() > 0) {
+							whereAssignmentsSql += ",";
+						}
+						whereAssignmentsSql += assignmentId.toString();
+					} 
+				}
+				
+			}
+			whereTasksSql += ")";
+			whereAssignmentsSql += ")";
 
-			// Notify users currently assigned to tasks that are being modified
+
+			// Notify currently assigned users that are being modified
 			MessagingManager mm = new MessagingManager();
-			pstmtGetUsers = sd.prepareStatement(sqlGetUsers + whereSql + ")");
+			pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
 			pstmtGetUsers.setInt(1, pId);
-			log.info("Notify affected users: " + pstmtGetUsers.toString());
+			log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
 			ResultSet rsNot = pstmtGetUsers.executeQuery();
 			while(rsNot.next()) {
 				mm.userChange(sd, rsNot.getString(1));
 			}
 
-
 			if(action.action.equals("delete")) {
 
 				// Delete temporary users
-				pstmtDelTempUsers = sd.prepareStatement(sqlUsers + whereSql + ")");
+				pstmtDelTempUsers = sd.prepareStatement(sqlDeleteAssignedTemporaryUsers + whereAssignmentsSql + ")");
 				pstmtDelTempUsers.setInt(1, pId);
 				log.info("Del temp users created for tasks to be deleted: " + pstmtDelTempUsers.toString());
 				pstmtDelTempUsers.executeUpdate();
-
-				pstmt = sd.prepareStatement(deleteSql + whereSql);
+				
+				// Set assignments to deleted
+				pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
 				pstmt.setInt(1, pId);
-				log.info("Bulk update: " + pstmt.toString());
+				log.info("Delete assignments: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				// Delete unassigned tasks and tasks that have only a single assignment
+				if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+				pstmt = sd.prepareStatement(deleteTaskSql + whereTasksSql);
+				pstmt.setInt(1, pId);
+				log.info("Delete unassigned and singly assigned tasks: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 			} else if(action.action.equals("assign")) {
 
 				// Get tasks that have not had an assignment created
-				pstmtGetUnassigned = sd.prepareStatement(sqlGetUnassigned + whereSql);
+				pstmtGetUnassigned = sd.prepareStatement(sqlGetUnassigned + whereTasksSql);
 				pstmtCreateAssignments = sd.prepareCall(sqlCreateAssignments);
-				log.info("Getting unassigned tasks: " + pstmtGetUnassigned.toString());
 				ResultSet rs = pstmtGetUnassigned.executeQuery();
 				while (rs.next()) {
 					// Create the first assignment for this task
@@ -1072,14 +1138,16 @@ public class TaskManager {
 				}
 				// Update assignments
 				if(action.userId >= 0) {
-					pstmt = sd.prepareStatement(assignSql + whereSql);
+					pstmt = sd.prepareStatement(assignSql + whereAssignmentsSql);
 					pstmt.setInt(1,action.userId);
 					pstmt.setInt(2, pId);				
-					log.info("Bulk update: " + pstmt.toString());
+					log.info("Update Assignments: " + pstmt.toString());
 					pstmt.executeUpdate();
 				} else {
-					pstmt = sd.prepareStatement(sqlDeleteAssignments + whereSql);				
-					log.info("Bulk update: " + pstmt.toString());
+					// Set assignments to deleted
+					pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
+					pstmt.setInt(1, pId);
+					log.info("Delete assignments: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
 
@@ -1139,8 +1207,11 @@ public class TaskManager {
 				+ "(select id from tasks where tg_id = ?))"; 
 		PreparedStatement pstmtUsers = null;
 
-		String sql = "delete from tasks where tg_id = ?"; 
+		String sql = "update tasks set deleted = 'true', deleted_at = now() where tg_id = ?"; 
 		PreparedStatement pstmt = null;
+		
+		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
+				+ "(select id from tasks where tg_id = ?)";
 
 		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select assignee from assignments where task_id in "
@@ -1166,11 +1237,17 @@ public class TaskManager {
 				mm.userChange(sd, rs.getString(1));
 			}			
 
-			// Delete the task group
+			// Delete the tasks
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, tgId);
-
 			log.info("Delete tasks in task group: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			// Delete the assignments
+			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+			pstmt = sd.prepareStatement(sqlAssignments);
+			pstmt.setInt(1, tgId);
+			log.info("Delete assignments in task group: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
@@ -1182,8 +1259,8 @@ public class TaskManager {
 
 	/*
 	 * Delete an individual task
-	 */
-	public void deleteTask(Connection sd, int tId, int pId) throws SQLException {
+	 *
+	public void deleteTaskDeprecate(Connection sd, int tId, int pId) throws SQLException {
 
 		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select a.assignee from assignments a, tasks t where a.task_id = ? "
@@ -1236,7 +1313,7 @@ public class TaskManager {
 			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
 		}		
 	}
-	
+	*/
 	/*
 	 * Delete tasks that reference a specific updateId
 	 */
@@ -1252,8 +1329,11 @@ public class TaskManager {
 				+ "and a.task_id = t.id)"; 
 		PreparedStatement pstmtTempUsers = null;
 
-		String sql = "delete from tasks where update_id = ?"; 
+		String sql = "update tasks set deleted = 'true', deleted_at = now() where update_id = ?"; 
 		PreparedStatement pstmt = null;
+		
+		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
+				+ "(select id from tasks where update_id = ?)";
 
 		try {
 
@@ -1277,8 +1357,7 @@ public class TaskManager {
 
 			// Delete the task
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, updateId);
-		
+			pstmt.setString(1, updateId);		
 			log.info("Delete task: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 			if(count > 0) {
@@ -1287,6 +1366,14 @@ public class TaskManager {
 				msg = msg.replaceFirst("%s2", updateId);
 				lm.writeLog(sd, sId, user, LogManager.DELETE, msg);
 			}
+			
+			// Delete the assignments
+			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+			pstmt = sd.prepareStatement(sqlAssignments);
+			pstmt.setString(1, updateId);
+			log.info("Delete assignments that reference an update id: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
@@ -1346,7 +1433,7 @@ public class TaskManager {
 	 */
 	
 	/*
-	 * Get the preparedStatement
+	 * Get the preparedStatement for inserting a task
 	 */
 	public PreparedStatement getInsertTaskStatement(Connection sd) throws SQLException {
 
@@ -1434,6 +1521,64 @@ public class TaskManager {
 	}
 	
 	/*
+	 * Get the preparedStatement for updating a task
+	 */
+	public PreparedStatement getUpdateTaskStatement(Connection sd) throws SQLException {
+
+		String sql = "update tasks set "
+				+ "title = ?, "
+				+ "form_id = ?, "
+				+ "survey_name = (select display_name from survey where s_id = ?), "
+				+ "url = ?, "
+				+ "geo_point = ST_GeomFromText(?, 4326),"
+				+ "address = ?,"
+				+ "schedule_at = ?,"
+				+ "schedule_finish = ?,"
+				+ "location_trigger = ?,"
+				+ "repeat = ?,"
+				+ "guidance = ? "
+				+ "where id = ? "
+				+ "and tg_id = ?";		// authorisation
+		
+		return sd.prepareStatement(sql);
+	}
+	/*
+	 * Insert a task
+	 */
+	public int updateTask(
+			PreparedStatement pstmt,	
+			int tId,
+			int tgId,
+			String title,
+			int target_s_id,
+			String formUrl,
+			String location,
+			String address,
+			Timestamp taskStart,
+			Timestamp taskFinish,
+			String locationTrigger,
+			boolean repeat,
+			String guidance) throws SQLException {
+		
+		pstmt.setString(1, title);
+		pstmt.setInt(2,  target_s_id);
+		pstmt.setInt(3,  target_s_id);			// To set suvey name
+		pstmt.setString(4, formUrl);					
+		pstmt.setString(5, location);			// geopoint
+		pstmt.setString(6, address);
+		pstmt.setTimestamp(7, taskStart);
+		pstmt.setTimestamp(8, taskFinish);
+		pstmt.setString(9, locationTrigger);
+		pstmt.setBoolean(10, repeat);	
+		pstmt.setString(11, guidance);
+		pstmt.setInt(12, tId);
+		pstmt.setInt(13, tgId);
+
+		log.info("Update a task: " + pstmt.toString());
+		return(pstmt.executeUpdate());
+	}
+	
+	/*
 	 * Two functions for inserting an assignment
 	 *   1. Return a prepared statement
 	 *   2. Apply the insert
@@ -1472,6 +1617,49 @@ public class TaskManager {
 		log.info("Create a new assignment: " + pstmt.toString());
 		return(pstmt.executeUpdate());
 	}
+	
+	/*
+	 * Two functions for inserting an assignment
+	 *   1. Return a prepared statement
+	 *   2. Apply the insert
+	 */
+	
+	/*
+	 * Get the preparedStatement
+	 */
+	public PreparedStatement getUpdateAssignmentStatement(Connection sd) throws SQLException {
+
+		String sql = "update assignments "
+				+ "set assignee = ?, "
+				+ "assignee_name = (select name from users where id = ?),"
+				+ "status = ?,"
+				+ "assigned_date = now() "
+				+ "where task_id = ? "
+				+ "and id = ?";
+		
+		return sd.prepareStatement(sql);
+	}
+	
+	/*
+	 * Insert an assignment
+	 */
+	public int updateAssignment(
+			PreparedStatement pstmt,
+			int assignee,
+			String status,
+			int task_id,
+			int a_id) throws SQLException {
+		
+		pstmt.setInt(1, assignee);
+		pstmt.setInt(2,  assignee);
+		pstmt.setString(3,  status);			// default the status to accepted for new assignments
+		pstmt.setInt(4,  task_id);
+		pstmt.setInt(5, a_id);
+
+		log.info("Update an assignment: " + pstmt.toString());
+		return(pstmt.executeUpdate());
+	}
+	
 	
 	/*
 	 * Create all assignments for specific user id or a role
@@ -1538,5 +1726,33 @@ public class TaskManager {
 				+ "(select u_id from user_role where r_id = ?)";
 		return sd.prepareStatement(sql);
 	}
+	
+	public boolean isTaskDeleted(Connection sd, int t_id, int a_id) throws SQLException {
+		boolean isDeleted = false;
+		String sqlAssignment = "select count(*) from assignments where id = ? and (status = 'deleted' or status = 'cancelled')";
+		String sqlTasks = "select count(*) from tasks where id = ? and deleted";
+		PreparedStatement pstmt = null;
+		try {
+			if(a_id > 0) {
+				pstmt = sd.prepareStatement(sqlAssignment);		// Check assignment
+				pstmt.setInt(1,a_id);
+			} else {
+				// Check task
+				pstmt = sd.prepareStatement(sqlTasks);			// Check task
+				pstmt.setInt(1, t_id);
+			}
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				if(rs.getInt(1) > 0) {
+					isDeleted = true;
+				}
+			}
+		} finally {
+			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+		}
+		return isDeleted;
+	}
+	
+
 }
 

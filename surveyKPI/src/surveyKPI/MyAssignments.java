@@ -214,11 +214,10 @@ public class MyAssignments extends Application {
 			// Get the assignments
 			sql = new StringBuffer("SELECT "
 					+ "t.id as task_id,"
-					+ "t.type,"
 					+ "t.title,"
 					+ "t.url,"
 					+ "s.ident as form_ident,"
-					+"s.version as form_version,"
+					+ "s.version as form_version,"
 					+ "s.p_id as pid,"
 					+ "t.initial_data,"
 					+ "t.update_id,"
@@ -229,7 +228,7 @@ public class MyAssignments extends Application {
 					+ "a.id as assignment_id, "
 					+ "t.address as address, "
 					+ "t.guidance as guidance, "
-					+ "t.geo_type as geo_type "
+					+ "ST_AsText(t.geo_point) as geo_point "
 					+ "from tasks t, assignments a, users u, survey s, user_project up, project p "
 					+ "where t.id = a.task_id "
 					+ "and t.form_id = s.s_id "
@@ -239,8 +238,7 @@ public class MyAssignments extends Application {
 					+ "and s.deleted = 'false' "
 					+ "and s.blocked = 'false' "
 					+ "and a.assignee = u.id "
-					+ "and (a.status = 'pending' or a.status = 'cancelled' or a.status = 'missed' "
-					+ "or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
+					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
 					+ "and u.ident = ? "
 					+ "and p.o_id = ? "
 					+ "order by t.id desc "
@@ -271,7 +269,6 @@ public class MyAssignments extends Application {
 				// Populate the new Task Assignment
 				t_id = resultSet.getInt("task_id");
 				ta.task.id = t_id;
-				ta.task.type = resultSet.getString("type");
 				ta.task.title = resultSet.getString("title");
 				ta.task.pid = resultSet.getString("pid");
 				ta.task.url = resultSet.getString("url");
@@ -290,34 +287,16 @@ public class MyAssignments extends Application {
 				ta.assignment.assignment_id = resultSet.getInt("assignment_id");
 				ta.assignment.assignment_status = resultSet.getString("assignment_status");
 
-
-				String geo_type = resultSet.getString("geo_type");
-				// Get the coordinates
-				if(geo_type != null) {
-					// Add the coordinates
-
-					ta.location.geometry = new Geometry();
-					if(geo_type.equals("POINT")) {
-						sql = new StringBuffer("select ST_AsText(geo_point) from tasks where id = ?;");
-					} else if (geo_type.equals("POLYGON")) {
-						sql = new StringBuffer("select ST_AsText(geo_polygon) from tasks where id = ?;");
-					} else if (geo_type.equals("LINESTRING")) {
-						sql = new StringBuffer("select ST_AsText(geo_linestring) from tasks where id = ?;");
+				String geoString = resultSet.getString("geo_point");
+				if(geoString != null) {
+					int startIdx = geoString.lastIndexOf('(');
+					int endIdx = geoString.indexOf(')');
+					if(startIdx > 0 && endIdx > 0) {
+						ta.location.geometry = new Geometry();
+						String geoString2 = geoString.substring(startIdx + 1, endIdx);
+						ta.location.geometry.type = "POINT";
+						ta.location.geometry.coordinates = geoString2.split(",");
 					}
-					pstmtGeo = connectionSD.prepareStatement(sql.toString());
-					pstmtGeo.setInt(1, t_id);
-					ResultSet resultSetGeo = pstmtGeo.executeQuery();
-					if(resultSetGeo.next()) {
-						String geoString = resultSetGeo.getString(1);
-						int startIdx = geoString.lastIndexOf('(');			// Assume no multi polygons
-						int endIdx = geoString.indexOf(')');
-						if(startIdx > 0 && endIdx > 0) {
-							String geoString2 = geoString.substring(startIdx + 1, endIdx);
-							ta.location.geometry.type = geo_type;
-							ta.location.geometry.coordinates = geoString2.split(",");
-						}
-					}
-
 				}
 
 				// Add the new task assignment to the list of task assignments
@@ -462,7 +441,6 @@ public class MyAssignments extends Application {
 				tr.projects.add(p);
 			}
 
-
 			/*
 			 * Return the response
 			 */
@@ -470,11 +448,6 @@ public class MyAssignments extends Application {
 			String resp = gson.toJson(tr);
 			response = Response.ok(resp).build();
 
-		} catch (SQLException e) {
-			tr.message = "SQL Error: Message=" + e.getMessage();
-			tr.status = "400";
-			log.log(Level.SEVERE,"", e);
-			response = Response.serverError().build();
 		} catch (Exception e) {
 			tr.message = "Error: Message=" + e.getMessage();
 			tr.status = "400";
@@ -553,7 +526,7 @@ public class MyAssignments extends Application {
 		try {
 			String sql = null;
 
-			String sqlRepeats = "UPDATE tasks SET repeat_count = repeat_count + 1 " +
+			String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 " +
 					"where id = (select task_id from assignments where id = ?);";
 			pstmtRepeats = connectionSD.prepareStatement(sqlRepeats);
 
@@ -569,10 +542,10 @@ public class MyAssignments extends Application {
 					if(ta.assignment.assignment_status.equals("cancelled")) {
 						log.info("Assignment:" + ta.assignment.assignment_id + " acknowledge cancel");
 
-						sql = "delete from tasks where id in (select a.task_id from assignments a " +
-								"where a.id = ? " + 
-								"and a.assignee IN (SELECT id FROM users u " +
-								"where u.ident = ?));";
+						sql = "update assignments set status = 'deleted', deleted_date = now() "
+								+ "where a.id = ? "
+								+ "and a.assignee in (select id from users u "
+								+ "where u.ident = ?));";
 						pstmt = connectionSD.prepareStatement(sql);	
 						pstmt.setInt(1, ta.assignment.assignment_id);
 						pstmt.setString(2, userName);
@@ -581,7 +554,7 @@ public class MyAssignments extends Application {
 						// Apply update making sure the assignment was made to the updating user
 						sql = "UPDATE assignments a SET status = ? " +
 								"where a.id = ? " + 
-								"and a.assignee IN (SELECT id FROM users u " +
+								"and a.assignee in (select id from users u " +
 								"where u.ident = ?);";
 						pstmt = connectionSD.prepareStatement(sql);
 						pstmt.setString(1, ta.assignment.assignment_status);

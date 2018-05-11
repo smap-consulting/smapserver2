@@ -21,12 +21,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -36,8 +33,6 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.AuthorisationException;
@@ -52,8 +47,6 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
-import org.smap.sdal.model.Features;
-import org.smap.sdal.model.Geometry;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
@@ -613,7 +606,7 @@ public class AllAssignments extends Application {
 
 				/*
 				 * Set the tasks from the passed in task list
-				 */
+				 *
 				if(as.new_tasks != null) {
 					log.info("Creating " + as.new_tasks.features.length + " Ad-Hoc tasks");
 
@@ -687,9 +680,12 @@ public class AllAssignments extends Application {
 							if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
 
 						}
+						
 					}
+					
 
 				}
+				 */
 				
 				// Create a notification for the updated user
 				if(as.user_id > 0) {
@@ -1315,7 +1311,7 @@ public class AllAssignments extends Application {
 
 	/*
 	 * Delete tasks
-	 */
+	 *
 	@DELETE
 	public Response deleteTasks(@Context HttpServletRequest request,
 			@FormParam("settings") String settings) { 
@@ -1406,7 +1402,8 @@ public class AllAssignments extends Application {
 
 		return response;
 	}
-
+	*/
+	
 	/*
 	 * Delete task group
 	 * This web service takes no account of tasks that have already been assigned
@@ -1421,6 +1418,7 @@ public class AllAssignments extends Application {
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isValidTaskGroup(connectionSD, request.getRemoteUser(), tg_id, false);
 		// End Authorisation
 
 		PreparedStatement pstmtDelete = null;
@@ -1460,7 +1458,7 @@ public class AllAssignments extends Application {
 	/*
 	 * Mark cancelled tasks as deleted
 	 * This may be required if tasks are allocated to a user who never updates them
-	 */
+	 *
 	@Path("/cancelled/{projectId}")
 	@DELETE
 	public Response forceRemoveCancelledTasks(@Context HttpServletRequest request,
@@ -1507,7 +1505,7 @@ public class AllAssignments extends Application {
 
 		return response;
 	}
-
+	*/
 
 	private HashMap<String, File> getFormFileMap(ExchangeManager xm, ArrayList<File> files, ArrayList<FormDesc> forms) throws Exception {
 		HashMap<String, File> formFileMap = new HashMap<String, File> ();
