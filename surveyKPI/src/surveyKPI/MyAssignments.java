@@ -177,8 +177,8 @@ public class MyAssignments extends Application {
 		tr.version = 1;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-MyAssignments");
-		a.isAuthorised(connectionSD, userName);
+		Connection sd = SDDataSource.getConnection("surveyKPI-MyAssignments");
+		a.isAuthorised(sd, userName);
 		// End Authorisation
 
 		PreparedStatement pstmtGetSettings = null;
@@ -186,18 +186,21 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtGeo = null;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtNumberTasks = null;
+		PreparedStatement pstmtDeleteCancelled = null;
 
 		Connection cRel = null;
 
-		int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, userName, 0);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, userName, 0);
 
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
+			pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
 			String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
-			pstmtNumberTasks = connectionSD.prepareStatement(sqlNumberTasks);
+			pstmtNumberTasks = sd.prepareStatement(sqlNumberTasks);
 			pstmtNumberTasks.setInt(1, oId);
 			int ft_number_tasks = 20;
 			ResultSet rs = pstmtNumberTasks.executeQuery();
@@ -206,19 +209,18 @@ public class MyAssignments extends Application {
 			}
 			
 			StringBuffer sql = null;
-			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 
 			cRel = ResultsDataSource.getConnection("surveyKPI-MyAssignments");
-			connectionSD.setAutoCommit(true);
+			sd.setAutoCommit(true);
 
 			// Get the assignments
-			sql = new StringBuffer("SELECT "
+			sql = new StringBuffer("select "
 					+ "t.id as task_id,"
-					+ "t.type,"
 					+ "t.title,"
 					+ "t.url,"
 					+ "s.ident as form_ident,"
-					+"s.version as form_version,"
+					+ "s.version as form_version,"
 					+ "s.p_id as pid,"
 					+ "t.initial_data,"
 					+ "t.update_id,"
@@ -229,7 +231,7 @@ public class MyAssignments extends Application {
 					+ "a.id as assignment_id, "
 					+ "t.address as address, "
 					+ "t.guidance as guidance, "
-					+ "t.geo_type as geo_type "
+					+ "ST_AsText(t.geo_point) as geo_point "
 					+ "from tasks t, assignments a, users u, survey s, user_project up, project p "
 					+ "where t.id = a.task_id "
 					+ "and t.form_id = s.s_id "
@@ -239,23 +241,21 @@ public class MyAssignments extends Application {
 					+ "and s.deleted = 'false' "
 					+ "and s.blocked = 'false' "
 					+ "and a.assignee = u.id "
-					+ "and (a.status = 'pending' or a.status = 'cancelled' or a.status = 'missed' "
-					+ "or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
+					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
 					+ "and u.ident = ? "
 					+ "and p.o_id = ? "
-					+ "order by t.id desc "
-					+ "limit ?");
+					+ "order by t.schedule_at asc");
 
-			pstmt = connectionSD.prepareStatement(sql.toString());	
+			pstmt = sd.prepareStatement(sql.toString());	
 			pstmt.setString(1, userName);
 			pstmt.setInt(2, oId);
-			pstmt.setInt(3, ft_number_tasks);
 
 			log.info("Getting assignments: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 
 			int t_id = 0;
-			while (resultSet.next()) {
+			ArrayList<Integer> cancelledAssignments = new ArrayList<Integer> ();
+			while (resultSet.next()  && ft_number_tasks > 0) {
 
 				// Create the list of task assignments if it has not already been created
 				if(tr.taskAssignments == null) {
@@ -271,7 +271,7 @@ public class MyAssignments extends Application {
 				// Populate the new Task Assignment
 				t_id = resultSet.getInt("task_id");
 				ta.task.id = t_id;
-				ta.task.type = resultSet.getString("type");
+				ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
 				ta.task.title = resultSet.getString("title");
 				ta.task.pid = resultSet.getString("pid");
 				ta.task.url = resultSet.getString("url");
@@ -290,45 +290,42 @@ public class MyAssignments extends Application {
 				ta.assignment.assignment_id = resultSet.getInt("assignment_id");
 				ta.assignment.assignment_status = resultSet.getString("assignment_status");
 
-
-				String geo_type = resultSet.getString("geo_type");
-				// Get the coordinates
-				if(geo_type != null) {
-					// Add the coordinates
-
-					ta.location.geometry = new Geometry();
-					if(geo_type.equals("POINT")) {
-						sql = new StringBuffer("select ST_AsText(geo_point) from tasks where id = ?;");
-					} else if (geo_type.equals("POLYGON")) {
-						sql = new StringBuffer("select ST_AsText(geo_polygon) from tasks where id = ?;");
-					} else if (geo_type.equals("LINESTRING")) {
-						sql = new StringBuffer("select ST_AsText(geo_linestring) from tasks where id = ?;");
+				String geoString = resultSet.getString("geo_point");
+				if(geoString != null) {
+					int startIdx = geoString.lastIndexOf('(');
+					int endIdx = geoString.indexOf(')');
+					if(startIdx > 0 && endIdx > 0) {
+						ta.location.geometry = new Geometry();
+						String geoString2 = geoString.substring(startIdx + 1, endIdx);
+						ta.location.geometry.type = "POINT";
+						ta.location.geometry.coordinates = geoString2.split(",");
 					}
-					pstmtGeo = connectionSD.prepareStatement(sql.toString());
-					pstmtGeo.setInt(1, t_id);
-					ResultSet resultSetGeo = pstmtGeo.executeQuery();
-					if(resultSetGeo.next()) {
-						String geoString = resultSetGeo.getString(1);
-						int startIdx = geoString.lastIndexOf('(');			// Assume no multi polygons
-						int endIdx = geoString.indexOf(')');
-						if(startIdx > 0 && endIdx > 0) {
-							String geoString2 = geoString.substring(startIdx + 1, endIdx);
-							ta.location.geometry.type = geo_type;
-							ta.location.geometry.coordinates = geoString2.split(",");
-						}
-					}
-
 				}
 
 				// Add the new task assignment to the list of task assignments
 				tr.taskAssignments.add(ta);
+				
+				// Limit the number of non cancelled tasks that can be downloaded
+				if(!ta.assignment.assignment_status.equals("cancelled")) {
+					ft_number_tasks--;
+				} else {
+					cancelledAssignments.add(ta.assignment.assignment_id);
+				}
+			}
+			
+			/*
+			 * Set all tasks to deleted that have been acknowledged as cancelled
+			 */
+			for(int assignmentId : cancelledAssignments) {
+				pstmtDeleteCancelled.setInt(1, assignmentId);
+				pstmtDeleteCancelled.executeUpdate();
 			}
 
 			/*
 			 * Get the complete list of forms accessible by this user
 			 */
 			SurveyManager sm = new SurveyManager(localisation);
-			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(connectionSD, pstmt,
+			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(sd, pstmt,
 					userName,
 					false, 
 					false, 
@@ -343,7 +340,7 @@ public class MyAssignments extends Application {
 			
 			for (org.smap.sdal.model.Survey survey : surveys) {
 				
-				boolean hasManifest = translationMgr.hasManifest(connectionSD, request.getRemoteUser(), survey.id);
+				boolean hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
 
 				if(hasManifest) {
 					/*
@@ -351,7 +348,7 @@ public class MyAssignments extends Application {
 					 *  generate the new CSV files if the linked data has changed
 					 */
 					List<ManifestValue> manifestList = translationMgr.
-							getSurveyManifests(connectionSD, survey.id, survey.ident, null, 0, true);		// Get linked only
+							getSurveyManifests(sd, survey.id, survey.ident, null, 0, true);		// Get linked only
 	
 					for( ManifestValue m : manifestList) {
 	
@@ -374,7 +371,7 @@ public class MyAssignments extends Application {
 	
 						log.info("CSV File is:  " + dirPath + " : directory path created");
 	
-						efm.createLinkedFile(connectionSD, cRel, survey.id, m.fileName , filepath, userName);
+						efm.createLinkedFile(sd, cRel, survey.id, m.fileName , filepath, userName);
 					}
 				}
 
@@ -386,7 +383,7 @@ public class MyAssignments extends Application {
 				fl.project = survey.projectName;
 				fl.pid = survey.pId;
 				fl.tasks_only = survey.projectTasksOnly;
-				fl.hasManifest = translationMgr.hasManifest(connectionSD, userName, survey.id);
+				fl.hasManifest = translationMgr.hasManifest(sd, userName, survey.id);
 
 				// If a new manifest then mark the form dirty so it will be checked to see if it needs to be downloaded
 				if(hasManifest) {
@@ -415,7 +412,7 @@ public class MyAssignments extends Application {
 					+ "where u.o_id = o.id "
 					+ "and u.ident = ?");
 
-			pstmtGetSettings = connectionSD.prepareStatement(sql.toString());	
+			pstmtGetSettings = sd.prepareStatement(sql.toString());	
 			pstmtGetSettings.setString(1, userName);
 			log.info("Getting settings: " + pstmtGetSettings.toString());
 			resultSet = pstmtGetSettings.executeQuery();
@@ -447,7 +444,7 @@ public class MyAssignments extends Application {
 					"and p.o_id = ? " +
 					"order by name ASC;");	
 
-			pstmtGetProjects = connectionSD.prepareStatement(sql.toString());	
+			pstmtGetProjects = sd.prepareStatement(sql.toString());	
 			pstmtGetProjects.setString(1, userName);
 			pstmtGetProjects.setInt(2, oId);
 
@@ -462,7 +459,6 @@ public class MyAssignments extends Application {
 				tr.projects.add(p);
 			}
 
-
 			/*
 			 * Return the response
 			 */
@@ -470,11 +466,6 @@ public class MyAssignments extends Application {
 			String resp = gson.toJson(tr);
 			response = Response.ok(resp).build();
 
-		} catch (SQLException e) {
-			tr.message = "SQL Error: Message=" + e.getMessage();
-			tr.status = "400";
-			log.log(Level.SEVERE,"", e);
-			response = Response.serverError().build();
 		} catch (Exception e) {
 			tr.message = "Error: Message=" + e.getMessage();
 			tr.status = "400";
@@ -486,8 +477,9 @@ public class MyAssignments extends Application {
 			try {if (pstmtGeo != null) {pstmtGeo.close();} } catch (Exception e) {}
 			try {if (pstmt != null) {pstmt.close();} } catch (Exception e) {}
 			try {if (pstmtNumberTasks != null) {pstmtNumberTasks.close();} } catch (Exception e) {}
+			try {if (pstmtDeleteCancelled != null) {pstmtDeleteCancelled.close();} } catch (Exception e) {}
 
-			SDDataSource.closeConnection("surveyKPI-MyAssignments", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-MyAssignments", sd);
 			ResultsDataSource.closeConnection("surveyKPI-MyAssignments", cRel);	
 		}
 
@@ -499,6 +491,7 @@ public class MyAssignments extends Application {
 	 */
 	String addKeyValuePair(String jIn, String name, String value) {
 
+		
 		String jOut = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		Type type = new TypeToken<ArrayList<KeyValueTask>>(){}.getType();
@@ -506,17 +499,17 @@ public class MyAssignments extends Application {
 		ArrayList<KeyValueTask> kvArray = null;
 
 		// 1. Get the current array
-		if(jIn != null && jIn.trim().length() > 0) {
+		if(jIn != null && jIn.trim().length() > 0 && !jIn.equals("[ ]")) {
 			kvArray = new Gson().fromJson(jIn, type);
 		} else {
 			kvArray = new ArrayList<KeyValueTask> ();
 		}
-
-		// 2. Add the new kv pair
-		if(value != null && value.trim().length() > 0 ) {
-			KeyValueTask newKV = new KeyValueTask(name, value);
-
-			kvArray.add(newKV);
+		if(name != null && value != null && !value.equals("[ ]")) {
+			// 2. Add the new kv pair
+			if(value != null && value.trim().length() > 0 ) {
+				KeyValueTask newKV = new KeyValueTask(name, value);
+				kvArray.add(newKV);
+			}
 		}
 
 		// 3. Return the updated list
@@ -553,7 +546,7 @@ public class MyAssignments extends Application {
 		try {
 			String sql = null;
 
-			String sqlRepeats = "UPDATE tasks SET repeat_count = repeat_count + 1 " +
+			String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 " +
 					"where id = (select task_id from assignments where id = ?);";
 			pstmtRepeats = connectionSD.prepareStatement(sqlRepeats);
 
@@ -569,10 +562,10 @@ public class MyAssignments extends Application {
 					if(ta.assignment.assignment_status.equals("cancelled")) {
 						log.info("Assignment:" + ta.assignment.assignment_id + " acknowledge cancel");
 
-						sql = "delete from tasks where id in (select a.task_id from assignments a " +
-								"where a.id = ? " + 
-								"and a.assignee IN (SELECT id FROM users u " +
-								"where u.ident = ?));";
+						sql = "update assignments set status = 'deleted', deleted_date = now() "
+								+ "where a.id = ? "
+								+ "and a.assignee in (select id from users u "
+								+ "where u.ident = ?));";
 						pstmt = connectionSD.prepareStatement(sql);	
 						pstmt.setInt(1, ta.assignment.assignment_id);
 						pstmt.setString(2, userName);
@@ -581,7 +574,7 @@ public class MyAssignments extends Application {
 						// Apply update making sure the assignment was made to the updating user
 						sql = "UPDATE assignments a SET status = ? " +
 								"where a.id = ? " + 
-								"and a.assignee IN (SELECT id FROM users u " +
+								"and a.assignee in (select id from users u " +
 								"where u.ident = ?);";
 						pstmt = connectionSD.prepareStatement(sql);
 						pstmt.setString(1, ta.assignment.assignment_status);

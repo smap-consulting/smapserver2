@@ -214,7 +214,7 @@ public class SubRelationalDB extends Subscriber {
 				" where ue.ue_id = ? and ue.assignment_id is not null;";
 
 
-		String sql = "UPDATE assignments a SET status = 'submitted', submitted_date = now() " +
+		String sql = "UPDATE assignments a SET status = 'submitted', completed_date = now() " +
 				"where a.id = ? " + 
 				"and a.assignee IN (SELECT id FROM users u " +
 				"where u.ident = ?);";
@@ -302,7 +302,8 @@ public class SubRelationalDB extends Subscriber {
 				ident = rs.getString(1);
 				instanceId = rs.getString(2);
 				pId = rs.getInt(3);
-
+				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
+				
 				// Apply notifications
 				String urlprefix = "https://" + server + "/";
 				NotificationManager nm = new NotificationManager(localisation);
@@ -330,6 +331,7 @@ public class SubRelationalDB extends Subscriber {
 						server,
 						instanceId,
 						pId,
+						pName,
 						remoteUser
 						);
 				

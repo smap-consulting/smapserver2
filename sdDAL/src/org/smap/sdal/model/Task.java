@@ -4,7 +4,6 @@ import java.sql.Timestamp;
 
 public class Task {
 	public int id;
-	public String type;
 	public String title;
 	public String pid;				// Project id
 	public String url;
@@ -16,4 +15,5 @@ public class Task {
 	public String location_trigger;
 	public boolean repeat;
 	public String address;			// Key value pairs representing an unstructured address
+	public String type;				// Retain so as not to break older versions of fieldTask
 }

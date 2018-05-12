@@ -142,11 +142,8 @@ public class Tasks extends Application {
 	public Response getTasks(
 			@Context HttpServletRequest request,
 			@PathParam("tgId") int tgId,
-			@QueryParam("completed") boolean completed,
 			@QueryParam("user") int userId
 			) throws IOException {
-		
-		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		
 		Response response = null;
 		Connection sd = null; 
@@ -163,7 +160,7 @@ public class Tasks extends Application {
 			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation);
-			TaskListGeoJson t = tm.getTasks(sd, tgId, completed, userId);		
+			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -544,6 +541,8 @@ public class Tasks extends Application {
 				// End authorisation
 
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
+				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
@@ -555,7 +554,7 @@ public class Tasks extends Application {
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
-				tm.writeTaskList(sd, tl, pId, tgId, request.getScheme() + "://" + request.getServerName(), true, oId);
+				tm.writeTaskList(sd, tl, pId, pName, tgId, tgName, request.getScheme() + "://" + request.getServerName(), true, oId);
 				
 				/*
 				 * Get the tasks out of the database
@@ -613,6 +612,7 @@ public class Tasks extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
 		// End Authorisation
 		
 		
@@ -623,9 +623,12 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
+			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
+			
 			TaskManager tm = new TaskManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			tm.writeTask(sd, pId, tgId, tf, request.getServerName(), false, oId);
+			tm.writeTask(sd, pId, pName, tgId, tgName, tf, request.getServerName(), false, oId);
 			response = Response.ok().build();
 		
 		} catch (Exception e) {
@@ -715,7 +718,7 @@ public class Tasks extends Application {
 	
 		
 		log.info("userevent: " + request.getRemoteUser() + " : bulk action for : " + tgId + " " 
-					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.taskIds.toString());
+					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.tasks.toString());
 		
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));

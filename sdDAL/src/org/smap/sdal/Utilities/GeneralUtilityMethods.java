@@ -767,8 +767,11 @@ public class GeneralUtilityMethods {
 
 		int o_id = -1;
 
-		String sql = "select p.o_id " + " from tasks t, task_group tg, project p " + "where tg.p_id = p.id "
-				+ "and t.tg_id = tg.tg_id " + "and t.id = ?";
+		String sql = "select p.o_id " 
+				+ " from tasks t, task_group tg, project p " 
+				+ "where tg.p_id = p.id "
+				+ "and t.tg_id = tg.tg_id " 
+				+ "and t.id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -785,17 +788,70 @@ public class GeneralUtilityMethods {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 		}
 
 		return o_id;
 	}
+	
+	/*
+	 * Get the task group name
+	 */
+	static public String getTaskGroupName(Connection sd, int tgId) throws SQLException {
 
+		String name = null;
+
+		String sql = "select name " 
+				+ " from task_group " 
+				+ "where tg_id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, tgId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return name;
+	}
+
+	/*
+	 * Get the task group name
+	 */
+	static public String getProjectName(Connection sd, int id) throws SQLException {
+
+		String name = null;
+
+		String sql = "select name " 
+				+ " from project " 
+				+ "where id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return name;
+	}
+	
 	/*
 	 * Get the organisation name for the organisation id
 	 */
