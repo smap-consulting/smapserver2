@@ -255,12 +255,12 @@ public class TaskManager {
 				+ "ST_AsGeoJSON(t.geo_point) as geom, "
 				+ "ST_AsText(t.geo_point) as wkt "
 				+ "from tasks t "
-				+ "left outer join users u "
-				+ "on t.assignee = u.id "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
 				+ "left outer join assignments a "
 				+ "on a.task_id = t.id " 
+				+ "left outer join users u "
+				+ "on a.assignee = u.id "
 				+ "where t.tg_id = ? "
 				+ "order by t.schedule_at desc, t.id, a.id desc;";
 		PreparedStatement pstmt = null;

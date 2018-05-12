@@ -212,7 +212,7 @@ public class MyAssignments extends Application {
 			connectionSD.setAutoCommit(true);
 
 			// Get the assignments
-			sql = new StringBuffer("SELECT "
+			sql = new StringBuffer("select "
 					+ "t.id as task_id,"
 					+ "t.title,"
 					+ "t.url,"
@@ -241,7 +241,7 @@ public class MyAssignments extends Application {
 					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
 					+ "and u.ident = ? "
 					+ "and p.o_id = ? "
-					+ "order by t.id desc "
+					+ "order by t.schedule_at asc "
 					+ "limit ?");
 
 			pstmt = connectionSD.prepareStatement(sql.toString());	
@@ -269,6 +269,7 @@ public class MyAssignments extends Application {
 				// Populate the new Task Assignment
 				t_id = resultSet.getInt("task_id");
 				ta.task.id = t_id;
+				ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
 				ta.task.title = resultSet.getString("title");
 				ta.task.pid = resultSet.getString("pid");
 				ta.task.url = resultSet.getString("url");
@@ -472,6 +473,7 @@ public class MyAssignments extends Application {
 	 */
 	String addKeyValuePair(String jIn, String name, String value) {
 
+		
 		String jOut = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		Type type = new TypeToken<ArrayList<KeyValueTask>>(){}.getType();
@@ -479,17 +481,17 @@ public class MyAssignments extends Application {
 		ArrayList<KeyValueTask> kvArray = null;
 
 		// 1. Get the current array
-		if(jIn != null && jIn.trim().length() > 0) {
+		if(jIn != null && jIn.trim().length() > 0 && !jIn.equals("[ ]")) {
 			kvArray = new Gson().fromJson(jIn, type);
 		} else {
 			kvArray = new ArrayList<KeyValueTask> ();
 		}
-
-		// 2. Add the new kv pair
-		if(value != null && value.trim().length() > 0 ) {
-			KeyValueTask newKV = new KeyValueTask(name, value);
-
-			kvArray.add(newKV);
+		if(name != null && value != null && !value.equals("[ ]")) {
+			// 2. Add the new kv pair
+			if(value != null && value.trim().length() > 0 ) {
+				KeyValueTask newKV = new KeyValueTask(name, value);
+				kvArray.add(newKV);
+			}
 		}
 
 		// 3. Return the updated list
