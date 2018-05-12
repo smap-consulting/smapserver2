@@ -492,6 +492,7 @@ public class TaskManager {
 
 			pstmtGetRules = sd.prepareStatement(sqlGetRules);
 			pstmtGetRules.setInt(1, source_s_id);
+			log.info("Get task rules: " + pstmtGetRules.toString());
 
 			ResultSet rs = pstmtGetRules.executeQuery();
 			while(rs.next()) {
@@ -505,13 +506,13 @@ public class TaskManager {
 
 				int tgId = rs.getInt(1);
 				String tgName = rs.getString(2);
-				AssignFromSurvey as = new Gson().fromJson(rs.getString(2), AssignFromSurvey.class);
+				AssignFromSurvey as = new Gson().fromJson(rs.getString(3), AssignFromSurvey.class);
 				String addressString = rs.getString(4);
 				ArrayList<TaskAddressSettings> address = null;
 				if(addressString != null) {
 					address = new Gson().fromJson(addressString, new TypeToken<ArrayList<TaskAddressSettings>>() {}.getType());
 				}
-				int target_s_id = rs.getInt(4);
+				int target_s_id = rs.getInt(5);
 
 				log.info("Assign Survey String: " + rs.getString(3));
 				log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
