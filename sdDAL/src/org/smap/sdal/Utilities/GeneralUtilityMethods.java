@@ -253,7 +253,8 @@ public class GeneralUtilityMethods {
 				&& !host.equals("localhost") 
 				&& !host.startsWith("10.0")
 				&& !host.endsWith(".kontrolid.com")
-				&& !host.contains("ezpilot")) {
+				&& !host.contains("ezpilot")
+				&& !host.equals("sg.smap.com.au")) {
 			businessServer = false;
 		}
 		return businessServer;
