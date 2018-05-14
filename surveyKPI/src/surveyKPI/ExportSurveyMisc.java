@@ -139,23 +139,23 @@ public class ExportSurveyMisc extends Application {
 
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
+		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(sd, request.getRemoteUser());
 
 		if(query) {
-			a.isValidQuery(connectionSD, request.getRemoteUser(), targetId);
+			a.isValidQuery(sd, request.getRemoteUser(), targetId);
 		} else {
-			a.isValidSurvey(connectionSD, request.getRemoteUser(), targetId, false, superUser);
+			a.isValidSurvey(sd, request.getRemoteUser(), targetId, false, superUser);
 		}
 		// End Authorisation
 
-		lm.writeLog(connectionSD, targetId, request.getRemoteUser(), "view", "Export as: " + format);
+		lm.writeLog(sd, targetId, request.getRemoteUser(), "view", "Export as: " + format);
 
 		String escapedFileName = null;
 		try {
@@ -179,9 +179,11 @@ public class ExportSurveyMisc extends Application {
 			try {
 
 				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+				String surveyName = GeneralUtilityMethods.getSurveyName(sd, targetId);
+				
 				/*
 				 * Get the name of the database
 				 */
@@ -199,7 +201,7 @@ public class ExportSurveyMisc extends Application {
 				if((format.equals("stata") || format.equals("spss")) && language.equals("none")) {
 					// A language should be set for stata / spss exports, use the default
 					String sqlDefLang = "select def_lang from survey where s_id = ?; ";
-					pstmtDefLang = connectionSD.prepareStatement(sqlDefLang);
+					pstmtDefLang = sd.prepareStatement(sqlDefLang);
 					pstmtDefLang.setInt(1, targetId);			// TODO How will this work with queries?
 					ResultSet resultSet = pstmtDefLang.executeQuery();
 					if (resultSet.next()) {
@@ -207,7 +209,7 @@ public class ExportSurveyMisc extends Application {
 						if(language == null) {
 							// Just get the first language in the list	
 							String sqlDefLang2 = "select distinct language from translation where s_id = ?; ";
-							pstmtDefLang2 = connectionSD.prepareStatement(sqlDefLang2);
+							pstmtDefLang2 = sd.prepareStatement(sqlDefLang2);
 							pstmtDefLang2.setInt(1, targetId);
 							ResultSet resultSet2 = pstmtDefLang2.executeQuery();
 							if (resultSet2.next()) {
@@ -223,14 +225,14 @@ public class ExportSurveyMisc extends Application {
 				ArrayList<QueryForm> queryList = null;
 				QueryManager qm = new QueryManager();
 				if(query) {
-					queryList = qm.getFormListFromQuery(connectionSD, targetId);	// Get the form list from the query
+					queryList = qm.getFormListFromQuery(sd, targetId);	// Get the form list from the query
 				} else {
-					queryList = qm.getFormList(connectionSD, targetId, fId);		// Get a form list for this survey / form combo
+					queryList = qm.getFormList(sd, targetId, fId);		// Get a form list for this survey / form combo
 				}
-				QueryForm startingForm = qm.getQueryTree(connectionSD, queryList);	// Convert the query list into a tree
+				QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 
 				// Get the SQL for this query
-				SqlDesc sqlDesc = QueryGenerator.gen(connectionSD, 
+				SqlDesc sqlDesc = QueryGenerator.gen(sd, 
 						connectionResults,
 						localisation,
 						targetId,
@@ -404,7 +406,7 @@ public class ExportSurveyMisc extends Application {
 
 					SpssManager spssm = new SpssManager(localisation);  
 					String sps = spssm.createSPS(
-							connectionSD,
+							sd,
 							request.getRemoteUser(),
 							language,
 							targetId);
@@ -471,7 +473,8 @@ public class ExportSurveyMisc extends Application {
 								values, 
 								dataColumn,
 								sqlDesc.colNames, 
-								merge_select_multiple);	
+								merge_select_multiple,
+								surveyName);	
 							
 						if(split_locn && values.name.equals("the_geom")) {
 							addValueToBuf(header, "Latitude");
@@ -509,7 +512,8 @@ public class ExportSurveyMisc extends Application {
 									values, 
 									dataColumn,
 									sqlDesc.colNames, 
-									merge_select_multiple);						
+									merge_select_multiple,
+									surveyName);						
 
 							if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 
@@ -612,7 +616,7 @@ public class ExportSurveyMisc extends Application {
 				try {if (pstmtDefLang2 != null) {pstmtDefLang2.close();}} catch (SQLException e) {}	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 
-				SDDataSource.closeConnection("surveyKPI-ExportSurvey", connectionSD);
+				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
 				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
 			}
 		}

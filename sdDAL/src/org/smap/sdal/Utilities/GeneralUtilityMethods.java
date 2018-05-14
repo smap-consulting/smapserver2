@@ -6292,7 +6292,8 @@ public class GeneralUtilityMethods {
 	 * Get Column Values from a result set created using ColDesc
 	 */
 	public static int getColValues(ResultSet rs, ColValues values, int dataColumn, 
-			ArrayList<ColDesc> columns, boolean merge_select_multiple) throws SQLException {
+			ArrayList<ColDesc> columns, boolean merge_select_multiple,
+			String surveyName) throws SQLException {
 
 		ColDesc item = columns.get(dataColumn);
 		StringBuffer selMulValue = new StringBuffer("");
@@ -6331,6 +6332,10 @@ public class GeneralUtilityMethods {
 			dataColumn++;
 		}
 		values.type = item.qType;
+		
+		if(item.name != null && item.name.equals("_s_id")) {
+			values.value = surveyName;
+		}
 
 		return dataColumn;
 	}

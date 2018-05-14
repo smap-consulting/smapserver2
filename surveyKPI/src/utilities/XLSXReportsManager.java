@@ -125,6 +125,7 @@ public class XLSXReportsManager {
 					language = "none";
 				}
 
+				String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 				/*
 				 * Get the list of forms and surveys to be exported
 				 */
@@ -192,7 +193,8 @@ public class XLSXReportsManager {
 								values, 
 								dataColumn,
 								sqlDesc.colNames, 
-								merge_select_multiple);	
+								merge_select_multiple,
+								surveyName);	
 						
 						if(split_locn && values.name.equals("the_geom")) {
 							Cell cell = headerRow.createCell(colNumber++);
@@ -249,7 +251,8 @@ public class XLSXReportsManager {
 							values, 
 							dataColumn,
 							sqlDesc.colNames, 
-							merge_select_multiple);	
+							merge_select_multiple,
+							surveyName);	
 						
 					if(split_locn && values.name.equals("the_geom")) {
 						Cell cell = headerRow.createCell(colNumber++);
@@ -297,7 +300,8 @@ public class XLSXReportsManager {
 								values, 
 								dataColumn,
 								sqlDesc.colNames, 
-								merge_select_multiple);						
+								merge_select_multiple,
+								surveyName);						
 
 						if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 
