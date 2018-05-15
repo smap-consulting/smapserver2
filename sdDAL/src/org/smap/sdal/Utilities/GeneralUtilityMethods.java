@@ -2927,9 +2927,22 @@ public class GeneralUtilityMethods {
 		String sqlQuestion3 = "order by seq";
 		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 + sqlQuestion2 + sqlQuestion3);
 
-		// Get column names for select multiple questions
-		String sqlSelectMultiple = "select distinct o.column_name, o.ovalue, o.seq " + "from option o, question q "
-				+ "where o.l_id = q.l_id " + "and q.q_id = ? " + "and o.externalfile = ? " + "and o.published = 'true' "
+		// Get column names for select multiple questions n an uncompressed legacy select multiple
+		String sqlSelectMultipleNotCompressed = "select distinct o.column_name, o.ovalue, o.seq " 
+				+ "from option o, question q "
+				+ "where o.l_id = q.l_id " 
+				+ "and q.q_id = ? " 
+				+ "and o.externalfile = ? " 
+				+ "and o.published = 'true' "
+				+ "order by o.seq;";
+		PreparedStatement pstmtSelectMultipleNotCompressed = sd.prepareStatement(sqlSelectMultipleNotCompressed);
+				
+		// Get column names for select multiple questions for compressed select multiples (ignoe published)
+		String sqlSelectMultiple = "select distinct o.column_name, o.ovalue, o.seq " 
+				+ "from option o, question q "
+				+ "where o.l_id = q.l_id " 
+				+ "and q.q_id = ? " 
+				+ "and o.externalfile = ? " 
 				+ "order by o.seq;";
 		PreparedStatement pstmtSelectMultiple = sd.prepareStatement(sqlSelectMultiple);
 
@@ -3148,10 +3161,10 @@ public class GeneralUtilityMethods {
 
 					// Get the choices, either all from an external file or all from an internal
 					// file but not both
-					pstmtSelectMultiple.setInt(1, qId);
-					pstmtSelectMultiple.setBoolean(2, external);
-					log.info("Get choices for select multiple question: " + pstmtSelectMultiple.toString());
-					ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
+					pstmtSelectMultipleNotCompressed.setInt(1, qId);
+					pstmtSelectMultipleNotCompressed.setBoolean(2, external);
+					log.info("Get choices for select multiple question: " + pstmtSelectMultipleNotCompressed.toString());
+					ResultSet rsMultiples = pstmtSelectMultipleNotCompressed.executeQuery();
 
 					HashMap<String, String> uniqueColumns = new HashMap<String, String>();
 					int multIdx = 0;
@@ -3249,18 +3262,9 @@ public class GeneralUtilityMethods {
 
 			}
 		} finally {
-			try {
-				if (pstmtQuestions != null) {
-					pstmtQuestions.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmtSelectMultiple != null) {
-					pstmtSelectMultiple.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmtQuestions != null) {pstmtQuestions.close();	}} catch (Exception e) {}
+			try {if (pstmtSelectMultipleNotCompressed != null) {pstmtSelectMultipleNotCompressed.close();}} catch (Exception e) {}
+			try {if (pstmtSelectMultiple != null) {pstmtSelectMultiple.close();}} catch (Exception e) {}
 		}
 
 		columnList.addAll(realQuestions); // Add the real questions after the property questions
