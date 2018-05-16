@@ -516,6 +516,9 @@ public class XLSTemplateUploadManager {
 			q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
 		}	
 
+		// display name
+		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum, null); 
+		
 		// 4. choice filter
 		q.choice_filter = XLSUtilities.getTextColumn(row, "choice_filter", surveyHeader, lastCellNum, null);
 		q.choice_filter = GeneralUtilityMethods.cleanXlsNames(q.choice_filter);

@@ -638,11 +638,12 @@ public class Survey {
 				+ "autoplay,"
 				+ "accuracy,"
 				+ "dataType,"
-				+ "compressed"
+				+ "compressed,"
+				+ "display_name"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 		try {
 			
@@ -736,6 +737,7 @@ public class Survey {
 			} else {
 				pstmt.setBoolean(29, false);
 			}
+			pstmt.setString(30,  q.display_name);
 
 			pstmt.executeUpdate();
 			

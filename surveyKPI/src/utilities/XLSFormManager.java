@@ -46,6 +46,7 @@ import org.smap.sdal.model.Survey;
 public class XLSFormManager {
 
 	private class Column {
+		// Survey sheet columns
 		public static final int COL_TYPE = 0;
 		public static final int COL_NAME = 1;
 		public static final int COL_LABEL = 2;
@@ -67,12 +68,15 @@ public class XLSFormManager {
 		public static final int COL_ACCURACY = 18;
 		public static final int COL_PARAMETERS = 19;
 		public static final int COL_ROLE = 20;
+		public static final int COL_DISPLAY_NAME = 21;
 
+		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
 		public static final int COL_CHOICE_NAME = 101;
 		public static final int COL_CHOICE_LABEL = 102;
 		public static final int COL_DEFAULT = 103;
 
+		// Settings sheet columns
 		public static final int COL_DEFAULT_LANGUAGE = 200;
 		public static final int COL_INSTANCE_NAME = 201;
 		public static final int COL_STYLE = 202;
@@ -80,7 +84,6 @@ public class XLSFormManager {
 		public static final int COL_KEY_POLICY = 204;
 		public static final int COL_ROLE_ROW = 205;
 		public static final int COL_ALLOW_IMPORT = 206;
-
 
 		String name;
 		private int type;
@@ -157,6 +160,9 @@ public class XLSFormManager {
 					value = q.name;	
 				}
 
+			} else if(type == COL_DISPLAY_NAME) {	
+				value = q.display_name;	
+				
 			} else if(type == COL_LABEL) {
 				if(q.type.equals("calculate")) {
 					value = "";
@@ -618,6 +624,7 @@ public class XLSFormManager {
 		}
 
 		// Add remaining columns
+		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
 		cols.add(new Column(colNumber++,"choice_filter", Column.COL_CHOICE_FILTER, 0, "choice_filter"));
 		cols.add(new Column(colNumber++,"constraint", Column.COL_CONSTRAINT, 0, "constraint"));
 		cols.add(new Column(colNumber++,"constraint_message", Column.COL_CONSTRAINT_MSG, 0, "constraint_msg"));

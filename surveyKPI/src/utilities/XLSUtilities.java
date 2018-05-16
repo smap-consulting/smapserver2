@@ -235,7 +235,7 @@ public class XLSUtilities {
 					if(name.toLowerCase().equals("list name") ||
 							name.toLowerCase().equals("name")
 							|| name.toLowerCase().equals("label")) {
-						name = name.toLowerCase();	// Automatically set colums that need to be lowe case to lower case		
+						name = name.toLowerCase();	// Automatically set colums that need to be lower case to lower case		
 					}
 					Integer exists = header.get(name);
 					if(exists == null) {
