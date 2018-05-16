@@ -1031,6 +1031,7 @@ public class TaskManager {
 				+ "and t.id in (";		
 		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "and (status = 'new' or status = 'accepted')"
 				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now() "
@@ -1044,6 +1045,7 @@ public class TaskManager {
 
 		String whereTasksSql = "";
 		String whereAssignmentsSql = "";
+		boolean hasAssignments = false;
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGetUnassigned = null;
@@ -1079,6 +1081,7 @@ public class TaskManager {
 				whereTasksSql += taskId.toString();
 				
 				ArrayList<Integer> a = hierarchyHash.get(taskId);
+				hasAssignments = (a.size() > 0);
 				for(Integer assignmentId : a) {
 					if(assignmentId > 0) {
 						if(whereAssignmentsSql.length() > 0) {
@@ -1095,27 +1098,31 @@ public class TaskManager {
 
 			// Notify currently assigned users that are being modified
 			MessagingManager mm = new MessagingManager();
-			pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
-			pstmtGetUsers.setInt(1, pId);
-			log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
-			ResultSet rsNot = pstmtGetUsers.executeQuery();
-			while(rsNot.next()) {
-				mm.userChange(sd, rsNot.getString(1));
+			if(hasAssignments) {				
+				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
+				pstmtGetUsers.setInt(1, pId);
+				log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
+				ResultSet rsNot = pstmtGetUsers.executeQuery();
+				while(rsNot.next()) {
+					mm.userChange(sd, rsNot.getString(1));
+				}
 			}
 
 			if(action.action.equals("delete")) {
 
-				// Delete temporary users
-				pstmtDelTempUsers = sd.prepareStatement(sqlDeleteAssignedTemporaryUsers + whereAssignmentsSql + ")");
-				pstmtDelTempUsers.setInt(1, pId);
-				log.info("Del temp users created for tasks to be deleted: " + pstmtDelTempUsers.toString());
-				pstmtDelTempUsers.executeUpdate();
-				
-				// Set assignments to deleted
-				pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
-				pstmt.setInt(1, pId);
-				log.info("Delete assignments: " + pstmt.toString());
-				pstmt.executeUpdate();
+				if(hasAssignments) {
+					// Delete temporary users
+					pstmtDelTempUsers = sd.prepareStatement(sqlDeleteAssignedTemporaryUsers + whereAssignmentsSql + ")");
+					pstmtDelTempUsers.setInt(1, pId);
+					log.info("Del temp users created for tasks to be deleted: " + pstmtDelTempUsers.toString());
+					pstmtDelTempUsers.executeUpdate();
+					
+					// Set assignments to deleted
+					pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
+					pstmt.setInt(1, pId);
+					log.info("Delete assignments: " + pstmt.toString());
+					pstmt.executeUpdate();
+				}
 				
 				// Delete unassigned tasks and tasks that have only a single assignment
 				if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
@@ -1138,18 +1145,20 @@ public class TaskManager {
 					pstmtCreateAssignments.executeUpdate();
 				}
 				// Update assignments
-				if(action.userId >= 0) {
-					pstmt = sd.prepareStatement(assignSql + whereAssignmentsSql);
-					pstmt.setInt(1,action.userId);
-					pstmt.setInt(2, pId);				
-					log.info("Update Assignments: " + pstmt.toString());
-					pstmt.executeUpdate();
-				} else {
-					// Set assignments to deleted
-					pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
-					pstmt.setInt(1, pId);
-					log.info("Delete assignments: " + pstmt.toString());
-					pstmt.executeUpdate();
+				if(hasAssignments) {
+					if(action.userId >= 0) {
+						pstmt = sd.prepareStatement(assignSql + whereAssignmentsSql);
+						pstmt.setInt(1,action.userId);
+						pstmt.setInt(2, pId);				
+						log.info("Update Assignments: " + pstmt.toString());
+						pstmt.executeUpdate();
+					} else {
+						// Set assignments to deleted
+						pstmt = sd.prepareStatement(deleteAssignmentsSql + whereAssignmentsSql);
+						pstmt.setInt(1, pId);
+						log.info("Delete assignments: " + pstmt.toString());
+						pstmt.executeUpdate();
+					}
 				}
 
 				// Notify the user who has been assigned the tasks

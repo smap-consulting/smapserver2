@@ -238,6 +238,7 @@ public class SurveyResults extends Application {
 			Connection connectionRel = null; 
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtRestore = null;
+			PreparedStatement pstmtUnpublish = null;
 			
 			Statement stmtRel = null;
 			try {
@@ -247,7 +248,11 @@ public class SurveyResults extends Application {
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
-
+				
+				// Mark columns as unpublished		
+				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
+				pstmtUnpublish = sd.prepareStatement(sqlUnpublish);	
+				
 				// Delete tables associated with this survey				
 				String sqlRestore = "delete from subscriber_event "
 						+ "where se_id in "
@@ -281,12 +286,22 @@ public class SurveyResults extends Application {
 				}
 					
 				/*
+				 * Mark questions as unpublished
+				 */
+				connectionRel.setAutoCommit(false);
+				for(GroupDetails gd : surveys) {
+					pstmtUnpublish.setInt(1, gd.sId);
+					log.info("set unpublished " + pstmtUnpublish.toString());
+					pstmtUnpublish.executeUpdate();
+				}
+				
+				/*
 				 * Reload the surveys
 				 */
 				ExternalFileManager efm = new ExternalFileManager(localisation);
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
-					pstmtRestore.setString(1, gd.surveyIdent);			// Mark questions as un-published
+					pstmtRestore.setString(1, gd.surveyIdent);			// Initiate restore
 					log.info("Restoring survey " + gd.surveyIdent + ": " + pstmtRestore.toString());
 					pstmtRestore.executeUpdate();
 								
@@ -309,7 +324,7 @@ public class SurveyResults extends Application {
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				try {if (pstmtRestore != null) {pstmtRestore.close();}} catch (SQLException e) {}
-				
+				try {if (pstmtUnpublish != null) {pstmtUnpublish.close();}} catch (SQLException e) {}
 				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
 			
 
