@@ -120,15 +120,15 @@ public class WebForm extends Application {
 
 		Response resp = null;
 		String requester = "surveyMobileAPI-Webform";
-		Connection connectionSD = SDDataSource.getConnection(requester);
+		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
-			userIdent = GeneralUtilityMethods.getDynamicUser(connectionSD, authorisationKey);
-			resp = getInstanceData(connectionSD, request, formIdent, updateid, userIdent, false);
+			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
+			resp = getInstanceData(sd, request, formIdent, updateid, userIdent, false);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection(requester, connectionSD);
+			SDDataSource.closeConnection(requester, sd);
 		}
 
 		if (userIdent == null) {
@@ -153,16 +153,16 @@ public class WebForm extends Application {
 
 		Response resp = null;
 		String requester = "surveyMobileAPI-Webform";
-		Connection connectionSD = SDDataSource.getConnection(requester);
+		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
 			userIdent = request.getRemoteUser();
 			log.info("Requesting instance as: " + userIdent);
-			resp = getInstanceData(connectionSD, request, formIdent, updateid, userIdent, true);
+			resp = getInstanceData(sd, request, formIdent, updateid, userIdent, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection(requester, connectionSD);
+			SDDataSource.closeConnection(requester, sd);
 		}
 
 		return resp;
@@ -186,14 +186,14 @@ public class WebForm extends Application {
 		log.info("Requesting json");
 
 		String requester = "WebForm - getFormJson";
-		Connection connectionSD = SDDataSource.getConnection(requester);
+		Connection sd = SDDataSource.getConnection(requester);
 
 		try {
-			userIdent = GeneralUtilityMethods.getDynamicUser(connectionSD, authorisationKey);
+			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection(requester, connectionSD);
+			SDDataSource.closeConnection(requester, sd);
 		}
 
 		if (userIdent == null) {
@@ -292,46 +292,46 @@ public class WebForm extends Application {
 		if (userIdent != null) {
 			
 			// Authorisation
-			Connection connectionSD = SDDataSource.getConnection(requester);
+			Connection sd = SDDataSource.getConnection(requester);
 			
 			// Get the users locale
 			try {
-				locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, userIdent));
+				locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, userIdent));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			} catch (Exception e) {
 
 			}
 			
 			if (isTemporaryUser) {
-				a.isValidTemporaryUser(connectionSD, userIdent);
+				a.isValidTemporaryUser(sd, userIdent);
 			}
-			a.isAuthorised(connectionSD, userIdent);
+			a.isAuthorised(sd, userIdent);
 			SurveyManager surveyManager = new SurveyManager(localisation);
-			survey = surveyManager.getSurveyId(connectionSD, formIdent); // Get the survey id from the templateName / key
+			survey = surveyManager.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				throw new NotFoundException();
 			}
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, userIdent);
+				superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
 			} catch (Exception e) {
 			}
-			a.isValidSurvey(connectionSD, userIdent, survey.id, false, superUser); // Validate that the user has access																			
-			a.isBlocked(connectionSD, survey.id, false); // Validate that the survey is not blocked
+			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access																			
+			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
 			// End Authorisation
 			
 			// Get the organisation id and an access key to upload the results of this form
 			// (used from iPhones which do not do authentication on POSTs)
 			try {
-				orgId = GeneralUtilityMethods.getOrganisationId(connectionSD, userIdent, 0);
-				accessKey = GeneralUtilityMethods.getNewAccessKey(connectionSD, userIdent, formIdent);
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);
+				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, formIdent);
 				
-				manifestList = translationMgr.getManifestBySurvey(connectionSD, userIdent, survey.id, basePath, formIdent);
-				serverData = sm.getServer(connectionSD, localisation);
+				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);
+				serverData = sm.getServer(sd, localisation);
 				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "WebForm", e);
 			} finally {
-				SDDataSource.closeConnection(requester, connectionSD);
+				SDDataSource.closeConnection(requester, sd);
 			}
 		} else {
 			throw new AuthorisationException();
@@ -909,7 +909,7 @@ public class WebForm extends Application {
 	/*
 	 * Get instance data as JSON
 	 */
-	private Response getInstanceData(Connection connectionSD, HttpServletRequest request, String formIdent,
+	private Response getInstanceData(Connection sd, HttpServletRequest request, String formIdent,
 			String updateid, String user, boolean simplifyMedia) {
 
 		Response response = null;
@@ -922,20 +922,20 @@ public class WebForm extends Application {
 
 		// Authorisation
 		if (user != null) {
-			a.isAuthorised(connectionSD, user);
+			a.isAuthorised(sd, user);
 			SurveyManager sm = new SurveyManager(localisation);
-			survey = sm.getSurveyId(connectionSD, formIdent); // Get the survey id from the templateName / key
+			survey = sm.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				throw new NotFoundException();
 			}
 
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, userIdent);
+				superUser = GeneralUtilityMethods.isSuperUser(sd, userIdent);
 			} catch (Exception e) {
 			}
-			a.isValidSurvey(connectionSD, user, survey.id, false, superUser); // Validate that the user can access this
+			a.isValidSurvey(sd, user, survey.id, false, superUser); // Validate that the user can access this
 																				// survey
-			a.isBlocked(connectionSD, survey.id, false); // Validate that the survey is not blocked
+			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
 
 		} else {
 			throw new AuthorisationException();
@@ -960,13 +960,13 @@ public class WebForm extends Application {
 			GetXForm xForm = new GetXForm(localisation, userIdent);
 			instanceXML = xForm.getInstance(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false);
 
-			SurveyData sd = new SurveyData();
-			sd.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
-			sd.instanceStrToEditId = updateid;
-			sd.files = xForm.getFilenames();
+			SurveyData surveyData = new SurveyData();
+			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
+			surveyData.instanceStrToEditId = updateid;
+			surveyData.files = xForm.getFilenames();
 
 			Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
-			outputString.append(gsonResp.toJson(sd));
+			outputString.append(gsonResp.toJson(surveyData));
 
 			response = Response.status(Status.OK).entity(outputString.toString()).build();
 
@@ -974,7 +974,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(connectionSD, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage());
+			lm.writeLog(sd, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage());
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 
