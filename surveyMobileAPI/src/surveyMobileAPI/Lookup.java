@@ -38,8 +38,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.SurveyTableManager;
 
 
 /*
@@ -74,7 +76,7 @@ public class Lookup extends Application{
 		log.info("Lookup: Filename=" + filename + " key_column=" + key_column + " key_value=" + key_value);
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
+		Connection sd = SDDataSource.getConnection(connectionString);		
 		a.isAuthorised(sd, request.getRemoteUser());
 		boolean superUser = false;
 		try {
@@ -82,13 +84,22 @@ public class Lookup extends Application{
 		} catch (Exception e) {
 		}
 		// End Authorisation
-		 
+		Connection cResults = null;
+		
 		// Extract the data
 		try {
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
+			if(filename != null) {
+				if(filename.startsWith("linked_s")) {
+					cResults = ResultsDataSource.getConnection(connectionString);	
+					int sId = 0;
+					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, request.getRemoteUser());
+				}
+			}
 			response = Response.ok("{}").build();
 		
 		}  catch (Exception e) {
@@ -96,6 +107,7 @@ public class Lookup extends Application{
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}  finally {
 			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 				
 		return response;

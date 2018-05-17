@@ -90,31 +90,31 @@ public class InstanceXML extends Application{
 		String user = request.getRemoteUser();
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection(connectionString);
+		Connection sd = SDDataSource.getConnection(connectionString);
 		
 		// Get the users locale
 		ResourceBundle localisation = null;
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		} catch (Exception e) {
 
 		}
 		
 		SurveyManager sm = new SurveyManager(localisation);
-		Survey survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
-		a.isAuthorised(connectionSD, user);
+		Survey survey = sm.getSurveyId(sd, templateName);	// Get the survey id from the templateName / key
+		a.isAuthorised(sd, user);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isValidSurvey(connectionSD, user, survey.id, false, superUser);	// Validate that the user can access this survey
-		a.isBlocked(connectionSD, survey.id, false);			// Validate that the survey is not blocked
+		a.isValidSurvey(sd, user, survey.id, false, superUser);	// Validate that the user can access this survey
+		a.isBlocked(sd, survey.id, false);			// Validate that the survey is not blocked
 		
-		lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "view", "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval);
+		lm.writeLog(sd, survey.id, request.getRemoteUser(), "view", "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval);
 		
-		SDDataSource.closeConnection(connectionString, connectionSD);
+		SDDataSource.closeConnection(connectionString, sd);
 		// End Authorisation
 		 
 		// Extract the data
@@ -131,11 +131,11 @@ public class InstanceXML extends Application{
 		} catch (ApplicationException e) {
 		    String msg = e.getMessage();	
 			log.info(msg);	
-			lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + msg);
+			lm.writeLog(sd, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + msg);
 			response = Response.status(Status.NOT_FOUND).entity(msg).build();
 		}  catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
-			lm.writeLog(connectionSD, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + e.getMessage());
+			lm.writeLog(sd, survey.id, request.getRemoteUser(), "Error", "Failed to get instance data: " + e.getMessage());
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} 
 				
