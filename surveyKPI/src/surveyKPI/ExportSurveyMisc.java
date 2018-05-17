@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
@@ -45,8 +44,6 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.Row;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -58,19 +55,11 @@ import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.managers.SpssManager;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
-import org.smap.sdal.model.ExportForm;
-import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import utilities.XLSUtilities;
 
 /*
  * Various types of export related to a survey
@@ -680,9 +669,5 @@ public class ExportSurveyMisc extends Application {
 		String escaped = StringEscapeUtils.escapeCsv(value);
 		buf.append(escaped);
 	}
-
-
-
-
 
 }
