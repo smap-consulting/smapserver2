@@ -1267,83 +1267,30 @@ public class TaskManager {
 		}		
 	}
 
-	/*
-	 * Delete an individual task
-	 *
-	public void deleteTaskDeprecate(Connection sd, int tId, int pId) throws SQLException {
 
-		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
-				+ "(select a.assignee from assignments a, tasks t where a.task_id = ? "
-				+ "and a.task_id = t.id "
-				+ "and t.p_id = ?)"; 
-		PreparedStatement pstmtGetUsers = null;
-
-		String sqlTempUsers = "delete from users where temporary = true and id in "
-				+ "(select a.assignee from assignments a, tasks t where a.task_id = ? "
-				+ "and a.task_id = t.id "
-				+ "and t.p_id = ?)"; 
-		PreparedStatement pstmtTempUsers = null;
-
-		String sql = "delete from tasks where id = ? and p_id = ?"; 
-		PreparedStatement pstmt = null;
-
-		try {
-
-			// Delete any temporary users created for this task
-			pstmtTempUsers = sd.prepareStatement(sqlTempUsers);
-			pstmtTempUsers.setInt(1, tId);
-			pstmtTempUsers.setInt(2, pId);
-
-			log.info("Delete temporary user: " + pstmtTempUsers.toString());
-			pstmtTempUsers.executeUpdate();
-
-			// Notify users whose task has been deleted
-			MessagingManager mm = new MessagingManager();
-			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
-			pstmtGetUsers.setInt(1, tId);
-			pstmtGetUsers.setInt(2, pId);
-
-			log.info("Get task users: " + pstmtGetUsers.toString());
-			ResultSet rs = pstmtGetUsers.executeQuery();
-			while (rs.next()) {
-				mm.userChange(sd, rs.getString(1));
-			}			
-
-			// Delete the task
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, tId);
-			pstmt.setInt(2, pId);
-
-			log.info("Delete task: " + pstmt.toString());
-			pstmt.executeUpdate();
-
-		} finally {
-			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
-			if(pstmtTempUsers != null) try {	pstmtTempUsers.close(); } catch(SQLException e) {};
-			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
-		}		
-	}
-	*/
 	/*
 	 * Delete tasks that reference a specific updateId
 	 */
 	public void deleteTaskforUpdateId(Connection sd, int sId, String updateId, String user) throws SQLException {
 
 		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
-				+ "(select a.assignee from assignments a, tasks t where t.update_id = ? "
+				+ "(select a.assignee from assignments a, tasks t "
+				+ "where t.update_id = ? "
+				+ "and a.status = 'accepted' "
 				+ "and a.task_id = t.id)"; 
 		PreparedStatement pstmtGetUsers = null;
 
 		String sqlTempUsers = "delete from users where temporary = true and id in "
-				+ "(select a.assignee from assignments a, tasks t where t.update_id = ? "
+				+ "(select a.assignee from assignments a, tasks t "
+				+ "where t.update_id = ? "
+				+ "and a.status = 'accepted' "
 				+ "and a.task_id = t.id)"; 
 		PreparedStatement pstmtTempUsers = null;
-
-		String sql = "update tasks set deleted = 'true', deleted_at = now() where update_id = ?"; 
-		PreparedStatement pstmt = null;
 		
-		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
-				+ "(select id from tasks where update_id = ?)";
+		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() "
+				+ "where status = 'accepted' "
+				+ "and task_id in (select id from tasks where update_id = ?)";
+		PreparedStatement pstmt = null;
 
 		try {
 
@@ -1365,7 +1312,9 @@ public class TaskManager {
 				mm.userChange(sd, rs.getString(1));
 			}			
 
-			// Delete the task
+			// Delete the task			
+			/*
+			 * Don't do this as the task has probably just been completed but the data it used as reference was replaced
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, updateId);		
 			log.info("Delete task: " + pstmt.toString());
@@ -1376,6 +1325,7 @@ public class TaskManager {
 				msg = msg.replaceFirst("%s2", updateId);
 				lm.writeLog(sd, sId, user, LogManager.DELETE, msg);
 			}
+			*/
 			
 			// Delete the assignments
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};

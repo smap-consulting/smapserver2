@@ -53,6 +53,8 @@ public class SurveyTableManager {
 	 */
 	private class SqlDef {
 		private String sql;
+		private String order_by;
+		private boolean hasWhere = false; 
 		private ArrayList<String> colNames;
 		private boolean hasRbacFilter = false;
 		private ArrayList<SqlFrag> rfArray = null;
@@ -122,8 +124,11 @@ public class SurveyTableManager {
 				} else {
 					throw new Exception("Failed to create CSV Table entry");
 				}
+			}
+			if(sqlDef == null) {
 				getSqlAndHeaders(sd, cResults, sId, fileName, user);
 			}
+
 			
 		} finally {
 			try {pstmtGetCsvTable.close();} catch(Exception e) {}
@@ -157,14 +162,29 @@ public class SurveyTableManager {
 	/*
 	 * Get a result set of data
 	 */
-	public void initData(PreparedStatement pstmt) throws Exception {
+	public void initData(PreparedStatement pstmt, String key_column, String key_value) throws Exception {
 		
 		if(sqlDef != null && sqlDef.colNames.size() > 0) {
-			pstmt = cResults.prepareStatement(sqlDef.sql);
+			StringBuilder sql = new StringBuilder(sqlDef.sql);
+			String filter = getFilter(key_column, key_value);
+			if(filter.length() > 0) {
+				if(sqlDef.hasWhere) {
+					sql.append(" and ");
+				} else {
+					sql.append(" where ");
+				}
+				sql.append(filter);
+			}
+			sql.append(sqlDef.order_by);
+			pstmt = cResults.prepareStatement(sql.toString());
 			int paramCount = 1;
 			if (sqlDef.hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount);
 			}
+			if(filter.length() > 0) {
+				pstmt.setString(paramCount, key_value);
+			}
+			
 			log.info("Init data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 		} else {
@@ -190,6 +210,23 @@ public class SurveyTableManager {
 			}
 		}
 		return line;
+	}
+	
+	/*
+	 * Get an sql filter clause
+	 */
+	public String getFilter(String key_column, String key_value) throws Exception {
+		
+		String filter = "";
+		if(sqlDef != null && key_column != null && key_value != null) {
+			for(String colName : sqlDef.colNames) {
+				if(key_column.equals(colName)) {
+					filter = key_column + "::text = ?";  
+					break;
+				}
+			}	
+		}
+		return filter;
 	}
 	
 	/*
@@ -426,11 +463,15 @@ public class SurveyTableManager {
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
 		ResultSet rs = null;
-		String sqlGetCol = "select column_name, f_id from question " + "where qname = ? " + "and published "
+		String sqlGetCol = "select column_name, f_id from question " 
+				+ "where qname = ? " 
+				+ "and published "
 				+ "and f_id in (select f_id from form where s_id = ?)";
 		PreparedStatement pstmtGetCol = null;
 
-		String sqlGetTable = "select f_id, table_name from form " + "where s_id = ? " + "and parentform = ?";
+		String sqlGetTable = "select f_id, table_name from form " 
+				+ "where s_id = ? " 
+				+ "and parentform = ?";
 		PreparedStatement pstmtGetTable = null;
 
 		try {
@@ -456,6 +497,7 @@ public class SurveyTableManager {
 				}
 				String colName = null;
 				pstmtGetCol.setString(1, name);
+				log.info("Check presence of col name:" + pstmtGetCol.toString());
 				rs = pstmtGetCol.executeQuery();
 				if (rs.next()) {
 					colName = rs.getString(1);
@@ -503,6 +545,7 @@ public class SurveyTableManager {
 			// 3. Add the where clause
 			if (where.length() > 0) {
 				sql.append(" where ");
+				sqlDef.hasWhere = true;
 				sql.append(where);
 			}
 
@@ -515,7 +558,12 @@ public class SurveyTableManager {
 			if (sqlDef.rfArray.size() > 0) {
 				String rFilter = rm.convertSqlFragsToSql(sqlDef.rfArray);
 				if (rFilter.length() > 0) {
-					sql.append(" and ");
+					if(where.length() > 0) {
+						sql.append(" where ");
+						sqlDef.hasWhere = true;
+					} else {
+						sql.append(" and ");
+					}
 					sql.append(rFilter);
 					sqlDef.hasRbacFilter = true;
 				}
@@ -523,27 +571,29 @@ public class SurveyTableManager {
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
+			StringBuffer orderBy = new StringBuffer("");
 			if(chart_key != null) {
-				sql.append(" order by ");
-				sql.append(chart_key);
-				sql.append(" asc");
+				orderBy.append(" order by ");
+				orderBy.append(chart_key);
+				orderBy.append(" asc");
 			} else if (linked_s_pd) {
-				sql.append(" order by _data_key");
+				orderBy.append(" order by _data_key");
 				if (subTables.size() > 0) {
 					for (String subTable : subTables) {
-						sql.append(",");
-						sql.append(subTable);
-						sql.append(".prikey asc");
+						orderBy.append(",");
+						orderBy.append(subTable);
+						orderBy.append(".prikey asc");
 					}
 				} else {
-					sql.append(" asc");
+					orderBy.append(" asc");
 				}
 			} else {
 				// order by the columns
-				sql.append(" order by ");
-				sql.append(order_cols);
-				sql.append(" asc");
+				orderBy.append(" order by ");
+				orderBy.append(order_cols);
+				orderBy.append(" asc");
 			}
+			sqlDef.order_by = orderBy.toString();
 
 		} finally {
 			if (pstmtGetCol != null)

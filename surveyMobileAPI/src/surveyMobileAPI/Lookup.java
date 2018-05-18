@@ -21,6 +21,8 @@ package surveyMobileAPI;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -42,6 +44,10 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.model.KeyValueSimp;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 
 /*
@@ -59,21 +65,23 @@ public class Lookup extends Application{
 	LogManager lm = new LogManager();		// Application log
 
 	/*
-	 * Get a record from the reference data identified by the filename and key column	
+	 * Get a record from the reference data identified by the filename and key column
 	 */
 	@GET
-	@Path("/{filename}/{key_column}/{key_value}")
+	@Path("/{survey_ident}/{filename}/{key_column}/{key_value}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response getInstance(@Context HttpServletRequest request,
-			@PathParam("filename") String filename,
-			@PathParam("key_column") String key_column,
-			@PathParam("key_value") String key_value
+			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
+			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
+			@PathParam("key_column") String keyColumn,
+			@PathParam("key_value") String keyValue
 			) throws IOException {
 
 		Response response = null;
 		String connectionString = "surveyMobileAPI-Lookup";
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
-		log.info("Lookup: Filename=" + filename + " key_column=" + key_column + " key_value=" + key_value);
+		log.info("Lookup: Filename=" + fileName + " key_column=" + keyColumn + " key_value=" + keyValue);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
@@ -85,6 +93,7 @@ public class Lookup extends Application{
 		}
 		// End Authorisation
 		Connection cResults = null;
+		PreparedStatement pstmt = null;
 		
 		// Extract the data
 		try {
@@ -92,20 +101,25 @@ public class Lookup extends Application{
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
-			if(filename != null) {
-				if(filename.startsWith("linked_s")) {
+			ArrayList<KeyValueSimp> results = new ArrayList<> ();
+			if(fileName != null) {
+				if(fileName.startsWith("linked_s")) {
 					cResults = ResultsDataSource.getConnection(connectionString);	
-					int sId = 0;
+					
+					int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
-					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, request.getRemoteUser());
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					stm.initData(pstmt, keyColumn, keyValue);
+					results = stm.getLine();
 				}
 			}
-			response = Response.ok("{}").build();
+			response = Response.ok(gson.toJson(results)).build();
 		
 		}  catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}  finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}} 
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
