@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -101,7 +102,7 @@ public class Lookup extends Application{
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
-			ArrayList<KeyValueSimp> results = new ArrayList<> ();
+			HashMap<String, String> results = new HashMap<> ();
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
 					cResults = ResultsDataSource.getConnection(connectionString);	
@@ -110,7 +111,7 @@ public class Lookup extends Application{
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
 					stm.initData(pstmt, keyColumn, keyValue);
-					results = stm.getLine();
+					results = stm.getHash();
 				}
 			}
 			response = Response.ok(gson.toJson(results)).build();

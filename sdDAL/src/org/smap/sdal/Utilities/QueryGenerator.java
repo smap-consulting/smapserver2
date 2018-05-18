@@ -374,8 +374,8 @@ public class QueryGenerator {
 			boolean wantUrl,
 			boolean exp_ro,
 			HashMap<ArrayList<OptionDesc>, String> labelListMap,
-			Connection connectionSD,
-			Connection connectionResults,
+			Connection sd,
+			Connection cResults,
 			ArrayList<String> requiredColumns,
 			ArrayList<String> namedQuestions,
 			String user,
@@ -398,10 +398,9 @@ public class QueryGenerator {
 		
 		tables.add(form.table);
 
-		ArrayList<TableColumn> cols = null;
-		cols = GeneralUtilityMethods.getColumnsInForm(
-				connectionSD,
-				connectionResults,
+		 ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
+				sd,
+				cResults,
 				localisation,
 				language,
 				sId,
@@ -492,7 +491,7 @@ public class QueryGenerator {
 			if(type.equals("geometry")) {
 				String sqlGeom = "SELECT GeometryType(" + name + ") FROM " + form.table + ";";
 
-				pstmtGeom = connectionResults.prepareStatement(sqlGeom);
+				pstmtGeom = cResults.prepareStatement(sqlGeom);
 				log.info("Get geometry type: " + pstmtGeom.toString());
 				ResultSet rsGeom = pstmtGeom.executeQuery();
 				
@@ -689,8 +688,8 @@ public class QueryGenerator {
 						wantUrl,
 						exp_ro,
 						labelListMap,
-						connectionSD,
-						connectionResults,
+						sd,
+						cResults,
 						requiredColumns,
 						namedQuestions,
 						user,

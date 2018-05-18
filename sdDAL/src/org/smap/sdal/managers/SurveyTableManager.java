@@ -213,6 +213,26 @@ public class SurveyTableManager {
 	}
 	
 	/*
+	 * Get a data hashmap
+	 */
+	public HashMap<String, String> getHash() throws SQLException {
+		HashMap<String, String> line = null;
+		
+		if(rs != null && rs.next()) {
+			line = new HashMap<String, String> ();
+			for (int i = 0; i < sqlDef.colNames.size(); i++) {
+				String col = sqlDef.colNames.get(i);
+				String value = rs.getString(col);
+				if (value == null) {
+					value = "";
+				}
+				line.put(col, value);
+			}
+		}
+		return line;
+	}
+	
+	/*
 	 * Get an sql filter clause
 	 */
 	public String getFilter(String key_column, String key_value) throws Exception {
