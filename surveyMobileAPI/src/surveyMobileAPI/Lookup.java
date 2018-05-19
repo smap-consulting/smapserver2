@@ -102,7 +102,7 @@ public class Lookup extends Application{
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
-			HashMap<String, String> results = new HashMap<> ();
+			HashMap<String, String> results = null;
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
 					cResults = ResultsDataSource.getConnection(connectionString);	
@@ -113,6 +113,9 @@ public class Lookup extends Application{
 					stm.initData(pstmt, keyColumn, keyValue);
 					results = stm.getHash();
 				}
+			}
+			if (results == null) {
+				results =  new HashMap<> ();
 			}
 			response = Response.ok(gson.toJson(results)).build();
 		

@@ -427,11 +427,13 @@ public class SurveyTableManager {
 					for (String col : columns) {
 						if (!uniqueColumns.contains(col)) {
 							uniqueColumns.add(col);
+							log.info("Adding unique column: " + col);
 						}
 					}
 				}
 			}
 
+			log.info("Unique Columns: " + uniqueColumns.size());
 			// 5. Get the sql as long as there is data to retrieve
 			
 			if(uniqueColumns.size() > 0) {
