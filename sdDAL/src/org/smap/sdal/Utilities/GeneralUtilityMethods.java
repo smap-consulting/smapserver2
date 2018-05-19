@@ -4891,6 +4891,35 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Check for the existence of a table for a subform identified by its parent question
+	 */
+	public static boolean subFormTableExists(Connection sd, Connection cResults, int qId) throws SQLException {
+
+		String sql = "select table_name from form where parentquestion = ?";
+		PreparedStatement pstmt = null;
+		boolean tableExists = false;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, qId);
+
+			ResultSet rs = pstmt.executeQuery();
+			System.out.println(pstmt.toString());
+			if (rs.next()) {
+				tableExists = tableExists(cResults, rs.getString(1));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		return tableExists;
+	}
+	
+	/*
 	 * Check for the existence of a table
 	 */
 	public static boolean tableExists(Connection conn, String tableName) throws SQLException {
@@ -4919,7 +4948,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Check for the existence of a table
+	 * Check for the existence of a table in a specific schema
 	 */
 	public static boolean tableExistsInSchema(Connection conn, String tableName, String schema) throws SQLException {
 

@@ -880,11 +880,11 @@ public class WebForm extends Application {
 			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		}
 		if (surveyClass != null && surveyClass.contains("pages")) {
-			output.append("<a class='previous-page disabled' href='#'>Back</a>\n");
-			output.append("<a class='next-page' href='#'>Next</span></a>\n");
+			output.append("<a class='lang previous-page disabled' data-lang='form.pages.back' href='#'>Back</a>\n");
+			output.append("<a class='lang next-page' data-lang='form.pages.next' href='#'>Next</span></a>\n");
 		}
 		output.append(
-				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\">Powered by <a href=\"http://enketo.org\" title=\"enketo.org website\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
+				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
 		// output.append("<img src=/images/enketo.png style=\"position: absolute; right:
 		// 0px; bottom: 0px; height:40px;\">");
 		output.append("</div>\n"); // main controls
@@ -892,8 +892,8 @@ public class WebForm extends Application {
 		if (surveyClass != null && surveyClass.contains("pages")) {
 
 			output.append("<div class='jump-nav'>\n");
-			output.append("<a class='btn btn-default disabled first-page' href='#'>Return to Beginning</a>\n");
-			output.append("<a class='btn btn-default disabled last-page' href='#'>Go to End</a>\n");
+			output.append("<a class='lang btn btn-default disabled first-page' data-lang='forms.pages.return' href='#'>Return to Beginning</a>\n");
+			output.append("<a class='lang btn btn-default disabled last-page' data-lang='form.pages.end' href='#'>Go to End</a>\n");
 			output.append("</div>");
 		}
 
@@ -1055,6 +1055,5 @@ public class WebForm extends Application {
 
 		return output.toString();
 	}
-
 
 }

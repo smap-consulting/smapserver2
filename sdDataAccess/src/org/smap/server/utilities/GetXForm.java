@@ -1542,20 +1542,20 @@ public class GetXForm {
 				Form subForm = template.getSubForm(form, q);
 
 				if (subForm != null) {
-					record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters()));
+					record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters(), false));
 				}
 
 			} else if (qType.equals("begin group")) {
 
-				record.add(new Results(qName, null, null, true, false, false, null, q.getParameters()));
+				record.add(new Results(qName, null, null, true, false, false, null, q.getParameters(), false));
 
 			} else if (qType.equals("end group")) {
 
-				record.add(new Results(qName, null, null, false, true, false, null, q.getParameters()));
+				record.add(new Results(qName, null, null, false, true, false, null, q.getParameters(), false));
 
 			} else {
 
-				record.add(new Results(qName, null, value, false, false, false, null, null));
+				record.add(new Results(qName, null, value, false, false, false, null, null, false));
 			}
 		}
 
@@ -1696,7 +1696,9 @@ public class GetXForm {
 						escValue = item.value.replace("'", "\\\'");
 					}
 
-					childElement.setTextContent(escValue);
+					if(!item.isStartPreload) {		// Don't add start time as this needs to be reset when editing the form instance
+						childElement.setTextContent(escValue);
+					}
 					currentParent.appendChild(childElement);
 				}
 
@@ -1842,7 +1844,7 @@ public class GetXForm {
 			List<Results> record = new ArrayList<Results>();
 
 			String priKey = resultSet.getString(1);
-			record.add(new Results("prikey", null, priKey, false, false, false, null, null));
+			record.add(new Results("prikey", null, priKey, false, false, false, null, null, false));
 
 			/*
 			 * Add data for the remaining questions
@@ -1851,16 +1853,20 @@ public class GetXForm {
 
 			if(parentId <= 0) {
 				// Add Meta
-				record.add(new Results("meta", null, null, true, false, false, null, null));
-				record.add(new Results("instanceID", null, resultSet.getString(index++), false, false, false, null, null));	
-				record.add(new Results("instanceName", null, resultSet.getString(index++), false, false, false, null, null));	
-				record.add(new Results("meta_groupEnd", null, null, false, true, false, null, null));
+				record.add(new Results("meta", null, null, true, false, false, null, null, false));
+				record.add(new Results("instanceID", null, resultSet.getString(index++), false, false, false, null, null, false));	
+				record.add(new Results("instanceName", null, resultSet.getString(index++), false, false, false, null, null, false));	
+				record.add(new Results("meta_groupEnd", null, null, false, true, false, null, null, false));
 
 				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
 						String value = resultSet.getString(index++);
-						record.add(new Results(mi.name, null, value, false, false, false, null, null));	
+						boolean isStartPreload = false;
+						if(mi.sourceParam != null && mi.sourceParam.equals("start")) {
+							isStartPreload = true;
+						}
+						record.add(new Results(mi.name, null, value, false, false, false, null, null, isStartPreload));	
 					}
 				}
 
@@ -1881,16 +1887,16 @@ public class GetXForm {
 					Form subForm = template.getSubForm(processForm, q);
 
 					if (subForm != null) {
-						record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters()));
+						record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters(), false));
 					}
 
 				} else if (qType.equals("begin group")) {
 
-					record.add(new Results(qName, null, null, true, false, false, null, q.getParameters()));
+					record.add(new Results(qName, null, null, true, false, false, null, q.getParameters(), false));
 
 				} else if (qType.equals("end group")) {
 
-					record.add(new Results(qName, null, null, false, true, false, null, q.getParameters()));
+					record.add(new Results(qName, null, null, false, true, false, null, q.getParameters(), false));
 
 				} else if (qType.equals("select") && !q.isCompressed()) { // Get the data from all the option columns
 
@@ -1933,7 +1939,7 @@ public class GetXForm {
 
 					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, optValue,
 					// false, false, false, null));
-					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters()));
+					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters(), false));
 
 				} else if (qType.equals("image") || qType.equals("audio") || qType.equals("video")) { // Get the file
 					// name
@@ -1957,7 +1963,7 @@ public class GetXForm {
 					}
 					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
 					// false, false, false, filename));
-					record.add(new Results(qName, null, value, false, false, false, filename, q.getParameters()));
+					record.add(new Results(qName, null, value, false, false, false, filename, q.getParameters(), false));
 
 					if (q.isPublished() || isReference) {
 						index++;
@@ -1993,7 +1999,7 @@ public class GetXForm {
 
 					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
 					// false, false, false, null));
-					record.add(new Results(qName, null, value, false, false, false, null, q.getParameters()));
+					record.add(new Results(qName, null, value, false, false, false, null, q.getParameters(), false));
 
 					if (q.isPublished() || isReference) {
 						index++;

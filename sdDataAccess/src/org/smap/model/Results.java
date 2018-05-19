@@ -11,10 +11,12 @@ public class Results {
 	public boolean media;
 	public String filename;	// Filename of media
 	public String parameters;
+	public boolean isStartPreload;
 	
 	public Results (String n, Form f, String v, boolean bg, boolean eg, boolean m, 
 			String fn,
-			String parameters) {
+			String parameters,
+			boolean isStartPreload) {
 		name = n;
 		subForm = f;
 		value = v;
@@ -23,5 +25,6 @@ public class Results {
 		media = m;
 		filename = fn;
 		this.parameters = parameters;
+		this.isStartPreload = isStartPreload;
 	}
 }

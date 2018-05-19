@@ -2475,7 +2475,14 @@ public class SurveyManager {
 		 */
 		if(!generateDummyValues) {
 			for(int i = questions.size() - 1; i >= 0; i--) {
-				if(!questions.get(i).published || questions.get(i).columnName == null) {
+				Question q = questions.get(i);
+				if(!q.published || q.columnName == null) {
+					if(q.type != null && q.type.equals("begin repeat")) {
+						if(GeneralUtilityMethods.subFormTableExists(sd, cResults, q.id)) {
+							continue;		// Keep begin repeats even if not published since the table exists
+											// This would not be needed if there were not issues with the publishing record
+						}
+					}
 					questions.remove(i);
 				}
 			}
