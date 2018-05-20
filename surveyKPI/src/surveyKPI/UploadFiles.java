@@ -124,13 +124,12 @@ public class UploadFiles extends Application {
 
 		int oId = 0;
 		Connection connectionSD = null; 
-		Connection cResults = null;
 		boolean superUser = false;
+		String connectionString = "surveyKPI - uploadFiles - sendMedia";
 		
 		try {
 			
-			connectionSD = SDDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
-			cResults = ResultsDataSource.getConnection("surveyKPI - uploadFiles - sendMedia");
+			connectionSD = SDDataSource.getConnection(connectionString);
 			
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
@@ -222,7 +221,7 @@ public class UploadFiles extends Application {
 
 						// Upload any CSV data into a table
 						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
-							putCsvIntoTable(connectionSD, cResults, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
+							putCsvIntoTable(connectionSD, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
 						}
 
 						// Create a message so that devices are notified of the change
@@ -256,9 +255,7 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} finally {
-
-			SDDataSource.closeConnection("surveyKPI - uploadFiles - sendMedia", connectionSD);
-			ResultsDataSource.closeConnection("surveyKPI - uploadFiles - sendMedia", cResults);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
 
 		return response;
@@ -1058,7 +1055,6 @@ public class UploadFiles extends Application {
 	 */
 	private void putCsvIntoTable(
 		Connection sd, 
-		Connection cResults,
 		ResourceBundle localisation,
 		String user, 
 		int sId, 

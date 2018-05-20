@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>surveyKPI-P</groupId>
   <artifactId>surveyKPI-P</artifactId>
-  <version>1.0.0</version>
+  <version>0.0.1-SNAPSHOT</version>
   <packaging>war</packaging>
   <build>
     <sourceDirectory>src</sourceDirectory>
@@ -33,7 +33,8 @@
 		<dependency>
 		    <groupId>com.amazonaws</groupId>
 		    <artifactId>aws-java-sdk-core</artifactId>
-		    </dependency>
+		    <version>1.11.207</version>
+		</dependency>
 	
 		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core -->
 		<dependency>
