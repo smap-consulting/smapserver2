@@ -175,7 +175,7 @@ public class PDFReportsManager {
 	 			Survey survey = sm.getById(sd, cResults, username, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
 						false, false, true, "geojson");				
-				PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey);
+				PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey, username);
 				
 				String tempFilePath = filePath + "/" + name;
 				File tempFile = new File(tempFilePath);

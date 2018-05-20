@@ -48,6 +48,7 @@ import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
@@ -70,7 +71,9 @@ public class SubRelationalDB extends Subscriber {
 
 	private static Logger log =
 			Logger.getLogger(Subscriber.class.getName());
-
+	
+	private static LogManager lm = new LogManager();		// Application log
+	
 	private class Keys {
 		ArrayList<Integer> duplicateKeys = new ArrayList<Integer>();
 		int newKey = 0;
@@ -419,7 +422,7 @@ public class SubRelationalDB extends Subscriber {
 							if(source.trim().startsWith("attachments")) {
 								if(item.type.equals("imagelabel")) {
 									String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
-									
+									lm.writeLog(sd, sId, remoteUser, "Rekognition Request", "Batch: " + "/smap/" + source);
 									// 4. Write labels to database
 									pstmtUpdate.setString(1, labels);
 									pstmtUpdate.setInt(2, prikey);

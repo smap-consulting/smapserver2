@@ -49,6 +49,7 @@ import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ServerManager;
@@ -104,6 +105,7 @@ public class SubscriberBatch {
 	private static Logger log =
 			Logger.getLogger(Subscriber.class.getName());
 
+	private static LogManager lm = new LogManager();		// Application log
 
 	/**
 	 * @param args
@@ -157,7 +159,7 @@ public class SubscriberBatch {
 			uem = new JdbcUploadEventManager(sd);
 			pstmt = sd.prepareStatement(sqlUpdateStatus);
 
-			// Default to english though we could get the locals from a server level setting
+			// Default to english though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);

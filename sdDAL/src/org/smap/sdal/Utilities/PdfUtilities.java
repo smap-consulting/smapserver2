@@ -1,25 +1,22 @@
 package org.smap.sdal.Utilities;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
 
 import com.itextpdf.text.Anchor;
 import com.itextpdf.text.BadElementException;
-import com.itextpdf.text.BaseColor;
 import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
-import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.Image;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
@@ -32,6 +29,8 @@ public class PdfUtilities {
 
 	private static Logger log =
 			 Logger.getLogger(PDFTableManager.class.getName());
+	
+	private static LogManager lm = new LogManager();		// Application log
 	
 	public static void addImageTemplate(AcroFields pdfForm, String fieldName, String basePath, 
 			String value, String serverRoot, PdfStamper stamper, Font Symbols) throws IOException, DocumentException {
@@ -65,13 +64,6 @@ public class PdfUtilities {
 			    		targetPosition.getWidth() / 2, Element.ALIGN_CENTER);
 			    data.go();
 			}
-			
-		    
-		    /*
-			Anchor anchor = new Anchor(serverRoot + value);
-			anchor.setReference(serverRoot + value);
-			pdfForm.setField(fieldName, anchor.toString());  // set as hyper link
-			*/
 		}
 	}
 	
@@ -95,7 +87,9 @@ public class PdfUtilities {
 			String value, 
 			String location, 
 			String zoom,
-			String mapbox_key) throws BadElementException, MalformedURLException, IOException, SQLException {
+			String mapbox_key,
+			int sId,
+			String user) throws BadElementException, MalformedURLException, IOException, SQLException {
 		
 		Image img = null;
 		
@@ -136,14 +130,13 @@ public class PdfUtilities {
 		
 		if(getMap && mapbox_key == null) {
 			log.info("Mapbox key not specified.  PDF Map not created");
-		}
-		
-		if(getMap) {
+		} else if(getMap) {
 			url.append("500x300.png?access_token=");
 			url.append(mapbox_key);
 			try {
 				log.info("Mapbox API call: " + url);
 				img = Image.getInstance(url.toString());
+				lm.writeLog(sd, sId, user, "Mapbox Request", url.toString());
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
 			}

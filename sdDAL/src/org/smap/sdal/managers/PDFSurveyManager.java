@@ -121,6 +121,7 @@ public class PDFSurveyManager {
 	private ChoiceManager choiceManager = null;
 	private Survey survey;
 	private Connection sd;
+	private String user;
 	
 	// Other global values
 	int languageIdx = 0;
@@ -150,11 +151,12 @@ public class PDFSurveyManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 	
-	public PDFSurveyManager(ResourceBundle l, Connection c, Survey s) {
+	public PDFSurveyManager(ResourceBundle l, Connection c, Survey s, String u) {
 		localisation = l;
 		choiceManager = new ChoiceManager(l);
 		sd = c;
 		survey  = s;
+		user = u;
 	}
 
 	/*
@@ -574,7 +576,10 @@ public class PDFSurveyManager {
 
 					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 					if(ad != null) {
-						Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom, gv.mapbox_key);
+						Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom
+								,gv.mapbox_key,
+								survey.id,
+								user);
 						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
 					} else {
 						log.info("No field for image (Mapbox not called: " + fieldName);
@@ -1598,7 +1603,9 @@ public class PDFSurveyManager {
 
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 
-			Image img = PdfUtilities.getMapImage(sd, di.map, di.value, di.location, di.zoom, gv.mapbox_key);
+			Image img = PdfUtilities.getMapImage(sd, di.map, di.value, di.location, di.zoom, gv.mapbox_key,
+					survey.id,
+					user);
 
 			if(img != null) {
 				valueCell.addElement(img);

@@ -58,7 +58,6 @@ public class MessagingManagerApply {
 	private static Logger log = Logger.getLogger(MessagingManagerApply.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
-
 	
 	/*
 	 * Apply any outbound messages
@@ -154,7 +153,8 @@ public class MessagingManagerApply {
 							cResults, 
 							organisation, 
 							sm,
-							id); 
+							id,
+							sm.user); 
 					
 				} else {
 					// Assume a direct email to be processed immediately

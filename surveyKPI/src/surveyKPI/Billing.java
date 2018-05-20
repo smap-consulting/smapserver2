@@ -134,7 +134,7 @@ public class Billing extends Application {
 		
 		String sqlStaticMap = "select  count(*) as total "
 				+ "from log "
-				+ "where event = 'Map Request' "
+				+ "where event = 'Mapbox Request' "
 				+ "and extract(month from log_time) = ? "
 				+ "and extract(year from log_time) = ?";
 		PreparedStatement pstmtStaticMap = null;

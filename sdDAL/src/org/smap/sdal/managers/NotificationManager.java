@@ -494,7 +494,8 @@ public class NotificationManager {
 			Connection cResults, 
 			Organisation organisation,
 			SubmissionMessage msg,
-			int messageId) throws Exception {
+			int messageId,
+			String user) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
@@ -532,7 +533,7 @@ public class NotificationManager {
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");
 		
-		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey);
+		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey, user);
 		
 		try {
 			
