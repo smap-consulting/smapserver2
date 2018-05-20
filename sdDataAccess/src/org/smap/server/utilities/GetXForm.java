@@ -1261,12 +1261,10 @@ public class GetXForm {
 				Element item = outputXML.createElement("item");
 				parent.appendChild(item);
 				Element elem = null;
-				System.out.println("------");
 				for(KeyValueSimp kv : line) {
 					elem = outputXML.createElement(kv.k);
 					elem.setTextContent(kv.v);
 					item.appendChild(elem);
-					System.out.println("    " + kv.k + " : " + kv.v);
 				}
 				line = stm.getLine();
 				

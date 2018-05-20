@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.KeyValueSimp;
@@ -103,15 +104,19 @@ public class Lookup extends Application{
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
 			HashMap<String, String> results = null;
+			int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
-					cResults = ResultsDataSource.getConnection(connectionString);	
-					
-					int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
-					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+					// Get data from a survey
+					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
 					stm.initData(pstmt, keyColumn, keyValue);
-					results = stm.getHash();
+					results = stm.getLineAsHash();
+				} else {
+					// Get data from a csv file
+					CsvTableManager ctm = new CsvTableManager(sd, localisation);
+					results = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue);
 				}
 			}
 			if (results == null) {

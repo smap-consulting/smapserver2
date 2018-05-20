@@ -215,7 +215,7 @@ public class SurveyTableManager {
 	/*
 	 * Get a data hashmap
 	 */
-	public HashMap<String, String> getHash() throws SQLException {
+	public HashMap<String, String> getLineAsHash() throws SQLException {
 		HashMap<String, String> line = null;
 		
 		if(rs != null && rs.next()) {

@@ -11,6 +11,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -369,6 +370,42 @@ public class CsvTableManager {
 	}
 	
 	/*
+	 * Look up a value
+	 */
+	public HashMap<String, String> lookup(int oId, int sId, String fileName, String key_column, 
+			String key_value) throws SQLException, ApplicationException {
+		
+		HashMap<String, String> record = null;
+		
+		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+		PreparedStatement pstmtGetCsvTable = null;	
+		try {
+			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
+			pstmtGetCsvTable.setInt(1, oId);
+			pstmtGetCsvTable.setInt(2, sId);
+			pstmtGetCsvTable.setString(3, fileName);
+			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+			ResultSet rs = pstmtGetCsvTable.executeQuery();
+			if(rs.next()) {
+				record = readRecordFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName);				
+			} else {
+				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
+				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+				ResultSet rsx = pstmtGetCsvTable.executeQuery();
+				if(rsx.next()) {
+					record = readRecordFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName);	
+				}				
+			}
+		} finally {
+			try {pstmtGetCsvTable.close();} catch(Exception e) {}
+		}
+		
+		return record;
+	}
+	
+
+	
+	/*
 	 * Delete csv tables
 	 */
 	public void delete(int oId, int sId, String fileName) throws SQLException {
@@ -458,7 +495,7 @@ public class CsvTableManager {
 			if(matches != null && matches.size() > 0) {
 				sql.append(" where ").append(cValue).append(" in (");
 				int idx = 0;
-				for(String match : matches) {
+				for(int i = 0; i < matches.size(); i++) {
 					if(idx++ > 0) {
 						sql.append(", ");
 					}					
@@ -509,6 +546,61 @@ public class CsvTableManager {
 			try {pstmt.close();} catch(Exception e) {}
 		}
 		return choices;
+	}
+	
+	/*
+	 * Read the choices out of a file
+	 */
+	private HashMap<String, String> readRecordFromTable(int tableId, String sHeaders, String key_column, String key_value,
+			String filename) throws SQLException, ApplicationException {
+			
+		HashMap<String, String> record = new HashMap<String, String> ();
+		
+		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<CsvHeader> headers = gson.fromJson(sHeaders, headersType);
+		
+		String table = "csv.csv" + tableId;
+		PreparedStatement pstmt = null;
+		try {
+			
+			StringBuffer sql = new StringBuffer("select distinct ");
+			String tKeyColumn = null;
+			boolean first = true;
+			for(CsvHeader item : headers) {
+				if(!first) {
+					sql.append(",");
+				}
+				first = false;
+				sql.append(item.tName);
+				if(item.fName.equals(key_column)) {
+					tKeyColumn = item.tName;
+				}
+			}
+			if(tKeyColumn == null) {
+				throw new ApplicationException("Column " + key_column + " not found in table " + table);
+			}
+			
+			sql.append(" from ").append(table);
+			sql.append(" where ").append(tKeyColumn).append(" = ?");
+				
+			pstmt = sd.prepareStatement(sql.toString());		
+			pstmt.setString(1, key_value);
+			log.info("Get CSV lookup values: " + pstmt.toString());
+			ResultSet rsx = pstmt.executeQuery();
+			
+			if(rsx.next()) {
+				for(CsvHeader item : headers) {
+					record.put(item.fName, rsx.getString(item.tName));
+				}
+			}	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
+		} finally {
+			try {pstmt.close();} catch(Exception e) {}
+		}
+		return record;
 	}
 	
 	/*
