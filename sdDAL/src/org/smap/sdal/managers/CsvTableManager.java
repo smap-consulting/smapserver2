@@ -270,7 +270,6 @@ public class CsvTableManager {
 					listAdd.removeAll(listOld);
 					listDel.removeAll(listNew);
 					
-					System.out.println("Applying delta add: " + listAdd.size() + " delete: " + listDel.size());
 					if(listDel.size() > 100 || listDel.size() == recordCount) {
 						// Too many records to delete or all of the records need to be deleted just load the new data into an empty table
 						delta = false;
