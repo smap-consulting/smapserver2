@@ -64,6 +64,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.SelectChoice;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -82,7 +83,7 @@ public class Lookup extends Application{
 			 Logger.getLogger(Lookup.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
-
+	
 	/*
 	 * Get a record from the reference data identified by the filename and key column
 	 */
@@ -155,7 +156,80 @@ public class Lookup extends Application{
 		return response;
 	}
 	
+	/*
+	 * Get external choices
+	 */
+	@GET
+	@Path("/choices/{survey_ident}/{filename}/{value_column}/{label_column}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response choices(@Context HttpServletRequest request,
+			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
+			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
+			@PathParam("value_column") String valueColumn,
+			@PathParam("label_column") String labelColumn
+			) throws IOException {
 
+		Response response = null;
+		String connectionString = "surveyMobileAPI-Lookup-choices";
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		int sId = 0;
+		
+		log.info("Lookup: Filename=" + fileName + " key_column=" + valueColumn + " key_value=" + labelColumn);
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);		
+		a.isAuthorised(sd, request.getRemoteUser());
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+		} catch (Exception e) {
+		}
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		Connection cResults = null;
+		PreparedStatement pstmt = null;
+		
+		// Extract the data
+		try {
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
+		
+			ArrayList<SelectChoice> results = null;
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+			if(fileName != null) {
+				if(fileName.startsWith("linked_s")) {
+					// Get data from a survey
+					cResults = ResultsDataSource.getConnection(connectionString);				
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					stm.initData(pstmt, valueColumn, labelColumn);
+					
+					HashMap<String, String> line = stm.getLineAsHash();
+					SelectChoice choice = new SelectChoice(line.get(valueColumn), line.get(labelColumn), 1);
+					results.add(choice);
+				} else {
+					// Get data from a csv file
+					CsvTableManager ctm = new CsvTableManager(sd, localisation);
+					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumn);
+				}
+			}
+			if (results == null) {
+				results =  new ArrayList<SelectChoice> ();
+			}
+			response = Response.ok(gson.toJson(results)).build();
+		
+		}  catch (Exception e) {
+			log.log(Level.SEVERE,"Exception", e);
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}  finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}} 
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+				
+		return response;
+	}
 	
 	/*
 	 * Get get labels from an image
@@ -170,7 +244,7 @@ public class Lookup extends Application{
 		
 		Response response = null;
 		
-		String connectionString = "surveyMobileAPI-imageLookup";
+		String connectionString = "surveyMobileAPI-Lookup-imagelabels";
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		

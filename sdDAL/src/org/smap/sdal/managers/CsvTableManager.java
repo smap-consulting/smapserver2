@@ -23,6 +23,7 @@ import org.smap.sdal.managers.ActionManager.Update;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.SelectChoice;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -402,7 +403,41 @@ public class CsvTableManager {
 		return record;
 	}
 	
-
+	/*
+	 * Get an array of choices
+	 */
+	public ArrayList<SelectChoice> lookupChoices(int oId, int sId, String fileName, 
+			String value_column, 
+			String label_column) throws SQLException, ApplicationException {
+		
+		ArrayList<SelectChoice> choices = null;
+		
+		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+		PreparedStatement pstmtGetCsvTable = null;	
+		try {
+			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
+			pstmtGetCsvTable.setInt(1, oId);
+			pstmtGetCsvTable.setInt(2, sId);
+			pstmtGetCsvTable.setString(3, fileName);
+			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+			ResultSet rs = pstmtGetCsvTable.executeQuery();
+			if(rs.next()) {
+				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_column, fileName);				
+			} else {
+				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
+				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+				ResultSet rsx = pstmtGetCsvTable.executeQuery();
+				if(rsx.next()) {
+					choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), value_column, label_column, fileName);	
+				}				
+			}
+		} finally {
+			try {pstmtGetCsvTable.close();} catch(Exception e) {}
+		}
+		
+		return choices;
+	}
+	
 	
 	/*
 	 * Delete csv tables
@@ -600,6 +635,65 @@ public class CsvTableManager {
 			try {pstmt.close();} catch(Exception e) {}
 		}
 		return record;
+	}
+	
+	/*
+	 * Read the choices out of a file
+	 */
+	private ArrayList<SelectChoice> readChoicesFromTable(int tableId, String sHeaders, String value_column, String label_column,
+			String filename) throws SQLException, ApplicationException {
+			
+		ArrayList<SelectChoice> choices = new ArrayList<> ();
+		
+		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<CsvHeader> headers = gson.fromJson(sHeaders, headersType);
+		
+		String table = "csv.csv" + tableId;
+		PreparedStatement pstmt = null;
+		try {
+			
+			StringBuffer sql = new StringBuffer("select distinct ");
+			boolean first = true;
+			boolean foundValue = false;
+			boolean foundLabel = false;
+			for(CsvHeader item : headers) {
+				if(item.fName.equals(value_column) || item.fName.equals(label_column)) {
+					if(!first) {
+						sql.append(",");
+					}
+					first = false;
+					sql.append(item.tName);
+					if(item.fName.equals(value_column) ) {
+						foundValue = true;
+					} else {
+						foundLabel = true;
+					}
+				}
+			}
+			if(!foundValue) {
+				throw new ApplicationException("Column " + value_column + " not found in table " + table);
+			} else if(!foundLabel) {
+				throw new ApplicationException("Column " + label_column + " not found in table " + table);
+			}
+			
+			sql.append(" from ").append(table);
+				
+			pstmt = sd.prepareStatement(sql.toString());		
+			log.info("Get CSV choices: " + pstmt.toString());
+			ResultSet rsx = pstmt.executeQuery();
+			
+			int idx = 0;
+			while(rsx.next()) {
+				choices.add(new SelectChoice(rsx.getString(value_column), rsx.getString(label_column), idx++));
+			}	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
+		} finally {
+			try {pstmt.close();} catch(Exception e) {}
+		}
+		return choices;
 	}
 	
 	/*
