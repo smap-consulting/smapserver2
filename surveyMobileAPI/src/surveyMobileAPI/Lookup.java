@@ -36,6 +36,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -161,6 +162,7 @@ public class Lookup extends Application{
 	 */
 	@POST
 	@Path("/imagelabels/{survey_ident}")
+	@Consumes(MediaType.MULTIPART_FORM_DATA)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response imageLookup(@Context HttpServletRequest request,
 			@PathParam("survey_ident") String surveyIdent		// Survey that needs to lookup image label
@@ -182,7 +184,7 @@ public class Lookup extends Application{
 			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 		} catch (Exception e) {
 		}
-		//a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser); TODO enable
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser); 
 		
 		
 		HashMap<String, String> results = null;
@@ -231,7 +233,7 @@ public class Lookup extends Application{
 			ImageProcessing ip = new ImageProcessing();		// Can this be handled in a singleton
 			String labels = ip.getLabels(request.getServerName(), request.getRemoteUser(), savedFile.getAbsolutePath(), "text");
 			System.out.println("Labels: " + labels);
-		
+			response = Response.ok(labels).build();
 			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent);
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
