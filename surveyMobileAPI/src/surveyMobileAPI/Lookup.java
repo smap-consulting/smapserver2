@@ -259,9 +259,13 @@ public class Lookup extends Application{
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
 					stm.initData(pstmt, valueColumn, labelColumn);
 					
-					HashMap<String, String> line = stm.getLineAsHash();
-					SelectChoice choice = new SelectChoice(line.get(valueColumn), line.get(labelColumn), 1);
-					results.add(choice);
+					HashMap<String, String> line = null;
+					int idx = 0;
+					results = new ArrayList<SelectChoice> ();
+					while((line = stm.getLineAsHash()) != null) {
+						SelectChoice choice = new SelectChoice(line.get(valueColumn), line.get(labelColumn), idx++);
+						results.add(choice);
+					}
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);

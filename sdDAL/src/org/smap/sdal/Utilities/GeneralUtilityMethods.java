@@ -254,7 +254,8 @@ public class GeneralUtilityMethods {
 				&& !host.startsWith("10.0")
 				&& !host.endsWith(".kontrolid.com")
 				&& !host.contains("ezpilot")
-				&& !host.equals("sg.smap.com.au")) {
+				&& !host.equals("sg.smap.com.au")
+				&& !host.equals("dev.smap.com.au")) {
 			businessServer = false;
 		}
 		return businessServer;

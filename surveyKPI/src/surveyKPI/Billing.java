@@ -57,7 +57,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * Returns a list of all options for the specified question
+ * Requests for billing data
  */
 @Path("/billing")
 public class Billing extends Application {
@@ -137,7 +137,13 @@ public class Billing extends Application {
 				+ "where event = 'Mapbox Request' "
 				+ "and extract(month from log_time) = ? "
 				+ "and extract(year from log_time) = ?";
-		PreparedStatement pstmtStaticMap = null;
+		
+		String sqlRekognition = "select  count(*) as total "
+				+ "from log "
+				+ "where event = 'Rekognition Request' "
+				+ "and extract(month from log_time) = ? "
+				+ "and extract(year from log_time) = ?";
+		PreparedStatement pstmt = null;
 		
 		try {
 			// Get the users locale
@@ -165,6 +171,9 @@ public class Billing extends Application {
 			
 			double staticMapUnitCost = 0.0;
 			int freeStaticMap = 0;
+			
+			double rekognitionUnitCost = 0.02;
+			int freeRekognition = 100;
 			
 			/*
 			 * Server Charge
@@ -224,11 +233,11 @@ public class Billing extends Application {
 			/*
 			 * Get Static Map Usage
 			 */
-			pstmtStaticMap = sd.prepareStatement(sqlStaticMap);
-			pstmtStaticMap.setInt(1, month);
-			pstmtStaticMap.setInt(2, year);
+			pstmt = sd.prepareStatement(sqlStaticMap);
+			pstmt.setInt(1, month);
+			pstmt.setInt(2, year);
 			
-			rs = pstmtStaticMap.executeQuery();
+			rs = pstmt.executeQuery();
 			int staticMapUsage;
 			double staticMapAmount;
 			if(rs.next()) {
@@ -242,13 +251,37 @@ public class Billing extends Application {
 				bill.line.add(new BillLineItem("static map", staticMapUsage, 
 						freeStaticMap, staticMapUnitCost, staticMapAmount));
 			}
+			
+			/*
+			 * Get Rekognition usage
+			 */
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			pstmt = sd.prepareStatement(sqlRekognition);
+			pstmt.setInt(1, month);
+			pstmt.setInt(2, year);
+			
+			rs = pstmt.executeQuery();
+			int rekognitionUsage;
+			double rekognitionAmount;
+			if(rs.next()) {
+				rekognitionUsage = rs.getInt("total");
+				
+				rekognitionAmount = (rekognitionUsage - freeRekognition) * rekognitionUnitCost;
+				if(rekognitionAmount < 0) {
+					rekognitionAmount = 0.0;
+				}
+				
+				bill.line.add(new BillLineItem("rekognition", rekognitionUsage, 
+						freeRekognition, rekognitionUnitCost, rekognitionAmount));
+			}
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw new Exception(e.getMessage());
 		} finally {
 			try {if (pstmtSubmissions != null) {pstmtSubmissions.close();}} catch (SQLException e) {}
 			try {if (pstmtDisk != null) {pstmtDisk.close();}} catch (SQLException e) {}
-			try {if (pstmtStaticMap != null) {pstmtStaticMap.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-Billing", sd);
 		}
