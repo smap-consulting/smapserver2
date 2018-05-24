@@ -160,20 +160,51 @@ public class SurveyTableManager {
 
 	
 	/*
-	 * Get a result set of data
+	 * Get a result set of data for a lookup
+	 * type = lookup || choices
 	 */
-	public void initData(PreparedStatement pstmt, String key_column, String key_value) throws Exception {
+	public void initData(PreparedStatement pstmt, String type, 
+			String key_column, String key_value,
+			String selection, ArrayList<String> arguments, ArrayList<String> whereColumns
+			) throws Exception {
 		
 		if(sqlDef != null && sqlDef.colNames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
-			String filter = getFilter(key_column, key_value);
-			if(filter.length() > 0) {
-				if(sqlDef.hasWhere) {
-					sql.append(" and ");
-				} else {
-					sql.append(" where ");
+			
+			// Add filter
+			String filter = null;
+			if(type.equals("lookup")) {
+				filter = getFilter(key_column, key_value);
+				if(filter.length() > 0) {
+					if(sqlDef.hasWhere) {
+						sql.append(" and ");
+					} else {
+						sql.append(" where ");
+					}
+					sql.append(filter);
 				}
-				sql.append(filter);
+			} else if (type.equals("choices")) {
+				// Check the where columns
+				for(String col : whereColumns) {
+					boolean foundCol = false;
+					for(String h : sqlDef.colNames) {
+						if(h.equals(col)) {
+							foundCol = true;
+							break;
+						}
+					}
+					if(!foundCol) {
+						throw new ApplicationException("Column " + col + " not found in table ");
+					}
+				}
+				if(selection != null) {
+					if(sqlDef.hasWhere) {
+						sql.append(" and ");
+					} else {
+						sql.append(" where ");
+					}
+					sql.append(selection);
+				}
 			}
 			sql.append(sqlDef.order_by);
 			pstmt = cResults.prepareStatement(sql.toString());
@@ -181,8 +212,17 @@ public class SurveyTableManager {
 			if (sqlDef.hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount);
 			}
-			if(filter.length() > 0) {
-				pstmt.setString(paramCount, key_value);
+			if(type.equals("lookup")) {
+				if(filter.length() > 0) {
+					pstmt.setString(paramCount, key_value);
+				}
+			} else {
+				int paramIndex = 1;
+				if(arguments != null) {
+					for(String arg : arguments) {
+						pstmt.setString(paramIndex++, arg);
+					}
+				}
 			}
 			
 			log.info("Init data: " + pstmt.toString());

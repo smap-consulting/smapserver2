@@ -701,7 +701,7 @@ public class CsvTableManager {
 			
 			sql.append(" from ").append(table);
 			if(selection != null) {
-				sql.append(selection);
+				sql.append(" where ").append(selection);
 			}
 				
 			pstmt = sd.prepareStatement(sql.toString());	

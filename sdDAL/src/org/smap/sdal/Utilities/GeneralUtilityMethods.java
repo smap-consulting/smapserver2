@@ -4329,7 +4329,8 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 
 			// Check to see if this appearance references a manifest file
-			if (property != null && (property.contains("search(") || property.contains("pulldata(") || property.contains("lookup("))) {
+			if (property != null && (property.contains("search(") || property.contains("pulldata(") 
+					|| property.contains("lookup(") || property.contains("lookup_choices("))) {
 				// Yes it references a manifest
 
 				int idx1 = property.indexOf('(');

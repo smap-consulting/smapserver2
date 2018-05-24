@@ -138,7 +138,7 @@ public class Lookup extends Application{
 					// Get data from a survey
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, keyColumn, keyValue);
+					stm.initData(pstmt, "lookup", keyColumn, keyValue, null, null, null);
 					results = stm.getLineAsHash();
 				} else {
 					// Get data from a csv file
@@ -233,13 +233,13 @@ public class Lookup extends Application{
 			ArrayList<String> arguments = new ArrayList<String> ();
 			
 			if (searchType != null && fColumn != null) {
-	            selection.append(" where ").append("( ").append(createLikeExpression(qColumn, qValue, searchType, arguments)).append(" ) and ");
+	            selection.append("( ").append(createLikeExpression(qColumn, qValue, searchType, arguments)).append(" ) and ");
 	            selection.append(fColumn).append(" = ? ");
 	            arguments.add(fValue);
 	        } else if (searchType != null) {
-	            selection.append(" where ").append(createLikeExpression(qColumn, qValue, searchType, arguments));    // smap
+	            selection.append(createLikeExpression(qColumn, qValue, searchType, arguments));    // smap
 	        } else if (fColumn != null) {
-	            selection.append(" where ").append(fColumn).append(" = ? ");
+	            selection.append(fColumn).append(" = ? ");
 	            arguments.add(fValue);
 	        } else {
 	            arguments = null;
@@ -257,7 +257,8 @@ public class Lookup extends Application{
 					// Get data from a survey
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, valueColumn, labelColumn);
+					stm.initData(pstmt, "choices", null, null,
+							selectionString, arguments, whereColumns);
 					
 					HashMap<String, String> line = null;
 					int idx = 0;
