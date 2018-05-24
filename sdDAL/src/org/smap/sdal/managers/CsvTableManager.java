@@ -408,7 +408,10 @@ public class CsvTableManager {
 	 */
 	public ArrayList<SelectChoice> lookupChoices(int oId, int sId, String fileName, 
 			String value_column, 
-			String label_column) throws SQLException, ApplicationException {
+			String label_column,
+			String selection,
+			ArrayList<String> arguments,
+			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
 		
 		ArrayList<SelectChoice> choices = null;
 		
@@ -422,13 +425,16 @@ public class CsvTableManager {
 			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_column, fileName);				
+				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_column, fileName,
+						selection, arguments, whereColumns);	
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), value_column, label_column, fileName);	
+					choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
+							value_column, label_column, fileName,
+							selection, arguments, whereColumns);	
 				}				
 			}
 		} finally {
@@ -641,7 +647,10 @@ public class CsvTableManager {
 	 * Read the choices out of a file
 	 */
 	private ArrayList<SelectChoice> readChoicesFromTable(int tableId, String sHeaders, String value_column, String label_column,
-			String filename) throws SQLException, ApplicationException {
+			String filename,
+			String selection,
+			ArrayList<String> arguments,
+			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
 		
@@ -676,10 +685,32 @@ public class CsvTableManager {
 			} else if(!foundLabel) {
 				throw new ApplicationException("Column " + label_column + " not found in table " + table);
 			}
+			// Check the where columns
+			for(String col : whereColumns) {
+				boolean foundCol = false;
+				for(CsvHeader item : headers) {
+					if(item.fName.equals(col)) {
+						foundCol = true;
+						break;
+					}
+				}
+				if(!foundCol) {
+					throw new ApplicationException("Column " + col + " not found in table " + table);
+				}
+			}
 			
 			sql.append(" from ").append(table);
+			if(selection != null) {
+				sql.append(selection);
+			}
 				
-			pstmt = sd.prepareStatement(sql.toString());		
+			pstmt = sd.prepareStatement(sql.toString());	
+			int paramIndex = 1;
+			if(arguments != null) {
+				for(String arg : arguments) {
+					pstmt.setString(paramIndex++, arg);
+				}
+			}
 			log.info("Get CSV choices: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			

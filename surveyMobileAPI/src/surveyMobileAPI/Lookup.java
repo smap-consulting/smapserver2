@@ -42,6 +42,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -83,6 +84,12 @@ public class Lookup extends Application{
 			 Logger.getLogger(Lookup.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
+	
+	private final String CONTAINS = "contains";
+	private final String MATCHES = "matches";
+	private final String IN = "in";
+	private final String STARTS = "startswith";
+	private final String ENDS = "endswith";
 	
 	/*
 	 * Get a record from the reference data identified by the filename and key column
@@ -166,7 +173,12 @@ public class Lookup extends Application{
 			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
 			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
 			@PathParam("value_column") String valueColumn,
-			@PathParam("label_column") String labelColumn
+			@PathParam("label_column") String labelColumn,
+			@QueryParam("search_type") String searchType,
+			@QueryParam("q_column") String qColumn,
+			@QueryParam("q_value") String qValue,
+			@QueryParam("f_column") String fColumn,
+			@QueryParam("f_value") String fValue			
 			) throws IOException {
 
 		Response response = null;
@@ -196,6 +208,48 @@ public class Lookup extends Application{
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		
+			// Clean the data
+			ArrayList<String> whereColumns = new ArrayList<String> ();
+			if(searchType != null) {
+				searchType = searchType.trim().toLowerCase();
+			}
+			if(qColumn != null) {
+				qColumn = qColumn.trim().toLowerCase();
+				whereColumns.add(qColumn);
+			}
+			if(qValue != null) {
+				qValue = qValue.trim().toLowerCase();
+			}
+			if(fValue != null) {
+				fValue = fValue.trim().toLowerCase();
+			}
+			if(fColumn != null) {
+				fColumn = fColumn.trim().toLowerCase();
+				whereColumns.add(fColumn);
+			}
+			// Create a where clause and where parameters
+			StringBuffer selection = new StringBuffer("");
+			String selectionString = null;
+			ArrayList<String> arguments = new ArrayList<String> ();
+			
+			if (searchType != null && fColumn != null) {
+	            selection.append(" where ").append("( ").append(createLikeExpression(qColumn, qValue, searchType, arguments)).append(" ) and ");
+	            selection.append(fColumn).append(" = ? ");
+	            arguments.add(fValue);
+	        } else if (searchType != null) {
+	            selection.append(" where ").append(createLikeExpression(qColumn, qValue, searchType, arguments));    // smap
+	        } else if (fColumn != null) {
+	            selection.append(" where ").append(fColumn).append(" = ? ");
+	            arguments.add(fValue);
+	        } else {
+	            arguments = null;
+	        }
+			if(selection.length() > 0) {
+				selectionString = selection.toString();
+			} else {
+				selectionString = null;
+			}
+			
 			ArrayList<SelectChoice> results = null;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 			if(fileName != null) {
@@ -211,7 +265,8 @@ public class Lookup extends Application{
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumn);
+					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumn, 
+							selectionString, arguments, whereColumns);
 				}
 			}
 			if (results == null) {
@@ -319,9 +374,43 @@ public class Lookup extends Application{
 		return response;
 	}
 
-    
+	// Based on function in odkCollect
+    private String createLikeExpression(String qColumn,  String qValue, String type, ArrayList<String> arguments) {
+    		
+	    	StringBuilder sb = new StringBuilder();
+    		type = type.trim().toLowerCase();
+    		
+    		if(type.equals(IN)) {
+    			sb.append(qColumn).append(" in (");
+    			
+    			String [] values = qValue.split(",");
+    			if(values.length == 1 && qValue.contains(" ")) {
+    				values = qValue.split(" ");
+    			}
+    			int idx = 0;
+    			for (String v : values) {
+    				if (idx++ > 0) {
+    					sb.append(", ");
+    				}
+    				sb.append("?");
+    				arguments.add(v);
+    			}
+    			sb.append(")");
+    			
+    		} else {
+    			sb.append(qColumn).append(" LIKE ? ");
+    			if(type.equals(MATCHES)) {
+    				arguments.add(qValue);
+    			} else if(type.equals(CONTAINS)) {
+    				arguments.add("%" + qValue + "%");
+    			} else if(type.equals(STARTS)) {
+    				arguments.add(qValue + "%");
+    			} else if(type.equals(ENDS)) {
+    				arguments.add("%" + qValue);
+    			}
+    		}
+    		return sb.toString();
 
-
- 
+    }
 }
 

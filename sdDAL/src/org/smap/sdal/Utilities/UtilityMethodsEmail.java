@@ -79,7 +79,7 @@ public class UtilityMethodsEmail {
 			int count = pstmt.executeUpdate();
 
 			if(count != 1) {
-				throw new Exception("Failed to update record");
+				log.info("Expecting 1 ecord to be updated.  Number of records updated: " + count);
 			}
 			
 			/*
