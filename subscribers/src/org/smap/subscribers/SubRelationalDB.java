@@ -1248,9 +1248,10 @@ public class SubRelationalDB extends Subscriber {
 
 					// Mark the records replaced
 					boolean replacedRecordsAreGood = false;
+					String previousKeys = "";
 					for(int i = 0; i < existingKeys.size(); i++) {	
 						int dupKey = existingKeys.get(i);
-						
+						previousKeys += " " + String.valueOf(dupKey);
 						// Find out if the record being replaced is bad - If none of them are good then the replacedRecordsAreGood flag will be false
 						pstmtCheckBad.setLong(1, dupKey);
 						rsCheckBad = pstmtCheckBad.executeQuery();
@@ -1287,7 +1288,7 @@ public class SubRelationalDB extends Subscriber {
 					}
 					// If the records being replaced were all bad then set the new record to bad
 					if(!replacedRecordsAreGood) {
-						bad_reason = localisation.getString("t_rep_bad");
+						bad_reason = localisation.getString("t_rep_bad") + previousKeys;
 						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
 								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true);
 					}
