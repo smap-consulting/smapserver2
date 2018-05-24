@@ -636,24 +636,31 @@ public class UploadFiles extends Application {
 				
 				/*
 				 * Validate the survey using the JavaRosa API
+				 * Ignore invalid function errors for extended functions
+				 *    lookup
+				 *    lookup_image_labels
 				 */
 				try {
 					XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser());
 				} catch (Exception e) {
-					// Error! Delete the survey we just created
-					log.log(Level.SEVERE, e.getMessage(), e);
-					sm.delete(sd, 
-							cResults, 
-							s.id, 
-							true,		// hard
-							false,		// Do not delete the data 
-							user, 
-							basePath,
-							"no",		// Do not delete the tables
-							0);		// New Survey Id for replacement 
-							
-					
-					throw new ApplicationException(e.getMessage());	// report the error
+					String msg = e.getMessage();
+					if(!msg.contains("cannot handle function 'lookup'") &&
+							!msg.contains("cannot handle function 'lookup_image_labels'")) {
+						// Error! Delete the survey we just created
+						log.log(Level.SEVERE, e.getMessage(), e);
+						sm.delete(sd, 
+								cResults, 
+								s.id, 
+								true,		// hard
+								false,		// Do not delete the data 
+								user, 
+								basePath,
+								"no",		// Do not delete the tables
+								0);		// New Survey Id for replacement 
+								
+						
+						throw new ApplicationException(e.getLocalizedMessage());	// report the error
+					}
 				}
 				
 				
