@@ -1,7 +1,7 @@
 package surveyKPI;
 
 
-import javax.servlet.ServletInputStream;
+
 
 /*
 This file is part of SMAP.
@@ -55,16 +55,11 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
-import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.CustomReportItem;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.LQAS;
-import org.smap.sdal.model.PropertyChange;
-import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
 import com.google.gson.Gson;
@@ -123,26 +118,26 @@ public class UploadFiles extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
 		int oId = 0;
-		Connection connectionSD = null; 
+		Connection sd = null; 
 		boolean superUser = false;
 		String connectionString = "surveyKPI - uploadFiles - sendMedia";
 		
 		try {
 			
-			connectionSD = SDDataSource.getConnection(connectionString);
+			sd = SDDataSource.getConnection(connectionString);
 			
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Authorisation - Access
-			auth.isAuthorised(connectionSD, request.getRemoteUser());	
+			auth.isAuthorised(sd, request.getRemoteUser());	
 			if(sId > 0) {
 				try {
-					superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+					superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				} catch (Exception e) {
 				}
-				auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+				auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 			} 
 			// End authorisation
 
@@ -173,10 +168,10 @@ public class UploadFiles extends Application {
 					// Check authorisation for this survey id
 					if(sId > 0) {
 						try {
-							superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+							superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 						} catch (Exception e) {
 						}
-						auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+						auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 					} 
 
 				} else if(!item.isFormField()) {
@@ -190,11 +185,11 @@ public class UploadFiles extends Application {
 					fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
 
 					if(sId > 0) {
-						mediaInfo.setFolder(basePath, sId, null, connectionSD);
+						mediaInfo.setFolder(basePath, sId, null, sd);
 					} else {	
 						// Upload to organisations folder
-						oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);
-						mediaInfo.setFolder(basePath, user, oId, connectionSD, false);				 
+						oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+						mediaInfo.setFolder(basePath, user, oId, sd, false);				 
 					}
 					mediaInfo.setServer(request.getRequestURL().toString());
 
@@ -221,15 +216,15 @@ public class UploadFiles extends Application {
 
 						// Upload any CSV data into a table
 						if(contentType.equals("text/csv") || fileName.endsWith(".csv")) {
-							putCsvIntoTable(connectionSD, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
+							putCsvIntoTable(sd, localisation, user, sId, fileName, savedFile, oldFile, basePath, mediaInfo);
 						}
 
 						// Create a message so that devices are notified of the change
 						MessagingManager mm = new MessagingManager();
 						if(sId > 0) {
-							mm.surveyChange(connectionSD, sId, 0);
+							mm.surveyChange(sd, sId, 0);
 						} else {
-							mm.resourceChange(connectionSD, oId, fileName);
+							mm.resourceChange(sd, oId, fileName);
 						}
 
 					} else {
@@ -255,7 +250,7 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} finally {
-			SDDataSource.closeConnection(connectionString, connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
@@ -274,29 +269,29 @@ public class UploadFiles extends Application {
 		Response response = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UploadFiles");
-		auth.isAuthorised(connectionSD, request.getRemoteUser());
-		auth.isValidOrganisation(connectionSD, request.getRemoteUser(), oId);
+		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
+		auth.isAuthorised(sd, request.getRemoteUser());
+		auth.isValidOrganisation(sd, request.getRemoteUser(), oId);
 		// End Authorisation		
 
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String serverName = request.getServerName();
 
-			deleteFile(request, connectionSD, localisation, basePath, serverName, null, oId, filename, request.getRemoteUser());
+			deleteFile(request, sd, localisation, basePath, serverName, null, oId, filename, request.getRemoteUser());
 			if(filename.endsWith(".csv")) {
 				  // Delete the organisation shared resources - not necessary
-			    CsvTableManager tm = new CsvTableManager(connectionSD, localisation);
+			    CsvTableManager tm = new CsvTableManager(sd, localisation);
 			    tm.delete(oId, 0, filename);		
 			}
 			
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
-			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, connectionSD, false);				 
+			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, sd, false);				 
 
 			MediaResponse mResponse = new MediaResponse ();
 			mResponse.files = mediaInfo.get(0);			
@@ -308,7 +303,7 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
 		}
 
 		return response;
@@ -327,30 +322,30 @@ public class UploadFiles extends Application {
 		Response response = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UploadFiles");
-		auth.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
+		auth.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation		
 
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			String serverName = request.getServerName(); 
 
-			deleteFile(request, connectionSD, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
+			deleteFile(request, sd, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
 			if(filename.endsWith(".csv")) {
-				int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, request.getRemoteUser(), 0);
-				int sId = GeneralUtilityMethods.getSurveyId(connectionSD, sIdent);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 				  // Delete the organisation shared resources - not necessary
-			    CsvTableManager tm = new CsvTableManager(connectionSD, localisation);
+			    CsvTableManager tm = new CsvTableManager(sd, localisation);
 			    tm.delete(oId, sId, null);		
 			}
 			
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
-			mediaInfo.setFolder(basePath, 0, sIdent, connectionSD);
+			mediaInfo.setFolder(basePath, 0, sIdent, sd);
 
 			MediaResponse mResponse = new MediaResponse ();
 			mResponse.files = mediaInfo.get(0);			
@@ -362,7 +357,7 @@ public class UploadFiles extends Application {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
 		}
 
 		return response;
@@ -389,16 +384,16 @@ public class UploadFiles extends Application {
 		 *  Else provide access to the media for the organisation
 		 */
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UploadFiles");
+		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
 		if(sId > 0) {
 			try {
-				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			} catch (Exception e) {
 			}
-			auth.isAuthorised(connectionSD, request.getRemoteUser());
-			auth.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+			auth.isAuthorised(sd, request.getRemoteUser());
+			auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		} else {
-			auth.isAuthorised(connectionSD, request.getRemoteUser());
+			auth.isAuthorised(sd, request.getRemoteUser());
 		}
 		// End Authorisation		
 
@@ -412,13 +407,13 @@ public class UploadFiles extends Application {
 
 		PreparedStatement pstmt = null;		
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
 			
 			// Get the path to the media folder	
 			if(sId > 0) {
-				mediaInfo.setFolder(basePath, sId, null, connectionSD);
+				mediaInfo.setFolder(basePath, sId, null, sd);
 			} else {		
-				mediaInfo.setFolder(basePath, user, oId, connectionSD, false);				 
+				mediaInfo.setFolder(basePath, user, oId, sd, false);				 
 			}
 
 			log.info("Media query on: " + mediaInfo.getPath());
@@ -436,7 +431,7 @@ public class UploadFiles extends Application {
 
 			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
 
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
 		}
 
 		return response;		
@@ -504,9 +499,6 @@ public class UploadFiles extends Application {
 			/*
 			 * Parse the request
 			 */
-			//ServletInputStream is = request.getInputStream();
-			//java.util.Scanner sx = new java.util.Scanner(is).useDelimiter("\\A");
-		    //System.out.println(sx.hasNext() ? sx.next() : "");
 			List<?> items = uploadHandler.parseRequest(request);
 			Iterator<?> itr = items.iterator();
 			while(itr.hasNext()) {
@@ -1071,120 +1063,6 @@ public class UploadFiles extends Application {
 	}
 	
 	/*
-	 * Update the survey with any changes resulting from the uploaded CSV file
-	 *
-	private void applyCSVChanges(Connection connectionSD, 
-			Connection cResults,
-			ResourceBundle localisation,
-			String user, 
-			int sId, 
-			String csvFileName, 
-			File csvFile,
-			File oldCsvFile,
-			String basePath,
-			MediaInfo mediaInfo) throws Exception {
-		
-		if(sId > 0) { 
-
-			applyCSVChangesToSurvey(connectionSD,  cResults, localisation, user, sId, csvFileName, csvFile, oldCsvFile);
-
-		} else {		// Organisational level
-
-			// Get all the surveys that reference this CSV file and are in the same organisation
-			SurveyManager sm = new SurveyManager(localisation);
-			ArrayList<Survey> surveys = sm.getByOrganisationAndExternalCSV(connectionSD, user,	csvFileName);
-			for(Survey s : surveys) {
-
-				// Check that there is not already a survey level file with the same name				
-				String surveyUrl = mediaInfo.getUrlForSurveyId(s.id, connectionSD);
-				if(surveyUrl != null) {
-					String surveyPath = basePath + surveyUrl + "/" + csvFileName;
-					File surveyFile = new File(surveyPath);
-					if(surveyFile.exists()) {
-						continue;	// This survey has a survey specific version of the CSV file
-					}
-				}
-
-				try {
-					applyCSVChangesToSurvey(connectionSD, cResults, localisation, user, s.id, csvFileName, csvFile, oldCsvFile);
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-					// Continue for other surveys
-				}
-			}
-		}
-	}
-	*/
-
-	/*
-	private void applyCSVChangesToSurvey(
-			Connection connectionSD, 
-			Connection cResults,
-			ResourceBundle localisation,
-			String user, 
-			int sId, 
-			String csvFileName,
-			File csvFile,
-			File oldCsvFile) throws Exception {
-
-		QuestionManager qm = new QuestionManager(localisation);
-		SurveyManager sm = new SurveyManager(localisation);
-		ArrayList<org.smap.sdal.model.Question> questions = qm.getByCSV(connectionSD, sId, csvFileName);
-		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
-		
-		String sql = "delete from option where l_id = ? and externalfile = 'true'";
-		PreparedStatement pstmt = connectionSD.prepareStatement(sql);
-		
-		String sqlTranslationDelete = "delete from translation "
-				+ "where s_id = ? "
-				+ "and text_id in (select label_id from option "
-				+ "where l_id = ? "
-				+ "and externalfile = 'true')";
-		PreparedStatement pstmtTranslationDelete = connectionSD.prepareStatement(sqlTranslationDelete);
-
-		try {
-			// Create one change set per question
-			for(org.smap.sdal.model.Question q : questions) {
-	
-			
-				if(csvFile != null) {
-					if(q.type.startsWith("select")) {
-						ChangeSet cs = qm.getCSVChangeSetForQuestion(connectionSD, 
-								localisation, user, sId, csvFile, oldCsvFile, csvFileName, q);
-						if(cs.items.size() > 0) {
-							changes.add(cs);
-						}
-					}
-				} else if(q.type.startsWith("select")) {
-					// File is being deleted just remove the external options for this questions
-					pstmtTranslationDelete.setInt(1, sId);
-					pstmtTranslationDelete.setInt(2, q.l_id);
-					log.info("Remove external option labels: " + pstmtTranslationDelete.toString());
-					pstmtTranslationDelete.executeUpdate();
-					
-					
-					pstmt.setInt(1, q.l_id);
-					log.info("Remove external options: " + pstmt.toString());
-					pstmt.executeUpdate();
-				}
-	
-			}
-	
-			// Apply the changes 
-			if(changes.size() > 0) {
-				sm.applyChangeSetArray(connectionSD, cResults, sId, user, changes, false);
-			} else {
-				// No changes to the survey definition but we will update the survey version so that it gets downloaded with the new CSV data (pulldata only surveys will follow this path)
-				GeneralUtilityMethods.updateVersion(connectionSD, sId);
-			}
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-		}
-
-	}
-	*/
-	
-	/*
 	 * Delete the file
 	 */
 	private void deleteFile(
@@ -1261,86 +1139,5 @@ public class UploadFiles extends Application {
 
 
 	}
-	
-	/*
-	 * Add the options from any external CSV files
-	 *
-	private void writeExternalChoices(
-			Connection sd, 
-			Connection cResults, 
-			ResourceBundle localisation,
-			Survey survey,
-			String basePath, 
-			String user,
-			ArrayList<ApplicationWarning> warnings) throws Exception {
-		
-		SurveyManager sm = new SurveyManager(localisation);
-		ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
-
-		for(Form f : survey.forms) {
-			for(Question q : f.questions) {
-				if(q.type.startsWith("select")) {
-					
-					// Check to see if this appearance references a manifest file
-					if(q.appearance != null && q.appearance.toLowerCase().trim().contains("search(")) {
-						// Yes it references a manifest
-						
-						int idx1 = q.appearance.indexOf('(');
-						int idx2 = q.appearance.indexOf(')');
-						if(idx1 > 0 && idx2 > idx1) {
-							String criteriaString = q.appearance.substring(idx1 + 1, idx2);
-							
-							String criteria [] = criteriaString.split(",");
-							if(criteria.length > 0) {
-								
-								if(criteria[0] != null && criteria[0].length() > 2) {	// allow for quotes
-									String filename = criteria[0].trim();
-									filename = filename.substring(1, filename.length() -1);
-									filename += ".csv";
-									log.info("We have found a manifest link to " + filename);
-									
-									ChangeSet cs = new ChangeSet();
-									cs.changeType = "option";
-									cs.source = "file";
-									cs.items = new ArrayList<ChangeItem> ();
-									changes.add(cs);
-	
-									
-									String filepath = basePath + "/media/organisation/" + survey.o_id + "/" + filename;		
-									File file = new File(filepath);
-	
-									if(file.exists()) {
-										try {
-											GeneralUtilityMethods.getOptionsFromFile(
-												sd,
-												localisation,
-												user,
-												survey.getId(),
-												cs.items,
-												file,
-												null,
-												filename,
-												q.name,
-												q.l_id,
-												q.id,				
-												"select",
-												q.appearance);
-										} catch (ApplicationWarning w) {
-											warnings.add(w);
-										}
-									}
-					
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-			
-		sm.applyChangeSetArray(sd, cResults, survey.getId(), user, changes, false);
-		
-	}
-	*/
 
 }
