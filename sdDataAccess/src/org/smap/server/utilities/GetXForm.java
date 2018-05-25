@@ -1254,7 +1254,7 @@ public class GetXForm {
 		PreparedStatement pstmt = null;
 		ArrayList<KeyValueSimp> line = null;
 		try {
-			stm.initData(pstmt, null, null);
+			stm.initData(pstmt, "all", null, null, null, null, null);
 			line = stm.getLine();
 			while(line != null) {
 				// process line
