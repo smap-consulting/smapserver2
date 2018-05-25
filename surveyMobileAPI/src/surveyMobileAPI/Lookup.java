@@ -214,17 +214,17 @@ public class Lookup extends Application{
 				searchType = searchType.trim().toLowerCase();
 			}
 			if(qColumn != null) {
-				qColumn = qColumn.trim().toLowerCase();
+				qColumn = qColumn.trim();
 				whereColumns.add(qColumn);
 			}
 			if(qValue != null) {
-				qValue = qValue.trim().toLowerCase();
+				qValue = qValue.trim();
 			}
 			if(fValue != null) {
-				fValue = fValue.trim().toLowerCase();
+				fValue = fValue.trim();
 			}
 			if(fColumn != null) {
-				fColumn = fColumn.trim().toLowerCase();
+				fColumn = fColumn.trim();
 				whereColumns.add(fColumn);
 			}
 			// Create a where clause and where parameters
