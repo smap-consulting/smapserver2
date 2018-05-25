@@ -1070,6 +1070,8 @@ public class XLSTemplateUploadManager {
 			out = "audio";
 		} else if (type.equals("video")) {
 			out = "video";
+		} else if (type.equals("file")) {
+			out = "file";
 		} else if (type.equals("barcode")) {
 			out = "barcode";
 		} else if (type.equals("calculate") || type.equals("calculation")) {

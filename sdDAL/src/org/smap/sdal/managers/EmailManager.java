@@ -85,6 +85,7 @@ public class EmailManager {
 			EmailServer emailServer,
 			String scheme,
 			String serverName,
+			String emailKey,
 			ResourceBundle localisation) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
@@ -187,7 +188,6 @@ public class EmailManager {
 				txtMessage.append(" ");
 				txtMessage.append(interval);
 				txtMessage.append("\n ");
-				//txtMessage.append("Do not reply to this email address it is not monitored. If you don't think you should be receiving these then send an email to");	
 				txtMessage.append(localisation.getString("email_dnr"));
 				txtMessage.append(" ");
 				txtMessage.append(adminEmail);
@@ -218,7 +218,7 @@ public class EmailManager {
 				txtMessage.append(localisation.getString("email_dnr"));
 				txtMessage.append(" ");
 				txtMessage.append(adminEmail);
-				txtMessage.append(".");			
+				txtMessage.append(".");	
 
 			} else if(type.equals("notify")) {
 				txtMessage.append(localisation.getString("email_ian"));
@@ -238,6 +238,14 @@ public class EmailManager {
 				}
 
 			}
+			// Add unsubscribe
+			txtMessage.append("\n\n");
+			txtMessage.append(localisation.getString("c_unsubscribe"));
+			txtMessage.append(": ");
+			txtMessage.append(scheme + "://");
+			txtMessage.append(serverName);
+			txtMessage.append("/subscriptions.html?token=");
+			txtMessage.append(emailKey);
 
 			BodyPart messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setText(txtMessage.toString());

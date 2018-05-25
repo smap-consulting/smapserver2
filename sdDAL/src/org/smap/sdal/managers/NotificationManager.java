@@ -605,7 +605,8 @@ public class NotificationManager {
 			/*
 			 * Send document to target
 			 */
-			String status = "success";				// Notification log
+			ArrayList<String> unsubscribedList = new ArrayList<>();
+			String status = localisation.getString("c_success");				// Notification log
 			String notify_details = null;			// Notification log
 			String error_details = null;				// Notification log
 			if(msg.target.equals("email")) {
@@ -685,27 +686,38 @@ public class NotificationManager {
 								" email_domain: " + emailServer.emailDomain);
 						try {
 							EmailManager em = new EmailManager();
+							PeopleManager peopleMgr = new PeopleManager();
+							InternetAddress[] emailArray = InternetAddress.parse(emails);
+							String emailKey = null;
 							
-							em.sendEmail(
-									emails, 
-									null, 
-									"notify", 
-									subject, 
-									content,
-									from,		
-									null, 
-									null, 
-									null, 
-									docURL, 
-									filePath,
-									filename,
-									organisation.getAdminEmail(), 
-									emailServer,
-									msg.scheme,
-									msg.server,
-									localisation);
+							for(InternetAddress ia : emailArray) {								
+								emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
+								if(emailKey == null) {
+									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+								} else {
+									em.sendEmail(
+											ia.getAddress(), 
+											null, 
+											"notify", 
+											subject, 
+											content,
+											from,		
+											null, 
+											null, 
+											null, 
+											docURL, 
+											filePath,
+											filename,
+											organisation.getAdminEmail(), 
+											emailServer,
+											msg.scheme,
+											msg.server,
+											emailKey,
+											localisation);
+								}
+							}
 						} catch(Exception e) {
-							status = "error";
+							status = localisation.getString("c_error");
 							error_details = e.getMessage();
 						}
 					} else {
@@ -787,6 +799,12 @@ public class NotificationManager {
 			
 			// Write log message
 			if(writeToMonitor) {
+				if(!unsubscribedList.isEmpty()) {
+					if(error_details == null) {
+						error_details = "";
+					}
+					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+				}
 				pstmtNotificationLog.setInt(1, organisation.id);
 				pstmtNotificationLog.setInt(2, msg.pId);
 				pstmtNotificationLog.setInt(3, msg.sId);

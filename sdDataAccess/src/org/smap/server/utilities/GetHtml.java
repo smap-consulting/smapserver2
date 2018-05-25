@@ -52,6 +52,8 @@ public class GetHtml {
 	private HashMap<String, Integer> gRecordCounts = null;
 
 	private static Logger log = Logger.getLogger(GetHtml.class.getName());
+	
+	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
 
 	private ResourceBundle localisation;
 	
@@ -891,6 +893,8 @@ public class GetHtml {
 			bodyElement.setAttribute("accept", "audio/*");
 		} else if (q.type.equals("video")) {
 			bodyElement.setAttribute("accept", "video/*");
+		} else if (q.type.equals("file")) {
+			bodyElement.setAttribute("accept", FILE_MIME);
 		}
 
 		// note and read only specific
@@ -1273,7 +1277,7 @@ public class GetHtml {
 			type = "checkbox";
 		} else if (q.type.equals("geopoint") || q.type.equals("geoshape") || q.type.equals("geotrace")) {
 			type = "text";
-		} else if (q.type.equals("image") || q.type.equals("audio") || q.type.equals("video")) {
+		} else if (q.type.equals("image") || q.type.equals("audio") || q.type.equals("video") || q.type.equals("file")) {
 			type = "file";
 		} else if (q.type.equals("date")) {
 			type = "date";
@@ -1302,7 +1306,7 @@ public class GetHtml {
 		String type = null;
 		if (q.type.equals("calculate")) {
 			type = "string";
-		} else if (q.type.equals("image") || q.type.equals("audio") || q.type.equals("video")) {
+		} else if (q.type.equals("image") || q.type.equals("audio") || q.type.equals("video") || q.type.equals("file")) {
 			type = "binary";
 		} else if (q.type.equals("note")) {
 			type = "string";

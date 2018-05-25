@@ -78,6 +78,8 @@ public class GetXForm {
 	private ResourceBundle localisation = null;
 	String remoteUser = null;
 	
+	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
+
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
 	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
@@ -707,7 +709,7 @@ public class GetXForm {
 			dataType = getDataTypeFromRange(q.getParameters());
 		}
 
-		if (type.equals("audio") || type.equals("video") || type.equals("image")) {
+		if (type.equals("audio") || type.equals("video") || type.equals("image") || type.equals("file")) {
 			type = "binary";
 		} else if (type.equals("begin repeat") && count) {
 			type = "string"; // For a calculate
@@ -848,6 +850,9 @@ public class GetXForm {
 		} else if (type.equals("video")) {
 			questionElement = outputXML.createElement("upload");
 			questionElement.setAttribute("mediatype", "video/*"); // Add the media type attribute
+		} else if (type.equals("file")) {
+			questionElement = outputXML.createElement("upload");
+			questionElement.setAttribute("mediatype", FILE_MIME); // Add the media type attribute
 		} else if (type.equals("begin group") || type.equals("begin repeat") || type.equals("geolinestring")
 				|| type.equals("geopolygon")) {
 			questionElement = outputXML.createElement("group");
@@ -1939,7 +1944,7 @@ public class GetXForm {
 					// false, false, false, null));
 					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters(), false));
 
-				} else if (qType.equals("image") || qType.equals("audio") || qType.equals("video")) { // Get the file
+				} else if (qType.equals("image") || qType.equals("audio") || qType.equals("video") || qType.equals("file")) { // Get the file
 					// name
 
 					String value = null;

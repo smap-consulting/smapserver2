@@ -15,6 +15,7 @@ import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitDeviceNotification;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
@@ -109,7 +110,8 @@ public class MessagingManagerApply {
 				
 				log.info("++++++ Message: " + topic + " " + description + " : " + data );
 
-				String status = "Success";
+				String status = localisation.getString("c_success");
+				ArrayList<String> unsubscribedList = new ArrayList<>();
 				
 				/*
 				 * Record that the message is being processed
@@ -168,23 +170,53 @@ public class MessagingManagerApply {
 						String from = "";
 	
 						subject += localisation.getString("c_message");
-	
 						try {
+							PeopleManager pm = new PeopleManager();
 							EmailManager em = new EmailManager();
-	
-							em.sendEmail(topic, null, "notify", subject, description, from, null, null, null, null, null,
-									null, organisation.getAdminEmail(), emailServer, "https", serverName, localisation);
+							InternetAddress[] emailArray = InternetAddress.parse(topic);
+							String emailKey = null;
+							for(InternetAddress ia : emailArray) {
+								
+								emailKey = pm.getEmailKey(sd, o_id, ia.getAddress());
+								
+								if(emailKey == null) {
+									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+								} else {
+									em.sendEmail(
+											ia.getAddress(), 
+											null, 
+											"notify", 
+											subject, 
+											description, 
+											from, 
+											null, 
+											null, 
+											null, 
+											null, 
+											null,
+											null, 
+											organisation.getAdminEmail(), 
+											emailServer, 
+											"https", 
+											serverName, 
+											emailKey,
+											localisation);
+								}
+							}
 						} catch (Exception e) {
-							status = "Error";
+							status = localisation.getString("c_error");
 						}
 	
 					} else {
 						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
-						status = "Error: email server not enabled";
+						status = localisation.getString("email_cs");
 					}
 					
 				}
 				// Set the final status
+				if(unsubscribedList.size() > 0) {
+					status += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+				}
 				pstmtConfirm.setString(1, status);
 				pstmtConfirm.setInt(2, id);
 				log.info(pstmtConfirm.toString());

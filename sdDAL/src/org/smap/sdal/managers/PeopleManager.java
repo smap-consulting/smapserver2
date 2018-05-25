@@ -57,13 +57,15 @@ public class PeopleManager {
 			 Logger.getLogger(PeopleManager.class.getName());
 	
 	/*
-	 * Write a log entry that includes the survey id
+	 * Get an email key for this user that can be used to unsubscribe
+	 * If the person is already unsubscribed then return null
+	 * organisation id is recorded in the people table but unsubscription applies across the whole server
 	 */
-	public String getSubscriptionKey(Connection sd, 
+	public String getEmailKey(Connection sd, 
 			int oId,
-			String email) {
+			String email) throws SQLException {
 		
-		String sql = "select unsubscibed, uuid "
+		String sql = "select unsubscribed, uuid "
 				+ "from people "
 				+ "where email = ?";
 		PreparedStatement pstmt = null;
@@ -86,7 +88,7 @@ public class PeopleManager {
 					key = rs.getString(2);
 				}
 			} else {
-				// Create a key for this email
+				// Create a key for this email and save it in the people table
 				key = UUID.randomUUID().toString();
 				pstmtCreate = sd.prepareStatement(sqlCreate);
 				pstmtCreate.setInt(1,  oId);
@@ -96,8 +98,6 @@ public class PeopleManager {
 			}
 
 
-		} catch(Exception e) {
-			log.log(Level.SEVERE, "SQL Error", e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			try {if (pstmtCreate != null) {pstmtCreate.close();} } catch (SQLException e) {	}

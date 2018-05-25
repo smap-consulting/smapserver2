@@ -30,10 +30,12 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
 
@@ -104,6 +106,14 @@ public class PasswordReset extends Application {
 					
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(connectionSD, email, request.getRemoteUser());
 					
+					PeopleManager pm = new PeopleManager();
+					String emailKey = pm.getEmailKey(connectionSD, 0, email);
+					if(emailKey == null) {
+						// Person has unsubscribed
+						String msg = localisation.getString("email_us");
+						msg = msg.replaceFirst("%s1", email);
+						throw new ApplicationException(msg);
+					}
 					
 					if(emailServer.smtpHost != null) {
 						
@@ -116,6 +126,7 @@ public class PasswordReset extends Application {
 					    		idents, null, null, null, null, emailServer, 
 					    		request.getScheme(),
 					    		request.getServerName(),
+					    		emailKey,
 					    		localisation);
 					    response = Response.ok().build();
 					} else {

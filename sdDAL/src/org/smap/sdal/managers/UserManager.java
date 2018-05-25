@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.fileupload.FileItem;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
@@ -52,10 +53,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * This class supports access to User and Organsiation information in the database
  */
 public class UserManager {
-	
+
 	private static Logger log =
-			 Logger.getLogger(UserManager.class.getName());
-	
+			Logger.getLogger(UserManager.class.getName());
+
 	/*
 	 * Get the user details
 	 */
@@ -63,15 +64,15 @@ public class UserManager {
 			Connection connectionSD,
 			String ident
 			) throws Exception {
-		
+
 		PreparedStatement pstmt = null;
-		
+
 		User user = new User ();
-		
+
 		try {
 			String sql = null;
 			ResultSet resultSet = null;			
-				
+
 			/*
 			 * Get the user details
 			 */
@@ -102,19 +103,19 @@ public class UserManager {
 					+ " where u.ident = ? "
 					+ " and u.o_id = o.id "
 					+ " order by u.ident;"; 
-			
+
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
 			log.info("Get user details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-		
+
 			while(resultSet.next()) {
 				user.id = resultSet.getInt("id");
 				user.ident = ident;
 				user.name = resultSet.getString("name");
 				user.settings = resultSet.getString("settings");
 				String sigFile = resultSet.getString("signature");
-				
+
 				if(sigFile != null) {
 					sigFile= sigFile.trim();
 					if(sigFile.startsWith("/")) {	// Old versions of smap stored a URL rather than the file name, get the file name if this is the case
@@ -143,12 +144,12 @@ public class UserManager {
 				user.seen = resultSet.getBoolean("seen");
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 			}
-			
+
 			/*
 			 * Set a flag if email is enabled on the server
 			 */
 			user.sendEmail = UtilityMethodsEmail.getSmtpHost(connectionSD, null, ident) != null;
-			
+
 			/*
 			 * Get the groups that the user belongs to
 			 */
@@ -157,13 +158,13 @@ public class UserManager {
 					" where g.id = ug.g_id " +
 					" and ug.u_id = ? " +
 					" order by g.name;";
-			
+
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
 			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-			
+
 			while(resultSet.next()) {
 				if(user.groups == null) {
 					user.groups = new ArrayList<UserGroup> ();
@@ -173,7 +174,7 @@ public class UserManager {
 				group.name = resultSet.getString("name");
 				user.groups.add(group);
 			}
-			
+
 			/*
 			 * Get the projects that the user belongs to
 			 */
@@ -186,10 +187,10 @@ public class UserManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
-			
+
 			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-			
+
 			while(resultSet.next()) {
 				if(user.projects == null) {
 					user.projects = new ArrayList<Project> ();
@@ -199,7 +200,7 @@ public class UserManager {
 				project.name = resultSet.getString("name");
 				user.projects.add(project);
 			}		
-			
+
 			/*
 			 * Get the roles that the user belongs to
 			 */
@@ -212,10 +213,10 @@ public class UserManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
-			
+
 			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-			
+
 			while(resultSet.next()) {
 				if(user.roles == null) {
 					user.roles = new ArrayList<Role> ();
@@ -225,27 +226,27 @@ public class UserManager {
 				role.name = resultSet.getString("name");
 				user.roles.add(role);
 			}		
-				
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);
-		    throw new Exception(e);
-		    
+			throw new Exception(e);
+
 		} finally {
 			try {
 				if (pstmt != null) {
 					pstmt.close();
 				}
 			} catch (SQLException e) {
-			
+
 			}
 
 		}
-		
+
 		return user;
-		
+
 	}
-	
-	
+
+
 	/*
 	 * Get alerts for a user
 	 */
@@ -253,15 +254,15 @@ public class UserManager {
 			Connection connectionSD,
 			String ident
 			) throws Exception {
-		
+
 		PreparedStatement pstmt = null;
-		
+
 		ArrayList<Alert> alerts = new ArrayList<Alert> ();
-		
+
 		try {
 			String sql = null;
 			ResultSet resultSet = null;			
-				
+
 			/*
 			 * Get the user details
 			 */
@@ -277,13 +278,13 @@ public class UserManager {
 					+ "where a.u_id = u.id "
 					+ "and u.ident = ? "
 					+ "order by a.updated_time asc";
-			
+
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
-			
+
 			log.info("Get alert details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
-		
+
 			while(resultSet.next()) {
 				Alert a = new Alert();
 				a.id = resultSet.getInt("id");
@@ -294,31 +295,31 @@ public class UserManager {
 				a.message = resultSet.getString("message");
 				a.updatedTime = resultSet.getString("updated_time");
 				a.since = resultSet.getInt("since");
-				
+
 				alerts.add(a);
 			}
-			
-		
-				
+
+
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);
-		    throw new Exception(e);
-		    
+			throw new Exception(e);
+
 		} finally {
 			try {
 				if (pstmt != null) {
 					pstmt.close();
 				}
 			} catch (SQLException e) {
-			
+
 			}
 
 		}
-		
+
 		return alerts;
-		
+
 	}
-	
+
 	/*
 	 * Create a new user Parameters:
 	 *   u: Details of the new user
@@ -337,13 +338,31 @@ public class UserManager {
 			String serverName,
 			String adminName,
 			ResourceBundle localisation) throws Exception {
-		
+
+		// Before creating the user check that email is available if it has been requested
+		EmailServer emailServer = null;
+		String emailKey = null;
+		if(u.sendEmail) {
+			emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
+			if(emailServer.smtpHost == null) {
+				throw new Exception(localisation.getString("email_ne2"));
+			}
+			PeopleManager pm = new PeopleManager();
+			emailKey = pm.getEmailKey(sd, o_id, u.email);
+			if(emailKey == null) {
+				// Person has unsubscribed
+				String msg = localisation.getString("email_us");
+				msg = msg.replaceFirst("%s1", u.email);
+				throw new ApplicationException(msg);
+			}
+		}
+
 		int u_id = -1;
 		String sql = "insert into users (ident, realm, name, email, o_id, password) " +
 				" values (?, ?, ?, ?, ?, md5(?));";
-		
+
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			String pwdString = u.ident + ":smap:" + u.password;
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -355,73 +374,70 @@ public class UserManager {
 			pstmt.setString(6, pwdString);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
-			
+
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if (rs.next()){
-			    u_id = rs.getInt(1);
-			    insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager);
+				u_id = rs.getInt(1);
+				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager);
 			}
-			
+
 			// Send a notification email to the user
 			if(u.sendEmail) {
 				log.info("Checking to see if email enabled: " + u.sendEmail);
-				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
-				if(emailServer.smtpHost != null) {
-	
-					log.info("Send email");
-					Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, userIdent);
-					
-					String subject = localisation.getString("email_ac") + " " + serverName;
-					String interval = "48 hours";
-					String uuid = UtilityMethodsEmail.setOnetimePassword(sd, pstmt, u.email, interval);
-					ArrayList<String> idents = UtilityMethodsEmail.getIdentsFromEmail(sd, pstmt, u.email);
-					String sender = "newuser";
-					EmailManager em = new EmailManager();
-					em.sendEmail(
-							u.email, 
-							uuid, 
-							"newuser", 
-							subject, 
-							null, 
-							sender, 
-							adminName, 
-							interval, 
-							idents, 
-							null, 
-							null,
-							null,
-							organisation.getAdminEmail(), 
-							emailServer,
-							scheme,
-							serverName,
-							localisation);
-				} else {
-					throw new Exception(localisation.getString("email_ne2"));
-				}
+
+				log.info("Send email");
+				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, userIdent);
+
+				String subject = localisation.getString("email_ac") + " " + serverName;
+				String interval = "48 hours";
+				String uuid = UtilityMethodsEmail.setOnetimePassword(sd, pstmt, u.email, interval);
+				ArrayList<String> idents = UtilityMethodsEmail.getIdentsFromEmail(sd, pstmt, u.email);
+				String sender = "newuser";
+				EmailManager em = new EmailManager();
+				em.sendEmail(
+						u.email, 
+						uuid, 
+						"newuser", 
+						subject, 
+						null, 
+						sender, 
+						adminName, 
+						interval, 
+						idents, 
+						null, 
+						null,
+						null,
+						organisation.getAdminEmail(), 
+						emailServer,
+						scheme,
+						serverName,
+						emailKey,
+						localisation);
+
 			}
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			
+
 		}
 		return u_id;
 	}
-	
+
 	/*
 	 * Create a new temporary user
 	 */
 	public int createTemporaryUser(Connection sd, 
 			User u, 
 			int o_id) throws Exception {
-		
+
 		int u_id = -1;
 		String sql = "insert into users "
 				+ "(ident, o_id, email, name, temporary, action_details, created) "
 				+ "values (?, ?, ?, ?, true, ?, now()) ";
-		
+
 		PreparedStatement pstmt = null;
-		
+
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, u.ident);
@@ -431,20 +447,20 @@ public class UserManager {
 			pstmt.setString(5, gson.toJson(u.action_details));
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
-			
+
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if (rs.next()){
-			    u_id = rs.getInt(1);
-			    insertUserGroupsProjects(sd, u, u_id, false, true);		// The user roles are sourced from the action and have been added by a security manager hence we will act as a security manager here
+				u_id = rs.getInt(1);
+				insertUserGroupsProjects(sd, u, u_id, false, true);		// The user roles are sourced from the action and have been added by a security manager hence we will act as a security manager here
 			}
-			
+
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			
+
 		}
 		return u_id;
 	}
-	
+
 	/*
 	 * Update a users details
 	 */
@@ -456,26 +472,26 @@ public class UserManager {
 			String userIdent,
 			String serverName,
 			String adminName) throws Exception {
-		
-	
+
+
 		// Check the user is in the same organisation as the administrator doing the editing
 		String sql = "SELECT u.id " +
 				" FROM users u " +  
 				" WHERE u.id = ? " +
 				" AND u.o_id = ?;";				
-		
-		
+
+
 		PreparedStatement pstmt = null;
-		
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, u.id);
 			pstmt.setInt(2, o_id);
 			log.info("SQL: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
-		
+
 			if(resultSet.next()) {
-				
+
 				// update existing user
 				String pwdString = null;
 				if(u.password == null) {
@@ -497,10 +513,10 @@ public class UserManager {
 							" password = md5(?) " +
 							" where " +
 							" id = ?;";
-					
+
 					pwdString = u.ident + ":smap:" + u.password;
 				}
-			
+
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, u.ident);
@@ -513,19 +529,19 @@ public class UserManager {
 					pstmt.setString(5, pwdString);
 					pstmt.setInt(6, u.id);
 				}
-				
+
 				log.info("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
-			
+
 				// Update the groups, projects and roles
 				insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
-	
+
 			} else {
 				throw new Exception("Invalid user");
 			}
 		} finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			
+
 		}
 	}
 
@@ -538,24 +554,24 @@ public class UserManager {
 		PreparedStatement pstmtInsertUserGroup = null;
 		PreparedStatement pstmtInsertUserRole = null;
 		PreparedStatement pstmtInsertProjectGroup = null;
-		
+
 		log.info("Update groups and projects user id:" + u_id);
-		
+
 		// Delete existing user groups
 		try {
-			
+
 			String sqlInsertUserGroup = "insert into user_group (u_id, g_id) values (?, ?);";
 			pstmtInsertUserGroup = sd.prepareStatement(sqlInsertUserGroup);
 			pstmtInsertUserGroup.setInt(1, u_id);
-			
+
 			String sqlInsertUserRole = "insert into user_role (u_id, r_id) values (?, ?);";
 			pstmtInsertUserRole = sd.prepareStatement(sqlInsertUserRole);
 			pstmtInsertUserRole.setInt(1, u_id);
-			
+
 			String sqlInsertProjectGroup = "insert into user_project (u_id, p_id) values (?, ?);";
 			pstmtInsertProjectGroup = sd.prepareStatement(sqlInsertProjectGroup);
 			pstmtInsertProjectGroup.setInt(1, u_id);
-			
+
 			/*
 			 * Update user groups
 			 */
@@ -568,13 +584,13 @@ public class UserManager {
 			} else {
 				sql = "delete from user_group where u_id = ? and g_id != 4 and g_id != 6;";		// Cannot change super user group, or security manager
 			}
-			
+
 			if(u.groups != null) {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
 				log.info("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
-				
+
 				for(int j = 0; j < u.groups.size(); j++) {
 					UserGroup g = u.groups.get(j);
 					if(g.id != 4 || isOrgUser) {	
@@ -586,7 +602,7 @@ public class UserManager {
 			} else {
 				log.info("No user groups");
 			}
-			
+
 			// Delete existing user projects
 			if(u.projects != null) {
 				sql = "delete from user_project where u_id = ?;";
@@ -595,20 +611,20 @@ public class UserManager {
 				pstmt.setInt(1, u.id);
 				log.info("SQL: " + pstmt.toString());
 				pstmt.executeUpdate();
-				
+
 				for(int j = 0; j < u.projects.size(); j++) {
 					Project p = u.projects.get(j);
-					
+
 					pstmtInsertProjectGroup.setInt(2, p.id);
 					pstmtInsertProjectGroup.executeUpdate();
-					
+
 				}
-				
+
 				sd.commit();
 			} else {
 				log.info("No projects to add");
 			}
-			
+
 			/*
 			 * Update user roles
 			 */
@@ -620,17 +636,17 @@ public class UserManager {
 				pstmt.setInt(1, u.id);
 				log.info("SQL add roles: " + pstmt.toString());
 				pstmt.executeUpdate();
-				
+
 				for(int j = 0; j < u.roles.size(); j++) {
 					Role r = u.roles.get(j);
 					pstmtInsertUserRole.setInt(2, r.id);
 					log.info("Insert user role: " + pstmtInsertUserRole.toString());
 					pstmtInsertUserRole.executeUpdate();
 				}
-			
+
 				sd.commit();	// Commit changes to user roles
 			}
-			
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			try{sd.rollback();} catch(Exception ex) {}
@@ -642,7 +658,7 @@ public class UserManager {
 			try {if (pstmtInsertUserRole != null) {pstmtInsertUserRole.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertProjectGroup != null) {pstmtInsertProjectGroup.close();}} catch (SQLException e) {}
 		}
-		
+
 	}
-	
+
 }
