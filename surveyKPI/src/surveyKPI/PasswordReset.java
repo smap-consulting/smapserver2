@@ -106,7 +106,7 @@ public class PasswordReset extends Application {
 					
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(connectionSD, email, request.getRemoteUser());
 					
-					PeopleManager pm = new PeopleManager();
+					PeopleManager pm = new PeopleManager(localisation);
 					String emailKey = pm.getEmailKey(connectionSD, 0, email);
 					if(emailKey == null) {
 						// Person has unsubscribed

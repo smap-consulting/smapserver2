@@ -440,7 +440,7 @@ public class NotificationManager {
 						lm.writeLog(sd, sId, "subscriber", "notification", 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
-								.replaceAll("%s2", e.getMessage()));
+								.replace("%s2", e.getMessage()));
 					}
 				}
 				
@@ -449,7 +449,7 @@ public class NotificationManager {
 							localisation.getString("filter_reject")
 							.replace("%s1", survey.displayName)
 							.replace("%s2", filter)
-							.replaceAll("%s3", instanceId));
+							.replace("%s3", instanceId));
 				} else {
 		
 					SubmissionMessage subMgr = new SubmissionMessage(
@@ -686,7 +686,7 @@ public class NotificationManager {
 								" email_domain: " + emailServer.emailDomain);
 						try {
 							EmailManager em = new EmailManager();
-							PeopleManager peopleMgr = new PeopleManager();
+							PeopleManager peopleMgr = new PeopleManager(localisation);
 							InternetAddress[] emailArray = InternetAddress.parse(emails);
 							String emailKey = null;
 							

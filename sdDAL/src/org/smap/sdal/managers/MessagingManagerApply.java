@@ -171,7 +171,7 @@ public class MessagingManagerApply {
 	
 						subject += localisation.getString("c_message");
 						try {
-							PeopleManager pm = new PeopleManager();
+							PeopleManager pm = new PeopleManager(localisation);
 							EmailManager em = new EmailManager();
 							InternetAddress[] emailArray = InternetAddress.parse(topic);
 							String emailKey = null;

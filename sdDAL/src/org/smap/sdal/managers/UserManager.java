@@ -347,7 +347,7 @@ public class UserManager {
 			if(emailServer.smtpHost == null) {
 				throw new Exception(localisation.getString("email_ne2"));
 			}
-			PeopleManager pm = new PeopleManager();
+			PeopleManager pm = new PeopleManager(localisation);
 			emailKey = pm.getEmailKey(sd, o_id, u.email);
 			if(emailKey == null) {
 				// Person has unsubscribed

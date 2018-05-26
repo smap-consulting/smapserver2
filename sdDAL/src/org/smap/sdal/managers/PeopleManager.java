@@ -8,11 +8,13 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.ResourceBundle;
 import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
@@ -56,6 +58,11 @@ public class PeopleManager {
 	private static Logger log =
 			 Logger.getLogger(PeopleManager.class.getName());
 	
+	ResourceBundle localisation = null;
+	
+	public PeopleManager(ResourceBundle l) {
+		localisation = l;
+	}
 	/*
 	 * Get an email key for this user that can be used to unsubscribe
 	 * If the person is already unsubscribed then return null
@@ -107,44 +114,33 @@ public class PeopleManager {
 
 	}
 	
-	/*
-	 * Write a log entry that at the organisation level
-	 */
-	public void writeLogOrganisation(Connection sd, 
-			int oId,
-			String uIdent,
-			String event,
-			String note)  {
+	public String unsubscribe(Connection sd, 
+			String key) throws SQLException, ApplicationException {
 		
-		String sql = "insert into log ("
-				+ "log_time,"
-				+ "s_id,"
-				+ "o_id,"
-				+ "user_ident,"
-				+ "event,"
-				+ "note) values (now(), 0, ?, ?, ?, ?);";
-
+		String sql = "update people "
+				+ "set unsubscribed = true,"
+				+ "when_unsubscribed = now() "
+				+ "where uuid = ? "
+				+ "and not unsubscribed";
 		PreparedStatement pstmt = null;
 		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);	
-			pstmt.setInt(1, oId);
-			pstmt.setString(2, uIdent);
-			pstmt.setString(3,  event);
-			pstmt.setString(4,  note);
-			
-			pstmt.executeUpdate();
+			pstmt.setString(1, key);			
+			int count = pstmt.executeUpdate();
+			if(count == 0) {
+				throw new ApplicationException(localisation.getString("c_ns"));
+			}
 
-
-		} catch(Exception e) {
-			log.log(Level.SEVERE, "SQL Error", e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+		
+		return key;
 
 	}
-	
+
 }
 
 
