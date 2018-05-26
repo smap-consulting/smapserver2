@@ -441,8 +441,8 @@ public class EventList extends Application {
 			 while (resultSet.next()) {
 				 String status = resultSet.getString("status");
 				 if(
-						 (status != null && !hideSuccess && status.equals("success")) ||
-						 (status != null && !hideErrors && status.equals("error")) 
+						 (status != null && !hideSuccess && status.toLowerCase().equals("success")) ||
+						 (status != null && !hideErrors && status.toLowerCase().equals("error")) 
 						
 						 ) {
 					

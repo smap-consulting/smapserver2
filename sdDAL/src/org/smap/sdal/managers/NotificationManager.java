@@ -606,7 +606,7 @@ public class NotificationManager {
 			 * Send document to target
 			 */
 			ArrayList<String> unsubscribedList = new ArrayList<>();
-			String status = localisation.getString("c_success");				// Notification log
+			String status = "success";				// Notification log
 			String notify_details = null;			// Notification log
 			String error_details = null;				// Notification log
 			if(msg.target.equals("email")) {
@@ -717,7 +717,7 @@ public class NotificationManager {
 								}
 							}
 						} catch(Exception e) {
-							status = localisation.getString("c_error");
+							status = "error";
 							error_details = e.getMessage();
 						}
 					} else {

@@ -110,7 +110,7 @@ public class MessagingManagerApply {
 				
 				log.info("++++++ Message: " + topic + " " + description + " : " + data );
 
-				String status = localisation.getString("c_success");
+				String status = "success";
 				ArrayList<String> unsubscribedList = new ArrayList<>();
 				
 				/*
@@ -204,7 +204,7 @@ public class MessagingManagerApply {
 								}
 							}
 						} catch (Exception e) {
-							status = localisation.getString("c_error");
+							status = "error";
 						}
 	
 					} else {
