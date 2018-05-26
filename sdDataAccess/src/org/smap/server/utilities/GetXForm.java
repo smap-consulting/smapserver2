@@ -1944,7 +1944,7 @@ public class GetXForm {
 					// false, false, false, null));
 					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters(), false));
 
-				} else if (qType.equals("image") || qType.equals("audio") || qType.equals("video") || qType.equals("file")) { // Get the file
+				} else if (GeneralUtilityMethods.isAttachmentType(qType)) { // Get the file
 					// name
 
 					String value = null;

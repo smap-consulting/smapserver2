@@ -291,10 +291,7 @@ public class ExportSurveyOSM extends Application {
 						} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
 							selName = "timezone('UTC', " + name + ") as " + name;	
 						} else {
-							boolean isAttachment = false;
-								if(qType.equals("image") || qType.equals("audio") || qType.equals("video")) {
-									isAttachment = true;
-								}
+							boolean isAttachment = GeneralUtilityMethods.isAttachmentType(qType);
 							if(isAttachment) {
 								selName = "'" + urlprefix + "' || " + name + " as " + name;
 							} else {

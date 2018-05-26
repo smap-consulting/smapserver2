@@ -406,9 +406,8 @@ public class XLSResultsManager {
 								continue;			// Drop read only columns if they are not selected to be exported				
 							}
 
-							if(qType.equals("image") || qType.equals("audio") || qType.equals("video")) {
-								isAttachment = true;
-							}
+
+							isAttachment = GeneralUtilityMethods.isAttachmentType(qType);
 
 							if(qType.equals("select")) {
 								isSelectMultiple = true;

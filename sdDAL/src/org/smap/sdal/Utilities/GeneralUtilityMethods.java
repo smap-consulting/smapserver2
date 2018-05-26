@@ -6604,6 +6604,14 @@ public class GeneralUtilityMethods {
 			throw new Exception("Null User Ident");
 		}
 	}
+	
+	public static boolean isAttachmentType(String type) {
+		boolean attachment = false;
+		if(type.equals("image") || type.equals("audio") || type.equals("video") || type.equals("file")) {
+			attachment = true;
+		}
+		return attachment;
+	}
 
 }
 

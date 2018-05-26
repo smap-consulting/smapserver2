@@ -1486,9 +1486,7 @@ public class SubRelationalDB extends Subscriber {
 					}
 
 
-
-
-				} else if(qType.equals("audio") || qType.equals("video") || qType.equals("image")) {
+				} else if(GeneralUtilityMethods.isAttachmentType(qType)) {
 
 					log.info("Processing media. Value: " + value);
 					if(value == null || value.length() == 0) {
