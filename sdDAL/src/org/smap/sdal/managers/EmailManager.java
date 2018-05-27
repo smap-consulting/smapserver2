@@ -237,15 +237,32 @@ public class EmailManager {
 					txtMessage.append(docURL);
 				}
 
+			} else if(type.equals("subscribe")) {
+				txtMessage.append(localisation.getString("c_goto"));
+				txtMessage.append(" " + scheme + "://");
+				txtMessage.append(serverName);
+				txtMessage.append("/subscriptions.html?subscribe=yes&token=");
+				txtMessage.append(uuid);
+				txtMessage.append(" ");
+				txtMessage.append(localisation.getString("email_s"));
+				txtMessage.append("\n\n");
+				txtMessage.append(localisation.getString("email_dnr"));
+				txtMessage.append(" ");
+				txtMessage.append(adminEmail);
+				txtMessage.append(".");
+
 			}
 			// Add unsubscribe
-			txtMessage.append("\n\n");
-			txtMessage.append(localisation.getString("c_unsubscribe"));
-			txtMessage.append(": ");
-			txtMessage.append(scheme + "://");
-			txtMessage.append(serverName);
-			txtMessage.append("/subscriptions.html?token=");
-			txtMessage.append(emailKey);
+			if(emailKey != null) {
+				
+				txtMessage.append("\n\n");
+				txtMessage.append(localisation.getString("c_unsubscribe"));
+				txtMessage.append(": ");
+				txtMessage.append(scheme + "://");
+				txtMessage.append(serverName);
+				txtMessage.append("/subscriptions.html?token=");
+				txtMessage.append(emailKey);
+			}
 
 			BodyPart messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setText(txtMessage.toString());

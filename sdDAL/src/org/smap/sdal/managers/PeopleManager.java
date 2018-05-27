@@ -63,6 +63,7 @@ public class PeopleManager {
 	public PeopleManager(ResourceBundle l) {
 		localisation = l;
 	}
+	
 	/*
 	 * Get an email key for this user that can be used to unsubscribe
 	 * If the person is already unsubscribed then return null
@@ -104,7 +105,6 @@ public class PeopleManager {
 				pstmtCreate.executeUpdate();
 			}
 
-
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			try {if (pstmtCreate != null) {pstmtCreate.close();} } catch (SQLException e) {	}
@@ -114,6 +114,68 @@ public class PeopleManager {
 
 	}
 	
+	/*
+	 * Get key that can be used to subscribe to emails
+	 */
+	public String getSubscriptionKey(Connection sd, String email) throws SQLException, ApplicationException {
+		
+		String sql = "select unsubscribed, uuid "
+				+ "from people "
+				+ "where email = ?";
+		PreparedStatement pstmt = null;
+		
+		// Create an entry with the user initially unsubscribed
+		String sqlCreate = "insert into people "
+				+ "(o_id, email, unsubscribed, uuid) "
+				+ "values(0, ?, 'true', ?)";
+		PreparedStatement pstmtCreate = null;
+		
+		String sqlUpdate = "update people set uuid = ? "
+				+ "where email = ?";		
+		PreparedStatement pstmtUpdate = null;
+		
+		String key = null;
+		try {
+			
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, email);
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				// We already have an entry for this email
+				boolean unsubscribed = rs.getBoolean(1);
+				if(unsubscribed) {
+					// Create a new key and update the people table
+					key = UUID.randomUUID().toString();
+					pstmtUpdate = sd.prepareStatement(sqlUpdate);				
+					pstmtUpdate.setString(1, key);
+					pstmtUpdate.setString(2, email);
+					pstmtUpdate.executeUpdate();
+				} else {
+					throw new ApplicationException(localisation.getString("c_as"));
+				}
+			} else {
+				// Create a key for this email and save it in the people table
+				key = UUID.randomUUID().toString();
+				pstmtCreate = sd.prepareStatement(sqlCreate);
+				pstmtCreate.setString(1, email);
+				pstmtCreate.setString(2, key);
+				pstmtCreate.executeUpdate();
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtCreate != null) {pstmtCreate.close();} } catch (SQLException e) {	}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();} } catch (SQLException e) {	}
+		}
+		
+		return key;
+
+	}
+	
+	/*
+	 * Unsubscribe the user based on the key
+	 */
 	public String unsubscribe(Connection sd, 
 			String key) throws SQLException, ApplicationException {
 		
@@ -131,6 +193,35 @@ public class PeopleManager {
 			int count = pstmt.executeUpdate();
 			if(count == 0) {
 				throw new ApplicationException(localisation.getString("c_ns"));
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+		return key;
+
+	}
+	
+	/*
+	 * Subscribe the user based on the key
+	 */
+	public String subscribeStep2(Connection sd, 
+			String key) throws SQLException, ApplicationException {
+		
+		String sql = "update people "
+				+ "set unsubscribed = false,"
+				+ "when_subscribed = now() "
+				+ "where uuid = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, key);			
+			int count = pstmt.executeUpdate();
+			if(count == 0) {
+				throw new ApplicationException(localisation.getString("c_error"));
 			}
 
 		} finally {
