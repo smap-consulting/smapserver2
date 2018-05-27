@@ -65,6 +65,17 @@ public class TaskManager {
 
 	private ResourceBundle localisation = null;
 	
+	private String fullStatusList[] = {
+			"new", 
+			"accepted", 
+			"unsent", 
+			"unsubscribed", 
+			"submitted", 
+			"rejected", 
+			"cancelled", 
+			"deleted"
+			};
+	
 	private class TaskInstanceData {
 		int prikey = 0;						// data from submission
 		String ident = null;					// Identifier of person or role to be assigned
@@ -226,7 +237,8 @@ public class TaskManager {
 	public TaskListGeoJson getTasks(Connection sd, 
 			int taskGroupId, 
 			boolean completed,
-			int userId) throws Exception {
+			int userId,
+			String incStatus) throws Exception {
 
 		String sql = "select t.id as t_id, "
 				+ "t.title as name,"
@@ -262,15 +274,35 @@ public class TaskManager {
 				+ "left outer join users u "
 				+ "on a.assignee = u.id "
 				+ "where t.tg_id = ? "
+				+ "and a.status = any (?) "
 				+ "order by t.schedule_at desc, t.id, a.id desc;";
 		PreparedStatement pstmt = null;
 
 		TaskListGeoJson tl = new TaskListGeoJson();
 
+		// Create the list of status values to return
+		ArrayList<String> statusList = new ArrayList<String> ();
+		if(incStatus == null) {
+			for(String status : fullStatusList) {
+				statusList.add(status);
+			}
+		} else {
+			String [] incStatusArray = incStatus.split(",");
+			for(String status : incStatusArray) {
+				for(String statusRef : fullStatusList) {
+					if(status.trim().equals(statusRef)) {
+						statusList.add(statusRef);
+						break;
+					}
+				}
+			}
+		}
+		
 		try {
 
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, taskGroupId);
+			pstmt.setArray(2, sd.createArrayOf("text", statusList.toArray(new String[statusList.size()])));		
 			log.info("Get tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
@@ -279,7 +311,7 @@ public class TaskManager {
 
 				String status = rs.getString("status");
 				boolean deleted = rs.getBoolean("deleted");
-				if(deleted) {
+				if(deleted && status == null) {
 					status = "deleted";
 				} else if(status == null) {
 					status = "new";

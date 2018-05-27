@@ -21,12 +21,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -160,7 +158,7 @@ public class Tasks extends Application {
 			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation);
-			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId);		
+			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId, null);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -402,7 +400,8 @@ public class Tasks extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("tgId") int tgId,
 			@QueryParam("tz") String tz,
-			@QueryParam("filetype") String filetype) throws Exception {
+			@QueryParam("filetype") String filetype,
+			@QueryParam("inc_status") String incStatus) throws Exception {
 
 		Connection sd = SDDataSource.getConnection("createXLSTasks");	
 		// Authorisation - Access
@@ -434,7 +433,7 @@ public class Tasks extends Application {
 			TaskManager tm = new TaskManager(localisation);
 			
 			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
-			TaskListGeoJson tl = tm.getTasks(sd, tgId, true, 0);	// Get the task list
+			TaskListGeoJson tl = tm.getTasks(sd, tgId, true, 0, incStatus);	// Get the task list
 			GeneralUtilityMethods.setFilenameInResponse(tg.name + "." + filetype, response); // Set file name
 			
 			// Create XLSTasks File
@@ -562,7 +561,7 @@ public class Tasks extends Application {
 				 *  from latitude and longitude
 				 *  Also we may not want to return complete tasks
 				 */
-				tl = tm.getTasks(sd, tgId, true, userId);	// TODO set "complete" flag from passed in parameter
+				tl = tm.getTasks(sd, tgId, true, userId, null);	// TODO set "complete" flag from passed in parameter
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
 				
