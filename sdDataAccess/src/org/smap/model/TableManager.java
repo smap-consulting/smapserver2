@@ -586,7 +586,7 @@ public class TableManager {
 			colType = "double precision";
 		} else if(colType.equals("dateTime")) {
 			colType = "timestamp with time zone";					
-		} else if(colType.equals("audio") || colType.equals("image") || colType.equals("video") || colType.equals("file")) {
+		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
 		} else if(colType.equals("select") && compressed) {
 			colType = "text";					

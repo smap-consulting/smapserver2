@@ -261,7 +261,7 @@ public class Items extends Application {
 						geomType = c.type;
 						newColIdx++;
 					
-					} else if(c.type.equals("image") || c.type.equals("audio") || c.type.equals("video")) {
+					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
 							cols.append("'" + urlprefix + "' || " + tName + "." + c.name + " as " + c.name);
 				
 					} else if(c.name.equals("prikey") || c.name.equals("parkey") 

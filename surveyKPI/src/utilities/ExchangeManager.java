@@ -637,7 +637,7 @@ public class ExchangeManager {
 										pstmtInsert.setInt(index++, iParKey);
 									}
 								}
-							} else if(col.type.equals("audio") || col.type.equals("video") || col.type.equals("image")) {
+							} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
 								
 								// If the data references a media file then process the attachment
 								File srcPathFile = null;

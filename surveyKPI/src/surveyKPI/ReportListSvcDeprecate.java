@@ -363,7 +363,7 @@ public class ReportListSvcDeprecate extends Application {
 		if(aReport.smap.ident == null) {
 			log.info("saving image to file system: " + itemType + " : " + ident);
 			try {
-				if(reportType.equals("photo") || reportType.equals("video") || reportType.equals("audio")) {
+				if(GeneralUtilityMethods.isAttachmentType(reportType)) {
 					// Existing image, hence copy to the report folder
 					// Get the file path from the image url
 
@@ -1250,6 +1250,8 @@ public class ReportListSvcDeprecate extends Application {
 				aReport.type = "rich";
 			} else if(item_type.equals("video")) {
 				aReport.type = "video";
+			} else if(item_type.equals("file")) {
+				aReport.type = "file";
 			}
 		}
 		

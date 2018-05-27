@@ -187,6 +187,7 @@ public class IE {
 								|| qt.equals("audio")
 								|| qt.equals("image")
 								|| qt.equals("video")
+								|| qt.equals("file")
 								|| qt.equals("dateTime")
 								|| qt.equals("range")
 								|| qt.equals("time")
@@ -195,13 +196,11 @@ public class IE {
 								|| qt.equals("geotrace")
 								|| qt.equals("acknowledge")
 								|| qt.equals("calculate")
-								|| qt.equals("begin group"))
-								{	
+								|| qt.equals("begin group")) {
 							questions.add(child);
 							
 						} else if (qt.equals("geopolygon")		// Complex questions
-								|| qt.equals("geolinestring"))
-							{
+								|| qt.equals("geolinestring")) {
 							// Get the constructed complex question
 							String name = child.getName();
 							IE complex = complexQuestions.get(name);

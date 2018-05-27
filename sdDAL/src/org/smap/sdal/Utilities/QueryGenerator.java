@@ -550,10 +550,7 @@ public class QueryGenerator {
 				
 				
 				// Set flag if this question has an attachment
-				boolean isAttachment = false;
-				if(type.equals("image") || type.equals("audio") || type.equals("video")) {
-					isAttachment = true;
-				}
+				boolean isAttachment = GeneralUtilityMethods.isAttachmentType(type);
 				
 				// Get the question type
 				pstmtQType.setInt(1, form.form);

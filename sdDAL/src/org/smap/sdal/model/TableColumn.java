@@ -3,6 +3,8 @@ package org.smap.sdal.model;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+
 /*
  * TableColumn class used to manage data shown in a table
  */
@@ -81,12 +83,8 @@ public class TableColumn {
 		return isCalculate;
 	}
 	
-	public boolean isAttachment() {
-		boolean isAttachment = false;
-		if(type.equals("image") || type.equals("audio") || type.equals("video")) {
-			isAttachment = true;
-		}
-		return isAttachment;
+	public boolean isAttachment() {	
+		return GeneralUtilityMethods.isAttachmentType(type);
 	}
 	
 	/*
