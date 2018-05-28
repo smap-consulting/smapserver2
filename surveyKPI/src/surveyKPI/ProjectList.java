@@ -33,10 +33,12 @@ import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.ProjectManager;
+import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 
@@ -260,9 +262,11 @@ public class ProjectList extends Application {
 	public Response delProject(@Context HttpServletRequest request, @FormParam("projects") String projects) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-ProjectList";
+		Connection cResults = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ProjectList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation			
 					
@@ -297,6 +301,8 @@ public class ProjectList extends Application {
 				for(int i = 0; i < pArray.size(); i++) {
 					Project p = pArray.get(i);
 					
+					a.isValidProject(sd, request.getRemoteUser(), p.id);		// Authorise deletion of this project
+					
 					/*
 					 * Ensure that there are no undeleted surveys in this project
 					 * Don't count hidden surveys which have been replaced
@@ -318,12 +324,42 @@ public class ProjectList extends Application {
 						}
 					} else {
 						throw new Exception("Error getting survey count");
+					}			
+					
+					// Erase any hidden forms 
+					ServerManager sm = new ServerManager();
+					sql = "select s_id, ident, display_name "
+							+ " from survey s " 
+							+ " where s.p_id = ? "
+							+ "and s.hidden = true";
+					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setInt(1, p.id);
+					cResults = ResultsDataSource.getConnection(connectionString);
+					String basePath = GeneralUtilityMethods.getBasePath(request);
+					
+					ResultSet rs = pstmt.executeQuery();
+					while(rs.next()) {
+						int sId = rs.getInt(1);
+						String ident = rs.getString(2);
+						String displayName = rs.getString(3);
+						sm.deleteSurvey(		// Delete the replaced survey
+								sd, 
+								cResults,
+								request.getRemoteUser(),
+								p.id,
+								sId,
+								ident,
+								displayName,
+								basePath,
+								true,
+								"yes");
 					}
 					
-					// Ensure the project is in the same organisation as the administrator doing the editing
-					sql = "DELETE FROM project p " +  
-							" WHERE p.id = ? " +
-							" AND p.o_id = ?;";				
+					// Delete the project
+					sql = "delete from project p " 
+							+ "where p.id = ? "
+							+ "and p.o_id = ?";			// Ensure the project is in the same organisation as the administrator doing the editing
 						
 					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
 					pstmt = sd.prepareStatement(sql);
@@ -364,7 +400,8 @@ public class ProjectList extends Application {
 			try {
 				if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-ProjectList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 		
 		return response;
