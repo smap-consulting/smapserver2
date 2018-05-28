@@ -74,8 +74,8 @@ public class ProjectList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ProjectList");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-ProjectList");
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		/*
@@ -85,9 +85,7 @@ public class ProjectList extends Application {
 		ArrayList<Project> projects = new ArrayList<Project> ();
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(connectionSD, request.getRemoteUser(), 0);
-			boolean securityRole = GeneralUtilityMethods.hasSecurityRole(connectionSD, request.getRemoteUser());
-			int uId = GeneralUtilityMethods.getUserId(connectionSD, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			ResultSet resultSet = null;
 			
 			if(o_id > 0) {	
@@ -97,7 +95,7 @@ public class ProjectList extends Application {
 						+ "where o_id = ? "
 						+ "order by name ASC;";	
 					
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, o_id);
 				
 				log.info("Get project list: " + pstmt.toString());
@@ -131,7 +129,7 @@ public class ProjectList extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-ProjectList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-ProjectList", sd);
 		}
 
 		return response;
@@ -264,8 +262,8 @@ public class ProjectList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ProjectList");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-ProjectList");
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation			
 					
 		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
@@ -276,10 +274,10 @@ public class ProjectList extends Application {
 			String sql = null;
 			int o_id;
 			ResultSet resultSet = null;
-			connectionSD.setAutoCommit(false);
+			sd.setAutoCommit(false);
 			
 			// Localisation
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
 			Locale locale = new Locale(organisation.locale);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -290,7 +288,7 @@ public class ProjectList extends Application {
 					" FROM users u " +  
 					" WHERE u.ident = ?;";				
 						
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, request.getRemoteUser());
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
@@ -301,24 +299,22 @@ public class ProjectList extends Application {
 					
 					/*
 					 * Ensure that there are no undeleted surveys in this project
+					 * Don't count hidden surveys which have been replaced
 					 */
-					sql = "SELECT count(*) " +
-							" FROM survey u " +  
-							" WHERE u.p_id = ?;";
+					sql = "select count(*) "
+							+ " from survey s " 
+							+ " where s.p_id = ? "
+							+ "and s.hidden = false";
 					
-					pstmt = connectionSD.prepareStatement(sql);
+					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, p.id);
-					log.info("SQL: " + sql + ":" + p.id);
+					log.info("Check for undeleted surveys: " + pstmt.toString());
 					resultSet = pstmt.executeQuery();
 					if(resultSet.next()) {
 						int count = resultSet.getInt(1);
 						if(count > 0) {
 							String msg = localisation.getString("msg_undel_proj").replace("%s1", String.valueOf(p.id));
 							throw new Exception(msg);
-							//throw new Exception("Error: Project " + p.id + " has undeleted surveys. Hint: You need to erase " +
-							//		"all surveys from a project before it can be deleted. Try selecting" +
-							//		" \"Show deleted surveys\" on the template management screen for the project that you" +
-							//		" have finished with. Then erase those deleted surveys.");
 						}
 					} else {
 						throw new Exception("Error getting survey count");
@@ -330,7 +326,7 @@ public class ProjectList extends Application {
 							" AND p.o_id = ?;";				
 						
 					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-					pstmt = connectionSD.prepareStatement(sql);
+					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, p.id);
 					pstmt.setInt(2, o_id);
 					log.info("Delete project: " + pstmt.toString());
@@ -344,21 +340,21 @@ public class ProjectList extends Application {
 			    response = Response.serverError().build();
 			}
 			
-			connectionSD.commit();
+			sd.commit();
 				
 		} catch (SQLException e) {
 			String state = e.getSQLState();
 			log.info("sql state:" + state);
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 			
 		} catch (Exception ex) {
 			log.info(ex.getMessage());
 			response = Response.serverError().entity(ex.getMessage()).build();
 			
 			try{
-				connectionSD.rollback();
+				sd.rollback();
 			} catch(Exception e2) {
 				
 			}
@@ -368,7 +364,7 @@ public class ProjectList extends Application {
 			try {
 				if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-ProjectList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-ProjectList", sd);
 		}
 		
 		return response;
