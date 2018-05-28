@@ -350,7 +350,7 @@ public class MiscPDFManager {
 			 * Get the tasks for this task group
 			 */
 			TaskManager tm = new TaskManager(localisation);
-			TaskListGeoJson t = tm.getTasks(sd, tgId, false, 0);	
+			TaskListGeoJson t = tm.getTasks(sd, tgId, false, 0, null);	
 			PdfWriter writer = null;			
 				
 

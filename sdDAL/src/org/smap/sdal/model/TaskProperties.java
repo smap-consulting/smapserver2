@@ -15,6 +15,7 @@ public class TaskProperties {
 	public boolean blocked;
 	public String form_version;
 	public int assignee;
+	public String assignee_type;				// user || role
 	public String assignee_ident;
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
