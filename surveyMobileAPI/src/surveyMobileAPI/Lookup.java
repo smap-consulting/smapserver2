@@ -167,13 +167,13 @@ public class Lookup extends Application{
 	 * Get external choices
 	 */
 	@GET
-	@Path("/choices/{survey_ident}/{filename}/{value_column}/{label_column}")
+	@Path("/choices/{survey_ident}/{filename}/{value_column}/{label_columns}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response choices(@Context HttpServletRequest request,
 			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
 			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
 			@PathParam("value_column") String valueColumn,
-			@PathParam("label_column") String labelColumn,
+			@PathParam("label_columns") String labelColumns,
 			@QueryParam("search_type") String searchType,
 			@QueryParam("q_column") String qColumn,
 			@QueryParam("q_value") String qValue,
@@ -186,7 +186,7 @@ public class Lookup extends Application{
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
-		log.info("Lookup: Filename=" + fileName + " key_column=" + valueColumn + " key_value=" + labelColumn);
+		log.info("Lookup: Filename=" + fileName + " key_column=" + valueColumn + " key_value=" + labelColumns);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
@@ -264,13 +264,13 @@ public class Lookup extends Application{
 					int idx = 0;
 					results = new ArrayList<SelectChoice> ();
 					while((line = stm.getLineAsHash()) != null) {
-						SelectChoice choice = new SelectChoice(line.get(valueColumn), line.get(labelColumn), idx++);
+						SelectChoice choice = new SelectChoice(line.get(valueColumn), line.get(labelColumns), idx++);
 						results.add(choice);
 					}
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumn, 
+					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, 
 							selectionString, arguments, whereColumns);
 				}
 			}
