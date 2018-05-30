@@ -666,19 +666,26 @@ public class CsvTableManager {
 		ArrayList<CsvHeader> headers = gson.fromJson(sHeaders, headersType);
 		
 		String table = "csv.csv" + tableId;
+		HashMap<String, String> choiceMap = new HashMap<>();
+		boolean hasSortBy = false;
 		PreparedStatement pstmt = null;
 		try {
 			
-			StringBuffer sql = new StringBuffer("select distinct ");
+			StringBuffer sql = new StringBuffer("select ");
 			boolean foundValue = false;
 			int foundLabel = 0;
 			
-			// Map value column to table column
+			// Map value column to table column and flag if there is a sortby column
 			for(CsvHeader item : headers) {
 				if(item.fName.equals(value_column)) {
 					sql.append(item.tName);
 					foundValue = true;
-					break;
+				}
+				if(item.fName.equals("sortby")) {
+					hasSortBy = true;
+				}
+				if(hasSortBy && foundValue) {
+					break;	// no need to go on
 				}
 			}
 			
@@ -726,6 +733,10 @@ public class CsvTableManager {
 			if(selection != null) {
 				sql.append(" where ").append(selection);
 			}
+			
+			if(hasSortBy) {
+				sql.append(" order by sortby::real asc");
+			}
 				
 			pstmt = sd.prepareStatement(sql.toString());	
 			int paramIndex = 1;
@@ -739,7 +750,11 @@ public class CsvTableManager {
 			
 			int idx = 0;
 			while(rsx.next()) {
-				choices.add(new SelectChoice(rsx.getString(value_column), rsx.getString("__label"), idx++));
+				String value = rsx.getString(value_column);
+				if(choiceMap.get(value) == null) {		// Only add unique values
+					choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
+					choiceMap.put(value, value);
+				}
 			}	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
