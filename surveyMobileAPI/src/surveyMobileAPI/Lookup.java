@@ -186,7 +186,7 @@ public class Lookup extends Application{
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
-		log.info("Lookup: Filename=" + fileName + " key_column=" + valueColumn + " key_value=" + labelColumns);
+		log.info("Lookup choices: Filename=" + fileName + " value_column=" + valueColumn + " label_column=" + labelColumns);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
