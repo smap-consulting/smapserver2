@@ -698,17 +698,15 @@ public class TaskManager {
 				}
 			}
 			
-			if(userId > 0 || roleId > 0) {
-				ResultSet rsKeys = pstmt.getGeneratedKeys();
-				if(rsKeys.next()) {
-					int taskId = rsKeys.getInt(1);
-					applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, fixedRoleId);
-				}
-				if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
-
-			} else {
-				log.info("xxxxxxx No matching role");
+			ResultSet rsKeys = pstmt.getGeneratedKeys();
+			if(rsKeys.next()) {
+				int taskId = rsKeys.getInt(1);
+				applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, 
+						roleId, 
+						fixedRoleId,
+						as.emails);
 			}
+			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
@@ -999,7 +997,7 @@ public class TaskManager {
 				} else {
 					// Insert user
 					pstmtAssign = getInsertAssignmentStatement(sd);
-					insertAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId);
+					insertAssignment(pstmtAssign, tf.properties.assignee, null, "accepted", taskId);
 				}
 				
 				// Create a notification to alert the new user of the change to the task details
@@ -1584,10 +1582,11 @@ public class TaskManager {
 		String sql = "insert into assignments ("
 				+ "assignee, "
 				+ "assignee_name,"
+				+ "email,"
 				+ "status, "
 				+ "task_id,"
 				+ "assigned_date) "
-				+ "values (?, (select name from users where id = ?), ?, ?, now())";
+				+ "values (?, (select name from users where id = ?), ?, ?, ?, now())";
 		
 		return sd.prepareStatement(sql);
 	}
@@ -1598,6 +1597,7 @@ public class TaskManager {
 	public int insertAssignment(
 			PreparedStatement pstmt,
 			int assignee,
+			String email,
 			String status,
 			int task_id) throws SQLException {
 		
@@ -1654,7 +1654,7 @@ public class TaskManager {
 	
 	
 	/*
-	 * Create all assignments for specific user id or a role
+	 * Create all assignments for specific user id, role or emails
 	 */
 	public void applyAllAssignments(
 			Connection sd,
@@ -1664,13 +1664,14 @@ public class TaskManager {
 			int taskId,
 			int userId, 
 			int roleId,
-			int fixedRoleId) throws SQLException {
+			int fixedRoleId,
+			String emails) throws SQLException {
 
 		String status = "accepted";
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(pstmtAssign, userId, status, taskId);
+			insertAssignment(pstmtAssign, userId, null, status, taskId);
 			
 			// Notify the user of their new assignment
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -1695,7 +1696,7 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(pstmtAssign, rsRoles.getInt(1), status, taskId);
+				insertAssignment(pstmtAssign, rsRoles.getInt(1), null, status, taskId);
 				
 				// Notify the user of their new assignment
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
@@ -1705,7 +1706,11 @@ public class TaskManager {
 			if(count == 0) {
 				log.info("No matching users found");
 			}
-		} 
+		} else if(emails != null && emails.length() > 0) {
+			
+		} else {
+			log.info("No matching assignments found");
+		}
 	}
 	
 	public PreparedStatement getRoles(Connection sd) throws SQLException {

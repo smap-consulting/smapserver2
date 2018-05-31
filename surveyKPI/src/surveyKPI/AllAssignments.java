@@ -119,8 +119,10 @@ public class AllAssignments extends Application {
 
 
 		log.info("++++++++++++++++++++++++++++++++++++++ Assignment:" + settings);
-		AssignFromSurvey as = new Gson().fromJson(settings, AssignFromSurvey.class);
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
 
+		System.out.println("Emails: " + as.emails + " Email question: " + as.assign_data);
 		String userName = request.getRemoteUser();
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
@@ -175,7 +177,6 @@ public class AllAssignments extends Application {
 			 * Create the task group if an existing task group was not specified
 			 */
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName, sId);
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			ResultSet rsKeys = null;
 			if(as.task_group_id <= 0) {
 
@@ -585,15 +586,16 @@ public class AllAssignments extends Application {
 											roleId = GeneralUtilityMethods.getRoleId(sd, ident, oId);   // Its a role name
 										}
 									}
-									if(userId > 0 || roleId > 0) {
-										rsKeys = pstmtInsert.getGeneratedKeys();
-										if(rsKeys.next()) {
-											int taskId = rsKeys.getInt(1);
-											tm.applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, fixedRoleId);
 									
-										}
-										if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
+									rsKeys = pstmtInsert.getGeneratedKeys();
+									if(rsKeys.next()) {
+										int taskId = rsKeys.getInt(1);
+										tm.applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, 
+												fixedRoleId,
+												as.emails);
+								
 									}
+									if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
 								}
 							}
 
@@ -603,89 +605,6 @@ public class AllAssignments extends Application {
 						}
 					}
 				}
-
-				/*
-				 * Set the tasks from the passed in task list
-				 *
-				if(as.new_tasks != null) {
-					log.info("Creating " + as.new_tasks.features.length + " Ad-Hoc tasks");
-
-					// Assume POINT location, TODO POLYGON, LINESTRING
-					if(pstmtInsert != null) {pstmtInsert.close();};
-					String geoType = "POINT";
-
-					// Create a dummy location if this task does not have one
-					if(as.new_tasks.features.length == 0) {
-						Features f = new Features();
-						f.geometry = new Geometry();
-						f.geometry.coordinates = new String[2];
-						f.geometry.coordinates[0] = "0.0";
-						f.geometry.coordinates[1] = "0.0";
-						as.new_tasks.features = new Features[1];
-						as.new_tasks.features[0] = f;
-					}
-					// Tasks have locations
-					for(int i = 0; i < as.new_tasks.features.length; i++) {
-						Features f = as.new_tasks.features[i];
-						log.info("Creating task at " + f.geometry.coordinates[0] + " : " + f.geometry.coordinates[1]);
-
-						String title = null;
-						if(f.properties != null && f.properties.title != null && !f.properties.title.equals("null")) {
-							title = as.project_name + " : " + as.survey_name + " : " + f.properties.title;
-						} else {
-							title = as.project_name + " : " + as.survey_name;
-						}
-						
-						// Insert the task
-						int count = tm.insertTask(
-								pstmtInsert,
-								projectId,
-								projectName,
-								taskGroupId,
-								as.task_group_name,
-								title,
-								as.target_survey_id,
-								target_survey_url,
-								null,		// Initial data url
-								"POINT(" + f.geometry.coordinates[0] + " " + f.geometry.coordinates[1] + ")",
-								instanceId,
-								null,		// address
-								null,
-								null,
-								locationTrigger,
-								false,
-								null);
-
-						if(count != 1) {
-							log.info("Error: Failed to insert task");
-						} else if((f.properties != null && f.properties.userId > 0) || as.user_id > 0) {	// Assign the user to the new task
-
-							rsKeys = pstmtInsert.getGeneratedKeys();
-							if(rsKeys.next()) {
-								int taskId = rsKeys.getInt(1);
-								int userId = 0;
-								String status = null;
-								if(f.properties != null && f.properties.userId > 0) {
-									userId = f.properties.userId;
-									status = f.properties.assignment_status;
-								} else {
-									userId = as.user_id;
-									status = "accepted";
-								}
-
-								tm.insertAssignment(pstmtAssign, userId, status, taskId);
-
-								// TODO assign from roles
-							}
-							if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
-
-						}
-						
-					}
-					
-
-				}
-				 */
 				
 				// Create a notification for the updated user
 				if(as.user_id > 0) {
