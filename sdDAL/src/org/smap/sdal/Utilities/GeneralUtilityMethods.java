@@ -1740,7 +1740,8 @@ public class GeneralUtilityMethods {
 	 * external file
 	 */
 	public static boolean isAppearanceExternalFile(String appearance) {
-		if (appearance != null && appearance.toLowerCase().trim().contains("search(")) {
+		if (appearance != null && (appearance.toLowerCase().trim().contains("search(") ||
+				appearance.toLowerCase().trim().contains("lookup_choices("))) {
 			return true;
 		} else {
 			return false;
@@ -3971,7 +3972,7 @@ public class GeneralUtilityMethods {
 	public static ArrayList<Option> getExternalChoices(Connection sd, ResourceBundle localisation, 
 			int oId, int sId, int qId, ArrayList<String> matches) throws Exception {
 
-		ArrayList<Option> choices = null;		
+		ArrayList<Option> choices = new ArrayList<Option> ();		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
