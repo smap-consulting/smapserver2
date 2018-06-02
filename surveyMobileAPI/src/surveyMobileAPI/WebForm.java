@@ -491,6 +491,7 @@ public class WebForm extends Application {
 		output.append("<![endif]-->\n");
 
 		output.append("<script src='/js/libs/modernizr.js'></script>");
+		//output.append("<script src='/js/libs/textile.js'></script>");		in browser markdown - don't currently use
 		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey));
 		// Add the google API key
 		output.append("<script>");
@@ -636,6 +637,7 @@ public class WebForm extends Application {
 		// Convert escaped XML into HTML
 		html = html.replaceAll("&gt;", ">");
 		html = html.replaceAll("&lt;", "<");
+		html = html.replaceAll("\\\\\\\\", "\\\\");
 		
 		String dynamic = "";
 		if(isTemporaryUser) {
