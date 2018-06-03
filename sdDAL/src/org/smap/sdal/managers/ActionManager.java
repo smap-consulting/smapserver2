@@ -221,34 +221,26 @@ public class ActionManager {
 
 		String tempUserId = null;
 		String link = null;
+
+		UserManager um = new UserManager();
+		tempUserId = "u" + String.valueOf(UUID.randomUUID());
+		User u = new User();
+		u.ident = tempUserId;
+		u.name = a.notify_person;
+		u.action_details = a;
+
+		// Add the project that contains the survey
+		u.projects = new ArrayList<Project>();
+		Project p = new Project();
+		p.id = a.pId;
+		u.projects.add(p);
+
+		// Add the roles for the temporary user
+		u.roles = a.roles;
+
+		um.createTemporaryUser(sd, u, oId);
 		
-		try {		
-
-			if (tempUserId == null) {
-				UserManager um = new UserManager();
-				tempUserId = "u" + String.valueOf(UUID.randomUUID());
-				User u = new User();
-				u.ident = tempUserId;
-				u.name = a.notify_person;
-				u.action_details = a;
-
-				// Add the project that contains the survey
-				u.projects = new ArrayList<Project>();
-				Project p = new Project();
-				p.id = a.pId;
-				u.projects.add(p);
-
-				// Add the roles for the temporary user
-				u.roles = a.roles;
-
-				um.createTemporaryUser(sd, u, oId);
-			}
-
-			link = "/action/" + tempUserId;
-		} finally {
-			// try {if (pstmtResourceHasUser != null) {pstmtResourceHasUser.close();}} catch
-			// (SQLException e) {}
-		}
+		link = "/action/" + tempUserId;
 
 		return link;
 	}
