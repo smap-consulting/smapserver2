@@ -1239,7 +1239,9 @@ public class GeneralUtilityMethods {
 
 		String surveyName = null;
 
-		String sqlGetSurveyName = "select display_name " + " from survey " + " where s_id = ?;";
+		String sqlGetSurveyName = "select display_name " 
+				+ " from survey " 
+				+ " where s_id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -1247,6 +1249,44 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sqlGetSurveyName);
 			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				surveyName = rs.getString(1);
+			}
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
+			throw e;
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+
+		return surveyName;
+	}
+	
+	/*
+	 * Get the survey name from the surveyident
+	 */
+	static public String getSurveyNameFromIdent(Connection sd, String sIdent) throws SQLException {
+
+		String surveyName = null;
+
+		String sqlGetSurveyName = "select display_name " 
+				+ "from survey " 
+				+ "where ident = ? "
+				+ "and not hidden";		// Get the latest
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sqlGetSurveyName);
+			pstmt.setString(1, sIdent);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				surveyName = rs.getString(1);

@@ -243,12 +243,6 @@ public class EventList extends Application {
 				 String upload_status = resultSet.getString("upload_status");
 				 String upload_reason = resultSet.getString("upload_reason");
 				 
-				 // Update don't equate upload errors with subscriber errors
-				 //if(upload_status.equals("error")) {	// Didn't make it to the subscriber
-					 //status = "error";
-					 //se_reason = upload_reason;
-				 //}
-				 
 				 if(
 						 (status == null && !hideNotLoaded) ||
 						 (status != null && !hideSuccess && status.equals("success")) ||
@@ -704,7 +698,10 @@ public class EventList extends Application {
 		return jo.toString();
 	}
 	
-	private void addStatusTotals(String status, String sName, int projectId,
+	private void addStatusTotals(
+			String status, 
+			String sName, 
+			int projectId,
 			String user,
 			Connection sd,
 			String groupby,
@@ -714,7 +711,6 @@ public class EventList extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
-			HashMap<Integer, String> surveyNames = new HashMap<Integer, String> ();
 			String selectStatus = null;
 			if(status.equals("success")) {
 				selectStatus = "AND se.status = 'success' ";
@@ -746,14 +742,14 @@ public class EventList extends Application {
 				String aggregate;
 				String getDest;
 				if(isForward) {
-					aggregate = "ue.s_id, se.dest";
+					aggregate = "ue.ident, se.dest";
 					getDest = ",se.dest ";
 				} else {
-					aggregate = "ue.s_id";
+					aggregate = "ue.ident";
 					getDest = "";
 				}
 				
-				sql = "SELECT count(*), ue.s_id " +
+				sql = "SELECT count(*), ue.ident " +
 						getDest +
 						"FROM upload_event ue " +
 						"left outer join subscriber_event se " +
@@ -763,7 +759,6 @@ public class EventList extends Application {
 						"inner join users u " +
 						"on up.u_id = u.id " +
 						"where u.ident = ? " +
-						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
 						subscriberSelect +
 						selectStatus +
 						projSelect +
@@ -798,7 +793,6 @@ public class EventList extends Application {
 						"on up.u_id = u.id " +
 						"where u.ident = ? " +
 						"and ue.s_id = ? " +
-						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
 						"and up.p_id = ? " +
 						subscriberSelect +
 						selectStatus +
@@ -828,7 +822,6 @@ public class EventList extends Application {
 						"on up.u_id = u.id " +
 						"where u.ident = ? " +
 						"and ue.s_id = ? " +
-						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
 						"and up.p_id = ? " +
 						subscriberSelect +
 						selectStatus +
@@ -857,7 +850,6 @@ public class EventList extends Application {
 						"on up.u_id = u.id " +
 						"where u.ident = ? " +
 						"and ue.s_id = ? " +
-						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
 						"and up.p_id = ? " +
 						subscriberSelect +
 						selectStatus +
@@ -885,7 +877,6 @@ public class EventList extends Application {
 						"on up.u_id = u.id " +
 						"where u.ident = ? " +
 						"and ue.s_id = ? " +
-						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
 						"and up.p_id = ? " +
 						subscriberSelect +
 						selectStatus +
@@ -910,28 +901,11 @@ public class EventList extends Application {
 				 }
 				 
 				 if(sName == null || sName.equals("_all")) {
-					 // Convert survey id to display name
-					 int sId = 0;
-					 try {
-						 sId = Integer.valueOf(key);
-					 } catch(Exception e) {
-						 
-					 }
-					 if(sId > 0) {
-						 String nm = surveyNames.get(sId);
-						if(nm == null) {
-							nm = GeneralUtilityMethods.getSurveyName(sd, sId);
-							if(nm == null) { // erased survey
-								nm = resultSet.getString("survey_name");
-							}
-						}
-						if(nm == null) {
-							key = "unknown";
-						} else {
-							key = nm;
-						}
-					 } else {
-						 key = "erased";
+					 // Convert survey ident to display name
+					 String sIdent = key;
+					 String nm = GeneralUtilityMethods.getSurveyNameFromIdent(sd, sIdent);
+					 if(nm != null) {
+						 key = nm;
 					 }
 				 }
 				 StatusTotal st = sList.get(key + dest);
@@ -1117,7 +1091,6 @@ public class EventList extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			//try {if (pstmtSurvey != null) {pstmtSurvey.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-EventList", sd);
 		}
