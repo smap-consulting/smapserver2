@@ -146,10 +146,6 @@ public class AllAssignments extends Application {
 
 		Connection cResults = null; 
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtInsert = null;
-		PreparedStatement pstmtAssign = null;
-		PreparedStatement pstmtRoles = null;
-		PreparedStatement pstmtRoles2 = null;
 		PreparedStatement pstmtCheckGeom = null;
 		PreparedStatement pstmtTaskGroup = null;
 		PreparedStatement pstmtGetSurveyIdent = null;
@@ -235,10 +231,6 @@ public class AllAssignments extends Application {
 				String sql = null;
 				ResultSet resultSet = null;
 				TaskManager tm = new TaskManager(localisation);
-				pstmtInsert = tm.getInsertTaskStatement(sd);
-				pstmtAssign = tm.getInsertAssignmentStatement(sd);
-				pstmtRoles = tm.getRoles(sd);
-				pstmtRoles2 = tm.getRoles2(sd);				
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
 				pstmtCheckGeom = cResults.prepareStatement(checkGeomSQL);
@@ -608,7 +600,6 @@ public class AllAssignments extends Application {
 					mm.userChange(sd, userIdent);
 				}
 			}
-			sd.commit();
 
 			log.info("Returning task group id:" + taskGroupId);
 			response = Response.ok().entity("{\"tg_id\": " + taskGroupId + "}").build();
@@ -630,10 +621,6 @@ public class AllAssignments extends Application {
 		} finally {
 
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
-			if(pstmtInsert != null) try {	pstmtInsert.close(); } catch(SQLException e) {};
-			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
-			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
-			if(pstmtRoles2 != null) try {	pstmtRoles2.close(); } catch(SQLException e) {};
 			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 			if(pstmtGetSurveyIdent != null) try {	pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};

@@ -617,9 +617,7 @@ public class TaskManager {
 
 		try {
 
-			pstmtAssign = getInsertAssignmentStatement(sd);
-			pstmtRoles = getRoles(sd);
-			pstmtRoles2 = getRoles2(sd);
+			
 			
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
@@ -699,10 +697,23 @@ public class TaskManager {
 			ResultSet rsKeys = pstmt.getGeneratedKeys();
 			if(rsKeys.next()) {
 				int taskId = rsKeys.getInt(1);
-				applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, 
+				
+				pstmtAssign = getInsertAssignmentStatement(sd, as.emails == null);
+				pstmtRoles = getRoles(sd);
+				pstmtRoles2 = getRoles2(sd);
+				
+				applyAllAssignments(
+						sd, 
+						pstmtRoles, 
+						pstmtRoles2, 
+						pstmtAssign, 
+						taskId,
+						userId, 
 						roleId, 
 						fixedRoleId,
-						as.emails);
+						as.emails,
+						oId,
+						pId);
 			}
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
@@ -994,8 +1005,8 @@ public class TaskManager {
 					updateAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId, tf.properties.a_id);
 				} else {
 					// Insert user
-					pstmtAssign = getInsertAssignmentStatement(sd);
-					insertAssignment(pstmtAssign, tf.properties.assignee, null, "accepted", taskId);
+					pstmtAssign = getInsertAssignmentStatement(sd, true);
+					insertAssignment(pstmtAssign, tf.properties.assignee, null, "accepted", taskId, null);
 				}
 				
 				// Create a notification to alert the new user of the change to the task details
@@ -1560,17 +1571,27 @@ public class TaskManager {
 	/*
 	 * Get the preparedStatement
 	 */
-	public PreparedStatement getInsertAssignmentStatement(Connection sd) throws SQLException {
+	public PreparedStatement getInsertAssignmentStatement(Connection sd, boolean internal) throws SQLException {
 
-		String sql = "insert into assignments ("
+		String sql1 = "insert into assignments ("
 				+ "assignee, "
 				+ "assignee_name,"
 				+ "email,"
 				+ "status, "
 				+ "task_id,"
+				+ "temp_user_id,"
 				+ "assigned_date) "
-				+ "values (?, (select name from users where id = ?), ?, ?, ?, now())";
+				+ "values (?, ";
+		String sql2_internal = "(select name from users where id = ?)";
+		String sql2_email = "?";
+		String sql3 = ", ?, ?, ?, ?, now())";
 		
+		String sql = null;
+		if(internal) {
+			sql = sql1 + sql2_internal +sql3;
+		} else {
+			sql = sql1 + sql2_email +sql3;
+		}
 		return sd.prepareStatement(sql);
 	}
 	
@@ -1582,12 +1603,19 @@ public class TaskManager {
 			int assignee,
 			String email,
 			String status,
-			int task_id) throws SQLException {
+			int task_id,
+			String tempUserId) throws SQLException {
 		
 		pstmt.setInt(1, assignee);
-		pstmt.setInt(2,  assignee);
-		pstmt.setString(3,  status);			// default the status to accepted for new assignments
-		pstmt.setInt(4,  task_id);
+		if(email != null) {
+			pstmt.setString(2, email);
+		} else {
+			pstmt.setInt(2,  assignee);
+		}
+		pstmt.setString(3,  email);	
+		pstmt.setString(4,  status);			// default the status to accepted for new assignments
+		pstmt.setInt(5,  task_id);
+		pstmt.setString(6, tempUserId);
 
 		log.info("Create a new assignment: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1648,13 +1676,15 @@ public class TaskManager {
 			int userId, 
 			int roleId,
 			int fixedRoleId,
-			String emails) throws SQLException {
+			String emails,
+			int oId,
+			int pId) throws Exception {
 
 		String status = "accepted";
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(pstmtAssign, userId, null, status, taskId);
+			insertAssignment(pstmtAssign, userId, null, status, taskId, null);
 			
 			// Notify the user of their new assignment
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -1679,7 +1709,7 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(pstmtAssign, rsRoles.getInt(1), null, status, taskId);
+				insertAssignment(pstmtAssign, rsRoles.getInt(1), null, status, taskId, null);
 				
 				// Notify the user of their new assignment
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
@@ -1690,7 +1720,20 @@ public class TaskManager {
 				log.info("No matching users found");
 			}
 		} else if(emails != null && emails.length() > 0) {
-			
+			String [] emailArray = emails.split(",");
+			status = "unsent";
+			for(String email : emailArray) {
+				// Create a temporary user to authorise completion of the email task
+				String tempUserId = GeneralUtilityMethods.createTempUser(
+						sd,
+						oId,
+						email, 
+						email, 
+						pId,
+						null);
+				// Create the assignment
+				insertAssignment(pstmtAssign, 0, email, status, taskId, tempUserId);
+			}
 		} else {
 			log.info("No matching assignments found");
 		}
