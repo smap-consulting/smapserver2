@@ -76,17 +76,15 @@ public class TaskManager {
 			"deleted"
 			};
 	
-	private class TaskInstanceData {
-		int prikey = 0;						// data from submission
-		String ident = null;					// Identifier of person or role to be assigned
-		String location = null;				// data from submission
-		String address = null;				// data from submission
-		String locationTrigger = null;		// data from task set up
-		String instanceName = null;			// data from task look up
-		Timestamp taskStart = null;			// Start time
+	public class TaskInstanceData {
+		public int prikey = 0;						// data from submission
+		public String ident = null;					// Identifier, from results, of person or role to be assigned
+		public String location = null;				// data from submission
+		public String address = null;				// data from submission
+		public String locationTrigger = null;		// data from task set up
+		public String instanceName = null;			// data from task look up
+		public Timestamp taskStart = null;			// Start time
 	}
-	
-
 
 	public TaskManager(ResourceBundle l) {
 		localisation = l;
@@ -250,7 +248,6 @@ public class TaskManager {
 				+ "t.initial_data as initial_data,"
 				+ "t.address as address,"
 				+ "t.guidance as guidance,"
-				+ "t.email as email,"
 				+ "t.repeat as repeat,"
 				+ "t.repeat_count as repeat_count,"
 				+ "t.url as url,"
@@ -355,7 +352,6 @@ public class TaskManager {
 				tf.properties.initial_data = rs.getString("initial_data");
 				tf.properties.address = rs.getString("address");
 				tf.properties.guidance = rs.getString("guidance");
-				tf.properties.email = rs.getString("email");
 				tf.properties.repeat = rs.getBoolean("repeat");
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
@@ -688,6 +684,8 @@ public class TaskManager {
 			log.info("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
 			int fixedRoleId = as.fixed_role_id;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, target_s_id);
+			
+			// Assign to people dependent on data from a form
 			if(tid.ident != null) {
 			
 				log.info("Assign Ident: " + tid.ident);
@@ -1341,21 +1339,6 @@ public class TaskManager {
 			while (rs.next()) {
 				mm.userChange(sd, rs.getString(1));
 			}			
-
-			// Delete the task			
-			/*
-			 * Don't do this as the task has probably just been completed but the data it used as reference was replaced
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, updateId);		
-			log.info("Delete task: " + pstmt.toString());
-			int count = pstmt.executeUpdate();
-			if(count > 0) {
-				String msg = localisation.getString("lm_del_task_for_update_id");
-				msg = msg.replaceFirst("%s1", String.valueOf(count));
-				msg = msg.replaceFirst("%s2", updateId);
-				lm.writeLog(sd, sId, user, LogManager.DELETE, msg);
-			}
-			*/
 			
 			// Delete the assignments
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
