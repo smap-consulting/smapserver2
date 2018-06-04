@@ -135,10 +135,10 @@ public class EventList extends Application {
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		a.isAuthorised(sd, user);
 		if(projectId != 0) {
-			a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+			a.isValidProject(sd, request.getRemoteUser(), projectId);
 		}
 		// End Authorisation
 		
@@ -193,7 +193,7 @@ public class EventList extends Application {
 						projSelect +
 						filter +
 						" order by ue.ue_id desc;";
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, user);
 				int argIdx = 2;
 				if(projectId != 0) {
@@ -222,7 +222,7 @@ public class EventList extends Application {
 						subscriberSelect +
 						filter +
 						" ORDER BY ue.ue_id desc;";
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, user);
 				pstmt.setInt(2, Integer.parseInt(sName));
 				pstmt.setInt(3, projectId);
@@ -296,7 +296,7 @@ public class EventList extends Application {
 					int sId = resultSet.getInt("s_id");
 					String nm = surveyNames.get(sId);
 					if(nm == null) {
-						nm = GeneralUtilityMethods.getSurveyName(connectionSD, sId);
+						nm = GeneralUtilityMethods.getSurveyName(sd, sId);
 						if(nm == null) { // erased survey
 							nm = resultSet.getString("survey_name");
 						}
@@ -353,7 +353,7 @@ public class EventList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-EventList", sd);
 		}
 		
 		return jo.toString();
@@ -375,8 +375,8 @@ public class EventList extends Application {
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		a.isAuthorised(sd, user);
 		// End Authorisation
 		
 		if(rec_limit == 0) {
@@ -420,7 +420,7 @@ public class EventList extends Application {
 					projSurveySelect +
 					" ORDER BY n.id desc;";
 		
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
 			int argIdx = 2;
 			if(start_key > 0) {
@@ -497,7 +497,7 @@ public class EventList extends Application {
 			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-EventList", sd);
 		}
 		
 		return jo.toString();
@@ -528,8 +528,8 @@ public class EventList extends Application {
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		a.isAuthorised(sd, user);
 		// End Authorisation
 		
 		HashMap<String,StatusTotal> sList = new HashMap<String,StatusTotal> ();
@@ -544,10 +544,10 @@ public class EventList extends Application {
 		
 		try {
 			if(!hideSuccess) {
-				addNotificationTotals("success", user, pstmt, connectionSD,	sList, pId, sId); 
+				addNotificationTotals("success", user, pstmt, sd,	sList, pId, sId); 
 			}
 			if(!hideErrors) {
-				addNotificationTotals("error", user, pstmt, connectionSD, sList, pId, sId); 
+				addNotificationTotals("error", user, pstmt, sd, sList, pId, sId); 
 			}
 			
 			
@@ -586,7 +586,7 @@ public class EventList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-EventList", sd);
 		}
 		
 		return jo.toString();
@@ -610,36 +610,34 @@ public class EventList extends Application {
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		a.isAuthorised(sd, user);
 		if(projectId != 0) {	// 0 is not a valid project but represents all projects
-			a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+			a.isValidProject(sd, request.getRemoteUser(), projectId);
 		}
 		// End Authorisation
 		
 		HashMap<String,StatusTotal> sList = new HashMap<String,StatusTotal> ();
 		JSONObject jo = new JSONObject();
-		
-		PreparedStatement pstmt = null;
 
 		try {
 			if(!hideSuccess) {
-				addStatusTotals("success", sName, projectId, user, pstmt, connectionSD,	groupby, sList, is_forward); 
+				addStatusTotals("success", sName, projectId, user, sd,	groupby, sList, is_forward); 
 			}
 			if(!hideErrors) {
-				addStatusTotals("errors", sName, projectId, user, pstmt, connectionSD,	groupby, sList, is_forward); 
+				addStatusTotals("errors", sName, projectId, user, sd,	groupby, sList, is_forward); 
 			}
 			if(!hideDuplicates) {
-				addStatusTotals("duplicates", sName, projectId, user, pstmt, connectionSD,	groupby, sList, is_forward); 
+				addStatusTotals("duplicates", sName, projectId, user, sd,	groupby, sList, is_forward); 
 			}
 			if(!hideMerged) {
-				addStatusTotals("merged", sName, projectId, user, pstmt, connectionSD,	groupby, sList, is_forward); 
+				addStatusTotals("merged", sName, projectId, user, sd,	groupby, sList, is_forward); 
 			}
 			if(!hideNotLoaded) {
-				addStatusTotals("not_loaded", sName, projectId, user, pstmt, connectionSD, groupby, sList, is_forward); 
+				addStatusTotals("not_loaded", sName, projectId, user, sd, groupby, sList, is_forward); 
 			}
 			if(!hideUploadErrors) {
-				addStatusTotals("upload_errors", sName, projectId, user, pstmt, connectionSD, groupby, sList, is_forward); 
+				addStatusTotals("upload_errors", sName, projectId, user, sd, groupby, sList, is_forward); 
 			}
 			
 			
@@ -699,10 +697,8 @@ public class EventList extends Application {
 		} catch (JSONException e) {
 			log.log(Level.SEVERE, "JSON Exception", e);
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+
+			SDDataSource.closeConnection("surveyKPI-EventList", sd);
 		}
 		
 		return jo.toString();
@@ -710,261 +706,265 @@ public class EventList extends Application {
 	
 	private void addStatusTotals(String status, String sName, int projectId,
 			String user,
-			PreparedStatement pstmt, 
-			Connection connectionSD,
+			Connection sd,
 			String groupby,
 			HashMap<String,StatusTotal> sList,
 			boolean isForward) throws SQLException {
 		
-		HashMap<Integer, String> surveyNames = new HashMap<Integer, String> ();
-		String selectStatus = null;
-		if(status.equals("success")) {
-			selectStatus = "AND se.status = 'success' ";
-		} else if(status.equals("errors")) {
-			selectStatus = "AND (coalesce(se.status,'') = 'error' AND coalesce(se.reason,'') not like 'Duplicate survey:%') ";
-		} else if(status.equals("not_loaded")) {
-			selectStatus = "AND ue.status != 'error' and se.status is null ";
-		} else if(status.equals("duplicates")) {
-			selectStatus = "AND se.status = 'error' AND se.reason like 'Duplicate survey:%' ";
-		} else if(status.equals("merged")) {
-			selectStatus = "AND se.status = 'merged' ";
-		} else if(status.equals("upload_errors")) {
-			selectStatus = "AND ue.status = 'error' ";
-		}
+		PreparedStatement pstmt = null;
 		
-		String subscriberSelect = "";
-		if(!isForward) {
-			subscriberSelect = "AND (se.subscriber = 'results_db' or se.subscriber is null) ";
-		} else {
-			subscriberSelect = "AND se.subscriber != 'results_db' and se.subscriber is not null ";
-		}
-		
-		String sql = null;
-		if(sName == null || sName.equals("_all")) {
-			String projSelect = "";
-			if(projectId != 0) {	// set to 0 to get all available projects
-				projSelect = " AND up.p_id = ? ";
+		try {
+			HashMap<Integer, String> surveyNames = new HashMap<Integer, String> ();
+			String selectStatus = null;
+			if(status.equals("success")) {
+				selectStatus = "AND se.status = 'success' ";
+			} else if(status.equals("errors")) {
+				selectStatus = "AND (coalesce(se.status,'') = 'error' AND coalesce(se.reason,'') not like 'Duplicate survey:%') ";
+			} else if(status.equals("not_loaded")) {
+				selectStatus = "AND ue.status != 'error' and se.status is null ";
+			} else if(status.equals("duplicates")) {
+				selectStatus = "AND se.status = 'error' AND se.reason like 'Duplicate survey:%' ";
+			} else if(status.equals("merged")) {
+				selectStatus = "AND se.status = 'merged' ";
+			} else if(status.equals("upload_errors")) {
+				selectStatus = "AND ue.status = 'error' ";
 			}
-			String aggregate;
-			String getDest;
-			if(isForward) {
-				aggregate = "ue.s_id, se.dest";
-				getDest = ",se.dest ";
+			
+			String subscriberSelect = "";
+			if(!isForward) {
+				subscriberSelect = "AND (se.subscriber = 'results_db' or se.subscriber is null) ";
 			} else {
-				aggregate = "ue.s_id";
-				getDest = "";
+				subscriberSelect = "AND se.subscriber != 'results_db' and se.subscriber is not null ";
 			}
 			
-			sql = "SELECT count(*), ue.s_id " +
-					getDest +
-					"FROM upload_event ue " +
-					"left outer join subscriber_event se " +
-					"on ue.ue_id = se.ue_id " +
-					"inner join user_project up " +
-					"on ue.p_id = up.p_id " +
-					"inner join users u " +
-					"on up.u_id = u.id " +
-					"where u.ident = ? " +
-					"and ue.s_id in (select s_id from survey where deleted = 'false') " +
-					subscriberSelect +
-					selectStatus +
-					projSelect +
-					"GROUP BY " + aggregate +
-					" ORDER BY " + aggregate + " desc;";
-
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, user);
-			if(projectId != 0) {
-				pstmt.setInt(2, projectId);
+			String sql = null;
+			if(sName == null || sName.equals("_all")) {
+				String projSelect = "";
+				if(projectId != 0) {	// set to 0 to get all available projects
+					projSelect = " AND up.p_id = ? ";
+				}
+				String aggregate;
+				String getDest;
+				if(isForward) {
+					aggregate = "ue.s_id, se.dest";
+					getDest = ",se.dest ";
+				} else {
+					aggregate = "ue.s_id";
+					getDest = "";
+				}
+				
+				sql = "SELECT count(*), ue.s_id " +
+						getDest +
+						"FROM upload_event ue " +
+						"left outer join subscriber_event se " +
+						"on ue.ue_id = se.ue_id " +
+						"inner join user_project up " +
+						"on ue.p_id = up.p_id " +
+						"inner join users u " +
+						"on up.u_id = u.id " +
+						"where u.ident = ? " +
+						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
+						subscriberSelect +
+						selectStatus +
+						projSelect +
+						"GROUP BY " + aggregate +
+						" ORDER BY " + aggregate + " desc;";
+	
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				if(projectId != 0) {
+					pstmt.setInt(2, projectId);
+				}
+			} else if(groupby == null || groupby.equals("device")) {
+				
+				String aggregate;
+				String getDest;
+				if(isForward) {
+					aggregate = "ue.imei, se.dest";
+					getDest = ",se.dest ";
+				} else {
+					aggregate = "ue.imei";
+					getDest = "";
+				}
+				
+				sql = "SELECT count(*), ue.imei " +
+						getDest +
+						"FROM upload_event ue " +
+						"left outer join subscriber_event se " +
+						"on ue.ue_id = se.ue_id " +
+						"inner join user_project up " +
+						"on ue.p_id = up.p_id " +
+						"inner join users u " +
+						"on up.u_id = u.id " +
+						"where u.ident = ? " +
+						"and ue.s_id = ? " +
+						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
+						"and up.p_id = ? " +
+						subscriberSelect +
+						selectStatus +
+						" GROUP BY " + aggregate +
+						" ORDER BY " + aggregate + " ASC;";
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				pstmt.setInt(2, Integer.parseInt(sName));
+				pstmt.setInt(3, projectId);
+			} else if(groupby.equals("month")) {
+				
+				String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time)";
+				
+				if(isForward) {
+	
+					aggregate += ",se.dest ";
+				} 
+				
+				sql = "SELECT count(*), " + aggregate +
+						"FROM upload_event ue " +
+						"left outer join subscriber_event se " +
+						"on ue.ue_id = se.ue_id " +
+						"inner join user_project up " +
+						"on ue.p_id = up.p_id " +
+						"inner join users u " +
+						"on up.u_id = u.id " +
+						"where u.ident = ? " +
+						"and ue.s_id = ? " +
+						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
+						"and up.p_id = ? " +
+						subscriberSelect +
+						selectStatus +
+						" GROUP BY " + aggregate +
+						" ORDER BY " + aggregate + " desc;";
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				pstmt.setInt(2, Integer.parseInt(sName));
+				pstmt.setInt(3, projectId);
+			} else if(groupby.equals("week")) {
+				
+	
+				String aggregate = "extract(year from upload_time) || '-' || extract(week from upload_time)";
+				if(isForward) {			
+					aggregate += ",se.dest ";
+				} 
+				
+				sql = "SELECT count(*), " + aggregate +
+						"FROM upload_event ue " +
+						"left outer join subscriber_event se " +
+						"on ue.ue_id = se.ue_id " +
+						"inner join user_project up " +
+						"on ue.p_id = up.p_id " +
+						"inner join users u " +
+						"on up.u_id = u.id " +
+						"where u.ident = ? " +
+						"and ue.s_id = ? " +
+						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
+						"and up.p_id = ? " +
+						subscriberSelect +
+						selectStatus +
+						" GROUP BY " + aggregate +
+						" ORDER BY " + aggregate + " desc;";
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				pstmt.setInt(2, Integer.parseInt(sName));
+				pstmt.setInt(3, projectId);
+			} else if(groupby.equals("day")) {
+				
+				String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time) || '-' || extract(day from upload_time)";	
+				if(isForward) {
+					aggregate += ",se.dest ";
+				}
+				
+				sql = "SELECT count(*), " + aggregate +
+						"FROM upload_event ue " +
+						"left outer join subscriber_event se " +
+						"on ue.ue_id = se.ue_id " +
+						"inner join user_project up " +
+						"on ue.p_id = up.p_id " +
+						"inner join users u " +
+						"on up.u_id = u.id " +
+						"where u.ident = ? " +
+						"and ue.s_id = ? " +
+						"and ue.s_id in (select s_id from survey where deleted = 'false') " +
+						"and up.p_id = ? " +
+						subscriberSelect +
+						selectStatus +
+						" GROUP BY " + aggregate +
+						" ORDER BY " + aggregate + " desc;";
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				pstmt.setInt(2, Integer.parseInt(sName));
+				pstmt.setInt(3, projectId);
 			}
-		} else if(groupby == null || groupby.equals("device")) {
-			
-			String aggregate;
-			String getDest;
-			if(isForward) {
-				aggregate = "ue.imei, se.dest";
-				getDest = ",se.dest ";
-			} else {
-				aggregate = "ue.imei";
-				getDest = "";
-			}
-			
-			sql = "SELECT count(*), ue.imei " +
-					getDest +
-					"FROM upload_event ue " +
-					"left outer join subscriber_event se " +
-					"on ue.ue_id = se.ue_id " +
-					"inner join user_project up " +
-					"on ue.p_id = up.p_id " +
-					"inner join users u " +
-					"on up.u_id = u.id " +
-					"where u.ident = ? " +
-					"and ue.s_id = ? " +
-					"and ue.s_id in (select s_id from survey where deleted = 'false') " +
-					"and up.p_id = ? " +
-					subscriberSelect +
-					selectStatus +
-					" GROUP BY " + aggregate +
-					" ORDER BY " + aggregate + " ASC;";
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, user);
-			pstmt.setInt(2, Integer.parseInt(sName));
-			pstmt.setInt(3, projectId);
-		} else if(groupby.equals("month")) {
-			
-			String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time)";
-			
-			if(isForward) {
-
-				aggregate += ",se.dest ";
-			} 
-			
-			sql = "SELECT count(*), " + aggregate +
-					"FROM upload_event ue " +
-					"left outer join subscriber_event se " +
-					"on ue.ue_id = se.ue_id " +
-					"inner join user_project up " +
-					"on ue.p_id = up.p_id " +
-					"inner join users u " +
-					"on up.u_id = u.id " +
-					"where u.ident = ? " +
-					"and ue.s_id = ? " +
-					"and ue.s_id in (select s_id from survey where deleted = 'false') " +
-					"and up.p_id = ? " +
-					subscriberSelect +
-					selectStatus +
-					" GROUP BY " + aggregate +
-					" ORDER BY " + aggregate + " desc;";
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, user);
-			pstmt.setInt(2, Integer.parseInt(sName));
-			pstmt.setInt(3, projectId);
-		} else if(groupby.equals("week")) {
-			
-
-			String aggregate = "extract(year from upload_time) || '-' || extract(week from upload_time)";
-			if(isForward) {			
-				aggregate += ",se.dest ";
-			} 
-			
-			sql = "SELECT count(*), " + aggregate +
-					"FROM upload_event ue " +
-					"left outer join subscriber_event se " +
-					"on ue.ue_id = se.ue_id " +
-					"inner join user_project up " +
-					"on ue.p_id = up.p_id " +
-					"inner join users u " +
-					"on up.u_id = u.id " +
-					"where u.ident = ? " +
-					"and ue.s_id = ? " +
-					"and ue.s_id in (select s_id from survey where deleted = 'false') " +
-					"and up.p_id = ? " +
-					subscriberSelect +
-					selectStatus +
-					" GROUP BY " + aggregate +
-					" ORDER BY " + aggregate + " desc;";
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, user);
-			pstmt.setInt(2, Integer.parseInt(sName));
-			pstmt.setInt(3, projectId);
-		} else if(groupby.equals("day")) {
-			
-			String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time) || '-' || extract(day from upload_time)";	
-			if(isForward) {
-				aggregate += ",se.dest ";
-			}
-			
-			sql = "SELECT count(*), " + aggregate +
-					"FROM upload_event ue " +
-					"left outer join subscriber_event se " +
-					"on ue.ue_id = se.ue_id " +
-					"inner join user_project up " +
-					"on ue.p_id = up.p_id " +
-					"inner join users u " +
-					"on up.u_id = u.id " +
-					"where u.ident = ? " +
-					"and ue.s_id = ? " +
-					"and ue.s_id in (select s_id from survey where deleted = 'false') " +
-					"and up.p_id = ? " +
-					subscriberSelect +
-					selectStatus +
-					" GROUP BY " + aggregate +
-					" ORDER BY " + aggregate + " desc;";
-			
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setString(1, user);
-			pstmt.setInt(2, Integer.parseInt(sName));
-			pstmt.setInt(3, projectId);
-		}
-
-		log.info("Get totals for events: " + pstmt.toString());
-
-		 ResultSet resultSet = pstmt.executeQuery();
-		 while (resultSet.next()) {
-			 int count = resultSet.getInt(1);
-			 String key = resultSet.getString(2);
-			 String dest = "";
-			 if(isForward) {
-				 dest = resultSet.getString(3);
-			 }
-			 
-			 if(sName == null || sName.equals("_all")) {
-				 // Convert survey id to display name
-				 int sId = 0;
-				 try {
-					 sId = Integer.valueOf(key);
-				 } catch(Exception e) {
-					 
+	
+			log.info("Get totals for events: " + pstmt.toString());
+	
+			 ResultSet resultSet = pstmt.executeQuery();
+			 while (resultSet.next()) {
+				 int count = resultSet.getInt(1);
+				 String key = resultSet.getString(2);
+				 String dest = "";
+				 if(isForward) {
+					 dest = resultSet.getString(3);
 				 }
-				 if(sId > 0) {
-					 String nm = surveyNames.get(sId);
-					if(nm == null) {
-						nm = GeneralUtilityMethods.getSurveyName(connectionSD, sId);
-						if(nm == null) { // erased survey
-							nm = resultSet.getString("survey_name");
+				 
+				 if(sName == null || sName.equals("_all")) {
+					 // Convert survey id to display name
+					 int sId = 0;
+					 try {
+						 sId = Integer.valueOf(key);
+					 } catch(Exception e) {
+						 
+					 }
+					 if(sId > 0) {
+						 String nm = surveyNames.get(sId);
+						if(nm == null) {
+							nm = GeneralUtilityMethods.getSurveyName(sd, sId);
+							if(nm == null) { // erased survey
+								nm = resultSet.getString("survey_name");
+							}
 						}
-					}
-					if(nm == null) {
-						key = "unknown";
-					} else {
-						key = nm;
-					}
-				 } else {
-					 key = "erased";
+						if(nm == null) {
+							key = "unknown";
+						} else {
+							key = nm;
+						}
+					 } else {
+						 key = "erased";
+					 }
+				 }
+				 StatusTotal st = sList.get(key + dest);
+				
+				 if(st == null) {
+					 st = new StatusTotal();
+					 sList.put(key + dest, st);
+					 st.key = key;
+					 st.dest = dest;
+				 }
+				 if(status.equals("success")) {
+					 st.success = count;
+				 } else if(status.equals("errors")) {
+					 st.errors = count;
+				 } else if(status.equals("duplicates")) {
+					 st.duplicates = count;
+				 } else if(status.equals("merged")) {
+					 st.merged = count;
+				 } else if(status.equals("not_loaded")) {
+					 st.notLoaded = count;
+				 } else if(status.equals("upload_errors")) {
+					 st.uploadErrors = count;
 				 }
 			 }
-			 StatusTotal st = sList.get(key + dest);
-			
-			 if(st == null) {
-				 st = new StatusTotal();
-				 sList.put(key + dest, st);
-				 st.key = key;
-				 st.dest = dest;
-			 }
-			 if(status.equals("success")) {
-				 st.success = count;
-			 } else if(status.equals("errors")) {
-				 st.errors = count;
-			 } else if(status.equals("duplicates")) {
-				 st.duplicates = count;
-			 } else if(status.equals("merged")) {
-				 st.merged = count;
-			 } else if(status.equals("not_loaded")) {
-				 st.notLoaded = count;
-			 } else if(status.equals("upload_errors")) {
-				 st.uploadErrors = count;
-			 }
-		 }
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
 	}
 	
 	private void addNotificationTotals(String status, 
 			String user,
 			PreparedStatement pstmt, 
-			Connection connectionSD,
+			Connection sd,
 			HashMap<String,StatusTotal> sList,
 			int pId,
 			int sId) throws SQLException {
@@ -987,7 +987,7 @@ public class EventList extends Application {
 				";";
 
 		try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		pstmt = connectionSD.prepareStatement(sql);
+		pstmt = sd.prepareStatement(sql);
 		pstmt.setString(1, user);			
 		pstmt.setString(2, status);
 		if(sId > 0) {
@@ -1033,10 +1033,10 @@ public class EventList extends Application {
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		a.isAuthorised(sd, user);
 		if(projectId != 0) {
-			a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+			a.isValidProject(sd, request.getRemoteUser(), projectId);
 		}
 		// End Authorisation
 		
@@ -1076,7 +1076,7 @@ public class EventList extends Application {
 			
 			}
 			
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			if(sId == -1) {
 				pstmt.setInt(1, projectId);
 			} else {
@@ -1119,7 +1119,7 @@ public class EventList extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			//try {if (pstmtSurvey != null) {pstmtSurvey.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-EventList", sd);
 		}
 		
 		return ja.toString();
