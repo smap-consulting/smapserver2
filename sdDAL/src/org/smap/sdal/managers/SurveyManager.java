@@ -888,7 +888,8 @@ public class SurveyManager {
 				q.seq = rsGetQuestions.getInt(9);
 				q.defaultanswer = rsGetQuestions.getString(10);
 				q.appearance = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(11), true);
-				q.parameters = rsGetQuestions.getString(12);
+				q.paramArray = GeneralUtilityMethods.convertParametersToArray(rsGetQuestions.getString(12));
+				q.parameters = rsGetQuestions.getString(12);		// For online editor - deprecate
 				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(13), true);
 				q.constraint_msg = rsGetQuestions.getString(14);
 				q.required_msg = rsGetQuestions.getString(15);
@@ -3031,7 +3032,8 @@ public class SurveyManager {
 				q.seq = rsGetQuestions.getInt(8);
 				q.defaultanswer = rsGetQuestions.getString(9);
 				q.appearance = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(10), true);
-				q.parameters = rsGetQuestions.getString(11);
+				q.paramArray = GeneralUtilityMethods.convertParametersToArray(rsGetQuestions.getString(11));
+				q.parameters = rsGetQuestions.getString(11);		// For online editor - deprecate
 
 				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(12), true);
 				q.constraint_msg = rsGetQuestions.getString(13);

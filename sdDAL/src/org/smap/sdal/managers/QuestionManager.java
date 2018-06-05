@@ -294,7 +294,7 @@ public class QuestionManager {
 				}
 				pstmtInsertQuestion.setString(11, q.defaultanswer );
 				pstmtInsertQuestion.setString(12, q.appearance);
-				pstmtInsertQuestion.setString(13, q.parameters);
+				pstmtInsertQuestion.setString(13, GeneralUtilityMethods.convertParametersToString(q.paramArray));
 				pstmtInsertQuestion.setBoolean(14, q.visible);
 				pstmtInsertQuestion.setBoolean(15, readonly);
 				pstmtInsertQuestion.setString(16, q.relevant);

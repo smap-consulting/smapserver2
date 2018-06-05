@@ -159,7 +159,7 @@ public class JdbcQuestionManager {
 		pstmt.setString(18, q.getConstraintMsg()); // ok
 		pstmt.setString(19, q.getRequiredMsg());
 		pstmt.setString(20, q.getAppearance(false, null));
-		pstmt.setString(21, q.getParameters());
+		pstmt.setString(21, GeneralUtilityMethods.convertParametersToString(q.getParameters()));
 		
 		String nodeset = null;
 		String nodeset_value = null;

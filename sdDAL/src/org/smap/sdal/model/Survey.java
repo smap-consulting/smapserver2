@@ -707,7 +707,7 @@ public class Survey {
 			pstmt.setString(16, q.constraint_msg);
 			pstmt.setString(17, q.required_msg);
 			pstmt.setString(18, q.appearance);
-			pstmt.setString(19, q.parameters);
+			pstmt.setString(19, GeneralUtilityMethods.convertParametersToString(q.paramArray));
 			
 			String nodeset = null;
 			String nodeset_value = null;

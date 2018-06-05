@@ -33,6 +33,7 @@ import java.util.Map;
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
@@ -213,7 +214,7 @@ public class XLSFormManager {
 				value = q.appearance;		
 
 			} else if(type == COL_PARAMETERS) {				
-				value = q.parameters;		
+				value = GeneralUtilityMethods.convertParametersToString(q.paramArray);		
 
 			} else if(type == COL_AUTOPLAY) {	
 				if(q.autoplay != null && q.autoplay.equals("none")) {

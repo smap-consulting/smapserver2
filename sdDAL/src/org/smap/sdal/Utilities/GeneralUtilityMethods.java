@@ -6022,6 +6022,52 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Convert Parameters to Key Value array
+	 */
+	public static ArrayList<KeyValueSimp> convertParametersToArray(String in) {
+		ArrayList<KeyValueSimp> out = new ArrayList<> ();
+
+		if(in != null) {
+			String params = removeSurroundingWhiteSpace(in, '=');
+
+			String[] pArray = params.split(";");
+			if(pArray.length == 1) {
+				pArray = params.split(" ");		// Temporary fallback to splitting on white space
+			}
+			for(int i = 0; i < pArray.length; i++) {
+				String[] px = pArray[i].split("=");
+				if(px.length == 2) {
+					out.add(new KeyValueSimp(px[0].trim(), px[1].trim()));
+				}
+			}
+		}
+		
+		return out;
+	}
+	
+	/*
+	 * Convert Parameters to a String
+	 */
+	public static String convertParametersToString(ArrayList<KeyValueSimp> in) {
+		
+		String params = null;
+		StringBuffer out = new StringBuffer();;
+		if(in != null && in.size() > 0) {
+			
+			int idx = 0;
+			for(KeyValueSimp kv : in) {
+				if(idx++ > 0) {
+					out.append(";");
+				}
+				out.append(kv.k).append("=").append(kv.v);
+			}
+			params = out.toString();
+		}
+		
+		return params;
+	}
+	
+	/*
 	 * Remove any white space surrounding a character
 	 */
 	public static String removeSurroundingWhiteSpace(String in, char c) {
@@ -6518,18 +6564,14 @@ public class GeneralUtilityMethods {
 		return group;
 	}
 
-	public static String getSurveyParameter(String param, String params) {
+	public static String getSurveyParameter(String param, ArrayList<KeyValueSimp> params) {
+		
 		String value = null;
-		params = removeSurroundingWhiteSpace(params, '=');
-		if (params != null && params.trim().length() > 0) {
-			String[] pArray = params.split(" ");
-			for(int i = 0; i < pArray.length; i++) {
-				String[] px = pArray[i].split("=");
-				if(px.length == 2) {
-					if(px[0].trim().equals(param)) {
-						value = px[1].trim();
-						break;
-					} 
+		if (params != null) {
+			for(KeyValueSimp kv : params) {
+				if(kv.k.equals(param)) {
+					value = kv.v;
+					break;
 				}	
 			}
 		}

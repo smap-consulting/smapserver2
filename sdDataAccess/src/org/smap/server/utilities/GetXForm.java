@@ -894,30 +894,10 @@ public class GetXForm {
 		}
 
 		// Add Body Parameters
-		String parameters = q.getParameters();
-		if (parameters != null && parameters.trim().length() > 0) {
-			String[] pArray = parameters.split(" ");
-			for(int i = 0; i < pArray.length; i++) {
-				String[] px = pArray[i].split("=");
-				if(px.length == 2) {
-					String px0 = px[0].trim();
-					String px1 = px[1].trim();
-					if(px0.equals("start")) {
-						questionElement.setAttribute("start", px1);
-					} else if(px0.equals("end")) {
-						questionElement.setAttribute("end", px1);
-					} else if(px0.equals("step")) {
-						questionElement.setAttribute("step", px1);
-					} else if(px0.equals("rows")) {
-						questionElement.setAttribute("rows", px1);
-					} else if(px0.equals("chart_type")) {
-						questionElement.setAttribute("chart_type", px1);
-					} else if(px0.equals("stacked")) {
-						questionElement.setAttribute("stacked", px1);
-					} else if(px0.equals("normalised")) {
-						questionElement.setAttribute("normalised", px1);
-					}
-				}
+		ArrayList<KeyValueSimp> parameters = q.getParameters();
+		if (parameters != null) {
+			for(KeyValueSimp kv : parameters) {
+				questionElement.setAttribute(kv.k, kv.v);
 			}
 		}
 
@@ -2033,20 +2013,16 @@ public class GetXForm {
 	/*
 	 * Work out the range data type from its parameters
 	 */
-	private String getDataTypeFromRange(String parameters) {
+	private String getDataTypeFromRange(ArrayList<KeyValueSimp> parameters) {
 
 		String dataType = "integer";
 
 		if(parameters != null) {
-			String[] pArray = parameters.split(" ");
-			for(int i = 0; i < pArray.length; i++) {
-				String[] px = pArray[i].split("=");
-				if(px.length == 2) {
-					if(px[0].equals("start") || px[0].equals("end") || px[0].equals("step")) {
-						if(px[1].indexOf(".") >= 0) {
-							dataType = "decimal";
-							break;
-						}
+			for(KeyValueSimp kv : parameters) {			
+				if(kv.k.equals("start") || kv.k.equals("end") || kv.k.equals("step")) {
+					if(kv.v.indexOf(".") >= 0) {
+						dataType = "decimal";
+						break;
 					} 
 				}
 			}

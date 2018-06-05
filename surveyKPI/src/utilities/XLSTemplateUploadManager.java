@@ -33,6 +33,7 @@ import org.javarosa.xpath.XPathParseTool;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.ManifestInfo;
@@ -428,7 +429,7 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Process the question rows to create a form
 	 */
-	private void getForm(String name, int parentFormIndex, int parentQuestionIndex, String parameters) throws Exception {
+	private void getForm(String name, int parentFormIndex, int parentQuestionIndex, ArrayList<KeyValueSimp>  parameters) throws Exception {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
 		setFormReference(parameters, f);
@@ -466,7 +467,7 @@ public class XLSTemplateUploadManager {
 						f.questions.add(q);
 						
 						if(q.type.equals("begin repeat")) {
-							getForm(q.name, thisFormIndex, f.questions.size() - 1, q.parameters);
+							getForm(q.name, thisFormIndex, f.questions.size() - 1, q.paramArray);
 						}
 					}
 				}
@@ -553,7 +554,8 @@ public class XLSTemplateUploadManager {
 		q.appearance = GeneralUtilityMethods.cleanXlsNames(q.appearance);
 		
 		// 11. Parameters
-		q.parameters = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum, null);
+		String paramString = XLSUtilities.getTextColumn(row, "parameters", surveyHeader, lastCellNum, null);
+		q.paramArray = GeneralUtilityMethods.convertParametersToArray(paramString);
 		
 		// 12. autoplay
 		q.autoplay = XLSUtilities.getTextColumn(row, "autoplay", surveyHeader, lastCellNum, null);
@@ -777,7 +779,7 @@ public class XLSTemplateUploadManager {
 			qNameMap.put(q.name.toLowerCase(), rowNumber);
 		}
 		
-		
+		// check relevance
 		if(q.relevant != null) {
 			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
 			if(refs.contains(q.name)) {		// Circular references
@@ -793,6 +795,7 @@ public class XLSTemplateUploadManager {
 			testXExprFunctions(q.relevant, localisation, true, rowNumber, "relevant");
 		}
 		
+		// check constraint
 		if(q.constraint != null) {
 			checkParentheses(localisation, q.constraint, rowNumber, "survey", "constraint", q.name);
 			try {
@@ -803,6 +806,7 @@ public class XLSTemplateUploadManager {
 			testXExprFunctions(q.constraint, localisation, true, rowNumber, "constraint");
 		}
 		
+		// check calculate
 		if(q.calculation != null) {
 			checkParentheses(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
 			try {
@@ -813,12 +817,14 @@ public class XLSTemplateUploadManager {
 			testXExprFunctions(q.calculation, localisation, true, rowNumber, "calculation");
 		}
 		
+		// check appearance
 		if(q.appearance != null) {
 			checkParentheses(localisation, q.appearance, rowNumber, "survey", "appearance", q.name);
 			testXExprFunctions(q.appearance, localisation, true, rowNumber, "appearance");
 			
 		}
 		
+		// Check choice filter
 		if(q.choice_filter != null) {
 			checkParentheses(localisation, q.choice_filter, rowNumber, "survey", "choice_filter", q.name);
 			try {
@@ -850,6 +856,27 @@ public class XLSTemplateUploadManager {
 			if(survey.optionLists.get(q.list_name) == null) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_lnf", rowNumber, "survey", q.list_name, null, null);
 			}
+		}
+		
+		// check parameters
+		if(q.paramArray != null) {
+			ArrayList<KeyValueSimp> noDups = new ArrayList<KeyValueSimp> ();
+			HashMap<String, String> paramHashMap = new HashMap<> ();
+			for(KeyValueSimp kv : q.paramArray) {
+				String existing = paramHashMap.get(kv.k);
+				if(existing == null) {
+					noDups.add(kv);
+					paramHashMap.put(kv.k, kv.v);
+				} else {
+					if(existing.equals(kv.v)) {
+						// Its a duplicate just discard by not adding to the noDups output
+					} else {
+						// Conflicting values
+						throw XLSUtilities.getApplicationException(localisation, "tu_cf", rowNumber, "survey", kv.k, null, null);
+					}
+				}
+			}
+			q.paramArray = noDups;
 		}
 		
 	}
@@ -1137,7 +1164,7 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	
-	private void setFormReference(String parameters, Form f) throws ApplicationException {
+	private void setFormReference(ArrayList<KeyValueSimp> parameters, Form f) throws ApplicationException {
 		if(parameters != null) {
 			String ref = GeneralUtilityMethods.getSurveyParameter("ref", parameters);
 			if(ref != null) {
@@ -1148,7 +1175,7 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	
-	private void setFormMerge(String parameters, Form f) throws ApplicationException {
+	private void setFormMerge(ArrayList<KeyValueSimp>  parameters, Form f) throws ApplicationException {
 		if(parameters != null) {
 			String ref = GeneralUtilityMethods.getSurveyParameter("merge", parameters);
 			if(ref != null) {
