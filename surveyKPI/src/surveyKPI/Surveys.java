@@ -514,14 +514,6 @@ public class Surveys extends Application {
 			SurveyManager sm = new SurveyManager(localisation);
 			ChangeResponse resp = sm.applyChangeSetArray(sd, cResults, sId, request.getRemoteUser(), changes, true);
 			
-			// Add any options that this survey links to in an an external file
-			/*
-			if(updateExternalChoices) {
-				String basePath = GeneralUtilityMethods.getBasePath(request); 	// Get base path to files
-				sm.writeExternalChoicesForQuestions(connectionSD, 
-						cResults, basePath, request.getRemoteUser(), sId);
-			}*/
-			
 			// Force regeneration of any dynamic CSV files that this survey links to
 			ExternalFileManager efm = new ExternalFileManager(localisation);
 			
