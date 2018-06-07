@@ -22,6 +22,7 @@ package surveyMobileAPI;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -51,11 +52,16 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.Action;
+import org.smap.sdal.model.Form;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -238,9 +244,11 @@ public class WebForm extends Application {
 	@GET
 	@Path("/id/{temp_user}/{ident}")
 	@Produces(MediaType.TEXT_HTML)
-	public Response getFormHTMLTemporaryUser(@Context HttpServletRequest request, @PathParam("ident") String formIdent,
-			@PathParam("temp_user") String tempUser, @QueryParam("datakey") String datakey, // Optional keys to instance
-																							// data
+	public Response getFormHTMLTemporaryUser(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String formIdent,
+			@PathParam("temp_user") String tempUser, 
+			@QueryParam("datakey") String datakey, // Optional keys to instance data
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("viewOnly") boolean vo,
@@ -259,6 +267,68 @@ public class WebForm extends Application {
 				true);
 	}
 
+	/*
+	 * Respond with HTML 
+	 * Called by Temporary User to complete a task
+	 */
+	//
+	@GET
+	@Path("/action/{temp_user}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response getFormHTMLTemporaryUser(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String userIdent) throws Exception {
+
+		Response response = null;
+		
+		mimeType = "html";
+		String requester = "surveyMobileAPI-getAnonymousReport";
+		
+		Connection sd = SDDataSource.getConnection(requester);
+
+		Action a = null;
+		String datakey = null;
+		String datakeyvalue = null;
+		int assignmentId = 0;
+		
+		try {
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			// 1. Get details on the action to be performed using the user credentials
+			ActionManager am = new ActionManager();
+			a = am.getAction(sd, userIdent);
+
+			// 2. If temporary user does not exist then throw exception
+			if (a == null) {
+				throw new Exception(localisation.getString("mf_adnf"));
+			}
+
+			// 3. Get parameters
+		
+			for(KeyValueSimp p : a.parameters) {
+				 if(p.k.equals("data_key")) {
+					datakey = p.v;
+				} else if(p.k.equals("data_key_value")) {
+					datakeyvalue = p.v;
+				} else if(p.k.equals("assignment_id")) {
+					assignmentId = Integer.parseInt(p.v);
+				} 
+			}
+			
+			response = getWebform(request, a.surveyIdent, datakey, datakeyvalue, assignmentId, null, false,true);
+		
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+		}
+		
+		return response;
+		
+	}
+	
 	/*
 	 * Get the response as either HTML or JSON
 	 */
