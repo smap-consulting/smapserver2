@@ -638,7 +638,7 @@ public class NotificationManager {
 					String emails = "";
 					for(String email : emailList) {	
 						if(sentEndPoints.get(email) == null) {
-							if(isValidEmail(email)) {
+							if(GeneralUtilityMethods.isValidEmail(email)) {
 								if(emails.length() > 0) {
 									emails += ",";
 								}
@@ -822,19 +822,6 @@ public class NotificationManager {
 		}
 	}
 	
-	/*
-	 * Validate an email
-	 */
-	public boolean isValidEmail(String email) {
-		boolean isValid = true;
-		try {
-		      InternetAddress emailAddr = new InternetAddress(email);
-		      emailAddr.validate();
-		   } catch (AddressException ex) {
-		      isValid = false;
-		   }
-		return isValid;
-	}
 }
 
 

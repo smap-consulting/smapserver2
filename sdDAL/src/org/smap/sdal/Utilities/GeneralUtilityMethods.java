@@ -30,6 +30,8 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
@@ -6611,6 +6613,20 @@ public class GeneralUtilityMethods {
 			attachment = true;
 		}
 		return attachment;
+	}
+	
+	/*
+	 * Validate an email
+	 */
+	public static boolean isValidEmail(String email) {
+		boolean isValid = true;
+		try {
+		      InternetAddress emailAddr = new InternetAddress(email);
+		      emailAddr.validate();
+		   } catch (AddressException ex) {
+		      isValid = false;
+		   }
+		return isValid;
 	}
 
 }

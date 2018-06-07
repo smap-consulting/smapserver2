@@ -19,6 +19,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.OrgResourceMessage;
 import org.smap.sdal.model.SurveyMessage;
 import org.smap.sdal.model.TaskMessage;
@@ -147,16 +148,28 @@ public class MessagingManagerApply {
 					changedResources.put(orm.resourceName, orm);
 					
 				} else if(topic.equals("submission")) {
-					SubmissionMessage sm = gson.fromJson(data, SubmissionMessage.class);
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
 					NotificationManager nm = new NotificationManager(localisation);
 					nm.processNotification(
 							sd, 
 							cResults, 
 							organisation, 
-							sm,
+							msg,
 							id,
-							sm.user); 
+							msg.user); 
+					
+				} else if(topic.equals("email_task")) {
+					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);
+			
+					TaskManager tm = new TaskManager(localisation);
+					tm.emailTask(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							msg.user); 
 					
 				} else {
 					// Assume a direct email to be processed immediately

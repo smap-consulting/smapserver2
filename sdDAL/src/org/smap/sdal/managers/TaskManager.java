@@ -1,26 +1,41 @@
 package org.smap.sdal.managers;
 
+import java.io.FileOutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.mail.internet.InternetAddress;
+
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.AssignFromSurvey;
+import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskAssignmentPair;
@@ -1082,6 +1097,12 @@ public class TaskManager {
 		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date) "
 				+ "values(?, 'accepted', ?, now())";
 
+		String sqlEmailDetails = "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
+				+ "from assignments a, tasks t "
+				+ "where a.task_id in (select task_id from tasks where p_id = ?) "
+				+ "and (a.status = 'unsent' or a.status = 'accepted') "
+				+ "and a.id in (";
+		
 		String whereTasksSql = "";
 		String whereAssignmentsSql = "";
 		boolean hasAssignments = false;
@@ -1091,12 +1112,18 @@ public class TaskManager {
 		PreparedStatement pstmtCreateAssignments = null;
 		PreparedStatement pstmtDelTempUsers = null;
 		PreparedStatement pstmtGetUsers = null;
+		PreparedStatement pstmtEmailDetails = null;
 
 		try {
 
 			if(action.tasks.size() == 0) {
 				throw new Exception("No tasks");
 			} 
+			
+			boolean emailAction = false;		// Set a flag if this action is intended to send an email to a person
+			if(action.action.equals("email_unsent")) {
+				emailAction = true;
+			}
 			
 			// Create a task / Assignment hierarchy
 			HashMap<Integer, ArrayList<Integer>> hierarchyHash = new HashMap<> ();
@@ -1137,7 +1164,7 @@ public class TaskManager {
 
 			// Notify currently assigned users that are being modified
 			MessagingManager mm = new MessagingManager();
-			if(hasAssignments) {				
+			if(hasAssignments && !emailAction) {				
 				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
 				pstmtGetUsers.setInt(1, pId);
 				log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
@@ -1203,6 +1230,43 @@ public class TaskManager {
 				// Notify the user who has been assigned the tasks
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
 				mm.userChange(sd, userIdent);
+			} else if(emailAction) {
+				
+				// 1. Get tasks and loop
+				pstmtEmailDetails = sd.prepareStatement(sqlEmailDetails + whereAssignmentsSql);
+				pstmtEmailDetails.setInt(1, pId);
+				log.info("Get email tasks: " + pstmtEmailDetails.toString());
+				
+				ResultSet rs = pstmtEmailDetails.executeQuery();
+				while(rs.next()) {
+				
+					// "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
+					String status = rs.getString("status");
+					String email = rs.getString("email");
+					String tempUserId = rs.getString("temp_user_id");
+					int sId = rs.getInt("form_id");
+					
+					// Create a submission message (The task may or may not have come from a submission)
+					SubmissionMessage subMsg = new SubmissionMessage(
+							sId,
+							null,			// ident - not needed for anonymous webforms
+							pId,
+							null,			// instanceId 
+							nd.from,
+							nd.subject, 
+							nd.content,
+							nd.attach,
+							0,				// email question not needed
+							0,				// email meta not needed
+							email,			
+							"email",
+							remoteUser,
+							"https",
+							serverName,
+							basePath,
+							serverRoot);
+					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+				}
 			}
 
 		} finally {
@@ -1211,6 +1275,7 @@ public class TaskManager {
 			if(pstmtCreateAssignments != null) try {pstmtCreateAssignments.close(); } catch(SQLException e) {};	
 			if(pstmtDelTempUsers != null) try {pstmtDelTempUsers.close(); } catch(SQLException e) {};	
 			if(pstmtGetUsers != null) try {pstmtGetUsers.close(); } catch(SQLException e) {};	
+			if(pstmtEmailDetails != null) try {pstmtEmailDetails.close(); } catch(SQLException e) {};	
 		}
 
 	}
@@ -1774,6 +1839,294 @@ public class TaskManager {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 		}
 		return isDeleted;
+	}
+	
+	
+	/*
+	 * Process a notification
+	 */
+	public void emailTask(
+			Connection sd, 
+			Connection cResults, 
+			Organisation organisation,
+			EmailTaskMessage msg,
+			int messageId,
+			String user) throws Exception {
+		
+		String docURL = null;
+		String filePath = null;
+		String filename = "instance";
+		String logContent = null;
+		
+		boolean writeToMonitor = true;
+		
+		HashMap<String, String> sentEndPoints = new HashMap<> ();
+		
+		PreparedStatement pstmtGetSMSUrl = null;
+		
+		PreparedStatement pstmtNotificationLog = null;
+		String sqlNotificationLog = "insert into notification_log " +
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
+		
+		// Time Zone
+		int utcOffset = 0;	
+		LocalDateTime dt = LocalDateTime.now();
+		if(organisation.timeZone != null) {
+			try {
+				ZoneId zone = ZoneId.of(organisation.timeZone);
+			    ZonedDateTime zdt = dt.atZone(zone);
+			    ZoneOffset offset = zdt.getOffset();
+			    utcOffset = offset.getTotalSeconds() / 60;
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		
+		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
+		SurveyManager sm = new SurveyManager(localisation);
+		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
+				msg.instanceId, true, generateBlank, true, false, true, "real", 
+				false, false, true, "geojson");
+		
+		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey, user);
+		
+		try {
+			
+			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
+			
+			/*
+			 * Add details from the survey to the subject and email content
+			 */
+			msg.subject = sm.fillStringTemplate(survey, msg.subject);
+			msg.content = sm.fillStringTemplate(survey, msg.content);
+			TextManager tm = new TextManager(localisation);
+			ArrayList<String> text = new ArrayList<> ();
+			text.add(msg.subject);
+			text.add(msg.content);
+			tm.createTextOutput(sd,
+						cResults,
+						text,
+						msg.basePath, 
+						msg.user,
+						survey,
+						utcOffset,
+						"none",
+						organisation.id);
+			msg.subject = text.get(0);
+			msg.content = text.get(1);
+			
+			if(msg.attach != null && !msg.attach.equals("none")) {
+				
+				if(msg.attach.startsWith("pdf")) {
+					docURL = null;
+					
+					// Create temporary PDF and get file name
+					filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
+					FileOutputStream outputStream = null;
+					try {
+						outputStream = new FileOutputStream(filePath); 
+					} catch (Exception e) {
+						log.log(Level.SEVERE, "Error creating temporary PDF file", e);
+					}
+										
+					// Split orientation from nd.attach
+					boolean landscape = false;
+					if(msg.attach != null && msg.attach.startsWith("pdf")) {
+						landscape = msg.attach.equals("pdf_landscape");
+						msg.attach = "pdf";
+					}
+	
+					filename = pm.createPdf(
+							outputStream,
+							msg.basePath, 
+							msg.serverRoot,
+							msg.user,
+							"none", 
+							generateBlank,
+							null,
+							landscape,
+							null,
+							utcOffset);
+					
+					logContent = filePath;
+					
+				} else {
+					docURL = "/webForm/id/" + msg.tempUserId;
+					logContent = docURL;
+				}
+			} 
+				
+			/*
+			 * Send document to target
+			 */
+			ArrayList<String> unsubscribedList = new ArrayList<>();
+			String status = "success";				// Notification log
+			String notify_details = null;			// Notification log
+			String error_details = null;				// Notification log
+			if(msg.target.equals("email")) {
+				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+					ArrayList<String> emailList = null;
+					emailList.add(msg.email);
+					if(GeneralUtilityMethods.isValidEmail(msg.email)) {
+							
+						log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + msg.email);
+						
+						// Set the subject
+						String subject = "";
+						if(msg.subject != null && msg.subject.trim().length() > 0) {
+							subject = msg.subject;
+						} else {
+							if(msg.server != null && msg.server.contains("smap")) {
+								subject = "Smap ";
+							}
+							subject += localisation.getString("c_notify");
+						}
+						
+						String from = "smap";
+						if(msg.from != null && msg.from.trim().length() > 0) {
+							from = msg.from;
+						}
+						String content = null;
+						if(msg.content != null && msg.content.trim().length() > 0) {
+							content = msg.content;
+						} else {
+							content = organisation.default_email_content;
+						}
+						
+						notify_details = "Sending task email to: " + msg.email + " containing link " + logContent;
+						
+						log.info("+++ emailing to: " + msg.email + " docUrl: " + logContent + 
+								" from: " + from + 
+								" subject: " + subject +
+								" smtp_host: " + emailServer.smtpHost +
+								" email_domain: " + emailServer.emailDomain);
+						try {
+							EmailManager em = new EmailManager();
+							PeopleManager peopleMgr = new PeopleManager(localisation);
+							InternetAddress[] emailArray = InternetAddress.parse(msg.email);
+							String emailKey = null;
+							
+							for(InternetAddress ia : emailArray) {								
+								emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
+								if(emailKey == null) {
+									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+								} else {
+									em.sendEmail(
+											ia.getAddress(), 
+											null, 
+											"notify", 
+											subject, 
+											content,
+											from,		
+											null, 
+											null, 
+											null, 
+											docURL, 
+											filePath,
+											filename,
+											organisation.getAdminEmail(), 
+											emailServer,
+											msg.scheme,
+											msg.server,
+											emailKey,
+											localisation);
+								}
+							}
+						} catch(Exception e) {
+							status = "error";
+							error_details = e.getMessage();
+						}
+					} else {
+						log.log(Level.INFO, "Info: List of email recipients is empty");
+						lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
+						writeToMonitor = false;
+					}
+				} else {
+					status = "error";
+					error_details = "smtp_host not set";
+					log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+				}
+				
+			} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
+				
+				// Get the URL to use in sending the SMS
+				String sql = "select s.sms_url "
+						+ "from server s";
+				
+				String sms_url = null;
+				pstmtGetSMSUrl = sd.prepareStatement(sql);
+				ResultSet rs = pstmtGetSMSUrl.executeQuery();
+				if(rs.next()) {
+					sms_url = rs.getString("sms_url");	
+				}
+				
+				if(sms_url != null) {
+					ArrayList<String> smsList = null;
+					ArrayList<String> responseList = new ArrayList<> ();
+					smsList.add(msg.email);
+					
+
+					
+					if(smsList.size() > 0) {
+						SMSManager smsUrlMgr = new SMSManager();
+						for(String sms : smsList) {
+							
+							if(sentEndPoints.get(sms) == null) {
+								log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
+								responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
+								sentEndPoints.put(sms, sms);
+							} else {
+								log.info("Duplicate phone number: " + sms);
+							}
+							
+						} 
+					} else {
+						log.info("No phone numbers to send to");
+						writeToMonitor = false;
+					}
+					
+					notify_details = "Sending sms " + smsList.toString() 
+							+ ((logContent == null || logContent.equals("null")) ? "" :" containing link " + logContent)
+							+ " with response " + responseList.toString();
+					
+				} else {
+					status = "error";
+					error_details = "SMS URL not set";
+					log.log(Level.SEVERE, "Error: Attempt to do SMS notification but SMS URL not set");
+				}
+	
+				
+			} else {
+				status = "error";
+				error_details = "Invalid target: " + msg.target;
+				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
+			}
+			
+			// Write log message
+			if(writeToMonitor) {
+				if(!unsubscribedList.isEmpty()) {
+					if(error_details == null) {
+						error_details = "";
+					}
+					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+				}
+				pstmtNotificationLog.setInt(1, organisation.id);
+				pstmtNotificationLog.setInt(2, msg.pId);
+				pstmtNotificationLog.setInt(3, msg.sId);
+				pstmtNotificationLog.setString(4, notify_details);
+				pstmtNotificationLog.setString(5, status);
+				pstmtNotificationLog.setString(6, error_details);
+				pstmtNotificationLog.setInt(7, messageId);
+				
+				pstmtNotificationLog.executeUpdate();
+			}
+		} finally {
+			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
+			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
+			
+		}
 	}
 	
 

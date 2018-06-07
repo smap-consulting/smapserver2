@@ -730,15 +730,12 @@ public class Tasks extends Application {
 		} catch (Exception e) {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
-		} finally {
-			
-			SDDataSource.closeConnection("surveyKPI-tasks", sd);
-			
+		} finally {			
+			SDDataSource.closeConnection("surveyKPI-tasks", sd);			
 		}
 		
 		return response;
 	}
-	
 	
 	/*
 	 * Get a PDF of tasks

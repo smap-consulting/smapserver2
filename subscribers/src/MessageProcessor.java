@@ -188,27 +188,8 @@ public class MessageProcessor {
 
 			/*
 			 * Do not close connections!  This processor is suppossed to run forever
-			 *
-			try {
-				if (sd != null) {
-					sd.close();
-					sd = null;
-				}
-			} catch (SQLException e) {
-				log.log(Level.SEVERE, "Failed to close connection");
-				e.printStackTrace();
-			}
+			 */
 
-			try {
-				if (cResults != null) {
-					cResults.close();
-					cResults = null;
-				}
-			} catch (SQLException e) {
-				log.log(Level.SEVERE, "Failed to close results connection");
-				e.printStackTrace();
-			}
-			*/
 		}
 
 	}
