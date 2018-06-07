@@ -3,6 +3,7 @@ package org.smap.sdal.model;
 public class EmailTaskMessage {
 	public int sId;
 	public int pId;
+	public int aId;
 	public String instanceId;
 	public String from;
 	public String subject;
@@ -20,7 +21,8 @@ public class EmailTaskMessage {
 	
 	public EmailTaskMessage(
 			int sId, 
-			int pId, 
+			int pId,
+			int aId,
 			String instanceId, 
 			String from, 
 			String subject, 
@@ -37,6 +39,7 @@ public class EmailTaskMessage {
 		
 		this.sId = sId;
 		this.pId = pId;
+		this.aId = aId;
 		this.instanceId = instanceId;
 		this.from = from;
 		this.subject = subject;

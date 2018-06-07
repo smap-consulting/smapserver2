@@ -20,7 +20,8 @@ public class TaskProperties {
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
 	public String initial_data;
-	public String update_id;
+	public String update_id;					// Unique identifier of record to be updated
+	public String instance_id;				// Unique identifier of source record
 	public Timestamp from;
 	public Timestamp to;
 	public String location_trigger;

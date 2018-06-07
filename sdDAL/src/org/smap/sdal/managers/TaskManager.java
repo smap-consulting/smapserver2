@@ -21,6 +21,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
+import javax.servlet.http.HttpServletRequest;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -88,7 +89,9 @@ public class TaskManager {
 			"submitted", 
 			"rejected", 
 			"cancelled", 
-			"deleted"
+			"deleted",
+			"pending",
+			"error"
 			};
 	
 	public class TaskInstanceData {
@@ -687,7 +690,8 @@ public class TaskManager {
 					taskFinish,
 					tid.locationTrigger,
 					false,
-					null);
+					null,
+					instanceId);
 
 			/*
 			 * Assign the user to the new task
@@ -998,7 +1002,8 @@ public class TaskManager {
 						tf.properties.to,
 						tf.properties.location_trigger,
 						tf.properties.repeat,
-						tf.properties.guidance);
+						tf.properties.guidance,
+						tf.properties.instance_id);
 			}
 
 			/*
@@ -1069,7 +1074,7 @@ public class TaskManager {
 	/*
 	 * Apply an action to multiple tasks
 	 */
-	public void applyBulkAction(Connection sd, int pId, TaskBulkAction action) throws Exception {
+	public void applyBulkAction(HttpServletRequest request, Connection sd, int pId, TaskBulkAction action) throws Exception {
 
 		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select a.assignee from assignments a, tasks t "
@@ -1097,11 +1102,15 @@ public class TaskManager {
 		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date) "
 				+ "values(?, 'accepted', ?, now())";
 
-		String sqlEmailDetails = "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
+		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.temp_user_id, "
+				+ "t.form_id, t.update_id "
 				+ "from assignments a, tasks t "
-				+ "where a.task_id in (select task_id from tasks where p_id = ?) "
+				+ "where a.task_id = t.id "
+				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
 				+ "and (a.status = 'unsent' or a.status = 'accepted') "
 				+ "and a.id in (";
+		
+		String setStatusSql = "update assignments set status = ? where id = ? ";
 		
 		String whereTasksSql = "";
 		String whereAssignmentsSql = "";
@@ -1113,12 +1122,15 @@ public class TaskManager {
 		PreparedStatement pstmtDelTempUsers = null;
 		PreparedStatement pstmtGetUsers = null;
 		PreparedStatement pstmtEmailDetails = null;
+		PreparedStatement pstmtSetStatus = null;
 
 		try {
 
 			if(action.tasks.size() == 0) {
 				throw new Exception("No tasks");
 			} 
+			
+			pstmtSetStatus = sd.prepareStatement(setStatusSql);
 			
 			boolean emailAction = false;		// Set a flag if this action is intended to send an email to a person
 			if(action.action.equals("email_unsent")) {
@@ -1232,6 +1244,11 @@ public class TaskManager {
 				mm.userChange(sd, userIdent);
 			} else if(emailAction) {
 				
+				String basePath = GeneralUtilityMethods.getBasePath(request);
+				String urlprefix = "https://" + request.getServerName() + "/";
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				
 				// 1. Get tasks and loop
 				pstmtEmailDetails = sd.prepareStatement(sqlEmailDetails + whereAssignmentsSql);
 				pstmtEmailDetails.setInt(1, pId);
@@ -1241,31 +1258,43 @@ public class TaskManager {
 				while(rs.next()) {
 				
 					// "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
+					int aId = rs.getInt("id");
 					String status = rs.getString("status");
 					String email = rs.getString("email");
 					String tempUserId = rs.getString("temp_user_id");
 					int sId = rs.getInt("form_id");
+					String instanceId = rs.getString("update_id");
+					
+					if(action.action.equals("email_unsent") && !status.equals("unsent")) {
+						log.info("Ignoring task with status " + status + " when sending unsent");
+						continue;
+					}
+					
+					// Set email status to pending
+					pstmtSetStatus.setString(1, "pending");
+					pstmtSetStatus.setInt(2, aId);
+					pstmtSetStatus.executeUpdate();
 					
 					// Create a submission message (The task may or may not have come from a submission)
-					SubmissionMessage subMsg = new SubmissionMessage(
+					EmailTaskMessage taskMsg = new EmailTaskMessage(
 							sId,
-							null,			// ident - not needed for anonymous webforms
 							pId,
-							null,			// instanceId 
-							nd.from,
-							nd.subject, 
-							nd.content,
-							nd.attach,
-							0,				// email question not needed
-							0,				// email meta not needed
+							aId,
+							instanceId,			
+							"from someone",
+							"subject is x", 
+							"content is y",
+							"task",
 							email,			
 							"email",
-							remoteUser,
+							request.getRemoteUser(),
 							"https",
-							serverName,
+							request.getServerName(),
 							basePath,
-							serverRoot);
-					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+							urlprefix,
+							tempUserId);
+					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+					
 				}
 			}
 
@@ -1276,6 +1305,7 @@ public class TaskManager {
 			if(pstmtDelTempUsers != null) try {pstmtDelTempUsers.close(); } catch(SQLException e) {};	
 			if(pstmtGetUsers != null) try {pstmtGetUsers.close(); } catch(SQLException e) {};	
 			if(pstmtEmailDetails != null) try {pstmtEmailDetails.close(); } catch(SQLException e) {};	
+			if(pstmtSetStatus != null) try {pstmtSetStatus.close(); } catch(SQLException e) {};	
 		}
 
 	}
@@ -1503,7 +1533,8 @@ public class TaskManager {
 				+ "schedule_finish,"
 				+ "location_trigger,"
 				+ "repeat,"
-				+ "guidance) "
+				+ "guidance,"
+				+ "instance_id) "
 				+ "values ("
 				+ "?, "		// p_id
 				+ "?, "		// p_name
@@ -1521,7 +1552,8 @@ public class TaskManager {
 				+ "?,"		// schedule_finish
 				+ "?,"		// location_trigger
 				+ "?,"		// repeat
-				+ "?)";		// guidance
+				+ "?,"		// guidance
+				+ "?)";		// instanceId
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1545,7 +1577,8 @@ public class TaskManager {
 			Timestamp taskFinish,
 			String locationTrigger,
 			boolean repeat,
-			String guidance) throws SQLException {
+			String guidance,
+			String instanceId) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1562,8 +1595,9 @@ public class TaskManager {
 		pstmt.setTimestamp(13, taskStart);
 		pstmt.setTimestamp(14, taskFinish);
 		pstmt.setString(15, locationTrigger);
-		pstmt.setBoolean(16, repeat);	// repeat
-		pstmt.setString(17, guidance);	// guidance
+		pstmt.setBoolean(16, repeat);	
+		pstmt.setString(17, guidance);	
+		pstmt.setString(18, instanceId);
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1889,8 +1923,6 @@ public class TaskManager {
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");
 		
-		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey, user);
-		
 		try {
 			
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
@@ -1898,8 +1930,10 @@ public class TaskManager {
 			/*
 			 * Add details from the survey to the subject and email content
 			 */
-			msg.subject = sm.fillStringTemplate(survey, msg.subject);
-			msg.content = sm.fillStringTemplate(survey, msg.content);
+			if(survey != null) {
+				msg.subject = sm.fillStringTemplate(survey, msg.subject);
+				msg.content = sm.fillStringTemplate(survey, msg.content);
+			}
 			TextManager tm = new TextManager(localisation);
 			ArrayList<String> text = new ArrayList<> ();
 			text.add(msg.subject);
@@ -1916,59 +1950,19 @@ public class TaskManager {
 			msg.subject = text.get(0);
 			msg.content = text.get(1);
 			
-			if(msg.attach != null && !msg.attach.equals("none")) {
-				
-				if(msg.attach.startsWith("pdf")) {
-					docURL = null;
-					
-					// Create temporary PDF and get file name
-					filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
-					FileOutputStream outputStream = null;
-					try {
-						outputStream = new FileOutputStream(filePath); 
-					} catch (Exception e) {
-						log.log(Level.SEVERE, "Error creating temporary PDF file", e);
-					}
-										
-					// Split orientation from nd.attach
-					boolean landscape = false;
-					if(msg.attach != null && msg.attach.startsWith("pdf")) {
-						landscape = msg.attach.equals("pdf_landscape");
-						msg.attach = "pdf";
-					}
-	
-					filename = pm.createPdf(
-							outputStream,
-							msg.basePath, 
-							msg.serverRoot,
-							msg.user,
-							"none", 
-							generateBlank,
-							null,
-							landscape,
-							null,
-							utcOffset);
-					
-					logContent = filePath;
-					
-				} else {
-					docURL = "/webForm/id/" + msg.tempUserId;
-					logContent = docURL;
-				}
-			} 
+			docURL = "/webForm/id/" + msg.tempUserId;
+			logContent = docURL;
 				
 			/*
 			 * Send document to target
 			 */
-			ArrayList<String> unsubscribedList = new ArrayList<>();
 			String status = "success";				// Notification log
 			String notify_details = null;			// Notification log
 			String error_details = null;				// Notification log
+			boolean unsubscribed = false;
 			if(msg.target.equals("email")) {
 				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-					ArrayList<String> emailList = null;
-					emailList.add(msg.email);
 					if(GeneralUtilityMethods.isValidEmail(msg.email)) {
 							
 						log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + msg.email);
@@ -1997,7 +1991,7 @@ public class TaskManager {
 						
 						notify_details = "Sending task email to: " + msg.email + " containing link " + logContent;
 						
-						log.info("+++ emailing to: " + msg.email + " docUrl: " + logContent + 
+						log.info("+++ emailing task to: " + msg.email + " docUrl: " + logContent + 
 								" from: " + from + 
 								" subject: " + subject +
 								" smtp_host: " + emailServer.smtpHost +
@@ -2011,8 +2005,10 @@ public class TaskManager {
 							for(InternetAddress ia : emailArray) {								
 								emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
 								if(emailKey == null) {
-									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+									unsubscribed = true;
+									setTaskStatus(sd, msg.aId, "unsubscribed");
 								} else {
+									System.out.println("Send email: " + msg.email + " : " + docURL);
 									em.sendEmail(
 											ia.getAddress(), 
 											null, 
@@ -2032,11 +2028,13 @@ public class TaskManager {
 											msg.server,
 											emailKey,
 											localisation);
+									setTaskStatus(sd, msg.aId, "accepted");
 								}
 							}
 						} catch(Exception e) {
 							status = "error";
 							error_details = e.getMessage();
+							setTaskStatus(sd, msg.aId, "error");
 						}
 					} else {
 						log.log(Level.INFO, "Info: List of email recipients is empty");
@@ -2106,11 +2104,8 @@ public class TaskManager {
 			
 			// Write log message
 			if(writeToMonitor) {
-				if(!unsubscribedList.isEmpty()) {
-					if(error_details == null) {
-						error_details = "";
-					}
-					error_details += localisation.getString("c_unsubscribed") + ": " + String.join(",", unsubscribedList);
+				if(unsubscribed) {
+					error_details += localisation.getString("c_unsubscribed") + ": " + msg.email;
 				}
 				pstmtNotificationLog.setInt(1, organisation.id);
 				pstmtNotificationLog.setInt(2, msg.pId);
@@ -2130,5 +2125,17 @@ public class TaskManager {
 	}
 	
 
+	private void setTaskStatus(Connection sd, int aId, String status) throws SQLException {
+		String sql = "update assignments set status = ? where id = ? ";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, status);
+			pstmt.setInt(2, aId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
 }
 
