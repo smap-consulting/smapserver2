@@ -16,7 +16,7 @@ public class EmailTaskMessage {
 	public String server;
 	public String basePath;
 	public String serverRoot;
-	public String tempUserId;
+	public String actionLink;
 
 	
 	public EmailTaskMessage(
@@ -35,7 +35,7 @@ public class EmailTaskMessage {
 			String server,
 			String basePath,
 			String serverRoot,
-			String tempUserId) {
+			String actionLink) {
 		
 		this.sId = sId;
 		this.pId = pId;
@@ -52,6 +52,6 @@ public class EmailTaskMessage {
 		this.server = server;
 		this.basePath = basePath;
 		this.serverRoot = serverRoot;
-		this.tempUserId = tempUserId;
+		this.actionLink = actionLink;
 	}
 }

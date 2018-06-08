@@ -22,7 +22,6 @@ package surveyMobileAPI;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -52,7 +51,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
@@ -60,8 +58,6 @@ import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Action;
-import org.smap.sdal.model.Form;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -273,16 +269,17 @@ public class WebForm extends Application {
 	 */
 	//
 	@GET
-	@Path("/action/{temp_user}")
+	@Path("/action/{ident}")
 	@Produces(MediaType.TEXT_HTML)
 	public Response getFormHTMLTemporaryUser(
 			@Context HttpServletRequest request, 
-			@PathParam("ident") String userIdent) throws Exception {
+			@PathParam("ident") String ident) throws Exception {
 
 		Response response = null;
 		
+		userIdent = ident;
 		mimeType = "html";
-		String requester = "surveyMobileAPI-getAnonymousReport";
+		String requester = "surveyMobileAPI-webform task";
 		
 		Connection sd = SDDataSource.getConnection(requester);
 
@@ -300,9 +297,13 @@ public class WebForm extends Application {
 			// 2. If temporary user does not exist then throw exception
 			if (a == null) {
 				throw new Exception(localisation.getString("mf_adnf"));
+			} else if(!a.action.equals("task")) {
+				throw new Exception("Invalid action type: " + a.action);
 			}
 
-			// 3. Get webform	
+			// 3. Get webform
+			userIdent = ident;
+			isTemporaryUser = true;
 			response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, null, false,true);
 		
 		} catch (Exception e) {

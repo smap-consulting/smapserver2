@@ -742,7 +742,7 @@ public class TaskManager {
 						oId,
 						pId,
 						targetSurveyIdent,
-						targetInstanceId);
+						tid);
 			}
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
@@ -1112,7 +1112,7 @@ public class TaskManager {
 		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date) "
 				+ "values(?, 'accepted', ?, now())";
 
-		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.temp_user_id, "
+		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.action_link, "
 				+ "t.form_id, t.update_id "
 				+ "from assignments a, tasks t "
 				+ "where a.task_id = t.id "
@@ -1271,7 +1271,7 @@ public class TaskManager {
 					int aId = rs.getInt("id");
 					String status = rs.getString("status");
 					String email = rs.getString("email");
-					String tempUserId = rs.getString("temp_user_id");
+					String actionLink = rs.getString("action_link");
 					int sId = rs.getInt("form_id");
 					String instanceId = rs.getString("update_id");
 					
@@ -1302,7 +1302,7 @@ public class TaskManager {
 							request.getServerName(),
 							basePath,
 							urlprefix,
-							tempUserId);
+							actionLink);
 					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
 					
 				}
@@ -1795,7 +1795,7 @@ public class TaskManager {
 			int oId,
 			int pId,
 			String sIdent,
-			String instanceId) throws Exception {
+			TaskInstanceData tid) throws Exception {
 
 		String status = "accepted";
 		
@@ -1842,12 +1842,12 @@ public class TaskManager {
 			
 			// Create an action this should be (mostly) identical for all emails
 			ActionManager am = new ActionManager();
-			Action action = new Action("report");
+			Action action = new Action("task");
 			action.surveyIdent = sIdent;
 			action.pId = pId;
-			if(instanceId != null) {
-				action.datakey = "instanceId";
-				action.datakeyvalue = instanceId;
+			if(tid != null && tid.prikey > 0) {
+				action.datakey = "prikey";
+				action.datakeyvalue = String.valueOf(tid.prikey);
 			}
 			
 			for(String email : emailArray) {
@@ -1919,7 +1919,6 @@ public class TaskManager {
 		String docURL = null;
 		String filePath = null;
 		String filename = "instance";
-		String logContent = null;
 		
 		boolean writeToMonitor = true;
 		
@@ -1979,8 +1978,7 @@ public class TaskManager {
 			msg.subject = text.get(0);
 			msg.content = text.get(1);
 			
-			docURL = "/webForm/id/" + msg.tempUserId;
-			logContent = docURL;
+			docURL = "/webForm" + msg.actionLink;
 				
 			/*
 			 * Send document to target
@@ -1994,7 +1992,7 @@ public class TaskManager {
 				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 					if(GeneralUtilityMethods.isValidEmail(msg.email)) {
 							
-						log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + msg.email);
+						log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 						
 						// Set the subject
 						String subject = "";
@@ -2018,9 +2016,9 @@ public class TaskManager {
 							content = organisation.default_email_content;
 						}
 						
-						notify_details = "Sending task email to: " + msg.email + " containing link " + logContent;
+						notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
 						
-						log.info("+++ emailing task to: " + msg.email + " docUrl: " + logContent + 
+						log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
 								" from: " + from + 
 								" subject: " + subject +
 								" smtp_host: " + emailServer.smtpHost +
@@ -2113,7 +2111,7 @@ public class TaskManager {
 					}
 					
 					notify_details = "Sending sms " + smsList.toString() 
-							+ ((logContent == null || logContent.equals("null")) ? "" :" containing link " + logContent)
+							+ ((docURL == null || docURL.equals("null")) ? "" :" containing link " + docURL)
 							+ " with response " + responseList.toString();
 					
 				} else {
