@@ -238,9 +238,10 @@ public class TaskManager {
 			int taskGroupId, 
 			boolean completed,
 			int userId,
-			String incStatus) throws Exception {
+			String incStatus,
+			String period) throws Exception {
 
-		String sql = "select t.id as t_id, "
+		String sql1 = "select t.id as t_id, "
 				+ "t.title as name,"
 				+ "t.schedule_at as schedule_at,"
 				+ "t.schedule_finish as schedule_finish,"
@@ -274,8 +275,20 @@ public class TaskManager {
 				+ "left outer join users u "
 				+ "on a.assignee = u.id "
 				+ "where t.tg_id = ? "
-				+ "and a.status = any (?) "
-				+ "order by t.schedule_at desc, t.id, a.id desc;";
+				+ "and a.status = any (?) ";
+		
+		if(period == null) {
+			period = "all";
+		}
+		String sql2 = null;
+		if(period.equals("all")) {
+			sql2 = "";
+		} else if(period.equals("week")) {
+			sql2 = "and t.schedule_at > now() - interval '7 days'";
+		} else if(period.equals("month")) {
+			sql2 = "and t.schedule_at > now() - interval '30 days'";
+		}
+		String sql3 = "order by t.schedule_at desc, t.id, a.id desc;";
 		PreparedStatement pstmt = null;
 
 		TaskListGeoJson tl = new TaskListGeoJson();
@@ -300,7 +313,7 @@ public class TaskManager {
 		
 		try {
 
-			pstmt = sd.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql1 + sql2 + sql3);	
 			pstmt.setInt(1, taskGroupId);
 			pstmt.setArray(2, sd.createArrayOf("text", statusList.toArray(new String[statusList.size()])));		
 			log.info("Get tasks: " + pstmt.toString());
