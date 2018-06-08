@@ -869,15 +869,14 @@ public class GetHtml {
 		if(q.appearance == null) {
 			q.appearance = "";
 		}
-		if(q.parameters == null) {
-			q.parameters = "";
-		}
-		if(q.type.equals("string") && (q.appearance.contains("multiline") || q.parameters.contains("rows="))) {
+		String rp = GeneralUtilityMethods.getSurveyParameter("rows", q.paramArray);
+		
+		if(q.type.equals("string") && (q.appearance.contains("multiline") || rp != null)) {
 			bodyElement = outputDoc.createElement("textarea");
-			
-			String rp = getParameter(q.parameters, "rows");
 			if(rp != null) {
 				bodyElement.setAttribute("rows", rp);
+			} else {
+				bodyElement.setAttribute("rows", "5");
 			}
 		} else {
 			bodyElement = outputDoc.createElement("input");
@@ -1151,6 +1150,7 @@ public class GetHtml {
 
 				try {
 					hint = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
+					hint = convertMarkdown(hint);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1347,13 +1347,21 @@ public class GetHtml {
 		}
 	}
 
+	/*
+	 * Convert Makdown as per support in Enketo
+	 *  Supported
+	 *     links:  [xxx](url)
+	 *     strong: __, ** 
+	 *     emphasis: _, *
+	 *     paragraphs: \n
+	 */
 	private String convertMarkdown(String in) {
 
+		// links
 		if (in != null) {
 			// Test for links
 			StringBuffer out = new StringBuffer();
-			String pattern = "\\[([^]]*)\\]\\(([^\\s^\\)]*)[\\s\\)]"; // from
-																		// https://stackoverflow.com/a/40178293/1867651
+			String pattern = "\\[([^]]*)\\]\\(([^\\s^\\)]*)"; // from https://stackoverflow.com/a/40178293/1867651
 			Pattern r = Pattern.compile(pattern);
 			Matcher m = r.matcher(in);
 
@@ -1374,7 +1382,35 @@ public class GetHtml {
 			if (start < in.length()) {
 				out.append(in.substring(start));
 			}
-			return out.toString();
+			
+			// Apply other markdown
+			String outString = out.toString();
+			outString = outString.replaceAll("\\\\&", "&amp;");
+			outString = outString.replaceAll("\\\\\\\\", "&92;");
+			outString = outString.replaceAll("\\\\\\*", "&42;");
+			outString = outString.replaceAll("\\\\_", "&95;");
+			outString = outString.replaceAll("\\\\#", "&35;");
+			
+			outString = outString.replaceAll("__(.*?)__", "<strong>$1</strong>");						// Strong: __
+			outString = outString.replaceAll("\\*\\*(.*?)\\*\\*", "<strong>$1</strong>");				// Strong: **
+			outString = outString.replaceAll("_(.*?)_", "<em>$1</em>");								// Emphasis: _
+			outString = outString.replaceAll("\\*(.*?)\\*", "<em>$1</em>");							// Emphasis: *
+			outString = outString.replaceAll("\n", "<br/>" );											// New lines
+			
+			outString = outString.replaceAll("^\\s*#\\s+(.*)(\\n|$)", "<h1>$1</h1>");					// Heading 1
+			outString = outString.replaceAll("^\\s*##\\s+(.*)(\\n|$)", "<h2>$1</h2>");				// Heading 2
+			outString = outString.replaceAll("^\\s*###\\s+(.*)(\\n|$)", "<h3>$1</h3>");				// Heading 3
+			outString = outString.replaceAll("^\\s*####\\s+(.*)(\\n|$)", "<h4>$1</h4>");				// Heading 4
+			outString = outString.replaceAll("^\\s*#####\\s+(.*)(\\n|$)", "<h5>$1</h5>");				// Heading 5
+			outString = outString.replaceAll("^\\s*######\\s+(.*)(\\n|$)", "<h6>$1</h6>");			// Heading 6
+			
+			outString = outString.replaceAll("&35;", "#");
+			outString = outString.replaceAll("&95;", "_");
+			outString = outString.replaceAll("&42;", "*");
+			outString = outString.replaceAll("&92;", "\\\\");
+			outString = outString.replaceAll("&amp;", "&");
+			
+			return outString;
 		} else {
 			return in;
 		}
@@ -1518,24 +1554,6 @@ public class GetHtml {
 		}
 
 		return labelQ;
-	}
-	
-	private String getParameter(String pString, String pName) {
-		String p = null;
-		
-		if(pString != null) {
-			String [] params = pString.split(" ");
-			for(int i = 0; i < params.length; i++) {
-				String[] px = params[i].split("=");
-				if(px.length == 2) {
-					if(px[0].equals(pName)) {
-						p = px[1];
-						break;
-					}
-				}
-			}
-		}
-		return p;
 	}
 
 }

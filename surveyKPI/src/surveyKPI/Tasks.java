@@ -140,7 +140,8 @@ public class Tasks extends Application {
 	public Response getTasks(
 			@Context HttpServletRequest request,
 			@PathParam("tgId") int tgId,
-			@QueryParam("user") int userId
+			@QueryParam("user") int userId,
+			@QueryParam("period") String period
 			) throws IOException {
 		
 		Response response = null;
@@ -158,7 +159,7 @@ public class Tasks extends Application {
 			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation);
-			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId, null);		
+			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId, null, period);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -433,7 +434,7 @@ public class Tasks extends Application {
 			TaskManager tm = new TaskManager(localisation);
 			
 			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
-			TaskListGeoJson tl = tm.getTasks(sd, tgId, true, 0, incStatus);	// Get the task list
+			TaskListGeoJson tl = tm.getTasks(sd, tgId, true, 0, incStatus, "all");	// Get the task list
 			GeneralUtilityMethods.setFilenameInResponse(tg.name + "." + filetype, response); // Set file name
 			
 			// Create XLSTasks File
@@ -561,7 +562,7 @@ public class Tasks extends Application {
 				 *  from latitude and longitude
 				 *  Also we may not want to return complete tasks
 				 */
-				tl = tm.getTasks(sd, tgId, true, userId, null);	// TODO set "complete" flag from passed in parameter
+				tl = tm.getTasks(sd, tgId, true, userId, null, "all");	// TODO set "complete" flag from passed in parameter
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
 				

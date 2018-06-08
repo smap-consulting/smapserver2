@@ -32,6 +32,7 @@ import java.util.Vector;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.server.utilities.UtilityMethods;
 
 import JdbcManagers.JdbcOptionManager;
@@ -340,8 +341,8 @@ public class Question {
 		return v;
 	}
 	
-	public String getParameters() {
-		return GeneralUtilityMethods.removeSurroundingWhiteSpace(parameters, '=');
+	public ArrayList<KeyValueSimp> getParameters() {
+		return GeneralUtilityMethods.convertParametersToArray(parameters);
 	}
 	
 	public String getPath() {

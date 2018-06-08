@@ -33,6 +33,7 @@ public class Question {
 	public int sourceFormIndex;		// Used when the source form in an move is new
 	public String defaultanswer;
 	public String appearance;
+	public ArrayList<KeyValueSimp>  paramArray;
 	public String parameters;
 	public String choice_filter;
 	public String source;

@@ -408,7 +408,7 @@ public class CsvTableManager {
 	 */
 	public ArrayList<SelectChoice> lookupChoices(int oId, int sId, String fileName, 
 			String value_column, 
-			String label_column,
+			String label_columns,
 			String selection,
 			ArrayList<String> arguments,
 			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
@@ -425,7 +425,7 @@ public class CsvTableManager {
 			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_column, fileName,
+				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, fileName,
 						selection, arguments, whereColumns);	
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
@@ -433,7 +433,7 @@ public class CsvTableManager {
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
-							value_column, label_column, fileName,
+							value_column, label_columns, fileName,
 							selection, arguments, whereColumns);	
 				}				
 			}
@@ -646,7 +646,8 @@ public class CsvTableManager {
 	/*
 	 * Read the choices out of a file
 	 */
-	private ArrayList<SelectChoice> readChoicesFromTable(int tableId, String sHeaders, String value_column, String label_column,
+	private ArrayList<SelectChoice> readChoicesFromTable(int tableId, String sHeaders, String value_column, 
+			String label_columns,
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
@@ -654,37 +655,66 @@ public class CsvTableManager {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
 		
+		ArrayList<String> labelColumnArray = new ArrayList<String> ();
+		String [] a = label_columns.split(",");
+		for(String v : a) {
+			labelColumnArray.add(v);
+		}
+		
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<CsvHeader> headers = gson.fromJson(sHeaders, headersType);
 		
 		String table = "csv.csv" + tableId;
+		HashMap<String, String> choiceMap = new HashMap<>();
+		boolean hasSortBy = false;
 		PreparedStatement pstmt = null;
 		try {
 			
-			StringBuffer sql = new StringBuffer("select distinct ");
-			boolean first = true;
+			StringBuffer sql = new StringBuffer("select ");
 			boolean foundValue = false;
-			boolean foundLabel = false;
+			int foundLabel = 0;
+			
+			// Map value column to table column and flag if there is a sortby column
 			for(CsvHeader item : headers) {
-				if(item.fName.equals(value_column) || item.fName.equals(label_column)) {
-					if(!first) {
-						sql.append(",");
-					}
-					first = false;
+				if(item.fName.equals(value_column)) {
 					sql.append(item.tName);
-					if(item.fName.equals(value_column) ) {
-						foundValue = true;
-					} else {
-						foundLabel = true;
+					foundValue = true;
+				}
+				if(item.fName.equals("sortby")) {
+					hasSortBy = true;
+				}
+				if(hasSortBy && foundValue) {
+					break;	// no need to go on
+				}
+			}
+			
+			// Map label columnns to table columns
+			sql.append(",");
+			boolean first = true;
+			for(String label : labelColumnArray) {
+				for(CsvHeader item : headers) {
+					if(item.fName.equals(label)) {
+						if(!first) {
+							sql.append(" || ',' || ");
+						}
+						first = false;
+						sql.append(item.tName);				
+						foundLabel++;
+						break;
 					}
 				}
 			}
+			sql.append(" as __label ");
+			
+			
 			if(!foundValue) {
 				throw new ApplicationException("Column " + value_column + " not found in table " + table);
-			} else if(!foundLabel) {
-				throw new ApplicationException("Column " + label_column + " not found in table " + table);
+			} else if(foundLabel != labelColumnArray.size()) {
+				throw new ApplicationException("Columns " + label_columns + " not found in table " + table);
 			}
+			
+			
 			// Check the where columns
 			for(String col : whereColumns) {
 				boolean foundCol = false;
@@ -703,6 +733,10 @@ public class CsvTableManager {
 			if(selection != null) {
 				sql.append(" where ").append(selection);
 			}
+			
+			if(hasSortBy) {
+				sql.append(" order by sortby::real asc");
+			}
 				
 			pstmt = sd.prepareStatement(sql.toString());	
 			int paramIndex = 1;
@@ -716,7 +750,11 @@ public class CsvTableManager {
 			
 			int idx = 0;
 			while(rsx.next()) {
-				choices.add(new SelectChoice(rsx.getString(value_column), rsx.getString(label_column), idx++));
+				String value = rsx.getString(value_column);
+				if(choiceMap.get(value) == null) {		// Only add unique values
+					choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
+					choiceMap.put(value, value);
+				}
 			}	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

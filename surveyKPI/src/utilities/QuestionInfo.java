@@ -185,6 +185,7 @@ public class QuestionInfo {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
 							int idx = 0;
 							int languageIdx = 0;
+							
 							for(Option oex : options) {
 								// Get the label for the passed in language
 								String label = null;

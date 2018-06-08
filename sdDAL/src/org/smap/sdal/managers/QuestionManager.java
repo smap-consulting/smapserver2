@@ -294,7 +294,13 @@ public class QuestionManager {
 				}
 				pstmtInsertQuestion.setString(11, q.defaultanswer );
 				pstmtInsertQuestion.setString(12, q.appearance);
-				pstmtInsertQuestion.setString(13, q.parameters);
+				// Set parameters, default the parameters if the type is range and they have not been set
+				// Reference q.parameters not q.paramArry as it is the string that is set by the online editor
+				String params = q.parameters;
+				if(q.type.equals("range") && (params == null || params.trim().length() == 0)) {
+					params = "start=1;end=5;step=1";
+				}
+				pstmtInsertQuestion.setString(13, params);
 				pstmtInsertQuestion.setBoolean(14, q.visible);
 				pstmtInsertQuestion.setBoolean(15, readonly);
 				pstmtInsertQuestion.setString(16, q.relevant);
@@ -321,10 +327,6 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(25, nodeset_label);
 				pstmtInsertQuestion.setString(26, q.display_name);
 				if(q.type.equals("select")) {
-					// Default a select question to compressed if its data comes from a CSV file
-					//ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.appearance, null);
-					//pstmtInsertQuestion.setBoolean(27, q.compressed || mi.changed);
-					
 					pstmtInsertQuestion.setBoolean(27, true);		// All select questions now default to compressed
 				} else {
 					pstmtInsertQuestion.setBoolean(27, false);

@@ -89,7 +89,6 @@ public class XFormData {
 
 		// Use Apache Commons file upload to get the items in the file
 		SaveDetails saveDetails = null;
-		// PersistenceContext pc = new PersistenceContext("pgsql_jpa");
 		DiskFileItemFactory factory = new DiskFileItemFactory();
 		ServletFileUpload upload = new ServletFileUpload(factory);
 

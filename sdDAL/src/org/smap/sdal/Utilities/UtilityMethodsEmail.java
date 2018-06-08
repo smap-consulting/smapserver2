@@ -250,11 +250,6 @@ public class UtilityMethodsEmail {
 				o.locale = rs.getString(8);
 				o.company_email = rs.getString(9);
 				o.timeZone = rs.getString(10);
-
-				if(o.locale == null) {
-					o.locale = "en";
-				}
-
 			}
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
@@ -262,6 +257,11 @@ public class UtilityMethodsEmail {
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (Exception e) {}
 		}
+		
+		if(o.locale == null) {
+			o.locale = "en";
+		}
+		
 		return o;
 	}
 

@@ -222,9 +222,10 @@ public class Reports extends Application {
 			@PathParam("ident") String ident) { 
 		
 		Response response = null;
-
+		String connectionString = "surveyKPI - delete reports";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI - delete reports");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation			
 			
@@ -236,6 +237,7 @@ public class Reports extends Application {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  ident);
 			pstmt.setString(2, request.getRemoteUser());		
+			log.info("Deleting report: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			response = Response.ok().build();			
@@ -245,7 +247,7 @@ public class Reports extends Application {
 			
 		} finally {	
 			try {pstmt.close();} catch(Exception e) {}
-			SDDataSource.closeConnection("surveyKPI - delete reports", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
