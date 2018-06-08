@@ -287,9 +287,6 @@ public class WebForm extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 
 		Action a = null;
-		String datakey = null;
-		String datakeyvalue = null;
-		int assignmentId = 0;
 		
 		try {
 
@@ -305,19 +302,8 @@ public class WebForm extends Application {
 				throw new Exception(localisation.getString("mf_adnf"));
 			}
 
-			// 3. Get parameters
-		
-			for(KeyValueSimp p : a.parameters) {
-				 if(p.k.equals("data_key")) {
-					datakey = p.v;
-				} else if(p.k.equals("data_key_value")) {
-					datakeyvalue = p.v;
-				} else if(p.k.equals("assignment_id")) {
-					assignmentId = Integer.parseInt(p.v);
-				} 
-			}
-			
-			response = getWebform(request, a.surveyIdent, datakey, datakeyvalue, assignmentId, null, false,true);
+			// 3. Get webform	
+			response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, null, false,true);
 		
 		} catch (Exception e) {
 			response = Response.serverError().entity(e.getMessage()).build();

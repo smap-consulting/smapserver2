@@ -199,7 +199,7 @@ public class Reports extends Application {
 			
 			al.link = request.getScheme() + "://" + request.getServerName() + link;					
 			
-			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(al, ActionLink.class);
 			response = Response.ok(resp).build();
 				

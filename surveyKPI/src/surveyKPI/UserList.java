@@ -261,7 +261,7 @@ public class UserList extends Application {
 		
 		try {
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0, pId);			
 			String resp = gson.toJson(users);

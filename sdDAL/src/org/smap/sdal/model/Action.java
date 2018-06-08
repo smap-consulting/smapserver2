@@ -18,6 +18,11 @@ public class Action {
 	public int managedId;
 	public int prikey;
 	
+	// Attributes for tasks
+	public String datakey;
+	public String datakeyvalue;
+	public int assignmentId;
+	
 	// Attributes for reports
 	public String reportType;
 	public String filename;
