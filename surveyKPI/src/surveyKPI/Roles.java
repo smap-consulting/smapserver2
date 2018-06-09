@@ -189,9 +189,10 @@ public class Roles extends Application {
 	public Response delRole(@Context HttpServletRequest request, @FormParam("roles") String roles) { 
 		
 		Response response = null;
+		String requestName = "surveyKPI- delete roles";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-userList - delete roles");
+		Connection sd = SDDataSource.getConnection(requestName);
 		aSM.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation			
 					
@@ -212,7 +213,7 @@ public class Roles extends Application {
 			response = Response.serverError().entity(ex.getMessage()).build();
 			
 		} finally {			
-			SDDataSource.closeConnection("surveyKPI-userList - delete roles", sd);
+			SDDataSource.closeConnection(requestName, sd);
 		}
 		
 		return response;

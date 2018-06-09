@@ -70,7 +70,7 @@ public class Authorise {
 	/*
 	 * Check to see if the user has the rights to perform the requested action
 	 */
-	public boolean isAuthorised(Connection conn, String user) {
+	public boolean isAuthorised(Connection sd, String user) {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
 		int count = 0;
@@ -90,7 +90,7 @@ public class Authorise {
 		sql += ");";
 		
 		try {
-			pstmt = conn.prepareStatement(sql); 	
+			pstmt = sd.prepareStatement(sql); 	
 			pstmt.setString(1, user);
 			for(int i = 0; i < permittedGroups.size(); i++) {
 				pstmt.setString(i + 2, permittedGroups.get(i));
@@ -128,11 +128,11 @@ public class Authorise {
  			log.info(msg.toString());
  			
  			
- 			lm.writeLog(conn, 0, user, "error", msg.toString());		// Write the application log
+ 			lm.writeLog(sd, 0, user, "error", msg.toString());		// Write the application log
  			
  			// Close the connection as throwing an exception will end the service call
 			
- 			SDDataSource.closeConnection("isAuthorised", conn);
+ 			SDDataSource.closeConnection("isAuthorised", sd);
 			
 			if(sqlError) {
 				throw new ServerException();

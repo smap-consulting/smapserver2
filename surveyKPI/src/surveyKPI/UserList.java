@@ -106,10 +106,11 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
-
+		String requestName = "surveyKPI-getUsers";
+		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select id,"
@@ -152,20 +153,20 @@ public class UserList extends Application {
 		ArrayList<User> users = new ArrayList<User> ();
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(connectionSD, request.getRemoteUser(), 0);
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(connectionSD, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(connectionSD, request.getRemoteUser());
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 			
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = null;
 
-			pstmtGroups = connectionSD.prepareStatement(sqlGroups);
+			pstmtGroups = sd.prepareStatement(sqlGroups);
 			ResultSet rsGroups = null;
 			
-			pstmtProjects = connectionSD.prepareStatement(sqlProjects);
+			pstmtProjects = sd.prepareStatement(sqlProjects);
 			ResultSet rsProjects = null;
 			
-			pstmtRoles = connectionSD.prepareStatement(sqlRoles);
+			pstmtRoles = sd.prepareStatement(sqlRoles);
 			ResultSet rsRoles = null;
 			
 			pstmt.setInt(1, o_id);
@@ -235,7 +236,7 @@ public class UserList extends Application {
 			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (SQLException e) {	}
 			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (SQLException e) {	}
 			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-UserList", connectionSD);
+			SDDataSource.closeConnection(requestName, sd);
 		}
 
 		return response;
@@ -251,9 +252,10 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
+		String requestName = "surveyKPI - getTemporaryUsers";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UserList");
+		Connection sd = SDDataSource.getConnection(requestName);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 			
@@ -274,7 +276,7 @@ public class UserList extends Application {
 		    
 		} finally {
 		
-			SDDataSource.closeConnection("surveyKPI-UserList", sd);
+			SDDataSource.closeConnection(requestName, sd);
 		}
 
 		return response;
@@ -294,13 +296,12 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
-		
-		log.info("userList for project: " + projectId);
+		String requestName = "surveyKPI - getUsersForProject";
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
 		/*
@@ -321,7 +322,7 @@ public class UserList extends Application {
 					" FROM users u " +  
 					" WHERE u.ident = ?;";				
 						
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, request.getRemoteUser());
 			log.info("Get organisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -344,7 +345,7 @@ public class UserList extends Application {
 					"order by u.ident";
 			
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
 			pstmt.setInt(2, o_id);
 			log.info("Get users for project: " + pstmt.toString());
@@ -372,7 +373,7 @@ public class UserList extends Application {
 		    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-UserList", connectionSD);
+			SDDataSource.closeConnection(requestName, sd);
 		}
 
 		return response;
@@ -386,10 +387,11 @@ public class UserList extends Application {
 	public Response updateUser(@Context HttpServletRequest request, @FormParam("users") String users) { 
 		
 		Response response = null;
+		String requestName = "surveyKPI - updateUser";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(requestName);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
@@ -404,8 +406,8 @@ public class UserList extends Application {
 			String adminName = null;
 			String language;	// Language spoken by user
 			ResultSet resultSet = null;
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(connectionSD, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(connectionSD, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 			
 			/*
 			 * Get the organisation and name of the user making the request
@@ -414,7 +416,7 @@ public class UserList extends Application {
 					" FROM users u " +  
 					" WHERE u.ident = ?;";				
 						
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, request.getRemoteUser());
 			log.info("SQL: " + sql + ":" + request.getRemoteUser());
 			resultSet = pstmt.executeQuery();
@@ -440,7 +442,7 @@ public class UserList extends Application {
 					UserManager um = new UserManager();
 					if(u.id == -1) {
 						// New user
-						um.createUser(connectionSD, u, o_id,
+						um.createUser(sd, u, o_id,
 								isOrgUser,
 								isSecurityManager,
 								request.getRemoteUser(),
@@ -449,25 +451,25 @@ public class UserList extends Application {
 								adminName,
 								localisation);
 	
-						lm.writeLogOrganisation(connectionSD, 
+						lm.writeLogOrganisation(sd, 
 								o_id, request.getRemoteUser(), "create", "User " + u.ident);
 								
 					} else {
 						// Existing user
-						um.updateUser(connectionSD, u, o_id,
+						um.updateUser(sd, u, o_id,
 								isOrgUser,
 								isSecurityManager,
 								request.getRemoteUser(),
 								request.getServerName(),
 								adminName);
 						
-						lm.writeLogOrganisation(connectionSD, 
+						lm.writeLogOrganisation(sd, 
 								o_id, request.getRemoteUser(), "Update", "User " + u.ident);
 					}
 					
 					// Record the user change so that devices can be notified
 					MessagingManager mm = new MessagingManager();
-					mm.userChange(connectionSD, u.ident);
+					mm.userChange(sd, u.ident);
 				}
 
 				
@@ -494,7 +496,7 @@ public class UserList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-UserList", connectionSD);
+			SDDataSource.closeConnection(requestName, sd);
 		}
 		
 		return response;
@@ -510,10 +512,11 @@ public class UserList extends Application {
 	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) { 
 		
 		Response response = null;
+		String requestName = "surveyKPI - delUser";
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserList");
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(requestName);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
@@ -529,27 +532,27 @@ public class UserList extends Application {
 			ResultSet resultSet = null;
 			
 			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Get the organisation of the person calling this service
 			String sql = "SELECT u.o_id " +
 					" FROM users u " +  
 					" WHERE u.ident = ?;";										
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			
 			// Get the ident of the person to be deleted
 			String sqlGetIdent = "select u.ident "
 					+ "from users u "
 					+ "where u.id = ? "
 					+ "and u.o_id = ?";								
-			pstmtGetIdent = connectionSD.prepareStatement(sqlGetIdent);
+			pstmtGetIdent = sd.prepareStatement(sqlGetIdent);
 			
 			// Delete the user
 			String sqlUpdate = "DELETE FROM users u " +  
 					" WHERE u.id = ? " +			// Ensure the user is in the same organisation as the administrator doing the editing
 					" AND u.o_id = ?;";					
-			pstmtUpdate = connectionSD.prepareStatement(sqlUpdate);
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 			
 			// Get the organisation id
 			pstmt.setString(1, request.getRemoteUser());
@@ -582,7 +585,7 @@ public class UserList extends Application {
 						GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
 						
 						// Delete any csv table definitions that they have
-						SurveyTableManager stm = new SurveyTableManager(connectionSD, localisation);
+						SurveyTableManager stm = new SurveyTableManager(sd, localisation);
 						stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
 					}	
 
@@ -610,7 +613,7 @@ public class UserList extends Application {
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-UserList", connectionSD);
+			SDDataSource.closeConnection(requestName, sd);
 		}
 		
 		return response;
