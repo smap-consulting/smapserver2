@@ -102,7 +102,7 @@ public class MiscPDFManager {
 	 * Return a suggested name for the PDF file derived from the results
 	 */
 	public void createUsagePdf(
-			Connection connectionSD,
+			Connection sd,
 			OutputStream outputStream,
 			String basePath, 
 			HttpServletResponse response,
@@ -149,26 +149,27 @@ public class MiscPDFManager {
 			/*
 			 * Get the usage results
 			 */
-			String sql = "SELECT users.id as id," +
-					"users.ident as ident, " +
-					"users.name as name, " +
-					"(select count (*) from upload_event ue, subscriber_event se " +
-						"where ue.ue_id = se.ue_id " + 
-						"and se.status = 'success' " +
-						"and se.subscriber = 'results_db' " +
-						"and extract(month from upload_time) = ? " + 	// current month
-						"and extract(year from upload_time) = ? " + 	// current year
-						"and ue.user_name = users.ident) as month, " +
-					"(select count (*) from upload_event ue, subscriber_event se " +
-						"where ue.ue_id = se.ue_id " +
-						"and se.status = 'success'" +
-						"and se.subscriber = 'results_db'" +
-						"and ue.user_name = users.ident) as all_time " +
-					"from users " +	
-					"where users.o_id = ? " + 
-					"order by users.ident;";
+			String sql = "SELECT users.id as id,"
+					+ "users.ident as ident, "
+					+ "users.name as name, "
+					+ "(select count (*) from upload_event ue, subscriber_event se "
+						+ "where ue.ue_id = se.ue_id "
+						+ "and se.status = 'success' "
+						+ "and se.subscriber = 'results_db' "
+						+ "and extract(month from upload_time) = ? " 	// current month
+						+ "and extract(year from upload_time) = ? " 		// current year
+						+ "and ue.user_name = users.ident) as month, "
+					+ "(select count (*) from upload_event ue, subscriber_event se "
+						+ "where ue.ue_id = se.ue_id "
+						+ "and se.status = 'success' "
+						+ "and se.subscriber = 'results_db' "
+						+ "and ue.user_name = users.ident) as all_time "
+					+ "from users "	
+					+ "where users.o_id = ? "
+					+ "and not users.temporary " 
+					+ "order by users.ident;";
 			
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, month);
 			pstmt.setInt(2, year);
 			pstmt.setInt(3, o_id);
