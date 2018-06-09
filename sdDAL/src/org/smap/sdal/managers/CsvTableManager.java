@@ -873,7 +873,6 @@ public class CsvTableManager {
 				for(int i = 0; i < data.length; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
-				log.info("Inserting record: "  + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -915,7 +914,6 @@ public class CsvTableManager {
 				for(int i = 0; i < data.length; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
-				log.info("Removing record: "  + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
