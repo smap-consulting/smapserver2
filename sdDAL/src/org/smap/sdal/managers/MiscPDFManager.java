@@ -144,7 +144,7 @@ public class MiscPDFManager {
 			defaultFont = FontFactory.getFont("default", BaseFont.IDENTITY_H, 
 				    BaseFont.EMBEDDED, 10); 
 			
-			filename = "usage_" + year + "_" + month + ".pdf";	// Todo add org name
+			filename = org_name + "_" + year + "_" + month + ".pdf";
 			
 			/*
 			 * Get the usage results
