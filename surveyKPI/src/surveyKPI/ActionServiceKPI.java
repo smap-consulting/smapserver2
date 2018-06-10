@@ -37,6 +37,8 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -59,7 +61,7 @@ import utilities.XLSXReportsManager;
 @Path("/action")
 public class ActionServiceKPI extends Application {
 
-	Authorise a = null;
+	Authorise auth = null;
 
 	private static Logger log = Logger.getLogger(ActionServiceKPI.class.getName());
 
@@ -68,7 +70,7 @@ public class ActionServiceKPI extends Application {
 		ArrayList<String> authorisations = new ArrayList<String>();
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.MANAGE); // Enumerators with MANAGE access can process managed forms
-		a = new Authorise(authorisations, null);
+		auth = new Authorise(authorisations, null);
 	}
 	
 	SurveyViewDefn mfc = null;
@@ -104,6 +106,10 @@ public class ActionServiceKPI extends Application {
 			if (a == null) {
 				throw new Exception(localisation.getString("mf_adnf"));
 			}
+			
+			// Authorisation - Access Don't validate user rights as this is for an anonymous report
+			auth.isValidSurvey(sd, userIdent, a.sId, false, false);
+			// End Authorisation
 
 			// 3. Get parameters
 			int fId = 0;
@@ -203,6 +209,9 @@ public class ActionServiceKPI extends Application {
 			}
 
 			responseVal = Response.status(Status.OK).entity(outputString.toString()).build();
+		} catch (AuthorisationException e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw e;
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
