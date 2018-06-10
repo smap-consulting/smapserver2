@@ -135,6 +135,9 @@ public class Upload extends Application {
 		return submission(request, instanceId, key, deviceId);
 	}
 	
+	/*
+	 * Process the actual submission
+	 */
 	private Response submission(HttpServletRequest request,  String instanceId, String key, String deviceId) 
 			throws IOException {
 	

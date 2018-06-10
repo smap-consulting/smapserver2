@@ -510,7 +510,7 @@ public class ManagedForms extends Application {
 			al.link = request.getScheme() +
 					"://" +
 					request.getServerName() + 
-					am.getLink(sd, action, oId);
+					am.getLink(sd, action, oId, true);	// Single submission user
 			
 			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(al, ActionLink.class);

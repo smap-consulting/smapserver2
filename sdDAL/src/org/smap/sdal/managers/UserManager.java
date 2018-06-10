@@ -18,6 +18,7 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.MediaInfo;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
@@ -431,8 +432,8 @@ public class UserManager {
 
 		int u_id = -1;
 		String sql = "insert into users "
-				+ "(ident, o_id, email, name, temporary, action_details, created) "
-				+ "values (?, ?, ?, ?, true, ?, now()) ";
+				+ "(ident, o_id, email, name, temporary, action_details, single_submission, created) "
+				+ "values (?, ?, ?, ?, true, ?, ?, now()) ";
 
 		PreparedStatement pstmt = null;
 
@@ -445,6 +446,7 @@ public class UserManager {
 			pstmt.setString(3, u.email);
 			pstmt.setString(4, u.name);
 			pstmt.setString(5, gson.toJson(u.action_details));
+			pstmt.setBoolean(6, u.singleSubmission);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -659,6 +661,24 @@ public class UserManager {
 			try {if (pstmtInsertProjectGroup != null) {pstmtInsertProjectGroup.close();}} catch (SQLException e) {}
 		}
 
+	}
+	
+	public void deleteSingleSubmissionTemporaryUser(Connection sd, String userIdent) throws SQLException {
+		
+		String sql = "delete from users where ident = ? "
+				+ "and temporary "
+				+ "and single_submission ";
+		PreparedStatement pstmt = null;
+		
+		try {	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  userIdent);	
+			log.info("Deleting single submisison user: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {	
+			try {pstmt.close();} catch(Exception e) {}
+		}
 	}
 
 }

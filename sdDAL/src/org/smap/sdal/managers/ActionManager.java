@@ -169,7 +169,7 @@ public class ActionManager {
 		String link = null;
 
 		if (a.action.equals("respond") /* && actionId == 0 */) {
-			link = request.getScheme() + "://" + request.getServerName() + getLink(sd, a, oId);
+			link = request.getScheme() + "://" + request.getServerName() + getLink(sd, a, oId, false);
 		}
 
 		// Get the topic
@@ -220,7 +220,7 @@ public class ActionManager {
 
 	}
 
-	public String getLink(Connection sd, Action a, int oId) throws Exception {
+	public String getLink(Connection sd, Action a, int oId, boolean singleSubmission) throws Exception {
 
 		String tempUserId = null;
 		String link = null;
@@ -230,6 +230,7 @@ public class ActionManager {
 		User u = new User();
 		u.ident = tempUserId;
 		u.name = a.notify_person;
+		u.singleSubmission = singleSubmission;
 		u.action_details = a;
 
 		// Add the project that contains the survey

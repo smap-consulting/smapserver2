@@ -191,7 +191,7 @@ public class Reports extends Application {
 			String link = null;
 			if(ident == null) {
 				// Create new link
-				link = am.getLink(sd, action, oId);
+				link = am.getLink(sd, action, oId, false);
 			} else {
 				// Update link
 				link = am.updateLink(sd, action, oId, ident);

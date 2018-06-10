@@ -47,6 +47,7 @@ import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
@@ -228,7 +229,7 @@ public class XFormData {
 			}
 			a.isValidSurvey(sd, user, survey.id, false, superUser); // Throw an exception if the user is not authorised
 																	// to upload this survey
-
+			
 			/*
 			 * DeviceId should be included in the survey contents, if it is not there then
 			 * attempt to use the deviceId passed as a parameter in the submission
@@ -275,9 +276,13 @@ public class XFormData {
 					uem.close();
 				}
 			}
-			// UploadEventManager uem = new UploadEventManager(pc);
-			// uem.persist(ue);
-
+			
+			/*
+			 * If the upload was for a temporary user who can only submit one result then delete that temporary user
+			 */
+			UserManager um = new UserManager();
+			um.deleteSingleSubmissionTemporaryUser(sd, user);
+			
 			log.info("userevent: " + user + " : upload results : " + si.getDisplayName());
 		} finally {
 			SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);

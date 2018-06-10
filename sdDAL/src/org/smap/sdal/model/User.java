@@ -56,6 +56,7 @@ public class User {
 	public String lastalert;
 	public boolean seen;
 	public boolean billing_enabled;
+	public boolean singleSubmission;
 	
 	
 }
