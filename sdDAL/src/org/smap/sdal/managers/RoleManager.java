@@ -251,15 +251,16 @@ public class RoleManager {
 	/*
 	 * Get roles associated with a survey
 	 */
-	public ArrayList<Role> getSurveyRoles(Connection sd, int s_id, int o_id, boolean enabledOnly) throws SQLException {
+	public ArrayList<Role> getSurveyRoles(Connection sd, int s_id, int o_id, boolean enabledOnly, 
+			String user, boolean isSuperUser) throws SQLException {
 		PreparedStatement pstmt = null;
 		ArrayList<Role> roles = new ArrayList<Role> ();
 		
 		try {
-			String sql = null;
 			ResultSet resultSet = null;
 			
-			sql = "SELECT r.id as id, "
+			String sql = null;
+			String sqlSuperUser = "SELECT r.id as id, "
 					+ "r.name as name, "
 					+ "sr.enabled, "
 					+ "sr.id as linkid,"
@@ -270,6 +271,30 @@ public class RoleManager {
 					+ "on r.id = sr.r_id "
 					+ "and sr.s_id = ? "
 					+ "where o_id = ? ";
+			
+			String sqlNormalUser = "SELECT r.id as id, "
+					+ "r.name as name, "
+					+ "sr.enabled, "
+					+ "sr.id as linkid,"
+					+ "sr.row_filter,"
+					+ "sr.column_filter "
+					+ "from role r "
+					+ "left outer join survey_role sr "
+					+ "on r.id = sr.r_id "
+					+ "and sr.s_id = ? "
+					+ "join user_role ur "
+					+ "on r.id = ur.r_id "
+					+ "join users u "
+					+ "on ur.u_id = u.id "
+					+ "where r.o_id = ? "
+					+ "and u.ident = ?";
+			
+			if(isSuperUser) {
+				sql = sqlSuperUser;
+			} else {
+				sql = sqlNormalUser;
+			}
+			
 			if(enabledOnly) {
 				sql += "and sr.enabled ";
 			}
@@ -278,6 +303,9 @@ public class RoleManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, s_id);
 			pstmt.setInt(2, o_id);
+			if(!isSuperUser) {
+				pstmt.setString(3,  user);
+			}
 			log.info("Get survey roles: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							

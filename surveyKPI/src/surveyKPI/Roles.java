@@ -222,6 +222,7 @@ public class Roles extends Application {
 	
 	/*
 	 * Get the roles in a survey
+	 * Any administator / analyst can call this but they will only get the roles they have
 	 */
 	@Path("/survey/{sId}")
 	@GET
@@ -241,8 +242,8 @@ public class Roles extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		aSM.isAuthorised(sd, request.getRemoteUser());
-		aSM.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		aLowPriv.isAuthorised(sd, request.getRemoteUser());
+		aLowPriv.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		
 		// End Authorisation
 		
@@ -253,7 +254,7 @@ public class Roles extends Application {
 			RoleManager rm = new RoleManager(localisation);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			ArrayList<Role> roles = rm.getSurveyRoles(sd, sId, oId, enabledOnly);
+			ArrayList<Role> roles = rm.getSurveyRoles(sd, sId, oId, enabledOnly, request.getRemoteUser(), superUser);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();
