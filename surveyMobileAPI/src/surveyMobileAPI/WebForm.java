@@ -901,7 +901,8 @@ public class WebForm extends Application {
 			output.append("</div>");
 		}
 
-		output.append("<article class='paper'>\n");
+		output.append("<div class='loader'></div>");
+		output.append("<article class='paper' style='display:none;'>\n");
 		if (!minimal) {
 			output.append("<header class='form-header clearfix'>\n");
 			output.append("<div class='offline-enabled'>\n");
