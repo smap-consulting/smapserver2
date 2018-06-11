@@ -115,7 +115,7 @@ public class ExportSurveyXlsx extends Application {
 		try {
 			cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");		
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			XLSXReportsManager rm = new XLSXReportsManager(localisation);

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -501,7 +502,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return the users language
 	 */
-	static public String getUserLanguage(Connection sd, String user) throws SQLException {
+	static public String getUserLanguage(Connection sd, HttpServletRequest request, String user) throws SQLException {
 
 		String language = null;
 
@@ -531,7 +532,12 @@ public class GeneralUtilityMethods {
 		}
 
 		if (language == null || language.trim().length() == 0) {
-			language = "en"; // Default to english
+			Locale locale = request.getLocale();
+			if(locale == null) {
+				language = "en"; // Default to english
+			} else {
+				language = locale.getLanguage();
+			}
 		}
 		return language;
 	}
@@ -829,6 +835,36 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the task group name
+	 */
+	static public String getAssignmentStatusForTempUser(Connection sd, String userIdent) throws SQLException {
+
+		String status = null;
+		String actionLink = "/action/" + userIdent;
+
+		String sql = "select status " 
+				+ " from assignments " 
+				+ "where action_link = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, actionLink);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				status = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return status;
+	}
+	
+	/*
+	 * Get the task project name from its id
 	 */
 	static public String getProjectName(Connection sd, int id) throws SQLException {
 

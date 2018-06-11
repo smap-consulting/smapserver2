@@ -300,7 +300,7 @@ public class ActionManager {
 		try {
 
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, userIdent));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);

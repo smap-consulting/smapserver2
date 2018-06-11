@@ -112,7 +112,7 @@ public class XFormData {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
 			
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 

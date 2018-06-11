@@ -162,7 +162,7 @@ public class ExportSurveyMedia extends Application {
 			try {
 		
 				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);

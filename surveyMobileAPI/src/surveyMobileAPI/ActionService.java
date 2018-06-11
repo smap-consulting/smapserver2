@@ -107,7 +107,7 @@ public class ActionService extends Application {
 		Connection cResults = ResultsDataSource.getConnection(requester);
 
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			// 1. Get details on the action to be performed using the user credentials
@@ -184,7 +184,7 @@ public class ActionService extends Application {
 		Connection cResults = ResultsDataSource.getConnection(requester);
 
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			// 1. Get details on the action to be performed using the user credentials
