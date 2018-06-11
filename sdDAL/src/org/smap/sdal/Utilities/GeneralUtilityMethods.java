@@ -43,6 +43,7 @@ import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChoiceList;
@@ -836,12 +837,12 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the task group name
 	 */
-	static public String getAssignmentStatusForTempUser(Connection sd, String userIdent) throws SQLException {
+	static public AssignmentDetails getAssignmentStatusForTempUser(Connection sd, String userIdent) throws SQLException {
 
-		String status = null;
+		AssignmentDetails a = new AssignmentDetails();
 		String actionLink = "/action/" + userIdent;
 
-		String sql = "select status " 
+		String sql = "select status, completed_date, cancelled_date, deleted_date " 
 				+ " from assignments " 
 				+ "where action_link = ?";
 
@@ -853,14 +854,17 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, actionLink);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				status = rs.getString(1);
+				a.status = rs.getString(1);
+				a.completed_date = rs.getTimestamp(2);
+				a.cancelled_date = rs.getTimestamp(3);
+				a.deleted_date = rs.getTimestamp(4);
 			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
-		return status;
+		return a;
 	}
 	
 	/*

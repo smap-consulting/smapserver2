@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -58,6 +59,7 @@ import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -296,12 +298,21 @@ public class WebForm extends Application {
 
 			// 2. If temporary user does not exist then report the issue to the user
 			if (a == null) {
-				String taskStatus = GeneralUtilityMethods.getAssignmentStatusForTempUser(sd, userIdent);
+				AssignmentDetails aDetails = GeneralUtilityMethods.getAssignmentStatusForTempUser(sd, userIdent);
 				String message = null;
-				if(taskStatus == null) {
+				SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+				
+				if(aDetails.status == null) {
 					message = localisation.getString("wf_fnf");
-				} else if(taskStatus.equals("submitted")) {
+				} else if(aDetails.status.equals("submitted")) {
 					message = localisation.getString("wf_fs");
+					message = message.replaceAll("%1s", sdf.format(aDetails.completed_date));
+				} else if(aDetails.status.equals("cancelled")) {
+					message = localisation.getString("wf_fc");
+					message = message.replaceAll("%1s", sdf.format(aDetails.cancelled_date));
+				} else if(aDetails.status.equals("deleted")) {
+					message = localisation.getString("wf_fc");
+					message = message.replaceAll("%1s", sdf.format(aDetails.deleted_date));
 				}
 				response = getErrorPage(request, locale, message);
 			} else if(!a.action.equals("task")) {
