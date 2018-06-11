@@ -194,7 +194,7 @@ public class Reports extends Application {
 				link = am.getLink(sd, action, oId);
 			} else {
 				// Update link
-				link = am.updateLink(sd, action, oId, ident);
+				link = am.updateLink(sd, action, oId, ident, request.getRemoteUser(), superUser);
 			}
 			
 			al.link = request.getScheme() + "://" + request.getServerName() + link;					

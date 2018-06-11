@@ -1,6 +1,5 @@
 package org.smap.sdal.managers;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -11,13 +10,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
-import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;

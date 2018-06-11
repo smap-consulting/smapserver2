@@ -22,6 +22,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.User;
@@ -245,23 +246,78 @@ public class ActionManager {
 		return link;
 	}
 	
-	public String updateLink(Connection sd, Action a, int oId, String userIdent) throws Exception {
+	public String updateLink(Connection sd, Action a, int oId, String userIdent, String remoteUser, boolean superUser) throws Exception {
 
 
 		String sql = "update users set action_details = ? where temporary = true and ident = ?";
 		PreparedStatement pstmt = null;
+		
+		String sqlDelRoles = "delete from user_role "
+				+ "where u_id = (select id from users where temporary = true and ident = ?) ";
+		PreparedStatement pstmtDelRoles = null;;
+		
+		String sqlInsertRole = "insert into user_role (u_id, r_id) values ((select id from users where temporary = true and ident = ?), ?);";		
+		PreparedStatement pstmtInsertRole = null;
+		
+		String sqlUserHasRole = "select count(*) from users u, user_role ur "
+				+ "where u.id = ur.u_id "
+				+ "and u.ident = ? "
+				+ "and ur.r_id = ?";
+		PreparedStatement pstmtUserHasRole = null;
+		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
+			// Store the action details
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, gson.toJson(a));
 			pstmt.setString(2, userIdent);
 			log.info("Update action details: " + pstmt.toString());
 			pstmt.executeUpdate();
+			
+			// delete roles no longer referenced
+			pstmtDelRoles = sd.prepareStatement(sqlDelRoles);
+			pstmtDelRoles.setString(1, userIdent);
+			pstmtDelRoles.executeUpdate();
+			
+			// Add roles
+			if(a.roles != null && a.roles.size() > 0) {
+				
+				pstmtUserHasRole = sd.prepareStatement(sqlUserHasRole);
+				pstmtUserHasRole.setString(1, userIdent);
+				
+				pstmtInsertRole = sd.prepareStatement(sqlInsertRole);
+				pstmtInsertRole.setString(1, userIdent);
+				
+				for( Role r : a.roles) {
+					boolean canInsert = superUser;
+					if(!canInsert) {
+						// Check to see if the remote user has this role
+						pstmtUserHasRole.setInt(2, r.id);
+						log.info("User has role: " + pstmtUserHasRole.toString());
+						ResultSet rs = pstmtUserHasRole.executeQuery();
+						if(rs.next()) {
+							if(rs.getInt(1) > 0) {
+								canInsert = true;
+							}
+						}
+					}
+					if(canInsert) {
+						pstmtInsertRole.setInt(2, r.id);
+						log.info("Insert role: " + pstmtInsertRole.toString());
+						pstmtInsertRole.executeUpdate();
+					}
+				}
+			}
+			
+		} catch (Exception e) {
+			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
-		}
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtDelRoles != null) {	pstmtDelRoles.close();}} catch (SQLException e) {}
+			try {if (pstmtInsertRole != null) {	pstmtInsertRole.close();}} catch (SQLException e) {}
+			try {if (pstmtUserHasRole != null) {	pstmtUserHasRole.close();}} catch (SQLException e) {}
+		}	
 
 		return "/action/" + userIdent;
 		
