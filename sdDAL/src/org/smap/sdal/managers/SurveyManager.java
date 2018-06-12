@@ -3747,25 +3747,27 @@ public class SurveyManager {
 		int originalfId = 0;
 		int newFid;
 		try {
-			for(KeyValueSimp p : action.parameters) {
-				if(p.k.equals("form")) {
-					originalfId = Integer.parseInt(p.v);
-					break;
+			if(action.parameters != null) {
+				for(KeyValueSimp p : action.parameters) {
+					if(p.k.equals("form")) {
+						originalfId = Integer.parseInt(p.v);
+						break;
+					}
 				}
-			}
-			if(originalfId > 0) {
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, newSurveyId);
-				pstmt.setInt(2, origSurveyId);
-				pstmt.setInt(3, originalfId);
-				log.info("Get new form id for report: " + pstmt.toString());
-				ResultSet rs = pstmt.executeQuery();
-				if(rs.next()) {
-					newFid = rs.getInt(1);
-					for(KeyValueSimp p : action.parameters) {
-						if(p.k.equals("form")) {
-							p.v = String.valueOf(newFid);
-							break;
+				if(originalfId > 0) {
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setInt(1, newSurveyId);
+					pstmt.setInt(2, origSurveyId);
+					pstmt.setInt(3, originalfId);
+					log.info("Get new form id for report: " + pstmt.toString());
+					ResultSet rs = pstmt.executeQuery();
+					if(rs.next()) {
+						newFid = rs.getInt(1);
+						for(KeyValueSimp p : action.parameters) {
+							if(p.k.equals("form")) {
+								p.v = String.valueOf(newFid);
+								break;
+							}
 						}
 					}
 				}

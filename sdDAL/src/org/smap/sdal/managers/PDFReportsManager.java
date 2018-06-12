@@ -93,6 +93,9 @@ public class PDFReportsManager {
 		PreparedStatement pstmt = null;
 		ZipOutputStream zos = null;
 		
+		File folder = null;
+		ArrayList<FileDescription> files = new ArrayList<> ();
+		
 		try {
 					
 			/*
@@ -138,10 +141,8 @@ public class PDFReportsManager {
 			ResultSet rs = pstmt.executeQuery();
 			
 			String filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());
-			File folder = new File(filePath);
+			folder = new File(filePath);
 			folder.mkdir();
-			
-			ArrayList<FileDescription> files = new ArrayList<> ();
 		
 			while(rs.next()) {
 				String instanceId = rs.getString("instanceid");
@@ -202,6 +203,13 @@ public class PDFReportsManager {
 			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			
+			// Clean up files
+			for (FileDescription fd : files) {
+				File f = new File(fd.path);
+				try{f.delete();} catch(Exception e) {}
+			}
+			if(folder != null) {try {folder.delete();} catch(Exception e) {}}
 		}
 		
 		return responseVal;
