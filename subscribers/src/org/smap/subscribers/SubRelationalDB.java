@@ -55,7 +55,6 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.AutoUpdate;
-import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
@@ -132,7 +131,7 @@ public class SubRelationalDB extends Subscriber {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = null;
 		Document xmlConf = null;		
-		Connection connection = null;
+		Connection sd = null;
 		try {
 
 			// Get the connection details for the database with survey definitions
@@ -158,14 +157,14 @@ public class SubRelationalDB extends Subscriber {
 
 			// Authorisation - Access
 			Class.forName(dbClassMeta);		 
-			connection = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
+			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
 			//Authorise a = new Authorise(null, Authorise.ENUM);
 			
 			this.survey = survey;
 
 			try {
-				if (connection != null) {
-					connection.close();
+				if (sd != null) {
+					sd.close();
 				}
 			} catch (SQLException e) {
 				System.out.println("Failed to close connection");
@@ -208,7 +207,7 @@ public class SubRelationalDB extends Subscriber {
 	 */
 	private void applyAssignmentStatus(int ue_id, String remoteUser) {
 
-		Connection connectionSD = null;
+		Connection sd = null;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGetUploadEvent = null;
 		PreparedStatement pstmtRepeats = null;
@@ -220,20 +219,20 @@ public class SubRelationalDB extends Subscriber {
 
 		String sql = "update assignments a set status = 'submitted', completed_date = now() "
 				+ "where a.id = ? "
-				+ "and a.assignee IN (SELECT id FROM users u "
+				+ "and a.assignee in (select id from users u "
 				+ "where u.ident = ?);";
 
-		String sqlRepeats = "update tasks SET repeat_count = repeat_count + 1 "
+		String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 "
 				+ "where id = (select task_id from assignments where id = ?);";
 
 		//String sqlRepeating = 
 
 		try {
-			connectionSD = DriverManager.getConnection(databaseMeta, user, password);
+			sd = DriverManager.getConnection(databaseMeta, user, password);
 
-			pstmtGetUploadEvent = connectionSD.prepareStatement(sqlGetUploadEvent);
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmtRepeats = connectionSD.prepareStatement(sqlRepeats);
+			pstmtGetUploadEvent = sd.prepareStatement(sqlGetUploadEvent);
+			pstmt = sd.prepareStatement(sql);
+			pstmtRepeats = sd.prepareStatement(sqlRepeats);
 			pstmtGetUploadEvent.setInt(1, ue_id);
 			ResultSet rs = pstmtGetUploadEvent.executeQuery();
 
@@ -270,9 +269,9 @@ public class SubRelationalDB extends Subscriber {
 			try {if (pstmtRepeats != null) {pstmtRepeats.close();}} catch (SQLException e) {}
 
 			try {
-				if (connectionSD != null) {
-					connectionSD.close();
-					connectionSD = null;
+				if (sd != null) {
+					sd.close();
+					sd = null;
 				}
 			} catch (SQLException e) {
 				e.printStackTrace();
