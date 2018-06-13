@@ -277,12 +277,6 @@ public class XFormData {
 				}
 			}
 			
-			/*
-			 * If the upload was for a temporary user who can only submit one result then delete that temporary user
-			 */
-			UserManager um = new UserManager();
-			um.deleteSingleSubmissionTemporaryUser(sd, user);
-			
 			log.info("userevent: " + user + " : upload results : " + si.getDisplayName());
 		} finally {
 			SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);

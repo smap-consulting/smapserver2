@@ -109,7 +109,7 @@ public class XLSTaskManager {
 			} else if(name.equals("repeat")) {
 				value = String.valueOf(props.repeat);
 			} else if(name.equals("email")) {
-				value = props.email;
+				value = props.emails;
 			} else if(name.equals("url")) {
 				value = props.url;
 			} else if(name.equals("lon")) {

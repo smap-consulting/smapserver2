@@ -29,7 +29,7 @@ public class TaskProperties {
 	public int repeat_count;
 	public String address;			// Text address
 	public String guidance;			// Key value pairs representing an unstructured address
-	public String email;
+	public String emails;
 	public String location;			// WKT version of geometry, duplicates data in geometry, used when updating location
 	
 	public String status;

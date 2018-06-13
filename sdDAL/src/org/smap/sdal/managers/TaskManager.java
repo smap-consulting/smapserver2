@@ -276,6 +276,7 @@ public class TaskManager {
 				+ "a.status as status,"
 				+ "a.assignee,"
 				+ "a.assignee_name,"
+				+ "a.email,"
 				+ "u.ident as assignee_ident, "				// Get current user ident for notification
 				+ "ST_AsGeoJSON(t.geo_point) as geom, "
 				+ "ST_AsText(t.geo_point) as wkt "
@@ -374,6 +375,7 @@ public class TaskManager {
 				tf.properties.blocked = rs.getBoolean("blocked");
 				tf.properties.assignee = rs.getInt("assignee");
 				tf.properties.assignee_name = rs.getString("assignee_name");
+				tf.properties.emails = rs.getString("email");
 				tf.properties.assignee_ident = rs.getString("assignee_ident");
 				tf.properties.location_trigger = rs.getString("location_trigger");
 				tf.properties.update_id = rs.getString("update_id");
@@ -876,6 +878,7 @@ public class TaskManager {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtAssign = null;
+		PreparedStatement pstmtInsert = null;
 
 		String sqlGetFormIdFromName = "select s_id from survey where display_name = ? and p_id = ? and deleted = 'false'";
 		PreparedStatement pstmtGetFormId = sd.prepareStatement(sqlGetFormIdFromName);
@@ -928,7 +931,7 @@ public class TaskManager {
 				tempUserId = GeneralUtilityMethods.createTempUser(
 						sd,
 						oId,
-						tf.properties.email, 
+						tf.properties.emails, 
 						tf.properties.assignee_name, 
 						pId,
 						tf);
@@ -977,6 +980,7 @@ public class TaskManager {
 				tf.properties.from = new Timestamp(cal.getTime().getTime());
 			}
 			
+			int taskId = tf.properties.id;
 			if(tf.properties.id > 0) {
 				pstmt = getUpdateTaskStatement(sd);
 				updateTask(
@@ -1014,31 +1018,46 @@ public class TaskManager {
 						tf.properties.repeat,
 						tf.properties.guidance,
 						tf.properties.instance_id);
+				ResultSet rsKeys = pstmt.getGeneratedKeys();
+				if(rsKeys.next()) {
+					taskId = rsKeys.getInt(1);
+				}
 			}
 
 			/*
 			 * 6. Assign the user to the task
-			 */
+			 */ 
+			
+			
+			
+			if(tf.properties.a_id > 0) {
+				pstmtInsert = getInsertAssignmentStatement(sd, tf.properties.emails == null);
+				pstmtAssign = getUpdateAssignmentStatement(sd);
+				updateAssignment(sd, pstmtAssign, pstmtInsert, 
+						tf.properties.assignee, tf.properties.emails, "accepted", taskId, 
+						tf.properties.a_id,
+						oId,
+						pId,
+						targetSurveyIdent);
+			} else {
+				pstmtInsert = getInsertAssignmentStatement(sd, tf.properties.emails == null);
+				applyAllAssignments(
+						sd, 
+						null, 
+						null, 
+						pstmtInsert, 
+						taskId,
+						tf.properties.assignee, 
+						0,		// Role changes not supported from task properties edit 
+						0,
+						tf.properties.emails,
+						oId,
+						pId,
+						targetSurveyIdent,
+						null);
+			}
+			
 			if(tf.properties.assignee > 0) {
-
-				int taskId = tf.properties.id;
-				if(taskId == 0) {
-					ResultSet keys = pstmt.getGeneratedKeys();
-					if(keys.next()) {
-						taskId = keys.getInt(1);
-					}
-				}
-
-				if(tf.properties.a_id > 0) {
-					// Update user
-					pstmtAssign = getUpdateAssignmentStatement(sd);
-					updateAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId, tf.properties.a_id);
-				} else {
-					// Insert user
-					pstmtAssign = getInsertAssignmentStatement(sd, true);
-					insertAssignment(pstmtAssign, tf.properties.assignee, null, "accepted", taskId);
-				}
-				
 				// Create a notification to alert the new user of the change to the task details
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, tf.properties.assignee);
 				MessagingManager mm = new MessagingManager();
@@ -1073,6 +1092,7 @@ public class TaskManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {pstmtAssign.close(); } catch(SQLException e) {};
+			if(pstmtInsert != null) try {pstmtInsert.close(); } catch(SQLException e) {};
 			if(pstmtGetFormId != null) try {pstmtGetFormId.close(); } catch(SQLException e) {};
 			if(pstmtGetAssigneeId != null) try {pstmtGetAssigneeId.close(); } catch(SQLException e) {};
 			if(pstmtHasLocationTrigger != null) try {pstmtHasLocationTrigger.close(); } catch(SQLException e) {};
@@ -1457,7 +1477,6 @@ public class TaskManager {
 			}			
 			
 			// Delete the assignments
-			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			pstmt = sd.prepareStatement(sqlAssignments);
 			pstmt.setString(1, updateId);
 			log.info("Delete assignments that reference an update id: " + pstmt.toString());
@@ -1759,23 +1778,75 @@ public class TaskManager {
 	}
 	
 	/*
-	 * Insert an assignment
+	 * Update an assignment
 	 */
-	public int updateAssignment(
-			PreparedStatement pstmt,
+	public void updateAssignment(
+			Connection sd,
+			PreparedStatement pstmtAssign,
+			PreparedStatement pstmtInsert,
 			int assignee,
+			String email,
 			String status,
 			int task_id,
-			int a_id) throws SQLException {
+			int a_id,
+			int oId,
+			int pId,
+			String targetSurveyIdent) throws Exception {
 		
-		pstmt.setInt(1, assignee);
-		pstmt.setInt(2,  assignee);
-		pstmt.setString(3,  status);			// default the status to accepted for new assignments
-		pstmt.setInt(4,  task_id);
-		pstmt.setInt(5, a_id);
-
-		log.info("Update an assignment: " + pstmt.toString());
-		return(pstmt.executeUpdate());
+		String sql = "select assignee, email from assignments where id = ?";
+		PreparedStatement pstmtGetExisting = null;
+		boolean assignmentCancelled = false;
+		try {
+			// 1.  If assignee id or emails is set then get existing assignee and email and cancel if the assignee has changed
+			if(assignee > 0 || email != null) {
+				pstmtGetExisting = sd.prepareStatement(sql);
+				pstmtGetExisting.setInt(1, a_id);
+				
+				ResultSet rs = pstmtGetExisting.executeQuery();
+				if(rs.next()) {
+					int existingAssignee = rs.getInt(1);
+					String existingEmail = rs.getString(2);
+					
+					if((assignee > 0 && existingAssignee != assignee) ||
+							(email != null && !email.equals(existingEmail))) {
+						cancelAssignment(sd, a_id, assignee);
+						assignmentCancelled = true;
+					}
+				}				
+				
+			}
+		
+			// 2.  If assignment has been cancelled then insert new assignment
+			if(assignmentCancelled) {
+				applyAllAssignments(
+						sd, 
+						null, 
+						null, 
+						pstmtInsert, 
+						task_id,
+						assignee, 
+						0,		// Role changes not supported from task properties edit 
+						0,
+						email,
+						oId,
+						pId,
+						targetSurveyIdent,
+						null);
+			} else {
+				// Else apply update
+				pstmtAssign.setInt(1, assignee);
+				pstmtAssign.setInt(2,  assignee);
+				pstmtAssign.setString(3,  status);			// default the status to accepted for new assignments
+				pstmtAssign.setInt(4,  task_id);
+				pstmtAssign.setInt(5, a_id);
+				
+				log.info("Update an assignment: " + pstmtAssign.toString());
+				pstmtAssign.executeUpdate();
+			}
+		} finally {
+			if(pstmtGetExisting != null) {try {pstmtGetExisting.close();} catch(Exception e){}}
+		}
+		
 	}
 	
 	
@@ -2173,6 +2244,36 @@ public class TaskManager {
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	private void cancelAssignment(Connection sd, int aId, int assignee) throws SQLException {
+		String sql = "update assignments set status = 'cancelled' where id = ? ";
+		PreparedStatement pstmt = null;
+		
+		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
+				+ "(select a.assignee from assignments a where a.id = ?) ";
+		PreparedStatement pstmtGetUsers = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, aId);
+			pstmt.executeUpdate();
+		
+			// Notify currently assigned users that are being modified
+			MessagingManager mm = new MessagingManager();
+			if(assignee > 0) {				
+				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers);
+				pstmtGetUsers.setInt(1, assignee);
+						
+				ResultSet rsNot = pstmtGetUsers.executeQuery();
+				while(rsNot.next()) {
+					mm.userChange(sd, rsNot.getString(1));
+				}
+			}
+
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			if(pstmtGetUsers != null) {try {pstmtGetUsers.close();} catch(Exception e) {}}
 		}
 	}
 }

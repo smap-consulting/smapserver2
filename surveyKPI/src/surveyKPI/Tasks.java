@@ -615,7 +615,6 @@ public class Tasks extends Application {
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
 		// End Authorisation
 		
-		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
 		

@@ -52,6 +52,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.GeoPoint;
@@ -217,14 +218,15 @@ public class SubRelationalDB extends Subscriber {
 				" where ue.ue_id = ? and ue.assignment_id is not null;";
 
 
-		String sql = "UPDATE assignments a SET status = 'submitted', completed_date = now() " +
-				"where a.id = ? " + 
-				"and a.assignee IN (SELECT id FROM users u " +
-				"where u.ident = ?);";
+		String sql = "update assignments a set status = 'submitted', completed_date = now() "
+				+ "where a.id = ? "
+				+ "and a.assignee IN (SELECT id FROM users u "
+				+ "where u.ident = ?);";
 
-		String sqlRepeats = "UPDATE tasks SET repeat_count = repeat_count + 1 " +
-				"where id = (select task_id from assignments where id = ?);";
+		String sqlRepeats = "update tasks SET repeat_count = repeat_count + 1 "
+				+ "where id = (select task_id from assignments where id = ?);";
 
+		//String sqlRepeating = 
 
 		try {
 			connectionSD = DriverManager.getConnection(databaseMeta, user, password);
@@ -246,6 +248,13 @@ public class SubRelationalDB extends Subscriber {
 					pstmtRepeats.setInt(1, assignment_id);
 					log.info("Updating task repeats: " + pstmtRepeats.toString());
 					pstmtRepeats.executeUpdate();
+					
+					/*
+					 * If the upload was for a temporary user 
+					 * who can only submit one result then delete that temporary user
+					 */
+					UserManager um = new UserManager();
+					um.deleteSingleSubmissionTemporaryUser(sd, user);
 				}
 
 
