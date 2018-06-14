@@ -1026,10 +1026,7 @@ public class TaskManager {
 
 			/*
 			 * 6. Assign the user to the task
-			 */ 
-			
-			
-			
+			 */ 	
 			if(tf.properties.a_id > 0) {
 				pstmtInsert = getInsertAssignmentStatement(sd, tf.properties.emails == null);
 				pstmtAssign = getUpdateAssignmentStatement(sd);
@@ -1116,11 +1113,11 @@ public class TaskManager {
 
 		String deleteTaskSql = "update tasks t set deleted = 'true', deleted_at = now() "
 				+ "where t.p_id = ? "		// Authorisation
-				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled') = 0 "
+				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled') = 0  "
 				+ "and t.id in (";		
 		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
-				+ "and (status = 'new' or status = 'accepted')"
+				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error') "
 				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now() "

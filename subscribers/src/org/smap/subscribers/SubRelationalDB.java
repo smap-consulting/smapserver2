@@ -211,21 +211,17 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtGetUploadEvent = null;
 		PreparedStatement pstmtRepeats = null;
+		ResultSet rs = null;
 
 		String sqlGetUploadEvent = "select ue.assignment_id " +
 				" from upload_event ue " +
-				" where ue.ue_id = ? and ue.assignment_id is not null;";
+				" where ue.ue_id = ? and ue.assignment_id is not null";
 
-
-		String sql = "update assignments a set status = 'submitted', completed_date = now() "
-				+ "where a.id = ? "
-				+ "and a.assignee in (select id from users u "
-				+ "where u.ident = ?);";
+		String sql = "update assignments set status = 'submitted', completed_date = now() "
+				+ "where id = ? ";
 
 		String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 "
-				+ "where id = (select task_id from assignments where id = ?);";
-
-		//String sqlRepeating = 
+				+ "where id = (select task_id from assignments where id = ?)";
 
 		try {
 			sd = DriverManager.getConnection(databaseMeta, user, password);
@@ -233,14 +229,15 @@ public class SubRelationalDB extends Subscriber {
 			pstmtGetUploadEvent = sd.prepareStatement(sqlGetUploadEvent);
 			pstmt = sd.prepareStatement(sql);
 			pstmtRepeats = sd.prepareStatement(sqlRepeats);
+			
 			pstmtGetUploadEvent.setInt(1, ue_id);
-			ResultSet rs = pstmtGetUploadEvent.executeQuery();
+			rs = pstmtGetUploadEvent.executeQuery();
 
 			if(rs.next()) {
 				int assignment_id = rs.getInt(1);
+				log.info("Assignment id: " + assignment_id);
 				if(assignment_id > 0) {
 					pstmt.setInt(1, assignment_id);
-					pstmt.setString(2, remoteUser);
 					log.info("Updating assignment status: " + pstmt.toString());
 					pstmt.executeUpdate();
 
@@ -248,15 +245,7 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Updating task repeats: " + pstmtRepeats.toString());
 					pstmtRepeats.executeUpdate();
 					
-					/*
-					 * If the upload was for a temporary user 
-					 * who can only submit one result then delete that temporary user
-					 */
-					UserManager um = new UserManager();
-					um.deleteSingleSubmissionTemporaryUser(sd, user);
 				}
-
-
 			}
 
 
@@ -267,6 +256,7 @@ public class SubRelationalDB extends Subscriber {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtGetUploadEvent != null) {pstmtGetUploadEvent.close();}} catch (SQLException e) {}
 			try {if (pstmtRepeats != null) {pstmtRepeats.close();}} catch (SQLException e) {}
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {}
 
 			try {
 				if (sd != null) {

@@ -511,31 +511,28 @@ public class GeneralUtilityMethods {
 
 		PreparedStatement pstmt = null;
 
-		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, user);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				language = rs.getString(1);
-			}
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
+		if(user != null) {
 			try {
-				if (pstmt != null) {
-					pstmt.close();
+	
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				ResultSet rs = pstmt.executeQuery();
+				if (rs.next()) {
+					language = rs.getString(1);
 				}
+	
 			} catch (SQLException e) {
+				log.log(Level.SEVERE, "Error", e);
+				throw e;
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}
 		}
 
 		if (language == null || language.trim().length() == 0) {
 			Locale locale = request.getLocale();
 			if(locale == null) {
-				language = "en"; // Default to english
+				language = "en"; // Default to English
 			} else {
 				language = locale.getLanguage();
 			}
@@ -853,6 +850,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, actionLink);
 			ResultSet rs = pstmt.executeQuery();
+			log.info("Getting assignment status: " + pstmt.toString());
 			if (rs.next()) {
 				a.status = rs.getString(1);
 				a.completed_date = rs.getTimestamp(2);

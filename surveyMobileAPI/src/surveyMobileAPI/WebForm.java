@@ -313,6 +313,8 @@ public class WebForm extends Application {
 				} else if(aDetails.status.equals("deleted")) {
 					message = localisation.getString("wf_fc");
 					message = message.replaceAll("%1s", sdf.format(aDetails.deleted_date));
+				} else {
+					message = localisation.getString("wf_fnf");
 				}
 				response = getErrorPage(request, locale, message);
 			} else if(!a.action.equals("task")) {

@@ -22,6 +22,9 @@ package surveyMobileAPI;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -41,11 +44,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.model.AssignmentDetails;
 import org.smap.server.entities.MissingTemplateException;
 
 import exceptions.SurveyBlockedException;
@@ -143,7 +148,7 @@ public class Upload extends Application {
 	
 		Response response = null;
 
-		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-Upload");
+		Connection sd = SDDataSource.getConnection("surveyMobileAPI-Upload");
 		
 		/*
 		 * Authenticate the user using either the user id associated with the key, if provided, or the
@@ -152,7 +157,7 @@ public class Upload extends Application {
 		String user = null;
 		if(key != null) {
 			try {
-				user = GeneralUtilityMethods.getDynamicUser(connectionSD, key);
+				user = GeneralUtilityMethods.getDynamicUser(sd, key);
 			} catch (SQLException e) {
 				e.printStackTrace();
 			}
@@ -161,21 +166,40 @@ public class Upload extends Application {
 		}
 		
 		if(user != null) {
-			a.isAuthorised(connectionSD, user);
+			a.isAuthorised(sd, user);
 			log.info("User: " + user);
 		}
-		
-		SDDataSource.closeConnection("surveyMobileAPI-Upload", connectionSD);
 		
 		// End Authorisation
 
 		// Extract the data
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			if(user == null) {
-				log.info("Error: Attempting to upload results: user not found");
-				throw new AuthorisationException();
-			} 
+				if(key == null) {
+					log.info("Error: Attempting to upload results: user not found");
+					throw new AuthorisationException();
+				} else {
+					// This is for a task where the temporary user has been deleted
+					AssignmentDetails aDetails = GeneralUtilityMethods.getAssignmentStatusForTempUser(sd, key);
+					String message = null;
+					SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+					
+					if(aDetails.status.equals("submitted")) {
+						message = localisation.getString("wf_fs");
+						message = message.replaceAll("%s1", sdf.format(aDetails.completed_date));
+					} else if(aDetails.status.equals("cancelled")) {
+						message = localisation.getString("wf_fc");
+						message = message.replaceAll("%s1", sdf.format(aDetails.cancelled_date));
+					} else if(aDetails.status.equals("deleted")) {
+						message = localisation.getString("wf_fc");
+						message = message.replaceAll("%s1", sdf.format(aDetails.deleted_date));
+					}
+					throw new ApplicationException(message);
+				}
+			}
 			
 			log.info("Upload Started ================= " + instanceId + " ==============");
 			log.info("Url:" + request.getRequestURI());
@@ -204,6 +228,8 @@ public class Upload extends Application {
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "", e);
 			response = Response.status(Status.BAD_REQUEST).entity(getErrorMessage(key, e.getMessage())).build();
+		} finally {
+			SDDataSource.closeConnection("surveyMobileAPI-Upload", sd);
 		}
 
 		return response;
