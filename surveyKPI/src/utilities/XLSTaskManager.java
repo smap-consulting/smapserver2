@@ -58,16 +58,19 @@ public class XLSTaskManager {
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0
+	String scheme = null;
+	String serverName = null;
 	
 	private class Column {
 		String name;
 		String human_name;
+		boolean isAssignment;
 
 		
-		public Column(ResourceBundle localisation, int col, String n) {
+		public Column(ResourceBundle localisation, int col, String n, boolean a) {
 			name = n;
-			//human_name = localisation.getString(n);
 			human_name = n;		// Need to work out how to use translations when the file needs to be imported again
+			isAssignment = a;
 		}
 		
 		// Return the width of this column
@@ -84,12 +87,16 @@ public class XLSTaskManager {
 				value = props.form_name;
 			} else if(name.equals("name")) {
 				value = props.name;
-			} else if(name.equals("status")) {
-				value = props.status;
 			} else if(name.equals("assignee_ident")) {
 				value = props.assignee_ident;
-			} else if(name.equals("generated_user_name")) {
-				value = props.assignee_name;
+			} else if(name.equals("email")) {
+				value = props.emails;
+			} else if(name.equals("url")) {
+				if(props.action_link != null && props.action_link.trim().length() > 0) {
+					value = scheme + "://" + serverName + "/webForm" + props.action_link;
+				} else {
+					value = scheme + "://" + serverName + props.url;
+				}
 			} else if(name.equals("location_trigger")) {
 				value = props.location_trigger;
 			} else if(name.equals("from")) {
@@ -108,17 +115,15 @@ public class XLSTaskManager {
 				value = props.guidance;		
 			} else if(name.equals("repeat")) {
 				value = String.valueOf(props.repeat);
-			} else if(name.equals("email")) {
-				value = props.emails;
-			} else if(name.equals("url")) {
-				value = props.url;
+			} else if(name.equals("complete_all")) {
+				value = String.valueOf(props.complete_all);
+			} else if(name.equals("address")) {
+				value = props.address;
 			} else if(name.equals("lon")) {
 				value = String.valueOf(GeneralUtilityMethods.wktToLatLng(props.location, "lng"));
 			} else if(name.equals("lat")) {
 				value = String.valueOf(GeneralUtilityMethods.wktToLatLng(props.location, "lat"));
-			} else if(name.equals("address")) {
-				value = props.address;
-			}
+			} 
 			
 			if(value == null) {
 				value = "";
@@ -144,12 +149,14 @@ public class XLSTaskManager {
 
 	}
 	
-	public XLSTaskManager(String type) {
+	public XLSTaskManager(String type, String scheme, String serverName) {
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook();
 		} else {
 			wb = new XSSFWorkbook();
 		}
+		this.scheme = scheme;
+		this.serverName = serverName;
 	}
 	
 	/*
@@ -296,7 +303,7 @@ public class XLSTaskManager {
 		
 		Sheet taskListSheet = wb.createSheet("tasks");
 		Sheet taskSettingsSheet = wb.createSheet("settings");
-		taskListSheet.createFreezePane(3, 1);	// Freeze header row and first 3 columns
+		taskListSheet.createFreezePane(5, 1);	// Freeze header row and first 5 columns
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
@@ -515,22 +522,20 @@ public class XLSTaskManager {
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "form"));
-		cols.add(new Column(localisation, colNumber++, "name"));
-		cols.add(new Column(localisation, colNumber++, "status"));
-		cols.add(new Column(localisation, colNumber++, "assignee_ident"));
-		cols.add(new Column(localisation, colNumber++, "generate_user"));
-		cols.add(new Column(localisation, colNumber++, "generated_user_name"));
-		cols.add(new Column(localisation, colNumber++, "email"));
-		cols.add(new Column(localisation, colNumber++, "location_trigger"));
-		cols.add(new Column(localisation, colNumber++, "from"));
-		cols.add(new Column(localisation, colNumber++, "to"));
-		cols.add(new Column(localisation, colNumber++, "guidance"));
-		cols.add(new Column(localisation, colNumber++, "repeat"));
-		cols.add(new Column(localisation, colNumber++, "url"));
-		cols.add(new Column(localisation, colNumber++, "address"));
-		cols.add(new Column(localisation, colNumber++, "lon"));
-		cols.add(new Column(localisation, colNumber++, "lat"));
+		cols.add(new Column(localisation, colNumber++, "form", false));
+		cols.add(new Column(localisation, colNumber++, "name", false));
+		cols.add(new Column(localisation, colNumber++, "assignee_ident", true));		// Assignment
+		cols.add(new Column(localisation, colNumber++, "email", true));				// Assignment
+		cols.add(new Column(localisation, colNumber++, "url", true));					// Assignment
+		cols.add(new Column(localisation, colNumber++, "location_trigger", false));
+		cols.add(new Column(localisation, colNumber++, "from", false));
+		cols.add(new Column(localisation, colNumber++, "to", false));
+		cols.add(new Column(localisation, colNumber++, "guidance", false));
+		cols.add(new Column(localisation, colNumber++, "repeat", false));
+		cols.add(new Column(localisation, colNumber++, "complete_all", false));
+		cols.add(new Column(localisation, colNumber++, "address", false));
+		cols.add(new Column(localisation, colNumber++, "lon", false));
+		cols.add(new Column(localisation, colNumber++, "lat", false));
 		
 		
 		return cols;
@@ -545,8 +550,8 @@ public class XLSTaskManager {
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "UID"));
-		cols.add(new Column(localisation, colNumber++, "tagName"));
+		cols.add(new Column(localisation, colNumber++, "UID", false));
+		cols.add(new Column(localisation, colNumber++, "tagName", false));
 		
 		return cols;
 	}
@@ -561,10 +566,15 @@ public class XLSTaskManager {
 		}
 				
 		Row headerRow = sheet.createRow(0);
-		CellStyle headerStyle = styles.get("header");
 		for(int i = 0; i < cols.size(); i++) {
 			Column col = cols.get(i);
 			
+			CellStyle headerStyle = null;
+			if(col.isAssignment) {
+				headerStyle = styles.get("header_assignments");
+			} else {
+				headerStyle = styles.get("header_tasks");
+			}
             Cell cell = headerRow.createCell(i);
             cell.setCellStyle(headerStyle);
             cell.setCellValue(col.human_name);
@@ -589,32 +599,43 @@ public class XLSTaskManager {
 		
 		styleTimestamp.setDataFormat(format.getFormat("yyyy-mm-dd h:mm"));	
 		
+		int currentTask = -1;
 		for(TaskFeature feature : tl.features)  {
 			
 			TaskProperties props = feature.properties;
 				
+			int thisTask = props.id;
 			Row row = sheet.createRow(rowNumber++);
 			for(int i = 0; i < cols.size(); i++) {
-				Column col = cols.get(i);			
+				Column col = cols.get(i);	
 				Cell cell = row.createCell(i);
-
-				if(col.name.equals("from") || col.name.equals("to")) {
-					cell.setCellStyle(styleTimestamp);
-					
-					if(col.getDateValue(props) != null) {
-						LocalDateTime gmtDate = col.getDateValue(props).toLocalDateTime();
-						ZonedDateTime gmtZoned = ZonedDateTime.of(gmtDate, gmtZoneId);
-						ZonedDateTime localZoned = gmtZoned.withZoneSameInstant(timeZoneId);
-						LocalDateTime localDate = localZoned.toLocalDateTime();
-						Timestamp ts2 = Timestamp.valueOf(localDate);
-						cell.setCellValue(ts2);
+				if(col.isAssignment || thisTask != currentTask) {		// Write all the assignments but only task data on new task				
+	
+					if(col.name.equals("from") || col.name.equals("to")) {
+						cell.setCellStyle(styleTimestamp);
+						
+						if(col.getDateValue(props) != null) {
+							LocalDateTime gmtDate = col.getDateValue(props).toLocalDateTime();
+							ZonedDateTime gmtZoned = ZonedDateTime.of(gmtDate, gmtZoneId);
+							ZonedDateTime localZoned = gmtZoned.withZoneSameInstant(timeZoneId);
+							LocalDateTime localDate = localZoned.toLocalDateTime();
+							Timestamp ts2 = Timestamp.valueOf(localDate);
+							cell.setCellValue(ts2);
+						}
+	
+					} else {
+						if(col.name.equals("url")) {
+							cell.setCellStyle(styles.get("default_grey"));
+						} else {
+							cell.setCellStyle(styles.get("default"));	
+						}
+						cell.setCellValue(col.getValue(props));
 					}
-
 				} else {
-					cell.setCellStyle(styles.get("default"));	
-					cell.setCellValue(col.getValue(props));
+					cell.setCellStyle(styles.get("default_grey"));		
 				}
 	        }	
+			currentTask = thisTask;
 		}
 		
 		// Populate settings sheet

@@ -270,6 +270,7 @@ public class TaskManager {
 				+ "t.form_id,"
 				+ "t.survey_name as form_name,"
 				+ "t.deleted,"
+				+ "t.complete_all,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
 				+ "a.id as assignment_id,"
@@ -277,6 +278,7 @@ public class TaskManager {
 				+ "a.assignee,"
 				+ "a.assignee_name,"
 				+ "a.email,"
+				+ "a.action_link,"
 				+ "u.ident as assignee_ident, "				// Get current user ident for notification
 				+ "ST_AsGeoJSON(t.geo_point) as geom, "
 				+ "ST_AsText(t.geo_point) as wkt "
@@ -372,6 +374,7 @@ public class TaskManager {
 				tf.properties.form_ident = rs.getString("form_ident");
 				tf.properties.form_name = rs.getString("form_name");
 				tf.properties.url = rs.getString("url");
+				tf.properties.action_link = rs.getString("action_link");
 				tf.properties.blocked = rs.getBoolean("blocked");
 				tf.properties.assignee = rs.getInt("assignee");
 				tf.properties.assignee_name = rs.getString("assignee_name");
@@ -386,6 +389,7 @@ public class TaskManager {
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
 				tf.properties.location = rs.getString("wkt");
+				tf.properties.complete_all = rs.getBoolean("complete_all");
 
 				tl.features.add(tf);
 			}

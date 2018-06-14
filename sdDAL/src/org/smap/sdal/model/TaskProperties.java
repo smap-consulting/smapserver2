@@ -10,6 +10,7 @@ public class TaskProperties {
 	public String pid;				// Project id
 	public String url;
 	public int form_id;
+	public String action_link;
 	public String form_ident;
 	public String form_name;
 	public boolean blocked;
@@ -31,6 +32,7 @@ public class TaskProperties {
 	public String guidance;			// Key value pairs representing an unstructured address
 	public String emails;
 	public String location;			// WKT version of geometry, duplicates data in geometry, used when updating location
+	public boolean complete_all;		// When set true all the assignments associated to a task need to be completed
 	
 	public String status;
 }

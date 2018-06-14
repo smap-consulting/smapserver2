@@ -376,7 +376,7 @@ public class Tasks extends Application {
 			GeneralUtilityMethods.setFilenameInResponse("locations." + filetype, response);
 			
 			// Create XLSTasks File
-			XLSTaskManager xf = new XLSTaskManager(filetype);
+			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
 			xf.createXLSLocationsFile(response.getOutputStream(), locations, localisation);
 			
 		}  catch (Exception e) {
@@ -438,7 +438,7 @@ public class Tasks extends Application {
 			GeneralUtilityMethods.setFilenameInResponse(tg.name + "." + filetype, response); // Set file name
 			
 			// Create XLSTasks File
-			XLSTaskManager xf = new XLSTaskManager(filetype);
+			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
 			xf.createXLSTaskFile(response.getOutputStream(), tl, localisation, tz);
 			
 		}  catch (Exception e) {
