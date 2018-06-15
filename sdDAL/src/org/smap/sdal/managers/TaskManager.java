@@ -25,6 +25,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
+import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
@@ -42,6 +43,8 @@ import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
+import org.smap.sdal.model.TaskServerDefn;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
@@ -388,7 +391,6 @@ public class TaskManager {
 				tf.properties.repeat = rs.getBoolean("repeat");
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
-				tf.properties.location = rs.getString("wkt");
 				tf.properties.complete_all = rs.getBoolean("complete_all");
 
 				tl.features.add(tf);
@@ -409,7 +411,7 @@ public class TaskManager {
 	 * Save the tasks for the specified task group
 	 */
 	public void writeTaskList(Connection sd, 
-			TaskListGeoJson tl,
+			ArrayList<TaskServerDefn> tl,
 			int pId,
 			String pName,
 			int tgId,
@@ -420,12 +422,11 @@ public class TaskManager {
 
 		HashMap<String, String> userIdents = new HashMap<>();
 
-		ArrayList<TaskFeature> features = tl.features;
-		for(int i = 0; i < features.size(); i++) {
-			TaskFeature tf = features.get(i);
-			writeTask(sd, pId, pName, tgId, tgName, tf, urlPrefix, updateResources, oId);
-			if(tf.properties.assignee_ident != null) {
-				userIdents.put(tf.properties.assignee_ident, tf.properties.assignee_ident);
+		for(TaskServerDefn tsd : tl) {
+			writeTask(sd, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId);
+			for(AssignmentServerDefn asd : tsd.assignments)
+			if(asd.assignee_ident != null) {
+				userIdents.put(asd.assignee_ident, asd.assignee_ident);
 			}
 		}
 
@@ -874,7 +875,7 @@ public class TaskManager {
 			String pName,
 			int tgId,
 			String tgName,
-			TaskFeature tf,
+			TaskServerDefn tsd,
 			String urlPrefix,
 			boolean updateResources,
 			int oId	
@@ -902,105 +903,91 @@ public class TaskManager {
 		try {
 
 			// 1. Update the existing task if it is being updated
-			if(tf.properties.id > 0) {
+			if(tsd.id > 0) {
 				// Throw an exception if the task has been deleted
-				if(isTaskDeleted(sd, tf.properties.id, tf.properties.a_id)) {
-					throw new Exception("Task has been deleted and cannot be edited");
+				for(AssignmentServerDefn asd : tsd.assignments) {
+					if(isTaskDeleted(sd, tsd.id, asd.a_id)) {
+						throw new Exception("Task has been deleted and cannot be edited");
+					}
 				}
 			}
 
 			// 2. Get the form id, if only the form name is specified
-			if(tf.properties.form_id <= 0) {
-				if(tf.properties.form_name == null) {
+			if(tsd.form_id <= 0) {
+				if(tsd.form_name == null) {
 					throw new Exception("Missing form Name");
 				} else {
-					pstmtGetFormId.setString(1, tf.properties.form_name);
+					pstmtGetFormId.setString(1, tsd.form_name);
 					pstmtGetFormId.setInt(2, pId);
 					log.info("Get survey id: " + pstmtGetFormId.toString());
 					ResultSet rs = pstmtGetFormId.executeQuery();
 					if(rs.next()) {
-						tf.properties.form_id = rs.getInt(1);
+						tsd.form_id = rs.getInt(1);
 					} else {
-						throw new Exception("Form not found: " + tf.properties.form_name);
+						throw new Exception("Form not found: " + tsd.form_name);
 					}
 				}
 			}
 
 			/*
-			 * 3. If a temporary user is to be created then create the user
-			 *   Else get the assignee id, if only the assignee ident is specified
+			 *   Get the assignee id, if only the assignee ident is specified
 			 */
-			String tempUserId = null;
-			if(tf.properties.generate_user) {
-				tempUserId = GeneralUtilityMethods.createTempUser(
-						sd,
-						oId,
-						tf.properties.emails, 
-						tf.properties.assignee_name, 
-						pId,
-						tf);
-
-			} else if(tf.properties.assignee <= 0 && tf.properties.assignee_ident != null && tf.properties.assignee_ident.trim().length() > 0) {
-
-				pstmtGetAssigneeId.setString(1, tf.properties.assignee_ident);
-				pstmtGetAssigneeId.setInt(2, pId);
-				log.info("Get user id: " + pstmtGetAssigneeId.toString());
-				ResultSet rs = pstmtGetAssigneeId.executeQuery();
-				if(rs.next()) {
-					tf.properties.assignee = rs.getInt(1);
-				} else {
-					throw new Exception("Assignee not found: " + tf.properties.assignee_ident);
+			for(AssignmentServerDefn asd : tsd.assignments) {
+				if(asd.assignee <= 0 && asd.assignee_ident != null && asd.assignee_ident.trim().length() > 0) {
+	
+					pstmtGetAssigneeId.setString(1, asd.assignee_ident);
+					pstmtGetAssigneeId.setInt(2, pId);
+					log.info("Get user id: " + pstmtGetAssigneeId.toString());
+					ResultSet rs = pstmtGetAssigneeId.executeQuery();
+					if(rs.next()) {
+						asd.assignee = rs.getInt(1);
+					} else {
+						throw new Exception("Assignee not found: " + asd.assignee_ident);
+					}
 				}
 			}
 
-			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tf.properties.form_id);
-			String webformUrl = null;
-			if(tf.properties.generate_user) {
-
-				webformUrl = urlPrefix + "/webForm/id/" + tempUserId + 
-						"/" + targetSurveyIdent;
-			} else {
-				webformUrl = urlPrefix + "/webForm/" + targetSurveyIdent;
-			}
+			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tsd.form_id);
+			String webformUrl = urlPrefix + "/webForm/" + targetSurveyIdent;
 
 			/*
 			 * 4. Location
 			 */
-			String location = tf.properties.location;
-			if(location == null) {
-				location = "POINT(0 0)";
-			} else if(location.startsWith("LINESTRING")) {
-				log.info("Starts with linestring: " + tf.properties.location.split(" ").length);
-				if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
-					location = location.replaceFirst("LINESTRING", "POINT");
-				}
-			}	 
+			String sLon = String.valueOf(tsd.lon);
+			String sLat = String.valueOf(tsd.lat);
+			if(sLon.equals("0.0")) {
+				sLon = "0";
+			}
+			if(sLat.equals("0.0")) {
+				sLat = "0";
+			}
+			String location = "POINT(" + tsd.lon + " " + tsd.lat + ")";
 
 			/*
 			 * 5. Write the task to the database
 			 */
-			if(tf.properties.from == null) {
+			if(tsd.from == null) {
 				Calendar cal = Calendar.getInstance();
-				tf.properties.from = new Timestamp(cal.getTime().getTime());
+				tsd.from = new Timestamp(cal.getTime().getTime());
 			}
 			
-			int taskId = tf.properties.id;
-			if(tf.properties.id > 0) {
+			int taskId = tsd.id;
+			if(tsd.id > 0) {
 				pstmt = getUpdateTaskStatement(sd);
 				updateTask(
 						pstmt,
-						tf.properties.id,
+						tsd.id,
 						tgId,
-						tf.properties.name,
-						tf.properties.form_id,
+						tsd.name,
+						tsd.form_id,
 						webformUrl,
 						location,
-						tf.properties.address,
-						tf.properties.from,
-						tf.properties.to,
-						tf.properties.location_trigger,
-						tf.properties.repeat,
-						tf.properties.guidance);
+						tsd.address,
+						tsd.from,
+						tsd.to,
+						tsd.location_trigger,
+						tsd.repeat,
+						tsd.guidance);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -1009,19 +996,19 @@ public class TaskManager {
 						pName,
 						tgId,
 						tgName,
-						tf.properties.name,
-						tf.properties.form_id,
+						tsd.name,
+						tsd.form_id,
 						webformUrl,
-						tf.properties.initial_data,
+						tsd.initial_data,
 						location,
-						tf.properties.update_id,
-						tf.properties.address,
-						tf.properties.from,
-						tf.properties.to,
-						tf.properties.location_trigger,
-						tf.properties.repeat,
-						tf.properties.guidance,
-						tf.properties.instance_id);
+						tsd.update_id,
+						tsd.address,
+						tsd.from,
+						tsd.to,
+						tsd.location_trigger,
+						tsd.repeat,
+						tsd.guidance,
+						tsd.instance_id);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					taskId = rsKeys.getInt(1);
@@ -1031,38 +1018,40 @@ public class TaskManager {
 			/*
 			 * 6. Assign the user to the task
 			 */ 	
-			if(tf.properties.a_id > 0) {
-				pstmtInsert = getInsertAssignmentStatement(sd, tf.properties.emails == null);
-				pstmtAssign = getUpdateAssignmentStatement(sd);
-				updateAssignment(sd, pstmtAssign, pstmtInsert, 
-						tf.properties.assignee, tf.properties.emails, "accepted", taskId, 
-						tf.properties.a_id,
-						oId,
-						pId,
-						targetSurveyIdent);
-			} else {
-				pstmtInsert = getInsertAssignmentStatement(sd, tf.properties.emails == null);
-				applyAllAssignments(
-						sd, 
-						null, 
-						null, 
-						pstmtInsert, 
-						taskId,
-						tf.properties.assignee, 
-						0,		// Role changes not supported from task properties edit 
-						0,
-						tf.properties.emails,
-						oId,
-						pId,
-						targetSurveyIdent,
-						null);
-			}
-			
-			if(tf.properties.assignee > 0) {
-				// Create a notification to alert the new user of the change to the task details
-				String userIdent = GeneralUtilityMethods.getUserIdent(sd, tf.properties.assignee);
-				MessagingManager mm = new MessagingManager();
-				mm.userChange(sd, userIdent);
+			for(AssignmentServerDefn asd : tsd.assignments) {
+				if(asd.a_id > 0) {
+					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
+					pstmtAssign = getUpdateAssignmentStatement(sd);
+					updateAssignment(sd, pstmtAssign, pstmtInsert, 
+							asd.assignee, asd.email, "accepted", taskId, 
+							asd.a_id,
+							oId,
+							pId,
+							targetSurveyIdent);
+				} else {
+					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
+					applyAllAssignments(
+							sd, 
+							null, 
+							null, 
+							pstmtInsert, 
+							taskId,
+							asd.assignee, 
+							0,		// Role changes not supported from task properties edit 
+							0,
+							asd.email,
+							oId,
+							pId,
+							targetSurveyIdent,
+							null);
+				}
+				
+				if(asd.assignee > 0) {
+					// Create a notification to alert the new user of the change to the task details
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
+					MessagingManager mm = new MessagingManager();
+					mm.userChange(sd, userIdent);
+				}
 			}
 
 			/*
@@ -1071,18 +1060,18 @@ public class TaskManager {
 			 * 
 			 */
 			if(updateResources) {
-				if(tf.properties.location_trigger != null && tf.properties.location_trigger.trim().length() > 0) {
+				if(tsd.location_trigger != null && tsd.location_trigger.trim().length() > 0) {
 					pstmtHasLocationTrigger = sd.prepareStatement(sqlHasLocationTrigger);
 					pstmtHasLocationTrigger.setInt(1, oId);
-					pstmtHasLocationTrigger.setString(2, tf.properties.location_trigger);
+					pstmtHasLocationTrigger.setString(2, tsd.location_trigger);
 					ResultSet rs = pstmtHasLocationTrigger.executeQuery();
 					if(rs.next()) {
 						int count = rs.getInt(1);
 						if(count == 0) {
 							pstmtUpdateLocationTrigger = sd.prepareStatement(sqlUpdateLocationTrigger);
 							pstmtUpdateLocationTrigger.setInt(1, oId);
-							pstmtUpdateLocationTrigger.setString(2,tf.properties.location_trigger);
-							pstmtUpdateLocationTrigger.setString(3,tf.properties.name);
+							pstmtUpdateLocationTrigger.setString(2, tsd.location_trigger);
+							pstmtUpdateLocationTrigger.setString(3, tsd.name);
 							log.info("Adding NFC resource: " + pstmtUpdateLocationTrigger.toString());
 							pstmtUpdateLocationTrigger.executeUpdate();
 						}
@@ -2276,6 +2265,51 @@ public class TaskManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			if(pstmtGetUsers != null) {try {pstmtGetUsers.close();} catch(Exception e) {}}
 		}
+	}
+	
+	/*
+	 * Convert TaskProperties from a TaskFeature to a TaskSeverDefn
+	 * TaskPoperties are the old deprecated way of representing a task and an assignment as a single object
+	 * Now the 1 to many relationship between task and assignments is managed using TaskServerDefn
+	 */
+	public TaskServerDefn convertTaskFeature(TaskFeature tf) {
+		TaskServerDefn tsd = new TaskServerDefn();
+		tsd.id = tf.properties.id;
+		tsd.name = tf.properties.name;
+		tsd.address = tf.properties.address;
+		tsd.form_id = tf.properties.form_id;
+		tsd.form_name = tf.properties.form_name;
+		tsd.from = tf.properties.from;
+		tsd.to = tf.properties.to;
+		tsd.guidance = tf.properties.guidance;
+		tsd.initial_data = tf.properties.initial_data;
+		tsd.instance_id = tf.properties.instance_id;
+		tsd.repeat = tf.properties.repeat;
+		tsd.update_id = tf.properties.update_id;
+		tsd.lon = tf.properties.lon;
+		tsd.lat = tf.properties.lat;
+		
+		if(tf.properties.emails != null && tf.properties.emails.trim().length() > 0) {
+			String [] emailArray = tf.properties.emails.split(",");
+			for(String email : emailArray) {
+				AssignmentServerDefn asd = new AssignmentServerDefn();
+				asd.a_id = tf.properties.a_id;
+				asd.assignee = tf.properties.assignee;
+				asd.assignee_name = tf.properties.assignee_name;
+				asd.email = email;
+				tsd.assignments.add(asd);
+			}
+		} else {
+			AssignmentServerDefn asd = new AssignmentServerDefn();
+			asd.a_id = tf.properties.a_id;
+			asd.assignee = tf.properties.assignee;
+			asd.assignee_name = tf.properties.assignee_name;
+			asd.email = tf.properties.emails;
+			tsd.assignments.add(asd);
+		}
+		
+		return tsd;
+		
 	}
 }
 

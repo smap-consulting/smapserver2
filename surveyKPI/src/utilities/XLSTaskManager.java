@@ -47,6 +47,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
+import org.smap.sdal.model.TaskServerDefn;
+import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.Location;
 
 
@@ -89,6 +91,8 @@ public class XLSTaskManager {
 				value = props.name;
 			} else if(name.equals("assignee_ident")) {
 				value = props.assignee_ident;
+			} else if(name.equals("assignee_name")) {
+				value = props.assignee_name;
 			} else if(name.equals("email")) {
 				value = props.emails;
 			} else if(name.equals("url")) {
@@ -120,9 +124,9 @@ public class XLSTaskManager {
 			} else if(name.equals("address")) {
 				value = props.address;
 			} else if(name.equals("lon")) {
-				value = String.valueOf(GeneralUtilityMethods.wktToLatLng(props.location, "lng"));
+				value = String.valueOf(props.lon);
 			} else if(name.equals("lat")) {
-				value = String.valueOf(GeneralUtilityMethods.wktToLatLng(props.location, "lat"));
+				value = String.valueOf(props.lat);
 			} 
 			
 			if(value == null) {
@@ -162,23 +166,23 @@ public class XLSTaskManager {
 	/*
 	 * Create a task list from an XLS file
 	 */
-	public TaskListGeoJson getXLSTaskList(String type, InputStream inputStream, ResourceBundle localisation) throws Exception {
-		
+	public ArrayList<TaskServerDefn> getXLSTaskList(String type, InputStream inputStream, ResourceBundle localisation) throws Exception {
+
 		Sheet sheet = null;
 		Sheet settingsSheet = null;
-        Row row = null;
-        int lastRowNum = 0;
-        TaskListGeoJson tl = new TaskListGeoJson();
-        tl.features = new ArrayList<TaskFeature> ();
-        HashMap<String, Integer> header = null;
+		Row row = null;
+		int lastRowNum = 0;
+		ArrayList<TaskServerDefn> tl = new ArrayList<TaskServerDefn> ();
+
+		HashMap<String, Integer> header = null;
 		String tz = "GMT";
-        
+
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
 		} else {
 			wb = new XSSFWorkbook(inputStream);
 		}
-		
+
 		/*
 		 * Get the task sheet settings
 		 */
@@ -187,95 +191,101 @@ public class XLSTaskManager {
 			int lastSettingsRow = settingsSheet.getLastRowNum();
 			for(int j = 0; j <= lastSettingsRow; j++) {
 				row = settingsSheet.getRow(j);
-                
-                if(row != null) {         	
-                    int lastCellNum = row.getLastCellNum();
-                    if(lastCellNum > 0) {
-                    	Cell c = row.getCell(0);
-                    	String k = c.getStringCellValue();
-                    	if(k != null && k.trim().toLowerCase().equals("time zone:")) {
-                    		c = row.getCell(1);
-                    		tz = c.getStringCellValue();
-                    		break;
-                    	}
-                    }
-                }
+
+				if(row != null) {         	
+					int lastCellNum = row.getLastCellNum();
+					if(lastCellNum > 0) {
+						Cell c = row.getCell(0);
+						String k = c.getStringCellValue();
+						if(k != null && k.trim().toLowerCase().equals("time zone:")) {
+							c = row.getCell(1);
+							tz = c.getStringCellValue();
+							break;
+						}
+					}
+				}
 			}
 		}
-		
+
 		ZoneId timeZoneId = ZoneId.of(tz);
 		ZoneId gmtZoneId = ZoneId.of("GMT");
-		
+
 		sheet = wb.getSheet("tasks");
 		if(sheet.getPhysicalNumberOfRows() > 0) {
-			
+
 			lastRowNum = sheet.getLastRowNum();
 			boolean needHeader = true;
-			
-            for(int j = 0; j <= lastRowNum; j++) {
-                
-            	row = sheet.getRow(j);
-                
-                if(row != null) {
-                	
-                    int lastCellNum = row.getLastCellNum();
-                    
-                	if(needHeader) {
-                		header = getHeader(row, lastCellNum);
-                		needHeader = false;
-                	} else {
-                		TaskFeature tf = new TaskFeature();
-                		TaskProperties tp = new TaskProperties();
-                		tf.properties = tp;
 
-            			tp.id = 0;
-            			tp.form_name = getColumn(row, "form", header, lastCellNum, null);
-            			if(tp.form_name == null || tp.form_name.trim().length() == 0) {
-            				continue;	// No form no task
-            			}
-            			tp.name = getColumn(row, "name", header, lastCellNum, "");
-            			tp.status = getColumn(row, "status", header, lastCellNum, "new");
-            			tp.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
-            			tp.assignee_ident = getColumn(row, "assignee_ident", header, lastCellNum, null);
-            			if(tp.assignee_ident == null || tp.assignee_ident.trim().length() == 0) {
-            				String genUser = getColumn(row, "generate_user", header, lastCellNum, null);
-            				if(genUser != null && genUser.trim().toLowerCase().equals("yes")) {
-            					tp.generate_user = true;
-            					tp.assignee_name = getColumn(row, "generated_user_name", header, lastCellNum, null);
-            					if(tp.assignee_name == null || tp.assignee_name.trim().length() == 0) {
-            						throw new Exception(localisation.getString("t_no_user_name"));
-            					}
-            				} else {
-            					throw new Exception(localisation.getString("t_no_user"));
-            				}
-            			}
-            			tp.location = "POINT(" + getColumn(row, "lon", header, lastCellNum, "0") + " " + 
-            					getColumn(row, "lat", header, lastCellNum, "0") + ")";
-            			tp.guidance = getColumn(row, "guidance", header, lastCellNum, null);
-            			
-            			// Get from value
-            			tp.from = getGmtDate(row, "from", header, lastCellNum, timeZoneId, gmtZoneId);
-            			tp.to = getGmtDate(row, "to", header, lastCellNum, timeZoneId, gmtZoneId);
-            			
-            			String repValue = getColumn(row, "repeat", header, lastCellNum, null);
-            			if(repValue != null && repValue.equals("true")) {
-            				tp.repeat = true;
-            			} else {
-            				tp.repeat = false;
-            			}
-            		    
-            			tl.features.add(tf);
-                	
-                	}
-                	
-                }
-                
-            }
+			TaskServerDefn currentTask = null;
+			for(int j = 0; j <= lastRowNum; j++) {
+
+				row = sheet.getRow(j);
+				if(row != null) {
+
+					int lastCellNum = row.getLastCellNum();
+
+					if(needHeader) {
+						header = getHeader(row, lastCellNum);
+						needHeader = false;
+					} else {
+						String form_name = getColumn(row, "form", header, lastCellNum, null);
+						String assignee_ident = getColumn(row, "assignee_ident", header, lastCellNum, null);
+						String email = getColumn(row, "email", header, lastCellNum, null);
+
+						if(form_name != null && form_name.trim().length() > 0) {
+
+							currentTask = new TaskServerDefn();
+							currentTask.form_name = form_name;
+							currentTask.name = getColumn(row, "name", header, lastCellNum, "");
+							currentTask.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
+							currentTask.lat = Double.valueOf(getColumn(row, "lat", header, lastCellNum, "0") );
+							currentTask.lon = Double.valueOf(getColumn(row, "lon", header, lastCellNum, "0") );
+							currentTask.guidance = getColumn(row, "guidance", header, lastCellNum, null);
+							currentTask.from = getGmtDate(row, "from", header, lastCellNum, timeZoneId, gmtZoneId);
+							currentTask.to = getGmtDate(row, "to", header, lastCellNum, timeZoneId, gmtZoneId);
+
+							// Get from value
+							String repValue = getColumn(row, "repeat", header, lastCellNum, null);
+							if(repValue != null && repValue.equals("true")) {
+								currentTask.repeat = true;
+							} else {
+								currentTask.repeat = false;
+							}
+							
+							// Add assignment in same row as task
+							AssignmentServerDefn currentAssignment = new AssignmentServerDefn();
+							currentAssignment.assignee_ident = assignee_ident;
+							currentAssignment.email = email;
+							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
+							
+							currentTask.assignments.add(currentAssignment);
+
+							tl.add(currentTask);             			
+						} else if((assignee_ident != null && assignee_ident.trim().length() > 0) ||
+								(email != null && email.trim().length() > 0)) {
+
+							AssignmentServerDefn currentAssignment = new AssignmentServerDefn();
+							currentAssignment.assignee_ident = assignee_ident;
+							currentAssignment.email = email;
+							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
+							if(currentTask == null) {
+								String msg = localisation.getString("t_no_task");
+								msg = msg.replaceAll("%s1", String.valueOf(j));
+								throw new Exception(msg);
+							}
+							currentTask.assignments.add(currentAssignment);
+						}
+
+					}
+
+				}
+
+			}
 		}
-	
+
 		return tl;
-		
-		
+
+
 	}
 	
 	/*
@@ -525,6 +535,7 @@ public class XLSTaskManager {
 		cols.add(new Column(localisation, colNumber++, "form", false));
 		cols.add(new Column(localisation, colNumber++, "name", false));
 		cols.add(new Column(localisation, colNumber++, "assignee_ident", true));		// Assignment
+		cols.add(new Column(localisation, colNumber++, "assignee_name", true));		// Assignment
 		cols.add(new Column(localisation, colNumber++, "email", true));				// Assignment
 		cols.add(new Column(localisation, colNumber++, "url", true));					// Assignment
 		cols.add(new Column(localisation, colNumber++, "location_trigger", false));

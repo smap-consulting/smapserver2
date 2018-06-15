@@ -31,7 +31,8 @@ public class TaskProperties {
 	public String address;			// Text address
 	public String guidance;			// Key value pairs representing an unstructured address
 	public String emails;
-	public String location;			// WKT version of geometry, duplicates data in geometry, used when updating location
+	public double lon;				// Duplicates geometry information, used when updating the location
+	public double lat;
 	public boolean complete_all;		// When set true all the assignments associated to a task need to be completed
 	
 	public String status;

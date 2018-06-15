@@ -59,6 +59,8 @@ import org.smap.sdal.model.TaskBulkAction;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskServerDefn;
+
 import utilities.XLSTaskManager;
 
 import com.google.gson.Gson;
@@ -546,7 +548,7 @@ public class Tasks extends Application {
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
-				TaskListGeoJson tl = xf.getXLSTaskList(filetype, file.getInputStream(), localisation);
+				ArrayList<TaskServerDefn> tArray = xf.getXLSTaskList(filetype, file.getInputStream(), localisation);
 				
 				// Save tasks to the database
 				TaskManager tm = new TaskManager(localisation);
@@ -554,7 +556,7 @@ public class Tasks extends Application {
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
-				tm.writeTaskList(sd, tl, pId, pName, tgId, tgName, request.getScheme() + "://" + request.getServerName(), true, oId);
+				tm.writeTaskList(sd, tArray, pId, pName, tgId, tgName, request.getScheme() + "://" + request.getServerName(), true, oId);
 				
 				/*
 				 * Get the tasks out of the database
@@ -562,7 +564,7 @@ public class Tasks extends Application {
 				 *  from latitude and longitude
 				 *  Also we may not want to return complete tasks
 				 */
-				tl = tm.getTasks(sd, tgId, true, userId, null, "all");	// TODO set "complete" flag from passed in parameter
+				TaskListGeoJson tl = tm.getTasks(sd, tgId, true, userId, null, "all");	// TODO set "complete" flag from passed in parameter
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
 				
@@ -626,8 +628,9 @@ public class Tasks extends Application {
 			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 			
 			TaskManager tm = new TaskManager(localisation);
+			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			tm.writeTask(sd, pId, pName, tgId, tgName, tf, request.getServerName(), false, oId);
+			tm.writeTask(sd, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId);
 			response = Response.ok().build();
 		
 		} catch (Exception e) {
