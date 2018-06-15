@@ -418,12 +418,14 @@ public class TaskManager {
 			String tgName,
 			String urlPrefix,
 			boolean updateResources,
-			int oId) throws Exception {
+			int oId,
+			boolean autosendEmails,
+			String remoteUser) throws Exception {
 
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
-			writeTask(sd, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId);
+			writeTask(sd, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
 			for(AssignmentServerDefn asd : tsd.assignments)
 			if(asd.assignee_ident != null) {
 				userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -605,7 +607,7 @@ public class TaskManager {
 					TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 							source_s_id, instanceId, as, address); // Get data from new submission
 					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, tgName, pId, pName, source_s_id, 
-							target_s_id, tid, instanceId);  // Write to the database
+							target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
 				}
 			}
 
@@ -631,7 +633,9 @@ public class TaskManager {
 			int source_s_id,
 			int target_s_id,
 			TaskInstanceData tid,			// data from submission
-			String instanceId	
+			String instanceId,
+			boolean autosendEmails,
+			String remoteUser
 			) throws Exception {
 
 
@@ -749,7 +753,10 @@ public class TaskManager {
 						oId,
 						pId,
 						targetSurveyIdent,
-						tid);
+						tid,
+						autosendEmails,
+						remoteUser,
+						instanceId);
 			}
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
@@ -878,7 +885,9 @@ public class TaskManager {
 			TaskServerDefn tsd,
 			String urlPrefix,
 			boolean updateResources,
-			int oId	
+			int oId,
+			boolean autosendEmails,
+			String remoteUser
 			) throws Exception {
 
 		PreparedStatement pstmt = null;
@@ -1027,7 +1036,10 @@ public class TaskManager {
 							asd.a_id,
 							oId,
 							pId,
-							targetSurveyIdent);
+							targetSurveyIdent,
+							autosendEmails,
+							remoteUser,
+							tsd.instance_id);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1043,7 +1055,10 @@ public class TaskManager {
 							oId,
 							pId,
 							targetSurveyIdent,
-							null);
+							null,
+							autosendEmails,
+							remoteUser,
+							tsd.instance_id);
 				}
 				
 				if(asd.assignee > 0) {
@@ -1307,10 +1322,6 @@ public class TaskManager {
 							"task",
 							email,			
 							"email",
-							request.getRemoteUser(),
-							"https",
-							request.getServerName(),
-							basePath,
 							urlprefix,
 							actionLink);
 					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
@@ -1729,7 +1740,7 @@ public class TaskManager {
 			pstmt.setInt(2,  assignee);
 		}
 		pstmt.setString(3,  email);	
-		pstmt.setString(4,  status);			// default the status to accepted for new assignments
+		pstmt.setString(4,  status);	
 		pstmt.setInt(5,  task_id);
 
 		log.info("Create a new assignment: " + pstmt.toString());
@@ -1781,7 +1792,10 @@ public class TaskManager {
 			int a_id,
 			int oId,
 			int pId,
-			String targetSurveyIdent) throws Exception {
+			String targetSurveyIdent,
+			boolean autosendEmails,
+			String remoteUser,
+			String instanceId) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -1821,7 +1835,10 @@ public class TaskManager {
 						oId,
 						pId,
 						targetSurveyIdent,
-						null);
+						null,
+						autosendEmails,
+						remoteUser,
+						instanceId);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -1856,7 +1873,11 @@ public class TaskManager {
 			int oId,
 			int pId,
 			String sIdent,
-			TaskInstanceData tid) throws Exception {
+			TaskInstanceData tid,
+			boolean autosendEmails,
+			String remoteUser,			// For autosend of emails
+			String instanceId			// For autosend of emails
+			) throws Exception {
 
 		String status = "accepted";
 		
@@ -1899,7 +1920,11 @@ public class TaskManager {
 			}
 		} else if(emails != null && emails.length() > 0) {
 			String [] emailArray = emails.split(",");
-			status = "unsent";
+			if(autosendEmails) {
+				status = "pending";
+			} else {
+				status = "unsent";
+			}
 			
 			// Create an action this should be (mostly) identical for all emails
 			ActionManager am = new ActionManager();
@@ -1910,7 +1935,7 @@ public class TaskManager {
 				action.datakey = "prikey";
 				action.datakeyvalue = String.valueOf(tid.prikey);
 			}
-			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			for(String email : emailArray) {
 				
 				// Create the assignment
@@ -1922,6 +1947,25 @@ public class TaskManager {
 				
 				// Update the assignment with the link to the action
 				setAssignmentLink(sd, aId, link);
+				MessagingManager mm = new MessagingManager();
+				if(autosendEmails) {
+					// Create a submission message (The task may or may not have come from a submission)
+					int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+					EmailTaskMessage taskMsg = new EmailTaskMessage(
+							sId,
+							pId,
+							aId,
+							instanceId,			
+							"from someone",
+							"subject is x", 
+							"content is y",
+							"task",
+							email,			
+							"email",
+							remoteUser,
+							link);
+					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+				}
 			}
 		} else {
 			log.info("No matching assignments found");
@@ -1975,7 +2019,10 @@ public class TaskManager {
 			Organisation organisation,
 			EmailTaskMessage msg,
 			int messageId,
-			String user) throws Exception {
+			String user,
+			String basePath,
+			String scheme,
+			String server) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
@@ -2008,7 +2055,7 @@ public class TaskManager {
 		
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 		SurveyManager sm = new SurveyManager(localisation);
-		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
+		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");
 		
@@ -2030,7 +2077,7 @@ public class TaskManager {
 			tm.createTextOutput(sd,
 						cResults,
 						text,
-						msg.basePath, 
+						basePath, 
 						msg.user,
 						survey,
 						utcOffset,
@@ -2060,7 +2107,7 @@ public class TaskManager {
 						if(msg.subject != null && msg.subject.trim().length() > 0) {
 							subject = msg.subject;
 						} else {
-							if(msg.server != null && msg.server.contains("smap")) {
+							if(server != null && server.contains("smap")) {
 								subject = "Smap ";
 							}
 							subject += localisation.getString("c_notify");
@@ -2112,8 +2159,8 @@ public class TaskManager {
 											filename,
 											organisation.getAdminEmail(), 
 											emailServer,
-											msg.scheme,
-											msg.server,
+											scheme,
+											server,
 											emailKey,
 											localisation);
 									setAssignmentStatus(sd, msg.aId, "accepted");

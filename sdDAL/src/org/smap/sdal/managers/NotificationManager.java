@@ -372,6 +372,7 @@ public class NotificationManager {
 			String instanceId,
 			int pId,
 			boolean excludeEmpty) throws Exception {
+		
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
 		 * 		Notifications can be re-applied so the the notifications flag in upload event is ignored

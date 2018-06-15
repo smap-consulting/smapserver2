@@ -64,7 +64,7 @@ public class MessagingManagerApply {
 	/*
 	 * Apply any outbound messages
 	 */
-	public void applyOutbound(Connection sd, Connection cResults, String serverName) {
+	public void applyOutbound(Connection sd, Connection cResults, String serverName, String basePath) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -161,7 +161,8 @@ public class MessagingManagerApply {
 					
 				} else if(topic.equals("email_task")) {
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);
-			
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null);
+					
 					TaskManager tm = new TaskManager(localisation);
 					tm.emailTask(
 							sd, 
@@ -169,7 +170,10 @@ public class MessagingManagerApply {
 							organisation, 
 							msg,
 							id,
-							msg.user); 
+							msg.user,
+							basePath,
+							"https",
+							serverName); 
 					
 				} else {
 					// Assume a direct email to be processed immediately

@@ -431,12 +431,14 @@ public class SurveyManager {
 							generateDummyValues,
 							geomFormat,
 							s.o_id);
-					ArrayList<Result> topForm = s.instance.results.get(0);
-					// Get the user ident that submitted the survey
-					for(Result r : topForm) {
-						if(r.type.equals("user")) {
-							s.instance.user = r.value;
-							break;
+					if(s.instance.results.size() > 0) {
+						ArrayList<Result> topForm = s.instance.results.get(0);
+						// Get the user ident that submitted the survey
+						for(Result r : topForm) {
+							if(r.type.equals("user")) {
+								s.instance.user = r.value;
+								break;
+							}
 						}
 					}
 

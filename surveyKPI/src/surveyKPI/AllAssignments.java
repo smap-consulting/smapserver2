@@ -535,7 +535,9 @@ public class AllAssignments extends Application {
 										as.source_survey_id, 
 										as.target_survey_id, 
 										tid, 
-										instanceId);  // Write to the database
+										instanceId,
+										false,
+										request.getRemoteUser()); 
 								
 								/*
 								// Insert the task

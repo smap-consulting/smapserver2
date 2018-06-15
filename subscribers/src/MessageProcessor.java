@@ -106,11 +106,13 @@ public class MessageProcessor {
 		Connection sd;
 		Connection cResults;
 		String serverName;
+		String basePath;
 
-		public MessageLoop(Connection sd, Connection cResults, String serverName) {
+		public MessageLoop(Connection sd, Connection cResults, String serverName, String basePath) {
 			this.sd = sd;
 			this.cResults = cResults;
 			this.serverName = serverName;
+			this.basePath = basePath;
 		}
 
 		public void run() {
@@ -119,7 +121,7 @@ public class MessageProcessor {
 			while (true) {
 				System.out.print("m");
 				MessagingManagerApply mma = new MessagingManagerApply();
-				mma.applyOutbound(sd, cResults, serverName);
+				mma.applyOutbound(sd, cResults, serverName, basePath);
 
 				try {
 					Thread.sleep(delaySecs * 1000);
@@ -174,7 +176,7 @@ public class MessageProcessor {
 			// Send any pending messages
 			File pFile = new File("/smap_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new MessageLoop(sd, cResults, serverName));
+				Thread t = new Thread(new MessageLoop(sd, cResults, serverName, basePath));
 				t.start();
 			} else {
 				// No message!

@@ -556,7 +556,9 @@ public class Tasks extends Application {
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
-				tm.writeTaskList(sd, tArray, pId, pName, tgId, tgName, request.getScheme() + "://" + request.getServerName(), true, oId);
+				tm.writeTaskList(sd, tArray, pId, pName, tgId, tgName, 
+						request.getScheme() + "://" + request.getServerName(), 
+						true, oId, false, request.getRemoteUser());
 				
 				/*
 				 * Get the tasks out of the database
@@ -630,7 +632,7 @@ public class Tasks extends Application {
 			TaskManager tm = new TaskManager(localisation);
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			tm.writeTask(sd, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId);
+			tm.writeTask(sd, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
 			response = Response.ok().build();
 		
 		} catch (Exception e) {
