@@ -12,10 +12,6 @@ public class EmailTaskMessage {
 	public String email;
 	public String target;
 	public String user;
-	//public String scheme;
-	//public String server;
-	//public String basePath;
-	//public String serverRoot;
 	public String actionLink;
 
 	
@@ -31,10 +27,6 @@ public class EmailTaskMessage {
 			String email,
 			String target,
 			String user,
-			//String scheme,
-			//String server,
-			//String basePath,
-			//String serverRoot,
 			String actionLink) {
 		
 		this.sId = sId;
@@ -48,10 +40,6 @@ public class EmailTaskMessage {
 		this.email = email;
 		this.target = target;
 		this.user = user;
-		//this.scheme = scheme;
-		//this.server = server;
-		//this.basePath = basePath;
-		//this.serverRoot = serverRoot;
 		this.actionLink = actionLink;
 	}
 }

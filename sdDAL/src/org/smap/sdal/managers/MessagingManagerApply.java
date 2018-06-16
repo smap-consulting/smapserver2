@@ -161,7 +161,6 @@ public class MessagingManagerApply {
 					
 				} else if(topic.equals("email_task")) {
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);
-					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null);
 					
 					TaskManager tm = new TaskManager(localisation);
 					tm.emailTask(
