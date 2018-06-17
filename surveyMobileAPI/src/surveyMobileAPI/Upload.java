@@ -188,16 +188,16 @@ public class Upload extends Application {
 					SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 					
 					if(aDetails == null || aDetails.status == null) {
-						message = "Temporary user details not found";
+						message = localisation.getString("wf_as");
 					} else if(aDetails.status.equals("submitted")) {
 						message = localisation.getString("wf_fs");
-						message = message.replaceAll("%s1", sdf.format(aDetails.completed_date));
+						message = message.replace("%s1", sdf.format(aDetails.completed_date));
 					} else if(aDetails.status.equals("cancelled")) {
 						message = localisation.getString("wf_fc");
-						message = message.replaceAll("%s1", sdf.format(aDetails.cancelled_date));
+						message = message.replace("%s1", sdf.format(aDetails.cancelled_date));
 					} else if(aDetails.status.equals("deleted")) {
 						message = localisation.getString("wf_fc");
-						message = message.replaceAll("%s1", sdf.format(aDetails.deleted_date));
+						message = message.replace("%s1", sdf.format(aDetails.deleted_date));
 					}
 					throw new ApplicationException(message);
 				}

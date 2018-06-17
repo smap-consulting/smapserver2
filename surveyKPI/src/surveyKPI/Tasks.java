@@ -730,7 +730,7 @@ public class Tasks extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			TaskManager tm = new TaskManager(localisation);
-			tm.applyBulkAction(request, sd, pId, bulkAction);
+			tm.applyBulkAction(request, sd, tgId, pId, bulkAction);
 			response = Response.ok().build();
 		
 		} catch (Exception e) {

@@ -748,6 +748,7 @@ public class TaskManager {
 						pstmtRoles, 
 						pstmtRoles2, 
 						pstmtAssign, 
+						tgId,
 						taskId,
 						userId, 
 						roleId, 
@@ -1035,7 +1036,9 @@ public class TaskManager {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					pstmtAssign = getUpdateAssignmentStatement(sd);
 					updateAssignment(sd, pstmtAssign, pstmtInsert, 
-							asd.assignee, asd.email, "accepted", taskId, 
+							asd.assignee, asd.email, "accepted", 
+							tgId,
+							taskId, 
 							asd.a_id,
 							oId,
 							pId,
@@ -1050,6 +1053,7 @@ public class TaskManager {
 							null, 
 							null, 
 							pstmtInsert, 
+							tgId,
 							taskId,
 							asd.assignee, 
 							0,		// Role changes not supported from task properties edit 
@@ -1112,7 +1116,8 @@ public class TaskManager {
 	/*
 	 * Apply an action to multiple tasks
 	 */
-	public void applyBulkAction(HttpServletRequest request, Connection sd, int pId, TaskBulkAction action) throws Exception {
+	public void applyBulkAction(HttpServletRequest request, Connection sd, 
+			int tgId, int pId, TaskBulkAction action) throws Exception {
 
 		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select a.assignee from assignments a, tasks t "
@@ -1312,6 +1317,9 @@ public class TaskManager {
 					pstmtSetStatus.setString(1, "pending");
 					pstmtSetStatus.setInt(2, aId);
 					pstmtSetStatus.executeUpdate();
+					
+					TaskManager tm = new TaskManager(localisation);
+					TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
 					
 					// Create a submission message (The task may or may not have come from a submission)
 					EmailTaskMessage taskMsg = new EmailTaskMessage(
@@ -1791,6 +1799,7 @@ public class TaskManager {
 			int assignee,
 			String email,
 			String status,
+			int tgId,
 			int task_id,
 			int a_id,
 			int oId,
@@ -1830,6 +1839,7 @@ public class TaskManager {
 						null, 
 						null, 
 						pstmtInsert, 
+						tgId,
 						task_id,
 						assignee, 
 						0,		// Role changes not supported from task properties edit 
@@ -1868,6 +1878,7 @@ public class TaskManager {
 			PreparedStatement pstmtRoles, 
 			PreparedStatement pstmtRoles2,
 			PreparedStatement pstmtAssign, 
+			int tgId,
 			int taskId,
 			int userId, 
 			int roleId,
@@ -1929,6 +1940,9 @@ public class TaskManager {
 				status = "unsent";
 			}
 			
+			TaskManager tm = new TaskManager(localisation);
+			TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
+			
 			// Create an action this should be (mostly) identical for all emails
 			ActionManager am = new ActionManager();
 			Action action = new Action("task");
@@ -1959,9 +1973,9 @@ public class TaskManager {
 							pId,
 							aId,
 							instanceId,			
-							"from someone",
-							"subject is x", 
-							"content is y",
+							ted.from,
+							ted.subject, 
+							ted.content,
 							"task",
 							email,			
 							"email",
@@ -2378,6 +2392,27 @@ public class TaskManager {
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
+	}
+	
+	/*
+	 * Update the email details for a task group
+	 */
+	public TaskEmailDetails getEmailDetails(Connection sd, int tgId) throws SQLException {
+		String sql = "select email_details from task_group where tg_id = ?";
+		PreparedStatement pstmt = null;
+	
+		TaskEmailDetails ted = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  tgId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				ted = new Gson().fromJson(rs.getString(1), TaskEmailDetails.class);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return ted;
 	}
 }
 
