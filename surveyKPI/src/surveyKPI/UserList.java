@@ -263,7 +263,7 @@ public class UserList extends Application {
 		
 		try {
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0, pId);			
 			String resp = gson.toJson(users);
@@ -532,7 +532,7 @@ public class UserList extends Application {
 			ResultSet resultSet = null;
 			
 			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Get the organisation of the person calling this service

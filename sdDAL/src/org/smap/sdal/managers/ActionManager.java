@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
@@ -26,6 +27,8 @@ import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.User;
+import org.smap.sdal.model.UserGroup;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -167,7 +170,7 @@ public class ActionManager {
 		String link = null;
 
 		if (a.action.equals("respond") /* && actionId == 0 */) {
-			link = request.getScheme() + "://" + request.getServerName() + getLink(sd, a, oId);
+			link = request.getScheme() + "://" + request.getServerName() + getLink(sd, a, oId, false);
 		}
 
 		// Get the topic
@@ -218,7 +221,7 @@ public class ActionManager {
 
 	}
 
-	public String getLink(Connection sd, Action a, int oId) throws Exception {
+	public String getLink(Connection sd, Action a, int oId, boolean singleSubmission) throws Exception {
 
 		String tempUserId = null;
 		String link = null;
@@ -228,6 +231,7 @@ public class ActionManager {
 		User u = new User();
 		u.ident = tempUserId;
 		u.name = a.notify_person;
+		u.singleSubmission = singleSubmission;
 		u.action_details = a;
 
 		// Add the project that contains the survey
@@ -236,6 +240,12 @@ public class ActionManager {
 		p.id = a.pId;
 		u.projects.add(p);
 
+		// If the action is a task then add enum access
+		if(a.action.equals("task")) {
+			u.groups = new ArrayList<UserGroup> ();
+			u.groups.add(new UserGroup(Authorise.ENUM_ID, Authorise.ENUM));
+		}
+		
 		// Add the roles for the temporary user
 		u.roles = a.roles;
 
@@ -346,7 +356,7 @@ public class ActionManager {
 		try {
 
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, userIdent));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);

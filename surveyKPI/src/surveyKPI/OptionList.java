@@ -75,7 +75,7 @@ public class OptionList extends Application {
 		PreparedStatement pstmt = null;
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			boolean external = GeneralUtilityMethods.hasExternalChoices(sd, qId);

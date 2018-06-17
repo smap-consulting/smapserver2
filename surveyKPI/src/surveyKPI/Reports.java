@@ -191,7 +191,7 @@ public class Reports extends Application {
 			String link = null;
 			if(ident == null) {
 				// Create new link
-				link = am.getLink(sd, action, oId);
+				link = am.getLink(sd, action, oId, false);
 			} else {
 				// Update link
 				link = am.updateLink(sd, action, oId, ident, request.getRemoteUser(), superUser);
@@ -199,7 +199,7 @@ public class Reports extends Application {
 			
 			al.link = request.getScheme() + "://" + request.getServerName() + link;					
 			
-			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(al, ActionLink.class);
 			response = Response.ok(resp).build();
 				

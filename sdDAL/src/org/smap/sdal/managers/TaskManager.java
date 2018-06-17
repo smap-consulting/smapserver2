@@ -6,29 +6,46 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.mail.internet.InternetAddress;
+import javax.servlet.http.HttpServletRequest;
+
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
+import org.smap.sdal.model.AssignmentServerDefn;
+import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskAssignmentPair;
 import org.smap.sdal.model.TaskBulkAction;
+import org.smap.sdal.model.TaskEmailDetails;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
+import org.smap.sdal.model.TaskServerDefn;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonParser;
@@ -73,20 +90,20 @@ public class TaskManager {
 			"submitted", 
 			"rejected", 
 			"cancelled", 
-			"deleted"
+			"deleted",
+			"pending",
+			"error"
 			};
 	
-	private class TaskInstanceData {
-		int prikey = 0;						// data from submission
-		String ident = null;					// Identifier of person or role to be assigned
-		String location = null;				// data from submission
-		String address = null;				// data from submission
-		String locationTrigger = null;		// data from task set up
-		String instanceName = null;			// data from task look up
-		Timestamp taskStart = null;			// Start time
+	public class TaskInstanceData {
+		public int prikey = 0;						// data from submission
+		public String ident = null;					// Identifier, from results, of person or role to be assigned
+		public String location = null;				// data from submission
+		public String address = null;				// data from submission
+		public String locationTrigger = null;		// data from task set up
+		public String instanceName = null;			// data from task look up
+		public Timestamp taskStart = null;			// Start time
 	}
-	
-
 
 	public TaskManager(ResourceBundle l) {
 		localisation = l;
@@ -97,7 +114,7 @@ public class TaskManager {
 	 */
 	public ArrayList<TaskGroup> getTaskGroups(Connection sd, int projectId) throws Exception {
 
-		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id "
+		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id, email_details "
 				+ "from task_group where p_id = ? order by tg_id asc;";
 		PreparedStatement pstmt = null;
 
@@ -155,6 +172,8 @@ public class TaskManager {
 				tg.rule = rs.getString(5);
 				tg.source_s_id = rs.getInt(6);
 				tg.target_s_id = rs.getInt(7);
+				tg.emaildetails = new Gson().fromJson(rs.getString(8), TaskEmailDetails.class);
+				
 
 				if(rsTotal.next()) {
 					int tg_id = rsTotal.getInt(1);
@@ -251,19 +270,21 @@ public class TaskManager {
 				+ "t.initial_data as initial_data,"
 				+ "t.address as address,"
 				+ "t.guidance as guidance,"
-				+ "t.email as email,"
 				+ "t.repeat as repeat,"
 				+ "t.repeat_count as repeat_count,"
 				+ "t.url as url,"
 				+ "t.form_id,"
 				+ "t.survey_name as form_name,"
 				+ "t.deleted,"
+				+ "t.complete_all,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
 				+ "a.id as assignment_id,"
 				+ "a.status as status,"
 				+ "a.assignee,"
 				+ "a.assignee_name,"
+				+ "a.email,"
+				+ "a.action_link,"
 				+ "u.ident as assignee_ident, "				// Get current user ident for notification
 				+ "ST_AsGeoJSON(t.geo_point) as geom, "
 				+ "ST_AsText(t.geo_point) as wkt "
@@ -359,20 +380,21 @@ public class TaskManager {
 				tf.properties.form_ident = rs.getString("form_ident");
 				tf.properties.form_name = rs.getString("form_name");
 				tf.properties.url = rs.getString("url");
+				tf.properties.action_link = rs.getString("action_link");
 				tf.properties.blocked = rs.getBoolean("blocked");
 				tf.properties.assignee = rs.getInt("assignee");
 				tf.properties.assignee_name = rs.getString("assignee_name");
+				tf.properties.emails = rs.getString("email");
 				tf.properties.assignee_ident = rs.getString("assignee_ident");
 				tf.properties.location_trigger = rs.getString("location_trigger");
 				tf.properties.update_id = rs.getString("update_id");
 				tf.properties.initial_data = rs.getString("initial_data");
 				tf.properties.address = rs.getString("address");
 				tf.properties.guidance = rs.getString("guidance");
-				tf.properties.email = rs.getString("email");
 				tf.properties.repeat = rs.getBoolean("repeat");
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
-				tf.properties.location = rs.getString("wkt");
+				tf.properties.complete_all = rs.getBoolean("complete_all");
 
 				tl.features.add(tf);
 			}
@@ -392,23 +414,24 @@ public class TaskManager {
 	 * Save the tasks for the specified task group
 	 */
 	public void writeTaskList(Connection sd, 
-			TaskListGeoJson tl,
+			ArrayList<TaskServerDefn> tl,
 			int pId,
 			String pName,
 			int tgId,
 			String tgName,
 			String urlPrefix,
 			boolean updateResources,
-			int oId) throws Exception {
+			int oId,
+			boolean autosendEmails,
+			String remoteUser) throws Exception {
 
 		HashMap<String, String> userIdents = new HashMap<>();
 
-		ArrayList<TaskFeature> features = tl.features;
-		for(int i = 0; i < features.size(); i++) {
-			TaskFeature tf = features.get(i);
-			writeTask(sd, pId, pName, tgId, tgName, tf, urlPrefix, updateResources, oId);
-			if(tf.properties.assignee_ident != null) {
-				userIdents.put(tf.properties.assignee_ident, tf.properties.assignee_ident);
+		for(TaskServerDefn tsd : tl) {
+			writeTask(sd, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
+			for(AssignmentServerDefn asd : tsd.assignments)
+			if(asd.assignee_ident != null) {
+				userIdents.put(asd.assignee_ident, asd.assignee_ident);
 			}
 		}
 
@@ -587,7 +610,7 @@ public class TaskManager {
 					TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 							source_s_id, instanceId, as, address); // Get data from new submission
 					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, tgName, pId, pName, source_s_id, 
-							target_s_id, tid, instanceId);  // Write to the database
+							target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
 				}
 			}
 
@@ -613,7 +636,9 @@ public class TaskManager {
 			int source_s_id,
 			int target_s_id,
 			TaskInstanceData tid,			// data from submission
-			String instanceId	
+			String instanceId,
+			boolean autosendEmails,
+			String remoteUser
 			) throws Exception {
 
 
@@ -634,10 +659,6 @@ public class TaskManager {
 
 		try {
 
-			pstmtAssign = getInsertAssignmentStatement(sd);
-			pstmtRoles = getRoles(sd);
-			pstmtRoles2 = getRoles2(sd);
-			
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
 			String initial_data_url = null;
@@ -691,7 +712,8 @@ public class TaskManager {
 					taskFinish,
 					tid.locationTrigger,
 					false,
-					null);
+					null,
+					instanceId);
 
 			/*
 			 * Assign the user to the new task
@@ -701,6 +723,8 @@ public class TaskManager {
 			log.info("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
 			int fixedRoleId = as.fixed_role_id;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, target_s_id);
+			
+			// Assign to people dependent on data from a form
 			if(tid.ident != null) {
 			
 				log.info("Assign Ident: " + tid.ident);
@@ -711,17 +735,34 @@ public class TaskManager {
 				}
 			}
 			
-			if(userId > 0 || roleId > 0) {
-				ResultSet rsKeys = pstmt.getGeneratedKeys();
-				if(rsKeys.next()) {
-					int taskId = rsKeys.getInt(1);
-					applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, fixedRoleId);
-				}
-				if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
-
-			} else {
-				log.info("xxxxxxx No matching role");
+			ResultSet rsKeys = pstmt.getGeneratedKeys();
+			if(rsKeys.next()) {
+				int taskId = rsKeys.getInt(1);
+				
+				pstmtAssign = getInsertAssignmentStatement(sd, as.emails == null);
+				pstmtRoles = getRoles(sd);
+				pstmtRoles2 = getRoles2(sd);
+				
+				applyAllAssignments(
+						sd, 
+						pstmtRoles, 
+						pstmtRoles2, 
+						pstmtAssign, 
+						tgId,
+						taskId,
+						userId, 
+						roleId, 
+						fixedRoleId,
+						as.emails,
+						oId,
+						pId,
+						targetSurveyIdent,
+						tid,
+						autosendEmails,
+						remoteUser,
+						instanceId);
 			}
+			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
@@ -845,14 +886,17 @@ public class TaskManager {
 			String pName,
 			int tgId,
 			String tgName,
-			TaskFeature tf,
+			TaskServerDefn tsd,
 			String urlPrefix,
 			boolean updateResources,
-			int oId	
+			int oId,
+			boolean autosendEmails,
+			String remoteUser
 			) throws Exception {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtAssign = null;
+		PreparedStatement pstmtInsert = null;
 
 		String sqlGetFormIdFromName = "select s_id from survey where display_name = ? and p_id = ? and deleted = 'false'";
 		PreparedStatement pstmtGetFormId = sd.prepareStatement(sqlGetFormIdFromName);
@@ -872,104 +916,91 @@ public class TaskManager {
 		try {
 
 			// 1. Update the existing task if it is being updated
-			if(tf.properties.id > 0) {
+			if(tsd.id > 0) {
 				// Throw an exception if the task has been deleted
-				if(isTaskDeleted(sd, tf.properties.id, tf.properties.a_id)) {
-					throw new Exception("Task has been deleted and cannot be edited");
+				for(AssignmentServerDefn asd : tsd.assignments) {
+					if(isTaskDeleted(sd, tsd.id, asd.a_id)) {
+						throw new Exception("Task has been deleted and cannot be edited");
+					}
 				}
 			}
 
 			// 2. Get the form id, if only the form name is specified
-			if(tf.properties.form_id <= 0) {
-				if(tf.properties.form_name == null) {
+			if(tsd.form_id <= 0) {
+				if(tsd.form_name == null) {
 					throw new Exception("Missing form Name");
 				} else {
-					pstmtGetFormId.setString(1, tf.properties.form_name);
+					pstmtGetFormId.setString(1, tsd.form_name);
 					pstmtGetFormId.setInt(2, pId);
 					log.info("Get survey id: " + pstmtGetFormId.toString());
 					ResultSet rs = pstmtGetFormId.executeQuery();
 					if(rs.next()) {
-						tf.properties.form_id = rs.getInt(1);
+						tsd.form_id = rs.getInt(1);
 					} else {
-						throw new Exception("Form not found: " + tf.properties.form_name);
+						throw new Exception("Form not found: " + tsd.form_name);
 					}
 				}
 			}
 
 			/*
-			 * 3. If a temporary user is to be created then create the user
-			 *   Else get the assignee id, if only the assignee ident is specified
+			 *   Get the assignee id, if only the assignee ident is specified
 			 */
-			String tempUserId = null;
-			if(tf.properties.generate_user) {
-				tempUserId = GeneralUtilityMethods.createTempUser(
-						sd,
-						oId,
-						tf.properties.email, 
-						tf.properties.assignee_name, 
-						pId,
-						tf);
-
-			} else if(tf.properties.assignee <= 0 && tf.properties.assignee_ident != null && tf.properties.assignee_ident.trim().length() > 0) {
-
-				pstmtGetAssigneeId.setString(1, tf.properties.assignee_ident);
-				pstmtGetAssigneeId.setInt(2, pId);
-				log.info("Get user id: " + pstmtGetAssigneeId.toString());
-				ResultSet rs = pstmtGetAssigneeId.executeQuery();
-				if(rs.next()) {
-					tf.properties.assignee = rs.getInt(1);
-				} else {
-					throw new Exception("Assignee not found: " + tf.properties.assignee_ident);
+			for(AssignmentServerDefn asd : tsd.assignments) {
+				if(asd.assignee <= 0 && asd.assignee_ident != null && asd.assignee_ident.trim().length() > 0) {
+	
+					pstmtGetAssigneeId.setString(1, asd.assignee_ident);
+					pstmtGetAssigneeId.setInt(2, pId);
+					log.info("Get user id: " + pstmtGetAssigneeId.toString());
+					ResultSet rs = pstmtGetAssigneeId.executeQuery();
+					if(rs.next()) {
+						asd.assignee = rs.getInt(1);
+					} else {
+						throw new Exception("Assignee not found: " + asd.assignee_ident);
+					}
 				}
 			}
 
-			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tf.properties.form_id);
-			String webformUrl = null;
-			if(tf.properties.generate_user) {
-
-				webformUrl = urlPrefix + "/webForm/id/" + tempUserId + 
-						"/" + targetSurveyIdent;
-			} else {
-				webformUrl = urlPrefix + "/webForm/" + targetSurveyIdent;
-			}
+			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tsd.form_id);
+			String webformUrl = urlPrefix + "/webForm/" + targetSurveyIdent;
 
 			/*
 			 * 4. Location
 			 */
-			String location = tf.properties.location;
-			if(location == null) {
-				location = "POINT(0 0)";
-			} else if(location.startsWith("LINESTRING")) {
-				log.info("Starts with linestring: " + tf.properties.location.split(" ").length);
-				if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
-					location = location.replaceFirst("LINESTRING", "POINT");
-				}
-			}	 
+			String sLon = String.valueOf(tsd.lon);
+			String sLat = String.valueOf(tsd.lat);
+			if(sLon.equals("0.0")) {
+				sLon = "0";
+			}
+			if(sLat.equals("0.0")) {
+				sLat = "0";
+			}
+			String location = "POINT(" + tsd.lon + " " + tsd.lat + ")";
 
 			/*
 			 * 5. Write the task to the database
 			 */
-			if(tf.properties.from == null) {
+			if(tsd.from == null) {
 				Calendar cal = Calendar.getInstance();
-				tf.properties.from = new Timestamp(cal.getTime().getTime());
+				tsd.from = new Timestamp(cal.getTime().getTime());
 			}
 			
-			if(tf.properties.id > 0) {
+			int taskId = tsd.id;
+			if(tsd.id > 0) {
 				pstmt = getUpdateTaskStatement(sd);
 				updateTask(
 						pstmt,
-						tf.properties.id,
+						tsd.id,
 						tgId,
-						tf.properties.name,
-						tf.properties.form_id,
+						tsd.name,
+						tsd.form_id,
 						webformUrl,
 						location,
-						tf.properties.address,
-						tf.properties.from,
-						tf.properties.to,
-						tf.properties.location_trigger,
-						tf.properties.repeat,
-						tf.properties.guidance);
+						tsd.address,
+						tsd.from,
+						tsd.to,
+						tsd.location_trigger,
+						tsd.repeat,
+						tsd.guidance);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -978,47 +1009,71 @@ public class TaskManager {
 						pName,
 						tgId,
 						tgName,
-						tf.properties.name,
-						tf.properties.form_id,
+						tsd.name,
+						tsd.form_id,
 						webformUrl,
-						tf.properties.initial_data,
+						tsd.initial_data,
 						location,
-						tf.properties.update_id,
-						tf.properties.address,
-						tf.properties.from,
-						tf.properties.to,
-						tf.properties.location_trigger,
-						tf.properties.repeat,
-						tf.properties.guidance);
+						tsd.update_id,
+						tsd.address,
+						tsd.from,
+						tsd.to,
+						tsd.location_trigger,
+						tsd.repeat,
+						tsd.guidance,
+						tsd.instance_id);
+				ResultSet rsKeys = pstmt.getGeneratedKeys();
+				if(rsKeys.next()) {
+					taskId = rsKeys.getInt(1);
+				}
 			}
 
 			/*
 			 * 6. Assign the user to the task
-			 */
-			if(tf.properties.assignee > 0) {
-
-				int taskId = tf.properties.id;
-				if(taskId == 0) {
-					ResultSet keys = pstmt.getGeneratedKeys();
-					if(keys.next()) {
-						taskId = keys.getInt(1);
-					}
-				}
-
-				if(tf.properties.a_id > 0) {
-					// Update user
+			 */ 	
+			for(AssignmentServerDefn asd : tsd.assignments) {
+				if(asd.a_id > 0) {
+					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					pstmtAssign = getUpdateAssignmentStatement(sd);
-					updateAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId, tf.properties.a_id);
+					updateAssignment(sd, pstmtAssign, pstmtInsert, 
+							asd.assignee, asd.email, "accepted", 
+							tgId,
+							taskId, 
+							asd.a_id,
+							oId,
+							pId,
+							targetSurveyIdent,
+							autosendEmails,
+							remoteUser,
+							tsd.instance_id);
 				} else {
-					// Insert user
-					pstmtAssign = getInsertAssignmentStatement(sd);
-					insertAssignment(pstmtAssign, tf.properties.assignee, "accepted", taskId);
+					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
+					applyAllAssignments(
+							sd, 
+							null, 
+							null, 
+							pstmtInsert, 
+							tgId,
+							taskId,
+							asd.assignee, 
+							0,		// Role changes not supported from task properties edit 
+							0,
+							asd.email,
+							oId,
+							pId,
+							targetSurveyIdent,
+							null,
+							autosendEmails,
+							remoteUser,
+							tsd.instance_id);
 				}
 				
-				// Create a notification to alert the new user of the change to the task details
-				String userIdent = GeneralUtilityMethods.getUserIdent(sd, tf.properties.assignee);
-				MessagingManager mm = new MessagingManager();
-				mm.userChange(sd, userIdent);
+				if(asd.assignee > 0) {
+					// Create a notification to alert the new user of the change to the task details
+					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
+					MessagingManager mm = new MessagingManager();
+					mm.userChange(sd, userIdent);
+				}
 			}
 
 			/*
@@ -1027,18 +1082,18 @@ public class TaskManager {
 			 * 
 			 */
 			if(updateResources) {
-				if(tf.properties.location_trigger != null && tf.properties.location_trigger.trim().length() > 0) {
+				if(tsd.location_trigger != null && tsd.location_trigger.trim().length() > 0) {
 					pstmtHasLocationTrigger = sd.prepareStatement(sqlHasLocationTrigger);
 					pstmtHasLocationTrigger.setInt(1, oId);
-					pstmtHasLocationTrigger.setString(2, tf.properties.location_trigger);
+					pstmtHasLocationTrigger.setString(2, tsd.location_trigger);
 					ResultSet rs = pstmtHasLocationTrigger.executeQuery();
 					if(rs.next()) {
 						int count = rs.getInt(1);
 						if(count == 0) {
 							pstmtUpdateLocationTrigger = sd.prepareStatement(sqlUpdateLocationTrigger);
 							pstmtUpdateLocationTrigger.setInt(1, oId);
-							pstmtUpdateLocationTrigger.setString(2,tf.properties.location_trigger);
-							pstmtUpdateLocationTrigger.setString(3,tf.properties.name);
+							pstmtUpdateLocationTrigger.setString(2, tsd.location_trigger);
+							pstmtUpdateLocationTrigger.setString(3, tsd.name);
 							log.info("Adding NFC resource: " + pstmtUpdateLocationTrigger.toString());
 							pstmtUpdateLocationTrigger.executeUpdate();
 						}
@@ -1049,6 +1104,7 @@ public class TaskManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {pstmtAssign.close(); } catch(SQLException e) {};
+			if(pstmtInsert != null) try {pstmtInsert.close(); } catch(SQLException e) {};
 			if(pstmtGetFormId != null) try {pstmtGetFormId.close(); } catch(SQLException e) {};
 			if(pstmtGetAssigneeId != null) try {pstmtGetAssigneeId.close(); } catch(SQLException e) {};
 			if(pstmtHasLocationTrigger != null) try {pstmtHasLocationTrigger.close(); } catch(SQLException e) {};
@@ -1060,7 +1116,8 @@ public class TaskManager {
 	/*
 	 * Apply an action to multiple tasks
 	 */
-	public void applyBulkAction(Connection sd, int pId, TaskBulkAction action) throws Exception {
+	public void applyBulkAction(HttpServletRequest request, Connection sd, 
+			int tgId, int pId, TaskBulkAction action) throws Exception {
 
 		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select a.assignee from assignments a, tasks t "
@@ -1072,11 +1129,11 @@ public class TaskManager {
 
 		String deleteTaskSql = "update tasks t set deleted = 'true', deleted_at = now() "
 				+ "where t.p_id = ? "		// Authorisation
-				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled') = 0 "
+				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled') = 0  "
 				+ "and t.id in (";		
 		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
-				+ "and (status = 'new' or status = 'accepted')"
+				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error') "
 				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now() "
@@ -1088,6 +1145,16 @@ public class TaskManager {
 		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date) "
 				+ "values(?, 'accepted', ?, now())";
 
+		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.action_link, "
+				+ "t.form_id, t.update_id "
+				+ "from assignments a, tasks t "
+				+ "where a.task_id = t.id "
+				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
+				+ "and (a.status = 'unsent' or a.status = 'accepted') "
+				+ "and a.id in (";
+		
+		String setStatusSql = "update assignments set status = ? where id = ? ";
+		
 		String whereTasksSql = "";
 		String whereAssignmentsSql = "";
 		boolean hasAssignments = false;
@@ -1097,12 +1164,21 @@ public class TaskManager {
 		PreparedStatement pstmtCreateAssignments = null;
 		PreparedStatement pstmtDelTempUsers = null;
 		PreparedStatement pstmtGetUsers = null;
+		PreparedStatement pstmtEmailDetails = null;
+		PreparedStatement pstmtSetStatus = null;
 
 		try {
 
 			if(action.tasks.size() == 0) {
 				throw new Exception("No tasks");
 			} 
+			
+			pstmtSetStatus = sd.prepareStatement(setStatusSql);
+			
+			boolean emailAction = false;		// Set a flag if this action is intended to send an email to a person
+			if(action.action.equals("email_unsent")) {
+				emailAction = true;
+			}
 			
 			// Create a task / Assignment hierarchy
 			HashMap<Integer, ArrayList<Integer>> hierarchyHash = new HashMap<> ();
@@ -1143,7 +1219,7 @@ public class TaskManager {
 
 			// Notify currently assigned users that are being modified
 			MessagingManager mm = new MessagingManager();
-			if(hasAssignments) {				
+			if(hasAssignments && !emailAction) {				
 				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
 				pstmtGetUsers.setInt(1, pId);
 				log.info("Notify currently assigned users: " + pstmtGetUsers.toString());
@@ -1209,6 +1285,59 @@ public class TaskManager {
 				// Notify the user who has been assigned the tasks
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
 				mm.userChange(sd, userIdent);
+			} else if(emailAction) {
+				
+				String basePath = GeneralUtilityMethods.getBasePath(request);
+				String urlprefix = "https://" + request.getServerName() + "/";
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				
+				// 1. Get tasks and loop
+				pstmtEmailDetails = sd.prepareStatement(sqlEmailDetails + whereAssignmentsSql);
+				pstmtEmailDetails.setInt(1, pId);
+				log.info("Get email tasks: " + pstmtEmailDetails.toString());
+				
+				ResultSet rs = pstmtEmailDetails.executeQuery();
+				while(rs.next()) {
+				
+					// "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
+					int aId = rs.getInt("id");
+					String status = rs.getString("status");
+					String email = rs.getString("email");
+					String actionLink = rs.getString("action_link");
+					int sId = rs.getInt("form_id");
+					String instanceId = rs.getString("update_id");
+					
+					if(action.action.equals("email_unsent") && !status.equals("unsent")) {
+						log.info("Ignoring task with status " + status + " when sending unsent");
+						continue;
+					}
+					
+					// Set email status to pending
+					pstmtSetStatus.setString(1, "pending");
+					pstmtSetStatus.setInt(2, aId);
+					pstmtSetStatus.executeUpdate();
+					
+					TaskManager tm = new TaskManager(localisation);
+					TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
+					
+					// Create a submission message (The task may or may not have come from a submission)
+					EmailTaskMessage taskMsg = new EmailTaskMessage(
+							sId,
+							pId,
+							aId,
+							instanceId,			
+							"from someone",
+							"subject is x", 
+							"content is y",
+							"task",
+							email,			
+							"email",
+							urlprefix,
+							actionLink);
+					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+					
+				}
 			}
 
 		} finally {
@@ -1217,6 +1346,8 @@ public class TaskManager {
 			if(pstmtCreateAssignments != null) try {pstmtCreateAssignments.close(); } catch(SQLException e) {};	
 			if(pstmtDelTempUsers != null) try {pstmtDelTempUsers.close(); } catch(SQLException e) {};	
 			if(pstmtGetUsers != null) try {pstmtGetUsers.close(); } catch(SQLException e) {};	
+			if(pstmtEmailDetails != null) try {pstmtEmailDetails.close(); } catch(SQLException e) {};	
+			if(pstmtSetStatus != null) try {pstmtSetStatus.close(); } catch(SQLException e) {};	
 		}
 
 	}
@@ -1356,24 +1487,8 @@ public class TaskManager {
 			while (rs.next()) {
 				mm.userChange(sd, rs.getString(1));
 			}			
-
-			// Delete the task			
-			/*
-			 * Don't do this as the task has probably just been completed but the data it used as reference was replaced
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, updateId);		
-			log.info("Delete task: " + pstmt.toString());
-			int count = pstmt.executeUpdate();
-			if(count > 0) {
-				String msg = localisation.getString("lm_del_task_for_update_id");
-				msg = msg.replaceFirst("%s1", String.valueOf(count));
-				msg = msg.replaceFirst("%s2", updateId);
-				lm.writeLog(sd, sId, user, LogManager.DELETE, msg);
-			}
-			*/
 			
 			// Delete the assignments
-			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
 			pstmt = sd.prepareStatement(sqlAssignments);
 			pstmt.setString(1, updateId);
 			log.info("Delete assignments that reference an update id: " + pstmt.toString());
@@ -1459,7 +1574,8 @@ public class TaskManager {
 				+ "schedule_finish,"
 				+ "location_trigger,"
 				+ "repeat,"
-				+ "guidance) "
+				+ "guidance,"
+				+ "instance_id) "
 				+ "values ("
 				+ "?, "		// p_id
 				+ "?, "		// p_name
@@ -1477,7 +1593,8 @@ public class TaskManager {
 				+ "?,"		// schedule_finish
 				+ "?,"		// location_trigger
 				+ "?,"		// repeat
-				+ "?)";		// guidance
+				+ "?,"		// guidance
+				+ "?)";		// instanceId
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1501,7 +1618,8 @@ public class TaskManager {
 			Timestamp taskFinish,
 			String locationTrigger,
 			boolean repeat,
-			String guidance) throws SQLException {
+			String guidance,
+			String instanceId) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1518,8 +1636,9 @@ public class TaskManager {
 		pstmt.setTimestamp(13, taskStart);
 		pstmt.setTimestamp(14, taskFinish);
 		pstmt.setString(15, locationTrigger);
-		pstmt.setBoolean(16, repeat);	// repeat
-		pstmt.setString(17, guidance);	// guidance
+		pstmt.setBoolean(16, repeat);	
+		pstmt.setString(17, guidance);	
+		pstmt.setString(18, instanceId);
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1592,17 +1711,27 @@ public class TaskManager {
 	/*
 	 * Get the preparedStatement
 	 */
-	public PreparedStatement getInsertAssignmentStatement(Connection sd) throws SQLException {
+	public PreparedStatement getInsertAssignmentStatement(Connection sd, boolean internal) throws SQLException {
 
-		String sql = "insert into assignments ("
+		String sql1 = "insert into assignments ("
 				+ "assignee, "
 				+ "assignee_name,"
+				+ "email,"
 				+ "status, "
 				+ "task_id,"
 				+ "assigned_date) "
-				+ "values (?, (select name from users where id = ?), ?, ?, now())";
+				+ "values (?, ";
+		String sql2_internal = "(select name from users where id = ?)";
+		String sql2_email = "?";
+		String sql3 = ", ?, ?, ?, now())";
 		
-		return sd.prepareStatement(sql);
+		String sql = null;
+		if(internal) {
+			sql = sql1 + sql2_internal +sql3;
+		} else {
+			sql = sql1 + sql2_email +sql3;
+		}
+		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
 	
 	/*
@@ -1611,16 +1740,31 @@ public class TaskManager {
 	public int insertAssignment(
 			PreparedStatement pstmt,
 			int assignee,
+			String email,
 			String status,
 			int task_id) throws SQLException {
 		
 		pstmt.setInt(1, assignee);
-		pstmt.setInt(2,  assignee);
-		pstmt.setString(3,  status);			// default the status to accepted for new assignments
-		pstmt.setInt(4,  task_id);
+		if(email != null) {
+			pstmt.setString(2, email);
+		} else {
+			pstmt.setInt(2,  assignee);
+		}
+		pstmt.setString(3,  email);	
+		pstmt.setString(4,  status);	
+		pstmt.setInt(5,  task_id);
 
 		log.info("Create a new assignment: " + pstmt.toString());
-		return(pstmt.executeUpdate());
+		pstmt.executeUpdate();
+		
+		ResultSet rs = pstmt.getGeneratedKeys();
+		int aId = 0;
+		if (rs.next()){
+			aId = rs.getInt(1);
+		}
+		rs.close();
+		
+		return aId;
 	}
 	
 	/*
@@ -1646,44 +1790,114 @@ public class TaskManager {
 	}
 	
 	/*
-	 * Insert an assignment
+	 * Update an assignment
 	 */
-	public int updateAssignment(
-			PreparedStatement pstmt,
+	public void updateAssignment(
+			Connection sd,
+			PreparedStatement pstmtAssign,
+			PreparedStatement pstmtInsert,
 			int assignee,
+			String email,
 			String status,
+			int tgId,
 			int task_id,
-			int a_id) throws SQLException {
+			int a_id,
+			int oId,
+			int pId,
+			String targetSurveyIdent,
+			boolean autosendEmails,
+			String remoteUser,
+			String instanceId) throws Exception {
 		
-		pstmt.setInt(1, assignee);
-		pstmt.setInt(2,  assignee);
-		pstmt.setString(3,  status);			// default the status to accepted for new assignments
-		pstmt.setInt(4,  task_id);
-		pstmt.setInt(5, a_id);
-
-		log.info("Update an assignment: " + pstmt.toString());
-		return(pstmt.executeUpdate());
+		String sql = "select assignee, email from assignments where id = ?";
+		PreparedStatement pstmtGetExisting = null;
+		boolean assignmentCancelled = false;
+		try {
+			// 1.  If assignee id or emails is set then get existing assignee and email and cancel if the assignee has changed
+			if(assignee > 0 || email != null) {
+				pstmtGetExisting = sd.prepareStatement(sql);
+				pstmtGetExisting.setInt(1, a_id);
+				
+				ResultSet rs = pstmtGetExisting.executeQuery();
+				if(rs.next()) {
+					int existingAssignee = rs.getInt(1);
+					String existingEmail = rs.getString(2);
+					
+					if((assignee > 0 && existingAssignee != assignee) ||
+							(email != null && !email.equals(existingEmail))) {
+						cancelAssignment(sd, a_id, assignee);
+						assignmentCancelled = true;
+					}
+				}				
+				
+			}
+		
+			// 2.  If assignment has been cancelled then insert new assignment
+			if(assignmentCancelled) {
+				applyAllAssignments(
+						sd, 
+						null, 
+						null, 
+						pstmtInsert, 
+						tgId,
+						task_id,
+						assignee, 
+						0,		// Role changes not supported from task properties edit 
+						0,
+						email,
+						oId,
+						pId,
+						targetSurveyIdent,
+						null,
+						autosendEmails,
+						remoteUser,
+						instanceId);
+			} else {
+				// Else apply update
+				pstmtAssign.setInt(1, assignee);
+				pstmtAssign.setInt(2,  assignee);
+				pstmtAssign.setString(3,  status);			// default the status to accepted for new assignments
+				pstmtAssign.setInt(4,  task_id);
+				pstmtAssign.setInt(5, a_id);
+				
+				log.info("Update an assignment: " + pstmtAssign.toString());
+				pstmtAssign.executeUpdate();
+			}
+		} finally {
+			if(pstmtGetExisting != null) {try {pstmtGetExisting.close();} catch(Exception e){}}
+		}
+		
 	}
 	
 	
 	/*
-	 * Create all assignments for specific user id or a role
+	 * Create all assignments for specific user id, role or emails
 	 */
 	public void applyAllAssignments(
 			Connection sd,
 			PreparedStatement pstmtRoles, 
 			PreparedStatement pstmtRoles2,
 			PreparedStatement pstmtAssign, 
+			int tgId,
 			int taskId,
 			int userId, 
 			int roleId,
-			int fixedRoleId) throws SQLException {
+			int fixedRoleId,
+			String emails,
+			int oId,
+			int pId,
+			String sIdent,
+			TaskInstanceData tid,
+			boolean autosendEmails,
+			String remoteUser,			// For autosend of emails
+			String instanceId			// For autosend of emails
+			) throws Exception {
 
 		String status = "accepted";
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(pstmtAssign, userId, status, taskId);
+			insertAssignment(pstmtAssign, userId, null, status, taskId);
 			
 			// Notify the user of their new assignment
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -1708,7 +1922,7 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(pstmtAssign, rsRoles.getInt(1), status, taskId);
+				insertAssignment(pstmtAssign, rsRoles.getInt(1), null, status, taskId);
 				
 				// Notify the user of their new assignment
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
@@ -1718,7 +1932,61 @@ public class TaskManager {
 			if(count == 0) {
 				log.info("No matching users found");
 			}
-		} 
+		} else if(emails != null && emails.length() > 0) {
+			String [] emailArray = emails.split(",");
+			if(autosendEmails) {
+				status = "pending";
+			} else {
+				status = "unsent";
+			}
+			
+			TaskManager tm = new TaskManager(localisation);
+			TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
+			
+			// Create an action this should be (mostly) identical for all emails
+			ActionManager am = new ActionManager();
+			Action action = new Action("task");
+			action.surveyIdent = sIdent;
+			action.pId = pId;
+			if(tid != null && tid.prikey > 0) {
+				action.datakey = "prikey";
+				action.datakeyvalue = String.valueOf(tid.prikey);
+			}
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			for(String email : emailArray) {
+				
+				// Create the assignment
+				int aId = insertAssignment(pstmtAssign, 0, email, status, taskId);
+				
+				// Create a temporary user embedding the assignment id in the action link, get the link to that user
+				action.assignmentId = aId;
+				String link = am.getLink(sd, action, oId, true);
+				
+				// Update the assignment with the link to the action
+				setAssignmentLink(sd, aId, link);
+				MessagingManager mm = new MessagingManager();
+				if(autosendEmails) {
+					// Create a submission message (The task may or may not have come from a submission)
+					int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+					EmailTaskMessage taskMsg = new EmailTaskMessage(
+							sId,
+							pId,
+							aId,
+							instanceId,			
+							ted.from,
+							ted.subject, 
+							ted.content,
+							"task",
+							email,			
+							"email",
+							remoteUser,
+							link);
+					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+				}
+			}
+		} else {
+			log.info("No matching assignments found");
+		}
 	}
 	
 	public PreparedStatement getRoles(Connection sd) throws SQLException {
@@ -1758,6 +2026,393 @@ public class TaskManager {
 		return isDeleted;
 	}
 	
+	
+	/*
+	 * Process a notification
+	 */
+	public void emailTask(
+			Connection sd, 
+			Connection cResults, 
+			Organisation organisation,
+			EmailTaskMessage msg,
+			int messageId,
+			String user,
+			String basePath,
+			String scheme,
+			String server) throws Exception {
+		
+		String docURL = null;
+		String filePath = null;
+		String filename = "instance";
+		
+		boolean writeToMonitor = true;
+		
+		HashMap<String, String> sentEndPoints = new HashMap<> ();
+		
+		PreparedStatement pstmtGetSMSUrl = null;
+		
+		PreparedStatement pstmtNotificationLog = null;
+		String sqlNotificationLog = "insert into notification_log " +
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
+		
+		// Time Zone
+		int utcOffset = 0;	
+		LocalDateTime dt = LocalDateTime.now();
+		if(organisation.timeZone != null) {
+			try {
+				ZoneId zone = ZoneId.of(organisation.timeZone);
+			    ZonedDateTime zdt = dt.atZone(zone);
+			    ZoneOffset offset = zdt.getOffset();
+			    utcOffset = offset.getTotalSeconds() / 60;
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+		}
+		
+		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
+		SurveyManager sm = new SurveyManager(localisation);
+		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
+				msg.instanceId, true, generateBlank, true, false, true, "real", 
+				false, false, true, "geojson");
+		
+		try {
+			
+			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
+			
+			/*
+			 * Add details from the survey to the subject and email content
+			 */
+			if(survey != null) {
+				msg.subject = sm.fillStringTemplate(survey, msg.subject);
+				msg.content = sm.fillStringTemplate(survey, msg.content);
+			}
+			TextManager tm = new TextManager(localisation);
+			ArrayList<String> text = new ArrayList<> ();
+			text.add(msg.subject);
+			text.add(msg.content);
+			tm.createTextOutput(sd,
+						cResults,
+						text,
+						basePath, 
+						msg.user,
+						survey,
+						utcOffset,
+						"none",
+						organisation.id);
+			msg.subject = text.get(0);
+			msg.content = text.get(1);
+			
+			docURL = "/webForm" + msg.actionLink;
+				
+			/*
+			 * Send document to target
+			 */
+			String status = "success";				// Notification log
+			String notify_details = null;			// Notification log
+			String error_details = null;				// Notification log
+			boolean unsubscribed = false;
+			if(msg.target.equals("email")) {
+				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+					if(GeneralUtilityMethods.isValidEmail(msg.email)) {
+							
+						log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
+						
+						// Set the subject
+						String subject = "";
+						if(msg.subject != null && msg.subject.trim().length() > 0) {
+							subject = msg.subject;
+						} else {
+							if(server != null && server.contains("smap")) {
+								subject = "Smap ";
+							}
+							subject += localisation.getString("c_notify");
+						}
+						
+						String from = "smap";
+						if(msg.from != null && msg.from.trim().length() > 0) {
+							from = msg.from;
+						}
+						String content = null;
+						if(msg.content != null && msg.content.trim().length() > 0) {
+							content = msg.content;
+						} else {
+							content = organisation.default_email_content;
+						}
+						
+						notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
+						
+						log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
+								" from: " + from + 
+								" subject: " + subject +
+								" smtp_host: " + emailServer.smtpHost +
+								" email_domain: " + emailServer.emailDomain);
+						try {
+							EmailManager em = new EmailManager();
+							PeopleManager peopleMgr = new PeopleManager(localisation);
+							InternetAddress[] emailArray = InternetAddress.parse(msg.email);
+							String emailKey = null;
+							
+							for(InternetAddress ia : emailArray) {								
+								emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
+								if(emailKey == null) {
+									unsubscribed = true;
+									setAssignmentStatus(sd, msg.aId, "unsubscribed");
+								} else {
+									System.out.println("Send email: " + msg.email + " : " + docURL);
+									em.sendEmail(
+											ia.getAddress(), 
+											null, 
+											"notify", 
+											subject, 
+											content,
+											from,		
+											null, 
+											null, 
+											null, 
+											docURL, 
+											filePath,
+											filename,
+											organisation.getAdminEmail(), 
+											emailServer,
+											scheme,
+											server,
+											emailKey,
+											localisation);
+									setAssignmentStatus(sd, msg.aId, "accepted");
+								}
+							}
+						} catch(Exception e) {
+							status = "error";
+							error_details = e.getMessage();
+							setAssignmentStatus(sd, msg.aId, "error");
+						}
+					} else {
+						log.log(Level.INFO, "Info: List of email recipients is empty");
+						lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
+						writeToMonitor = false;
+					}
+				} else {
+					status = "error";
+					error_details = "smtp_host not set";
+					log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+				}
+				
+			} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
+				
+				// Get the URL to use in sending the SMS
+				String sql = "select s.sms_url "
+						+ "from server s";
+				
+				String sms_url = null;
+				pstmtGetSMSUrl = sd.prepareStatement(sql);
+				ResultSet rs = pstmtGetSMSUrl.executeQuery();
+				if(rs.next()) {
+					sms_url = rs.getString("sms_url");	
+				}
+				
+				if(sms_url != null) {
+					ArrayList<String> smsList = null;
+					ArrayList<String> responseList = new ArrayList<> ();
+					smsList.add(msg.email);
+					
+					if(smsList.size() > 0) {
+						SMSManager smsUrlMgr = new SMSManager();
+						for(String sms : smsList) {
+							
+							if(sentEndPoints.get(sms) == null) {
+								log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
+								responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
+								sentEndPoints.put(sms, sms);
+							} else {
+								log.info("Duplicate phone number: " + sms);
+							}
+							
+						} 
+					} else {
+						log.info("No phone numbers to send to");
+						writeToMonitor = false;
+					}
+					
+					notify_details = "Sending sms " + smsList.toString() 
+							+ ((docURL == null || docURL.equals("null")) ? "" :" containing link " + docURL)
+							+ " with response " + responseList.toString();
+					
+				} else {
+					status = "error";
+					error_details = "SMS URL not set";
+					log.log(Level.SEVERE, "Error: Attempt to do SMS notification but SMS URL not set");
+				}
+	
+				
+			} else {
+				status = "error";
+				error_details = "Invalid target: " + msg.target;
+				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
+			}
+			
+			// Write log message
+			if(writeToMonitor) {
+				if(unsubscribed) {
+					error_details += localisation.getString("c_unsubscribed") + ": " + msg.email;
+				}
+				pstmtNotificationLog.setInt(1, organisation.id);
+				pstmtNotificationLog.setInt(2, msg.pId);
+				pstmtNotificationLog.setInt(3, msg.sId);
+				pstmtNotificationLog.setString(4, notify_details);
+				pstmtNotificationLog.setString(5, status);
+				pstmtNotificationLog.setString(6, error_details);
+				pstmtNotificationLog.setInt(7, messageId);
+				
+				pstmtNotificationLog.executeUpdate();
+			}
+		} finally {
+			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
+			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
+			
+		}
+	}
+	
 
+	private void setAssignmentStatus(Connection sd, int aId, String status) throws SQLException {
+		String sql = "update assignments set status = ? where id = ? ";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, status);
+			pstmt.setInt(2, aId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	private void setAssignmentLink(Connection sd, int aId, String link) throws SQLException {
+		String sql = "update assignments set action_link = ? where id = ? ";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, link);
+			pstmt.setInt(2, aId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	private void cancelAssignment(Connection sd, int aId, int assignee) throws SQLException {
+		String sql = "update assignments set status = 'cancelled' where id = ? ";
+		PreparedStatement pstmt = null;
+		
+		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
+				+ "(select a.assignee from assignments a where a.id = ?) ";
+		PreparedStatement pstmtGetUsers = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, aId);
+			pstmt.executeUpdate();
+		
+			// Notify currently assigned users that are being modified
+			MessagingManager mm = new MessagingManager();
+			if(assignee > 0) {				
+				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers);
+				pstmtGetUsers.setInt(1, assignee);
+						
+				ResultSet rsNot = pstmtGetUsers.executeQuery();
+				while(rsNot.next()) {
+					mm.userChange(sd, rsNot.getString(1));
+				}
+			}
+
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			if(pstmtGetUsers != null) {try {pstmtGetUsers.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Convert TaskProperties from a TaskFeature to a TaskSeverDefn
+	 * TaskPoperties are the old deprecated way of representing a task and an assignment as a single object
+	 * Now the 1 to many relationship between task and assignments is managed using TaskServerDefn
+	 */
+	public TaskServerDefn convertTaskFeature(TaskFeature tf) {
+		TaskServerDefn tsd = new TaskServerDefn();
+		tsd.id = tf.properties.id;
+		tsd.name = tf.properties.name;
+		tsd.address = tf.properties.address;
+		tsd.form_id = tf.properties.form_id;
+		tsd.form_name = tf.properties.form_name;
+		tsd.from = tf.properties.from;
+		tsd.to = tf.properties.to;
+		tsd.guidance = tf.properties.guidance;
+		tsd.initial_data = tf.properties.initial_data;
+		tsd.instance_id = tf.properties.instance_id;
+		tsd.repeat = tf.properties.repeat;
+		tsd.update_id = tf.properties.update_id;
+		tsd.lon = tf.properties.lon;
+		tsd.lat = tf.properties.lat;
+		
+		if(tf.properties.emails != null && tf.properties.emails.trim().length() > 0) {
+			String [] emailArray = tf.properties.emails.split(",");
+			for(String email : emailArray) {
+				AssignmentServerDefn asd = new AssignmentServerDefn();
+				asd.a_id = tf.properties.a_id;
+				asd.assignee = tf.properties.assignee;
+				asd.assignee_name = tf.properties.assignee_name;
+				asd.email = email;
+				tsd.assignments.add(asd);
+			}
+		} else {
+			AssignmentServerDefn asd = new AssignmentServerDefn();
+			asd.a_id = tf.properties.a_id;
+			asd.assignee = tf.properties.assignee;
+			asd.assignee_name = tf.properties.assignee_name;
+			asd.email = tf.properties.emails;
+			tsd.assignments.add(asd);
+		}
+		
+		return tsd;
+		
+	}
+	
+	/*
+	 * Update the email details for a task group
+	 */
+	public void updateEmailDetails(Connection sd, int pId, int tgId, TaskEmailDetails ted) throws SQLException {
+		String sql = "update task_group set email_details = ? where p_id = ? and tg_id = ?";
+		PreparedStatement pstmt = null;
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, gson.toJson(ted));
+			pstmt.setInt(2, pId);
+			pstmt.setInt(3, tgId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Update the email details for a task group
+	 */
+	public TaskEmailDetails getEmailDetails(Connection sd, int tgId) throws SQLException {
+		String sql = "select email_details from task_group where tg_id = ?";
+		PreparedStatement pstmt = null;
+	
+		TaskEmailDetails ted = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  tgId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				ted = new Gson().fromJson(rs.getString(1), TaskEmailDetails.class);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return ted;
+	}
 }
 

@@ -167,7 +167,7 @@ public class ExportSurveyThingsat extends Application {
 			connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
 			
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			

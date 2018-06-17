@@ -10,6 +10,7 @@ public class TaskProperties {
 	public String pid;				// Project id
 	public String url;
 	public int form_id;
+	public String action_link;
 	public String form_ident;
 	public String form_name;
 	public boolean blocked;
@@ -20,7 +21,8 @@ public class TaskProperties {
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
 	public String initial_data;
-	public String update_id;
+	public String update_id;					// Unique identifier of record to be updated
+	public String instance_id;				// Unique identifier of source record
 	public Timestamp from;
 	public Timestamp to;
 	public String location_trigger;
@@ -28,8 +30,10 @@ public class TaskProperties {
 	public int repeat_count;
 	public String address;			// Text address
 	public String guidance;			// Key value pairs representing an unstructured address
-	public String email;
-	public String location;			// WKT version of geometry, duplicates data in geometry, used when updating location
+	public String emails;
+	public double lon;				// Duplicates geometry information, used when updating the location
+	public double lat;
+	public boolean complete_all;		// When set true all the assignments associated to a task need to be completed
 	
 	public String status;
 }

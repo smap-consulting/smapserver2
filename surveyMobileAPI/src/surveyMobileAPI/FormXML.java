@@ -83,7 +83,7 @@ public class FormXML extends Application{
 				// Get some data where we will ignore a failure
 				try {
 					superUser = GeneralUtilityMethods.isSuperUser(connectionSD, user);
-					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				} catch (Exception e) {
 				}
@@ -143,7 +143,7 @@ public class FormXML extends Application{
 
 		// Get the users locale
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		} catch (Exception e) {
 

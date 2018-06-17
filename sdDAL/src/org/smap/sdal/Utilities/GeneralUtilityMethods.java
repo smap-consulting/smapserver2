@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -30,6 +31,8 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
@@ -40,6 +43,7 @@ import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChoiceList;
@@ -499,7 +503,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return the users language
 	 */
-	static public String getUserLanguage(Connection sd, String user) throws SQLException {
+	static public String getUserLanguage(Connection sd, HttpServletRequest request, String user) throws SQLException {
 
 		String language = null;
 
@@ -507,29 +511,31 @@ public class GeneralUtilityMethods {
 
 		PreparedStatement pstmt = null;
 
-		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, user);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				language = rs.getString(1);
-			}
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
+		if(user != null) {
 			try {
-				if (pstmt != null) {
-					pstmt.close();
+	
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, user);
+				ResultSet rs = pstmt.executeQuery();
+				if (rs.next()) {
+					language = rs.getString(1);
 				}
+	
 			} catch (SQLException e) {
+				log.log(Level.SEVERE, "Error", e);
+				throw e;
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}
 		}
 
 		if (language == null || language.trim().length() == 0) {
-			language = "en"; // Default to english
+			Locale locale = request.getLocale();
+			if(locale == null) {
+				language = "en"; // Default to English
+			} else {
+				language = locale.getLanguage();
+			}
 		}
 		return language;
 	}
@@ -827,6 +833,40 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Get the task group name
+	 */
+	static public AssignmentDetails getAssignmentStatusForTempUser(Connection sd, String userIdent) throws SQLException {
+
+		AssignmentDetails a = new AssignmentDetails();
+		String actionLink = "/action/" + userIdent;
+
+		String sql = "select status, completed_date, cancelled_date, deleted_date " 
+				+ " from assignments " 
+				+ "where action_link = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, actionLink);
+			ResultSet rs = pstmt.executeQuery();
+			log.info("Getting assignment status: " + pstmt.toString());
+			if (rs.next()) {
+				a.status = rs.getString(1);
+				a.completed_date = rs.getTimestamp(2);
+				a.cancelled_date = rs.getTimestamp(3);
+				a.deleted_date = rs.getTimestamp(4);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return a;
+	}
+	
+	/*
+	 * Get the task project name from its id
 	 */
 	static public String getProjectName(Connection sd, int id) throws SQLException {
 
@@ -6696,6 +6736,20 @@ public class GeneralUtilityMethods {
 			attachment = true;
 		}
 		return attachment;
+	}
+	
+	/*
+	 * Validate an email
+	 */
+	public static boolean isValidEmail(String email) {
+		boolean isValid = true;
+		try {
+		      InternetAddress emailAddr = new InternetAddress(email);
+		      emailAddr.validate();
+		   } catch (AddressException ex) {
+		      isValid = false;
+		   }
+		return isValid;
 	}
 
 }

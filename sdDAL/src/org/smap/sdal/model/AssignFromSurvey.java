@@ -25,4 +25,5 @@ public class AssignFromSurvey {
 	public String taskUnits;				// Units for how long after
 	public int taskDuration;				// Duration of the task
 	public String durationUnits;			// Units for the duration 
+	public String emails;				// Comma separated list of emails
 }

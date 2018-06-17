@@ -22,6 +22,9 @@ package surveyMobileAPI;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -47,6 +50,7 @@ import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
@@ -106,12 +110,14 @@ public class XFormData {
 		String auditFilePath = null;
 
 		Connection sd = null;
+		PreparedStatement pstmtIsRepeating = null;
+		ResultSet rsRepeating = null;
 
 		try {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
 			
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 
@@ -228,7 +234,7 @@ public class XFormData {
 			}
 			a.isValidSurvey(sd, user, survey.id, false, superUser); // Throw an exception if the user is not authorised
 																	// to upload this survey
-
+			
 			/*
 			 * DeviceId should be included in the survey contents, if it is not there then
 			 * attempt to use the deviceId passed as a parameter in the submission
@@ -275,11 +281,33 @@ public class XFormData {
 					uem.close();
 				}
 			}
-			// UploadEventManager uem = new UploadEventManager(pc);
-			// uem.persist(ue);
-
+			
+			/*
+			 * If the upload was for a temporary user 
+			 * who can only submit one result then delete that temporary user
+			 */
+			if(assignmentId > 0) {
+				String sqlIsRepeating = "select repeat from tasks "
+						+ "where id = (select task_id from assignments where id = ?);";
+				
+				pstmtIsRepeating = sd.prepareStatement(sqlIsRepeating);
+				pstmtIsRepeating.setInt(1, assignmentId);
+				log.info("Is repeating: " + pstmtIsRepeating.toString());
+				rsRepeating = pstmtIsRepeating.executeQuery();
+				
+				if(rsRepeating.next()) {
+					if(!rsRepeating.getBoolean(1)) {
+						log.info("Deleting temporary user");
+						UserManager um = new UserManager();
+						um.deleteSingleSubmissionTemporaryUser(sd, user);
+					}
+				}
+			}
+			
 			log.info("userevent: " + user + " : upload results : " + si.getDisplayName());
 		} finally {
+			try {if (rsRepeating != null) {rsRepeating.close();}} catch (SQLException e) {}
+			try {if (pstmtIsRepeating != null) {pstmtIsRepeating.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);
 		}
 	}

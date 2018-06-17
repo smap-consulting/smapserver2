@@ -1,5 +1,8 @@
 package org.smap.sdal.model;
 
+/*
+ * Used when downloading tasks to fieldTask
+ */
 import java.sql.Timestamp;
 
 public class Task {

@@ -372,6 +372,7 @@ public class NotificationManager {
 			String instanceId,
 			int pId,
 			boolean excludeEmpty) throws Exception {
+		
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
 		 * 		Notifications can be re-applied so the the notifications flag in upload event is ignored
@@ -638,7 +639,7 @@ public class NotificationManager {
 					String emails = "";
 					for(String email : emailList) {	
 						if(sentEndPoints.get(email) == null) {
-							if(isValidEmail(email)) {
+							if(GeneralUtilityMethods.isValidEmail(email)) {
 								if(emails.length() > 0) {
 									emails += ",";
 								}
@@ -822,19 +823,6 @@ public class NotificationManager {
 		}
 	}
 	
-	/*
-	 * Validate an email
-	 */
-	public boolean isValidEmail(String email) {
-		boolean isValid = true;
-		try {
-		      InternetAddress emailAddr = new InternetAddress(email);
-		      emailAddr.validate();
-		   } catch (AddressException ex) {
-		      isValid = false;
-		   }
-		return isValid;
-	}
 }
 
 

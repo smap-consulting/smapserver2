@@ -83,7 +83,7 @@ public class UsageReports extends Application {
 		String org_name = GeneralUtilityMethods.getOrganisationName(sd, oId);
 		
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			MiscPDFManager pm = new MiscPDFManager(localisation);

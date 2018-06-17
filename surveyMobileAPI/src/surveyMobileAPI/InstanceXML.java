@@ -95,7 +95,7 @@ public class InstanceXML extends Application{
 		// Get the users locale
 		ResourceBundle localisation = null;
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 		} catch (Exception e) {
 

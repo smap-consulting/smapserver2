@@ -87,6 +87,13 @@ public class XLSUtilities {
 		style.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
 		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
 		styles.put("header2", style);
+		styles.put("header_tasks", style);
+		
+		style = wb.createCellStyle();
+		style.setFont(boldFont);
+		style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
+		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		styles.put("header_assignments", style);
 
 		style = wb.createCellStyle();
 		style.setWrapText(true);
@@ -101,6 +108,7 @@ public class XLSUtilities {
 		style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
 		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
 		styles.put("begin group", style);
+		styles.put("header_assignments", style);
 
 		style = wb.createCellStyle();
 		style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
@@ -119,6 +127,12 @@ public class XLSUtilities {
 		style = wb.createCellStyle();
 		style.setWrapText(true);
 		styles.put("default", style);
+		
+		style = wb.createCellStyle();
+		style.setWrapText(true);
+		style.setFillForegroundColor(HSSFColor.GREY_25_PERCENT.index);
+		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		styles.put("default_grey", style);
 
 		style = wb.createCellStyle();
 		style.setDataFormat(format.getFormat("yyyy-mm-dd h:mm"));	

@@ -77,7 +77,7 @@ public class SurveyExchange extends Application {
 		
 		try {
 
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export all Survey Data");

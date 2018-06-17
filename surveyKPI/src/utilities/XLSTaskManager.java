@@ -47,6 +47,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
+import org.smap.sdal.model.TaskServerDefn;
+import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.Location;
 
 
@@ -58,16 +60,19 @@ public class XLSTaskManager {
 	
 	Workbook wb = null;
 	int rowNumber = 1;		// Heading row is 0
+	String scheme = null;
+	String serverName = null;
 	
 	private class Column {
 		String name;
 		String human_name;
+		boolean isAssignment;
 
 		
-		public Column(ResourceBundle localisation, int col, String n) {
+		public Column(ResourceBundle localisation, int col, String n, boolean a) {
 			name = n;
-			//human_name = localisation.getString(n);
 			human_name = n;		// Need to work out how to use translations when the file needs to be imported again
+			isAssignment = a;
 		}
 		
 		// Return the width of this column
@@ -84,12 +89,18 @@ public class XLSTaskManager {
 				value = props.form_name;
 			} else if(name.equals("name")) {
 				value = props.name;
-			} else if(name.equals("status")) {
-				value = props.status;
 			} else if(name.equals("assignee_ident")) {
 				value = props.assignee_ident;
-			} else if(name.equals("generated_user_name")) {
+			} else if(name.equals("assignee_name")) {
 				value = props.assignee_name;
+			} else if(name.equals("email")) {
+				value = props.emails;
+			} else if(name.equals("url")) {
+				if(props.action_link != null && props.action_link.trim().length() > 0) {
+					value = scheme + "://" + serverName + "/webForm" + props.action_link;
+				} else {
+					value = scheme + "://" + serverName + props.url;
+				}
 			} else if(name.equals("location_trigger")) {
 				value = props.location_trigger;
 			} else if(name.equals("from")) {
@@ -108,17 +119,15 @@ public class XLSTaskManager {
 				value = props.guidance;		
 			} else if(name.equals("repeat")) {
 				value = String.valueOf(props.repeat);
-			} else if(name.equals("email")) {
-				value = props.email;
-			} else if(name.equals("url")) {
-				value = props.url;
-			} else if(name.equals("lon")) {
-				value = String.valueOf(GeneralUtilityMethods.wktToLatLng(props.location, "lng"));
-			} else if(name.equals("lat")) {
-				value = String.valueOf(GeneralUtilityMethods.wktToLatLng(props.location, "lat"));
+			} else if(name.equals("complete_all")) {
+				value = String.valueOf(props.complete_all);
 			} else if(name.equals("address")) {
 				value = props.address;
-			}
+			} else if(name.equals("lon")) {
+				value = String.valueOf(props.lon);
+			} else if(name.equals("lat")) {
+				value = String.valueOf(props.lat);
+			} 
 			
 			if(value == null) {
 				value = "";
@@ -144,34 +153,36 @@ public class XLSTaskManager {
 
 	}
 	
-	public XLSTaskManager(String type) {
+	public XLSTaskManager(String type, String scheme, String serverName) {
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook();
 		} else {
 			wb = new XSSFWorkbook();
 		}
+		this.scheme = scheme;
+		this.serverName = serverName;
 	}
 	
 	/*
 	 * Create a task list from an XLS file
 	 */
-	public TaskListGeoJson getXLSTaskList(String type, InputStream inputStream, ResourceBundle localisation) throws Exception {
-		
+	public ArrayList<TaskServerDefn> getXLSTaskList(String type, InputStream inputStream, ResourceBundle localisation) throws Exception {
+
 		Sheet sheet = null;
 		Sheet settingsSheet = null;
-        Row row = null;
-        int lastRowNum = 0;
-        TaskListGeoJson tl = new TaskListGeoJson();
-        tl.features = new ArrayList<TaskFeature> ();
-        HashMap<String, Integer> header = null;
+		Row row = null;
+		int lastRowNum = 0;
+		ArrayList<TaskServerDefn> tl = new ArrayList<TaskServerDefn> ();
+
+		HashMap<String, Integer> header = null;
 		String tz = "GMT";
-        
+
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
 		} else {
 			wb = new XSSFWorkbook(inputStream);
 		}
-		
+
 		/*
 		 * Get the task sheet settings
 		 */
@@ -180,95 +191,101 @@ public class XLSTaskManager {
 			int lastSettingsRow = settingsSheet.getLastRowNum();
 			for(int j = 0; j <= lastSettingsRow; j++) {
 				row = settingsSheet.getRow(j);
-                
-                if(row != null) {         	
-                    int lastCellNum = row.getLastCellNum();
-                    if(lastCellNum > 0) {
-                    	Cell c = row.getCell(0);
-                    	String k = c.getStringCellValue();
-                    	if(k != null && k.trim().toLowerCase().equals("time zone:")) {
-                    		c = row.getCell(1);
-                    		tz = c.getStringCellValue();
-                    		break;
-                    	}
-                    }
-                }
+
+				if(row != null) {         	
+					int lastCellNum = row.getLastCellNum();
+					if(lastCellNum > 0) {
+						Cell c = row.getCell(0);
+						String k = c.getStringCellValue();
+						if(k != null && k.trim().toLowerCase().equals("time zone:")) {
+							c = row.getCell(1);
+							tz = c.getStringCellValue();
+							break;
+						}
+					}
+				}
 			}
 		}
-		
+
 		ZoneId timeZoneId = ZoneId.of(tz);
 		ZoneId gmtZoneId = ZoneId.of("GMT");
-		
+
 		sheet = wb.getSheet("tasks");
 		if(sheet.getPhysicalNumberOfRows() > 0) {
-			
+
 			lastRowNum = sheet.getLastRowNum();
 			boolean needHeader = true;
-			
-            for(int j = 0; j <= lastRowNum; j++) {
-                
-            	row = sheet.getRow(j);
-                
-                if(row != null) {
-                	
-                    int lastCellNum = row.getLastCellNum();
-                    
-                	if(needHeader) {
-                		header = getHeader(row, lastCellNum);
-                		needHeader = false;
-                	} else {
-                		TaskFeature tf = new TaskFeature();
-                		TaskProperties tp = new TaskProperties();
-                		tf.properties = tp;
 
-            			tp.id = 0;
-            			tp.form_name = getColumn(row, "form", header, lastCellNum, null);
-            			if(tp.form_name == null || tp.form_name.trim().length() == 0) {
-            				continue;	// No form no task
-            			}
-            			tp.name = getColumn(row, "name", header, lastCellNum, "");
-            			tp.status = getColumn(row, "status", header, lastCellNum, "new");
-            			tp.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
-            			tp.assignee_ident = getColumn(row, "assignee_ident", header, lastCellNum, null);
-            			if(tp.assignee_ident == null || tp.assignee_ident.trim().length() == 0) {
-            				String genUser = getColumn(row, "generate_user", header, lastCellNum, null);
-            				if(genUser != null && genUser.trim().toLowerCase().equals("yes")) {
-            					tp.generate_user = true;
-            					tp.assignee_name = getColumn(row, "generated_user_name", header, lastCellNum, null);
-            					if(tp.assignee_name == null || tp.assignee_name.trim().length() == 0) {
-            						throw new Exception(localisation.getString("t_no_user_name"));
-            					}
-            				} else {
-            					throw new Exception(localisation.getString("t_no_user"));
-            				}
-            			}
-            			tp.location = "POINT(" + getColumn(row, "lon", header, lastCellNum, "0") + " " + 
-            					getColumn(row, "lat", header, lastCellNum, "0") + ")";
-            			tp.guidance = getColumn(row, "guidance", header, lastCellNum, null);
-            			
-            			// Get from value
-            			tp.from = getGmtDate(row, "from", header, lastCellNum, timeZoneId, gmtZoneId);
-            			tp.to = getGmtDate(row, "to", header, lastCellNum, timeZoneId, gmtZoneId);
-            			
-            			String repValue = getColumn(row, "repeat", header, lastCellNum, null);
-            			if(repValue != null && repValue.equals("true")) {
-            				tp.repeat = true;
-            			} else {
-            				tp.repeat = false;
-            			}
-            		    
-            			tl.features.add(tf);
-                	
-                	}
-                	
-                }
-                
-            }
+			TaskServerDefn currentTask = null;
+			for(int j = 0; j <= lastRowNum; j++) {
+
+				row = sheet.getRow(j);
+				if(row != null) {
+
+					int lastCellNum = row.getLastCellNum();
+
+					if(needHeader) {
+						header = getHeader(row, lastCellNum);
+						needHeader = false;
+					} else {
+						String form_name = getColumn(row, "form", header, lastCellNum, null);
+						String assignee_ident = getColumn(row, "assignee_ident", header, lastCellNum, null);
+						String email = getColumn(row, "email", header, lastCellNum, null);
+
+						if(form_name != null && form_name.trim().length() > 0) {
+
+							currentTask = new TaskServerDefn();
+							currentTask.form_name = form_name;
+							currentTask.name = getColumn(row, "name", header, lastCellNum, "");
+							currentTask.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
+							currentTask.lat = Double.valueOf(getColumn(row, "lat", header, lastCellNum, "0") );
+							currentTask.lon = Double.valueOf(getColumn(row, "lon", header, lastCellNum, "0") );
+							currentTask.guidance = getColumn(row, "guidance", header, lastCellNum, null);
+							currentTask.from = getGmtDate(row, "from", header, lastCellNum, timeZoneId, gmtZoneId);
+							currentTask.to = getGmtDate(row, "to", header, lastCellNum, timeZoneId, gmtZoneId);
+
+							// Get from value
+							String repValue = getColumn(row, "repeat", header, lastCellNum, null);
+							if(repValue != null && repValue.equals("true")) {
+								currentTask.repeat = true;
+							} else {
+								currentTask.repeat = false;
+							}
+							
+							// Add assignment in same row as task
+							AssignmentServerDefn currentAssignment = new AssignmentServerDefn();
+							currentAssignment.assignee_ident = assignee_ident;
+							currentAssignment.email = email;
+							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
+							
+							currentTask.assignments.add(currentAssignment);
+
+							tl.add(currentTask);             			
+						} else if((assignee_ident != null && assignee_ident.trim().length() > 0) ||
+								(email != null && email.trim().length() > 0)) {
+
+							AssignmentServerDefn currentAssignment = new AssignmentServerDefn();
+							currentAssignment.assignee_ident = assignee_ident;
+							currentAssignment.email = email;
+							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
+							if(currentTask == null) {
+								String msg = localisation.getString("t_no_task");
+								msg = msg.replaceAll("%s1", String.valueOf(j));
+								throw new Exception(msg);
+							}
+							currentTask.assignments.add(currentAssignment);
+						}
+
+					}
+
+				}
+
+			}
 		}
-	
+
 		return tl;
-		
-		
+
+
 	}
 	
 	/*
@@ -296,7 +313,7 @@ public class XLSTaskManager {
 		
 		Sheet taskListSheet = wb.createSheet("tasks");
 		Sheet taskSettingsSheet = wb.createSheet("settings");
-		taskListSheet.createFreezePane(3, 1);	// Freeze header row and first 3 columns
+		taskListSheet.createFreezePane(5, 1);	// Freeze header row and first 5 columns
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
@@ -515,22 +532,21 @@ public class XLSTaskManager {
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "form"));
-		cols.add(new Column(localisation, colNumber++, "name"));
-		cols.add(new Column(localisation, colNumber++, "status"));
-		cols.add(new Column(localisation, colNumber++, "assignee_ident"));
-		cols.add(new Column(localisation, colNumber++, "generate_user"));
-		cols.add(new Column(localisation, colNumber++, "generated_user_name"));
-		cols.add(new Column(localisation, colNumber++, "email"));
-		cols.add(new Column(localisation, colNumber++, "location_trigger"));
-		cols.add(new Column(localisation, colNumber++, "from"));
-		cols.add(new Column(localisation, colNumber++, "to"));
-		cols.add(new Column(localisation, colNumber++, "guidance"));
-		cols.add(new Column(localisation, colNumber++, "repeat"));
-		cols.add(new Column(localisation, colNumber++, "url"));
-		cols.add(new Column(localisation, colNumber++, "address"));
-		cols.add(new Column(localisation, colNumber++, "lon"));
-		cols.add(new Column(localisation, colNumber++, "lat"));
+		cols.add(new Column(localisation, colNumber++, "form", false));
+		cols.add(new Column(localisation, colNumber++, "name", false));
+		cols.add(new Column(localisation, colNumber++, "assignee_ident", true));		// Assignment
+		cols.add(new Column(localisation, colNumber++, "assignee_name", true));		// Assignment
+		cols.add(new Column(localisation, colNumber++, "email", true));				// Assignment
+		cols.add(new Column(localisation, colNumber++, "url", true));					// Assignment
+		cols.add(new Column(localisation, colNumber++, "location_trigger", false));
+		cols.add(new Column(localisation, colNumber++, "from", false));
+		cols.add(new Column(localisation, colNumber++, "to", false));
+		cols.add(new Column(localisation, colNumber++, "guidance", false));
+		cols.add(new Column(localisation, colNumber++, "repeat", false));
+		cols.add(new Column(localisation, colNumber++, "complete_all", false));
+		cols.add(new Column(localisation, colNumber++, "address", false));
+		cols.add(new Column(localisation, colNumber++, "lon", false));
+		cols.add(new Column(localisation, colNumber++, "lat", false));
 		
 		
 		return cols;
@@ -545,8 +561,8 @@ public class XLSTaskManager {
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "UID"));
-		cols.add(new Column(localisation, colNumber++, "tagName"));
+		cols.add(new Column(localisation, colNumber++, "UID", false));
+		cols.add(new Column(localisation, colNumber++, "tagName", false));
 		
 		return cols;
 	}
@@ -561,10 +577,15 @@ public class XLSTaskManager {
 		}
 				
 		Row headerRow = sheet.createRow(0);
-		CellStyle headerStyle = styles.get("header");
 		for(int i = 0; i < cols.size(); i++) {
 			Column col = cols.get(i);
 			
+			CellStyle headerStyle = null;
+			if(col.isAssignment) {
+				headerStyle = styles.get("header_assignments");
+			} else {
+				headerStyle = styles.get("header_tasks");
+			}
             Cell cell = headerRow.createCell(i);
             cell.setCellStyle(headerStyle);
             cell.setCellValue(col.human_name);
@@ -589,32 +610,43 @@ public class XLSTaskManager {
 		
 		styleTimestamp.setDataFormat(format.getFormat("yyyy-mm-dd h:mm"));	
 		
+		int currentTask = -1;
 		for(TaskFeature feature : tl.features)  {
 			
 			TaskProperties props = feature.properties;
 				
+			int thisTask = props.id;
 			Row row = sheet.createRow(rowNumber++);
 			for(int i = 0; i < cols.size(); i++) {
-				Column col = cols.get(i);			
+				Column col = cols.get(i);	
 				Cell cell = row.createCell(i);
-
-				if(col.name.equals("from") || col.name.equals("to")) {
-					cell.setCellStyle(styleTimestamp);
-					
-					if(col.getDateValue(props) != null) {
-						LocalDateTime gmtDate = col.getDateValue(props).toLocalDateTime();
-						ZonedDateTime gmtZoned = ZonedDateTime.of(gmtDate, gmtZoneId);
-						ZonedDateTime localZoned = gmtZoned.withZoneSameInstant(timeZoneId);
-						LocalDateTime localDate = localZoned.toLocalDateTime();
-						Timestamp ts2 = Timestamp.valueOf(localDate);
-						cell.setCellValue(ts2);
+				if(col.isAssignment || thisTask != currentTask) {		// Write all the assignments but only task data on new task				
+	
+					if(col.name.equals("from") || col.name.equals("to")) {
+						cell.setCellStyle(styleTimestamp);
+						
+						if(col.getDateValue(props) != null) {
+							LocalDateTime gmtDate = col.getDateValue(props).toLocalDateTime();
+							ZonedDateTime gmtZoned = ZonedDateTime.of(gmtDate, gmtZoneId);
+							ZonedDateTime localZoned = gmtZoned.withZoneSameInstant(timeZoneId);
+							LocalDateTime localDate = localZoned.toLocalDateTime();
+							Timestamp ts2 = Timestamp.valueOf(localDate);
+							cell.setCellValue(ts2);
+						}
+	
+					} else {
+						if(col.name.equals("url")) {
+							cell.setCellStyle(styles.get("default_grey"));
+						} else {
+							cell.setCellStyle(styles.get("default"));	
+						}
+						cell.setCellValue(col.getValue(props));
 					}
-
 				} else {
-					cell.setCellStyle(styles.get("default"));	
-					cell.setCellValue(col.getValue(props));
+					cell.setCellStyle(styles.get("default_grey"));		
 				}
 	        }	
+			currentTask = thisTask;
 		}
 		
 		// Populate settings sheet

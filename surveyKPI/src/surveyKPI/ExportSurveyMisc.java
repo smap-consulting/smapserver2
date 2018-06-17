@@ -168,7 +168,7 @@ public class ExportSurveyMisc extends Application {
 			try {
 
 				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 				String surveyName = GeneralUtilityMethods.getSurveyName(sd, targetId);

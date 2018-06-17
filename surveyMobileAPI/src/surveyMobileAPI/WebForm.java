@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,10 +53,13 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.Action;
+import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -238,9 +242,11 @@ public class WebForm extends Application {
 	@GET
 	@Path("/id/{temp_user}/{ident}")
 	@Produces(MediaType.TEXT_HTML)
-	public Response getFormHTMLTemporaryUser(@Context HttpServletRequest request, @PathParam("ident") String formIdent,
-			@PathParam("temp_user") String tempUser, @QueryParam("datakey") String datakey, // Optional keys to instance
-																							// data
+	public Response getFormHTMLTemporaryUser(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String formIdent,
+			@PathParam("temp_user") String tempUser, 
+			@QueryParam("datakey") String datakey, // Optional keys to instance data
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("viewOnly") boolean vo,
@@ -259,6 +265,78 @@ public class WebForm extends Application {
 				true);
 	}
 
+	/*
+	 * Respond with HTML 
+	 * Called by Temporary User to complete a task
+	 */
+	//
+	@GET
+	@Path("/action/{ident}")
+	@Produces(MediaType.TEXT_HTML)
+	public Response getFormHTMLTemporaryUser(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String ident) throws Exception {
+
+		Response response = null;
+		
+		userIdent = ident;
+		mimeType = "html";
+		String requester = "surveyMobileAPI-webform task";
+		
+		Connection sd = SDDataSource.getConnection(requester);
+
+		Action a = null;
+		
+		try {
+
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			// 1. Get details on the action to be performed using the user credentials
+			ActionManager am = new ActionManager();
+			a = am.getAction(sd, userIdent);
+
+			// 2. If temporary user does not exist then report the issue to the user
+			if (a == null) {
+				AssignmentDetails aDetails = GeneralUtilityMethods.getAssignmentStatusForTempUser(sd, userIdent);
+				String message = null;
+				SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+				
+				if(aDetails.status == null) {
+					message = localisation.getString("wf_fnf");
+				} else if(aDetails.status.equals("submitted")) {
+					message = localisation.getString("wf_fs");
+					message = message.replaceAll("%1s", sdf.format(aDetails.completed_date));
+				} else if(aDetails.status.equals("cancelled")) {
+					message = localisation.getString("wf_fc");
+					message = message.replaceAll("%1s", sdf.format(aDetails.cancelled_date));
+				} else if(aDetails.status.equals("deleted")) {
+					message = localisation.getString("wf_fc");
+					message = message.replaceAll("%1s", sdf.format(aDetails.deleted_date));
+				} else {
+					message = localisation.getString("wf_fnf");
+				}
+				response = getErrorPage(request, locale, message);
+			} else if(!a.action.equals("task")) {
+				throw new Exception("Invalid action type: " + a.action);
+			} else {
+
+				// 3. Get webform
+				userIdent = ident;
+				isTemporaryUser = true;
+				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, null, false,true);
+			}
+		
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+		}
+		
+		return response;
+		
+	}
+	
 	/*
 	 * Get the response as either HTML or JSON
 	 */
@@ -296,7 +374,7 @@ public class WebForm extends Application {
 			
 			// Get the users locale
 			try {
-				locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, userIdent));
+				locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			} catch (Exception e) {
 
@@ -844,7 +922,8 @@ public class WebForm extends Application {
 			output.append("</div>");
 		}
 
-		output.append("<article class='paper'>\n");
+		output.append("<div class='loader'></div>");
+		output.append("<article class='paper' style='display:none;'>\n");
 		if (!minimal) {
 			output.append("<header class='form-header clearfix'>\n");
 			output.append("<div class='offline-enabled'>\n");
@@ -1056,6 +1135,67 @@ public class WebForm extends Application {
 		}
 
 		return output.toString();
+	}
+	
+	/*
+	 * Get the response as either HTML or JSON
+	 */
+	private Response getErrorPage(HttpServletRequest request, Locale locale, String message) {
+
+		Response response = null;
+
+		StringBuffer output = new StringBuffer();
+		
+		// Generate the page
+		try {
+
+			output.append("<!DOCTYPE html>\n");
+			// Append locale
+			output.append("<html lang='").append(locale.toString()).append("'  class='no-js'").append(">\n");
+
+			output.append("<head>\n");
+			output.append("<style type=\"text/css\">.gm-style .gm-style-cc span,.gm-style .gm-style-cc a,.gm-style .gm-style-mtc div{font-size:10px}\n" + 
+					"</style>");
+			output.append("<style type=\"text/css\">@media print {  .gm-style .gmnoprint, .gmnoprint {    display:none  }}@media screen {  .gm-style .gmnoscreen, .gmnoscreen {    display:none  }}</style>");
+			output.append("<style type=\"text/css\">.gm-style-pbc{transition:opacity ease-in-out;background-color:rgba(0,0,0,0.45);text-align:center}.gm-style-pbt{font-size:22px;color:white;font-family:Roboto,Arial,sans-serif;position:relative;margin:0;top:50%;-webkit-transform:translateY(-50%);-ms-transform:translateY(-50%);transform:translateY(-50%)}\n" + 
+					"</style>");
+			
+			output.append("<link type='text/css' href='/build/css/webform.css' media='all' rel='stylesheet' />\n");
+			output.append("<link type='text/css' href='/build/css/formhub.css' media='all' rel='stylesheet' />\n");			
+
+			output.append("<link rel='shortcut icon' href='/favicon.ico'>\n");
+			output.append(
+					"<link rel='apple-touch-icon-precomposed' sizes='144x144' href='images/fieldTask_144_144_min.png'>\n");
+			output.append(
+					"<link rel='apple-touch-icon-precomposed' sizes='114x114' href='images/fieldTask_114_114_min.png'>\n");
+			output.append(
+					"<link rel='apple-touch-icon-precomposed' sizes='72x72' href='images/fieldTask_72_72_min.png'>\n");
+			output.append("<link rel='apple-touch-icon-precomposed' href='images/fieldTask_57_57_min.png'>\n");
+
+			output.append("<meta charset='utf-8' />\n");
+			output.append("<meta name='viewport' content='width=device-width, initial-scale=1.0' />\n");
+			output.append("<meta name='apple-mobile-web-app-capable' content='yes' />\n");
+			output.append("<!--[if lt IE 10]>");
+			output.append("<script type='text/javascript'>window.location = 'modern_browsers';</script>\n");
+			output.append("<![endif]-->\n");
+			output.append("<script src='/js/libs/modernizr.js'></script>");			
+			output.append("</head>\n");
+			
+			// Add body
+			output.append("<body class='clearfix edit'>");
+			output.append("<h1 style='color:blue;text-align:center;'>").append(message).append("</h1>");
+			output.append("</body>");
+
+			output.append("</html>\n");
+			
+			response = Response.status(Status.OK).entity(output.toString()).build();
+
+		} catch (Exception e) {
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+
+		return response;
 	}
 
 }
