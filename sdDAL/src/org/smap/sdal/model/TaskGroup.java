@@ -11,4 +11,5 @@ public class TaskGroup {
 	
 	public int totalTasks;
 	public int completeTasks;
+	public TaskEmailDetails emaildetails; 
 }

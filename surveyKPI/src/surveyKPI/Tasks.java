@@ -56,6 +56,7 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.TaskBulkAction;
+import org.smap.sdal.model.TaskEmailDetails;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
@@ -786,6 +787,53 @@ public class Tasks extends Application {
 			
 		}
 		return Response.ok("").build();
+	}
+	
+	/*
+	 * Update an email details
+	 */
+	@POST
+	@Path("/emaildetails/{pId}/{tgId}")
+	@Consumes("application/json")
+	public Response updateEmailDetailsTask(
+			@Context HttpServletRequest request,
+			@PathParam("pId") int pId,
+			@PathParam("tgId") int tgId,
+			@FormParam("emaildetails") String emaildetails
+			) { 
+		
+		Response response = null;
+
+		String user = request.getRemoteUser();
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
+		a.isAuthorised(sd, user);
+		a.isValidProject(sd, user, pId);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		// End Authorisation
+		
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		TaskEmailDetails ted = gson.fromJson(emaildetails, TaskEmailDetails.class);	
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			TaskManager tm = new TaskManager(localisation);
+			tm.updateEmailDetails(sd, pId, tgId, ted);
+			response = Response.ok().build();
+		
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+	
+			SDDataSource.closeConnection("surveyKPI-tasks", sd);
+			
+		}
+		
+		return response;
 	}
 
 }

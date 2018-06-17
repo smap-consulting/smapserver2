@@ -39,6 +39,7 @@ import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskAssignmentPair;
 import org.smap.sdal.model.TaskBulkAction;
+import org.smap.sdal.model.TaskEmailDetails;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
@@ -113,7 +114,7 @@ public class TaskManager {
 	 */
 	public ArrayList<TaskGroup> getTaskGroups(Connection sd, int projectId) throws Exception {
 
-		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id "
+		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id, email_details "
 				+ "from task_group where p_id = ? order by tg_id asc;";
 		PreparedStatement pstmt = null;
 
@@ -171,6 +172,8 @@ public class TaskManager {
 				tg.rule = rs.getString(5);
 				tg.source_s_id = rs.getInt(6);
 				tg.target_s_id = rs.getInt(7);
+				tg.emaildetails = new Gson().fromJson(rs.getString(8), TaskEmailDetails.class);
+				
 
 				if(rsTotal.next()) {
 					int tg_id = rsTotal.getInt(1);
@@ -2357,6 +2360,24 @@ public class TaskManager {
 		
 		return tsd;
 		
+	}
+	
+	/*
+	 * Update the email details for a task group
+	 */
+	public void updateEmailDetails(Connection sd, int pId, int tgId, TaskEmailDetails ted) throws SQLException {
+		String sql = "update task_group set email_details = ? where p_id = ? and tg_id = ?";
+		PreparedStatement pstmt = null;
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, gson.toJson(ted));
+			pstmt.setInt(2, pId);
+			pstmt.setInt(3, tgId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
 	}
 }
 

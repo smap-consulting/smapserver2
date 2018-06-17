@@ -187,7 +187,9 @@ public class Upload extends Application {
 					String message = null;
 					SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 					
-					if(aDetails.status.equals("submitted")) {
+					if(aDetails == null || aDetails.status == null) {
+						message = "Temporary user details not found";
+					} else if(aDetails.status.equals("submitted")) {
 						message = localisation.getString("wf_fs");
 						message = message.replaceAll("%s1", sdf.format(aDetails.completed_date));
 					} else if(aDetails.status.equals("cancelled")) {
