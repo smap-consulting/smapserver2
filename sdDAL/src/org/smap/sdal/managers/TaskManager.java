@@ -2412,6 +2412,9 @@ public class TaskManager {
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
+		if(ted == null) {
+			ted = new TaskEmailDetails();
+		}
 		return ted;
 	}
 }
