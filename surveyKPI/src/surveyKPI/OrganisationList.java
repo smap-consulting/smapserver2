@@ -114,6 +114,7 @@ public class OrganisationList extends Application {
 					+ "allow_facebook, "
 					+ "allow_twitter, "
 					+ "can_edit, "
+					+ "email_task, "
 					+ "ft_delete,"
 					+ "ft_send_location,"
 					+ "ft_sync_incomplete,"
@@ -154,6 +155,7 @@ public class OrganisationList extends Application {
 				org.allow_facebook = resultSet.getBoolean("allow_facebook");
 				org.allow_twitter = resultSet.getBoolean("allow_twitter"); 
 				org.can_edit = resultSet.getBoolean("can_edit");
+				org.email_task = resultSet.getBoolean("email_task");
 				org.ft_delete = resultSet.getString("ft_delete");
 				org.ft_send_location = resultSet.getString("ft_send_location");
 				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");

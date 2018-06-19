@@ -107,6 +107,7 @@ public class Register extends Application {
 			o.company_name = rd.org_name;
 			o.website = rd.website;
 			o.can_edit = true;
+			o.email_task = false;
 			
 			int o_id = om.createOrganisation(
 					sd, 

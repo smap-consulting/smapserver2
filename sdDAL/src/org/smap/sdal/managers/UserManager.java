@@ -92,6 +92,7 @@ public class UserManager {
 					+ "o.allow_facebook, "
 					+ "o.allow_twitter, "
 					+ "o.can_edit, "
+					+ "o.email_task, "
 					+ "o.ft_send_location, "
 					+ "o.billing_enabled "
 					+ " from users u, organisation o "
@@ -134,6 +135,7 @@ public class UserManager {
 				user.allow_facebook = resultSet.getBoolean("allow_facebook");
 				user.allow_twitter = resultSet.getBoolean("allow_twitter");
 				user.can_edit = resultSet.getBoolean("can_edit");
+				user.email_task = resultSet.getBoolean("email_task");
 				user.ft_send_location = resultSet.getString("ft_send_location");
 				user.lastalert = resultSet.getString("lastalert");
 				user.seen = resultSet.getBoolean("seen");

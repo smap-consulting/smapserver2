@@ -92,7 +92,8 @@ public class TaskManager {
 			"cancelled", 
 			"deleted",
 			"pending",
-			"error"
+			"error",
+			"blocked"
 			};
 	
 	public class TaskInstanceData {
@@ -1287,7 +1288,6 @@ public class TaskManager {
 				mm.userChange(sd, userIdent);
 			} else if(emailAction) {
 				
-				String basePath = GeneralUtilityMethods.getBasePath(request);
 				String urlprefix = "https://" + request.getServerName() + "/";
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -1933,6 +1933,7 @@ public class TaskManager {
 				log.info("No matching users found");
 			}
 		} else if(emails != null && emails.length() > 0) {
+			boolean emailTaskBlocked = GeneralUtilityMethods.emailTaskBlocked(sd, oId);
 			String [] emailArray = emails.split(",");
 			if(autosendEmails) {
 				status = "pending";
@@ -1955,33 +1956,37 @@ public class TaskManager {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			for(String email : emailArray) {
 				
-				// Create the assignment
-				int aId = insertAssignment(pstmtAssign, 0, email, status, taskId);
-				
-				// Create a temporary user embedding the assignment id in the action link, get the link to that user
-				action.assignmentId = aId;
-				String link = am.getLink(sd, action, oId, true);
-				
-				// Update the assignment with the link to the action
-				setAssignmentLink(sd, aId, link);
-				MessagingManager mm = new MessagingManager();
-				if(autosendEmails) {
-					// Create a submission message (The task may or may not have come from a submission)
-					int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-					EmailTaskMessage taskMsg = new EmailTaskMessage(
-							sId,
-							pId,
-							aId,
-							instanceId,			
-							ted.from,
-							ted.subject, 
-							ted.content,
-							"task",
-							email,			
-							"email",
-							remoteUser,
-							link);
-					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+				if(emailTaskBlocked) {
+					insertAssignment(pstmtAssign, 0, email, "blocked", taskId);
+				} else {
+					// Create the assignment
+					int aId = insertAssignment(pstmtAssign, 0, email, status, taskId);
+					
+					// Create a temporary user embedding the assignment id in the action link, get the link to that user
+					action.assignmentId = aId;
+					String link = am.getLink(sd, action, oId, true);
+					
+					// Update the assignment with the link to the action
+					setAssignmentLink(sd, aId, link);
+					MessagingManager mm = new MessagingManager();
+					if(autosendEmails) {
+						// Create a submission message (The task may or may not have come from a submission)
+						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+						EmailTaskMessage taskMsg = new EmailTaskMessage(
+								sId,
+								pId,
+								aId,
+								instanceId,			
+								ted.from,
+								ted.subject, 
+								ted.content,
+								"task",
+								email,			
+								"email",
+								remoteUser,
+								link);
+						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
+					}
 				}
 			}
 		} else {
@@ -2416,6 +2421,13 @@ public class TaskManager {
 			ted = new TaskEmailDetails();
 		}
 		return ted;
+	}
+	
+	/*
+	 * Set the assignment status
+	 */
+	public void setAssignmentStatus(Connection sd, String status) {
+		String setStatusSql = "update assignments set status = ? where id = ? ";
 	}
 }
 

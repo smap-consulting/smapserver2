@@ -33,6 +33,7 @@ public class User {
 	public boolean allow_facebook;
 	public boolean allow_twitter;
 	public boolean can_edit;
+	public boolean email_task;
 	public String ft_send_location;
 	public int current_project_id;
 	public int current_survey_id;

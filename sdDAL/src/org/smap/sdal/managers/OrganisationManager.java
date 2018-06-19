@@ -63,6 +63,7 @@ public class OrganisationManager {
 				" allow_facebook = ?, " +
 				" allow_twitter = ?, " +
 				" can_edit = ?, " +
+				" email_task = ?, " +
 				" admin_email = ?, " +
 				" smtp_host = ?, " +
 				" email_domain = ?, " +
@@ -91,18 +92,19 @@ public class OrganisationManager {
 			pstmt.setBoolean(7, o.allow_facebook);
 			pstmt.setBoolean(8, o.allow_twitter);
 			pstmt.setBoolean(9, o.can_edit);
-			pstmt.setString(10, o.admin_email);
-			pstmt.setString(11, o.smtp_host);
-			pstmt.setString(12, o.email_domain);
-			pstmt.setString(13, o.email_user);
-			pstmt.setString(14, o.email_password);
-			pstmt.setInt(15, o.email_port);
-			pstmt.setString(16, o.default_email_content);
-			pstmt.setString(17, o.website);
-			pstmt.setString(18, o.locale);
-			pstmt.setString(19, o.timeZone);
-			pstmt.setString(20, userIdent);
-			pstmt.setInt(21, o.id);
+			pstmt.setBoolean(10, o.email_task);
+			pstmt.setString(11, o.admin_email);
+			pstmt.setString(12, o.smtp_host);
+			pstmt.setString(13, o.email_domain);
+			pstmt.setString(14, o.email_user);
+			pstmt.setString(15, o.email_password);
+			pstmt.setInt(16, o.email_port);
+			pstmt.setString(17, o.default_email_content);
+			pstmt.setString(18, o.website);
+			pstmt.setString(19, o.locale);
+			pstmt.setString(20, o.timeZone);
+			pstmt.setString(21, userIdent);
+			pstmt.setInt(22, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -151,7 +153,7 @@ public class OrganisationManager {
 				"company_address, " +
 				"company_phone, " +
 				"company_email, " +
-				"allow_email, allow_facebook, allow_twitter, can_edit, " +
+				"allow_email, allow_facebook, allow_twitter, can_edit, email_task " +
 				"changed_by, admin_email, smtp_host, email_domain, email_user, email_password, " +
 				"email_port, default_email_content, website, locale, timezone, changed_ts) " +
 				" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";
@@ -187,21 +189,22 @@ public class OrganisationManager {
 			pstmt.setBoolean(7, o.allow_facebook);
 			pstmt.setBoolean(8, o.allow_twitter);
 			pstmt.setBoolean(9, o.can_edit);
-			pstmt.setString(10, userIdent);
-			pstmt.setString(11, o.admin_email);
-			pstmt.setString(12, o.smtp_host);
-			pstmt.setString(13, o.email_domain);
-			pstmt.setString(14, o.email_user);
-			pstmt.setString(15, o.email_password);
-			pstmt.setInt(16, o.email_port);
-			pstmt.setString(17, o.default_email_content);
-			pstmt.setString(18, o.website);
-			pstmt.setString(19, o.locale);
+			pstmt.setBoolean(10, o.email_task);
+			pstmt.setString(11, userIdent);
+			pstmt.setString(12, o.admin_email);
+			pstmt.setString(13, o.smtp_host);
+			pstmt.setString(14, o.email_domain);
+			pstmt.setString(15, o.email_user);
+			pstmt.setString(16, o.email_password);
+			pstmt.setInt(17, o.email_port);
+			pstmt.setString(18, o.default_email_content);
+			pstmt.setString(19, o.website);
+			pstmt.setString(20, o.locale);
 			
 			if(o.timeZone == null || o.timeZone.trim().length() == 0) {
 				o.timeZone = "UTC";			// Default time zone for organisation
 			}
-			pstmt.setString(20, o.timeZone);
+			pstmt.setString(21, o.timeZone);
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

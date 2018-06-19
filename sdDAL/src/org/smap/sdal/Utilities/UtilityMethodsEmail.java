@@ -276,7 +276,7 @@ public class UtilityMethodsEmail {
 
 		String sql = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host, " +
 				" o.email_domain, o.default_email_content,"
-				+ "o.locale, o.company_email, o.timezone " +
+				+ "o.locale, o.company_email, o.timezone, o.email_task " +
 				" from organisation o " +
 				" where o.id = ? ";
 
@@ -302,6 +302,7 @@ public class UtilityMethodsEmail {
 				if(o.locale == null) {
 					o.locale = "en";
 				}
+				o.email_task = rs.getBoolean(11);
 
 			}
 		} catch (SQLException e) {

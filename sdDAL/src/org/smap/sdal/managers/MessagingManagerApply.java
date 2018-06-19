@@ -160,19 +160,24 @@ public class MessagingManagerApply {
 							msg.user); 
 					
 				} else if(topic.equals("email_task")) {
-					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);
-					
 					TaskManager tm = new TaskManager(localisation);
-					tm.emailTask(
-							sd, 
-							cResults, 
-							organisation, 
-							msg,
-							id,
-							msg.user,
-							basePath,
-							"https",
-							serverName); 
+					if(organisation.email_task) {
+						EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
+						
+						tm.emailTask(
+								sd, 
+								cResults, 
+								organisation, 
+								msg,
+								id,
+								msg.user,
+								basePath,
+								"https",
+								serverName); 
+					} else {
+
+						log.info("Error: xxxxxx Attempting to send email task but these are not enabled");
+					}
 					
 				} else {
 					// Assume a direct email to be processed immediately

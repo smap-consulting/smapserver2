@@ -6751,6 +6751,34 @@ public class GeneralUtilityMethods {
 		   }
 		return isValid;
 	}
+	
+	/*
+	 * Return true if email tasks are blocked.  That is the email_task value is false
+	 */
+	public static boolean emailTaskBlocked(Connection sd, int oId) throws Exception {
+		
+		boolean emailTask = true;
+		String sql = "select email_task from organisation " 
+				+ "where id = ? ";	
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+		
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				emailTask = !rs.getBoolean(1);
+			}
+				
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return emailTask;
+
+	}
 
 }
 

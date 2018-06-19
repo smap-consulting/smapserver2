@@ -29,6 +29,7 @@ public class Organisation {
 	public boolean allow_facebook;
 	public boolean allow_twitter;
 	public boolean can_edit = true;
+	public boolean email_task = false;
 	public String ft_delete;
 	public String ft_send_location;
 	public boolean ft_sync_incomplete;
