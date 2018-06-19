@@ -634,6 +634,96 @@ public class AllAssignments extends Application {
 
 		return response;
 	}
+	
+	/*
+	 * Update a task group
+	 */
+	@POST
+	@Path("/updatetaskgroup/{projectId}/{tgId}")
+	public Response updateTaskGroup(@Context HttpServletRequest request, 
+			@PathParam("projectId") int projectId,
+			@PathParam("tgId") int tgId,
+			@FormParam("settings") String settings) { 
+
+		Response response = null;
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
+
+		System.out.println("Emails: " + as.emails + " Email question: " + as.assign_data);
+		String userName = request.getRemoteUser();
+		int sId = as.source_survey_id;								// Source survey id (optional)
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		if(sId > 0) {
+			a.isValidSurvey(sd, userName, sId, false, superUser);	// Validate that the user can access this survey
+		}
+		// End Authorisation
+		
+		PreparedStatement pstmtTaskGroup = null;
+
+		try {
+			log.info("Set autocommit sd false");
+
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Update the task group
+			 */
+			ResultSet rsKeys = null;
+			if(tgId > 0) {
+
+				String addressParams = gson.toJson(as.address_columns); 	
+				String tgSql = "update task_group set "
+						+ "name = ?, "
+						+ "p_id = ?, "
+						+ "address_params = ?,"
+						+ "rule = ?,"
+						+ "source_s_id = ?,"
+						+ "target_s_id = ? "
+						+ "where tg_id = ?";
+
+				pstmtTaskGroup = sd.prepareStatement(tgSql);
+				pstmtTaskGroup.setString(1, as.task_group_name);
+				pstmtTaskGroup.setInt(2, projectId);
+				pstmtTaskGroup.setString(3, addressParams);
+				pstmtTaskGroup.setString(4, settings);
+				pstmtTaskGroup.setInt(5, as.source_survey_id);
+				pstmtTaskGroup.setInt(6, as.target_survey_id);
+				pstmtTaskGroup.setInt(7,  tgId);
+				log.info("Update task group: " + pstmtTaskGroup.toString());
+				pstmtTaskGroup.execute();
+
+			} 
+
+			response = Response.ok().entity("{\"tg_id\": " + tgId + "}").build();
+
+		} catch (Exception e) {
+			log.info("Error: " + e.getMessage());
+			
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"", e);
+
+		} finally {
+
+			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
+		
+			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
+		}
+
+		return response;
+	}
 
 	/*
 	 * Update the task assignment
