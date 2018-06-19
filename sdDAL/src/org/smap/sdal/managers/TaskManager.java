@@ -726,13 +726,17 @@ public class TaskManager {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, target_s_id);
 			
 			// Assign to people dependent on data from a form
+			String emails = as.emails;
 			if(tid.ident != null) {
 			
 				log.info("Assign Ident: " + tid.ident);
 				if(as.user_id == -2) {
 					userId = GeneralUtilityMethods.getUserIdOrgCheck(sd, tid.ident, oId);   // Its a user ident
-				} else {
+				} else if (as.role_id == -2){
 					roleId = GeneralUtilityMethods.getRoleId(sd, tid.ident, oId);   // Its a role name
+				} else {
+					// Append emails as data
+					emails = combineEmails(emails, tid.ident);
 				}
 			}
 			
@@ -754,7 +758,7 @@ public class TaskManager {
 						userId, 
 						roleId, 
 						fixedRoleId,
-						as.emails,
+						emails,
 						oId,
 						pId,
 						targetSurveyIdent,
@@ -2424,10 +2428,28 @@ public class TaskManager {
 	}
 	
 	/*
-	 * Set the assignment status
+	 * Add data based emails to fixed emails
+	 * Emails may be space separated or comma separated
 	 */
-	public void setAssignmentStatus(Connection sd, String status) {
-		String setStatusSql = "update assignments set status = ? where id = ? ";
+	public String combineEmails(String fixedEmails, String dataEmails) {
+		if(fixedEmails == null) {
+			fixedEmails = "";
+		}
+		if(dataEmails == null) {
+			dataEmails = "";
+		}
+		
+		String emails = fixedEmails;
+		if(emails.length() > 0) {
+			emails += ",";
+		}
+		emails += dataEmails;
+		System.out.println("      ===== In: " + emails);
+		emails = emails.trim().replaceAll("\\s", " ").replace(" ", ",");
+		emails = emails.replaceAll("[,]+", ",");
+		System.out.println("      ==== Out: " + emails);
+		return emails;
+		
 	}
 }
 
