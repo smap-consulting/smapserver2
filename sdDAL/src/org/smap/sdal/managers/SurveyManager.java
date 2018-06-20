@@ -2558,7 +2558,11 @@ public class SurveyManager {
 				}
 
 				log.info("Get results: " + pstmt.toString());
-				resultSet = pstmt.executeQuery();
+				if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
+					resultSet = pstmt.executeQuery();
+				} else {
+					log.info("Table does not exist");
+				}
 			}
 
 			if (resultSet != null) {

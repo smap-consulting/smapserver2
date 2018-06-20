@@ -426,6 +426,7 @@ public class WebForm extends Application {
 			// If required get the instance data
 			String instanceXML = null;
 			String instanceStrToEditId = null;
+			log.info("About to add instance:" + datakey + " : " + datakeyvalue);
 			if (datakey != null && datakeyvalue != null) {
 				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
 				instanceXML = xForm.getInstance(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,

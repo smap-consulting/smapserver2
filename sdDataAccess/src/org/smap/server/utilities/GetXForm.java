@@ -1284,6 +1284,8 @@ public class GetXForm {
 		gFilenames = new ArrayList<String>();
 		gInstanceId = null;
 
+		log.info("Getting instance data: " + templateName + " : " + key + " : " + keyval);
+		
 		// Get template details
 		String firstFormRef = template.getFirstFormRef();
 		Form firstForm = template.getForm(firstFormRef);

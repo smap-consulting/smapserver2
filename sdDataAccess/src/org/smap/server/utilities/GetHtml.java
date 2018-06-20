@@ -185,6 +185,7 @@ public class GetHtml {
 		// Questions
 		for (Form form : survey.forms) {
 			if (form.parentform == 0) { // Start with top level form
+				log.info("Adding questions from: " + form.name);
 				addPaths(form, "/");
 				processQuestions(sd, parent, form);
 				processPreloads(parent, form);
