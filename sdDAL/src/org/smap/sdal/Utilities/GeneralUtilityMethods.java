@@ -6779,6 +6779,59 @@ public class GeneralUtilityMethods {
 		return emailTask;
 
 	}
+	
+	/*
+	 * Add the thread value that links replaced records
+	 */
+	public static void continueThread(Connection cResults, String table, int prikey, int sourceKey) throws SQLException {
+		
+		String sqlHasThreadCol = "select count(*) from information_schema.columns where table_name = ? "
+				+ "and column_name = '_thread' ";
+		PreparedStatement pstmtHasThreadCol = null;
+		
+		String sqlAddThread = "alter table " + table + " add column _thread text";
+		PreparedStatement pstmtAddThreadCol = null;
+		
+		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ?";
+		PreparedStatement pstmtInitThreadCol = null;
+		
+		String sqlCopyThreadCol = "update " + table 
+				+ " set _thread = (select _thread from " + table
+				+ " where prikey = ?) where prikey = ?";
+		PreparedStatement pstmtCopyThreadCol = null;
+			
+		try {
+			pstmtHasThreadCol = cResults.prepareStatement(sqlHasThreadCol);
+			pstmtHasThreadCol.setString(1, table);
+			ResultSet rsCols = pstmtHasThreadCol.executeQuery();
+
+			rsCols.next();
+			if(rsCols.getInt(1) == 0) {
+				// Add the thread column
+				pstmtAddThreadCol = cResults.prepareStatement(sqlAddThread);
+				pstmtAddThreadCol.executeUpdate();
+				
+				// Initialise the thread column
+				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
+				pstmtInitThreadCol.setInt(1, sourceKey);
+				pstmtInitThreadCol.executeUpdate();
+			}
+			
+			// At this point the thread col must exist and the _thread value for the source must exist
+			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
+			pstmtCopyThreadCol.setInt(1, sourceKey);
+			pstmtCopyThreadCol.setInt(2, prikey);
+			pstmtCopyThreadCol.executeUpdate();
+			
+			
+		} finally {
+			if(pstmtHasThreadCol != null) try{pstmtHasThreadCol.close();}catch(Exception e) {}
+			if(pstmtAddThreadCol != null) try{pstmtAddThreadCol.close();}catch(Exception e) {}
+			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
+			if(pstmtCopyThreadCol != null) try{pstmtCopyThreadCol.close();}catch(Exception e) {}
+		}
+
+	}
 
 }
 

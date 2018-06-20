@@ -48,6 +48,7 @@ import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
@@ -222,7 +223,6 @@ public class SubRelationalDB extends Subscriber {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtRepeats = null;
-		ResultSet rs = null;
 
 		String sql = "update assignments set status = 'submitted', completed_date = now() "
 				+ "where id = ? ";
@@ -234,20 +234,16 @@ public class SubRelationalDB extends Subscriber {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmtRepeats = sd.prepareStatement(sqlRepeats);
-
+			
 			if(assignmentId > 0) {
-				int assignment_id = rs.getInt(1);
-				log.info("Assignment id: " + assignment_id);
-				if(assignment_id > 0) {
-					pstmt.setInt(1, assignment_id);
-					log.info("Updating assignment status: " + pstmt.toString());
-					pstmt.executeUpdate();
+				pstmt.setInt(1, assignmentId);
+				log.info("Updating assignment status: " + pstmt.toString());
+				pstmt.executeUpdate();
 
-					pstmtRepeats.setInt(1, assignment_id);
-					log.info("Updating task repeats: " + pstmtRepeats.toString());
-					pstmtRepeats.executeUpdate();
-					
-				}
+				pstmtRepeats.setInt(1, assignmentId);
+				log.info("Updating task repeats: " + pstmtRepeats.toString());
+				pstmtRepeats.executeUpdate();
+
 			}
 
 
@@ -257,7 +253,6 @@ public class SubRelationalDB extends Subscriber {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtRepeats != null) {pstmtRepeats.close();}} catch (SQLException e) {}
-			try {if (rs != null) {rs.close();}} catch (SQLException e) {}
 
 		}
 	}
@@ -528,7 +523,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Update existing records
 			 */
-			String existingKey = null;
+			int existingKey = 0;
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
 			} else {
@@ -542,18 +537,14 @@ public class SubRelationalDB extends Subscriber {
 					if(updateId != null) {
 						log.info("Existing unique id:" + updateId);
 						existingKey = getKeyFromId(cResults, topElement, updateId);
-					} else {		
-						existingKey = topElement.getKey(); 	// Old way of checking for updates - deprecate
-					}
+					} 
 	
-					if(existingKey != null) {
+					if(existingKey != 0) {
 						log.info("Existing key:" + existingKey);
-						ArrayList<Integer> existingKeys = new ArrayList<Integer>();
-						existingKeys.add(Integer.parseInt(existingKey));
 						replaceExistingRecord(cResults, 	// Mark the existing record as being replaced
 								sd, 
 								topElement,
-								existingKeys , 
+								existingKey , 
 								keys.newKey, 
 								hasHrk,
 								sId);		
@@ -588,7 +579,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Apply the key policy
 			 */
-			if(hasHrk && existingKey == null && keyPolicy != null && !keyPolicy.equals("none")) {
+			if(hasHrk && existingKey == 0 && keyPolicy != null && !keyPolicy.equals("none")) {
 				if(keyPolicy.equals("add")) {
 					log.info("Apply add policy - no action");
 				} else if(keyPolicy.equals("merge")) {
@@ -604,15 +595,13 @@ public class SubRelationalDB extends Subscriber {
 				if(updateId != null) {
 					log.info("Existing unique id:" + updateId);
 					existingKey = getKeyFromId(cResults, topElement, updateId);
-				} else {		
-					existingKey = topElement.getKey(); 	// Old way of checking for updates - deprecate
-				}
+				} 
 
-				if(existingKey != null) {
+				if(existingKey != 0) {
 					log.info("Existing key:" + existingKey);
 					mergeTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							Integer.parseInt(existingKey));
+							existingKey);
 				}
 			}
 
@@ -960,7 +949,6 @@ public class SubRelationalDB extends Subscriber {
 		
 		try {
 
-			ArrayList<Integer> sourceArray = new ArrayList<Integer> ();
 			if(sourceKey == 0) {
 				// Get the HRK that identifies duplicates
 				String hrk = null;
@@ -980,11 +968,10 @@ public class SubRelationalDB extends Subscriber {
 				if(rs.next()) {
 					sourceKey = rs.getInt(1);
 				}
-			}
+			} 
 			if(sourceKey > 0) {
-				sourceArray.add(sourceKey);
 
-				mergeRecords(cRel, table, prikey, sourceKey);
+				mergeRecords(cRel, table, prikey, sourceKey, true);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = cMeta.prepareStatement(sqlTableMerge);
@@ -1046,7 +1033,7 @@ public class SubRelationalDB extends Subscriber {
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									mergeRecords(cRel, tableName, childPrikeys.get(i), childSourcekeys.get(i));
+									mergeRecords(cRel, tableName, childPrikeys.get(i), childSourcekeys.get(i), false);
 								} else {
 									// copy
 									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey);
@@ -1073,9 +1060,9 @@ public class SubRelationalDB extends Subscriber {
 
 			}
 
-			for(int key : sourceArray) {
-				org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, table, 
-						true, "Merged with " + prikey, key, sId, f_id, true, false, user, false);
+			if(sourceKey > 0) {
+				UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, table, 
+						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, false);
 			}
 
 		} finally {
@@ -1094,7 +1081,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Merge records in a table
 	 */
-	private void mergeRecords(Connection cRel, String table, int prikey, int sourceKey) throws SQLException {
+	private void mergeRecords(Connection cRel, String table, int prikey, int sourceKey, boolean addThread) throws SQLException {
 		
 		String sqlCols = "select column_name from information_schema.columns where table_name = ? "
 				+ "and column_name not like '\\_%' "
@@ -1138,6 +1125,10 @@ public class SubRelationalDB extends Subscriber {
 				}
 	
 			}
+			if(addThread) {
+				GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
+			}
+			
 		} finally {
 			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}
 			if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
@@ -1215,8 +1206,8 @@ public class SubRelationalDB extends Subscriber {
 	 */
 	private  void replaceExistingRecord(Connection cRel, Connection cMeta, 
 			IE element, 
-			ArrayList<Integer> existingKeys, 
-			long newKey,
+			int existingKey, 
+			int newKey,
 			boolean hasHrk,
 			int sId) throws SQLException, Exception {
 
@@ -1256,42 +1247,41 @@ public class SubRelationalDB extends Subscriber {
 					// Mark the records replaced
 					boolean replacedRecordsAreGood = false;
 					String previousKeys = "";
-					for(int i = 0; i < existingKeys.size(); i++) {	
-						int dupKey = existingKeys.get(i);
-						previousKeys += " " + String.valueOf(dupKey);
-						// Find out if the record being replaced is bad - If none of them are good then the replacedRecordsAreGood flag will be false
-						pstmtCheckBad.setLong(1, dupKey);
-						rsCheckBad = pstmtCheckBad.executeQuery();
-						if(rsCheckBad.next()) {
-							if(!rsCheckBad.getBoolean(1)) {
-								replacedRecordsAreGood = true;
-							}
+	
+					previousKeys += " " + String.valueOf(existingKey);
+					// Find out if the record being replaced is bad - If none of them are good then the replacedRecordsAreGood flag will be false
+					pstmtCheckBad.setLong(1, existingKey);
+					rsCheckBad = pstmtCheckBad.executeQuery();
+					if(rsCheckBad.next()) {
+						if(!rsCheckBad.getBoolean(1)) {
+							replacedRecordsAreGood = true;
 						}
-						
-						// Mark the record being replaced as bad
-						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-								true, bad_reason, dupKey, sId, f_id, true, false, user, true);
-						
-						// Set the hrk of the new record to the hrk of the old record
-						// This can only be done for one old record, possibly there is never more than 1
-						if(hasHrk && i == 0) {
-							if(!GeneralUtilityMethods.hasColumn(cRel, tableName, "_hrk")) {
-								// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
-								log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
-								String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
-								pstmtAddHrk = cRel.prepareStatement(sqlAddHrk);
-								pstmtAddHrk.executeUpdate();
-							}
-							String sqlHrk = "update " + tableName + " set _hrk = (select t2._hrk from "
-									+ tableName
-									+ " t2 where t2.prikey = ?) "
-									+ "where prikey = ?;";
-							pstmtHrk = cRel.prepareStatement(sqlHrk);
-							pstmtHrk.setInt(1, dupKey);
-							pstmtHrk.setLong(2, newKey);
-							log.info("Updating hrk with original value: " + pstmtHrk.toString());
-							pstmtHrk.executeUpdate();
+					}
+					
+					// Mark the record being replaced as bad
+					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
+							true, bad_reason, existingKey, sId, f_id, true, false, user, true);
+					
+					// Set the hrk of the new record to the hrk of the old record
+					// This can only be done for one old record, possibly there is never more than 1
+					if(hasHrk) {
+						if(!GeneralUtilityMethods.hasColumn(cRel, tableName, "_hrk")) {
+							// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
+							log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
+							String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
+							pstmtAddHrk = cRel.prepareStatement(sqlAddHrk);
+							pstmtAddHrk.executeUpdate();
 						}
+						String sqlHrk = "update " + tableName + " set _hrk = (select t2._hrk from "
+								+ tableName
+								+ " t2 where t2.prikey = ?) "
+								+ "where prikey = ?;";
+						pstmtHrk = cRel.prepareStatement(sqlHrk);
+						pstmtHrk.setInt(1, existingKey);
+						pstmtHrk.setLong(2, newKey);
+						log.info("Updating hrk with original value: " + pstmtHrk.toString());
+						pstmtHrk.executeUpdate();
+
 					}
 					// If the records being replaced were all bad then set the new record to bad
 					if(!replacedRecordsAreGood) {
@@ -1302,6 +1292,8 @@ public class SubRelationalDB extends Subscriber {
 				}		
 			
 			}
+			GeneralUtilityMethods.continueThread(cRel, tableName, newKey, existingKey);
+			
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
@@ -1314,23 +1306,55 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Get the primary key from the unique instance id
 	 */
-	private  String getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
+	private  int getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
 
-		String key = null;
+		int key = 0;
 		/*
 		 * Set the record as bad with the reason being that it has been replaced
 		 */		
 		String tableName = element.getTableName();
 
-		String sql = "select prikey from " + tableName + " where instanceid = ?;";
-		PreparedStatement pstmt = connection.prepareStatement(sql);
-		pstmt = connection.prepareStatement(sql);
-		pstmt.setString(1, instanceId);
-		ResultSet rs = pstmt.executeQuery();
-		if(rs.next()) {
-			key = rs.getString(1);
+		String sql = "select prikey, _bad from " + tableName + " where instanceid = ?";
+		PreparedStatement pstmt = null;
+		
+		String sqlGetThread = "select _thread from " + tableName + " where instanceid = ?";
+		PreparedStatement pstmtGetThread = null;
+		
+		String sqlGetLatest = "select prikey from " + tableName + " where _thread = ? order by prikey desc limit 1";
+		PreparedStatement pstmtGetLatest = null;
+		
+		try {
+			pstmt = connection.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				key = rs.getInt(1);
+				boolean bad = rs.getBoolean(2);
+				if(bad) {
+					// Try to get the latest good version of the thread.  During transition this may not happen so ignore erors and fall back to the old
+					// way which was to create a new entry
+					try {
+						pstmtGetThread = connection.prepareStatement(sqlGetThread);
+						pstmtGetThread.setString(1, instanceId);
+						ResultSet rst = pstmtGetThread.executeQuery();
+						if(rst.next()) {
+							String thread = rst.getString(1);
+							pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
+							pstmtGetLatest.setString(1, thread);
+							ResultSet rsl = pstmtGetLatest.executeQuery();
+							if(rsl.next()) {
+								key = rsl.getInt(1);
+							}
+						}
+					} catch (Exception ex) {
+						// Report and ignore
+						log.log(Level.SEVERE, ex.getMessage(), ex);
+					}
+				}
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
-		pstmt.close();
 
 		return key;
 
