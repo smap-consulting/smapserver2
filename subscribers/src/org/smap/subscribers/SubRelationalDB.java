@@ -936,7 +936,7 @@ public class SubRelationalDB extends Subscriber {
 				+ "or s_id = ?)";
 		PreparedStatement pstmtChildTablesInGroup = null;
 
-		PreparedStatement pstmtChildUpdate = null;
+		//PreparedStatement pstmtChildUpdate = null;
 
 		String sqlTableMerge = "select table_name from form "
 				+ "where s_id = ? "
@@ -946,6 +946,7 @@ public class SubRelationalDB extends Subscriber {
 		
 		PreparedStatement pstmtChildKeys = null;
 		PreparedStatement pstmtCopyChild = null;
+		PreparedStatement pstmtCopyBack = null;
 		
 		try {
 
@@ -1004,31 +1005,32 @@ public class SubRelationalDB extends Subscriber {
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
 					if(GeneralUtilityMethods.tableExists(cRel, tableName)) {
-						if(mergeTables.contains(tableName)) {
-							System.out.println("Merging not appending");
+						
+						/*
+						 * Transfer data from the source key to the primary key in sequence
+						 */
+						String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
+						pstmtChildKeys = cRel.prepareStatement(sqlGetChildKeys);
+						ArrayList<Integer> childPrikeys = new ArrayList<> ();
+						ArrayList<Integer> childSourcekeys = new ArrayList<> ();
+						
+						pstmtChildKeys.setInt(1, prikey);
+						ResultSet gk = pstmtChildKeys.executeQuery();
+						while(gk.next()) {
+							childPrikeys.add(gk.getInt(1));
+						}
+						pstmtChildKeys.setInt(1, sourceKey);
+						gk = pstmtChildKeys.executeQuery();
+						while(gk.next()) {
+							childSourcekeys.add(gk.getInt(1));
+						}
+						String sqlCopyChild = "update " + tableName + " set parkey = ? where prikey = ?";
+						pstmtCopyChild = cRel.prepareStatement(sqlCopyChild);
+						
+						if(mergeTables.contains(tableName)) {					
 							
-							/*
-							 * Transfer data from the source key to the primary key in sequence
-							 */
-							String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
-							pstmtChildKeys = cRel.prepareStatement(sqlGetChildKeys);
-							ArrayList<Integer> childPrikeys = new ArrayList<> ();
-							ArrayList<Integer> childSourcekeys = new ArrayList<> ();
-							
-							pstmtChildKeys.setInt(1, prikey);
-							ResultSet gk = pstmtChildKeys.executeQuery();
-							while(gk.next()) {
-								childPrikeys.add(gk.getInt(1));
-							}
-							pstmtChildKeys.setInt(1, sourceKey);
-							gk = pstmtChildKeys.executeQuery();
-							while(gk.next()) {
-								childSourcekeys.add(gk.getInt(1));
-							}
 							log.info("Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
-							
-							String sqlCopyChild = "update " + tableName + " set parkey = ? where prikey = ?";
-							pstmtCopyChild = cRel.prepareStatement(sqlCopyChild);
+														
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								if(i < childPrikeys.size()) {
 									// merge
@@ -1044,14 +1046,33 @@ public class SubRelationalDB extends Subscriber {
 							}
 							
 						} else {
-							String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?";
-							pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
+							for(int i = 0; i < childSourcekeys.size(); i++) {
+								pstmtCopyChild.setInt(1, prikey);
+								pstmtCopyChild.setInt(2, childSourcekeys.get(i));
+								pstmtCopyChild.executeUpdate();
+							}
+							//String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?";
+							//pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
 			
-							pstmtChildUpdate.setInt(1, prikey);
-							pstmtChildUpdate.setInt(2, sourceKey);
-							log.info("Updating parent keys: " + pstmtChildUpdate.toString());
-							pstmtChildUpdate.executeUpdate();
+							//pstmtChildUpdate.setInt(1, prikey);
+							//pstmtChildUpdate.setInt(2, sourceKey);
+							//log.info("Updating parent keys: " + pstmtChildUpdate.toString());
+							//pstmtChildUpdate.executeUpdate();
 						}
+						
+						/*
+						 * Restore child entries for source survey
+						 * We do it in this way, ie move children to the new parent then copy back
+						 *  so that we can preserve order of children which is determined by their primary keys
+						 */
+						pstmtCopyBack = cRel.prepareStatement(getCopyBackSql(cRel, tableName, sourceKey));
+						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
+							//System.out.println("Copy back: Table: " + tableName + " key: " + childSourcekeys.get(i) + " original parent: " + sourceKey);
+							pstmtCopyBack.setInt(1, childSourcekeys.get(i));
+							log.info("Copy back: " + pstmtCopyBack.toString());
+							pstmtCopyBack.executeUpdate();
+						}
+						
 					} else {
 						log.info("Skipping update of parent keys for non existent table: " + tableName);
 					}
@@ -1070,10 +1091,11 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
-			if(pstmtChildUpdate != null) try{pstmtChildUpdate.close();}catch(Exception e) {}
+			//if(pstmtChildUpdate != null) try{pstmtChildUpdate.close();}catch(Exception e) {}
 			if(pstmtTableMerge != null) try{pstmtTableMerge.close();}catch(Exception e) {}
 			if(pstmtChildKeys != null) try{pstmtChildKeys.close();}catch(Exception e) {}
 			if(pstmtCopyChild != null) try{pstmtCopyChild.close();}catch(Exception e) {}
+			if(pstmtCopyBack != null) try{pstmtCopyBack.close();}catch(Exception e) {}
 		}
 
 	}
@@ -1729,6 +1751,32 @@ public class SubRelationalDB extends Subscriber {
 			colNames.add(col.getName());
 		}
 		return colNames;	
+	}
+	
+	private String getCopyBackSql(Connection cRel, String tableName, int parkey) throws SQLException {
+		StringBuffer sql = new StringBuffer("");
+		StringBuffer cols = new StringBuffer("");
+		
+		String sqlCols = "select column_name from information_schema.columns where table_name = ? "
+				+ "and column_name != 'prikey' "
+				+ "and column_name != 'parkey' ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = cRel.prepareStatement(sqlCols);
+			pstmt.setString(1, tableName);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				cols.append(",").append(rs.getString(1));
+			}
+			sql.append("insert into ").append(tableName).append(" (parkey").append(cols).append(")");
+			sql.append(" select ").append(parkey).append(cols).append(" from ").append(tableName).append(" where prikey = ?");
+			
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		
+		return sql.toString();
 	}
 	
 	
