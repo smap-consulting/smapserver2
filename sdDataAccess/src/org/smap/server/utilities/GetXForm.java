@@ -1376,8 +1376,13 @@ public class GetXForm {
 		// / replaced
 		// This was added in version 15.05, at some point it may be safe to remove the
 		// check for the "Replaced by " string and _bad
-		String sql = "select count(*) from " + table + " where prikey = ? "
-				+ "and _modified = 'false' and (_bad = false or (_bad = true and _bad_reason not like 'Replaced by%'));";
+		// Update - allow the returning of modified data.  It is quite reasonable that a task may reference
+		// an old source data record. This happens due to multiple assignements.
+		// The processing of a submission from this old data is being updated to apply a "merge"
+		//String sql = "select count(*) from " + table + " where prikey = ? "
+		//		+ "and _modified = 'false' and (_bad = false or (_bad = true and _bad_reason not like 'Replaced by%'));";
+		String sql = "select count(*) from " + table + " where prikey = ? ";
+				
 		PreparedStatement pstmt = connection.prepareStatement(sql);
 
 		ResultSet rs = null;
@@ -1804,7 +1809,7 @@ public class GetXForm {
 		} else {
 			sql.append(" where parkey=").append(parentId);
 		}
-		sql.append(" and _bad = false");
+		//sql.append(" and _bad = false");		Allow bad data when getting the data for an existing record
 
 		if(order != null && order.equals("reverse")) {
 			sql.append(" order by prikey desc");

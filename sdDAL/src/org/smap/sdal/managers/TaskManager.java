@@ -2444,10 +2444,8 @@ public class TaskManager {
 			emails += ",";
 		}
 		emails += dataEmails;
-		System.out.println("      ===== In: " + emails);
 		emails = emails.trim().replaceAll("\\s", " ").replace(" ", ",");
 		emails = emails.replaceAll("[,]+", ",");
-		System.out.println("      ==== Out: " + emails);
 		return emails;
 		
 	}

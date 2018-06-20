@@ -132,6 +132,7 @@ public class SubRelationalDB extends Subscriber {
 		DocumentBuilder db = null;
 		Document xmlConf = null;		
 		Connection sd = null;
+		Connection cResults = null;
 		try {
 
 			// Get the connection details for the database with survey definitions
@@ -158,35 +159,23 @@ public class SubRelationalDB extends Subscriber {
 			// Authorisation - Access
 			Class.forName(dbClassMeta);		 
 			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
+			cResults = DriverManager.getConnection(database, user, password);
 			//Authorise a = new Authorise(null, Authorise.ENUM);
 			
 			this.survey = survey;
 
-			try {
-				if (sd != null) {
-					sd.close();
-				}
-			} catch (SQLException e) {
-				System.out.println("Failed to close connection");
-				e.printStackTrace();
-			}
-
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			se.setStatus("error");
-			se.setReason("Configuration File:" + e.getMessage());
-			return;
-		}		
-
-		try {
-
-			writeAllTableContent(instance, remoteUser, server, device, 
+			int assignmentId = getAssignmentId(sd, ue_id);
+			
+			writeAllTableContent(sd, cResults, instance, remoteUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
-					locationTrigger);
+					locationTrigger, assignmentId);
 
-			applyNotifications(ue_id, remoteUser, server, survey.id, survey.exclude_empty);
-			applyAssignmentStatus(ue_id, remoteUser);
+			applyNotifications(sd, cResults, ue_id, remoteUser, server, survey.id, survey.exclude_empty);
+			
+			if(assignmentId > 0) {
+				applyAssignmentStatus(sd, assignmentId, ue_id, remoteUser);
+			}
+			
 			if(survey.autoUpdates != null && survey.managed_id > 0) {
 				applyAutoUpdates(server, remoteUser);
 			}
@@ -197,6 +186,30 @@ public class SubRelationalDB extends Subscriber {
 			se.setStatus("error");
 			se.setReason(e.getMessage());
 
+		} catch (Exception e) {
+			e.printStackTrace();
+			se.setStatus("error");
+			se.setReason("Configuration File:" + e.getMessage());
+			return;
+			
+		} finally {
+			try {
+				if (sd != null) {
+					sd.close();
+				}
+			} catch (SQLException e) {
+				System.out.println("Failed to close meta connection");
+				e.printStackTrace();
+			}
+			
+			try {
+				if (cResults != null) {
+					cResults.close();
+				}
+			} catch (SQLException e) {
+				System.out.println("Failed to close results connection");
+				e.printStackTrace();
+			}
 		}
 
 		return;
@@ -205,17 +218,11 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private void applyAssignmentStatus(int ue_id, String remoteUser) {
+	private void applyAssignmentStatus(Connection sd, int assignmentId, int ue_id, String remoteUser) {
 
-		Connection sd = null;
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtGetUploadEvent = null;
 		PreparedStatement pstmtRepeats = null;
 		ResultSet rs = null;
-
-		String sqlGetUploadEvent = "select ue.assignment_id " +
-				" from upload_event ue " +
-				" where ue.ue_id = ? and ue.assignment_id is not null";
 
 		String sql = "update assignments set status = 'submitted', completed_date = now() "
 				+ "where id = ? ";
@@ -224,16 +231,11 @@ public class SubRelationalDB extends Subscriber {
 				+ "where id = (select task_id from assignments where id = ?)";
 
 		try {
-			sd = DriverManager.getConnection(databaseMeta, user, password);
 
-			pstmtGetUploadEvent = sd.prepareStatement(sqlGetUploadEvent);
 			pstmt = sd.prepareStatement(sql);
 			pstmtRepeats = sd.prepareStatement(sqlRepeats);
-			
-			pstmtGetUploadEvent.setInt(1, ue_id);
-			rs = pstmtGetUploadEvent.executeQuery();
 
-			if(rs.next()) {
+			if(assignmentId > 0) {
 				int assignment_id = rs.getInt(1);
 				log.info("Assignment id: " + assignment_id);
 				if(assignment_id > 0) {
@@ -254,41 +256,61 @@ public class SubRelationalDB extends Subscriber {
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtGetUploadEvent != null) {pstmtGetUploadEvent.close();}} catch (SQLException e) {}
 			try {if (pstmtRepeats != null) {pstmtRepeats.close();}} catch (SQLException e) {}
 			try {if (rs != null) {rs.close();}} catch (SQLException e) {}
 
-			try {
-				if (sd != null) {
-					sd.close();
-					sd = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
+		}
+	}
+	
+	/*
+	 * Apply any changes to assignment status
+	 */
+	private int getAssignmentId(Connection sd, int ue_id) {
+
+		int assignmentId = 0;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+
+		String sql = "select ue.assignment_id " +
+				" from upload_event ue " +
+				" where ue.ue_id = ? and ue.assignment_id is not null";
+
+
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, ue_id);
+			rs = pstmt.executeQuery();
+
+			if(rs.next()) {
+				assignmentId = rs.getInt(1);
+				log.info("Assignment id: " + assignmentId);
+				
 			}
 
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {}
 		}
+		return assignmentId;
 	}
 
 	/*
 	 * Apply notifications
 	 */
-	private void applyNotifications(int ueId, String remoteUser, String server, int sId, boolean excludeEmpty) {
+	private void applyNotifications(Connection sd, Connection cResults, int ueId, String remoteUser, 
+			String server, int sId, boolean excludeEmpty) {
 
 		PreparedStatement pstmtGetUploadEvent = null;
-
-
-		Connection sd = null;
-		Connection cResults = null;
 
 		String ident = null;		// The survey ident
 		String instanceId = null;	// The submitted instance identifier
 		int pId = 0;				// The project containing the survey
 
 		try {
-			Class.forName(dbClass);	 
-			sd = DriverManager.getConnection(databaseMeta, user, password);
-			cResults = DriverManager.getConnection(database, user, password);
 
 			/*
 			 * Get details from the upload event
@@ -346,24 +368,7 @@ public class SubRelationalDB extends Subscriber {
 		} finally {
 
 			try {if (pstmtGetUploadEvent != null) {pstmtGetUploadEvent.close();}} catch (SQLException e) {}
-
-			try {
-				if (sd != null) {
-					sd.close();
-					sd = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-
-			try {
-				if (cResults != null) {
-					cResults.close();
-					cResults = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
+			
 		}
 	}
 	
@@ -475,22 +480,18 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Write the submission to the database
 	 */
-	private void writeAllTableContent(SurveyInstance instance, String remoteUser, 
+	private void writeAllTableContent(Connection sd, Connection cResults, SurveyInstance instance, String remoteUser, 
 			String server, String device, String formStatus, String updateId,
-			Date uploadTime, String surveyNotes, String locationTrigger) throws SQLInsertException {
+			Date uploadTime, String surveyNotes, String locationTrigger,
+			int assignmentId) throws SQLInsertException {
 
 		int sId = survey.id;
 		String keyPolicy = survey.key_policy;
-		Connection cResults = null;
-		Connection cMeta = null;
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
 
 		try {
-			Class.forName(dbClass);	 
-			cResults = DriverManager.getConnection(database, user, password);
-			cMeta = DriverManager.getConnection(databaseMeta, user, password);
 
 			if(cResults.getAutoCommit()) {
 				log.info("Set autocommit results false");
@@ -504,7 +505,7 @@ public class SubRelationalDB extends Subscriber {
 				String msg = "Error: Top element name " + topElement.getName() + " in survey did not match a form in the template";
 				throw new Exception(msg);
 			}
-			String hrk = GeneralUtilityMethods.getHrk(cMeta, sId);
+			String hrk = GeneralUtilityMethods.getHrk(sd, sId);
 			boolean hasHrk = (hrk != null);
 			Keys keys = writeTableContent(
 					topElement, 
@@ -519,7 +520,7 @@ public class SubRelationalDB extends Subscriber {
 					surveyNotes,
 					locationTrigger,
 					cResults,
-					cMeta,
+					sd,
 					sId,
 					uploadTime,
 					"/main");
@@ -531,10 +532,13 @@ public class SubRelationalDB extends Subscriber {
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
 			} else {
-				// Check to see this submission was set to update an existing record with new data
-				// Don't do this if a key policy has been set. That will override these updates
+				/* 
+				 * Check to see this submission was set to update an existing record with new data
+				 * Don't do this if a key policy has been set or the submission is from a task
+				 *  In these cases the key policy will be applied 
+				 */
 
-				if(keyPolicy == null || keyPolicy.equals("none")) {
+				if((keyPolicy == null || keyPolicy.equals("none")) && assignmentId == 0) {
 					if(updateId != null) {
 						log.info("Existing unique id:" + updateId);
 						existingKey = getKeyFromId(cResults, topElement, updateId);
@@ -547,7 +551,7 @@ public class SubRelationalDB extends Subscriber {
 						ArrayList<Integer> existingKeys = new ArrayList<Integer>();
 						existingKeys.add(Integer.parseInt(existingKey));
 						replaceExistingRecord(cResults, 	// Mark the existing record as being replaced
-								cMeta, 
+								sd, 
 								topElement,
 								existingKeys , 
 								keys.newKey, 
@@ -561,9 +565,9 @@ public class SubRelationalDB extends Subscriber {
 			 * Update any Human readable keys if this survey has them
 			 */
 			org.smap.sdal.model.Form topLevelForm = null;
+			topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 			if(hasHrk) {
-				topLevelForm = GeneralUtilityMethods.getTopLevelForm(cMeta, sId);
-				
+					
 				if(!GeneralUtilityMethods.hasColumn(cResults, topLevelForm.tableName, "_hrk")) {
 					// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
 					log.info("Error:  _hrk being created for table " + topLevelForm.tableName + " this column should already be there");
@@ -573,7 +577,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 
 				String sql = "update " + topLevelForm.tableName + " set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, cMeta);
+						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
 
 				sql += " where _hrk is null;";
 				pstmtHrk = cResults.prepareStatement(sql);
@@ -589,10 +593,26 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Apply add policy - no action");
 				} else if(keyPolicy.equals("merge")) {
 					log.info("Apply merge policy");
-					mergeTableContent(cMeta, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id);
+					mergeTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0);
 				} else if(keyPolicy.equals("discard")) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
+				}
+			} else if(assignmentId > 0) {
+				// Apply a default key policy of merge
+				log.info("Apply default merge policy to an assignment");
+				if(updateId != null) {
+					log.info("Existing unique id:" + updateId);
+					existingKey = getKeyFromId(cResults, topElement, updateId);
+				} else {		
+					existingKey = topElement.getKey(); 	// Old way of checking for updates - deprecate
+				}
+
+				if(existingKey != null) {
+					log.info("Existing key:" + existingKey);
+					mergeTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
+							topLevelForm.id,
+							Integer.parseInt(existingKey));
 				}
 			}
 
@@ -601,7 +621,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			 */
-			clearLinkedForms(cMeta, sId);
+			clearLinkedForms(sd, sId);
 
 		} catch (Exception e) {
 			if(cResults != null) {
@@ -635,22 +655,6 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
-			try {
-				if (cResults != null) {
-					cResults.close();
-				}
-			} catch (SQLException e) {
-				System.out.println("Failed to close connection");
-				e.printStackTrace();
-			}
-			try {
-				if (cMeta != null) {
-					cMeta.close();
-				}
-			} catch (SQLException e) {
-				System.out.println("Failed to close connection");
-				e.printStackTrace();
-			}
 		}		
 	}
 
@@ -919,7 +923,8 @@ public class SubRelationalDB extends Subscriber {
 			int sId,
 			String table,
 			int prikey,
-			int f_id) throws SQLException, Exception {
+			int f_id,
+			int sourceKey) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -955,24 +960,28 @@ public class SubRelationalDB extends Subscriber {
 		
 		try {
 
-			// Get the HRK that identifies duplicates
-			String hrk = null;
-			pstmtHrk = cRel.prepareStatement(sqlHrk);
-			pstmtHrk.setInt(1, prikey);
-			ResultSet rs = pstmtHrk.executeQuery();
-			if(rs.next()) {
-				hrk = rs.getString(1);
-			}
-
-			// Get the prikey of the source record
-			int sourceKey = 0;
-			pstmtSource = cRel.prepareStatement(sqlSource);
-			pstmtSource.setString(1, hrk);
-			pstmtSource.setInt(2, prikey);
-			rs = pstmtSource.executeQuery();
 			ArrayList<Integer> sourceArray = new ArrayList<Integer> ();
-			if(rs.next()) {
-				sourceKey = rs.getInt(1);
+			if(sourceKey == 0) {
+				// Get the HRK that identifies duplicates
+				String hrk = null;
+				pstmtHrk = cRel.prepareStatement(sqlHrk);
+				pstmtHrk.setInt(1, prikey);
+				ResultSet rs = pstmtHrk.executeQuery();
+				if(rs.next()) {
+					hrk = rs.getString(1);
+				}
+	
+				// Get the prikey of the source record
+				pstmtSource = cRel.prepareStatement(sqlSource);
+				pstmtSource.setString(1, hrk);
+				pstmtSource.setInt(2, prikey);
+				rs = pstmtSource.executeQuery();
+				
+				if(rs.next()) {
+					sourceKey = rs.getInt(1);
+				}
+			}
+			if(sourceKey > 0) {
 				sourceArray.add(sourceKey);
 
 				mergeRecords(cRel, table, prikey, sourceKey);
