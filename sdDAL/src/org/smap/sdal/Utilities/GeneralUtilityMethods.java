@@ -4437,7 +4437,7 @@ public class GeneralUtilityMethods {
 								appFilename += GeneralUtilityMethods.getKeyQuestionPulldata(criteria);
 							}
 							if (filename.equals(appFilename)) { // We want this one
-								log.info("We have found a manifest link to " + filename);
+								//log.info("We have found a manifest link to " + filename);
 
 								if (isAppearance) {
 

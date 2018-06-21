@@ -152,29 +152,30 @@ public class ExternalFileManager {
 					}.getType();
 					pdArray = new Gson().fromJson(rs.getString(1), type);
 					if (pdArray == null) {
-						throw new Exception("Pulldata definition not found for survey: " + sId + " and file " + filename
+						log.info("Error: Pulldata definition not found for survey: " + sId + " and file " + filename
 								+ ". Set the pulldata definition from the online editor file menu.");
-					}
-					for (int i = 0; i < pdArray.size(); i++) {
-						String pulldataIdent = pdArray.get(i).survey;
-
-						if (pulldataIdent.equals("self")) {
-							pulldataIdent = sIdent;
-						}
-						log.info("PulldataIdent: " + pulldataIdent);
-
-						if (pulldataIdent.equals(sIdent)) {
-							data_key = pdArray.get(i).data_key;
-							non_unique_key = pdArray.get(i).repeats;
-							break;
+					} else {
+						for (int i = 0; i < pdArray.size(); i++) {
+							String pulldataIdent = pdArray.get(i).survey;
+	
+							if (pulldataIdent.equals("self")) {
+								pulldataIdent = sIdent;
+							}
+							log.info("PulldataIdent: " + pulldataIdent);
+	
+							if (pulldataIdent.equals(sIdent)) {
+								data_key = pdArray.get(i).data_key;
+								non_unique_key = pdArray.get(i).repeats;
+								break;
+							}
 						}
 					}
 				} else {
-					throw new Exception("No record found for pull data");
+					log.info("Error: No record found for pull data");
 				}
 
 				if (data_key == null) {
-					throw new Exception("Pulldata data_key not found");
+					log.info("Error: Pulldata data_key was null");
 				}
 
 			} else if (filename.startsWith("linked_s")){

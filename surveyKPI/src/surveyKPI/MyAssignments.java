@@ -102,14 +102,14 @@ public class MyAssignments extends Application {
 		log.info("webserviceevent : getTaskskey");
 
 		String user = null;		
-		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-Upload");
+		Connection sd = SDDataSource.getConnection("surveyMobileAPI-Upload");
 
 		try {
-			user = GeneralUtilityMethods.getDynamicUser(connectionSD, key);
+			user = GeneralUtilityMethods.getDynamicUser(sd, key);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyMobileAPI-Upload", connectionSD);
+			SDDataSource.closeConnection("surveyMobileAPI-Upload", sd);
 		}
 
 		if (user == null) {
@@ -133,14 +133,14 @@ public class MyAssignments extends Application {
 		log.info("webserviceevent : updateTasksKey");
 
 		String user = null;		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UpdateTasksKey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-UpdateTasksKey");
 
 		try {
-			user = GeneralUtilityMethods.getDynamicUser(connectionSD, key);
+			user = GeneralUtilityMethods.getDynamicUser(sd, key);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UpdateTasksKey", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UpdateTasksKey", sd);
 		}
 
 		if (user == null) {
@@ -526,7 +526,7 @@ public class MyAssignments extends Application {
 
 		Response response = null;
 
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-MyAssignments");
+		Connection sd = SDDataSource.getConnection("surveyKPI-MyAssignments");
 
 		// Authorisation not required a user can only update their own assignments
 
@@ -548,9 +548,9 @@ public class MyAssignments extends Application {
 
 			String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 " +
 					"where id = (select task_id from assignments where id = ?);";
-			pstmtRepeats = connectionSD.prepareStatement(sqlRepeats);
+			pstmtRepeats = sd.prepareStatement(sqlRepeats);
 
-			connectionSD.setAutoCommit(false);
+			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
 				if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
@@ -562,11 +562,11 @@ public class MyAssignments extends Application {
 					if(ta.assignment.assignment_status.equals("cancelled")) {
 						log.info("Assignment:" + ta.assignment.assignment_id + " acknowledge cancel");
 
-						sql = "update assignments set status = 'deleted', deleted_date = now() "
+						sql = "update assignments a set status = 'deleted', deleted_date = now() "
 								+ "where a.id = ? "
 								+ "and a.assignee in (select id from users u "
-								+ "where u.ident = ?));";
-						pstmt = connectionSD.prepareStatement(sql);	
+								+ "where u.ident = ?)";
+						pstmt = sd.prepareStatement(sql);	
 						pstmt.setInt(1, ta.assignment.assignment_id);
 						pstmt.setString(2, userName);
 					} else {
@@ -575,8 +575,8 @@ public class MyAssignments extends Application {
 						sql = "UPDATE assignments a SET status = ? " +
 								"where a.id = ? " + 
 								"and a.assignee in (select id from users u " +
-								"where u.ident = ?);";
-						pstmt = connectionSD.prepareStatement(sql);
+								"where u.ident = ?)";
+						pstmt = sd.prepareStatement(sql);
 						pstmt.setString(1, ta.assignment.assignment_status);
 						pstmt.setInt(2, ta.assignment.assignment_id);
 						pstmt.setString(3, userName);
@@ -597,7 +597,7 @@ public class MyAssignments extends Application {
 			 * Update the status of down loaded forms
 			 */
 			sql = "select id from users where ident = ?"; 
-			pstmtUser = connectionSD.prepareStatement(sql);
+			pstmtUser = sd.prepareStatement(sql);
 			pstmtUser.setString(1, userName);
 			ResultSet rs = pstmtUser.executeQuery();
 			if(rs.next()) {
@@ -617,7 +617,7 @@ public class MyAssignments extends Application {
 							"completion_time" +
 							") " +
 							"values(?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?);";
-					pstmtTasks = connectionSD.prepareStatement(sql);
+					pstmtTasks = sd.prepareStatement(sql);
 					pstmtTasks.setInt(1, userId);
 					pstmtTasks.setString(2, tr.deviceId);
 					for(TaskCompletionInfo tci : tr.taskCompletionInfo) {
@@ -645,7 +645,7 @@ public class MyAssignments extends Application {
 							"event_time" +
 							") " +
 							"values(?, ?, ST_GeomFromText(?, 4326), ?);";
-					pstmtTrail = connectionSD.prepareStatement(sql);
+					pstmtTrail = sd.prepareStatement(sql);
 					pstmtTrail.setInt(1, userId);
 					pstmtTrail.setString(2, tr.deviceId);
 					for(PointEntry pe : tr.userTrail) {
@@ -659,14 +659,14 @@ public class MyAssignments extends Application {
 				}
 			}
 
-			connectionSD.commit();
+			sd.commit();
 			response = Response.ok().build();
 			log.info("Assignments updated");	
 
 		} catch (Exception e) {		
 			response = Response.serverError().build();
 			log.log(Level.SEVERE,"Exception", e);
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
+			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 		} finally {
 
 			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
@@ -677,7 +677,7 @@ public class MyAssignments extends Application {
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 			try {if ( pstmtRepeats != null ) { pstmtRepeats.close(); }} catch (Exception e) {}
 
-			SDDataSource.closeConnection("surveyKPI-MyAssignments", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-MyAssignments", sd);
 		}
 
 		return response;

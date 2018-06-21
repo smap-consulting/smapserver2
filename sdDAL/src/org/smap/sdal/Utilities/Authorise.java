@@ -285,20 +285,16 @@ public class Authorise {
 			log.info("IsValidSurvey: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
-			resultSet.next();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
 			
-			count = resultSet.getInt(1);
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation", e);
 			sqlError = true;
 		} finally {
-			// Close the result set and prepared statement
-			try{
-				if(resultSet != null) {resultSet.close();};
-				if(pstmt != null) {pstmt.close();};
-			} catch (Exception ex) {
-				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
-			}
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
 		}
 		
  		if(count == 0) {
