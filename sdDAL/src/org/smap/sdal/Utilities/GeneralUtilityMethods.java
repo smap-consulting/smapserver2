@@ -3030,6 +3030,8 @@ public class GeneralUtilityMethods {
 				+ "order by o.seq;";
 		PreparedStatement pstmtSelectMultiple = sd.prepareStatement(sqlSelectMultiple);
 
+		updateUnPublished(sd, cResults, table_name, f_id);		// Ensure that all columns marked not published really are
+		
 		TableColumn c = new TableColumn();
 		c.name = "prikey";
 		c.humanName = "prikey";
@@ -3189,6 +3191,7 @@ public class GeneralUtilityMethods {
 
 
 		try {
+			
 			pstmtQuestions.setInt(1, f_id);
 
 			log.info("SQL: Get columns:" + pstmtQuestions.toString());
@@ -6831,6 +6834,63 @@ public class GeneralUtilityMethods {
 			if(pstmtCopyThreadCol != null) try{pstmtCopyThreadCol.close();}catch(Exception e) {}
 		}
 
+	}
+	
+	/*
+	 * Set columns which have actually been published but are still marked as un-published to published
+	 * This function has been added due to the difficulty of keeping the published indicator always up to date
+	 *  in the situation where you have shared tables
+	 */
+	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, int fId) throws SQLException {
+		
+		String sql = "select q_id, column_name " 
+				+ "from question where f_id = ? "
+				+ "and source is not null "
+				+ "and published = 'false' "
+				+ "and soft_deleted = 'false' ";
+		PreparedStatement pstmt = null;
+		
+		String sqlPublished = "select count(*) from information_schema.columns where table_name = ? " + "and column_name = ?";
+		PreparedStatement pstmtPub = null;
+		
+		String sqlUpdate = "update question set published = 'true' where q_id = ?";
+		PreparedStatement pstmtUpdate = null;
+
+		ResultSet rs = null;
+		ResultSet rsPub = null;
+		try {
+			pstmtPub = cResults.prepareStatement(sqlPublished);
+			pstmtPub.setString(1, tableName);
+			
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			
+			// Get unpublished
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, fId);
+			rs = pstmt.executeQuery();
+			while(rs.next()) {
+				int qId = rs.getInt(1);
+				pstmtPub.setString(2, rs.getString(2));	
+				
+				rsPub = pstmtPub.executeQuery();
+				int count = 0;
+				if(rsPub.next()) {
+					count = rsPub.getInt(1);
+				}
+				if(count > 0) {
+					// Column has been published
+					pstmtUpdate.setInt(1, qId);
+					pstmtUpdate.executeUpdate();
+				}
+			}
+			
+		} finally {
+			if(rs != null) {try{rs.close();} catch(Exception e) {}}
+			if(rsPub != null) {try{rsPub.close();} catch(Exception e) {}}
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+			if(pstmtPub != null) {try{pstmtPub.close();} catch(Exception e) {}}
+			if(pstmtUpdate != null) {try{pstmtUpdate.close();} catch(Exception e) {}}
+		}
 	}
 
 }
