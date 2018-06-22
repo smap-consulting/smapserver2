@@ -1199,7 +1199,7 @@ public class GetXForm {
 		try {
 			FileReader reader = new FileReader(file);
 			br = new BufferedReader(reader);
-			CSVParser parser = new CSVParser();
+			CSVParser parser = new CSVParser(localisation);
 
 			// Get Header
 			String line = br.readLine();

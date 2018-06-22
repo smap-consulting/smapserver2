@@ -2138,7 +2138,7 @@ public class GeneralUtilityMethods {
 	 * Convert and audit file into a Hashmap
 	 */
 	public static  void getAudit(File csvFile, ArrayList<String> columns, String auditPath,
-			HashMap<String, Integer> timeReport, HashMap<String, GeoPoint> locationReport) {
+			HashMap<String, Integer> timeReport, HashMap<String, GeoPoint> locationReport, ResourceBundle localisation) {
 
 		BufferedReader br = null;
 		HashMap<String, Integer> initTimeAudit = new HashMap<>();
@@ -2147,7 +2147,7 @@ public class GeneralUtilityMethods {
 		try {
 			FileReader reader = new FileReader(csvFile);
 			br = new BufferedReader(reader);
-			CSVParser parser = new CSVParser();
+			CSVParser parser = new CSVParser(localisation);
 
 			// Get Header
 			String line = br.readLine();

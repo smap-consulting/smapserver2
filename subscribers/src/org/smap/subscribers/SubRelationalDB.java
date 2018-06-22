@@ -823,7 +823,8 @@ public class SubRelationalDB extends Subscriber {
 							File auditFile = new File(gAuditFilePath);
 							Audit audit = new Audit();
 							GeneralUtilityMethods.getAudit(auditFile,
-									getColNames(columns), auditPath, audit.time, audit.location);
+									getColNames(columns), auditPath, audit.time, audit.location,
+									localisation);
 
 							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 							auditString = gson.toJson(audit);

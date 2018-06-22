@@ -74,7 +74,7 @@ public class CsvTableManager {
 	private String schema = "csv";
 	private String fullTableName = null;
 	private ArrayList<CsvHeader> headers = null;
-	CSVParser parser = new CSVParser();
+	CSVParser parser = null;
 	
 	private final String PKCOL = "_id";
 	private final String ACOL = "_action";
@@ -95,6 +95,7 @@ public class CsvTableManager {
 		this.oId = oId;
 		this.sId = sId;
 		this.fileName = fileName;
+		parser = new CSVParser(localisation);
 		
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -150,6 +151,7 @@ public class CsvTableManager {
 		
 		this.sd = sd;
 		this.localisation = l;
+		parser = new CSVParser(localisation);
 		
 	}
 	
@@ -180,7 +182,6 @@ public class CsvTableManager {
 			}
 				
 			// Get the column headings from the new file
-			CSVParser parser = new CSVParser();
 			String newLine = brNew.readLine();
 			String cols[] = parser.parseLine(newLine);
 			headers = new ArrayList<CsvHeader> ();

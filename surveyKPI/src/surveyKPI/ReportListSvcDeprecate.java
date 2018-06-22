@@ -35,6 +35,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -65,6 +67,8 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Organisation;
 
 import utilities.CSVReader;
 import utilities.Geo;
@@ -91,6 +95,8 @@ public class ReportListSvcDeprecate extends Application {
 		int width = 0;
 		int height = 0;
 	}
+	
+	private ResourceBundle localisationx = null;
 	
 	private static int largest_width = 800;
 	private static int largest_height = 600;
@@ -170,7 +176,7 @@ public class ReportListSvcDeprecate extends Application {
 							"style=\"width: 500px; height: 360px; border-width: 1px; border-style: solid; border-color: rgb(180, 180, 180); max-width: 99%; min-width: 200px; padding: 0px; \" " +
 							"src=\"" + url + "?format=embed\">" +
 							"</iframe>";
-					response = getResponse(report, "json", reportIdent);
+					response = getResponse(report, "json", reportIdent, localisationx);
 				}
 			} else {
 				response = Response.status(Status.NOT_FOUND).entity("Invalid url: " + url).build();
@@ -208,7 +214,7 @@ public class ReportListSvcDeprecate extends Application {
 		if(report == null) {
 			return Response.status(Status.NOT_FOUND).entity("Report " + reportIdent + " not found").build();
 		} else {
-			return getResponse(report, format, reportIdent);
+			return getResponse(report, format, reportIdent, localisationx);
 		}
 	}
 	
@@ -259,6 +265,12 @@ public class ReportListSvcDeprecate extends Application {
 				} 
 			
 			connection = ResultsDataSource.getConnection("surveyKPI-ReportListSvc");
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String sql;
 			if(toDate > 0 || geomValue != null) {
 				if(geomValue == null) {		// Default to the whole world
@@ -727,7 +739,7 @@ public class ReportListSvcDeprecate extends Application {
 	 * --------------- Support functions ----------------
 	 * Convert a report object into a Response object in the required format
 	 */
-	private Response getResponse(Report report, String format, String ident) {
+	private Response getResponse(Report report, String format, String ident, ResourceBundle localisation) {
 		String filename = "";
 		ResponseBuilder builder = Response.ok();
 		
@@ -749,7 +761,7 @@ public class ReportListSvcDeprecate extends Application {
 				filename = filename.replace(' ', '_');     // Remove spaces 
 			}	
 
-			StringBuffer respBuf = getOutput(format, report, ident);
+			StringBuffer respBuf = getOutput(format, report, ident, localisation);
 			
 			if(format.equals("word")) {
 				builder.header("Content-type","application/vnd.ms-word; charset=UTF-8");
@@ -770,7 +782,7 @@ public class ReportListSvcDeprecate extends Application {
 	/*
 	 * Get the output text for a response
 	 */
-	private StringBuffer getOutput(String format, Report report, String ident) {
+	private StringBuffer getOutput(String format, Report report, String ident, ResourceBundle localisation) {
 		
 		StringBuffer respBuf = new StringBuffer();
 		
@@ -869,7 +881,7 @@ public class ReportListSvcDeprecate extends Application {
 					URL urlFile = new URL(report.url);	
 					String [] line;
 					log.info("Opening CSVReader on stream at: "  + report.url);
-					in = new CSVReader(new InputStreamReader(urlFile.openStream()));
+					in = new CSVReader(new InputStreamReader(urlFile.openStream()), localisation);
 					line = in.readNext();
 					if(line != null && line.length > 0) {
 						// Assume first line is the header
@@ -1103,11 +1115,18 @@ public class ReportListSvcDeprecate extends Application {
 		Report aReport = new Report ();
 
 		Connection connection = null; 
+		Connection connectionSD = null; 
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		try {
+			connectionSD = SDDataSource.getConnection("surveyKPI-ReportListSvc");
 			connection = ResultsDataSource.getConnection("surveyKPI-ReportListSvc");
 			String sql = sqlReport + sqlReportSpecific;
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(connectionSD, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			localisationx = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			log.info(sql + " : " + ident);
 			pstmt = connection.prepareStatement(sql);
@@ -1128,6 +1147,7 @@ public class ReportListSvcDeprecate extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
+			SDDataSource.closeConnection("surveyKPI-ReportListSvc", connectionSD);
 			ResultsDataSource.closeConnection("surveyKPI-ReportListSvc", connection);
 		}
 		

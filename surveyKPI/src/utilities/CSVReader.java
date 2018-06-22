@@ -22,6 +22,9 @@ import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ResourceBundle;
+
+import org.smap.sdal.Utilities.CSVParser;
 
 /**
  * A very simple CSV reader released under a commercial-friendly license.
@@ -41,6 +44,8 @@ public class CSVReader implements Closeable {
 
     private boolean linesSkiped;
 
+    private ResourceBundle localisation;
+    
     /**
      * The default line to start reading.
      */
@@ -52,8 +57,8 @@ public class CSVReader implements Closeable {
      * @param reader
      *            the reader to an underlying CSV source.
      */
-    public CSVReader(Reader reader) {
-        this(reader, CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER);
+    public CSVReader(Reader reader, ResourceBundle l) {
+        this(reader, CSVParser.DEFAULT_SEPARATOR, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, l);
     }
 
     /**
@@ -64,8 +69,8 @@ public class CSVReader implements Closeable {
      * @param separator
      *            the delimiter to use for separating entries.
      */
-    public CSVReader(Reader reader, char separator) {
-        this(reader, separator, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER);
+    public CSVReader(Reader reader, char separator, ResourceBundle l) {
+        this(reader, separator, CSVParser.DEFAULT_QUOTE_CHARACTER, CSVParser.DEFAULT_ESCAPE_CHARACTER, l);
     }
 
     /**
@@ -78,8 +83,8 @@ public class CSVReader implements Closeable {
      * @param quotechar
      *            the character to use for quoted elements
      */
-    public CSVReader(Reader reader, char separator, char quotechar) {
-        this(reader, separator, quotechar, CSVParser.DEFAULT_ESCAPE_CHARACTER, DEFAULT_SKIP_LINES, CSVParser.DEFAULT_STRICT_QUOTES);
+    public CSVReader(Reader reader, char separator, char quotechar, ResourceBundle l) {
+        this(reader, separator, quotechar, CSVParser.DEFAULT_ESCAPE_CHARACTER, DEFAULT_SKIP_LINES, CSVParser.DEFAULT_STRICT_QUOTES, l);
     }
 
     /**
@@ -95,8 +100,8 @@ public class CSVReader implements Closeable {
      * @param strictQuotes
      *            sets if characters outside the quotes are ignored
      */
-    public CSVReader(Reader reader, char separator, char quotechar, boolean strictQuotes) {
-        this(reader, separator, quotechar, CSVParser.DEFAULT_ESCAPE_CHARACTER, DEFAULT_SKIP_LINES, strictQuotes);
+    public CSVReader(Reader reader, char separator, char quotechar, boolean strictQuotes, ResourceBundle l) {
+        this(reader, separator, quotechar, CSVParser.DEFAULT_ESCAPE_CHARACTER, DEFAULT_SKIP_LINES, strictQuotes, l);
     }
 
    /**
@@ -113,8 +118,8 @@ public class CSVReader implements Closeable {
      */
 
     public CSVReader(Reader reader, char separator,
-			char quotechar, char escape) {
-        this(reader, separator, quotechar, escape, DEFAULT_SKIP_LINES, CSVParser.DEFAULT_STRICT_QUOTES);
+			char quotechar, char escape, ResourceBundle l) {
+        this(reader, separator, quotechar, escape, DEFAULT_SKIP_LINES, CSVParser.DEFAULT_STRICT_QUOTES, l);
 	}
     
     /**
@@ -129,8 +134,8 @@ public class CSVReader implements Closeable {
      * @param line
      *            the line number to skip for start reading 
      */
-    public CSVReader(Reader reader, char separator, char quotechar, int line) {
-        this(reader, separator, quotechar, CSVParser.DEFAULT_ESCAPE_CHARACTER, line, CSVParser.DEFAULT_STRICT_QUOTES);
+    public CSVReader(Reader reader, char separator, char quotechar, int line, ResourceBundle l) {
+        this(reader, separator, quotechar, CSVParser.DEFAULT_ESCAPE_CHARACTER, line, CSVParser.DEFAULT_STRICT_QUOTES, l);
     }
 
     /**
@@ -147,8 +152,8 @@ public class CSVReader implements Closeable {
      * @param line
      *            the line number to skip for start reading
      */
-    public CSVReader(Reader reader, char separator, char quotechar, char escape, int line) {
-        this(reader, separator, quotechar, escape, line, CSVParser.DEFAULT_STRICT_QUOTES);
+    public CSVReader(Reader reader, char separator, char quotechar, char escape, int line, ResourceBundle l) {
+        this(reader, separator, quotechar, escape, line, CSVParser.DEFAULT_STRICT_QUOTES, l);
     }
     
     /**
@@ -167,8 +172,8 @@ public class CSVReader implements Closeable {
      * @param strictQuotes
      *            sets if characters outside the quotes are ignored
      */
-    public CSVReader(Reader reader, char separator, char quotechar, char escape, int line, boolean strictQuotes) {
-        this(reader, separator, quotechar, escape, line, strictQuotes, CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE);
+    public CSVReader(Reader reader, char separator, char quotechar, char escape, int line, boolean strictQuotes, ResourceBundle l) {
+        this(reader, separator, quotechar, escape, line, strictQuotes, CSVParser.DEFAULT_IGNORE_LEADING_WHITESPACE, l);
     }
 
     /**
@@ -189,10 +194,13 @@ public class CSVReader implements Closeable {
      * @param ignoreLeadingWhiteSpace
      *            it true, parser should ignore white space before a quote in a field
      */
-    public CSVReader(Reader reader, char separator, char quotechar, char escape, int line, boolean strictQuotes, boolean ignoreLeadingWhiteSpace) {
+    public CSVReader(Reader reader, char separator, char quotechar, char escape, int line, boolean strictQuotes, 
+    		boolean ignoreLeadingWhiteSpace, ResourceBundle l) {
         this.br = new BufferedReader(reader);
-        this.parser = new CSVParser(separator, quotechar, escape, strictQuotes, ignoreLeadingWhiteSpace);
+        this.localisation = l;
+        this.parser = new CSVParser(separator, quotechar, escape, strictQuotes, ignoreLeadingWhiteSpace, localisation);
         this.skipLines = line;
+
     }
 
    /**
@@ -264,6 +272,7 @@ public class CSVReader implements Closeable {
             this.linesSkiped = true;
         }
         String nextLine = br.readLine();
+        System.out.println(nextLine);
         if (nextLine == null) {
             hasNext = false;
         }

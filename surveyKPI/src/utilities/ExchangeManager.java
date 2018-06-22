@@ -401,7 +401,7 @@ public class ExchangeManager {
 			if(isCSV) {
 				fis = new FileInputStream(file);
 				isr = new InputStreamReader(fis);
-				reader = new CSVReader(isr);
+				reader = new CSVReader(isr, localisation);
 				line = reader.readNext();
 			} else {
 				fis = new FileInputStream(file);
@@ -799,6 +799,8 @@ public class ExchangeManager {
 				}
 				
 			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			
 			xlsReader = null;
