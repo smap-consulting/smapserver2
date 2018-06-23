@@ -6850,7 +6850,8 @@ public class GeneralUtilityMethods {
 				+ "and soft_deleted = 'false' ";
 		PreparedStatement pstmt = null;
 		
-		String sqlPublished = "select count(*) from information_schema.columns where table_name = ? " + "and column_name = ?";
+		String sqlPublished = "select count(*) from information_schema.columns where table_name = ? " 
+				+ "and column_name = ?";
 		PreparedStatement pstmtPub = null;
 		
 		String sqlUpdate = "update question set published = 'true' where q_id = ?";
@@ -6867,6 +6868,8 @@ public class GeneralUtilityMethods {
 			// Get unpublished
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, fId);
+			
+			log.info(pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				int qId = rs.getInt(1);
