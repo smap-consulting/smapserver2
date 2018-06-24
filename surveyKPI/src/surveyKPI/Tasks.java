@@ -48,6 +48,7 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
@@ -481,14 +482,17 @@ public class Tasks extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		Connection sd = null; 
+		Connection cResults = null;
 		String fileName = null;
 		String filetype = null;
 		FileItem file = null;
 
+		String requester = "Tasks-TaskUpload";
+		
 		try {
 			
-			sd = SDDataSource.getConnection("Tasks-TaskUpload");
-			
+			sd = SDDataSource.getConnection(requester);
+			cResults = ResultsDataSource.getConnection(requester);
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -557,7 +561,7 @@ public class Tasks extends Application {
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
-				tm.writeTaskList(sd, tArray, pId, pName, tgId, tgName, 
+				tm.writeTaskList(sd, cResults, tArray, pId, pName, tgId, tgName, 
 						request.getScheme() + "://" + request.getServerName(), 
 						true, oId, false, request.getRemoteUser());
 				
@@ -587,7 +591,8 @@ public class Tasks extends Application {
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} finally {
 	
-			SDDataSource.closeConnection("Tasks-TaskUpload", sd);
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, sd);
 			
 		}
 		
@@ -609,12 +614,14 @@ public class Tasks extends Application {
 			) { 
 		
 		Response response = null;
-
+		String requester = "surveyKPI-tasks";
+		
 		String user = request.getRemoteUser();
 		log.info("TaskFeature:" + task);
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
+		Connection cResults = null;
+		Connection sd = SDDataSource.getConnection(requester);
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
@@ -627,13 +634,14 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			cResults = ResultsDataSource.getConnection(requester);
 			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 			
 			TaskManager tm = new TaskManager(localisation);
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			tm.writeTask(sd, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
+			tm.writeTask(sd, cResults, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
 			response = Response.ok().build();
 		
 		} catch (Exception e) {
@@ -641,7 +649,8 @@ public class Tasks extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 	
-			SDDataSource.closeConnection("surveyKPI-tasks", sd);
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
 			
 		}
 		

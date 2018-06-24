@@ -526,6 +526,7 @@ public class AllAssignments extends Application {
 								// Write the task to the database
 								tm.writeTaskCreatedFromSurveyResults(
 										sd, 
+										cResults,
 										as, 
 										hostname, 
 										taskGroupId, 

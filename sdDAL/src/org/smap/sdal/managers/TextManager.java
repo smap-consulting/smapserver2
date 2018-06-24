@@ -82,15 +82,12 @@ public class TextManager {
 			GlobalVariables gv = new GlobalVariables();
 			for(int i = 0; i < survey.instance.results.size(); i++) {
 				getDependencies(gv, survey.instance.results.get(i), survey, i);	
-			}
-			
+			}		
 			
 			for(int i = 0; i < survey.instance.results.size(); i++) {
 				replaceTextParameters(sd, gv, text, survey.instance.results.get(i), basePath, null, i, survey, languageIdx, oId);
 			}
-			
-			
-			
+				
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
@@ -173,14 +170,6 @@ public class TextManager {
 				String value = "";
 				String fieldName = getFieldName(formName, repeatIndex, r.name);
 				
-				DisplayItem di = new DisplayItem();
-				try {
-					Form form = survey.forms.get(r.fIdx);
-					org.smap.sdal.model.Question question = form.questions.get(r.qIdx);	
-				} catch (Exception e) {
-					// If we can't get the question details for this data then that is ok
-				}
-				
 				/*
 				 * Set the value based on the result
 				 * Process subforms if this is a repeating group
@@ -197,19 +186,7 @@ public class TextManager {
 					matches.add(r.value);
 					value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id, question.external_choices, question.external_table, 
 							survey.languages.get(languageIdx).name, matches);
-					/*
-					for(Result c : r.choices) {
-						if(c.isSet) {
-							// value = c.name;
-							
-							Option option = survey.optionLists.get(c.listName).options.get(c.cIdx);
-							Label label = option.labels.get(languageIdx);
-							value = GeneralUtilityMethods.unesc(label.text);
-							
-							break;
-						}
-					}
-					*/
+				
 				} else if(r.type.equals("select")) {
 					
 					String nameValue = r.value;
@@ -228,27 +205,11 @@ public class TextManager {
 									survey.languages.get(languageIdx).name, matches);
 							
 					}
-					/*
-					value = "";		// Going to append multiple selections to value
-					for(Result c : r.choices) {
-						if(c.isSet) {
-							// value = c.name;
-							if(!c.name.equals("other")) {
-							
-								Option option = survey.optionLists.get(c.listName).options.get(c.cIdx);
-								Label label = option.labels.get(languageIdx);
-								if(value.length() > 0) {
-									value += ", ";
-								}
-								value += GeneralUtilityMethods.unesc(label.text);
-							}
-						}
-					}
-					*/
+				
 				} else {
 					value = r.value;
 				}
-	
+				
 				/*
 				 * Add the value to the text
 				 */
@@ -265,7 +226,15 @@ public class TextManager {
 					for(int i = 0; i < text.size(); i++) {
 						String s = text.get(i);
 						if(s != null) {
+							/*
+							 * Try a specific replacement including path and then a general replacement with just the name
+							 */
 							s = s.replaceAll("\\$\\{" + fieldName + "\\}", value);
+							String [] fArray = fieldName.split("\\]\\.");
+							if(fArray.length > 0) {
+								s = s.replaceAll("\\$\\{" + fArray[fArray.length - 1] + "\\}", value);
+							}
+							
 							text.set(i, s);
 						}
 					}

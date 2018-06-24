@@ -414,7 +414,9 @@ public class TaskManager {
 	/*
 	 * Save the tasks for the specified task group
 	 */
-	public void writeTaskList(Connection sd, 
+	public void writeTaskList(
+			Connection sd, 
+			Connection cResults,
 			ArrayList<TaskServerDefn> tl,
 			int pId,
 			String pName,
@@ -429,7 +431,7 @@ public class TaskManager {
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
-			writeTask(sd, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
+			writeTask(sd, cResults, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
 			for(AssignmentServerDefn asd : tsd.assignments)
 			if(asd.assignee_ident != null) {
 				userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -593,24 +595,25 @@ public class TaskManager {
 				 */
 				boolean fires = false;
 				if(as.add_future  && source_s_id != target_s_id) {
-					if(as.filter != null && as.filter.advanced != null) {
-						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
-						if(!fires) {
-							log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
-						}
-					} else {
-						fires = true;
+					log.info("Rule fired however target = source");
+				}
+				
+				if(as.filter != null && as.filter.advanced != null) {
+					fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
+					if(!fires) {
+						log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
 					}
 				} else {
-					log.info("Rule not fired as target = source");
+					fires = true;
 				}
+				
 
 				if(fires) {
 					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
 							" task survey: " + target_s_id);
 					TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 							source_s_id, instanceId, as, address); // Get data from new submission
-					writeTaskCreatedFromSurveyResults(sd, as, hostname, tgId, tgName, pId, pName, source_s_id, 
+					writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, source_s_id, 
 							target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
 				}
 			}
@@ -628,6 +631,7 @@ public class TaskManager {
 	 */
 	public void writeTaskCreatedFromSurveyResults(
 			Connection sd,
+			Connection cResults,
 			AssignFromSurvey as,
 			String hostname,
 			int tgId,
@@ -750,6 +754,7 @@ public class TaskManager {
 				
 				applyAllAssignments(
 						sd, 
+						cResults,
 						pstmtRoles, 
 						pstmtRoles2, 
 						pstmtAssign, 
@@ -886,7 +891,9 @@ public class TaskManager {
 	/*
 	 * Create a new task
 	 */
-	public void writeTask(Connection sd, 
+	public void writeTask(
+			Connection sd, 
+			Connection cResults,
 			int pId, 
 			String pName,
 			int tgId,
@@ -1040,8 +1047,13 @@ public class TaskManager {
 				if(asd.a_id > 0) {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					pstmtAssign = getUpdateAssignmentStatement(sd);
-					updateAssignment(sd, pstmtAssign, pstmtInsert, 
-							asd.assignee, asd.email, "accepted", 
+					updateAssignment(sd, 
+							cResults,
+							pstmtAssign, 
+							pstmtInsert, 
+							asd.assignee, 
+							asd.email, 
+							"accepted", 
 							tgId,
 							taskId, 
 							asd.a_id,
@@ -1055,6 +1067,7 @@ public class TaskManager {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
 							sd, 
+							cResults,
 							null, 
 							null, 
 							pstmtInsert, 
@@ -1798,6 +1811,7 @@ public class TaskManager {
 	 */
 	public void updateAssignment(
 			Connection sd,
+			Connection cResults,
 			PreparedStatement pstmtAssign,
 			PreparedStatement pstmtInsert,
 			int assignee,
@@ -1840,6 +1854,7 @@ public class TaskManager {
 			if(assignmentCancelled) {
 				applyAllAssignments(
 						sd, 
+						cResults,
 						null, 
 						null, 
 						pstmtInsert, 
@@ -1879,6 +1894,7 @@ public class TaskManager {
 	 */
 	public void applyAllAssignments(
 			Connection sd,
+			Connection cResults,
 			PreparedStatement pstmtRoles, 
 			PreparedStatement pstmtRoles2,
 			PreparedStatement pstmtAssign, 
@@ -2037,7 +2053,7 @@ public class TaskManager {
 	
 	
 	/*
-	 * Process a notification
+	 * Process an email task
 	 */
 	public void emailTask(
 			Connection sd, 
@@ -2055,10 +2071,6 @@ public class TaskManager {
 		String filename = "instance";
 		
 		boolean writeToMonitor = true;
-		
-		HashMap<String, String> sentEndPoints = new HashMap<> ();
-		
-		PreparedStatement pstmtGetSMSUrl = null;
 		
 		PreparedStatement pstmtNotificationLog = null;
 		String sqlNotificationLog = "insert into notification_log " +
@@ -2092,10 +2104,12 @@ public class TaskManager {
 			/*
 			 * Add details from the survey to the subject and email content
 			 */
+			log.info("xxxxxxxxxxxxx1: " + msg.content);
 			if(survey != null) {
 				msg.subject = sm.fillStringTemplate(survey, msg.subject);
 				msg.content = sm.fillStringTemplate(survey, msg.content);
 			}
+			log.info("xxxxxxxxxxxxx2: " + msg.content);
 			TextManager tm = new TextManager(localisation);
 			ArrayList<String> text = new ArrayList<> ();
 			text.add(msg.subject);
@@ -2111,6 +2125,7 @@ public class TaskManager {
 						organisation.id);
 			msg.subject = text.get(0);
 			msg.content = text.get(1);
+			log.info("xxxxxxxxxxxxx3: " + msg.content);
 			
 			docURL = "/webForm" + msg.actionLink;
 				
@@ -2169,7 +2184,7 @@ public class TaskManager {
 									unsubscribed = true;
 									setAssignmentStatus(sd, msg.aId, "unsubscribed");
 								} else {
-									System.out.println("Send email: " + msg.email + " : " + docURL);
+									log.info("Send email: " + msg.email + " : " + docURL);
 									em.sendEmail(
 											ia.getAddress(), 
 											null, 
@@ -2208,54 +2223,7 @@ public class TaskManager {
 					log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
 				}
 				
-			} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
-				
-				// Get the URL to use in sending the SMS
-				String sql = "select s.sms_url "
-						+ "from server s";
-				
-				String sms_url = null;
-				pstmtGetSMSUrl = sd.prepareStatement(sql);
-				ResultSet rs = pstmtGetSMSUrl.executeQuery();
-				if(rs.next()) {
-					sms_url = rs.getString("sms_url");	
-				}
-				
-				if(sms_url != null) {
-					ArrayList<String> smsList = null;
-					ArrayList<String> responseList = new ArrayList<> ();
-					smsList.add(msg.email);
-					
-					if(smsList.size() > 0) {
-						SMSManager smsUrlMgr = new SMSManager();
-						for(String sms : smsList) {
-							
-							if(sentEndPoints.get(sms) == null) {
-								log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
-								responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
-								sentEndPoints.put(sms, sms);
-							} else {
-								log.info("Duplicate phone number: " + sms);
-							}
-							
-						} 
-					} else {
-						log.info("No phone numbers to send to");
-						writeToMonitor = false;
-					}
-					
-					notify_details = "Sending sms " + smsList.toString() 
-							+ ((docURL == null || docURL.equals("null")) ? "" :" containing link " + docURL)
-							+ " with response " + responseList.toString();
-					
-				} else {
-					status = "error";
-					error_details = "SMS URL not set";
-					log.log(Level.SEVERE, "Error: Attempt to do SMS notification but SMS URL not set");
-				}
-	
-				
-			} else {
+			}  else {
 				status = "error";
 				error_details = "Invalid target: " + msg.target;
 				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
@@ -2278,7 +2246,6 @@ public class TaskManager {
 			}
 		} finally {
 			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
-			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
 			
 		}
 	}

@@ -3099,13 +3099,15 @@ public class SurveyManager {
 	public String fillStringTemplate(Survey s, String in) {
 		String out = in;
 
-		if(out != null) {
+		if(out != null && s != null) {
 			InstanceMeta im = s.getInstanceMeta();
 			out = out.replaceAll("\\$\\{instancename\\}", im.instancename);
 			out = out.replaceAll("\\$\\{surveyname\\}", im.surveyname);
 			out = out.replaceAll("\\$\\{hrk\\}", im.hrk);
 			out = out.replaceAll("\\$\\{username\\}", im.username);
 			out = out.replaceAll("\\$\\{device\\}", im.device);
+		} else {
+			log.info("Could not fill template details for: " + out + " : " + ((s == null) ? "survey is null" : "survey not null" ));
 		}
 
 
