@@ -225,12 +225,17 @@ public class AllAssignments extends Application {
 			}
 
 			/*
+			 * Set the task email details
+			 */
+			TaskManager tm = new TaskManager(localisation);
+			tm.updateEmailDetails(sd, projectId, taskGroupId, as.emailDetails);
+			
+			/*
 			 * Create the tasks unless no tasks have been specified
 			 */
 			if(as.target_survey_id > 0 && as.add_current) {
 				String sql = null;
 				ResultSet resultSet = null;
-				TaskManager tm = new TaskManager(localisation);
 
 				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
 				pstmtCheckGeom = cResults.prepareStatement(checkGeomSQL);
@@ -682,7 +687,6 @@ public class AllAssignments extends Application {
 			/*
 			 * Update the task group
 			 */
-			ResultSet rsKeys = null;
 			if(tgId > 0) {
 
 				String addressParams = gson.toJson(as.address_columns); 	
@@ -708,6 +712,9 @@ public class AllAssignments extends Application {
 
 			} 
 
+			TaskManager tm = new TaskManager(localisation);
+			tm.updateEmailDetails(sd, projectId, tgId, as.emailDetails);
+			
 			response = Response.ok().entity("{\"tg_id\": " + tgId + "}").build();
 
 		} catch (Exception e) {
