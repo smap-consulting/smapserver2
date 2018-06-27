@@ -219,7 +219,7 @@ public class SurveyManager {
 
 		sql.append(" order BY s.display_name");
 
-		// Get subforms pnly
+		// Get subforms only
 		String sqlForms = "select f_id, name from form where s_id = ? and parentform != 0";
 		PreparedStatement pstmtGetForms = null;
 

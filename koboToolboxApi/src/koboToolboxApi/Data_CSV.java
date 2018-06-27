@@ -131,6 +131,11 @@ public class Data_CSV extends Application {
 						outWriter.print(dep.getCSVColumns() + "\n");
 					}
 					outWriter.print(dep.getCSVData() + "\n");
+					if(dep.subforms != null) {
+						for(String formName : dep.subforms.keySet()) {
+							outWriter.print(dep.getSubForm(formName, dep.subforms.get(formName)) + "\n");
+						}
+					}
 
 				}
 			} else {
@@ -158,19 +163,18 @@ public class Data_CSV extends Application {
 	 */
 	@GET
 	@Produces("text/csv")
-	@Path("/{sId}")
+	@Path("/{sIdent}")
 	public void getDataRecords(@Context HttpServletRequest request, @Context HttpServletResponse response,
-			@PathParam("sId") int sId, @QueryParam("start") int start, // Primary key to start from
+			@PathParam("sIdent") String sIdent, 
+			@QueryParam("start") int start, // Primary key to start from
 			@QueryParam("limit") int limit, // Number of records to return
-			@QueryParam("mgmt") boolean mgmt, @QueryParam("group") boolean group, // If set include a dummy group value
-			// in the response, used by
-			// duplicate query
+			@QueryParam("mgmt") boolean mgmt, 
+			@QueryParam("group") boolean group, // If set include a dummy group value in the response, used by duplicate query
 			@QueryParam("sort") String sort, // Column Human Name to sort on
 			@QueryParam("dirn") String dirn, // Sort direction, asc || desc
-			@QueryParam("form") int fId, // Form id (optional only specify for a child form)
+			@QueryParam("form") String formName, // Form id (optional only specify for a child form)
 			@QueryParam("start_parkey") int start_parkey, // Parent key to start from
-			@QueryParam("parkey") int parkey, // Parent key (optional, use to get records that correspond to a single
-			// parent record)
+			@QueryParam("parkey") int parkey, // Parent key (optional, use to get records that correspond to a single parent record)
 			@QueryParam("hrk") String hrk, // Unique key (optional, use to restrict records to a specific hrk)
 			@QueryParam("format") String format, // dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad, // yes | only | none Include records marked as bad
@@ -185,6 +189,16 @@ public class Data_CSV extends Application {
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
+		}
+		int sId = 0;
+		int fId = 0;
+		try {
+			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			if(formName != null) {
+				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
+			}
+		} catch (SQLException e1) {
+			e1.printStackTrace();
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);

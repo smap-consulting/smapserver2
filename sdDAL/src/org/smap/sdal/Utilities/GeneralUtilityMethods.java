@@ -1211,7 +1211,9 @@ public class GeneralUtilityMethods {
 
 		int sId = 0;
 
-		String sql = "select s_id " + " from survey " + " where ident = ?;";
+		String sql = "select s_id " 
+				+ "from survey " 
+				+ "where ident = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -1246,7 +1248,8 @@ public class GeneralUtilityMethods {
 
 		int sId = 0;
 
-		String sql = "select f.s_id from form f " + " where f.f_id = ?;";
+		String sql = "select f.s_id from form f " 
+				+ "where f.f_id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -1300,12 +1303,7 @@ public class GeneralUtilityMethods {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return surveyName;
@@ -1347,6 +1345,37 @@ public class GeneralUtilityMethods {
 		}
 
 		return surveyName;
+	}
+	
+	/*
+	 * Get the form id from the form name
+	 */
+	static public int getFormId(Connection sd, int sId, String name) throws SQLException {
+
+		int fId = 0;
+
+		String sql = "select f_id " 
+				+ "from form " 
+				+ "where s_id = ? "
+				+ "and name = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, name);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				fId = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return fId;
 	}
 
 	/*

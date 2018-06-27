@@ -51,12 +51,12 @@ public class DataManager {
 			dep.id_string = s.ident;
 			dep.title = s.displayName;
 			dep.description = s.displayName;
-			dep.url = urlprefix + dep.id;
+			dep.url = urlprefix + dep.id_string;
 			
 			if(s.forms != null && s.forms.size() > 0) {
 				dep.subforms = new HashMap<String, String> ();
 				for(Form f : s.forms) {
-					dep.subforms.put(f.name, dep.url + "?form=" + f.id);
+					dep.subforms.put(f.name, dep.url + "?form=" + f.name);
 				}
 			}
 			data.add(dep);

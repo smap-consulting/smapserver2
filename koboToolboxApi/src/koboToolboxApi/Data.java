@@ -136,20 +136,21 @@ public class Data extends Application {
 	/*
 	 * KoboToolBox API version 1 /data
 	 * Get records for an individual survey in JSON format
+	 * Survey and form identifiers are strings
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/{sId}")
-	public void getDataRecords(@Context HttpServletRequest request,
+	@Path("/{sIdent}")
+	public void getDataRecordsNew(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
-			@PathParam("sId") int sId,
+			@PathParam("sIdent") String sIdent,
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("mgmt") boolean mgmt,
 			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			@QueryParam("sort") String sort,				// Column Human Name to sort on
 			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
-			@QueryParam("form") int fId,					// Form id (optional only specify for a child form)
+			@QueryParam("form") String formName,			// Form name (optional only specify for a child form)
 			@QueryParam("start_parkey") int start_parkey,// Parent key to start from
 			@QueryParam("parkey") int parkey,			// Parent key (optional, use to get records that correspond to a single parent record)
 			@QueryParam("hrk") String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
@@ -157,6 +158,33 @@ public class Data extends Application {
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate objects
+			) { 
+		
+		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
+				parkey, hrk, format, include_bad, audit_set, merge);
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get records for an individual survey in JSON format
+	 */
+	private void getDataRecords(HttpServletRequest request,
+			HttpServletResponse response,
+			String sIdent,
+			int start,				// Primary key to start from
+			int limit,				// Number of records to return
+			boolean mgmt,
+			boolean group,			// If set include a dummy group value in the response, used by duplicate query
+			String sort,				// Column Human Name to sort on
+			String dirn,				// Sort direction, asc || desc
+			String formName,			
+			int start_parkey,		// Parent key to start from
+			int parkey,				// Parent key (optional, use to get records that correspond to a single parent record)
+			String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
+			String format,			// dt for datatables otherwise assume kobo
+			String include_bad,		// yes | only | none Include records marked as bad
+			String audit_set,		// if yes return audit data
+			String merge 			// If set to yes then do not put choices from select multiple questions in separate objects
 			) { 
 
 		// Authorisation - Access
@@ -166,12 +194,21 @@ public class Data extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
+		int sId = 0;
+		int fId = 0;
+		try {
+			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			if(formName != null) {
+				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
+			}
+		} catch (SQLException e1) {
+			e1.printStackTrace();
+		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
 		String language = "none";
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk));
 
 		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get data records");
 
@@ -218,6 +255,9 @@ public class Data extends Application {
 		PrintWriter outWriter = null;
 		try {
 
+			
+			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk));
+			
 			outWriter = response.getWriter();
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
