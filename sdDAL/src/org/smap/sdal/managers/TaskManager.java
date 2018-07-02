@@ -1168,7 +1168,7 @@ public class TaskManager {
 				+ "from assignments a, tasks t "
 				+ "where a.task_id = t.id "
 				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
-				+ "and (a.status = 'unsent' or a.status = 'accepted') "
+				+ "and (a.status = 'unsent' or a.status = 'accepted' or a.status = 'blocked') "
 				+ "and a.id in (";
 		
 		String setStatusSql = "update assignments set status = ? where id = ? ";
@@ -1304,56 +1304,59 @@ public class TaskManager {
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
 				mm.userChange(sd, userIdent);
 			} else if(emailAction) {
-				
-				String urlprefix = "https://" + request.getServerName() + "/";
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-				
-				// 1. Get tasks and loop
-				pstmtEmailDetails = sd.prepareStatement(sqlEmailDetails + whereAssignmentsSql);
-				pstmtEmailDetails.setInt(1, pId);
-				log.info("Get email tasks: " + pstmtEmailDetails.toString());
-				
-				ResultSet rs = pstmtEmailDetails.executeQuery();
-				while(rs.next()) {
-				
-					// "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
-					int aId = rs.getInt("id");
-					String status = rs.getString("status");
-					String email = rs.getString("email");
-					String actionLink = rs.getString("action_link");
-					int sId = rs.getInt("form_id");
-					String instanceId = rs.getString("update_id");
+				if(!GeneralUtilityMethods.emailTaskBlocked(sd, oId)) {				
 					
-					if(action.action.equals("email_unsent") && !status.equals("unsent")) {
-						log.info("Ignoring task with status " + status + " when sending unsent");
-						continue;
+					String urlprefix = "https://" + request.getServerName() + "/";					
+					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+					
+					// 1. Get tasks and loop
+					pstmtEmailDetails = sd.prepareStatement(sqlEmailDetails + whereAssignmentsSql);
+					pstmtEmailDetails.setInt(1, pId);
+					log.info("Get email tasks: " + pstmtEmailDetails.toString());
+					
+					ResultSet rs = pstmtEmailDetails.executeQuery();
+					while(rs.next()) {
+					
+						// "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
+						int aId = rs.getInt("id");
+						String status = rs.getString("status");
+						String email = rs.getString("email");
+						String actionLink = rs.getString("action_link");
+						int sId = rs.getInt("form_id");
+						String instanceId = rs.getString("update_id");
+						
+						if(action.action.equals("email_unsent") && !status.equals("unsent") && !status.equals("blocked")) {
+							log.info("Ignoring task with status " + status + " when sending unsent");
+							continue;
+						}
+						
+						// Set email status to pending
+						pstmtSetStatus.setString(1, "pending");
+						pstmtSetStatus.setInt(2, aId);
+						pstmtSetStatus.executeUpdate();
+						
+						TaskManager tm = new TaskManager(localisation);
+						TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
+						
+						// Create a submission message (The task may or may not have come from a submission)
+						EmailTaskMessage taskMsg = new EmailTaskMessage(
+								sId,
+								pId,
+								aId,
+								instanceId,			
+								ted.from,
+								ted.subject, 
+								ted.content,
+								"task",
+								email,			
+								"email",
+								urlprefix,
+								actionLink);
+						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));					
 					}
-					
-					// Set email status to pending
-					pstmtSetStatus.setString(1, "pending");
-					pstmtSetStatus.setInt(2, aId);
-					pstmtSetStatus.executeUpdate();
-					
-					TaskManager tm = new TaskManager(localisation);
-					TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
-					
-					// Create a submission message (The task may or may not have come from a submission)
-					EmailTaskMessage taskMsg = new EmailTaskMessage(
-							sId,
-							pId,
-							aId,
-							instanceId,			
-							ted.from,
-							ted.subject, 
-							ted.content,
-							"task",
-							email,			
-							"email",
-							urlprefix,
-							actionLink);
-					mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
-					
+				} else {
+					throw new Exception(localisation.getString("email_b"));
 				}
 			}
 
