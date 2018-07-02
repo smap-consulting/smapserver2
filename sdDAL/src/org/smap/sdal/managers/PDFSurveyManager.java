@@ -484,7 +484,6 @@ public class PDFSurveyManager {
 				 * Set the value based on the result
 				 * Process subforms if this is a repeating group
 				 */
-				log.info("Processing: " + r.name + " : " + r.type);
 				if(r.type.equals("form")) {
 					for(int k = 0; k < r.subForm.size(); k++) {
 						fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper, oId);
@@ -517,23 +516,7 @@ public class PDFSurveyManager {
 								question.external_table, 
 								survey.languages.get(languageIdx).name, matches);
 					}
-					/*
-					value = "";		// Going to append multiple selections to value
-					for(Result c : r.choices) {
-						if(c.isSet) {
-							// value = c.name;
-							if(!c.name.equals("other")) {
-
-								Option option = survey.optionLists.get(c.listName).options.get(c.cIdx);
-								Label label = option.labels.get(languageIdx);
-								if(value.length() > 0) {
-									value += ", ";
-								}
-								value += GeneralUtilityMethods.unesc(label.text);
-							}
-						}
-					}
-					*/
+					
 				} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
 					
 					value = null;
@@ -1001,7 +984,6 @@ public class PDFSurveyManager {
 		for(DisplayItem di : row.items) {
 
 			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, survey, oId));
-			//cell.addElement(addDisplayItem(parser, di, basePath, generateBlank, gv));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
 			// Make sure the last cell extends to the end of the table
@@ -1009,10 +991,6 @@ public class PDFSurveyManager {
 				di.width = spanCount;
 			}
 			cell.setColspan(di.width);
-			//int spaceBefore = row.spaceBefore();
-			//if(spaceBefore > 0) {
-			//	table.setSpacingBefore(spaceBefore);
-			//}
 			table.addCell(cell);
 
 			numberItems--;
@@ -1515,7 +1493,7 @@ public class PDFSurveyManager {
 
 		// Set the content of the value cell
 		try {
-			updateValueCell(valueCell, di, generateBlank, basePath, serverRoot, gv, oId);
+			updateValueCell(parser, remoteUser, valueCell, di, generateBlank, basePath, serverRoot, gv, oId);
 		} catch (Exception e) {
 			log.info("Error updating value cell, continuing: " + basePath + " : " + di.value);
 			log.log(Level.SEVERE, "Exception", e);
@@ -1555,6 +1533,8 @@ public class PDFSurveyManager {
 	 * Set the contents of the value cell
 	 */
 	private void updateValueCell(
+			Parser parser,
+			String remoteUser,
 			PdfPCell valueCell, 
 			DisplayItem di, 
 			boolean generateBlank, 
@@ -1568,7 +1548,7 @@ public class PDFSurveyManager {
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
 		if(di.type.startsWith("select")) {
-			processSelect(valueCell, di, generateBlank, gv, oId);
+			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
 				if(di.isHyperlink) {
@@ -1701,6 +1681,38 @@ public class PDFSurveyManager {
 		}
 		return para;
 	}
+	
+	/*
+	 * HTML equivalent of getPara
+	 */
+	private String getHtml(String value, DisplayItem di, GlobalVariables gv, ArrayList<String> deps) {
+
+		boolean hasContent = false;
+
+		StringBuffer html = new StringBuffer();
+
+		if(value != null && value.trim().length() > 0) {
+			html.append(value);
+			hasContent = true;
+		}
+
+		// Add dependencies
+
+		if(deps != null) {
+			for(String n : deps) {
+				if(n != null && n.trim().length() > 0) {
+					if(hasContent) {
+						html.append(",");
+					}			
+					html.append(n);
+				}
+
+			}
+		}
+		
+		return html.toString();
+	}
+
 
 	private Font getFont(String lang) {
 		Font f = defaultFont;
@@ -1727,7 +1739,7 @@ public class PDFSurveyManager {
 		return isRtl;
 	}
 
-	private void processSelect(PdfPCell cell, DisplayItem di,
+	private void processSelect(Parser parser, String remoteUser, PdfPCell cell, DisplayItem di,
 			boolean generateBlank,
 			GlobalVariables gv, int oId) throws Exception {
 
@@ -1779,7 +1791,6 @@ public class PDFSurveyManager {
 						list.add(item);
 
 					} else {
-						//item.setListSymbol(new Chunk("\241", Symbols)); 
 						item.setListSymbol(new Chunk("\uf10c", Symbols)); 
 						list.add(item);
 					}
@@ -1823,11 +1834,22 @@ public class PDFSurveyManager {
 					}
 				}
 				
-				//stringValue = getSelectValue(isSelectMultiple, di, deps);
 				if(GeneralUtilityMethods.isRtlLanguage(di.value)) {
 					cell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 				}
-				cell.addElement(getPara(value, di, gv, deps, null));
+				parser.elements.clear();
+				String html = getHtml(value, di, gv, deps);
+				try {
+					parser.xmlParser.parse(new StringReader(html));
+				} catch (Exception e) {
+					log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
+					lm.writeLog(sd, survey.getId(), remoteUser, "error", e.getMessage() + " for: " + html.toString());
+					throw e;
+				}
+				for(Element element : parser.elements) {					
+					cell.addElement(element);
+				}
+				//cell.addElement(getPara(value, di, gv, deps, null));
 			}
 		
 		}
