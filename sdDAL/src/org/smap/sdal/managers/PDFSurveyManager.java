@@ -30,6 +30,7 @@ import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Row;
@@ -840,6 +841,7 @@ public class PDFSurveyManager {
 						} else if(question.type.equals("end group")) {
 							//ignore
 						} else {
+
 							Row row = prepareRow(record, survey, j, gv, length, appendix, parentRecords, generateBlank);
 							PdfPTable newTable = processRow(
 									parser, 
@@ -851,7 +853,6 @@ public class PDFSurveyManager {
 									repIndexes, 
 									gv,
 									remoteUser,
-									survey,
 									oId);
 	
 							newTable.setWidthPercentage(100);
@@ -964,7 +965,6 @@ public class PDFSurveyManager {
 			int[] repIndexes,
 			GlobalVariables gv,
 			String remoteUser,
-			Survey survey,
 			int oId) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPTable table = new PdfPTable(depth + NUMBER_TABLE_COLS);	// Add a column for each level of repeats so that the repeat number can be shown
@@ -983,7 +983,7 @@ public class PDFSurveyManager {
 		int numberItems = row.items.size();
 		for(DisplayItem di : row.items) {
 
-			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, survey, oId));
+			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, oId));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
 			// Make sure the last cell extends to the end of the table
@@ -1210,21 +1210,7 @@ public class PDFSurveyManager {
 
 		for(Result r : record) {
 			if(r.name.equals(name)) {
-				/*
-				if(r.type.startsWith("select")) {
-					value = "";
-					for(Result rc : r.choices) {
-						if(rc.isSet) {
-							if(value.length() > 0) {
-								value += ",";
-							}
-							value += rc.name;
-						}
-					}
-				} else {
-				*/
-					value = r.value;
-				//}
+				value = r.value;
 				break;
 			}
 		}
@@ -1418,7 +1404,6 @@ public class PDFSurveyManager {
 			boolean generateBlank,
 			GlobalVariables gv,
 			String remoteUser,
-			Survey survey,
 			int oId) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPCell labelCell = new PdfPCell();
@@ -1766,34 +1751,37 @@ public class PDFSurveyManager {
 		
 		if(generateBlank) {
 			// TODO get real choices using choice manager
-			ArrayList<DisplayItem> choices = new ArrayList<> ();
-			for(DisplayItem aChoice : choices) {
+			Form form = survey.forms.get(di.fIdx);
+			Question question = form.questions.get(di.qIdx);
+			OptionList ol = survey.optionLists.get(question.list_name);
+			for(Option o : ol.options) {
 
-				lang = GeneralUtilityMethods.getLanguage(aChoice.text);
+				String text = o.labels.get(languageIdx).text;
+				lang = GeneralUtilityMethods.getLanguage(text);
 				f = getFont(lang);
 				isRtl = isRtl(lang);
 
-				ListItem item = new ListItem(GeneralUtilityMethods.unesc(aChoice.text), f);
+				ListItem item = new ListItem(GeneralUtilityMethods.unesc(text), f);
 
 				if(isSelectMultiple) {
-					if(aChoice.isSet) {
-						item.setListSymbol(new Chunk("\uf046", Symbols)); 
-						list.add(item);	
-					} else {
+					//if(aChoice.isSet) {
+					//	item.setListSymbol(new Chunk("\uf046", Symbols)); 
+					//	list.add(item);	
+					//} else {
 
 						item.setListSymbol(new Chunk("\uf096", Symbols)); 
 						list.add(item);
-					}
+					//}
 
 				} else {
-					if(aChoice.isSet) {
-						item.setListSymbol(new Chunk("\uf111", Symbols)); 
-						list.add(item);
+					//if(aChoice.isSet) {
+					//	item.setListSymbol(new Chunk("\uf111", Symbols)); 
+					//	list.add(item);
 
-					} else {
+					//} else {
 						item.setListSymbol(new Chunk("\uf10c", Symbols)); 
 						list.add(item);
-					}
+					//}
 				}
 			}
 
