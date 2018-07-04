@@ -153,10 +153,10 @@ public class OrganisationManager {
 				"company_address, " +
 				"company_phone, " +
 				"company_email, " +
-				"allow_email, allow_facebook, allow_twitter, can_edit, email_task " +
+				"allow_email, allow_facebook, allow_twitter, can_edit, email_task, " +
 				"changed_by, admin_email, smtp_host, email_domain, email_user, email_password, " +
 				"email_port, default_email_content, website, locale, timezone, changed_ts) " +
-				" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";
+				" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {

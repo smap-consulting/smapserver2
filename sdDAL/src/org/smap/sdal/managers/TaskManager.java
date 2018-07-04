@@ -1351,7 +1351,7 @@ public class TaskManager {
 								"task",
 								email,			
 								"email",
-								urlprefix,
+								request.getRemoteUser(),
 								actionLink);
 						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));					
 					}
