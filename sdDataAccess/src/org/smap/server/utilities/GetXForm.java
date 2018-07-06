@@ -70,6 +70,7 @@ public class GetXForm {
 	private String gInstanceId = null;
 	private String gSurveyClass = null;
 	private ArrayList<String> gFilenames;
+	private ArrayList<String> gPaths;
 	private boolean embedExternalSearch = false;
 	private boolean gInTableList = false;
 	private boolean modelInstanceOnly = false;
@@ -1282,6 +1283,7 @@ public class GetXForm {
 		Result outStream = new StreamResult(outWriter);
 
 		gFilenames = new ArrayList<String>();
+		gPaths = new ArrayList<String>();
 		gInstanceId = null;
 
 		log.info("Getting instance data: " + templateName + " : " + key + " : " + keyval);
@@ -1360,6 +1362,10 @@ public class GetXForm {
 
 	public ArrayList<String> getFilenames() {
 		return gFilenames;
+	}
+	
+	public ArrayList<String> getMediaPaths() {
+		return gPaths;
 	}
 
 	public String getSurveyClass() {
@@ -1674,6 +1680,7 @@ public class GetXForm {
 						gInstanceId = item.value;
 					} else if (item.media && item.filename != null && !item.filename.equals("null")) {
 						gFilenames.add(item.filename);
+						gPaths.add(item.value);
 					}
 
 					// Create the question element
@@ -1946,6 +1953,7 @@ public class GetXForm {
 						}
 						if (filename != null && !filename.equals("null")) {
 							gFilenames.add(filename);
+							gPaths.add(value);
 						}
 					}
 					if (simplifyMedia) {

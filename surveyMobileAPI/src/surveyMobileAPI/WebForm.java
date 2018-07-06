@@ -88,7 +88,8 @@ public class WebForm extends Application {
 		int assignmentId;
 		String accessKey;
 		String surveyClass;
-		ArrayList<String> files;
+		ArrayList<String> files;		// deprecate
+		ArrayList<String> paths;		// media paths
 	}
 
 	class JsonResponse {
@@ -1048,6 +1049,7 @@ public class WebForm extends Application {
 			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
 			surveyData.instanceStrToEditId = updateid;
 			surveyData.files = xForm.getFilenames();
+			surveyData.paths = xForm.getMediaPaths();
 
 			Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
 			outputString.append(gsonResp.toJson(surveyData));
