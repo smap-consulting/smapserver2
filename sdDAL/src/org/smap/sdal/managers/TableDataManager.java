@@ -308,16 +308,29 @@ public class TableDataManager {
 			boolean group, 
 			boolean isDt, 
 			int limit,
-			boolean mergeSelectMultiple)
+			boolean mergeSelectMultiple,
+			boolean isGeoJson)
 			throws SQLException, Exception {
 
 		JSONObject jr = null;
+		JSONObject jp = null;
+		JSONObject jf = null;
+		JSONObject jGeom = null;
+		String id = null;
 		
 		if (rs.next()) {
 
 			jr = new JSONObject();
 			if (group) {
 				jr.put("_group", ""); // _group for duplicate queries
+			}
+			if(isGeoJson) {
+				jr.put("type", "Feature");
+				jp = new JSONObject();
+				jr.put("properties", jp);
+				jf = jp;
+			} else {
+				jf = jr;
 			}
 			for (int i = 0; i < columns.size(); i++) {
 
@@ -331,11 +344,14 @@ public class TableDataManager {
 					if (geomValue == null) {
 						geomValue = "{}";
 					}
-					name = "_geolocation";
+					if(isGeoJson) {
+						jGeom = new JSONObject(geomValue);
+					} else {
+						name = "_geolocation";
+						jf.put(name, new JSONObject(geomValue));
+					}
 
-					jr.put(name, new JSONObject(geomValue));
-
-				} if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
+				} else if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
 					// Split the select multiple into its choices
 					name = c.humanName;
 					value = rs.getString(i + 1);
@@ -354,7 +370,7 @@ public class TableDataManager {
 							}	
 						}
 						String choiceValue = addChoice ? "1" : "0";
-						jr.put(choiceName, choiceValue);
+						jf.put(choiceName, choiceValue);
 					}
 				} else {
 
@@ -396,7 +412,11 @@ public class TableDataManager {
 						if (!isDt) {
 							name = GeneralUtilityMethods.translateToKobo(name);
 						}
-						jr.put(name, value);
+						if(isGeoJson && name.equals("prikey")) {
+							id = value;
+						} else {
+							jf.put(name, value);
+						}
 					}
 				}
 
@@ -404,6 +424,12 @@ public class TableDataManager {
 
 		}
 
+		if(jGeom != null) {
+			jr.put("geometry", jGeom);
+		}
+		if(id != null) {
+			jr.put("id", id);
+		}
 		return jr;
 
 	}

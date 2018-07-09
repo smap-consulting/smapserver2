@@ -157,11 +157,12 @@ public class Data extends Application {
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("audit") String audit_set,		// if yes return audit data
-			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate objects
+			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
+			@QueryParam("geojson") String geojson				// if set to yes then format as geoJson
 			) { 
 		
 		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge);
+				parkey, hrk, format, include_bad, audit_set, merge, geojson);
 	}
 	
 	/*
@@ -184,7 +185,8 @@ public class Data extends Application {
 			String format,			// dt for datatables otherwise assume kobo
 			String include_bad,		// yes | only | none Include records marked as bad
 			String audit_set,		// if yes return audit data
-			String merge 			// If set to yes then do not put choices from select multiple questions in separate objects
+			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+			String geojson			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			) { 
 
 		// Authorisation - Access
@@ -236,6 +238,11 @@ public class Data extends Application {
 		boolean audit=false;
 		if(audit_set != null && audit_set.equals("yes")) {
 			audit = true;
+		}
+		
+		boolean isGeoJson=false;
+		if(geojson != null && geojson.equals("yes")) {
+			isGeoJson = true;
 		}
 		
 		boolean mergeSelectMultiple = false;
@@ -363,6 +370,13 @@ public class Data extends Application {
 			if(isDt) {
 				outWriter.print("{\"data\":");
 			}
+			if(isGeoJson) {
+				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
+																		// TODO metadata
+				outWriter.print("\"features\":");						// Features
+			}
+			
+			// Add feature data
 			outWriter.print("[");
 			
 			if(pstmt != null) {
@@ -383,7 +397,8 @@ public class Data extends Application {
 							group,
 							isDt,
 							limit,
-							mergeSelectMultiple
+							mergeSelectMultiple,
+							isGeoJson
 							);
 					if(jo != null) {
 						if(index > 0) {
@@ -404,6 +419,11 @@ public class Data extends Application {
 			outWriter.print("]");
 			if(isDt) {
 				outWriter.print("}");
+			}
+			
+			if(isGeoJson) {
+										// TODO bbox
+				outWriter.print("}");	// close
 			}
 
 		} catch (Exception e) {
@@ -696,7 +716,7 @@ public class Data extends Application {
 							if(c.isGeometry()) {							
 								// Add Geometry (assume one geometry type per table)
 								String geomValue = rsD.getString(i + 1);	
-								System.out.println("json value: " + geomValue);
+								
 								name = "_geolocation";
 								JSONArray coords = null;
 								if(geomValue != null) {
