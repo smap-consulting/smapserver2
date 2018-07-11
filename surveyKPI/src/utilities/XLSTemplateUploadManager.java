@@ -40,6 +40,7 @@ import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
+import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
@@ -226,7 +227,27 @@ public class XLSTemplateUploadManager {
 					survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
 					survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
 					survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
+					String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
+					if(pdRepeats != null) {
+						String [] pdArray = pdRepeats.split(":");
+						if(pdArray.length > 0) {
+							for(String pd : pdArray) {
+								pd = pd.trim();
+								int idx = pd.indexOf("(");
+								if(idx > 0) {
+									String sName = pd.substring(0, idx);
+									String key = pd.substring(idx + 1, pd.length() - 1);
+									if(survey.pulldata == null) {
+										survey.pulldata = new ArrayList<Pulldata> ();
+									}
+									survey.pulldata.add(new Pulldata(sName, key));
+								}
+								
+							}
+						}
+					}
 					survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
+
 					
 					// Add row filters
 					if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
@@ -410,15 +431,17 @@ public class XLSTemplateUploadManager {
 			}
 			
 			// Add security roles
-			for(String h : settingsHeader.keySet()) {
-				if(h.startsWith("role::")) {
-					if(rowRoleHeader == null) {
-						rowRoleHeader = new HashMap<String, Integer> ();
-					}
-					rowRoleHeader.put(h, settingsHeader.get(h));
-					String [] roleA = h.split("::");
-					if(roleA.length > 1) {
-						survey.roles.put(h, new Role(roleA[1]));
+			if(settingsHeader != null) {
+				for(String h : settingsHeader.keySet()) {
+					if(h.startsWith("role::")) {
+						if(rowRoleHeader == null) {
+							rowRoleHeader = new HashMap<String, Integer> ();
+						}
+						rowRoleHeader.put(h, settingsHeader.get(h));
+						String [] roleA = h.split("::");
+						if(roleA.length > 1) {
+							survey.roles.put(h, new Role(roleA[1]));
+						}
 					}
 				}
 			}
@@ -958,6 +981,8 @@ public class XLSTemplateUploadManager {
 					if(refs.size() > 0) {
 						questionInSurvey(refs, "repeat_count", q);
 					}
+					// Make sure there is not a question with a name that will clash with the automatically generated repeat count name
+					repeatCountClash(q);
 				}
 				if(q.choice_filter != null) {
 					ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.choice_filter);
@@ -1044,6 +1069,14 @@ public class XLSTemplateUploadManager {
 				Integer rowNumber = qNameMap.get(q.name.toLowerCase());
 				throw XLSUtilities.getApplicationException(localisation, "tu_mq", rowNumber, "survey", context, name, null);
 			}
+		}
+	}
+	
+	private void repeatCountClash(Question q) throws ApplicationException {
+		String name = q.name.toLowerCase() + "_count";
+		if(qNameMap.get(name) != null) {
+			Integer rowNumber = qNameMap.get(name);
+			throw XLSUtilities.getApplicationException(localisation, "tu_rc", rowNumber, "survey", name, q.name, null);
 		}
 	}
 	

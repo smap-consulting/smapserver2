@@ -363,7 +363,8 @@ public class XLSUtilities {
 		return value;
 	}
 
-	public static ApplicationException getApplicationException(ResourceBundle localisation, 
+	public static ApplicationException getApplicationException(
+			ResourceBundle localisation, 
 			String code, 
 			int row, 
 			String sheet, 

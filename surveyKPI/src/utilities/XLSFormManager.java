@@ -39,6 +39,7 @@ import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
+import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -85,6 +86,7 @@ public class XLSFormManager {
 		public static final int COL_KEY_POLICY = 204;
 		public static final int COL_ROLE_ROW = 205;
 		public static final int COL_ALLOW_IMPORT = 206;
+		public static final int COL_PULLDATA_REPEAT = 207;
 
 		String name;
 		private int type;
@@ -319,6 +321,21 @@ public class XLSFormManager {
 
 			} else if(type == COL_ALLOW_IMPORT) {				
 				value = survey.task_file ? "yes" : "no";
+
+			} else if(type == COL_PULLDATA_REPEAT) {	
+				ArrayList<Pulldata> pd = survey.pulldata;
+				if(pd == null || pd.size() == 0) {
+					value = "";
+				} else {
+					StringBuffer pdSB = new StringBuffer("");
+					for(Pulldata p : pd) {
+						if(pdSB.length() > 0) {
+							pdSB.append(":");
+						}
+						pdSB.append(p.survey).append("(").append(p.data_key).append(")");
+					}
+					value = pdSB.toString();
+				}
 
 			} else {
 				System.out.println("Unknown option type: " + type);
@@ -704,6 +721,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "key", Column.COL_KEY, 0, "key"));
 		cols.add(new Column(colNumber++, "key_policy", Column.COL_KEY_POLICY, 0, "key_policy"));
 		cols.add(new Column(colNumber++, "allow_import", Column.COL_ALLOW_IMPORT, 0, "allow_import"));
+		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {

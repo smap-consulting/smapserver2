@@ -165,7 +165,7 @@ public class ExternalFileManager {
 	
 							if (pulldataIdent.equals(sIdent)) {
 								data_key = pdArray.get(i).data_key;
-								non_unique_key = pdArray.get(i).repeats;
+								non_unique_key = true;
 								break;
 							}
 						}
