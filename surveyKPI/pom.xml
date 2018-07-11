@@ -62,7 +62,6 @@
 		<dependency>
 		    <groupId>com.amazonaws</groupId>
 		    <artifactId>aws-java-sdk-rekognition</artifactId>
-		    <version>1.11.207</version>
 		</dependency>
 
 		
