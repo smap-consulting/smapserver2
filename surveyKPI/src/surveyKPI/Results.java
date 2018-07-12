@@ -34,12 +34,15 @@ import model.Filter;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.SqlFrag;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -128,7 +131,8 @@ public class Results extends Application {
 			@QueryParam("rId") int rId,				// Restrict results to a single record
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
-			@QueryParam("filter") String sFilter
+			@QueryParam("filter") String sFilter,
+			@QueryParam("advanced_filter") String advanced_filter
 			) { 
 	
 		Response response = null;
@@ -145,7 +149,7 @@ public class Results extends Application {
 		ArrayList<QuestionInfo> q = new ArrayList<QuestionInfo> ();
 		HashMap<String, String> groupList = new HashMap<String, String> ();
 		JSONArray results = new JSONArray();
-		Connection dConnection = null;
+		Connection cResults = null;
 		PreparedStatement pstmt = null;
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
@@ -192,7 +196,7 @@ public class Results extends Application {
 		}
 					
 		try {
-			dConnection = ResultsDataSource.getConnection("surveyKPI-Results");
+			cResults = ResultsDataSource.getConnection("surveyKPI-Results");
 
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -264,6 +268,65 @@ public class Results extends Application {
 				sqlFilter = " and " + fQ.getFilterExpression(filter.value, null);
 			}
 				
+			/*
+			 * Validate the advanced filter and convert to an SQL Fragment
+			 */
+			SqlFrag advancedFilterFrag = null;
+			if(advanced_filter != null && advanced_filter.length() > 0) {
+
+				advancedFilterFrag = new SqlFrag();
+				advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation);
+
+				for(String filterCol : advancedFilterFrag.humanNames) {
+					if(GeneralUtilityMethods.getColumnName(sd, sId, filterCol) == null) {
+						String msg = localisation.getString("inv_qn_misc");
+						msg = msg.replace("%s1", filterCol);
+						throw new ApplicationException(msg);
+					}
+				}
+			}
+			
+			// Add the advanced filter fragment
+			if(advancedFilterFrag != null) {
+				sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
+				
+				for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
+					int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
+					QuestionInfo qaf = new QuestionInfo(sId, rqId, sd);
+					tables.add(qaf.getTableName(), qaf.getFId(), qaf.getParentFId());
+				}
+			}		
+			
+			/*
+			 * Add row filtering performed by RBAC
+			 */
+			RoleManager rm = new RoleManager(localisation);
+			boolean hasRbacRowFilter = false;
+			ArrayList<SqlFrag> rfArray = null;
+			if(!superUser) {
+				rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
+				StringBuffer rfString = new StringBuffer("");
+				if(rfArray.size() > 0) {
+					for(SqlFrag rf : rfArray) {
+						if(rf.columns.size() > 0) {
+							for(int i = 0; i < rf.columns.size(); i++) {
+								int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
+								QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
+								tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+							}
+							if(rfString.length() > 0) {
+								rfString.append(" or");
+							}
+							rfString.append(" (").append(rf.sql.toString()).append(")");
+							hasRbacRowFilter = true;
+						}
+					}
+					if(rfString.length() > 0) {
+						sqlFilter += " and " + "(" + rfString.toString() + ")";
+					}
+				}
+			}
+				
 			// Add any tables required to complete the join
 			tables.addIntermediateTables(sd);
 			
@@ -285,40 +348,43 @@ public class Results extends Application {
 				sqlGeom = getGeometryJoin(q);
 			}
 	
-			String sql = "select " + sqlSelect + " from " + sqlTables;
+			StringBuffer sql = new StringBuffer("select ").append(sqlSelect).append(" from ").append(sqlTables);
 			if(sqlTableJoin.trim().length() > 0) {
-				sql += " where " + sqlTableJoin;
+				sql.append(" where ").append(sqlTableJoin);
 				doneWhere = true;
 			}
 			if(sqlGeom != null) {
 				if(doneWhere) {
-					sql += " and ";
+					sql.append(" and ");
 				} else {
-					sql += " where ";
+					sql.append(" where ");
 					doneWhere = true;
 				}
-				sql += sqlGeom;
+				sql.append(sqlGeom);
 			}
+			
+			// Add clause remove bad records
 			if(doneWhere) {
-				sql += " and ";
+				sql.append(" and ");
 			} else {
-				sql += " where ";
+				sql.append(" where ");
 			}
-			sql += sqlNoBad;
-			sql += sqlRestrictToRecordId;
+			sql.append(sqlNoBad);
+			
+			sql.append(sqlRestrictToRecordId);
 			if(sqlRestrictToDateRange.trim().length() > 0) {
-				sql += " and ";
+				sql.append(" and ");
 			}
-			sql += sqlRestrictToDateRange;
-			sql += sqlFilter;
+			sql.append(sqlRestrictToDateRange);
+			sql.append(sqlFilter);
 			if(dateId != 0) {
-				sql += " order by " + date.getTableName() + "." + date.getColumnName() + " asc;";
+				sql.append(" order by ").append(date.getTableName()).append(".").append(date.getColumnName()).append(" asc");
 			} else {
-				sql += " order by " + aQ.getTableName() + ".prikey asc;";
+				sql.append(" order by ").append(aQ.getTableName()).append(".prikey asc");
 			}
 				
-			log.info("Get results select: " + sql);
-			pstmt = dConnection.prepareStatement(sql);
+			log.info("Get results select: " + sql.toString());
+			pstmt = cResults.prepareStatement(sql.toString());
 			int attribIdx = 1;
 			if(dateId != 0) {
 				if(startDate != null) {
@@ -327,6 +393,14 @@ public class Results extends Application {
 				if(endDate != null) {
 					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
 				}
+			}
+			
+			if(advancedFilterFrag != null) {
+				attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+			}
+			// RBAC row filter
+			if(hasRbacRowFilter) {
+				attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
 			}
 			ResultSet resultSet = pstmt.executeQuery();
 
@@ -763,8 +837,11 @@ public class Results extends Application {
 			}
 			
 			response = Response.ok(results.toString()).build();
-				
-				
+		
+		} catch (ApplicationException e) {
+		    log.info("Message=" + e.getMessage());		
+		    response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			
 		} catch (SQLException e) {
 		    log.info("Message=" + e.getMessage());
 		    String msg = e.getMessage();
@@ -783,7 +860,7 @@ public class Results extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-Results", sd);
-			ResultsDataSource.closeConnection("surveyKPI-Results", dConnection);
+			ResultsDataSource.closeConnection("surveyKPI-Results", cResults);
 		}
 
 

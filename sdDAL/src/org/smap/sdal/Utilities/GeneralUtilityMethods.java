@@ -1502,10 +1502,12 @@ public class GeneralUtilityMethods {
 
 		int qId = 0;
 
-		String sqlGetQuestionId = "select q_id " + " from question " + " where f_id = ? " + " and qname = ?;";
+		String sqlGetQuestionId = "select q_id from question where f_id = ? and qname = ?";
 
-		String sqlGetQuestionIdFromSurvey = "select q_id " + " from question " + " where qname = ? "
-				+ "and f_id in (select f_id from form where s_id = ?); ";
+		String sqlGetQuestionIdFromSurvey = "select q_id " 
+				+ " from question " 
+				+ " where qname = ? "
+				+ "and f_id in (select f_id from form where s_id = ?)";
 
 		PreparedStatement pstmt = null;
 
@@ -1569,8 +1571,11 @@ public class GeneralUtilityMethods {
 
 		String column_name = null;
 
-		String sql = "select q.column_name " + " from question q, form f" + " where q.f_id = f.f_id "
-				+ " and f.s_id = ? " + " and q.qname = ?;";
+		String sql = "select q.column_name " 
+				+ " from question q, form f" 
+				+ " where q.f_id = f.f_id "
+				+ " and f.s_id = ? " 
+				+ " and q.qname = ?";
 
 		PreparedStatement pstmt = null;
 

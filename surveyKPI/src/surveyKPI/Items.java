@@ -36,6 +36,7 @@ import model.Filter;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -375,21 +376,12 @@ public class Items extends Application {
 					advancedFilterFrag = new SqlFrag();
 					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation);
 
-
-					for(String filterCol : advancedFilterFrag.columns) {
-						boolean valid = false;
-						for(String q : colNames) {
-							if(filterCol.equals(q)) {
-								valid = true;
-								break;
-							}
+					for(String filterCol : advancedFilterFrag.humanNames) {
+						if(GeneralUtilityMethods.getColumnName(sd, sId, filterCol) == null) {
+							String msg = localisation.getString("inv_qn_misc");
+							msg = msg.replace("%s1", filterCol);
+							throw new ApplicationException(msg);
 						}
-						// TODO need to check validity across all forms in the survey
-						//if(!valid) {
-						//	String msg = localisation.getString("inv_qn_misc");
-						//	msg = msg.replace("%s1", filterCol);
-						//	throw new Exception(msg);
-						//}
 					}
 				}
 				// Add the advanced filter fragment
@@ -499,7 +491,7 @@ public class Items extends Application {
 				}
 				sql2.append(whereClause);
 				sqlFC.append(whereClause);
-				sql2.append(" order by " + tName + ".parkey desc, " + tName + ".prikey desc " + sqlLimit +";");
+				sql2.append(" order by ").append(tName).append(".parkey desc, ").append(tName).append(".prikey desc ").append(sqlLimit);
 				
 				// Get the number of filtered records			
 				if(sqlFC.length() > 0) {

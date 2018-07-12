@@ -5,6 +5,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 /*
@@ -259,7 +260,7 @@ public class SqlFrag {
 			} catch (Exception e) {
 				String msg = localisation.getString("inv_token");
 				msg = msg.replace("%s1", token);
-				throw new Exception(msg);
+				throw new ApplicationException(msg);
 			}
 			
 		}
