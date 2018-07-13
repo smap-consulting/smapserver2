@@ -933,7 +933,7 @@ public class WebForm extends Application {
 			output.append("<div class='offline-enabled'>\n");
 			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
 			output.append("</div>\n");
-			output.append("<button onclick='return false;' class='print' title='Print this Form'> </button>\n");
+			output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
 			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
 
