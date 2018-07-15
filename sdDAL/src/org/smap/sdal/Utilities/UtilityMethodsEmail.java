@@ -17,6 +17,9 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.mail.internet.AddressException;
+import javax.mail.internet.InternetAddress;
+
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Label;
@@ -882,6 +885,20 @@ public class UtilityMethodsEmail {
 				}
 			}		
 		}
+	}
+	
+	/*
+	 * Validate an email
+	 */
+	public static boolean isValidEmail(String email) {
+		boolean isValid = true;
+		try {
+		      InternetAddress emailAddr = new InternetAddress(email);
+		      emailAddr.validate();
+		   } catch (AddressException ex) {
+		      isValid = false;
+		   }
+		return isValid;
 	}
 
 }

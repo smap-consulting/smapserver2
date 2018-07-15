@@ -2142,7 +2142,7 @@ public class TaskManager {
 			if(msg.target.equals("email")) {
 				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-					if(GeneralUtilityMethods.isValidEmail(msg.email)) {
+					if(UtilityMethodsEmail.isValidEmail(msg.email)) {
 							
 						log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 						

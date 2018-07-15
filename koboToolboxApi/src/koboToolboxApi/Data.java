@@ -90,9 +90,9 @@ public class Data extends Application {
 
 		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
 		authorisationsSuper.add(Authorise.ANALYST);
-		authorisations.add(Authorise.VIEW_DATA);
+		authorisationsSuper.add(Authorise.VIEW_DATA);
 		authorisationsSuper.add(Authorise.ADMIN);
-		aSuper = new Authorise(authorisations, null);
+		aSuper = new Authorise(authorisationsSuper, null);
 
 	}
 

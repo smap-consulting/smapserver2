@@ -639,7 +639,7 @@ public class NotificationManager {
 					String emails = "";
 					for(String email : emailList) {	
 						if(sentEndPoints.get(email) == null) {
-							if(GeneralUtilityMethods.isValidEmail(email)) {
+							if(UtilityMethodsEmail.isValidEmail(email)) {
 								if(emails.length() > 0) {
 									emails += ",";
 								}

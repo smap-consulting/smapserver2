@@ -21,7 +21,6 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -31,8 +30,6 @@ import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
@@ -45,7 +42,6 @@ import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.AutoUpdate;
-import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
@@ -1214,7 +1210,6 @@ public class GeneralUtilityMethods {
 		String sql = "select s_id " 
 				+ "from survey " 
 				+ "where ident = ?";
-
 		PreparedStatement pstmt = null;
 
 		try {
@@ -1226,16 +1221,8 @@ public class GeneralUtilityMethods {
 				sId = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return sId;
@@ -3045,7 +3032,7 @@ public class GeneralUtilityMethods {
 		String sqlQuestion3 = "order by seq";
 		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 + sqlQuestion2 + sqlQuestion3);
 
-		// Get column names for select multiple questions n an uncompressed legacy select multiple
+		// Get column names for select multiple questions in an uncompressed legacy select multiple
 		String sqlSelectMultipleNotCompressed = "select distinct o.column_name, o.ovalue, o.seq " 
 				+ "from option o, question q "
 				+ "where o.l_id = q.l_id " 
@@ -6773,20 +6760,6 @@ public class GeneralUtilityMethods {
 			attachment = true;
 		}
 		return attachment;
-	}
-	
-	/*
-	 * Validate an email
-	 */
-	public static boolean isValidEmail(String email) {
-		boolean isValid = true;
-		try {
-		      InternetAddress emailAddr = new InternetAddress(email);
-		      emailAddr.validate();
-		   } catch (AddressException ex) {
-		      isValid = false;
-		   }
-		return isValid;
 	}
 	
 	/*

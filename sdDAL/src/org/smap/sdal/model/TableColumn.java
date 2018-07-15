@@ -7,6 +7,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 /*
  * TableColumn class used to manage data shown in a table
+ * You might will ask how this is different from a question?
+ *  Original this new class was created because a select multiple question expanded to multiple columns
+ *  Secondly it includes support for managed forms
  */
 public class TableColumn {
 	public String name;
