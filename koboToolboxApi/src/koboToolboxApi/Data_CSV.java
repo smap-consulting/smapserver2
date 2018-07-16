@@ -387,7 +387,9 @@ public class Data_CSV extends Application {
 						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,
 						superUser, false, // Return records greater than or equal to primary key
 						include_bad,
-						null);
+						null,
+						null		// key filter
+						);
 
 				log.info("Get CSV data: " + pstmt.toString());
 				Audit auditData = null;

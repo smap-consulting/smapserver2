@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
@@ -72,7 +73,8 @@ public class TableDataManager {
 			boolean superUser, 
 			boolean specificPrikey, 
 			String include_bad,
-			String customFilter)
+			String customFilter,
+			ArrayList<KeyFilter> keyFilters)
 			throws SQLException, Exception {
 
 		StringBuffer columnSelect = new StringBuffer();
@@ -139,8 +141,17 @@ public class TableDataManager {
 			
 			// Add custom filter
 			if(customFilter != null) {
-				sqlSelect.append(" and ");
-				sqlSelect.append(customFilter);
+				sqlSelect.append(" and ").append(customFilter);
+			}
+			
+			// Add key filters
+			if(keyFilters != null) {
+				for(KeyFilter kf : keyFilters) {
+					kf.type = getColumnType(columns, kf.name);
+					if(kf.type != null) {	// If type is null the column was not found
+						sqlSelect.append(" and ").append(kf.name + " = ?");
+					}
+				}
 			}
 
 			StringBuffer sqlGetDataOrder = new StringBuffer("");
@@ -184,6 +195,15 @@ public class TableDataManager {
 			}
 			if (hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
+			}
+			
+			// Add key filter parameters
+			if(keyFilters != null) {
+				for(KeyFilter kf : keyFilters) {
+					if(kf.type != null) {
+						kf.setFilter(pstmt, paramCount++);
+					}
+				}
 			}
 
 			log.info("Get data: " + pstmt.toString());
@@ -453,6 +473,26 @@ public class TableDataManager {
 			}
 		}
 		return col;
+	}
+	
+	/*
+	 * Convert the human name for the sort column into sql
+	 */
+	private String getColumnType(ArrayList<TableColumn> columns, String name) {
+		String type = null; 
+		name = name.trim();
+		if(name.equals("prikey") || name.equals("parkey")) {
+			type = "int";
+		} else {
+			for (int i = 0; i < columns.size(); i++) {
+				if (columns.get(i).humanName.equals(name)) {
+					TableColumn c = columns.get(i);
+					type = c.type;
+					break;
+				}
+			}
+		}
+		return type;
 	}
 
 }

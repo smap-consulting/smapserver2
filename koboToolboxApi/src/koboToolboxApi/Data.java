@@ -363,7 +363,8 @@ public class Data extends Application {
 					superUser,
 					false,			// Return records greater than or equal to primary key
 					include_bad,
-					null				// no custom filter
+					null	,			// no custom filter
+					null				// key filter
 					);
 			
 			// Write array start

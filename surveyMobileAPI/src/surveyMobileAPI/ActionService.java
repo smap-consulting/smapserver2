@@ -422,9 +422,11 @@ public class ActionService extends Application {
 					prikey, 1, 			// Number of records to return
 					false, 				// get parkey
 					0, 					// start parkey
-					superUser, true, 	// Return the specific primary key
+					superUser, 
+					true, 	// Return the specific primary key
 					"none", 				// include bad
-					null					// no custom filter
+					null	,				// no custom filter
+					null					// no key filter
 			);
 
 			if (pstmt != null) {

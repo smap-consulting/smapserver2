@@ -486,7 +486,8 @@ public class SubscriberBatch {
 											true,			// Super User
 											false,			// Return records greater than or equal to primary key
 											"none",			// Do not return bad records
-											prikeyFilter
+											prikeyFilter,
+											null				// key filter
 											);
 	
 									// Set parameters for custom filter
