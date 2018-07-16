@@ -498,30 +498,10 @@ public class Data_CSV extends Application {
 				outWriter.flush();
 				outWriter.close();
 				
-				try {
-					if (pstmt != null) {
-						pstmt.close();
-					}
-				} catch (SQLException e) {
-				}
-				try {
-					if (pstmtGetMainForm != null) {
-						pstmtGetMainForm.close();
-					}
-				} catch (SQLException e) {
-				}
-				try {
-					if (pstmtGetForm != null) {
-						pstmtGetForm.close();
-					}
-				} catch (SQLException e) {
-				}
-				try {
-					if (pstmtGetManagedId != null) {
-						pstmtGetManagedId.close();
-					}
-				} catch (SQLException e) {
-				}
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtGetMainForm != null) {	pstmtGetMainForm.close();}} catch (SQLException e) {}
+				try {if (pstmtGetForm != null) {	pstmtGetForm.close();}} catch (SQLException e) {}
+				try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();}} catch (SQLException e) {}
 
 				ResultsDataSource.closeConnection("koboToolboxApi - get data records csv", cResults);
 				SDDataSource.closeConnection("koboToolboxApi - get data records csv", sd);
