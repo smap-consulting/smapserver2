@@ -286,7 +286,7 @@ public class EmailManager {
 			Transport.send(msg);
 
 		} catch(MessagingException me) {
-			log.log(Level.SEVERE, "Messaging Exception");
+			log.log(Level.SEVERE, "Messaging Exception", me);
 			throw new Exception(localisation.getString("email_cs") + "  " + me.getMessage());
 		}
 
