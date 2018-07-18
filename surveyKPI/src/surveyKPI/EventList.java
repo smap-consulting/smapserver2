@@ -822,7 +822,7 @@ public class EventList extends Application {
 				
 			} else if(groupby.equals("month")) {
 				
-				String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time)";
+				String aggregate = "extract(year from upload_time) || '-' || lpad(cast(extract(month from upload_time) as varchar), 2, '0')";
 				
 				if(isForward) {
 	
@@ -856,7 +856,7 @@ public class EventList extends Application {
 				pstmt.setInt(4, oId);
 			} else if(groupby.equals("week")) {			
 	
-				String aggregate = "extract(year from upload_time) || '-' || extract(week from upload_time)";
+				String aggregate = "extract(year from upload_time) || '-' || lpad(cast(extract(week from upload_time) as varchar), 2, '0')";
 				if(isForward) {			
 					aggregate += ", se.dest ";
 				} 
@@ -889,7 +889,9 @@ public class EventList extends Application {
 				
 			} else if(groupby.equals("day")) {
 				
-				String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time) || '-' || extract(day from upload_time) ";	
+				String aggregate = "extract(year from upload_time) || '-' || "
+						+ "lpad(cast(extract(month from upload_time) as varchar), 2, '0') || '-' || "
+						+ "lpad(cast(extract(day from upload_time) as varchar), 2, '0') ";	
 				if(isForward) {
 					aggregate += ",se.dest ";
 				}
