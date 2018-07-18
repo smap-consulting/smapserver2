@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
@@ -208,7 +209,7 @@ public class TableDataManager {
 
 			log.info("Get data: " + pstmt.toString());
 		} else {
-			log.info("Table does not exist");
+			throw new ApplicationException("Table does not exist");
 		}
 		return pstmt;
 
