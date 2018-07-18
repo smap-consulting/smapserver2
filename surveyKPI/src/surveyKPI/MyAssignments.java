@@ -421,6 +421,9 @@ public class MyAssignments extends Application {
 				tr.settings.ft_delete = resultSet.getString(1);
 				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete);
 				tr.settings.ft_send_location = resultSet.getString(2);
+				if(tr.settings.ft_send_location == null) {
+					tr.settings.ft_send_location = "off";
+				}
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
 				tr.settings.ft_specify_instancename = resultSet.getBoolean(5);
