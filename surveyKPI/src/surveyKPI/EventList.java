@@ -759,7 +759,7 @@ public class EventList extends Application {
 				
 				sql = "SELECT count(*), ue.ident "
 						+ getDest
-						+ "FROM upload_event ue "
+						+ "from upload_event ue "
 						+ "left outer join subscriber_event se "
 						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
@@ -796,7 +796,7 @@ public class EventList extends Application {
 				
 				sql = "SELECT count(*), ue.imei "
 						+ getDest
-						+ "FROM upload_event ue "
+						+ "from upload_event ue "
 						+ "left outer join subscriber_event se "
 						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
@@ -831,7 +831,7 @@ public class EventList extends Application {
 				
 				sql = "SELECT count(*), " 
 						+ aggregate
-						+ "FROM upload_event ue "
+						+ " from upload_event ue "
 						+ "left outer join subscriber_event se "
 						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
@@ -858,12 +858,12 @@ public class EventList extends Application {
 	
 				String aggregate = "extract(year from upload_time) || '-' || extract(week from upload_time)";
 				if(isForward) {			
-					aggregate += ",se.dest ";
+					aggregate += ", se.dest ";
 				} 
 				
 				sql = "SELECT count(*), " 
 						+ aggregate
-						+ "from upload_event ue "
+						+ " from upload_event ue "
 						+ "left outer join subscriber_event se "
 						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
@@ -879,7 +879,7 @@ public class EventList extends Application {
 						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
-						+ " group by " + aggregate + " desc";
+						+ " order by " + aggregate + " desc";
 				
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, user);
@@ -889,14 +889,14 @@ public class EventList extends Application {
 				
 			} else if(groupby.equals("day")) {
 				
-				String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time) || '-' || extract(day from upload_time)";	
+				String aggregate = "extract(year from upload_time) || '-' || extract(month from upload_time) || '-' || extract(day from upload_time) ";	
 				if(isForward) {
 					aggregate += ",se.dest ";
 				}
 				
 				sql = "SELECT count(*), " 
 						+ aggregate
-						+ "FROM upload_event ue "
+						+ " from upload_event ue "
 						+ "left outer join subscriber_event se "
 						+ "on ue.ue_id = se.ue_id "
 						+ "inner join user_project up "
