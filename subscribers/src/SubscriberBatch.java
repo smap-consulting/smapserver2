@@ -134,8 +134,11 @@ public class SubscriberBatch {
 				+ "status,"
 				+ "reason,"
 				+ "dest) "
-				+ "values (nextval('se_seq'), ?, ?, ?, ?, ?);";
+				+ "values (nextval('se_seq'), ?, ?, ?, ?, ?)";
 		PreparedStatement pstmt = null;
+		
+		String sqlResultsDB = "update upload_event set results_db_applied = 'true' where ue_id = ?";
+		PreparedStatement pstmtResultsDB = null;
 
 		String language = "none";
 		try {
@@ -158,6 +161,7 @@ public class SubscriberBatch {
 
 			uem = new JdbcUploadEventManager(sd);
 			pstmt = sd.prepareStatement(sqlUpdateStatus);
+			pstmtResultsDB = sd.prepareStatement(sqlResultsDB);
 
 			// Default to english though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
@@ -337,6 +341,12 @@ public class SubscriberBatch {
 										pstmt.setString(4, se.getReason());
 										pstmt.setString(5, se.getDest());
 										pstmt.executeUpdate();
+										
+										// Add a flag in the for results db updates in the upload_event table to improve performance
+										if(s.getSubscriberName().equals("results_db")) {
+											pstmtResultsDB.setInt(1, ue.getId());
+											pstmtResultsDB.executeUpdate();
+										}
 
 									} else if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
 										// If the host is unreachable then stop forwarding for 10 seconds
@@ -563,6 +573,7 @@ public class SubscriberBatch {
 			e.printStackTrace();
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtResultsDB != null) { pstmtResultsDB.close();}} catch (SQLException e) {}
 
 			if(uem != null) {uem.close();}
 
