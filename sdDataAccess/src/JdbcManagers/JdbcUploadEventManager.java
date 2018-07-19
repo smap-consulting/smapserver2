@@ -146,8 +146,13 @@ public class JdbcUploadEventManager {
 	 * Get Uploads that have not been processed by the subscriber
 	 */
 	public List<UploadEvent> getFailed(String subscriber) throws SQLException {
-		pstmtUnprocessed.setString(1, subscriber);
-		return getUploadEventList(pstmtUnprocessed);
+		if(subscriber.equals("results_db")) {
+			pstmtUnprocessedResultsDB.setString(1, subscriber);
+			return getUploadEventList(pstmtUnprocessedResultsDB);
+		} else {
+			pstmtUnprocessed.setString(1, subscriber);
+			return getUploadEventList(pstmtUnprocessed);
+		}
 	}
 	
 	public List<UploadEvent> getFailedForward(String subscriber, int sId) throws SQLException {
