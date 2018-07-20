@@ -44,6 +44,7 @@ import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
+import org.smap.sdal.constants.SmapExportTypes;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.ColDesc;
@@ -118,6 +119,10 @@ public class XLSXReportsManager {
 		if(sId != 0) {
 
 			PreparedStatement pstmt = null;
+			Workbook wb = null;
+			int rowNumber = 0;
+			Sheet dataSheet = null;
+			CellStyle errorStyle = null;
 
 			try {	
 
@@ -142,7 +147,7 @@ public class XLSXReportsManager {
 						sId,
 						fId,
 						language, 
-						"xlsx", 
+						SmapExportTypes.XLSX, 
 						urlprefix, 
 						true,
 						exp_ro,
@@ -169,13 +174,13 @@ public class XLSXReportsManager {
 				 * Create XLSX File
 				 */
 				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
-				Workbook wb = null;
-				int rowNumber = 0;
 				wb = new SXSSFWorkbook(10);		// Serialised output
-				Sheet dataSheet = wb.createSheet("data");
+				dataSheet = wb.createSheet("data");
+				rowNumber = 0;
 				
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
+				errorStyle = styles.get("error");
 				
 				/*
 				 * Write the labels if language has been set
@@ -379,11 +384,7 @@ public class XLSXReportsManager {
 					
 				}
 				
-				OutputStream outputStream = response.getOutputStream();
-				wb.write(outputStream);
-				wb.close();
-				outputStream.close();
-				((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
+
 
 
 			} catch (ApplicationException e) {
@@ -395,9 +396,29 @@ public class XLSXReportsManager {
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				lm.writeLog(sd, sId, username, "error", e.getMessage());
+				
+				String msg = e.getMessage();
+				if(msg.contains("does not exist")) {
+					msg = localisation.getString("msg_no_data");
+				}
+				Row dataRow = dataSheet.createRow(rowNumber + 1);	
+				Cell cell = dataRow.createCell(0);
+				cell.setCellStyle(errorStyle);
+				cell.setCellValue(msg);
+				
 				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 			} finally {	
 
+				try {
+					OutputStream outputStream = response.getOutputStream();
+					wb.write(outputStream);
+					wb.close();
+					outputStream.close();
+					((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
+				} catch (Exception ex) {
+					log.log(Level.SEVERE, "Error", ex);
+				}
+				
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
 

@@ -73,6 +73,9 @@ public class XLSUtilities {
 		Font linkFont = wb.createFont();
 		linkFont.setUnderline(Font.U_SINGLE);
 		linkFont.setColor(IndexedColors.BLUE.getIndex());
+		
+		Font redFont = wb.createFont();
+		redFont.setColor(IndexedColors.RED.getIndex());
 
 		/*
 		 * Create styles
@@ -95,6 +98,10 @@ public class XLSUtilities {
 		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
 		styles.put("header_assignments", style);
 
+		style = wb.createCellStyle();
+		style.setFont(redFont);
+		styles.put("errorStyle", style);
+		
 		style = wb.createCellStyle();
 		style.setWrapText(true);
 		styles.put("label", style);

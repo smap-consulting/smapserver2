@@ -111,9 +111,9 @@ public class TableDataManager {
 			}
 
 			if (include_bad.equals("none")) {
-				sqlGetData.append("and _bad = 'false'");
+				sqlGetData.append(" and _bad = 'false' ");
 			} else if (include_bad.equals("only")) {
-				sqlGetData.append("and _bad = 'true'");
+				sqlGetData.append(" and _bad = 'true' ");
 			}
 
 			// Add row selection clause

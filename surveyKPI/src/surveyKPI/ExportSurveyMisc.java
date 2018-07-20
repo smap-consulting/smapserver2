@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.constants.SmapExportTypes;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.managers.SpssManager;
@@ -187,7 +188,7 @@ public class ExportSurveyMisc extends Application {
 				if(language == null) {
 					language = "none";
 				}
-				if((format.equals("stata") || format.equals("spss")) && language.equals("none")) {
+				if((format.equals(SmapExportTypes.STATA) || format.equals(SmapExportTypes.SPSS)) && language.equals("none")) {
 					// A language should be set for stata / spss exports, use the default
 					String sqlDefLang = "select def_lang from survey where s_id = ?; ";
 					pstmtDefLang = sd.prepareStatement(sqlDefLang);
@@ -254,7 +255,7 @@ public class ExportSurveyMisc extends Application {
 				/*
 				 * Create a VRT file for VRT exports
 				 */
-				if(format.equals("vrt")) {
+				if(format.equals(SmapExportTypes.VRT)) {
 					log.info("Writing VRT file: " + filepath + "/" + sqlDesc.target_table + ".vrt");
 					// Write the vrt file to the file system
 
@@ -310,7 +311,7 @@ public class ExportSurveyMisc extends Application {
 					DOMSource source = new DOMSource(outputXML);
 					transformer.transform(source, out);
 
-				} else if(format.equals("stata")) {
+				} else if(format.equals(SmapExportTypes.STATA)) {
 					/*
 					 * Create a Stata "do" file 
 					 */
@@ -382,7 +383,7 @@ public class ExportSurveyMisc extends Application {
 
 					w.close();	
 
-				} else if(format.equals("spss")) {
+				} else if(format.equals(SmapExportTypes.SPSS)) {
 					/*
 					 * Create an SPSS "sps" file 
 					 */
@@ -413,17 +414,17 @@ public class ExportSurveyMisc extends Application {
 				int code = 0;
 				boolean fastExport = true;
 				String modifiedFormat = format;
-				if(format.equals("spss")) {
-					modifiedFormat = "stata";		// hack to generate a zip file with a csv file in it
+				if(format.equals(SmapExportTypes.SPSS)) {
+					modifiedFormat = SmapExportTypes.STATA;		// hack to generate a zip file with a csv file in it
 					fastExport = false;
 					merge_select_multiple = false;	// Ignore merge select multiple setting
-				} else if(format.equals("stata")) {
+				} else if(format.equals(SmapExportTypes.STATA)) {
 					fastExport = false;
 					merge_select_multiple = false;	// Ignore merge select multiple setting
-				} else if(format.equals("shape")) {
+				} else if(format.equals(SmapExportTypes.SHAPE)) {
 					fastExport = true;
 					merge_select_multiple = true;	// Ignore merge select multiple setting
-				} else if(format.equals("csv") && !merge_select_multiple) {
+				} else if(format.equals(SmapExportTypes.CSV) && !merge_select_multiple) {
 					fastExport = false;
 				}
 				
@@ -573,7 +574,7 @@ public class ExportSurveyMisc extends Application {
 
 					if(file.exists()) {
 						builder = Response.ok(file);
-						if(format.equals("kml")) {
+						if(format.equals(SmapExportTypes.KML)) {
 							builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".kmz\"");
 						} else {
 							builder.header("Content-Disposition", "attachment;Filename=\"" + escapedFileName + ".zip\"");

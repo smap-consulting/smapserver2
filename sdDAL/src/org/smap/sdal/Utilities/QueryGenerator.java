@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.constants.SmapExportTypes;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ExportForm;
@@ -155,7 +156,8 @@ public class QueryGenerator {
 					tables,
 					true,
 					meta,
-					includeKeys
+					includeKeys,
+					false				// have geometry
 					);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
@@ -387,7 +389,8 @@ public class QueryGenerator {
 			ArrayList<String> tables,
 			boolean first,
 			boolean meta,
-			boolean includeKeys
+			boolean includeKeys,
+			boolean haveGeometry
 			) throws Exception {
 		
 		int colLimit = 10000;
@@ -484,7 +487,13 @@ public class QueryGenerator {
 				continue;
 			}
 			
-			if(type.equals("geometry") && level > 0 && !format.equals("csv")) {	// Ignore geometries in parent forms for shape, VRT, KML, Stata exports (needs to be a unique geometry)
+			// Ignore geometries in parent forms for shape, VRT, KML, Stata exports (needs to be a unique geometry)
+			if(type.equals("geometry") && haveGeometry && (
+					format.equals(SmapExportTypes.SHAPE) 
+					|| format.equals(SmapExportTypes.STATA)
+					|| format.equals(SmapExportTypes.VRT)
+					|| format.equals(SmapExportTypes.KML)
+					|| format.equals(SmapExportTypes.SPSS))) {	
 				continue;
 			}
 			
@@ -698,7 +707,8 @@ public class QueryGenerator {
 						tables,
 						false,
 						meta,
-						includeKeys
+						includeKeys,
+						haveGeometry
 						);
 			}
 		}
