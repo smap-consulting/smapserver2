@@ -41,7 +41,6 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
-import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.SqlFrag;
 
 import com.google.gson.Gson;

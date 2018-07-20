@@ -238,6 +238,7 @@ public class SurveyResults extends Application {
 			Connection connectionRel = null; 
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtRestore = null;
+			PreparedStatement pstmtReset = null;
 			PreparedStatement pstmtUnpublish = null;
 			
 			Statement stmtRel = null;
@@ -253,11 +254,16 @@ public class SurveyResults extends Application {
 				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
 				pstmtUnpublish = sd.prepareStatement(sqlUnpublish);	
 				
-				// Delete tables associated with this survey				
+				// Delete subscriber entries associated with this survey				
 				String sqlRestore = "delete from subscriber_event "
-						+ "where se_id in "
+						+ "where subscriber = 'results_db' "
+						+ "and se_id in "
 						+ "(select se.se_id from upload_event ue, subscriber_event se where ue.ue_id = se.ue_id and ue.ident = ?);";
 				pstmtRestore = sd.prepareStatement(sqlRestore);			
+				
+				String sqlResetLoadFlag = "update upload_event set results_db_applied = 'false' "
+						+ "where ident = ?";
+				pstmtReset = sd.prepareStatement(sqlResetLoadFlag);
 				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
@@ -304,7 +310,10 @@ public class SurveyResults extends Application {
 					pstmtRestore.setString(1, gd.surveyIdent);			// Initiate restore
 					log.info("Restoring survey " + gd.surveyIdent + ": " + pstmtRestore.toString());
 					pstmtRestore.executeUpdate();
-								
+							
+					pstmtReset.setString(1, gd.surveyIdent);			// Initiate reset of go faster flag
+					pstmtReset.executeUpdate();
+					
 					// Force regeneration of any dynamic CSV files that this survey links to
 					efm.linkerChanged(sd, gd.sId);	// deprecated
 				}
@@ -324,6 +333,7 @@ public class SurveyResults extends Application {
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				try {if (pstmtRestore != null) {pstmtRestore.close();}} catch (SQLException e) {}
+				try {if (pstmtReset != null) {pstmtReset.close();}} catch (SQLException e) {}
 				try {if (pstmtUnpublish != null) {pstmtUnpublish.close();}} catch (SQLException e) {}
 				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
 			
