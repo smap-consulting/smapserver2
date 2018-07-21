@@ -109,7 +109,7 @@ public class JdbcUploadEventManager {
 		pstmt = sd.prepareStatement(sql);
 		pstmtUnprocessed = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlOrder);
 		pstmtUnprocessedResultsDB = sd.prepareStatement(sqlGet + sqlProcessedFilter + sqlOrder);
-		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlForwardFilter + sqlOrder);
+		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlForwardFilter + sqlOrder);
 	}
 	
 	/*
@@ -147,7 +147,6 @@ public class JdbcUploadEventManager {
 	 */
 	public List<UploadEvent> getFailed(String subscriber) throws SQLException {
 		if(subscriber.equals("results_db")) {
-			pstmtUnprocessedResultsDB.setString(1, subscriber);
 			return getUploadEventList(pstmtUnprocessedResultsDB);
 		} else {
 			pstmtUnprocessed.setString(1, subscriber);

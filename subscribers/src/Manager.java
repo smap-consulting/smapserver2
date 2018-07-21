@@ -57,6 +57,11 @@ public class Manager {
 		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 4;
 		
+		// Forwarding can happen less frequently, this reduce the load due to searching for items to forward
+		if(subscriberType.equals("forward")) {
+			delaySecs = 30;					
+		}
+		
 		while(true) {
 
 			SubscriberBatch batchJob = new SubscriberBatch();
