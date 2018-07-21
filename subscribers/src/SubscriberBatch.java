@@ -827,7 +827,8 @@ public class SubscriberBatch {
 				" and ue.orig_survey_ident = ? " +
 				" and ue.ident = ? " +
 				" and ue.incomplete = 'true'" +
-				" and not exists (select se.se_id from subscriber_event se where se.ue_id = ue.ue_id)";
+				" and not ue.results_db_applied ";
+				//" and not exists (select se.se_id from subscriber_event se where se.ue_id = ue.ue_id)";
 
 		String sqlUpdate = "insert into subscriber_event (se_id, ue_id, subscriber, status, reason) values (nextval('se_seq'), ?, ?, ?, ?);";
 
