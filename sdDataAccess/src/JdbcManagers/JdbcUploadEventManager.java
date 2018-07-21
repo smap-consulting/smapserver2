@@ -90,9 +90,9 @@ public class JdbcUploadEventManager {
 			+ "from upload_event ue "
 				+ "where ue.status = 'success' "
 				+ "and ue.s_id is not null "
-				+ "and ue.incomplete = 'false' "
-				+ "and not exists (select se.se_id from subscriber_event se "
-					+ "where se.subscriber = ? and se.ue_id = ue.ue_id)";
+				+ "and ue.incomplete = 'false' ";
+	String sqlNotResultsDB = " and not exists (select se.se_id from subscriber_event se "
+				+ "where se.subscriber = ? and se.ue_id = ue.ue_id) ";
 	
 	PreparedStatement pstmtUnprocessedResultsDB = null;
 	String sqlProcessedFilter = " and not ue.results_db_applied";
@@ -107,7 +107,7 @@ public class JdbcUploadEventManager {
 	 */
 	public JdbcUploadEventManager(Connection sd) throws SQLException {
 		pstmt = sd.prepareStatement(sql);
-		pstmtUnprocessed = sd.prepareStatement(sqlGet + sqlOrder);
+		pstmtUnprocessed = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlOrder);
 		pstmtUnprocessedResultsDB = sd.prepareStatement(sqlGet + sqlProcessedFilter + sqlOrder);
 		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlForwardFilter + sqlOrder);
 	}
