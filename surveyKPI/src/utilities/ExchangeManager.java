@@ -3,6 +3,7 @@ package utilities;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 
 /*
 This file is part of SMAP.
@@ -60,6 +61,8 @@ import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.TableColumn;
+
+import com.opencsv.CSVReader;
 
 import model.FormDesc;
 import surveyKPI.ExportSurveyXls;
@@ -377,6 +380,7 @@ public class ExchangeManager {
 		
 		CSVReader reader = null;
 		XlsReader xlsReader = null;
+		FileInputStream fis = null;
 		boolean hasGeopoint = false;
 		int lonIndex = -1;			// Column containing longitude
 		int latIndex = -1;			// Column containing latitude
@@ -388,7 +392,7 @@ public class ExchangeManager {
 		
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtDeleteExisting = null;
-		
+
 		try {
 			
 			form.keyMap = new HashMap<String, String> ();
@@ -396,20 +400,14 @@ public class ExchangeManager {
 			pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 			
 			String [] line;
-			FileInputStream fis = null;
-			InputStreamReader isr = null;
 			if(isCSV) {
-				fis = new FileInputStream(file);
-				isr = new InputStreamReader(fis);
-				reader = new CSVReader(isr, localisation);
+				reader = new CSVReader(new FileReader(file));
 				line = reader.readNext();
 			} else {
 				fis = new FileInputStream(file);
 				xlsReader = new XlsReader(fis, form.name);
 				line = xlsReader.readNext();
 			}
-			if(fis != null) {fis.close();};
-			if(isr != null) {isr.close();};
 			
 			ArrayList<Column> columns = new ArrayList<Column> ();
 			if(line != null && line.length > 0) {
@@ -803,8 +801,8 @@ public class ExchangeManager {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			
-			xlsReader = null;
-			
+			try{if(xlsReader != null) {xlsReader.close();}} catch (Exception e) {}
+			try{if(fis != null) {fis.close();}} catch (Exception e) {}
 			try {if (reader != null) {reader.close();}} catch (Exception e) {}
 			
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (Exception e) {}

@@ -70,7 +70,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Organisation;
 
-import utilities.CSVReader;
 import utilities.Geo;
 
 import model.Report;
@@ -79,6 +78,7 @@ import model.Settings;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.opencsv.CSVReader;
 
 /*
  * Manage creation and supply of reports
@@ -881,7 +881,7 @@ public class ReportListSvcDeprecate extends Application {
 					URL urlFile = new URL(report.url);	
 					String [] line;
 					log.info("Opening CSVReader on stream at: "  + report.url);
-					in = new CSVReader(new InputStreamReader(urlFile.openStream()), localisation);
+					in = new CSVReader(new InputStreamReader(urlFile.openStream()));
 					line = in.readNext();
 					if(line != null && line.length > 0) {
 						// Assume first line is the header
