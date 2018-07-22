@@ -3319,9 +3319,8 @@ public class SurveyManager {
 		
 		String sql = "select o.ovalue, o.column_name, l.name from option o, listname l "
 				+ "where o.l_id = l.l_id "
-				+ "and (l.s_id in "
-				+ "(select s_id from survey where group_survey_id = ?) or "
-				+ "s_id = ?) "
+				+ "and l.s_id in "
+				+ "(select s_id from survey where group_survey_id = ? union all select ? ) "
 				+ "order by o.o_id desc";	// newest first
 
 		PreparedStatement pstmt = null;
