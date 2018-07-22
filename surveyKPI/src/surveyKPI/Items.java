@@ -175,8 +175,8 @@ public class Items extends Application {
 				cResults = ResultsDataSource.getConnection("surveyKPI-Items");	
 				
 				// Prepare the statement to get the form details
-				String sqlFDetails = "select f.table_name, f.parentform, name from question q, form f " +
-					" where f.f_id = ?; ";
+				String sqlFDetails = "select table_name, parentform, name from form " +
+					" where f_id = ?";
 				pstmtFDetails = sd.prepareStatement(sqlFDetails);
 				
 				// Get the table details
