@@ -34,6 +34,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
@@ -3056,7 +3057,8 @@ public class GeneralUtilityMethods {
 		TableColumn c = new TableColumn();
 		c.name = "prikey";
 		c.humanName = "prikey";
-		c.type = "";
+		c.displayName = "ID";
+		c.type = SmapQuestionTypes.INT;
 		if (includeOtherMeta) {
 			columnList.add(c);
 		}
@@ -3066,7 +3068,8 @@ public class GeneralUtilityMethods {
 			c = new TableColumn();
 			c.name = "_hrk";
 			c.humanName = "Key";
-			c.type = "";
+			c.displayName = "Key";
+			c.type = SmapQuestionTypes.STRING;
 			columnList.add(c);
 		}
 
@@ -3074,7 +3077,8 @@ public class GeneralUtilityMethods {
 			c = new TableColumn();
 			c.name = "parkey";
 			c.humanName = "parkey";
-			c.type = "";
+			c.displayName = "parkey";
+			c.type = SmapQuestionTypes.INT;
 			columnList.add(c);
 		}
 
@@ -3082,7 +3086,8 @@ public class GeneralUtilityMethods {
 			durationColumn = new TableColumn();
 			durationColumn.name = "_duration";
 			durationColumn.humanName = localisation.getString("a_sd");
-			durationColumn.type = "duration";
+			durationColumn.displayName = durationColumn.humanName;
+			durationColumn.type = SmapQuestionTypes.DURATION;
 			durationColumn.isMeta = true;
 			columnList.add(durationColumn);
 		}
@@ -3091,13 +3096,15 @@ public class GeneralUtilityMethods {
 			c = new TableColumn();
 			c.name = "_bad";
 			c.humanName = "_bad";
-			c.type = "";
+			c.displayName = "Bad";
+			c.type = SmapQuestionTypes.BOOLEAN;
 			columnList.add(c);
 
 			c = new TableColumn();
 			c.name = "_bad_reason";
 			c.humanName = "_bad_reason";
-			c.type = "";
+			c.displayName = "Bad Reason";
+			c.type = SmapQuestionTypes.STRING;;
 			columnList.add(c);
 		}
 
@@ -3107,7 +3114,8 @@ public class GeneralUtilityMethods {
 			c = new TableColumn();
 			c.name = "_user";
 			c.humanName = localisation.getString("a_user");
-			c.type = "";
+			c.displayName = c.humanName;
+			c.type = SmapQuestionTypes.STRING;
 			c.isMeta = true;
 			columnList.add(c);
 
@@ -3120,13 +3128,15 @@ public class GeneralUtilityMethods {
 				c = new TableColumn();
 				c.name = "_upload_time";
 				c.humanName = localisation.getString("a_ut");
-				c.type = "dateTime";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.DATETIME;
 				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "_s_id";
 				c.humanName = localisation.getString("a_name");
+				c.displayName = c.humanName;
 				c.type = "";
 				c.isMeta = true;
 				columnList.add(c);
@@ -3136,7 +3146,8 @@ public class GeneralUtilityMethods {
 				c = new TableColumn();
 				c.name = "_version";
 				c.humanName = localisation.getString("a_v");
-				c.type = "";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
 			}
@@ -3145,7 +3156,8 @@ public class GeneralUtilityMethods {
 				c = new TableColumn();
 				c.name = "_complete";
 				c.humanName = localisation.getString("a_comp");
-				c.type = "";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.BOOLEAN;
 				c.isMeta = true;
 				columnList.add(c);
 			}
@@ -3155,6 +3167,7 @@ public class GeneralUtilityMethods {
 				c = new TableColumn();
 				c.name = "instanceid";
 				c.humanName = "instanceid";
+				c.displayName = "instanceid";
 				c.type = "";
 				c.isMeta = true;
 				columnList.add(c);
@@ -3164,21 +3177,24 @@ public class GeneralUtilityMethods {
 				c = new TableColumn();
 				c.name = "_survey_notes";
 				c.humanName = localisation.getString("a_sn");
-				c.type = "";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "_location_trigger";
 				c.humanName = localisation.getString("a_lt");
-				c.type = "";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
 				c.name = "instancename";
 				c.humanName = localisation.getString("a_inst");
-				c.type = "";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
 			}
@@ -3191,6 +3207,7 @@ public class GeneralUtilityMethods {
 						c = new TableColumn();
 						c.name = mi.columnName;
 						c.humanName = mi.name;
+						c.displayName = c.humanName;
 						c.type = mi.dataType;
 						if(c.type != null && c.type.equals("timestamp")) {
 							c.type = "dateTime";
@@ -3206,7 +3223,8 @@ public class GeneralUtilityMethods {
 			c = new TableColumn();
 			c.name = "_audit";
 			c.humanName = "Audit";
-			c.type = "";
+			c.displayName = "Audit";
+			c.type = SmapQuestionTypes.AUDIT;
 			columnList.add(c);
 		}
 
@@ -3291,6 +3309,7 @@ public class GeneralUtilityMethods {
 							String optionLabel = rsMultiples.getString(2);
 							c.name = question_column_name + "__" + optionName;
 							c.humanName = question_human_name + " - " + optionLabel;
+							c.displayName = c.humanName;
 							c.option_name = rsMultiples.getString(2);
 							c.question_name = question_human_name;
 							c.l_id = l_id;
@@ -3317,6 +3336,7 @@ public class GeneralUtilityMethods {
 					c = new TableColumn();
 					c.name = question_column_name;
 					c.humanName = question_human_name;
+					c.displayName = (display_name == null || display_name.trim().length() == 0) ? question_human_name : display_name;
 					c.qId = qId;
 					c.type = qType;
 					c.readonly = ro;
