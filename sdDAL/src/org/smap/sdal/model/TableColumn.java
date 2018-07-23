@@ -17,6 +17,7 @@ public class TableColumn {
 	public String question_name;
 	public String option_name;
 	public String humanName;
+	public String displayName;
 	public boolean include;		// Include in the table
 	public boolean hide;		// Only show on expand
 	public boolean barcode;		// Show as barcode
