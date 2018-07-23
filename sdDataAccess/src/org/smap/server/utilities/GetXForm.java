@@ -566,6 +566,9 @@ public class GetXForm {
 					// list question
 					if (q.isTableList) {
 						Element labelsElement = getTableListLabelsElement(sd, outputDoc, f, q, f.getPath(null));
+						if(labelsElement == null) {
+							throw new ApplicationException(localisation.getString("ts_ns"));
+						}
 						currentParent.appendChild(labelsElement);
 					}
 

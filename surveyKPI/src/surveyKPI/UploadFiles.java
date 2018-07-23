@@ -643,8 +643,9 @@ public class UploadFiles extends Application {
 				try {
 					XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser());
 				} catch (Exception e) {
+									
 					String msg = e.getMessage();
-					if(!msg.contains("cannot handle function 'lookup'") &&
+					if(msg != null && !msg.contains("cannot handle function 'lookup'") &&
 							!msg.contains("cannot handle function 'lookup_image_labels'")) {
 						// Error! Delete the survey we just created
 						log.log(Level.SEVERE, e.getMessage(), e);
@@ -659,7 +660,9 @@ public class UploadFiles extends Application {
 								0);		// New Survey Id for replacement 
 								
 						
-						throw new ApplicationException(e.getLocalizedMessage());	// report the error
+						throw new ApplicationException(e.getMessage());	// report the error
+					} else if(msg == null) {
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				}
 				
