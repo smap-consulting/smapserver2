@@ -970,7 +970,8 @@ public class GetXForm {
 							|| embedExternalSearch)) {
 				cascade = true;
 				Element isElement = outputXML.createElement("itemset");
-				isElement.setAttribute("nodeset", nodeset);
+				String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, q.getAppearance(false, template.getQuestionPaths())); 
+				isElement.setAttribute("nodeset", adjustedNodeset);
 
 				Element vElement = outputXML.createElement("value");
 				vElement.setAttribute("ref", q.getNodesetValue());

@@ -1851,6 +1851,17 @@ public class GeneralUtilityMethods {
 			return false;
 		}
 	}
+	
+	/*
+	 * Add nodeset functions to a nodeset
+	 */
+	public static String addNodesetFunctions(String nodeset, String appearance) {
+		if (appearance != null && appearance.toLowerCase().trim().contains("randomize")) {
+			return "randomize(" + nodeset + ")";
+		} else {
+			return nodeset;
+		}
+	}
 
 	/*
 	 * Get a list of options from an external file

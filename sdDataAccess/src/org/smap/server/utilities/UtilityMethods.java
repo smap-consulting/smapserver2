@@ -267,11 +267,6 @@ public class UtilityMethods {
 			v = GeneralUtilityMethods.convertAllXpathNames(v, true);
 		}
 		
-		// Add support for randomising order of questions
-		if(appearance != null && appearance.contains("randomize")) {
-			v = "randomize(" + v + ")";
-		}
-		
 		return v;
 	}
 	
