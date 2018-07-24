@@ -102,16 +102,15 @@ public class MessageProcessor {
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
-	private static class MessageLoop implements Runnable {
+	private class MessageLoop implements Runnable {
 		Connection sd;
 		Connection cResults;
 		String serverName;
 		String basePath;
 
-		public MessageLoop(Connection sd, Connection cResults, String serverName, String basePath) {
+		public MessageLoop(Connection sd, Connection cResults, String basePath) {
 			this.sd = sd;
 			this.cResults = cResults;
-			this.serverName = serverName;
 			this.basePath = basePath;
 		}
 
@@ -120,9 +119,20 @@ public class MessageProcessor {
 			int delaySecs = 10;
 			while (true) {
 				System.out.print("m");
-				MessagingManagerApply mma = new MessagingManagerApply();
-				mma.applyOutbound(sd, cResults, serverName, basePath);
-
+				
+				try {
+					// Make sure we have a connection to the database
+					getDatabaseConnection();
+					
+					// Apply messages
+					MessagingManagerApply mma = new MessagingManagerApply();
+					mma.applyOutbound(sd, cResults, serverName, basePath);
+					
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+				
+				// Sleep and then go again
 				try {
 					Thread.sleep(delaySecs * 1000);
 				} catch (Exception e) {
@@ -131,26 +141,45 @@ public class MessageProcessor {
 
 			}
 		}
-	}
+		
+		private void getDatabaseConnection() throws ParserConfigurationException, SAXException, IOException, ClassNotFoundException, SQLException {
+			// Get the connection details for the meta data database
+			String dbClassMeta = null;
+			String databaseMeta = null;
+			String userMeta = null;
+			String passwordMeta = null;
 
-	/**
-	 * @param args
-	 */
-	public void go(String smapId, String basePath) {
-
-		confFilePath = "./" + smapId;
-
-		// Get the connection details for the meta data database
-		String dbClassMeta = null;
-		String databaseMeta = null;
-		String userMeta = null;
-		String passwordMeta = null;
-
-		String database = null;
-		String user = null;
-		String password = null;
-
-		try {
+			String database = null;
+			String user = null;
+			String password = null;
+			
+			// Return if we already have a connection
+			if(sd != null && cResults != null && sd.isValid(1) && cResults.isValid(1)) {
+				return;
+			}
+			
+			// Make sure any existing connections are closed
+			if(sd != null) {
+				log.info("Messaging: Closing sd connection");
+				try {
+					sd.close();
+				} catch (Exception e) {
+					
+				}
+			}
+			
+			if(cResults != null) {
+				try {
+					log.info("Messaging: Closing cResults connection");
+					cResults.close();
+				} catch (Exception e) {
+					
+				}
+			}
+			
+			// Get the database connection
+			log.info("Messaging: Getting database connections");
+			
 			db = dbf.newDocumentBuilder();
 			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));
 			dbClassMeta = xmlConf.getElementsByTagName("dbclass").item(0).getTextContent();
@@ -167,16 +196,24 @@ public class MessageProcessor {
 			Class.forName(dbClassMeta);
 			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
 			cResults = DriverManager.getConnection(database, user, password);
+			
+		}
 
-			// Default to english though we could get the locals from a server level setting
-			Locale locale = new Locale("en");
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+	}
 
+	/**
+	 * @param args
+	 */
+	public void go(String smapId, String basePath) {
+
+		confFilePath = "./" + smapId;
+
+		try {
+			
 			// Send any pending messages
 			File pFile = new File("/smap_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new MessageLoop(sd, cResults, serverName, basePath));
+				Thread t = new Thread(new MessageLoop(sd, cResults, basePath));
 				t.start();
 			} else {
 				// No message!
@@ -195,5 +232,5 @@ public class MessageProcessor {
 		}
 
 	}
-
+	
 }

@@ -289,18 +289,8 @@ public class MessagingManagerApply {
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 		} finally {
-			try {
-				if (pstmtGetMessages != null) {
-					pstmtGetMessages.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtConfirm != null) {
-					pstmtConfirm.close();
-				}
-			} catch (Exception e) {
-			}
+			try {if (pstmtGetMessages != null) {	pstmtGetMessages.close();}} catch (Exception e) {	}
+			try {if (pstmtConfirm != null) {	pstmtConfirm.close();}} catch (Exception e) {}
 		}
 
 	}
