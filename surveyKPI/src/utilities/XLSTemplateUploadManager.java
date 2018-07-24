@@ -779,7 +779,7 @@ public class XLSTemplateUploadManager {
 		// Do type conversions
 		if (type.equals("text")) {
 			type = "string";
-		} else if(type.startsWith("select_one") || type.startsWith("select_multiple")) {
+		} else if(type.startsWith("select_one") || type.startsWith("select_multiple") || type.startsWith("rank")) {
 			
 			String [] array = type.split("\\s+");
 			if(array.length <= 1) {
@@ -794,6 +794,8 @@ public class XLSTemplateUploadManager {
 				type = "select1";
 			} else if(type.startsWith("select_multiple")) {
 				type = "select";
+			} else if(type.startsWith("rank")) {
+				type = "rank";
 			}
 		} 
 
@@ -1143,6 +1145,9 @@ public class XLSTemplateUploadManager {
 		} else if (type.startsWith("select_multiple") || type.startsWith("select multiple")) {
 			int idx = type.indexOf("multiple");
 			out = "select_multiple " + in.substring(idx + 8).trim();
+		} else if (type.startsWith("rank") || type.startsWith("odk:rank")) {
+			int idx = type.indexOf("rank");
+			out = "rank " + in.substring(idx + 4).trim();
 		} else if (type.equals("note")) {
 			out = "note";
 		} else if (type.equals("geopoint") || type.equals("location")) {
@@ -1207,7 +1212,7 @@ public class XLSTemplateUploadManager {
 			out = "note";
 		} else if (type.equals("trigger")) {			// Commcare 
 			out = "trigger";
-		}
+		} 
 				
 		return out;
 	}

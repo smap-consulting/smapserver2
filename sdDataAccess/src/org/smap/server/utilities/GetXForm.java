@@ -172,6 +172,7 @@ public class GetXForm {
 		rootElement.setAttribute("xmlns:ev", "http://www.w3.org/2001/xml-events");
 		rootElement.setAttribute("xmlns:h", "http://www.w3.org/1999/xhtml");
 		rootElement.setAttribute("xmlns:jr", "http://openrosa.org/javarosa");
+		rootElement.setAttribute("xmlns:odk", "http://www.opendatakit.org/xforms");
 		rootElement.setAttribute("xmlns:orx", "http://openrosa.org/xforms");
 		rootElement.setAttribute("xmlns:xsd", "http://www.w3.org/2001/XMLSchema");
 		outputDoc.appendChild(rootElement);
@@ -864,6 +865,8 @@ public class GetXForm {
 			questionElement = outputXML.createElement("trigger");
 		} else if (type.equals("range")) {
 			questionElement = outputXML.createElement("range");
+		} else if (type.equals("rank")) {
+			questionElement = outputXML.createElement("odk:rank");
 		} else {
 			log.info("Warning Unknown type- populateBodyQuestion: " + type);
 			questionElement = outputXML.createElement("input");
