@@ -17,10 +17,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.mail.internet.AddressException;
 import javax.mail.internet.InternetAddress;
-import javax.servlet.http.HttpServletRequest;
-
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
@@ -29,8 +26,6 @@ import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TaskMessage;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -628,10 +623,12 @@ public class NotificationManager {
 					}
 					
 					// Add the static emails to the per question emails
-					for(String email : msg.emails) {
-						if(email.length() > 0) {
-							log.info("Adding static email: " + email); 
-							emailList.add(email);
+					if(msg.emails != null) {
+						for(String email : msg.emails) {
+							if(email.length() > 0) {
+								log.info("Adding static email: " + email); 
+								emailList.add(email);
+							}
 						}
 					}
 							
