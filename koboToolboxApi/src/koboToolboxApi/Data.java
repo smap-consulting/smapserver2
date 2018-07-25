@@ -199,7 +199,15 @@ public class Data extends Application {
 		int sId = 0;
 		int fId = 0;
 		try {
-			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			/*
+			 * Hack - some older clients still pass the survey id rather than the ident
+			 * Until these are fixed handle either
+			 */
+			if(sIdent.startsWith("s")) {
+				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
+			} else {
+				sId = Integer.parseInt(sIdent);							// Id the old way
+			}
 			if(formName != null) {
 				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
 			}
