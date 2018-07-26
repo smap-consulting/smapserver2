@@ -197,6 +197,8 @@ public class MessageProcessor {
 			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
 			cResults = DriverManager.getConnection(database, user, password);
 			
+			serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+			
 		}
 
 	}
