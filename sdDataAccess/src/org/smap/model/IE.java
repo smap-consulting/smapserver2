@@ -196,6 +196,8 @@ public class IE {
 								|| qt.equals("geotrace")
 								|| qt.equals("acknowledge")
 								|| qt.equals("calculate")
+								|| qt.equals("rank")
+								|| qt.equals("odk:rank")
 								|| qt.equals("begin group")) {
 							questions.add(child);
 							

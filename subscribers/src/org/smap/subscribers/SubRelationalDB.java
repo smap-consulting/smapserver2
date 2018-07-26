@@ -662,8 +662,8 @@ public class SubRelationalDB extends Subscriber {
 			int version,
 			String surveyNotes,
 			String locationTrigger,
-			Connection cRel,
-			Connection cMeta,
+			Connection cResults,
+			Connection sd,
 			int sId,
 			Date uploadTime,
 			String auditPath) throws SQLException, Exception {
@@ -697,28 +697,28 @@ public class SubRelationalDB extends Subscriber {
 					
 					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
-					template.readDatabase(cMeta, sIdent, false);	
-					tm.writeAllTableStructures(cMeta, cRel, sId, template,  0);
+					template.readDatabase(sd, sIdent, false);	
+					tm.writeAllTableStructures(sd, cResults, sId, template,  0);
 					
 					boolean tableChanged = false;
 					boolean tablePublished = false;
-					keys.duplicateKeys = checkDuplicate(cRel, tableName, uuid);
+					keys.duplicateKeys = checkDuplicate(cResults, tableName, uuid);
 
 					if (keys.duplicateKeys.size() > 0 && getDuplicatePolicy() == DUPLICATE_DROP) {
 						throw new Exception("Duplicate survey: " + uuid);
 					}
 					// Apply any updates that have been made to the table structure since the last
 					// submission
-					tableChanged = tm.applyTableChanges(cMeta, cRel, sId);
+					tableChanged = tm.applyTableChanges(sd, cResults, sId);
 
 					// Add any previously unpublished columns not in a changeset (Occurs if this is
 					// a new survey sharing an existing table)
-					tablePublished = tm.addUnpublishedColumns(cMeta, cRel, sId, tableName);
+					tablePublished = tm.addUnpublishedColumns(sd, cResults, sId, tableName);
 
 					if (tableChanged || tablePublished) {
 						List<Form> forms = template.getAllForms();	
 						for(Form f : forms) {
-							tm.markPublished(cMeta, f.getId(), sId); // only mark published if there have been changes made
+							tm.markPublished(sd, f.getId(), sId); // only mark published if there have been changes made
 						}
 					}
 				}
@@ -737,15 +737,15 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				if (columns.size() > 0 || parent_key == 0) {
 
-					boolean hasAudit = GeneralUtilityMethods.hasColumn(cRel, tableName, "_audit");
-					boolean hasAltitude = hasAudit || GeneralUtilityMethods.hasColumn(cRel, tableName, "the_geom_alt"); // Latest
+					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
+					boolean hasAltitude = hasAudit || GeneralUtilityMethods.hasColumn(cResults, tableName, "the_geom_alt"); // Latest
 					// meta
 					// column
 					// added
 					boolean hasUploadTime = hasAltitude
-							|| GeneralUtilityMethods.hasColumn(cRel, tableName, "_upload_time");
-					boolean hasVersion = hasUploadTime || GeneralUtilityMethods.hasColumn(cRel, tableName, "_version");
-					boolean hasSurveyNotes = GeneralUtilityMethods.hasColumn(cRel, tableName, "_survey_notes");
+							|| GeneralUtilityMethods.hasColumn(cResults, tableName, "_upload_time");
+					boolean hasVersion = hasUploadTime || GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
+					boolean hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
 
 					sql = "INSERT INTO " + tableName + " (parkey";
 					if (parent_key == 0) {
@@ -794,7 +794,7 @@ public class SubRelationalDB extends Subscriber {
 					sql += addSqlValues(columns, sIdent, device, server, false, hasAltitude);
 					sql += ");";
 
-					pstmt = cRel.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+					pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 					int stmtIndex = 1;
 					pstmt.setInt(stmtIndex++, parent_key);
 					if (parent_key == 0) {
@@ -854,7 +854,7 @@ public class SubRelationalDB extends Subscriber {
 						|| (child.getQType() != null && child.getQType().equals("begin group")))) {
 					
 					writeTableContent(child, parent_key, sIdent, remoteUser, server, device, uuid, formStatus, version,
-							surveyNotes, locationTrigger, cRel, cMeta, sId, uploadTime,
+							surveyNotes, locationTrigger, cResults, sd, sId, uploadTime,
 							auditPath + "/" + child.getName() + "[" + recCounter + "]");
 					recCounter++;
 				}
@@ -1489,7 +1489,8 @@ public class SubRelationalDB extends Subscriber {
 				if(qType.equals("string") || qType.equals("calculate") || qType.equals("select1") || qType.equals("barcode") 
 						|| qType.equals("acknowledge")
 						|| qType.equals("note")
-						|| qType.equals("select")) {		// Compressed select
+						|| qType.equals("select")
+						|| qType.equals("rank")) {		// Compressed select
 					value = "'" + value + "'";
 
 				} else if(qType.equals("int") || qType.equals("decimal")) {

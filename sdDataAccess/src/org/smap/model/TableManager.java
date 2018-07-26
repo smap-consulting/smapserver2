@@ -444,9 +444,6 @@ public class TableManager {
 				}
 			}
 			
-			
-
-
 			for(Question q : columns) {
 
 				boolean hasExternalOptions = GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(false, null));
@@ -589,6 +586,8 @@ public class TableManager {
 		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
 		} else if(colType.equals("select") && compressed) {
+			colType = "text";					
+		} else if(colType.equals("rank")) {
 			colType = "text";					
 		}
 		return colType;
