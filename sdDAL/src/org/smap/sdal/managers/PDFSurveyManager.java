@@ -832,7 +832,7 @@ public class PDFSurveyManager {
 				Question question = getQuestionFromResult(sd, r, form);
 				
 				if(question != null) {
-
+					
 					if(includeResult(r, question, appendix, gv, generateBlank)) {
 						if(question.type.equals("begin group")) {
 							if(question.isNewPage()) {
@@ -1675,7 +1675,7 @@ public class PDFSurveyManager {
 		boolean hasContent = false;
 
 		StringBuffer html = new StringBuffer();
-
+		html.append("<span>");
 		if(value != null && value.trim().length() > 0) {
 			html.append(value);
 			hasContent = true;
@@ -1694,6 +1694,7 @@ public class PDFSurveyManager {
 
 			}
 		}
+		html.append("</span>");
 		
 		return html.toString();
 	}
