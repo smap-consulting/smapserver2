@@ -190,7 +190,13 @@ public class Log extends Application {
 					li.userIdent = "";
 				}
 				li.event = rs.getString("event");
+				if(li.event == null) {
+					li.event = "";
+				}
 				li.note = rs.getString("note");
+				if(li.note == null) {
+					li.note = "";
+				}
 						
 				logs.data.add(li);
 			}
