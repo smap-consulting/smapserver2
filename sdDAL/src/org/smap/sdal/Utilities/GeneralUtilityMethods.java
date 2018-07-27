@@ -3362,7 +3362,7 @@ public class GeneralUtilityMethods {
 						realQuestions.add(c);
 					}
 					
-					if (qType.equals("select")) {
+					if (qType.equals("select") || qType.equals("rank")) {
 		
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {

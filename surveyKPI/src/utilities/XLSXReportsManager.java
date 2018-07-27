@@ -219,6 +219,12 @@ public class XLSXReportsManager {
 								}
 								cell.setCellValue(values.label + " - " + label);
 							}
+						} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
+							for(int i = 0; i < item.choices.size(); i++) {
+								Cell cell = headerRow.createCell(colNumber++);
+								cell.setCellStyle(headerStyle);
+								cell.setCellValue(values.label + " - " + (i + 1));
+							}
 						} else if(item.qType != null && item.qType.equals("select1") && item.optionLabels != null) {
 							StringBuffer label = null;
 							if(values.label == null) {
@@ -272,6 +278,12 @@ public class XLSXReportsManager {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.name + " - " + item.choices.get(i).k);
+						}
+					} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
+						for(int i = 0; i < item.choices.size(); i++) {
+							Cell cell = headerRow.createCell(colNumber++);
+							cell.setCellStyle(headerStyle);
+							cell.setCellValue(values.name + " - " + (i + 1));
 						}
 					} else {
 						Cell cell = headerRow.createCell(colNumber++);
@@ -373,6 +385,26 @@ public class XLSXReportsManager {
 								cell.setCellStyle(headerStyle);
 								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
 										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+									
+							}
+						} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
+							
+							String [] vArray = null;
+							if(values.value != null) {
+								vArray = values.value.split(" ");
+							} 
+							
+							for(int i = 0; i < item.choices.size(); i++) {
+								
+								Cell cell = dataRow.createCell(colNumber++);
+								cell.setCellStyle(headerStyle);
+								if(i < vArray.length) {
+									XLSUtilities.setCellValue(wb, dataSheet, cell, styles, vArray[i], 
+											values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+								} else {
+									// Just write spaces
+								}
+									
 									
 							}
 						} else {
