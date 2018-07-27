@@ -5132,7 +5132,6 @@ public class GeneralUtilityMethods {
 			pstmt = cRel.prepareStatement(sql);
 			pstmt.setString(1, tablename);
 			pstmt.setString(2, columnName);
-			//log.info("SQL: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -5142,12 +5141,7 @@ public class GeneralUtilityMethods {
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (Exception e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return hasColumn;
