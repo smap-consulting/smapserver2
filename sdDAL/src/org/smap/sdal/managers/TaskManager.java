@@ -296,8 +296,7 @@ public class TaskManager {
 				+ "on a.task_id = t.id " 
 				+ "left outer join users u "
 				+ "on a.assignee = u.id "
-				+ "where t.tg_id = ? "
-				+ "and a.status = any (?) ";
+				+ "where t.tg_id = ? ";
 		
 		if(period == null) {
 			period = "all";
@@ -306,11 +305,12 @@ public class TaskManager {
 		if(period.equals("all")) {
 			sql2 = "";
 		} else if(period.equals("week")) {
-			sql2 = "and t.schedule_at > now() - interval '7 days'";
+			sql2 = " and t.schedule_at > now() - interval '7 days' ";
 		} else if(period.equals("month")) {
-			sql2 = "and t.schedule_at > now() - interval '30 days'";
+			sql2 = " and t.schedule_at > now() - interval '30 days' ";
 		}
-		String sql3 = "order by t.schedule_at desc, t.id, a.id desc;";
+		String sql3 =  null;
+		String sqlOrder = " order by t.schedule_at desc, t.id, a.id desc;";
 		PreparedStatement pstmt = null;
 
 		TaskListGeoJson tl = new TaskListGeoJson();
@@ -321,21 +321,28 @@ public class TaskManager {
 			for(String status : fullStatusList) {
 				statusList.add(status);
 			}
+			sql3 = "and (a.status is null or a.status = any (?)) ";
 		} else {
 			String [] incStatusArray = incStatus.split(",");
 			for(String status : incStatusArray) {
 				for(String statusRef : fullStatusList) {
 					if(status.trim().equals(statusRef)) {
 						statusList.add(statusRef);
+						if(statusRef.equals("new")) {
+							sql3 = "and (a.status is null or a.status = any (?)) ";
+						}
 						break;
 					}
 				}
 			}
 		}
+		if(sql3 == null) {
+			sql3 = "and a.status = any (?) ";		// No need to include unassigned tasks
+		}
 		
 		try {
 
-			pstmt = sd.prepareStatement(sql1 + sql2 + sql3);	
+			pstmt = sd.prepareStatement(sql1 + sql2 + sql3 + sqlOrder);	
 			pstmt.setInt(1, taskGroupId);
 			pstmt.setArray(2, sd.createArrayOf("text", statusList.toArray(new String[statusList.size()])));		
 			log.info("Get tasks: " + pstmt.toString());
