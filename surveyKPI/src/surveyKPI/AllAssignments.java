@@ -60,6 +60,7 @@ import model.FormDesc;
 import taskModel.TaskAddress;
 import utilities.ExchangeManager;
 import utilities.QuestionInfo;
+import utilities.TableCreation;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -1033,6 +1034,8 @@ public class AllAssignments extends Application {
 			 */
 			formFileMap = getFormFileMap(xm, dataFiles, formList);
 
+			TableCreation.createSurveyTables(sd, results, localisation, sId, formList, sIdent);
+			
 			/*
 			 * Create the results tables if they do not exist
 			 */
