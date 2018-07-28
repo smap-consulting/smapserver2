@@ -2331,6 +2331,7 @@ public class TaskManager {
 		tsd.update_id = tf.properties.update_id;
 		tsd.lon = tf.properties.lon;
 		tsd.lat = tf.properties.lat;
+		tsd.location_trigger = tf.properties.location_trigger;
 		
 		if(tf.properties.emails != null && tf.properties.emails.trim().length() > 0) {
 			String [] emailArray = tf.properties.emails.split(",");
