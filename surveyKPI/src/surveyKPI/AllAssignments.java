@@ -33,8 +33,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
-import org.smap.model.SurveyTemplate;
-import org.smap.model.TableManager;
+import org.smap.model.FormDesc;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -51,12 +50,12 @@ import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TaskAddressSettings;
+import org.smap.server.utilities.UtilityMethods;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import model.FormDesc;
 import taskModel.TaskAddress;
 import utilities.ExchangeManager;
 import utilities.QuestionInfo;
@@ -1034,29 +1033,9 @@ public class AllAssignments extends Application {
 			formFileMap = getFormFileMap(xm, dataFiles, formList);
 
 			/*
-			 * Create the results tables if they do not exist
+			 * Create the results tables for the survey if they do not exist
 			 */
-			TableManager tm = new TableManager(localisation);
-			FormDesc topForm = formList.get(0);
-			
-			SurveyTemplate template = new SurveyTemplate(localisation); 
-			template.readDatabase(sd, sIdent, false);	
-			tm.writeAllTableStructures(sd, results, sId, template,  0);
-			
-			boolean tableChanged = false;
-			boolean tablePublished = false;
-
-			// Apply any updates that have been made to the table structure since the last submission
-
-			tableChanged = tm.applyTableChanges(sd, results, sId);
-
-			// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
-			tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
-			if(tableChanged || tablePublished) {
-				for(FormDesc f : formList) {
-					tm.markPublished(sd, f.f_id, sId);		// only mark published if there have been changes made
-				}
-			}
+			UtilityMethods.createSurveyTables(sd, results, localisation, sId, formList, sIdent);
 
 			/*
 			 * Delete the existing data if requested
