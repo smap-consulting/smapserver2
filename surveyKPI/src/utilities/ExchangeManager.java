@@ -55,6 +55,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.*;
+import org.smap.model.FormDesc;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
@@ -64,7 +65,6 @@ import org.smap.sdal.model.TableColumn;
 
 import com.opencsv.CSVReader;
 
-import model.FormDesc;
 import surveyKPI.ExportSurveyXls;
 
 /*

@@ -1,4 +1,4 @@
-package model;
+package org.smap.model;
 
 /*
  * Contains form information used in import / export of survey data
