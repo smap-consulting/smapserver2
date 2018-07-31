@@ -2176,6 +2176,38 @@ public class SurveyManager {
 							}
 
 						}
+						
+						/*
+						 * If the is is a parameter change on a begin repeat then update the form
+						 */
+						if(ci.property.qType != null && 
+								ci.property.qType.equals("begin repeat") &&
+								ci.property.prop.equals("parameters")) {
+							ArrayList<KeyValueSimp> props = GeneralUtilityMethods.convertParametersToArray(ci.property.newVal);
+							
+							boolean ref= false;
+							boolean merge = false;
+							for(KeyValueSimp k : props) {
+								if(k.k.equals("ref")) {
+									ref = true;
+								} else if(k.k.equals("merge") && k.v.equals("yes")) {
+									merge = true;
+								}
+							}
+
+							String sqlUpdateForm = "update form set reference = ?, merge = ? "
+									+ "where s_id = ? "
+									+ "and parentquestion = ?";
+							try {if (pstmtUpdateForm != null) {pstmtUpdateForm.close();}} catch (SQLException e) {}
+							pstmtUpdateForm = sd.prepareStatement(sqlUpdateForm);
+							pstmtUpdateForm.setBoolean(1,  ref);
+							pstmtUpdateForm.setBoolean(2,  merge);
+							pstmtUpdateForm.setInt(3,  sId);
+							pstmtUpdateForm.setInt(4, ci.property.qId);
+	
+							log.info("Updating form properties: " + pstmtUpdateForm.toString());
+							pstmtUpdateForm.executeUpdate();			
+						}
 						log.info("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
 
 						// Write the change log
