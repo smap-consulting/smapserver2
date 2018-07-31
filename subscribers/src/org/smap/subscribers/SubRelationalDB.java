@@ -353,7 +353,6 @@ public class SubRelationalDB extends Subscriber {
 						remoteUser
 						);
 				
-				//
 			}
 
 		} catch (SQLException e) {

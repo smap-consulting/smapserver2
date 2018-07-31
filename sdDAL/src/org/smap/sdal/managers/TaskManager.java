@@ -774,7 +774,7 @@ public class TaskManager {
 						oId,
 						pId,
 						targetSurveyIdent,
-						tid,
+						targetInstanceId,
 						autosendEmails,
 						remoteUser,
 						instanceId);
@@ -1917,7 +1917,7 @@ public class TaskManager {
 			int oId,
 			int pId,
 			String sIdent,
-			TaskInstanceData tid,
+			String targetInstanceId,
 			boolean autosendEmails,
 			String remoteUser,			// For autosend of emails
 			String instanceId			// For autosend of emails
@@ -1979,9 +1979,9 @@ public class TaskManager {
 			Action action = new Action("task");
 			action.surveyIdent = sIdent;
 			action.pId = pId;
-			if(tid != null && tid.prikey > 0) {
-				action.datakey = "prikey";
-				action.datakeyvalue = String.valueOf(tid.prikey);
+			if(targetInstanceId != null && targetInstanceId.trim().length() > 0) {
+				action.datakey = "instanceid";
+				action.datakeyvalue = targetInstanceId;
 			}
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			for(String email : emailArray) {
