@@ -982,7 +982,7 @@ public class SubRelationalDB extends Subscriber {
 				ArrayList<String> mergeTables = new ArrayList<> ();
 				while(rtm.next()) {
 					mergeTables.add(rtm.getString(1));
-					System.out.println("Need to merge table " + rtm.getString(1));
+					log.info("Need to merge table " + rtm.getString(1));
 				}
 				
 				// Add the child records from the merged survey to the new survey
@@ -1003,6 +1003,7 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Get child tables: " + pstmtChildTables.toString());
 					rsc = pstmtChildTables.executeQuery();
 				}
+				
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
 					if(GeneralUtilityMethods.tableExists(cRel, tableName)) {
