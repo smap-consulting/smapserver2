@@ -2823,54 +2823,6 @@ public class SurveyManager {
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
 
-			/*
-			 * Process compressed select multiple and select one the same
-			} else if(qType.equals("select") && compressed) {		// Get the data from all the option columns
-
-				ArrayList<Option> options = new ArrayList<Option>(q.getValidChoices(s));
-				Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance);
-				String value = "";
-				if(resultSet != null) {
-					value = resultSet.getString(index);
-				}
-				if(value != null) {
-					String [] valuesSet = value.split(" ");
-	
-					int oIdx = -1;
-					for(Option option : options) {
-						oIdx++;
-						boolean optSet = false;
-						for(int i = 0; i  < valuesSet.length; i++) {
-							
-							if(option.value.equals(valuesSet[i])) {
-								optSet = true;
-								break;
-							}
-						}
-						nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
-					}
-				}
-				record.add(nr);	
-
-
-			} else if(qType.equals("select1")) {		// Get the data from all the option columns
-
-				ArrayList<Option> options = new ArrayList<Option>(q.getValidChoices(s));
-				Result nr = new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance);
-				String value = "";
-				if(resultSet != null) {
-					value = resultSet.getString(index);
-				}
-
-				int oIdx = -1;
-				for(Option option : options) {
-					oIdx++;
-					boolean optSet = option.value.equals(value) ? true : false;	
-					nr.choices.add(new Result(option.value, "choice", null, optSet, fIdx, qIdx, oIdx, listName, appearance)); 
-				}
-				record.add(nr);	
-
-			*/
 			} else if(qSource != null) {
 
 				String value = "";
