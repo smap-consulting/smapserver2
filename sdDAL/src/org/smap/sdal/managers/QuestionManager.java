@@ -1,6 +1,5 @@
 package org.smap.sdal.managers;
 
-import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -14,13 +13,10 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.model.ChangeItem;
-import org.smap.sdal.model.ChangeSet;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
-import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
@@ -181,11 +177,11 @@ public class QuestionManager {
 
 		PreparedStatement pstmtForm = null;
 		String sqlForm = "insert into form(f_id, s_id, name, label, table_name, "
-				+ "parentform, parentquestion, repeats, path, form_index) " +
-				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "parentform, parentquestion, repeats, path, form_index, reference, merge) " +
+				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 		PreparedStatement pstmtGetFormId = null;
-		String sqlGetFormId = "select f_id from form where s_id = ? and form_index = ?;";
+		String sqlGetFormId = "select f_id from form where s_id = ? and form_index = ?";
 
 		PreparedStatement pstmtGetOldQuestions = null;
 		String sqlGetOldQuestions = "select column_name from question q where q.f_id = ? and q.qname = ? and q.soft_deleted = 'true';";
@@ -215,7 +211,7 @@ public class QuestionManager {
 					q.fId = rs.getInt(1);
 				}
 
-				if(q.type.startsWith("select")) {	// Get the list id
+				if(q.type.startsWith("select") || q.type.equals("rank")) {	// Get the list id
 					q.l_id = GeneralUtilityMethods.getListId(sd, sId, q.list_name);
 				} else if(q.type.equals("calculate")) {
 					q.visible = false;
@@ -316,7 +312,7 @@ public class QuestionManager {
 				String nodeset_label = null;
 				String cascade_instance = null;
 
-				if(q.type.startsWith("select")) {
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					cascade_instance = GeneralUtilityMethods.cleanName(q.list_name, true, false, false);
 					nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(q.choice_filter, cascade_instance);
 					nodeset_value = "name";
@@ -326,7 +322,7 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(24, nodeset_value);
 				pstmtInsertQuestion.setString(25, nodeset_label);
 				pstmtInsertQuestion.setString(26, q.display_name);
-				if(q.type.equals("select")) {
+				if(q.type.equals("select") || q.type.equals("rank")) {
 					pstmtInsertQuestion.setBoolean(27, true);		// All select questions now default to compressed
 				} else {
 					pstmtInsertQuestion.setBoolean(27, false);
@@ -353,6 +349,18 @@ public class QuestionManager {
 					// Create the sub form
 					String tableName = "s" + sId + "_" + columnName;
 
+					ArrayList<KeyValueSimp> props = GeneralUtilityMethods.convertParametersToArray(q.parameters);
+					
+					boolean ref= false;
+					boolean merge = false;
+					for(KeyValueSimp k : props) {
+						if(k.k.equals("ref")) {
+							ref = true;
+						} else if(k.k.equals("merge") && k.v.equals("yes")) {
+							merge = true;
+						}
+					}
+					
 					pstmtForm = sd.prepareStatement(sqlForm);
 					pstmtForm.setInt(1, sId);
 					pstmtForm.setString(2, q.name);
@@ -363,6 +371,8 @@ public class QuestionManager {
 					pstmtForm.setString(7, q.calculation);
 					pstmtForm.setString(8, "");	// path is no longer used
 					pstmtForm.setInt(9, q.childFormIndex);
+					pstmtForm.setBoolean(10, ref);
+					pstmtForm.setBoolean(11, merge);
 
 					log.info("SQL: Insert new form: " + pstmtForm.toString());
 					pstmtForm.executeUpdate();

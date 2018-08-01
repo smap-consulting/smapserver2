@@ -32,6 +32,7 @@ public class SmapQuestionTypes {
 	public static final String DURATION = "duration";
 	public static final String BOOLEAN = "boolean";
 	public static final String AUDIT = "audit";
+	public static final String RANK = "rank";
 
 	
 }

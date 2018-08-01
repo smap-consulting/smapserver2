@@ -388,6 +388,7 @@ public class WebForm extends Application {
 			SurveyManager surveyManager = new SurveyManager(localisation);
 			survey = surveyManager.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
+				log.info("Error: Could not find survey id");
 				throw new NotFoundException();
 			}
 			try {

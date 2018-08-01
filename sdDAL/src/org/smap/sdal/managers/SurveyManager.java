@@ -1186,7 +1186,7 @@ public class SurveyManager {
 
 			resultSet = pstmt.executeQuery();
 
-			if (resultSet.next()) {								
+			if (resultSet.next()) {						
 				s = new Survey();
 				s.setPId(resultSet.getInt(1));
 				s.setId(resultSet.getInt(2));
@@ -1958,7 +1958,7 @@ public class SurveyManager {
 									pstmtAddNodeset.setInt(3, sId);
 									log.info("Add nodeset: " + pstmtAddNodeset.toString());
 									pstmtAddNodeset.executeUpdate();
-								} else if(!ci.property.newVal.startsWith("select")) {
+								} else if(!ci.property.newVal.startsWith("select") && !ci.property.newVal.equals("rank")) {
 									pstmtClearNodeset.setInt(1, ci.property.qId);
 									pstmtClearNodeset.setInt(2, sId);
 									log.info("Clear nodeset: " + pstmtClearNodeset.toString());
@@ -2184,6 +2184,7 @@ public class SurveyManager {
 						if(ci.property.qType != null && 
 								ci.property.qType.equals("begin repeat") &&
 								ci.property.prop.equals("parameters")) {
+							
 							ArrayList<KeyValueSimp> props = GeneralUtilityMethods.convertParametersToArray(ci.property.newVal);
 							
 							boolean ref= false;

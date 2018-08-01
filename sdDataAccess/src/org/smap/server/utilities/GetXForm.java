@@ -1227,7 +1227,10 @@ public class GetXForm {
 							elem.setTextContent(values[i]);
 							item.appendChild(elem);
 						} catch (Exception e) {
-							throw new Exception ("Error: Invalid name (" +  cols[i] + ") for a column header in CSV file " + file.getName());
+							String msg = localisation.getString("msg_inv_col");
+							msg = msg.replaceAll("%s1", cols[i]);
+							msg = msg.replaceAll("%s2", file.getName());
+							throw new Exception (msg);
 						}
 					}
 				}

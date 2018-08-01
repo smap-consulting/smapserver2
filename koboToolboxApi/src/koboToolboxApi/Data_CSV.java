@@ -335,14 +335,19 @@ public class Data_CSV extends Application {
 						columnHeadings.append(",");
 					}
 					colHeadingAdded = true;
-					if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
+					if(c.type != null && (c.type.equals("select") || c.type.equals("rank")) && c.compressed && !mergeSelectMultiple) {
 						// Split the select multiple into its choices
 						int idx = 0;
 						for(KeyValue kv: c.choices) {
 							if(idx++ > 0) {
 								columnHeadings.append(",");
 							}
-							String choiceName = c.name + " - " + kv.k;
+							String choiceName = null;
+							if(c.type.equals("rank")) {
+								choiceName = c.name + " - " + idx;
+							} else {
+								choiceName = c.name + " - " + kv.k;
+							}
 							columnHeadings.append(choiceName);
 							
 						}
@@ -419,7 +424,7 @@ public class Data_CSV extends Application {
 							if (i > 0) {
 								record.append(",");
 							}
-							if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
+							if(c.type != null && (c.type.equals("select") || c.type.equals("rank")) && c.compressed && !mergeSelectMultiple) {
 								// Split the select multiple into its choices
 								
 								String[] selected = {""};
