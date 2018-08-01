@@ -919,7 +919,7 @@ public class SurveyManager {
 				q.l_id = rsGetQuestions.getInt(33);
 				
 				if(exChoices == null) {
-					if(q.type.startsWith("select")) {
+					if(q.type.startsWith("select") || q.type.equals("rank")) {
 						GeneralUtilityMethods.setExternalFileValues(sd, q);
 					} else {
 						q.external_choices = false;
@@ -966,7 +966,7 @@ public class SurveyManager {
 				q.inMeta = inMeta;
 
 				// If the survey was loaded from xls it will not have a list name
-				if(q.type.startsWith("select")) {
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					if(q.list_name == null || q.list_name.trim().length() == 0) {
 						q.list_name = q.name;
 					}
@@ -1949,7 +1949,8 @@ public class SurveyManager {
 							// Type dependent changes
 							if(count > 0 && property.equals("qtype")) {
 								// If this question is being converted to q select then add the list id and nodeset
-								if(ci.property.newVal.startsWith("select") && (ci.property.oldVal == null || !ci.property.oldVal.startsWith("select"))) {
+								if((ci.property.newVal.startsWith("select") || ci.property.newVal.equals("rank")) 
+										&& (ci.property.oldVal == null || !(ci.property.oldVal.startsWith("select") || ci.property.oldVal.equals("rank")))) {
 									String listName = GeneralUtilityMethods.getNameForQuestion(sd, ci.property.qId);
 									int l_id = GeneralUtilityMethods.getListId(sd, sId, listName);
 									pstmtAddNodeset.setInt(1, l_id);
