@@ -53,7 +53,6 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.Survey;
@@ -1084,7 +1083,7 @@ public class SubRelationalDB extends Subscriber {
 
 			if(sourceKey > 0) {
 				UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, table, 
-						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, false);
+						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true);
 			}
 
 		} finally {
