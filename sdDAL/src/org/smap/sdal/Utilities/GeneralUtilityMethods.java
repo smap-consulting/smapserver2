@@ -48,6 +48,7 @@ import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
@@ -6928,6 +6929,43 @@ public class GeneralUtilityMethods {
 		}
 	}
 
+	/*
+	 * Return the number of questions in each form of the survey
+	 */
+	public static ArrayList<FormLength> getFormLengths(Connection sd, int sId) throws Exception {
+		
+		ArrayList<FormLength> formList = new ArrayList<FormLength> ();
+		
+		String sql = "select f.name, count(*) "
+				+ "from question q, form f "
+				+ "where f.s_id = ? "
+				+ "and f.f_id = q.f_id "
+				+ "and qtype != 'begin group' "
+				+ "and qtype != 'end group' "
+				+ "and qtype != 'begin repeat' "
+				+ "group by f.name";	
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+		
+			log.info("Get question count: " + pstmt.toString());
+			
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				FormLength fl = new FormLength(rs.getString(1), rs.getInt(2));
+				formList.add(fl);
+			}
+				
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return formList;
+
+	}
 
 }
 

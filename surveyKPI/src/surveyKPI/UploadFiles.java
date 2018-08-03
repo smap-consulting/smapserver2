@@ -59,6 +59,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.CustomReportItem;
+import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
@@ -635,11 +636,15 @@ public class UploadFiles extends Application {
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
 				
 				/*
-				 * Validate the survey using the JavaRosa API
-				 * Ignore invalid function errors for extended functions
-				 *    lookup
-				 *    lookup_image_labels
+				 * Validate the survey:
+				 * 	 using the JavaRosa API
+				 * 		Ignore invalid function errors for extended functions
+				 *    		lookup
+				 *    		lookup_image_labels
+				 *    Ensure that it fits within the limit of 1,600 columns
 				 */
+				boolean valid = true;
+				String errMsg = null;
 				try {
 					XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser());
 				} catch (Exception e) {
@@ -649,24 +654,40 @@ public class UploadFiles extends Application {
 							!msg.contains("cannot handle function 'lookup_image_labels'")) {
 						// Error! Delete the survey we just created
 						log.log(Level.SEVERE, e.getMessage(), e);
-						sm.delete(sd, 
-								cResults, 
-								s.id, 
-								true,		// hard
-								false,		// Do not delete the data 
-								user, 
-								basePath,
-								"no",		// Do not delete the tables
-								0);		// New Survey Id for replacement 
+						valid = false;
+						errMsg = e.getMessage();
 								
-						
-						throw new ApplicationException(e.getMessage());	// report the error
 					} else if(msg == null) {
 						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 				}
+				if(valid) {
+					ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.id);
+					for(FormLength fl : formLength) {
+						if(fl.isTooLong()) {
+							valid = false;
+							errMsg = localisation.getString("tu_tmq");
+							errMsg = errMsg.replaceAll("%s1", String.valueOf(fl.questionCount));
+							errMsg = errMsg.replaceAll("%s2", fl.name);
+							errMsg = errMsg.replaceAll("%s3", String.valueOf(FormLength.MAX_FORM_LENGTH));
+							break;	// Only show one form that is too long - This error should very rarely be encountered!
+						}
+					}
+				}
 				
-				
+				if(!valid) {
+					sm.delete(sd, 
+							cResults, 
+							s.id, 
+							true,		// hard
+							false,		// Do not delete the data 
+							user, 
+							basePath,
+							"no",		// Do not delete the tables
+							0);		// New Survey Id for replacement 
+					throw new ApplicationException(errMsg);	// report the error
+				}
+						
 				if(action.equals("replace")) {
 					/*
 					 * Soft delete the old survey
