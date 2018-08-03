@@ -228,9 +228,13 @@ public class XFormData {
 			}
 
 			log.info("###### submitted by: " + request.getRemoteUser());
-			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, user);
-			} catch (Exception e) {
+			if(assignmentId > 0) {
+				superUser = true;		// This was an assigned task do not apply role restrictions
+			} else {
+				try {
+					superUser = GeneralUtilityMethods.isSuperUser(sd, user);
+				} catch (Exception e) {
+				}
 			}
 			a.isValidSurvey(sd, user, survey.id, false, superUser); // Throw an exception if the user is not authorised
 																	// to upload this survey
