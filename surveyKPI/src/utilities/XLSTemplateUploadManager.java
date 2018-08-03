@@ -80,7 +80,7 @@ public class XLSTemplateUploadManager {
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.\\+%,():/]*$");
 
-	Stack<Question> groupStack = new Stack<>();								// Keep track of groups
+	HashMap<Integer, Stack<Question>> groupStackMap = new HashMap<>();			// Keep track of groups in forms
 	boolean inFieldList = false;												// Only some questions are allowed inside a field list
 	
 	boolean useDefaultLanguage = false;
@@ -476,7 +476,7 @@ public class XLSTemplateUploadManager {
 					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name, metaId);
 					if(item != null) {
 						metaId--;
-						validateQuestion(q, rowNumSurvey);
+						validateQuestion(q, rowNumSurvey, thisFormIndex);
 						survey.meta.add(item);
 					} else {
 						if(q.type.equals("end repeat")) {
@@ -491,7 +491,7 @@ public class XLSTemplateUploadManager {
 						mi = GeneralUtilityMethods.addManifestFromCalculate(q.calculation, mi.manifest);
 						survey.manifest = mi.manifest;
 						
-						validateQuestion(q, rowNumSurvey);
+						validateQuestion(q, rowNumSurvey, thisFormIndex);
 						f.questions.add(q);
 						
 						if(q.type.equals("begin repeat")) {
@@ -628,6 +628,7 @@ public class XLSTemplateUploadManager {
 		 * Handle Groups
 		 */
 		if(q.type.equals("begin group")) {
+			Stack<Question> groupStack = getGroupStack(formIndex);
 			groupStack.push(q);
 			if(q.appearance != null && q.appearance.contains("table-list")) {
 				inTableListGroup = true;
@@ -638,8 +639,10 @@ public class XLSTemplateUploadManager {
 			}
 		}
 		if(q.type.equals("end group")) {
+			Stack<Question> groupStack = getGroupStack(formIndex);
 			if(groupStack.isEmpty()) { 
-				throw XLSUtilities.getApplicationException(localisation, "tu_eegm", rowNumSurvey, "survey", null, null, null);
+				Form f = survey.forms.get(formIndex);
+				throw XLSUtilities.getApplicationException(localisation, "tu_eegm", rowNumSurvey, "survey", f.name, null, null);
 			}
 			
 			Question currentGroupQuestion = groupStack.pop();
@@ -815,7 +818,7 @@ public class XLSTemplateUploadManager {
 		return visible;
 	}
 
-	private void validateQuestion(Question q, int rowNumber) throws Exception {
+	private void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {
 
 		/*
 		 * Check Name
@@ -898,6 +901,7 @@ public class XLSTemplateUploadManager {
 			if(q.type.equals("end group")) {
 				inFieldList = false;
 			} else if(q.type.equals("begin group") || q.type.equals("begin repeat")) {
+				Stack<Question> groupStack = getGroupStack(formIndex);
 				String groupName = groupStack.pop().name;
 				throw XLSUtilities.getApplicationException(localisation, "tu_fl", rowNumber, "survey", q.type, groupName, null);
 			}
@@ -1065,10 +1069,14 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// Validate groups
-		if(!groupStack.isEmpty()) {
-			String groupName = groupStack.pop().name;
-			Integer rowNumber = qNameMap.get(groupName.toLowerCase());
-			throw XLSUtilities.getApplicationException(localisation, "tu_meg", rowNumber, "survey", groupName, null, null);
+		for(Integer formIndex : groupStackMap.keySet()) {
+			Stack<Question> groupStack = groupStackMap.get(formIndex);
+		
+			if(!groupStack.isEmpty()) {
+				String groupName = groupStack.pop().name;
+				Integer rowNumber = qNameMap.get(groupName.toLowerCase());
+				throw XLSUtilities.getApplicationException(localisation, "tu_meg", rowNumber, "survey", groupName, null, null);
+			}
 		}
 	}
 
@@ -1315,6 +1323,16 @@ public class XLSTemplateUploadManager {
 				}
 			}
 		}
+	}
+	
+	private Stack<Question> getGroupStack(Integer formIdx) {
+		Stack<Question> gs = null;
+		gs = groupStackMap.get(formIdx);
+		if(gs == null) {
+			gs = new Stack<Question> ();
+			groupStackMap.put(formIdx, gs);
+		}
+		return gs;
 	}
 
 }
