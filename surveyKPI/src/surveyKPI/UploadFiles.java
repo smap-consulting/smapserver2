@@ -670,6 +670,7 @@ public class UploadFiles extends Application {
 							errMsg = errMsg.replaceAll("%s1", String.valueOf(fl.questionCount));
 							errMsg = errMsg.replaceAll("%s2", fl.name);
 							errMsg = errMsg.replaceAll("%s3", String.valueOf(FormLength.MAX_FORM_LENGTH));
+							errMsg = errMsg.replaceAll("%s4", fl.lastQuestionName);
 							break;	// Only show one form that is too long - This error should very rarely be encountered!
 						}
 					}

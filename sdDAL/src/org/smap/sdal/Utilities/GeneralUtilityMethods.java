@@ -6936,16 +6936,24 @@ public class GeneralUtilityMethods {
 		
 		ArrayList<FormLength> formList = new ArrayList<FormLength> ();
 		
-		String sql = "select f.name, count(*) "
+		String sql = "select f.f_id, f.name, count(*) "
 				+ "from question q, form f "
 				+ "where f.s_id = ? "
 				+ "and f.f_id = q.f_id "
 				+ "and qtype != 'begin group' "
 				+ "and qtype != 'end group' "
 				+ "and qtype != 'begin repeat' "
-				+ "group by f.name";	
+				+ "group by f.f_id, f.name";	
 		PreparedStatement pstmt = null;
 
+		String sqlLq = "select qname from question "
+				+ "where f_id = ? "
+				+ "and qtype != 'begin group' "
+				+ "and qtype != 'end group' "
+				+ "and qtype != 'begin repeat' "
+				+ "order by seq asc";
+		PreparedStatement pstmtLq = null;
+		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
@@ -6955,12 +6963,25 @@ public class GeneralUtilityMethods {
 			
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				FormLength fl = new FormLength(rs.getString(1), rs.getInt(2));
+				FormLength fl = new FormLength(rs.getInt(1), rs.getString(2), rs.getInt(3));
 				formList.add(fl);
+				
+				if(fl.isTooLong()) {
+					// Find last acceptable question name
+					pstmtLq = sd.prepareStatement(sqlLq);
+					pstmtLq.setInt(1, fl.f_id);
+					
+					ResultSet rsLq = pstmtLq.executeQuery();
+					for(int i = 0; i < FormLength.MAX_FORM_LENGTH; i++) {
+						rsLq.next();
+					}
+					fl.lastQuestionName = rsLq.getString(1);
+				}
 			}
 				
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtLq != null) {pstmtLq.close();}} catch (SQLException e) {}
 		}
 		
 		return formList;
