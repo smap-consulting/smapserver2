@@ -26,6 +26,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
 import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.poi.ss.usermodel.Cell;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -471,7 +472,15 @@ public class ExportSurvey extends Application {
 
 							if(!name.equals("prikey") && !skipSelectMultipleOption) {	// Primary key is only added once for all the tables
 								if(f.visible) {	// Add column headings if the form is visible
-									qName.append(getContent(sd, humanName, true,false, name, qType, split_locn));
+									if(qType.equals("select") && !merge_select_multiple && c.choices != null &&  c.compressed) {
+										// Add headings for choices
+										for(int i = 0; i < c.choices.size(); i++) {
+											String hName = humanName = " - " + c.choices.get(i).k;
+											qName.append(getContent(sd, hName, true,false, hName, qType, split_locn));
+										}
+									} else {
+										qName.append(getContent(sd, humanName, true,false, name, qType, split_locn));
+									}
 									if(!language.equals("none")) {
 										qText.append(getContent(sd, getQuestion(sd, name, sId, f, language, merge_select_multiple), true, false, name, qType, split_locn));
 									}
