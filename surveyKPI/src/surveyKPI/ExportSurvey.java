@@ -475,14 +475,23 @@ public class ExportSurvey extends Application {
 									if(qType.equals("select") && !merge_select_multiple && c.choices != null &&  c.compressed) {
 										// Add headings for choices
 										for(int i = 0; i < c.choices.size(); i++) {
-											String hName = humanName = " - " + c.choices.get(i).k;
+											String hName = humanName + " - " + c.choices.get(i).k;
 											qName.append(getContent(sd, hName, true,false, hName, qType, split_locn));
 										}
 									} else {
 										qName.append(getContent(sd, humanName, true,false, name, qType, split_locn));
 									}
 									if(!language.equals("none")) {
-										qText.append(getContent(sd, getQuestion(sd, name, sId, f, language, merge_select_multiple), true, false, name, qType, split_locn));
+										if(qType.equals("select") && !merge_select_multiple && c.choices != null &&  c.compressed) {
+											// Add headings for choices
+											for(int i = 0; i < c.choices.size(); i++) {
+												String hName = getQuestion(sd, name, sId, f, language, merge_select_multiple);
+												hName = hName + " - " + c.choices.get(i).k;
+												qText.append(getContent(sd, hName, true,false, hName, qType, split_locn));
+											}
+										} else {
+											qText.append(getContent(sd, getQuestion(sd, name, sId, f, language, merge_select_multiple), true, false, name, qType, split_locn));
+										}
 									}
 								}
 							}
