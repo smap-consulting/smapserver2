@@ -690,67 +690,6 @@ public class GetHtml {
 		addOptionTranslations(otElement, q, form);
 
 	}
-
-	/*
-	 * Add the contents of a select that has nodesets -  autocomplete - search
-	 *
-	private void addAutoCompleteContentsItemset(Connection sd, Element parent, Question q, Form form) throws Exception {
-
-		// Add labels
-		addLabels(parent, q, form);
-
-		// Add search
-		Element selectElement = outputDoc.createElement("input");
-		parent.appendChild(selectElement);
-		selectElement.setAttribute("name", paths.get(getRefName(q.name, form)));
-		selectElement.setAttribute("data-name", paths.get(getRefName(q.name, form)));
-		if (q.type.equals("select")) {
-			selectElement.setAttribute("multiple", "multiple");
-		}
-		selectElement.setAttribute("data-type-xml", q.type);
-		selectElement.setAttribute("type", "text");
-		selectElement.setAttribute("list", getListName(paths.get(getRefName(q.name, form))));
-		if (q.relevant != null && q.relevant.trim().length() > 0) {
-			selectElement.setAttribute("data-relevant",
-					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
-		}
-
-		// No option
-		// No option
-		// No option
-		// No option
-		// No option
-		// No option
-		
-		// Add data list
-		Element dlElement = outputDoc.createElement("datalist");
-		parent.appendChild(dlElement);
-		dlElement.setAttribute("id", getListName(paths.get(getRefName(q.name, form))));
-		Element dlOption = outputDoc.createElement("option");
-		dlElement.appendChild(dlOption);
-		dlOption.setAttribute("class", "itemset-template");
-		dlOption.setAttribute("value", "");
-		dlOption.setAttribute("data-items-path", getNodeset(q, form));
-		
-		// Option translations section
-		// <span class="or-option-translations" style="display:none;">
-		Element otElement = outputDoc.createElement("span");
-		parent.appendChild(otElement);
-		otElement.setAttribute("class", "or-option-translations");
-		otElement.setAttribute("style", "display:none;");
-
-		// Itemset labels
-		Element optionElement = outputDoc.createElement("span");
-		parent.appendChild(optionElement);
-		optionElement.setAttribute("class", "itemset-labels");
-		optionElement.setAttribute("data-value-ref", "name");
-		optionElement.setAttribute("data-label-type", "itext");
-		optionElement.setAttribute("data-label-ref", "itextId");
-
-		addMinimalOptionLabels(sd, optionElement, q, form);
-
-	}
-	*/
 	
 	/*
 	 * Add the contents of a select that has nodesets - minimal 
