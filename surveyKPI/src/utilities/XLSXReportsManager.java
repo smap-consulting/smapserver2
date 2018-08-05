@@ -389,7 +389,7 @@ public class XLSXReportsManager {
 							}
 						} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
 							
-							String [] vArray = null;
+							String [] vArray = {""};
 							if(values.value != null) {
 								vArray = values.value.split(" ");
 							} 

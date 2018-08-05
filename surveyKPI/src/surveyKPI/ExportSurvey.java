@@ -38,6 +38,8 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
 
+import utilities.XLSUtilities;
+
 /*
  * Provides a survey level export of a survey as an XLS file
  * If the optional parameter "flat" is passed then this is a flat export where 
@@ -1036,6 +1038,24 @@ public class ExportSurvey extends Application {
 								currentSelectMultipleQuestionName = null;
 							}
 							record.append(getContent(sd, value, false, false, columnName, columnType, split_locn));
+						}
+					} else if(c.type.equals("select") && !merge_select_multiple && c.choices != null &&  c.compressed) {
+						String [] vArray = {""};
+						if(value != null) {
+							vArray = value.split(" ");
+						} 
+						
+						for(int j = 0; j < c.choices.size(); j++) {
+							
+							if(j < vArray.length) {
+								record.append(getContent(sd, vArray[j], false, false, columnName, columnType, split_locn));
+								
+							} else {
+								// Just write spaces
+								record.append(getContent(sd, "", false, false, columnName, columnType, split_locn));
+							}
+								
+								
 						}
 					} else {
 						record.append(getContent(sd, value, false, false, columnName, columnType, split_locn));
