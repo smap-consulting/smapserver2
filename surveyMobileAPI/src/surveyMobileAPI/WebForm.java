@@ -392,7 +392,7 @@ public class WebForm extends Application {
 				throw new NotFoundException();
 			}
 			try {
-				// Assume that if a tempoary user has been specifically assigned this form to complete then the
+				// Assume that if a temporary user has been specifically assigned this form to complete then the
 				// lack of a role should not stop them
 				superUser = isTemporaryUser || GeneralUtilityMethods.isSuperUser(sd, userIdent);
 			} catch (Exception e) {
