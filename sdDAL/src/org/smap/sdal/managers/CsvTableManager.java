@@ -509,7 +509,7 @@ public class CsvTableManager {
 	}
 	
 	/*
-	 * Read the choices out of a file
+	 * Read the choices out of a file - CSV files are now stored in tables
 	 */
 	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
 			ArrayList<String> matches, String filename) throws SQLException, ApplicationException {
