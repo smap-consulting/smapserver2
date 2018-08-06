@@ -155,7 +155,7 @@ public class ExportSurveyMedia extends Application {
 
 		if(sId != 0) {
 			
-			Connection connectionResults = null;
+			Connection cResults = null;
 			PreparedStatement pstmtGetData = null;
 			PreparedStatement pstmtIdent = null;
 			
@@ -170,8 +170,8 @@ public class ExportSurveyMedia extends Application {
 				/*
 				 * Get the name of the database
 				 */
-				connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
-				DatabaseMetaData databaseMetaData = connectionResults.getMetaData();
+				cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
+				DatabaseMetaData databaseMetaData = cResults.getMetaData();
 				String dbUrl = databaseMetaData.getURL();
 				String database_name = dbUrl.substring(dbUrl.lastIndexOf('/') + 1);
 
@@ -181,6 +181,7 @@ public class ExportSurveyMedia extends Application {
 				 * Get the question names
 				 */
 				QuestionInfo mediaQInfo = new QuestionInfo(localisation, sId, mediaQuestion, sd, 
+						cResults, request.getRemoteUser(),
 						false, language, urlprefix, oId);	
 				String media_name = mediaQInfo.getColumnName();
 				ArrayList<String> namedQuestions = new ArrayList<String> ();
@@ -193,6 +194,7 @@ public class ExportSurveyMedia extends Application {
 						for(int i = 0; i < nameQ.length; i++) {
 							int nameQId = Integer.parseInt(nameQ[i]);
 							QuestionInfo qi = new QuestionInfo(localisation, sId, nameQId, sd, 
+									cResults, request.getRemoteUser(),
 									false, language, urlprefix, oId);
 							if(qi.getColumnName() != null) {
 								namedQuestions.add(qi.getColumnName());
@@ -215,7 +217,7 @@ public class ExportSurveyMedia extends Application {
 				
 				// Get the SQL for this query
 				SqlDesc sqlDesc = QueryGenerator.gen(sd, 
-						connectionResults,
+						cResults,
 						localisation,
 						sId,
 						mediaQInfo.getFId(),
@@ -254,7 +256,7 @@ public class ExportSurveyMedia extends Application {
 				/*
 				 * 2. Copy files to the folder, renaming them as per the export request
 				 */
-				pstmtGetData = connectionResults.prepareStatement(sqlDesc.sql); 
+				pstmtGetData = cResults.prepareStatement(sqlDesc.sql); 
 				log.info("Generated SQL:" + pstmtGetData.toString());
 				ResultSet rs = pstmtGetData.executeQuery();
 				while(rs.next()) {
@@ -363,7 +365,7 @@ public class ExportSurveyMedia extends Application {
 				
 				
 				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
-				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
+				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", cResults);
 			}
 		}
 		

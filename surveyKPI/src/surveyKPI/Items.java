@@ -438,7 +438,7 @@ public class Items extends Application {
 				// Get date column information
 				QuestionInfo date = null;
 				if((dateId != 0) && (startDate != null || endDate != null)) {
-					date = new QuestionInfo(localisation, sId, dateId, sd, false, "", urlprefix, oId);	// Not interested in label any language will do
+					date = new QuestionInfo(localisation, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
 					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
 				}

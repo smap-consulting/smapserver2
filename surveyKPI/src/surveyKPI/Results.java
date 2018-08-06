@@ -214,7 +214,8 @@ public class Results extends Application {
 			
 			// Get date column information
 			if(dateId != 0) {
-				date = new QuestionInfo(localisation, sId, dateId, sd, false, lang, urlprefix, oId);
+				date = new QuestionInfo(localisation, 
+						sId, dateId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 				q.add(date);
 				tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 				log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
@@ -222,7 +223,7 @@ public class Results extends Application {
 			
 			// Get group column information
 			if(hasGroup) {
-				group = new QuestionInfo(localisation, sId, groupId, sd, hasGeo, lang, urlprefix, oId);	
+				group = new QuestionInfo(localisation, sId, groupId, sd,cResults, request.getRemoteUser(), hasGeo, lang, urlprefix, oId);	
 				q.add(group);
 				tables.add(group.getTableName(), group.getFId(), group.getParentFId());
 			}
@@ -246,7 +247,7 @@ public class Results extends Application {
 			if(qId_is_calc) {
 				aQ = new QuestionInfo(sId, qId, sd, false, lang, qId_is_calc, urlprefix);
 			} else {
-				aQ = new QuestionInfo(localisation, sId, qId, sd, false, lang, urlprefix, oId);
+				aQ = new QuestionInfo(localisation, sId, qId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 			}
 			q.add(aQ);
 			tables.add(aQ.getTableName(), aQ.getFId(),  aQ.getParentFId());			
@@ -261,7 +262,7 @@ public class Results extends Application {
 				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 				filter = gson.fromJson(sFilter, type);
 
-				fQ = new QuestionInfo(localisation, sId, filter.qId, sd, hasGeo, lang, urlprefix, oId);	
+				fQ = new QuestionInfo(localisation, sId, filter.qId, sd, cResults, request.getRemoteUser(),  hasGeo, lang, urlprefix, oId);	
 				q.add(fQ);
 				tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
 				sqlFilter = " and " + fQ.getFilterExpression(filter.value, null);

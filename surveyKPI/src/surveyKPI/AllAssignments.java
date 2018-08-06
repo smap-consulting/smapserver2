@@ -295,6 +295,7 @@ public class AllAssignments extends Application {
 								String fValue = null;
 								String fValue2 = null;
 								filterQuestion = new QuestionInfo(localisation, sId, as.filter.qId, sd, 
+										cResults, request.getRemoteUser(),
 										false, as.filter.lang, urlprefix, oId);
 								log.info("Filter question type: " + as.filter.qType);
 								if(as.filter.qType != null) {

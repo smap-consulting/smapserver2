@@ -163,9 +163,14 @@ public class SurveyTableManager {
 	 * Get a result set of data for a lookup
 	 * type = lookup || choices
 	 */
-	public void initData(PreparedStatement pstmt, String type, 
-			String key_column, String key_value,
-			String selection, ArrayList<String> arguments, ArrayList<String> whereColumns
+	public void initData(
+			PreparedStatement pstmt, 
+			String type, 
+			String key_column, 
+			String key_value,
+			String selection, 
+			ArrayList<String> arguments, 
+			ArrayList<String> whereColumns
 			) throws Exception {
 		
 		if(sqlDef != null && sqlDef.colNames.size() > 0) {

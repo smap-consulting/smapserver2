@@ -3367,7 +3367,8 @@ public class GeneralUtilityMethods {
 		
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
-							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
+									cResults, localisation, user, oId, sId, qId, null);
 							if(options != null) {
 								for(Option o : options) {
 									String label ="";
@@ -4107,7 +4108,11 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get choices from an external file
 	 */
-	public static ArrayList<Option> getExternalChoices(Connection sd, ResourceBundle localisation, 
+	public static ArrayList<Option> getExternalChoices(
+			Connection sd, 
+			Connection cResults,
+			ResourceBundle localisation, 
+			String remoteUser,
 			int oId, int sId, int qId, ArrayList<String> matches) throws Exception {
 
 		ArrayList<Option> choices = new ArrayList<Option> ();		
@@ -4158,8 +4163,15 @@ public class GeneralUtilityMethods {
 						}
 						
 						if(languageItems.size() > 0) {
-							CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
-							choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches);
+							if(filename.startsWith("linked_s")) {
+								// Get data from another form
+								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
+								
+							} else {
+								// Get data from a csv table
+								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
+								choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches);
+							}
 						}
 					}
 					

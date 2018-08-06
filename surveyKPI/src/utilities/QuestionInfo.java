@@ -70,6 +70,8 @@ public class QuestionInfo {
 			int surveyId, 
 			int questionId, 
 			Connection sd, 
+			Connection cResults,
+			String user,
 			boolean isGeomDeprecated, 
 			String lang, 
 			String urlprefix,
@@ -182,7 +184,8 @@ public class QuestionInfo {
 							}
 						} else {
 							// External
-							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
+									cResults, localisation, user, oId, sId, qId, null);
 							int idx = 0;
 							int languageIdx = 0;
 							

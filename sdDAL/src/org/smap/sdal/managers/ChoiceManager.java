@@ -43,7 +43,7 @@ public class ChoiceManager {
 	}
 	
 	
-	public String getLabel(Connection sd, int oId, int sId, int qId, int l_id, boolean external_choices, String external_table, String languageName,
+	public String getLabel(Connection sd, Connection cResults, String user, int oId, int sId, int qId, int l_id, boolean external_choices, String external_table, String languageName,
 			ArrayList<String> matches) throws Exception {
 		
 		StringBuffer labels = new StringBuffer("");
@@ -66,7 +66,7 @@ public class ChoiceManager {
 				}
 			} else {
 				// 2. Search choices which are stored in an external table
-				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, matches);
+				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, localisation, user, oId, sId, qId, matches);
 				int idx = 0;
 				int languageIdx = 0;
 				if(choices != null && choices.size() > 0) {
