@@ -4166,6 +4166,12 @@ public class GeneralUtilityMethods {
 							if(filename.startsWith("linked_s")) {
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
+								stm.initData(pstmt, "all", null, null, null, null, null);
+								
+								Option o = null;
+								while((o = stm.getLineAsOption(ovalue, languageItems)) != null) {
+									choices.add(o);
+								}
 								
 							} else {
 								// Get data from a csv table

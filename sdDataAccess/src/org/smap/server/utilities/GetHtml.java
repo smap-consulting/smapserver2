@@ -23,6 +23,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
@@ -69,15 +70,17 @@ public class GetHtml {
 		gRecordCounts = recordCounts;
 		
 		String response = null;
+		String connectionString = "Get Html";
 
 		// Get the base path
 		String basePath = GeneralUtilityMethods.getBasePath(request);
-		Connection sd = SDDataSource.getConnection("Get Html");
+		Connection sd = SDDataSource.getConnection(connectionString);
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		SurveyManager sm = new SurveyManager(localisation);
 
 		try {
 
-			survey = sm.getById(sd, null, userIdent, sId, true, basePath, null, false, false, true, false,
+			survey = sm.getById(sd, cResults, userIdent, sId, true, basePath, null, false, false, true, false,
 					false, "real", false, false, superUser, null);
 
 			if(survey == null) {
@@ -113,7 +116,8 @@ public class GetHtml {
 			response = e.getMessage();
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("getXForm", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;

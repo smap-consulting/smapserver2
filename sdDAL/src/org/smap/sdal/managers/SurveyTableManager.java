@@ -16,6 +16,9 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.Label;
+import org.smap.sdal.model.LanguageItem;
+import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.SqlFrag;
 
@@ -190,16 +193,18 @@ public class SurveyTableManager {
 				}
 			} else if (type.equals("choices")) {
 				// Check the where columns
-				for(String col : whereColumns) {
-					boolean foundCol = false;
-					for(String h : sqlDef.colNames) {
-						if(h.equals(col)) {
-							foundCol = true;
-							break;
+				if(whereColumns != null) {
+					for(String col : whereColumns) {
+						boolean foundCol = false;
+						for(String h : sqlDef.colNames) {
+							if(h.equals(col)) {
+								foundCol = true;
+								break;
+							}
 						}
-					}
-					if(!foundCol) {
-						throw new ApplicationException("Column " + col + " not found in table ");
+						if(!foundCol) {
+							throw new ApplicationException("Column " + col + " not found in table ");
+						}
 					}
 				}
 				if(selection != null) {
@@ -276,6 +281,36 @@ public class SurveyTableManager {
 			}
 		}
 		return line;
+	}
+	
+	/*
+	 * Get a choice
+	 */
+	public Option getLineAsOption(String oValue, ArrayList<LanguageItem> items) throws SQLException {
+		Option o = null;
+		
+		if(rs != null && rs.next()) {
+			o = new Option ();
+			o.value = rs.getString(oValue);
+			for(LanguageItem item : items) {
+				Label l = new Label();
+				if(item.text.contains(",")) {
+					String[] comp = item.text.split(",");
+					l.text = "";
+					for(int i = 0; i < comp.length; i++) {
+						if(i > 0) {
+							l.text += ", ";
+						}
+						l.text += rs.getString(comp[i].trim());
+					}
+				} else {
+					l.text = rs.getString(item.text);
+				}
+				
+				o.labels.add(l);
+			}
+		}
+		return o;
 	}
 	
 	/*
