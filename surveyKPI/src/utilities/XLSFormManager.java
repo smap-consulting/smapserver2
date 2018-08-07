@@ -145,6 +145,8 @@ public class XLSFormManager {
 					value = "select_one " + q.list_name;
 				} else if(q.type.equals("select")) {
 					value = "select_multiple " + q.list_name;
+				}  else if(q.type.equals("rank")) {
+					value = "rank " + q.list_name;
 				} else if(q.propertyType && q.source_param != null) {
 					value = q.source_param;
 				} else {
