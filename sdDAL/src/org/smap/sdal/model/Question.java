@@ -180,7 +180,7 @@ public class Question {
 	 * Return true if this is a select question
 	 */
 	public boolean isSelect() {
-		return type.startsWith("select");
+		return (type.startsWith("select") || type.equals("rank"));
 	}
 	
 }

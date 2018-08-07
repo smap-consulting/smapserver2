@@ -117,7 +117,7 @@ public class GetHtml {
 			e.printStackTrace();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 		return response;
@@ -790,9 +790,24 @@ public class GetHtml {
 			addLabels(bodyElement, q, form);
 		}
 
+		// Input element for rank
+		if(q.type.equals("rank")) {
+			Element inputElement = outputDoc.createElement("input");
+			inputElement.setAttribute("class", "rank hide");
+			inputElement.setAttribute("type", "error");
+			inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
+			inputElement.setAttribute("data-type-xml", "rank");
+			parent.appendChild(inputElement);
+		}
+		// Option wrapper
 		Element optionWrapperElement = outputDoc.createElement("div");
-		parent.appendChild(optionWrapperElement);
-		optionWrapperElement.setAttribute("class", "option-wrapper");
+		parent.appendChild(optionWrapperElement);		
+		if(q.type.equals("rank")) {
+			optionWrapperElement.setAttribute("class", "option-wrapper widget rank-widget rank-widget--empty");
+			optionWrapperElement.setAttribute("aria-dropeffect", "move");
+		} else {
+			optionWrapperElement.setAttribute("class", "option-wrapper");
+		}
 
 		// options
 		addOptions(sd, optionWrapperElement, q, form, tableList);
