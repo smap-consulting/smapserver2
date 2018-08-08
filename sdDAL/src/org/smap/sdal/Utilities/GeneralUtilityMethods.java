@@ -1856,8 +1856,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add nodeset functions to a nodeset
 	 */
-	public static String addNodesetFunctions(String nodeset, String appearance) {
-		if (appearance != null && appearance.toLowerCase().trim().contains("randomize")) {
+	public static String addNodesetFunctions(String nodeset, String randomize) {
+		if (parameterIsSet(randomize)) {
 			return "randomize(" + nodeset + ")";
 		} else {
 			return nodeset;
@@ -7004,6 +7004,16 @@ public class GeneralUtilityMethods {
 		
 		return formList;
 
+	}
+	
+	public static boolean parameterIsSet(String parameter) {
+		boolean isSet = false;
+		if(parameter != null) {
+			if(parameter.equals("yes") || parameter.equals("true")) {
+				isSet = true;
+			}
+		}
+		return isSet;
 	}
 
 }

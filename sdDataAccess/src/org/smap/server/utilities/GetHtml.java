@@ -1426,7 +1426,10 @@ public class GetHtml {
 	 * Attempt to get the full nodeset incorporating any external filters
 	 */
 	private String getNodeset(Question q, Form form) throws Exception {
-		return UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id);
+		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id);
+		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
+				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
+		return adjustedNodeset;
 	}
 
 	/*
