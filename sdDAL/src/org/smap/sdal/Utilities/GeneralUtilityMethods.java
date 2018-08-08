@@ -6707,7 +6707,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setExternalFileValues(Connection sd, Question q) throws SQLException {
 		
-		if(q.type.startsWith("select") && isAppearanceExternalFile(q.appearance)) {
+		if((q.type.startsWith("select") || q.type.equals("rank")) && isAppearanceExternalFile(q.appearance)) {
 			ManifestInfo mi = addManifestFromAppearance(q.appearance, null);
 			q.external_choices = true;
 			q.external_table = mi.filename;

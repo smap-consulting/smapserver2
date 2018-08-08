@@ -914,19 +914,15 @@ public class SurveyManager {
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
 				q.compressed = rsGetQuestions.getBoolean(30);				
-				String exChoices = rsGetQuestions.getString(31);
-				String exTable = rsGetQuestions.getString(32);
+				//String exChoices = rsGetQuestions.getString(31);
+				//String exTable = rsGetQuestions.getString(32);
 				q.l_id = rsGetQuestions.getInt(33);
 				
-				if(exChoices == null) {
-					if(q.type.startsWith("select") || q.type.equals("rank")) {
-						GeneralUtilityMethods.setExternalFileValues(sd, q);
-					} else {
-						q.external_choices = false;
-					}
+
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
+					GeneralUtilityMethods.setExternalFileValues(sd, q);
 				} else {
-					q.external_choices = exChoices.equals("yes");
-					q.external_table = exTable;
+					q.external_choices = false;
 				}
 
 				if(q.autoplay == null) {
