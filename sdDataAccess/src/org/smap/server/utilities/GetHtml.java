@@ -165,6 +165,11 @@ public class GetHtml {
 		bodyElement.setAttribute("dir", "auto");
 		bodyElement.setTextContent(survey.getDisplayName());
 		parent.appendChild(bodyElement);
+		
+		// TOC - Still work in progress in Enketo Core
+		//bodyElement = outputDoc.createElement("ol");
+		//bodyElement.setAttribute("class", "page-toc");
+		//parent.appendChild(bodyElement);
 
 		// Languages
 		bodyElement = outputDoc.createElement("select");
