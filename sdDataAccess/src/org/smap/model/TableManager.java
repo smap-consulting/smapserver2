@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.ChangeItem;
@@ -422,9 +423,11 @@ public class TableManager {
 				sql += ", _user text, _version text, _survey_notes text, _location_trigger text,"
 						+ "_complete boolean default true, "
 						+ "_modified boolean default false,"
-						+ "_upload_time timestamp with time zone, _s_id integer,"
-						+ "instanceid text, instancename text,"
-						+ "_scheduled_start timestamp with time zone";
+						+ SmapServerMeta.UPLOAD_TIME_NAME + " timestamp with time zone, "
+						+ "_s_id integer,"
+						+ "instanceid text, "
+						+ "instancename text,"
+						+ SmapServerMeta.SCHEDULED_START_NAME + " timestamp with time zone";
 
 				if(hasHrk) {
 					sql += ", _hrk text ";

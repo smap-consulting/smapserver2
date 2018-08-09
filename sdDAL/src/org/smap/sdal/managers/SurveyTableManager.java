@@ -14,6 +14,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
@@ -606,8 +607,9 @@ public class SurveyTableManager {
 					colName = rs.getString(1);
 					fId = rs.getInt(2);
 				} else if (name.equals("_hrk") || name.equals("_device") || name.equals("_user")
-						|| name.equals("_start") || name.equals("_end") || name.equals("_upload_time")
-						|| name.equals("_scheduled_start")
+						|| name.equals("_start") || name.equals("_end") 
+						|| name.equals(SmapServerMeta.UPLOAD_TIME_NAME)
+						|| name.equals(SmapServerMeta.SCHEDULED_START_NAME)
 						|| name.equals("_survey_notes")) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;

@@ -38,6 +38,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -325,12 +326,12 @@ public class XLSResultsManager {
 				/*
 				 * Get the details on the date filter
 				 */
-				if(dateId == SurveyManager.UPLOAD_TIME_ID) {
+				if(dateId == SmapServerMeta.UPLOAD_TIME_ID) {
 					dateForm = Integer.parseInt(topForm.f_id);
-					dateName = "_upload_time";
-				} else if(dateId == SurveyManager.SCHEDULED_START_ID) {
+					dateName = SmapServerMeta.UPLOAD_TIME_NAME;
+				} else if(dateId == SmapServerMeta.SCHEDULED_START_ID) {
 					dateForm = Integer.parseInt(topForm.f_id);
-					dateName = "_scheduled_start";
+					dateName = SmapServerMeta.SCHEDULED_START_NAME;
 				} else if(dateId > 0) {
 
 					String sqlDateFilter = "select f_id, column_name from question where q_id = ?";

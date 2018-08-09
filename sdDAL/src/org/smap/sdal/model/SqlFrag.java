@@ -7,6 +7,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 
 /*
  * Form Class
@@ -179,8 +180,8 @@ public class SqlFrag {
 				token.equals(")") ||
 				token.equals("(") ||
 				token.equals("or") ||
-				token.equals("_upload_time") ||
-				token.equals("_scheduled_start") ||
+				token.equals(SmapServerMeta.UPLOAD_TIME_NAME) ||
+				token.equals(SmapServerMeta.SCHEDULED_START_NAME) ||
 				token.equals("and") || 
 				token.equals("is") || 
 				token.equals("null") || 

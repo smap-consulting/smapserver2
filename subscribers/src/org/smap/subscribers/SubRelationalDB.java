@@ -49,6 +49,7 @@ import org.smap.model.TableManager;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
@@ -773,8 +774,8 @@ public class SubRelationalDB extends Subscriber {
 					boolean hasVersion = false;
 					boolean hasSurveyNotes  = false;	
 					if(parent_key == 0) {
-						hasScheduledStart = GeneralUtilityMethods.hasColumn(cResults, tableName, "_scheduled_start");
-						hasUploadTime = GeneralUtilityMethods.hasColumn(cResults, tableName, "_upload_time");
+						hasScheduledStart = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.SCHEDULED_START_NAME);
+						hasUploadTime = GeneralUtilityMethods.hasColumn(cResults, tableName, SmapServerMeta.UPLOAD_TIME_NAME);
 						hasVersion = GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
 						hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
 					}
@@ -785,7 +786,7 @@ public class SubRelationalDB extends Subscriber {
 					if (parent_key == 0) {
 						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
 						if (hasUploadTime) {
-							sql += ",_upload_time,_s_id";
+							sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + ",_s_id";
 						}
 						if (hasVersion) {
 							sql += ",_version";
@@ -794,7 +795,7 @@ public class SubRelationalDB extends Subscriber {
 							sql += ",_survey_notes, _location_trigger";
 						}
 						if (hasScheduledStart) {
-							sql += ",_scheduled_start";
+							sql += "," + SmapServerMeta.SCHEDULED_START_NAME;
 						}
 						if (isBad) {
 							sql += ",_bad, _bad_reason";

@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.LanguageItem;
@@ -599,14 +600,14 @@ public class QuestionInfo {
 		fId = f.id;
 		parentFId = 0;
 		
-		if(qId == SurveyManager.UPLOAD_TIME_ID) {
-			qName = "_upload_time";
-			columnName = "_upload_time";
+		if(qId == SmapServerMeta.UPLOAD_TIME_ID) {
+			qName = SmapServerMeta.UPLOAD_TIME_NAME;
+			columnName = SmapServerMeta.UPLOAD_TIME_NAME;
 			qType = "dateTime";
 			qLabel = "Upload Time";
-		} else if(qId == SurveyManager.SCHEDULED_START_ID) {
-			qName = "_upload_time";
-			columnName = "_upload_time";
+		} else if(qId == SmapServerMeta.SCHEDULED_START_ID) {
+			qName = SmapServerMeta.SCHEDULED_START_NAME;
+			columnName = SmapServerMeta.SCHEDULED_START_NAME;
 			qType = "dateTime";
 			qLabel = "Upload Time";
 		} else if (qId <= 1000) {
