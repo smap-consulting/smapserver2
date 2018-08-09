@@ -604,6 +604,11 @@ public class QuestionInfo {
 			columnName = "_upload_time";
 			qType = "dateTime";
 			qLabel = "Upload Time";
+		} else if(qId == SurveyManager.SCHEDULED_START_ID) {
+			qName = "_upload_time";
+			columnName = "_upload_time";
+			qType = "dateTime";
+			qLabel = "Upload Time";
 		} else if (qId <= 1000) {
 			// preloads
 			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(connection, sId);	

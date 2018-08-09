@@ -421,9 +421,10 @@ public class TableManager {
 			if(!form.hasParent()) {
 				sql += ", _user text, _version text, _survey_notes text, _location_trigger text,"
 						+ "_complete boolean default true, "
-						+ "_modified boolean default false"
-						+ ", _upload_time timestamp with time zone, _s_id integer"
-						+ ",instanceid text, instancename text";
+						+ "_modified boolean default false,"
+						+ "_upload_time timestamp with time zone, _s_id integer,"
+						+ "instanceid text, instancename text,"
+						+ "_scheduled_start timestamp with time zone";
 
 				if(hasHrk) {
 					sql += ", _hrk text ";

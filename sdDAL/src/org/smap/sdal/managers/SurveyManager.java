@@ -81,6 +81,7 @@ public class SurveyManager {
 	LogManager lm = new LogManager();		// Application log
 
 	public static final int UPLOAD_TIME_ID = -100;		// Pseudo question id for upload time
+	public static final int SCHEDULED_START_ID = -101;		// Pseudo question id for scheduled start
 
 	private ResourceBundle localisation;
 	

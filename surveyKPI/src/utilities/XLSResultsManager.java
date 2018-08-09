@@ -328,6 +328,9 @@ public class XLSResultsManager {
 				if(dateId == SurveyManager.UPLOAD_TIME_ID) {
 					dateForm = Integer.parseInt(topForm.f_id);
 					dateName = "_upload_time";
+				} else if(dateId == SurveyManager.SCHEDULED_START_ID) {
+					dateForm = Integer.parseInt(topForm.f_id);
+					dateName = "_scheduled_start";
 				} else if(dateId > 0) {
 
 					String sqlDateFilter = "select f_id, column_name from question where q_id = ?";

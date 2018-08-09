@@ -180,6 +180,7 @@ public class SqlFrag {
 				token.equals("(") ||
 				token.equals("or") ||
 				token.equals("_upload_time") ||
+				token.equals("_scheduled_start") ||
 				token.equals("and") || 
 				token.equals("is") || 
 				token.equals("null") || 

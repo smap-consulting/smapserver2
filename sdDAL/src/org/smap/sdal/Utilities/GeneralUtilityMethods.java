@@ -87,7 +87,7 @@ public class GeneralUtilityMethods {
 	private static int LENGTH_OPTION_RAND = 3;
 
 	private static String[] smapMeta = new String[] { "_hrk", "instanceid", "_instanceid", "_start", "_end", "_device",
-			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", "_upload_time", "_s_id", "_version",
+			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", "_upload_time","_scheduled_start", "_s_id", "_version",
 			"_complete", "_location_trigger", "_modified", "_task_key", "_task_replace" };
 
 	private static String[] reservedSQL = new String[] { "all", "analyse", "analyze", "and", "any", "array", "as",
@@ -1606,7 +1606,9 @@ public class GeneralUtilityMethods {
 
 		PreparedStatement pstmt = null;
 
-		if (qId == SurveyManager.UPLOAD_TIME_ID) {
+		if (qId == SurveyManager.SCHEDULED_START_ID) {
+			column_name = "_scheduled_start";
+		} else if (qId == SurveyManager.UPLOAD_TIME_ID) {
 			column_name = "_upload_time";
 		} else if(qId > 0) {
 			try {
@@ -3131,7 +3133,7 @@ public class GeneralUtilityMethods {
 			c.isMeta = true;
 			columnList.add(c);
 
-			if (GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
+			if (GeneralUtilityMethods.columnType(cResults, table_name, "_scheduled_start") != null) {
 				uptodateTable = true; // This is the latest meta column that was added
 			}
 
@@ -3154,6 +3156,16 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 			}
 
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_scheduled_start") != null) {
+				c = new TableColumn();
+				c.name = "_scheduled_start";
+				c.humanName = "_scheduled_start";
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.DATETIME;
+				c.isMeta = true;
+				columnList.add(c);
+			}
+			
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_version") != null) {
 				c = new TableColumn();
 				c.name = "_version";
@@ -3798,6 +3810,7 @@ public class GeneralUtilityMethods {
 			}
 			String columnName = getColumnName(sd, sId, qname);
 			if (columnName == null && (qname.equals("prikey") || qname.equals("_start") || qname.equals("_upload_time")
+					|| qname.equals("_scheduled_start")
 					|| qname.equals("_end") || qname.equals("device") || qname.equals("instancename"))) {
 				columnName = qname;
 			}

@@ -686,6 +686,16 @@ public class Survey extends Application {
 				dateInfoList.add(di);
 			}
 			
+			// Add scheduled start
+			if(GeneralUtilityMethods.columnType(connectionRel, topTableName, "_scheduled_start") != null) {
+				DateInfo di = new DateInfo();
+
+				di.columnName = "_scheduled_start";
+				di.name = "Scheduled Start";
+				di.qId = SurveyManager.SCHEDULED_START_ID;
+				dateInfoList.add(di);
+			}
+			
 			// Add preloads
 			int metaId = -1000;		// Backward compatability to when meta items did not have an id
 			for(MetaItem mi : preloads) {

@@ -259,6 +259,37 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
+	private Timestamp getScheduledStart(Connection sd, int assignmentId) {
+
+		PreparedStatement pstmt = null;
+		
+		String sql = "select schedule_at from tasks where id = (select task_id from assignments where id = ?) ";
+		Timestamp scheduledDate = null;
+		
+		try {
+
+			if(assignmentId > 0) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, assignmentId);
+				log.info("Get scheduled date: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					scheduledDate = rs.getTimestamp(1);
+				}
+			}
+
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return scheduledDate;
+	}
+	
+	/*
+	 * Apply any changes to assignment status
+	 */
 	private int getAssignmentId(Connection sd, int ue_id) {
 
 		int assignmentId = 0;
@@ -516,7 +547,8 @@ public class SubRelationalDB extends Subscriber {
 					sd,
 					sId,
 					uploadTime,
-					"/main");
+					"/main",
+					assignmentId);
 
 			/*
 			 * Update existing records
@@ -664,7 +696,8 @@ public class SubRelationalDB extends Subscriber {
 			Connection sd,
 			int sId,
 			Date uploadTime,
-			String auditPath) throws SQLException, Exception {
+			String auditPath,
+			int assignmentId) throws SQLException, Exception {
 
 		Keys keys = new Keys();
 		PreparedStatement pstmt = null;
@@ -735,15 +768,18 @@ public class SubRelationalDB extends Subscriber {
 				 */
 				if (columns.size() > 0 || parent_key == 0) {
 
+					boolean hasScheduledStart = false;
+					boolean hasUploadTime = false;
+					boolean hasVersion = false;
+					boolean hasSurveyNotes  = false;	
+					if(parent_key == 0) {
+						hasScheduledStart = GeneralUtilityMethods.hasColumn(cResults, tableName, "_scheduled_start");
+						hasUploadTime = GeneralUtilityMethods.hasColumn(cResults, tableName, "_upload_time");
+						hasVersion = GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
+						hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
+					}
 					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
-					boolean hasAltitude = hasAudit || GeneralUtilityMethods.hasColumn(cResults, tableName, "the_geom_alt"); // Latest
-					// meta
-					// column
-					// added
-					boolean hasUploadTime = hasAltitude
-							|| GeneralUtilityMethods.hasColumn(cResults, tableName, "_upload_time");
-					boolean hasVersion = hasUploadTime || GeneralUtilityMethods.hasColumn(cResults, tableName, "_version");
-					boolean hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
+					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, "the_geom_alt"); 
 
 					sql = "INSERT INTO " + tableName + " (parkey";
 					if (parent_key == 0) {
@@ -756,6 +792,9 @@ public class SubRelationalDB extends Subscriber {
 						}
 						if (hasSurveyNotes) {
 							sql += ",_survey_notes, _location_trigger";
+						}
+						if (hasScheduledStart) {
+							sql += ",_scheduled_start";
 						}
 						if (isBad) {
 							sql += ",_bad, _bad_reason";
@@ -779,6 +818,9 @@ public class SubRelationalDB extends Subscriber {
 						}
 						if (hasSurveyNotes) {
 							sql += ", ?, ?"; // Survey Notes and Location Trigger
+						}
+						if (hasScheduledStart) {
+							sql += ", ?";
 						}
 						if (isBad) {
 							sql += ", ?, ?"; // _bad, _bad_reason
@@ -808,6 +850,13 @@ public class SubRelationalDB extends Subscriber {
 						if (hasSurveyNotes) {
 							pstmt.setString(stmtIndex++, surveyNotes);
 							pstmt.setString(stmtIndex++, locationTrigger);
+						}
+						if (hasScheduledStart) {
+							if(assignmentId == 0) {
+								pstmt.setTimestamp(stmtIndex++, null);
+							} else {
+								pstmt.setTimestamp(stmtIndex++, getScheduledStart(sd, assignmentId));
+							}
 						}
 						if (isBad) {
 							pstmt.setBoolean(stmtIndex++, true);
@@ -853,7 +902,7 @@ public class SubRelationalDB extends Subscriber {
 					
 					writeTableContent(child, parent_key, sIdent, remoteUser, server, device, uuid, formStatus, version,
 							surveyNotes, locationTrigger, cResults, sd, sId, uploadTime,
-							auditPath + "/" + child.getName() + "[" + recCounter + "]");
+							auditPath + "/" + child.getName() + "[" + recCounter + "]", assignmentId);
 					recCounter++;
 				}
 			}

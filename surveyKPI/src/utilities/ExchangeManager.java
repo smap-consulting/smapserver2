@@ -1245,6 +1245,11 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_upload_time";
 				col.type = "dateTime";
+			} else if(qName.equals("_scheduled_start")) {
+				col = new Column();
+				col.name = qName;
+				col.columnName = "_scheduled_start";
+				col.type = "dateTime";
 			} else if(qName.equals("Version") || qName.equals("_version")) {
 				col = new Column();
 				col.name = qName;
