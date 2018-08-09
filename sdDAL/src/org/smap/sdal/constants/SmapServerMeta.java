@@ -9,5 +9,19 @@ public class SmapServerMeta {
 	public static final String UPLOAD_TIME_NAME = "_upload_time"; 
 	public static final String SCHEDULED_START_NAME = "_scheduled_start"; 
 
+	public static boolean isServerMeta(String name) {
+		boolean answer = false;
+		if (name.equals("_hrk") 
+				|| name.equals("_device") 
+				|| name.equals("_user")
+				|| name.equals("_start") 
+				|| name.equals("_end") 
+				|| name.equals(SmapServerMeta.UPLOAD_TIME_NAME)
+				|| name.equals(SmapServerMeta.SCHEDULED_START_NAME)
+				|| name.equals("_survey_notes")) {
+			answer = true;
+		}
+		return answer;
+	}
 	
 }

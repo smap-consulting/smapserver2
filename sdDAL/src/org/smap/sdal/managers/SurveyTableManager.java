@@ -606,11 +606,7 @@ public class SurveyTableManager {
 				if (rs.next()) {
 					colName = rs.getString(1);
 					fId = rs.getInt(2);
-				} else if (name.equals("_hrk") || name.equals("_device") || name.equals("_user")
-						|| name.equals("_start") || name.equals("_end") 
-						|| name.equals(SmapServerMeta.UPLOAD_TIME_NAME)
-						|| name.equals(SmapServerMeta.SCHEDULED_START_NAME)
-						|| name.equals("_survey_notes")) {
+				} else if (SmapServerMeta.isServerMeta(name)) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;
 				} else {
