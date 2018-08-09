@@ -928,8 +928,8 @@ public class XLSResultsManager {
 			out.add(new CellItem(value, CellItem.INTEGER));			
 		} else if(columnName.equals("_complete")) {
 			out.add(new CellItem(value.equals("f") ? "No" : "Yes", CellItem.STRING));		
-		} else if(columnName.equals("_s_id")) {
-			String displayName = surveyNames.get(out);
+		} else if(columnName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+			String displayName = surveyNames.get(value);
 			if(displayName == null) {
 				try {
 					displayName = GeneralUtilityMethods.getSurveyName(con, Integer.parseInt(value));
@@ -942,7 +942,7 @@ public class XLSResultsManager {
 
 		} else if(columnType.equals("dateTime")) {
 			// Convert the timestamp to the excel format specified in the xl2 mso-format
-			int idx1 = out.indexOf('.');	// Drop the milliseconds
+			int idx1 = value.indexOf('.');	// Drop the milliseconds
 			if(idx1 > 0) {
 				value = value.substring(0, idx1);
 			} 

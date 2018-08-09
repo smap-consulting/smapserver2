@@ -603,7 +603,7 @@ public class ExternalFileManager {
 				if (rs.next()) {
 					colName = rs.getString(1);
 					fId = rs.getInt(2);
-				} else if(SmapServerMeta.isServerMeta(name)) {
+				} else if(SmapServerMeta.isServerReferenceMeta(name)) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;
 				} else {

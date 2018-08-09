@@ -1146,7 +1146,7 @@ public class ExchangeManager {
 		} else if(columnName.equals("_complete")) {
 			out.add(value.equals("f") ? "No" : "Yes"); 
 				
-		} else if(columnName.equals("_s_id")) {
+		} else if(columnName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 			String displayName = surveyNames.get(out);
 			if(displayName == null) {
 				try {
@@ -1226,10 +1226,10 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_user";
 				col.type = "string";
-			} else if(qName.equals("Survey Name") || qName.equals("_s_id")) {
+			} else if(qName.equals("Survey Name") || qName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 				col = new Column();
 				col.name = qName;
-				col.columnName = "_s_id";
+				col.columnName = SmapServerMeta.SURVEY_ID_NAME;
 				col.type = "int";
 			} else if(qName.equals("Survey Notes") || qName.equals("_survey_notes")) {
 				col = new Column();

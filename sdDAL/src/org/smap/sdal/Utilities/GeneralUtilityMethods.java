@@ -91,7 +91,8 @@ public class GeneralUtilityMethods {
 			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
 			SmapServerMeta.UPLOAD_TIME_NAME,
 			SmapServerMeta.SCHEDULED_START_NAME,
-			"_s_id", "_version",
+			SmapServerMeta.SURVEY_ID_NAME, 
+			"_version",
 			"_complete", "_location_trigger", "_modified", "_task_key", "_task_replace" };
 
 	private static String[] reservedSQL = new String[] { "all", "analyse", "analyze", "and", "any", "array", "as",
@@ -3152,7 +3153,7 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 
 				c = new TableColumn();
-				c.name = "_s_id";
+				c.name = SmapServerMeta.SURVEY_ID_NAME;
 				c.humanName = localisation.getString("a_name");
 				c.displayName = c.humanName;
 				c.type = "";
@@ -6583,7 +6584,7 @@ public class GeneralUtilityMethods {
 		}
 		values.type = item.qType;
 		
-		if(item.name != null && item.name.equals("_s_id")) {
+		if(item.name != null && item.name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 			values.value = surveyName;
 		}
 

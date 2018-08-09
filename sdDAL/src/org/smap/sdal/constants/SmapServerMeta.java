@@ -8,8 +8,13 @@ public class SmapServerMeta {
 	
 	public static final String UPLOAD_TIME_NAME = "_upload_time"; 
 	public static final String SCHEDULED_START_NAME = "_scheduled_start"; 
+	public static final String SURVEY_ID_NAME = "_s_id"; 
 
-	public static boolean isServerMeta(String name) {
+	/*
+	 * Returns true if the passed in column name is one of a subset of the server meta columns
+	 *  Currently just used when generating CSV data from a form
+	 */
+	public static boolean isServerReferenceMeta(String name) {
 		boolean answer = false;
 		if (name.equals("_hrk") 
 				|| name.equals("_device") 

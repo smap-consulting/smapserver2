@@ -786,7 +786,7 @@ public class SubRelationalDB extends Subscriber {
 					if (parent_key == 0) {
 						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
 						if (hasUploadTime) {
-							sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + ",_s_id";
+							sql += "," + SmapServerMeta.UPLOAD_TIME_NAME + "," + SmapServerMeta.SURVEY_ID_NAME;
 						}
 						if (hasVersion) {
 							sql += ",_version";

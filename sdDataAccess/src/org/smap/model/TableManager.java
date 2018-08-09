@@ -424,7 +424,7 @@ public class TableManager {
 						+ "_complete boolean default true, "
 						+ "_modified boolean default false,"
 						+ SmapServerMeta.UPLOAD_TIME_NAME + " timestamp with time zone, "
-						+ "_s_id integer,"
+						+ SmapServerMeta.SURVEY_ID_NAME + " integer,"
 						+ "instanceid text, "
 						+ "instancename text,"
 						+ SmapServerMeta.SCHEDULED_START_NAME + " timestamp with time zone";
