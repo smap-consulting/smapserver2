@@ -69,7 +69,7 @@ public class PasswordReset extends Application {
 	@Path("/{email}")
 	public Response oneTimeLogon(@Context HttpServletRequest request,
 			@PathParam("email") String email		 
-			) { 
+			) throws ApplicationException { 
 	
 		Response response = null;
 
@@ -88,6 +88,12 @@ public class PasswordReset extends Application {
 				Locale locale = new Locale(loc_code);
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
+				boolean emailSent = UtilityMethodsEmail.hasOnetimePasswordBeenSent(sd, pstmt, email, "3000 seconds");
+				if(emailSent) {
+					// Potential spam
+					log.info("warning: email: " + email + " multiple password reset requests");
+					throw new ApplicationException(localisation.getString("email_pas"));
+				}
 				
 				/*
 				 * If the "email" does not have an "@" then it may be a user ident
@@ -158,6 +164,8 @@ public class PasswordReset extends Application {
 			}	
 			response = Response.status(Status.NOT_FOUND).entity(respMsg).build();
 	
+		} catch (ApplicationException e) {
+			throw e;
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity("System Error").build();

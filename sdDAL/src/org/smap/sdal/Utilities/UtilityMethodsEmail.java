@@ -497,6 +497,42 @@ public class UtilityMethodsEmail {
 			return null;
 		}
 	}
+	
+	/*
+	 * Check to see if a password has been sent within the last 'interval'
+	 * This is a security measure to prevent spamming
+	 */
+	static public boolean hasOnetimePasswordBeenSent(
+			Connection connectionSD, 
+			PreparedStatement pstmt, 
+			String email, 
+			String interval) throws SQLException {
+
+		boolean alreadySent = false;
+		interval = interval.replace("'", "''");	// Escape apostrophes
+
+		/*
+		 * Update the users table by adding the UUID and expiry time
+		 * Do a case insensitive test against email
+		 */
+		String sql = "select count(*) from users "
+				+ "where "
+				+ "one_time_password_expiry > (timestamp 'now' + interval '" + interval + "') "
+				+ "and email ilike ?";
+
+		pstmt = connectionSD.prepareStatement(sql);	
+		pstmt.setString(1, email);
+		log.info("SQL checking for already sent email: " + pstmt.toString());
+		ResultSet rs = pstmt.executeQuery();
+		if(rs.next()) {
+			int count = rs.getInt(1);
+			if(count > 0) {
+				alreadySent = true;
+			}
+		}
+
+		return alreadySent;
+	}
 
 
 	/*
