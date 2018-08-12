@@ -153,7 +153,7 @@ public class PDFSurveyManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 	
-	public PDFSurveyManager(ResourceBundle l, Connection sd, Connection cREsults, Survey s, String u) {
+	public PDFSurveyManager(ResourceBundle l, Connection sd, Connection cResults, Survey s, String u) {
 		localisation = l;
 		choiceManager = new ChoiceManager(l);
 		this.sd = sd;
