@@ -583,7 +583,7 @@ public class ExternalFileManager {
 			pstmtGetCol.setInt(2, sId);
 
 			boolean first = true;
-			;
+			
 			if (linked_s_pd) {
 				linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, sId, sd);
 				sql.append(linked_s_pd_sel);
