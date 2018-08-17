@@ -1225,7 +1225,9 @@ public class GetXForm {
 					for (int i = 0; i < cols.length; i++) {
 						try {
 							elem = outputXML.createElement(cols[i]);
-							elem.setTextContent(values[i]);
+							String v = values[i];
+							v = v.replaceAll("'", "");
+							elem.setTextContent(v);
 							item.appendChild(elem);
 						} catch (Exception e) {
 							String msg = localisation.getString("msg_inv_col");
