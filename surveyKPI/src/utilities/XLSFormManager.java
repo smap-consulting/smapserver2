@@ -137,8 +137,6 @@ public class XLSFormManager {
 
 				if(q.type.equals("string") && !q.visible) {		// By this point the type should be calculate anyway
 					value = "calculate";
-				} else if(q.readonly && q.type.equals("string")) {
-					value = "note";
 				} else if(q.type.equals("string")) {
 					value = "text";
 				} else if(q.type.equals("select1")) {
