@@ -954,6 +954,7 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Method to merge a previous records content into this new record
+	 * Source = the old records
 	 */
 	private void mergeTableContent(
 			Connection cMeta,
@@ -987,10 +988,10 @@ public class SubRelationalDB extends Subscriber {
 
 		//PreparedStatement pstmtChildUpdate = null;
 
-		String sqlTableMerge = "select table_name from form "
+		String sqlTableMerge = "select table_name, merge, replace from form "
 				+ "where s_id = ? "
 				+ "and reference = 'false' "
-				+ "and merge = 'true'";
+				+ "and (merge = 'true' or replace = 'true')";
 		PreparedStatement pstmtTableMerge = null;
 		
 		PreparedStatement pstmtChildKeys = null;
@@ -1028,9 +1029,15 @@ public class SubRelationalDB extends Subscriber {
 				pstmtTableMerge.setInt(1, sId);
 				ResultSet rtm = pstmtTableMerge.executeQuery();
 				ArrayList<String> mergeTables = new ArrayList<> ();
+				ArrayList<String> replaceTables = new ArrayList<> ();
+				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
-					mergeTables.add(rtm.getString(1));
-					log.info("Need to merge table " + rtm.getString(1));
+					if(rtm.getBoolean("merge")) {
+						mergeTables.add(rtm.getString(1));
+					} else if(rtm.getBoolean("replace")) {
+						replaceTables.add(rtm.getString(1));
+					}
+					log.info("Need to merge or replace table " + rtm.getString(1));
 				}
 				
 				// Add the child records from the merged survey to the new survey
@@ -1087,40 +1094,39 @@ public class SubRelationalDB extends Subscriber {
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
 									mergeRecords(cRel, tableName, childPrikeys.get(i), childSourcekeys.get(i), false);
 								} else {
-									// copy
-									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey);
+									// copy		
 									pstmtCopyChild.setInt(1, prikey);
 									pstmtCopyChild.setInt(2, childSourcekeys.get(i));
+									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
 									pstmtCopyChild.executeUpdate();
+									copiedSourceKeys.add(childSourcekeys.get(i));
 								}
 							}
 							
-						} else {
+						} else if(!replaceTables.contains(tableName)) {
+							// Append old records to new
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								pstmtCopyChild.setInt(1, prikey);
 								pstmtCopyChild.setInt(2, childSourcekeys.get(i));
 								pstmtCopyChild.executeUpdate();
+								copiedSourceKeys.add(childSourcekeys.get(i));
 							}
-							//String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?";
-							//pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
-			
-							//pstmtChildUpdate.setInt(1, prikey);
-							//pstmtChildUpdate.setInt(2, sourceKey);
-							//log.info("Updating parent keys: " + pstmtChildUpdate.toString());
-							//pstmtChildUpdate.executeUpdate();
 						}
 						
 						/*
 						 * Restore child entries for source survey
 						 * We do it in this way, ie move children to the new parent then copy back
 						 *  so that we can preserve order of children which is determined by their primary keys
+						 *  However if the record was merged then the order of the old records will be wrong
 						 */
 						pstmtCopyBack = cRel.prepareStatement(getCopyBackSql(cRel, tableName, sourceKey));
 						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
 							//System.out.println("Copy back: Table: " + tableName + " key: " + childSourcekeys.get(i) + " original parent: " + sourceKey);
-							pstmtCopyBack.setInt(1, childSourcekeys.get(i));
-							log.info("Copy back: " + pstmtCopyBack.toString());
-							pstmtCopyBack.executeUpdate();
+							if(copiedSourceKeys.contains(childSourcekeys.get(i))) {
+								pstmtCopyBack.setInt(1, childSourcekeys.get(i));
+								log.info("Copy back: " + pstmtCopyBack.toString());
+								pstmtCopyBack.executeUpdate();
+							}
 						}
 						
 					} else {
@@ -1183,7 +1189,10 @@ public class SubRelationalDB extends Subscriber {
 	
 					if( val == null || val.trim().length() == 0) {
 	
-						String sqlUpdateTarget = "update " + table + " set " + col + " = (select " + col + " from " + table + " where prikey = ?) "
+						String sqlUpdateTarget = "update " + table 
+								+ " set " + col + " = (select " + col 
+									+ " from " + table 
+									+ " where prikey = ?) "
 								+ "where prikey = ?";
 						if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
 						pstmtUpdateTarget = cRel.prepareStatement(sqlUpdateTarget);

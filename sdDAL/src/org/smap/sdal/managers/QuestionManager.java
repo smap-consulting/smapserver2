@@ -177,8 +177,8 @@ public class QuestionManager {
 
 		PreparedStatement pstmtForm = null;
 		String sqlForm = "insert into form(f_id, s_id, name, label, table_name, "
-				+ "parentform, parentquestion, repeats, path, form_index, reference, merge) " +
-				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "parentform, parentquestion, repeats, path, form_index, reference, merge, replace) " +
+				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 		PreparedStatement pstmtGetFormId = null;
 		String sqlGetFormId = "select f_id from form where s_id = ? and form_index = ?";
@@ -353,11 +353,22 @@ public class QuestionManager {
 					
 					boolean ref= false;
 					boolean merge = false;
+					boolean replace = false;
 					for(KeyValueSimp k : props) {
 						if(k.k.equals("ref")) {
 							ref = true;
 						} else if(k.k.equals("merge") && k.v.equals("yes")) {
-							merge = true;
+							merge = true;		// deprecate - replaced by parameter key_policy
+						} else if(k.k.equals("key_policy")) {
+							if(k.v.equals("merge")) {
+								merge = true;
+							} else if(k.v.equals("replace")) {
+								replace = true;
+							} else if(k.v.equals("append")) {
+								// default - ignore
+							} else {
+								log.info("Error: unknown key policy: " + k.v);
+							}
 						}
 					}
 					
@@ -373,14 +384,12 @@ public class QuestionManager {
 					pstmtForm.setInt(9, q.childFormIndex);
 					pstmtForm.setBoolean(10, ref);
 					pstmtForm.setBoolean(11, merge);
+					pstmtForm.setBoolean(12, replace);
 
 					log.info("SQL: Insert new form: " + pstmtForm.toString());
 					pstmtForm.executeUpdate();
 
 				}
-
-				// Update any calculations that reference the survey itself
-				//GeneralUtilityMethods.updateSelfCalcsQuestion(sd, qId);
 
 			}
 
