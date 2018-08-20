@@ -939,6 +939,7 @@ public class XLSTemplateUploadManager {
 				}
 			}
 			q.paramArray = noDups;
+			
 		}
 		
 	}

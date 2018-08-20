@@ -416,8 +416,9 @@ public class Survey {
 				+ "name, "
 				+ "table_name,"
 				+ "reference,"
-				+ "merge) "
-				+ "values (nextval('f_seq'), ?, ?, ?, ?, ?);";
+				+ "merge,"
+				+ "replace) "
+				+ "values (nextval('f_seq'), ?, ?, ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 		
 		PreparedStatement pstmtSetLabels = null;
@@ -457,6 +458,7 @@ public class Survey {
 				pstmt.setString(3, tableName);
 				pstmt.setBoolean(4, f.reference);
 				pstmt.setBoolean(5, f.merge);
+				pstmt.setBoolean(6, f.replace);
 				pstmt.executeUpdate();
 
 				ResultSet rs = pstmt.getGeneratedKeys();

@@ -17,6 +17,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.SqlFrag;
@@ -582,7 +583,7 @@ public class ExternalFileManager {
 			pstmtGetCol.setInt(2, sId);
 
 			boolean first = true;
-			;
+			
 			if (linked_s_pd) {
 				linked_s_pd_sel = GeneralUtilityMethods.convertAllxlsNamesToQuery(data_key, sId, sd);
 				sql.append(linked_s_pd_sel);
@@ -602,9 +603,7 @@ public class ExternalFileManager {
 				if (rs.next()) {
 					colName = rs.getString(1);
 					fId = rs.getInt(2);
-				} else if (name.equals("_hrk") || name.equals("_device") || name.equals("_user")
-						|| name.equals("_start") || name.equals("_end") || name.equals("_upload_time")
-						|| name.equals("_survey_notes")) {
+				} else if(SmapServerMeta.isServerReferenceMeta(name)) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;
 				} else {

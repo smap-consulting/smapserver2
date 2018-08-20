@@ -529,7 +529,7 @@ public class NotificationManager {
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");
 		
-		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, survey, user);
+		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, user);
 		
 		try {
 			

@@ -119,28 +119,50 @@ public class PeopleManager {
 	 */
 	public String getSubscriptionKey(Connection sd, String email) throws SQLException, ApplicationException {
 		
+		String sqlRegulate = "select count(*) "
+				+ "from people "
+				+ "where email ilike ? "
+				+ "and unsubscribed "
+				+ "and (when_requested_subscribe + interval '1 day') > timestamp 'now' ";
+		PreparedStatement pstmtRegulate = null;
+		
 		String sql = "select unsubscribed, uuid "
 				+ "from people "
-				+ "where email = ?";
+				+ "where email ilike ?";
 		PreparedStatement pstmt = null;
 		
 		// Create an entry with the user initially unsubscribed
 		String sqlCreate = "insert into people "
-				+ "(o_id, email, unsubscribed, uuid) "
-				+ "values(0, ?, 'true', ?)";
+				+ "(o_id, email, unsubscribed, uuid, when_requested_subscribe) "
+				+ "values(0, ?, 'true', ?, now())";
 		PreparedStatement pstmtCreate = null;
 		
-		String sqlUpdate = "update people set uuid = ? "
-				+ "where email = ?";		
+		String sqlUpdate = "update people set "
+				+ "uuid = ?, "
+				+ "when_requested_subscribe = now() "
+				+ "where email ilike ?";		
 		PreparedStatement pstmtUpdate = null;
 		
 		String key = null;
 		try {
 			
+			// Make sure no subscribe requests have been made in the last 24 hours
+			pstmtRegulate = sd.prepareStatement(sqlRegulate);
+			pstmtRegulate.setString(1, email);
+			log.info("Check for aleady sent subscription request: " + pstmtRegulate.toString());
+			ResultSet rs = pstmtRegulate.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				log.info("Email request subscription already sent");
+				throw new ApplicationException(localisation.getString("email_subs"));
+			}
+			
+			/*
+			 * Get an existing UUID
+			 */
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, email);
 			
-			ResultSet rs = pstmt.executeQuery();
+			rs = pstmt.executeQuery();
 			if(rs.next()) {
 				// We already have an entry for this email
 				boolean unsubscribed = rs.getBoolean(1);
@@ -167,6 +189,7 @@ public class PeopleManager {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			try {if (pstmtCreate != null) {pstmtCreate.close();} } catch (SQLException e) {	}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();} } catch (SQLException e) {	}
+			try {if (pstmtRegulate != null) {pstmtRegulate.close();} } catch (SQLException e) {	}
 		}
 		
 		return key;

@@ -32,6 +32,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Organisation;
@@ -830,7 +831,7 @@ public class ExportSurvey extends Application {
 			} else if(columnName.equals("_complete")) {
 				out = (out.equals("f")) ? "<td>No</td>" : "<td>Yes</td>"; 
 
-			} else if(columnName.equals("_s_id")) {
+			} else if(columnName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 				String displayName = surveyNames.get(out);
 				if(displayName == null) {
 					try {

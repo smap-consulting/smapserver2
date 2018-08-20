@@ -122,6 +122,7 @@ public class PDFSurveyManager {
 	private ChoiceManager choiceManager = null;
 	private Survey survey;
 	private Connection sd;
+	private Connection cResults;
 	private String user;
 	
 	// Other global values
@@ -152,10 +153,11 @@ public class PDFSurveyManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 	
-	public PDFSurveyManager(ResourceBundle l, Connection c, Survey s, String u) {
+	public PDFSurveyManager(ResourceBundle l, Connection sd, Connection cResults, Survey s, String u) {
 		localisation = l;
 		choiceManager = new ChoiceManager(l);
-		sd = c;
+		this.sd = sd;
+		this.cResults = cResults;
 		survey  = s;
 		user = u;
 	}
@@ -496,7 +498,7 @@ public class PDFSurveyManager {
 					
 					ArrayList<String> matches = new ArrayList<String> ();
 					matches.add(r.value);
-					value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id, 
+					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
 							question.external_choices, question.external_table, 
 							survey.languages.get(languageIdx).name, matches);
 					
@@ -513,7 +515,7 @@ public class PDFSurveyManager {
 						}
 						Form form = survey.forms.get(r.fIdx);
 						Question question = form.questions.get(r.qIdx);
-						value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id,  question.external_choices, 
+						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id,  question.external_choices, 
 								question.external_table, 
 								survey.languages.get(languageIdx).name, matches);
 					}
@@ -1802,7 +1804,7 @@ public class PDFSurveyManager {
 					
 					ArrayList<String> matches = new ArrayList<String> ();
 					matches.add(di.value);
-					value = choiceManager.getLabel(sd, oId, survey.id, question.id, question.l_id, 
+					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
 							question.external_choices, question.external_table, 
 							survey.languages.get(languageIdx).name, matches);
 				} else if(di.type.equals("select")) {
@@ -1817,7 +1819,7 @@ public class PDFSurveyManager {
 						}
 						Form form = survey.forms.get(di.fIdx);
 						Question question = form.questions.get(di.qIdx);
-						value = choiceManager.getLabel(sd, oId, survey.id, question.id, 
+						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, 
 									question.l_id, question.external_choices, question.external_table, 
 									survey.languages.get(languageIdx).name, matches);
 					}

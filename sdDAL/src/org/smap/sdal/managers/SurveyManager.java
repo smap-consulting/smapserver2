@@ -80,8 +80,6 @@ public class SurveyManager {
 
 	LogManager lm = new LogManager();		// Application log
 
-	public static final int UPLOAD_TIME_ID = -100;		// Pseudo question id for upload time
-
 	private ResourceBundle localisation;
 	
 	public SurveyManager(ResourceBundle l) {
@@ -707,7 +705,8 @@ public class SurveyManager {
 				+ "f.parentquestion, "
 				+ "f.table_name, "
 				+ "f.reference, "
-				+ "f.merge "
+				+ "f.merge,"
+				+ "f.replace  "
 				+ "from form f where f.s_id = ?;";
 		PreparedStatement pstmtGetForms = sd.prepareStatement(sqlGetForms);	
 
@@ -849,6 +848,7 @@ public class SurveyManager {
 			f.tableName = rsGetForms.getString(5);
 			f.reference = rsGetForms.getBoolean(6);
 			f.merge = rsGetForms.getBoolean(7);
+			f.replace = rsGetForms.getBoolean(8);
 
 			if(getHrk && f.parentform == 0) {
 				if(s.hrk != null && s.hrk.trim().length() > 0
@@ -914,19 +914,15 @@ public class SurveyManager {
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
 				q.compressed = rsGetQuestions.getBoolean(30);				
-				String exChoices = rsGetQuestions.getString(31);
-				String exTable = rsGetQuestions.getString(32);
+				//String exChoices = rsGetQuestions.getString(31);
+				//String exTable = rsGetQuestions.getString(32);
 				q.l_id = rsGetQuestions.getInt(33);
 				
-				if(exChoices == null) {
-					if(q.type.startsWith("select") || q.type.equals("rank")) {
-						GeneralUtilityMethods.setExternalFileValues(sd, q);
-					} else {
-						q.external_choices = false;
-					}
+
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
+					GeneralUtilityMethods.setExternalFileValues(sd, q);
 				} else {
-					q.external_choices = exChoices.equals("yes");
-					q.external_table = exTable;
+					q.external_choices = false;
 				}
 
 				if(q.autoplay == null) {
@@ -1033,7 +1029,8 @@ public class SurveyManager {
 
 			if(external) {
 				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
-				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, s.id, qId, null);
+				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, 
+						cResults, localisation, user, oId, s.id, qId, null);
 			} else {
 				optionList.options = new ArrayList<Option> ();
 				pstmtGetOptions.setInt(1, listId);
@@ -2189,23 +2186,35 @@ public class SurveyManager {
 							
 							boolean ref= false;
 							boolean merge = false;
+							boolean replace = false;
 							for(KeyValueSimp k : props) {
 								if(k.k.equals("ref")) {
 									ref = true;
 								} else if(k.k.equals("merge") && k.v.equals("yes")) {
-									merge = true;
+									merge = true;		// Deprecate legacy setting
+								} else if(k.k.equals("key_policy")) {
+									if(k.v.equals("merge")) {
+										merge = true;
+									} else if(k.v.equals("replace")) {
+										replace = true;
+									} else if(k.v.equals("append")) {
+										// default
+									} else {
+										log.info("Error: unknown key policy: " + k.v);
+									}
 								}
 							}
 
-							String sqlUpdateForm = "update form set reference = ?, merge = ? "
+							String sqlUpdateForm = "update form set reference = ?, merge = ?, replace = ? "
 									+ "where s_id = ? "
 									+ "and parentquestion = ?";
 							try {if (pstmtUpdateForm != null) {pstmtUpdateForm.close();}} catch (SQLException e) {}
 							pstmtUpdateForm = sd.prepareStatement(sqlUpdateForm);
 							pstmtUpdateForm.setBoolean(1,  ref);
 							pstmtUpdateForm.setBoolean(2,  merge);
-							pstmtUpdateForm.setInt(3,  sId);
-							pstmtUpdateForm.setInt(4, ci.property.qId);
+							pstmtUpdateForm.setBoolean(3,  replace);
+							pstmtUpdateForm.setInt(4,  sId);
+							pstmtUpdateForm.setInt(5, ci.property.qId);
 	
 							log.info("Updating form properties: " + pstmtUpdateForm.toString());
 							pstmtUpdateForm.executeUpdate();			

@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -677,12 +678,22 @@ public class Survey extends Application {
 			}	
 
 			// Add upload time
-			if(GeneralUtilityMethods.columnType(connectionRel, topTableName, "_upload_time") != null) {
+			if(GeneralUtilityMethods.columnType(connectionRel, topTableName, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
 				DateInfo di = new DateInfo();
 
-				di.columnName = "_upload_time";
+				di.columnName = SmapServerMeta.UPLOAD_TIME_NAME;
 				di.name = "Upload Time";
-				di.qId = SurveyManager.UPLOAD_TIME_ID;
+				di.qId = SmapServerMeta.UPLOAD_TIME_ID;
+				dateInfoList.add(di);
+			}
+			
+			// Add scheduled start
+			if(GeneralUtilityMethods.columnType(connectionRel, topTableName, SmapServerMeta.SCHEDULED_START_NAME) != null) {
+				DateInfo di = new DateInfo();
+
+				di.columnName = SmapServerMeta.SCHEDULED_START_NAME;
+				di.name = "Scheduled Start";
+				di.qId = SmapServerMeta.SCHEDULED_START_ID;
 				dateInfoList.add(di);
 			}
 			

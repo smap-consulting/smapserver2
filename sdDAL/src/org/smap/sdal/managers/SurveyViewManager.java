@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.ChartDefn;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
@@ -516,7 +517,7 @@ public class SurveyViewManager {
 	private boolean keepThis(String name) {
 		boolean keep = true;
 		
-		if(name.equals("_s_id") ||
+		if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
 				name.equals("parkey") ||
 				name.equals("_version") ||
 				name.equals("_complete") ||
@@ -537,7 +538,7 @@ public class SurveyViewManager {
 	private boolean hideDefault(String name) {
 		boolean hide = false;
 		
-		if(name.equals("_s_id") ||
+		if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
 				name.equals("User") ||
 				name.equals("Upload Time") ||
 				name.equals("Survey Notes") ||

@@ -1,8 +1,15 @@
 package org.smap.sdal.model;
 
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.smap.sdal.managers.EmailManager;
 
 public class Action {
+	private static Logger log =
+			Logger.getLogger(EmailManager.class.getName());
+	
 	public String name;
 	public String action;		// respond (managed forms) || report || task
 	public String notify_type;
@@ -32,5 +39,19 @@ public class Action {
 	
 	public Action(String a) {
 		action = a;
+	}
+	
+	public int getFormId() {
+		int fId = 0;
+		for(KeyValueSimp kv : parameters) {
+			if(kv.k.equals("form")) {
+				try {
+					fId = Integer.parseInt(kv.v);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+			}
+		}
+		return fId;
 	}
 }

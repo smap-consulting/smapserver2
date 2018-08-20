@@ -973,7 +973,8 @@ public class GetXForm {
 							|| embedExternalSearch)) {
 				cascade = true;
 				Element isElement = outputXML.createElement("itemset");
-				String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, q.getAppearance(false, template.getQuestionPaths())); 
+				String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
+						GeneralUtilityMethods.getSurveyParameter("randomize", q.getParameters())); 
 				isElement.setAttribute("nodeset", adjustedNodeset);
 
 				Element vElement = outputXML.createElement("value");
@@ -1224,7 +1225,9 @@ public class GetXForm {
 					for (int i = 0; i < cols.length; i++) {
 						try {
 							elem = outputXML.createElement(cols[i]);
-							elem.setTextContent(values[i]);
+							String v = values[i];
+							v = v.replaceAll("'", "");
+							elem.setTextContent(v);
 							item.appendChild(elem);
 						} catch (Exception e) {
 							String msg = localisation.getString("msg_inv_col");

@@ -57,6 +57,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.poi.ss.usermodel.*;
 import org.smap.model.FormDesc;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.MetaItem;
@@ -1145,7 +1146,7 @@ public class ExchangeManager {
 		} else if(columnName.equals("_complete")) {
 			out.add(value.equals("f") ? "No" : "Yes"); 
 				
-		} else if(columnName.equals("_s_id")) {
+		} else if(columnName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 			String displayName = surveyNames.get(out);
 			if(displayName == null) {
 				try {
@@ -1225,10 +1226,10 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_user";
 				col.type = "string";
-			} else if(qName.equals("Survey Name") || qName.equals("_s_id")) {
+			} else if(qName.equals("Survey Name") || qName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 				col = new Column();
 				col.name = qName;
-				col.columnName = "_s_id";
+				col.columnName = SmapServerMeta.SURVEY_ID_NAME;
 				col.type = "int";
 			} else if(qName.equals("Survey Notes") || qName.equals("_survey_notes")) {
 				col = new Column();
@@ -1240,10 +1241,15 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_location_trigger";
 				col.type = "int";
-			} else if(qName.equals("Upload Time") || qName.equals("_upload_time") || qName.equals("metasubmissiondate")) {
+			} else if(qName.equals("Upload Time") || qName.equals(SmapServerMeta.UPLOAD_TIME_NAME) || qName.equals("metasubmissiondate")) {
 				col = new Column();
 				col.name = qName;
-				col.columnName = "_upload_time";
+				col.columnName = SmapServerMeta.UPLOAD_TIME_NAME;
+				col.type = "dateTime";
+			} else if(qName.equals(SmapServerMeta.SCHEDULED_START_NAME)) {
+				col = new Column();
+				col.name = qName;
+				col.columnName = SmapServerMeta.SCHEDULED_START_NAME;
 				col.type = "dateTime";
 			} else if(qName.equals("Version") || qName.equals("_version")) {
 				col = new Column();

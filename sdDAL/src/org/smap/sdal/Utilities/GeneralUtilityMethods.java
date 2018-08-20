@@ -35,6 +35,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
@@ -87,7 +88,11 @@ public class GeneralUtilityMethods {
 	private static int LENGTH_OPTION_RAND = 3;
 
 	private static String[] smapMeta = new String[] { "_hrk", "instanceid", "_instanceid", "_start", "_end", "_device",
-			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", "_upload_time", "_s_id", "_version",
+			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
+			SmapServerMeta.UPLOAD_TIME_NAME,
+			SmapServerMeta.SCHEDULED_START_NAME,
+			SmapServerMeta.SURVEY_ID_NAME, 
+			"_version",
 			"_complete", "_location_trigger", "_modified", "_task_key", "_task_replace" };
 
 	private static String[] reservedSQL = new String[] { "all", "analyse", "analyze", "and", "any", "array", "as",
@@ -1606,8 +1611,10 @@ public class GeneralUtilityMethods {
 
 		PreparedStatement pstmt = null;
 
-		if (qId == SurveyManager.UPLOAD_TIME_ID) {
-			column_name = "_upload_time";
+		if (qId == SmapServerMeta.SCHEDULED_START_ID) {
+			column_name = SmapServerMeta.SCHEDULED_START_NAME;
+		} else if (qId == SmapServerMeta.UPLOAD_TIME_ID) {
+			column_name = SmapServerMeta.UPLOAD_TIME_NAME;
 		} else if(qId > 0) {
 			try {
 
@@ -1856,8 +1863,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add nodeset functions to a nodeset
 	 */
-	public static String addNodesetFunctions(String nodeset, String appearance) {
-		if (appearance != null && appearance.toLowerCase().trim().contains("randomize")) {
+	public static String addNodesetFunctions(String nodeset, String randomize) {
+		if (parameterIsSet(randomize)) {
 			return "randomize(" + nodeset + ")";
 		} else {
 			return nodeset;
@@ -3131,14 +3138,14 @@ public class GeneralUtilityMethods {
 			c.isMeta = true;
 			columnList.add(c);
 
-			if (GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
+			if (GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
 				uptodateTable = true; // This is the latest meta column that was added
 			}
 
-			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_upload_time") != null) {
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
 
 				c = new TableColumn();
-				c.name = "_upload_time";
+				c.name = SmapServerMeta.UPLOAD_TIME_NAME;
 				c.humanName = localisation.getString("a_ut");
 				c.displayName = c.humanName;
 				c.type = SmapQuestionTypes.DATETIME;
@@ -3146,7 +3153,7 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 
 				c = new TableColumn();
-				c.name = "_s_id";
+				c.name = SmapServerMeta.SURVEY_ID_NAME;
 				c.humanName = localisation.getString("a_name");
 				c.displayName = c.humanName;
 				c.type = "";
@@ -3154,6 +3161,16 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 			}
 
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
+				c = new TableColumn();
+				c.name = SmapServerMeta.SCHEDULED_START_NAME;
+				c.humanName = SmapServerMeta.SCHEDULED_START_NAME;
+				c.displayName = c.humanName;
+				c.type = SmapQuestionTypes.DATETIME;
+				c.isMeta = true;
+				columnList.add(c);
+			}
+			
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_version") != null) {
 				c = new TableColumn();
 				c.name = "_version";
@@ -3367,7 +3384,8 @@ public class GeneralUtilityMethods {
 		
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
-							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
+							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
+									cResults, localisation, user, oId, sId, qId, null);
 							if(options != null) {
 								for(Option o : options) {
 									String label ="";
@@ -3796,7 +3814,9 @@ public class GeneralUtilityMethods {
 				output.append(" || ");
 			}
 			String columnName = getColumnName(sd, sId, qname);
-			if (columnName == null && (qname.equals("prikey") || qname.equals("_start") || qname.equals("_upload_time")
+			if (columnName == null && (qname.equals("prikey") || qname.equals("_start")
+					|| qname.equals(SmapServerMeta.UPLOAD_TIME_NAME)
+					|| qname.equals(SmapServerMeta.SCHEDULED_START_NAME)
 					|| qname.equals("_end") || qname.equals("device") || qname.equals("instancename"))) {
 				columnName = qname;
 			}
@@ -4107,7 +4127,11 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get choices from an external file
 	 */
-	public static ArrayList<Option> getExternalChoices(Connection sd, ResourceBundle localisation, 
+	public static ArrayList<Option> getExternalChoices(
+			Connection sd, 
+			Connection cResults,
+			ResourceBundle localisation, 
+			String remoteUser,
 			int oId, int sId, int qId, ArrayList<String> matches) throws Exception {
 
 		ArrayList<Option> choices = new ArrayList<Option> ();		
@@ -4158,8 +4182,21 @@ public class GeneralUtilityMethods {
 						}
 						
 						if(languageItems.size() > 0) {
-							CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
-							choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches);
+							if(filename.startsWith("linked_s")) {
+								// Get data from another form
+								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
+								stm.initData(pstmt, "all", null, null, null, null, null);
+								
+								Option o = null;
+								while((o = stm.getLineAsOption(ovalue, languageItems)) != null) {
+									choices.add(o);
+								}
+								
+							} else {
+								// Get data from a csv table
+								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
+								choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches);
+							}
 						}
 					}
 					
@@ -6547,7 +6584,7 @@ public class GeneralUtilityMethods {
 		}
 		values.type = item.qType;
 		
-		if(item.name != null && item.name.equals("_s_id")) {
+		if(item.name != null && item.name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 			values.value = surveyName;
 		}
 
@@ -6689,7 +6726,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void setExternalFileValues(Connection sd, Question q) throws SQLException {
 		
-		if(q.type.startsWith("select") && isAppearanceExternalFile(q.appearance)) {
+		if((q.type.startsWith("select") || q.type.equals("rank")) && isAppearanceExternalFile(q.appearance)) {
 			ManifestInfo mi = addManifestFromAppearance(q.appearance, null);
 			q.external_choices = true;
 			q.external_table = mi.filename;
@@ -6986,6 +7023,16 @@ public class GeneralUtilityMethods {
 		
 		return formList;
 
+	}
+	
+	public static boolean parameterIsSet(String parameter) {
+		boolean isSet = false;
+		if(parameter != null) {
+			if(parameter.equals("yes") || parameter.equals("true")) {
+				isSet = true;
+			}
+		}
+		return isSet;
 	}
 
 }

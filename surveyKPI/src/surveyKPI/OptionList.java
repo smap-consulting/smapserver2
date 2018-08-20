@@ -28,6 +28,7 @@ import javax.ws.rs.core.Context;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
@@ -63,8 +64,10 @@ public class OptionList extends Application {
 			@PathParam("language") String language,
 			@PathParam("qId") int qId) { 
 	
+		String connectionString = "surveyKPI-OptionList";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-OptionList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidQuestion(sd, request.getRemoteUser(), sId, qId);
 		// End Authorisation
@@ -72,17 +75,20 @@ public class OptionList extends Application {
 		ArrayList<OptionLite> options = new ArrayList<> ();
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
+		Connection cResults = null;
 		PreparedStatement pstmt = null;
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			cResults = ResultsDataSource.getConnection(connectionString);
 			boolean external = GeneralUtilityMethods.hasExternalChoices(sd, qId);
 			
 			if(external) {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
-				ArrayList<Option> oExternal = GeneralUtilityMethods.getExternalChoices(sd, localisation, oId, sId, qId, null);
+				ArrayList<Option> oExternal = GeneralUtilityMethods.getExternalChoices(sd, 
+						cResults, localisation, request.getRemoteUser(), oId, sId, qId, null);
 				int idx = 0;
 				int languageIdx = 0;
 				for(Option o : oExternal) {
@@ -143,7 +149,8 @@ public class OptionList extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OptionList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 

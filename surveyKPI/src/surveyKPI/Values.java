@@ -112,7 +112,7 @@ public class Values extends Application {
 			/*
 			 * Add the the main question to the array of questions
 			 */
-			QuestionInfo aQ = new QuestionInfo(localisation, sId, qId, sd, false, lang, urlprefix, oId);
+			QuestionInfo aQ = new QuestionInfo(localisation, sId, qId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 
 			/*
 			 * Create the sql statement

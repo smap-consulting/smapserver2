@@ -42,6 +42,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.SqlFrag;
@@ -438,7 +439,7 @@ public class Items extends Application {
 				// Get date column information
 				QuestionInfo date = null;
 				if((dateId != 0) && (startDate != null || endDate != null)) {
-					date = new QuestionInfo(localisation, sId, dateId, sd, false, "", urlprefix, oId);	// Not interested in label any language will do
+					date = new QuestionInfo(localisation, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
 					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
 				}
@@ -590,7 +591,7 @@ public class Items extends Application {
 								jp.put("prikeys", prikeys);
 								prikeys.put(resultSet.getString("prikey"));
 								maxRec = resultSet.getInt("prikey");
-							} else if(name.equals("_s_id")) {
+							} else if(name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 								// Get the display name
 								String displayName = surveyNames.get(value);
 								if(displayName == null && value.length() > 0) {

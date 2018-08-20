@@ -23,6 +23,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
@@ -69,15 +70,17 @@ public class GetHtml {
 		gRecordCounts = recordCounts;
 		
 		String response = null;
+		String connectionString = "Get Html";
 
 		// Get the base path
 		String basePath = GeneralUtilityMethods.getBasePath(request);
-		Connection sd = SDDataSource.getConnection("Get Html");
+		Connection sd = SDDataSource.getConnection(connectionString);
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		SurveyManager sm = new SurveyManager(localisation);
 
 		try {
 
-			survey = sm.getById(sd, null, userIdent, sId, true, basePath, null, false, false, true, false,
+			survey = sm.getById(sd, cResults, userIdent, sId, true, basePath, null, false, false, true, false,
 					false, "real", false, false, superUser, null);
 
 			if(survey == null) {
@@ -113,7 +116,8 @@ public class GetHtml {
 			response = e.getMessage();
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("getXForm", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 		return response;
@@ -161,6 +165,11 @@ public class GetHtml {
 		bodyElement.setAttribute("dir", "auto");
 		bodyElement.setTextContent(survey.getDisplayName());
 		parent.appendChild(bodyElement);
+		
+		// TOC - Still work in progress in Enketo Core
+		//bodyElement = outputDoc.createElement("ol");
+		//bodyElement.setAttribute("class", "page-toc");
+		//parent.appendChild(bodyElement);
 
 		// Languages
 		bodyElement = outputDoc.createElement("select");
@@ -786,9 +795,24 @@ public class GetHtml {
 			addLabels(bodyElement, q, form);
 		}
 
+		// Input element for rank
+		if(q.type.equals("rank")) {
+			Element inputElement = outputDoc.createElement("input");
+			inputElement.setAttribute("class", "rank hide");
+			inputElement.setAttribute("type", "error");
+			inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
+			inputElement.setAttribute("data-type-xml", "rank");
+			parent.appendChild(inputElement);
+		}
+		// Option wrapper
 		Element optionWrapperElement = outputDoc.createElement("div");
-		parent.appendChild(optionWrapperElement);
-		optionWrapperElement.setAttribute("class", "option-wrapper");
+		parent.appendChild(optionWrapperElement);		
+		if(q.type.equals("rank")) {
+			optionWrapperElement.setAttribute("class", "option-wrapper widget rank-widget rank-widget--empty");
+			optionWrapperElement.setAttribute("aria-dropeffect", "move");
+		} else {
+			optionWrapperElement.setAttribute("class", "option-wrapper");
+		}
 
 		// options
 		addOptions(sd, optionWrapperElement, q, form, tableList);
@@ -1407,7 +1431,10 @@ public class GetHtml {
 	 * Attempt to get the full nodeset incorporating any external filters
 	 */
 	private String getNodeset(Question q, Form form) throws Exception {
-		return UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id);
+		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id);
+		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
+				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
+		return adjustedNodeset;
 	}
 
 	/*

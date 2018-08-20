@@ -18,6 +18,7 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Image;
+import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.AcroFields.FieldPosition;
@@ -33,7 +34,7 @@ public class PdfUtilities {
 	private static LogManager lm = new LogManager();		// Application log
 	
 	public static void addImageTemplate(AcroFields pdfForm, String fieldName, String basePath, 
-			String value, String serverRoot, PdfStamper stamper, Font Symbols) throws IOException, DocumentException {
+			String value, String serverRoot, PdfStamper stamper, Font symbols_font) throws IOException, DocumentException {
 		PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 		if(ad != null) {
 			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
@@ -56,12 +57,12 @@ public class PdfUtilities {
 			} else {
 				Rectangle targetPosition = posList.get(0).position;
 				int page = pdfForm.getFieldPositions(fieldName).get(0).page;
-			    Anchor url = new Anchor("\uf08e", Symbols);
+			    Anchor url = new Anchor("\uf08e", symbols_font);
 			    url.setReference(imageUrl);
 			    ColumnText data = new ColumnText(stamper.getOverContent(page));
-			   
+			
 			    data.setSimpleColumn(url, targetPosition.getLeft(), targetPosition.getBottom(), targetPosition.getRight(), targetPosition.getTop(), 
-			    		targetPosition.getWidth() / 2, Element.ALIGN_CENTER);
+			    		(targetPosition.getHeight() + symbols_font.getSize()) / 2, Element.ALIGN_CENTER);
 			    data.go();
 			}
 		}

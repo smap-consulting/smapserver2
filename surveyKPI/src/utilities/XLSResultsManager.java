@@ -38,6 +38,7 @@ import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -325,9 +326,12 @@ public class XLSResultsManager {
 				/*
 				 * Get the details on the date filter
 				 */
-				if(dateId == SurveyManager.UPLOAD_TIME_ID) {
+				if(dateId == SmapServerMeta.UPLOAD_TIME_ID) {
 					dateForm = Integer.parseInt(topForm.f_id);
-					dateName = "_upload_time";
+					dateName = SmapServerMeta.UPLOAD_TIME_NAME;
+				} else if(dateId == SmapServerMeta.SCHEDULED_START_ID) {
+					dateForm = Integer.parseInt(topForm.f_id);
+					dateName = SmapServerMeta.SCHEDULED_START_NAME;
 				} else if(dateId > 0) {
 
 					String sqlDateFilter = "select f_id, column_name from question where q_id = ?";
@@ -924,8 +928,8 @@ public class XLSResultsManager {
 			out.add(new CellItem(value, CellItem.INTEGER));			
 		} else if(columnName.equals("_complete")) {
 			out.add(new CellItem(value.equals("f") ? "No" : "Yes", CellItem.STRING));		
-		} else if(columnName.equals("_s_id")) {
-			String displayName = surveyNames.get(out);
+		} else if(columnName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+			String displayName = surveyNames.get(value);
 			if(displayName == null) {
 				try {
 					displayName = GeneralUtilityMethods.getSurveyName(con, Integer.parseInt(value));
@@ -938,7 +942,7 @@ public class XLSResultsManager {
 
 		} else if(columnType.equals("dateTime")) {
 			// Convert the timestamp to the excel format specified in the xl2 mso-format
-			int idx1 = out.indexOf('.');	// Drop the milliseconds
+			int idx1 = value.indexOf('.');	// Drop the milliseconds
 			if(idx1 > 0) {
 				value = value.substring(0, idx1);
 			} 

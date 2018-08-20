@@ -131,6 +131,7 @@ public class XLSXReportsManager {
 				}
 
 				String surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
+				
 				/*
 				 * Get the list of forms and surveys to be exported
 				 */
