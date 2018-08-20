@@ -226,7 +226,17 @@ public class SurveyTableManager {
 			}
 			
 			log.info("Init data: " + pstmt.toString());
-			rs = pstmt.executeQuery();
+			try {
+				rs = pstmt.executeQuery();
+			} catch (Exception e) {
+				String msg = e.getMessage();
+				if(msg != null && e.getMessage().contains("does not exist")) {
+					log.info("Attempting to get data from a survey that has had no data submitted");
+				} else {
+					log.log(Level.SEVERE, msg, e);
+				}
+				rs = null;
+			}
 		} else {
 			rs = null;
 		}

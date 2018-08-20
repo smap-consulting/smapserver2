@@ -1051,13 +1051,7 @@ public class SubRelationalDB extends Subscriber {
 								pstmtCopyChild.setInt(2, childSourcekeys.get(i));
 								pstmtCopyChild.executeUpdate();
 							}
-							//String sqlChildUpdate = "update " + tableName + " set parkey = ? where parkey = ?";
-							//pstmtChildUpdate = cRel.prepareStatement(sqlChildUpdate);
-			
-							//pstmtChildUpdate.setInt(1, prikey);
-							//pstmtChildUpdate.setInt(2, sourceKey);
-							//log.info("Updating parent keys: " + pstmtChildUpdate.toString());
-							//pstmtChildUpdate.executeUpdate();
+							
 						}
 						
 						/*
