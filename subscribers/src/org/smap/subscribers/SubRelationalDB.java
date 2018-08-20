@@ -957,8 +957,8 @@ public class SubRelationalDB extends Subscriber {
 	 * Source = the old records
 	 */
 	private void mergeTableContent(
-			Connection cMeta,
-			Connection cRel,
+			Connection sd,
+			Connection cResults,
 			int sId,
 			String table,
 			int prikey,
@@ -1003,7 +1003,7 @@ public class SubRelationalDB extends Subscriber {
 			if(sourceKey == 0) {
 				// Get the HRK that identifies duplicates
 				String hrk = null;
-				pstmtHrk = cRel.prepareStatement(sqlHrk);
+				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				pstmtHrk.setInt(1, prikey);
 				ResultSet rs = pstmtHrk.executeQuery();
 				if(rs.next()) {
@@ -1011,7 +1011,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 	
 				// Get the prikey of the source record
-				pstmtSource = cRel.prepareStatement(sqlSource);
+				pstmtSource = cResults.prepareStatement(sqlSource);
 				pstmtSource.setString(1, hrk);
 				pstmtSource.setInt(2, prikey);
 				rs = pstmtSource.executeQuery();
@@ -1022,11 +1022,12 @@ public class SubRelationalDB extends Subscriber {
 			} 
 			if(sourceKey > 0) {
 
-				mergeRecords(cRel, table, prikey, sourceKey, true);
+				mergeRecords(cResults, table, prikey, sourceKey, true);
 
 				// Get the per table merge policy for this survey
-				pstmtTableMerge = cMeta.prepareStatement(sqlTableMerge);
+				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
 				pstmtTableMerge.setInt(1, sId);
+				log.info("Get table merge policy: " + pstmtTableMerge.toString());
 				ResultSet rtm = pstmtTableMerge.executeQuery();
 				ArrayList<String> mergeTables = new ArrayList<> ();
 				ArrayList<String> replaceTables = new ArrayList<> ();
@@ -1042,9 +1043,9 @@ public class SubRelationalDB extends Subscriber {
 				
 				// Add the child records from the merged survey to the new survey
 				ResultSet rsc = null;
-				int groupId = GeneralUtilityMethods.getSurveyGroup(cMeta, sId);
+				int groupId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
 				if(groupId > 0) {
-					pstmtChildTablesInGroup = cMeta.prepareStatement(sqlChildTablesInGroup);
+					pstmtChildTablesInGroup = sd.prepareStatement(sqlChildTablesInGroup);
 					pstmtChildTablesInGroup.setInt(1,  groupId);
 					pstmtChildTablesInGroup.setInt(2,  groupId);
 					log.info("Get child tables for group: " + pstmtChildTablesInGroup.toString());
@@ -1053,7 +1054,7 @@ public class SubRelationalDB extends Subscriber {
 				} else {
 					
 					// Not in a group - update the child tables directly
-					pstmtChildTables = cMeta.prepareStatement(sqlChildTables);
+					pstmtChildTables = sd.prepareStatement(sqlChildTables);
 					pstmtChildTables.setInt(1,  sId);
 					log.info("Get child tables: " + pstmtChildTables.toString());
 					rsc = pstmtChildTables.executeQuery();
@@ -1061,13 +1062,13 @@ public class SubRelationalDB extends Subscriber {
 				
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
-					if(GeneralUtilityMethods.tableExists(cRel, tableName)) {
+					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
 						
 						/*
 						 * Transfer data from the source key to the primary key in sequence
 						 */
 						String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
-						pstmtChildKeys = cRel.prepareStatement(sqlGetChildKeys);
+						pstmtChildKeys = cResults.prepareStatement(sqlGetChildKeys);
 						ArrayList<Integer> childPrikeys = new ArrayList<> ();
 						ArrayList<Integer> childSourcekeys = new ArrayList<> ();
 						
@@ -1082,7 +1083,7 @@ public class SubRelationalDB extends Subscriber {
 							childSourcekeys.add(gk.getInt(1));
 						}
 						String sqlCopyChild = "update " + tableName + " set parkey = ? where prikey = ?";
-						pstmtCopyChild = cRel.prepareStatement(sqlCopyChild);
+						pstmtCopyChild = cResults.prepareStatement(sqlCopyChild);
 						
 						if(mergeTables.contains(tableName)) {					
 							
@@ -1092,7 +1093,7 @@ public class SubRelationalDB extends Subscriber {
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									mergeRecords(cRel, tableName, childPrikeys.get(i), childSourcekeys.get(i), false);
+									mergeRecords(cResults, tableName, childPrikeys.get(i), childSourcekeys.get(i), false);
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1119,7 +1120,7 @@ public class SubRelationalDB extends Subscriber {
 						 *  so that we can preserve order of children which is determined by their primary keys
 						 *  However if the record was merged then the order of the old records will be wrong
 						 */
-						pstmtCopyBack = cRel.prepareStatement(getCopyBackSql(cRel, tableName, sourceKey));
+						pstmtCopyBack = cResults.prepareStatement(getCopyBackSql(cResults, tableName, sourceKey));
 						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
 							//System.out.println("Copy back: Table: " + tableName + " key: " + childSourcekeys.get(i) + " original parent: " + sourceKey);
 							if(copiedSourceKeys.contains(childSourcekeys.get(i))) {
@@ -1138,7 +1139,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 
 			if(sourceKey > 0) {
-				UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, table, 
+				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
 						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true);
 			}
 
