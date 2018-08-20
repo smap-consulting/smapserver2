@@ -1257,9 +1257,17 @@ public class XLSTemplateUploadManager {
 	
 	private void setFormMerge(ArrayList<KeyValueSimp>  parameters, Form f) throws ApplicationException {
 		if(parameters != null) {
-			String ref = GeneralUtilityMethods.getSurveyParameter("merge", parameters);
+			String ref = GeneralUtilityMethods.getSurveyParameter("merge", parameters);	// deprecate
 			if(ref != null) {
 				f.merge = true;			
+			}
+			ref = GeneralUtilityMethods.getSurveyParameter("key_policy", parameters);
+			if(ref != null) {
+				if(ref.equals("replace")) {
+					f.replace = true;
+				} else if(ref.equals("merge")) {
+					f.merge = true;
+				}
 			}
 			
 		}
