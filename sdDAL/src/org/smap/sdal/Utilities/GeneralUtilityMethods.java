@@ -4138,7 +4138,7 @@ public class GeneralUtilityMethods {
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
-		String sqlChoices = "select ovalue, label_id from option where l_id = ? and not externalfile";
+		String sqlChoices = "select ovalue, label_id from option where l_id = ? and not externalfile order by seq asc";
 		PreparedStatement pstmtChoices = null;
 			
 		String sqlLabels = "select t.value, t.language " 
@@ -4164,6 +4164,7 @@ public class GeneralUtilityMethods {
 					
 					pstmtChoices = sd.prepareStatement(sqlChoices);
 					pstmtChoices.setInt(1, l_id);
+					log.info("Get choices: " + pstmtChoices.toString());
 					ResultSet rsChoices = pstmtChoices.executeQuery();
 					if(rsChoices.next()) {
 						String ovalue = rsChoices.getString(1);
