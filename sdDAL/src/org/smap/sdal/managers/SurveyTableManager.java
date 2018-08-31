@@ -60,6 +60,7 @@ public class SurveyTableManager {
 		private String order_by;
 		private boolean hasWhere = false; 
 		private ArrayList<String> colNames;
+		private ArrayList<String> qnames;
 		private boolean hasRbacFilter = false;
 		private ArrayList<SqlFrag> rfArray = null;
 	}
@@ -262,12 +263,12 @@ public class SurveyTableManager {
 		if(rs != null && rs.next()) {
 			line = new ArrayList<KeyValueSimp> ();
 			for (int i = 0; i < sqlDef.colNames.size(); i++) {
-				String col = sqlDef.colNames.get(i);
-				String value = rs.getString(col);
+				String qname = sqlDef.qnames.get(i);
+				String value = rs.getString(qname);
 				if (value == null) {
 					value = "";
 				}
-				line.add(new KeyValueSimp(col, value));
+				line.add(new KeyValueSimp(qname, value));
 			}
 		}
 		return line;
@@ -722,6 +723,7 @@ public class SurveyTableManager {
 
 		sqlDef.sql = sql.toString();
 		sqlDef.colNames = colNames;
+		sqlDef.qnames = qnames;
 		return sqlDef;
 	}
 	
