@@ -140,12 +140,14 @@ public class SurveyViewManager {
 			}
 			
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 					sd,
 					cResults,
 					localisation,
 					language,
 					sId,
+					surveyIdent,
 					uIdent,
 					0,
 					f.id,

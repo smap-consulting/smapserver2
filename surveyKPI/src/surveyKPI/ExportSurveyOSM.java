@@ -155,17 +155,17 @@ public class ExportSurveyOSM extends Application {
 		}
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ExportSurveyOSM");
+		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyOSM");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export as OSM");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export as OSM");
 		
 		String escapedFileName = null;
 		try {
@@ -195,7 +195,7 @@ public class ExportSurveyOSM extends Application {
 
 			try {
  
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request,request.getRemoteUser()));
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request,request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				HashMap<Integer, FormDesc> forms = new HashMap<Integer, FormDesc> ();			// A description of each form in the survey
@@ -212,10 +212,11 @@ public class ExportSurveyOSM extends Application {
 						" WHERE s_id = ? " +
 						" ORDER BY f_id;";	
 
-				pstmt = connectionSD.prepareStatement(sql);	
+				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, sId);
 				ResultSet resultSet = pstmt.executeQuery();
 				
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				while (resultSet.next()) {
 
 					FormDesc fd = new FormDesc();
@@ -250,11 +251,12 @@ public class ExportSurveyOSM extends Application {
 				for(FormDesc f : formList) {
 					
 					f.cols = GeneralUtilityMethods.getColumnsInForm(
-							connectionSD,
+							sd,
 							connectionResults,
 							localisation,
 							language,
 							sId,
+							surveyIdent,
 							request.getRemoteUser(),
 							f.parent,
 							f.f_id,
@@ -345,7 +347,7 @@ public class ExportSurveyOSM extends Application {
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 				try {if (pstmt2 != null) {pstmt2.close();	}} catch (SQLException e) {	}
 
-				SDDataSource.closeConnection("surveyKPI-ExportSurveyOSM", connectionSD);
+				SDDataSource.closeConnection("surveyKPI-ExportSurveyOSM", sd);
 				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
 			}
 		}

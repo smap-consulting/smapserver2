@@ -500,7 +500,7 @@ public class PDFSurveyManager {
 					matches.add(r.value);
 					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
 							question.external_choices, question.external_table, 
-							survey.languages.get(languageIdx).name, matches);
+							survey.languages.get(languageIdx).name, matches, survey.ident);
 					
 				} else if(r.type.equals("select")) {
 					
@@ -517,7 +517,7 @@ public class PDFSurveyManager {
 						Question question = form.questions.get(r.qIdx);
 						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id,  question.external_choices, 
 								question.external_table, 
-								survey.languages.get(languageIdx).name, matches);
+								survey.languages.get(languageIdx).name, matches, survey.ident);
 					}
 					
 				} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
@@ -1806,7 +1806,7 @@ public class PDFSurveyManager {
 					matches.add(di.value);
 					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
 							question.external_choices, question.external_table, 
-							survey.languages.get(languageIdx).name, matches);
+							survey.languages.get(languageIdx).name, matches, survey.ident);
 				} else if(di.type.equals("select")) {
 					String nameValue = value;
 					if(nameValue != null) {
@@ -1821,7 +1821,7 @@ public class PDFSurveyManager {
 						Question question = form.questions.get(di.qIdx);
 						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, 
 									question.l_id, question.external_choices, question.external_table, 
-									survey.languages.get(languageIdx).name, matches);
+									survey.languages.get(languageIdx).name, matches, survey.ident);
 					}
 				}
 				

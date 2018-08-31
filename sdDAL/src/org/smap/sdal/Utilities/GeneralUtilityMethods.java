@@ -2996,6 +2996,7 @@ public class GeneralUtilityMethods {
 			ResourceBundle localisation,
 			String language,
 			int sId, 
+			String surveyIdent,
 			String user,
 			int formParent, 
 			int f_id, 
@@ -3385,7 +3386,7 @@ public class GeneralUtilityMethods {
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent);
 							if(options != null) {
 								for(Option o : options) {
 									String label ="";
@@ -4132,7 +4133,8 @@ public class GeneralUtilityMethods {
 			Connection cResults,
 			ResourceBundle localisation, 
 			String remoteUser,
-			int oId, int sId, int qId, ArrayList<String> matches) throws Exception {
+			int oId, int sId, int qId, ArrayList<String> matches,
+			String surveyIdent) throws Exception {
 
 		ArrayList<Option> choices = new ArrayList<Option> ();		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
@@ -4184,6 +4186,9 @@ public class GeneralUtilityMethods {
 						
 						if(languageItems.size() > 0) {
 							if(filename.startsWith("linked_s")) {
+								if(filename.equals("linked_self")) {
+									filename = "linked_" + surveyIdent;
+								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
 								stm.initData(pstmt, "all", null, null, null, null, null);

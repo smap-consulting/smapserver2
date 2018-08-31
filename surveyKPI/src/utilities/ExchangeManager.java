@@ -178,6 +178,7 @@ public class ExchangeManager {
 				/*
 				 * Create a work sheet for each form
 				 */
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				for(FormDesc f : formList) {
 					
 					sheet = wb.createSheet("d_" + f.name);	
@@ -196,6 +197,7 @@ public class ExchangeManager {
 							localisation,
 							language,
 							sId,
+							surveyIdent,
 							user,
 							parentId,
 							f.f_id,

@@ -86,9 +86,10 @@ public class OptionList extends Application {
 			boolean external = GeneralUtilityMethods.hasExternalChoices(sd, qId);
 			
 			if(external) {
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 				ArrayList<Option> oExternal = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, request.getRemoteUser(), oId, sId, qId, null);
+						cResults, localisation, request.getRemoteUser(), oId, sId, qId, null, surveyIdent);
 				int idx = 0;
 				int languageIdx = 0;
 				for(Option o : oExternal) {

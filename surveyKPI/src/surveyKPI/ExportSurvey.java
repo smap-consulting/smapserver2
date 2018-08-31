@@ -390,6 +390,7 @@ public class ExportSurvey extends Application {
 				 *  1) The maximum number of repeats (if the form is to be flattened)
 				 *  2) The columns that contain the data to be shown
 				 */
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				for(FormDesc f : formList) {
 					TableColumn c;
 					int parentId = 0;
@@ -403,6 +404,7 @@ public class ExportSurvey extends Application {
 							localisation,
 							language,
 							sId,
+							surveyIdent,
 							request.getRemoteUser(),
 							parentId,
 							Integer.parseInt(f.f_id),

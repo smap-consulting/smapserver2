@@ -445,12 +445,14 @@ public class SubscriberBatch {
 									boolean getParkey = false;	// For top level form TODO loop through forms
 									boolean mgmt = false;		// TODO get from notification
 									int managedId = 0;			// TODO get from notification
+									String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 									ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
 											sd,
 											cResults,
 											localisation,
 											language,
 											sId,
+											surveyIdent,
 											null,		// No need for user - we are super user
 											topForm.parentform,
 											topForm.id,

@@ -324,6 +324,7 @@ public class Data extends Application {
 					localisation,
 					language,
 					sId,
+					sIdent,
 					request.getRemoteUser(),
 					parentform,
 					fId,
@@ -561,12 +562,14 @@ public class Data extends Application {
 				rs.close();
 			}
 
+			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
 					sd,
 					cResults,
 					localisation,
 					language,
 					sId,
+					surveyIdent,
 					request.getRemoteUser(),
 					parentform,
 					fId,

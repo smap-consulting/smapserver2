@@ -401,12 +401,14 @@ public class QueryGenerator {
 		
 		tables.add(form.table);
 
+		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 		 ArrayList<TableColumn> cols = GeneralUtilityMethods.getColumnsInForm(
 				sd,
 				cResults,
 				localisation,
 				language,
 				sId,
+				surveyIdent,
 				user,
 				form.parent,
 				form.form,

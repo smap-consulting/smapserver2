@@ -219,12 +219,14 @@ public class Items extends Application {
 					jTotals.put("bad_count", resultSet.getInt(1));
 				}
 				
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						cResults,
 						localisation,
 						language,
 						sId,
+						surveyIdent,
 						request.getRemoteUser(),
 						parent,
 						fId,

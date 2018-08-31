@@ -185,8 +185,9 @@ public class QuestionInfo {
 							}
 						} else {
 							// External
+							String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent);
 							int idx = 0;
 							int languageIdx = 0;
 							

@@ -314,11 +314,13 @@ public class ManagedForms extends Application {
 				qm.getDataProcessingConfig(sd, managedId, svd, null, oId);
 					
 				org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form		
+				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				ArrayList<TableColumn> formColumns = GeneralUtilityMethods.getColumnsInForm(sd, 
 						cResults,
 						localisation,
 						language,
 						sId,
+						surveyIdent,
 						user,
 						0,
 						f.id, 

@@ -323,7 +323,8 @@ public class TableManager {
 	public void writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
 
 		String response = null;
-		boolean hasHrk = (template.getHrk() != null);
+		//boolean hasHrk = (template.getHrk() != null);
+		boolean hasHrk = true;		// Always create the hrk column
 		boolean resAutoCommitSetFalse = false;
 
 		boolean tableCreated = false;
