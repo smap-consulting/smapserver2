@@ -255,16 +255,25 @@ public class GeneralUtilityMethods {
 	static public boolean isBusinessServer(String host) {
 
 		boolean businessServer = true;
-
+		if(host.endsWith("smap.com.au") 
+				&& !host.equals("sg.smap.com.au")
+				&& !host.equals("dev.smap.com.au")) {
+			businessServer = false;
+		}
+		/*
 		if (!host.endsWith("zarkman.com") 
 				&& !host.equals("localhost") 
 				&& !host.startsWith("10.0")
 				&& !host.endsWith(".kontrolid.com")
 				&& !host.contains("ezpilot")
+				&& !host.endsWith("reachnettechnologies.com")
+				&& !host.endsWith("datacollect.icanreach.com") 
+				&& !host.endsWith("encontactone.com")
 				&& !host.equals("sg.smap.com.au")
 				&& !host.equals("dev.smap.com.au")) {
 			businessServer = false;
 		}
+		*/
 		return businessServer;
 	}
 
@@ -5114,7 +5123,7 @@ public class GeneralUtilityMethods {
 
 		try {
 			pstmt = conn.prepareStatement(sqlTableExists);
-			pstmt.setString(1, tableName);
+			pstmt.setString(1, tableName.toLowerCase());
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {

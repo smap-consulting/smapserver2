@@ -1017,8 +1017,8 @@ public class GetHtml {
 				
 				String label = o.labels.get(idx).text;
 				try {
-					label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name);
 					label = convertMarkdown(label);
+					label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name);
 
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
@@ -1095,8 +1095,8 @@ public class GetHtml {
 
 			String label = q.labels.get(idx).text;
 			try {
-				label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name);
 				label = convertMarkdown(label);
+				label = UtilityMethods.convertAllxlsNames(label, true, paths, form.id, true, q.name);
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, e.getMessage(), e);
@@ -1113,8 +1113,8 @@ public class GetHtml {
 				bodyElement.setAttribute("data-itext-id", q.hint_id);
 
 				try {
-					hint = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
 					hint = convertMarkdown(hint);
+					hint = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
@@ -1347,13 +1347,31 @@ public class GetHtml {
 				out.append(in.substring(start));
 			}
 			
-			// Apply other markdown
+			// Escape characters that should not be converted
 			String outString = out.toString();
 			outString = outString.replaceAll("\\\\&", "&amp;");
 			outString = outString.replaceAll("\\\\\\\\", "&92;");
 			outString = outString.replaceAll("\\\\\\*", "&42;");
 			outString = outString.replaceAll("\\\\_", "&95;");
 			outString = outString.replaceAll("\\\\#", "&35;");
+
+			// Escape underscores in names
+			boolean inName = false;
+			StringBuffer outBuffer = new StringBuffer("");
+			for(int i = 0; i < outString.length(); i++) {
+				if(i < (outString.length() - 1) && outString.charAt(i) == '$' && outString.charAt(i + 1) == '{') {
+					inName = true;
+					outBuffer.append(outString.charAt(i));
+				} else if(outString.charAt(i) == '}') {
+					inName = false;
+					outBuffer.append(outString.charAt(i));
+				} else if(inName && outString.charAt(i) == '_') {
+					outBuffer.append("&95;");
+				} else {
+					outBuffer.append(outString.charAt(i));
+				}
+			}
+			outString = outBuffer.toString();
 			
 			outString = outString.replaceAll("__(.*?)__", "<strong>$1</strong>");						// Strong: __
 			outString = outString.replaceAll("\\*\\*(.*?)\\*\\*", "<strong>$1</strong>");				// Strong: **

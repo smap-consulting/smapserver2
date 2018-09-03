@@ -432,7 +432,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_send = resultSet.getString(8);
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
-				tr.settings.ft_location_trigger = GeneralUtilityMethods.isBusinessServer(request.getServerName());
+				tr.settings.ft_location_trigger = true;
 			}
 
 			/*
