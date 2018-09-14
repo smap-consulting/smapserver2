@@ -222,37 +222,31 @@ public class ExchangeManager {
 						c = f.columnList.get(j);
 						String name = c.name;
 						String qType = c.type;
-						String humanName = c.humanName;
-						boolean isSelectMultiple = false;
-						String selectMultipleQuestionName = null;
+						String humanName;
 						String optionName = null;
 						
 						// Hack for meta values use the column name as the human name may have been translated
 						if(c.isMeta) {
 							humanName = name;
-						}
-						if(qType.equals("select")) {
-							isSelectMultiple = true;
-							selectMultipleQuestionName = c.question_name;
-							optionName = c.option_name;
+						} else if(qType.equals("select")) {
+							humanName = c.question_name;
+						} else {
+							humanName = c.humanName;
 						}
 						
-						boolean skipSelectMultipleOption = false;
-						if(isSelectMultiple) {
-							humanName = selectMultipleQuestionName;
+						if(qType.equals("select")) {
+							optionName = c.option_name;
+
 							selMultChoiceNames.put(name, optionName);		// Add the name of sql column to a look up table for the get data stage
 							String n = selectMultipleColumnNames.get(humanName);
-							if(n != null) {
-								skipSelectMultipleOption = true;
-							} else {
+							if(n == null) {
+								// New Select multiple
 								selectMultipleColumnNames.put(humanName, humanName);		// Record that we have this select multiple
+								addToHeader(sd, cols, "none", humanName, name, qType, sId, f,true);
 							}
-						}
-						
-						if(!skipSelectMultipleOption) {
+						} else {
 							addToHeader(sd, cols, "none", humanName, name, qType, sId, f,true);
 						}
-								
 						
 						// Set the sql selection text for this column
 						String selName = null;

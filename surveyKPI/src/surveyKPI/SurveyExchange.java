@@ -62,8 +62,9 @@ public class SurveyExchange extends Application {
 		
 		Response responseVal = null;
 		
+		String connectionName = "surveyKPI-ExportSurveyTransfer";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyTransfer");
+		Connection sd = SDDataSource.getConnection(connectionName);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -82,7 +83,7 @@ public class SurveyExchange extends Application {
 			
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export all Survey Data");
 			
-			connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurveyTransfer");
+			connectionResults = ResultsDataSource.getConnection(connectionName);
 			
 			GeneralUtilityMethods.setFilenameInResponse(filename + ".zip", response);
 			response.setHeader("Content-type",  "application/octet-stream; charset=UTF-8");
@@ -118,8 +119,8 @@ public class SurveyExchange extends Application {
 			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-ExportSurveyTransfer", sd);	
-			ResultsDataSource.closeConnection("surveyKPI-ExportSurveyTransfer", connectionResults);
+			SDDataSource.closeConnection(connectionName, sd);	
+			ResultsDataSource.closeConnection(connectionName, connectionResults);
 			
 		}
 		

@@ -3376,6 +3376,7 @@ public class GeneralUtilityMethods {
 					c.name = question_column_name;
 					c.humanName = question_human_name;
 					c.displayName = (display_name == null || display_name.trim().length() == 0) ? question_human_name : display_name;
+					c.question_name = question_human_name;
 					c.qId = qId;
 					c.type = qType;
 					c.readonly = ro;
