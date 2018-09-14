@@ -1216,34 +1216,35 @@ public class GetXForm {
 
 			while (line != null) {
 				line = br.readLine();
-				if (line != null) {
+				if (line != null && line.trim().length() > 0) {
 					String[] values = parser.parseLine(line);
-
-					Element item = outputXML.createElement("item");
-					parent.appendChild(item);
-					Element elem = null;
-					for (int i = 0; i < cols.length; i++) {
-						try {
-							elem = outputXML.createElement(cols[i]);
-							String v = values[i];
-							v = v.replaceAll("'", "");
-							elem.setTextContent(v);
-							item.appendChild(elem);
-						} catch (Exception e) {
-							String msg = localisation.getString("msg_inv_col");
-							msg = msg.replaceAll("%s1", cols[i]);
-							msg = msg.replaceAll("%s2", file.getName());
-							throw new Exception (msg);
+					
+					if(values.length == cols.length) {
+						Element item = outputXML.createElement("item");
+						parent.appendChild(item);
+						Element elem = null;
+						for (int i = 0; i < cols.length; i++) {
+							try {
+								elem = outputXML.createElement(cols[i]);
+								String v = values[i];
+								v = v.replaceAll("'", "");
+								elem.setTextContent(v);
+								item.appendChild(elem);
+							} catch (Exception e) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+								String msg = localisation.getString("msg_inv_col");
+								msg = msg.replaceAll("%s1", cols[i]);
+								msg = msg.replaceAll("%s2", file.getName());
+								throw new Exception (msg);
+							}
 						}
+					} else {
+						log.info("Error: Values length is " + values.length + " and column length is " + cols.length);
 					}
 				}
 			}
 		} finally {
-			try {
-				br.close();
-			} catch (Exception e) {
-			}
-			;
+			try {br.close();} catch (Exception e) {}
 		}
 	}
 	
