@@ -865,6 +865,7 @@ public class Surveys extends Application {
 						+ "and qtype != 'begin group' "
 						+ "and qtype != 'geopolygon' "
 						+ "and qtype != 'geolinestring' "
+						+ "and qtype != 'note' "
 						+ "and f_id in (select f_id from form where s_id = ?);"; 
 			
 				pstmtRequired = sd.prepareStatement(sqlRequired);	
