@@ -1,8 +1,5 @@
 package surveyKPI;
 
-
-
-
 /*
 This file is part of SMAP.
 
