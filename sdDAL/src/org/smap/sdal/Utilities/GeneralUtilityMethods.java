@@ -3383,6 +3383,7 @@ public class GeneralUtilityMethods {
 					c.hxlCode = hxlCode;
 					c.l_id = l_id;
 					c.compressed = compressed;
+				
 					if (GeneralUtilityMethods.isPropertyType(source_param, question_column_name)) {
 						if (includePreloads) {
 							columnList.add(c);

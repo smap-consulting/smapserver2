@@ -390,7 +390,6 @@ public class XLSResultsManager {
 							false		// Don't include audit data
 							);
 
-
 					for(int k = 0; k < f.maxRepeats; k++) {
 						for(int j = 0; j < f.columnList.size(); j++) {
 

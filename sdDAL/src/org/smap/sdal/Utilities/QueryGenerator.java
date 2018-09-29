@@ -425,7 +425,7 @@ public class QueryGenerator {
 				false,				// HXL only include with XLS exports
 				false				// Don't include audit data
 				);
-	
+			
 		StringBuffer colBuf = new StringBuffer();
 		int idx = 0;
 		
