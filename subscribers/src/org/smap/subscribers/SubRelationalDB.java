@@ -161,7 +161,6 @@ public class SubRelationalDB extends Subscriber {
 			Class.forName(dbClassMeta);		 
 			sd = DriverManager.getConnection(databaseMeta, userMeta, passwordMeta);
 			cResults = DriverManager.getConnection(database, user, password);
-			//Authorise a = new Authorise(null, Authorise.ENUM);
 			
 			this.survey = survey;
 

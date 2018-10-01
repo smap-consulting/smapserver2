@@ -890,6 +890,7 @@ public class CsvTableManager {
 					pstmt.setString(i + 1, data[i]);
 				}
 				pstmt.executeUpdate();
+				log.info("Insert csv values: " + pstmt.toString());
 			}
 			
 		} finally {
@@ -925,11 +926,11 @@ public class CsvTableManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			for(String r : records) {
-				System.out.println("Remove record: " + r);
 				String[] data = parser.parseLine(r);
 				for(int i = 0; i < data.length; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
+				log.info("Remove record: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
