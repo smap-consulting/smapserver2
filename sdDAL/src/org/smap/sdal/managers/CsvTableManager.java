@@ -286,6 +286,7 @@ public class CsvTableManager {
 			/*
 			 * 3. Upload the data
 			 */
+			delta = false;			// XXXX temporarily disable delta's they are not used yet and there is a risk that they could go wrong
 			if(delta) {
 				remove(listDel);
 				insert(listAdd);
