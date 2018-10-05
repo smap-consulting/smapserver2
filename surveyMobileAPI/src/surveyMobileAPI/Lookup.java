@@ -264,7 +264,15 @@ public class Lookup extends Application{
 					int idx = 0;
 					results = new ArrayList<SelectChoice> ();
 					while((line = stm.getLineAsHash()) != null) {
-						SelectChoice choice = new SelectChoice(line.get(valueColumn), line.get(labelColumns), idx++);
+						String[] lArray = labelColumns.split(",");
+						StringBuffer lOutput = new StringBuffer("");
+						for(String l : lArray) {
+							if(lOutput.length() > 0) {
+								lOutput.append(", ");
+							}
+							lOutput.append(line.get(l.trim()));
+						}
+						SelectChoice choice = new SelectChoice(line.get(valueColumn), lOutput.toString(), idx++);
 						results.add(choice);
 					}
 				} else {
