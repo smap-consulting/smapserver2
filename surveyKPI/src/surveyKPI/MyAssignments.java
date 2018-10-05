@@ -383,7 +383,7 @@ public class MyAssignments extends Application {
 				fl.project = survey.projectName;
 				fl.pid = survey.pId;
 				fl.tasks_only = survey.projectTasksOnly;
-				fl.hasManifest = translationMgr.hasManifest(sd, userName, survey.id);
+				fl.hasManifest = hasManifest;
 
 				// If a new manifest then mark the form dirty so it will be checked to see if it needs to be downloaded
 				if(hasManifest) {

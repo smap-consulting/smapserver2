@@ -469,12 +469,15 @@ public class ExternalFileManager {
 		boolean regenerate = false;
 		boolean tableExists = true;
 
-		String sql = "select count (*) from linked_forms " + "where linked_s_id = ? " + "and linker_s_id = ? "
+		String sql = "select count (*) from linked_forms " 
+				+ "where linked_s_id = ? " 
+				+ "and linker_s_id = ? "
 				+ "and link_file = ? ";
 		PreparedStatement pstmt = null;
 
 		String sqlInsert = "insert into linked_forms "
-				+ "(Linked_s_id, linker_s_id, link_file, user_ident, download_time) " + "values(?, ?, ?, ?, now())";
+				+ "(Linked_s_id, linker_s_id, link_file, user_ident, download_time) " 
+				+ "values(?, ?, ?, ?, now())";
 		PreparedStatement pstmtInsert = null;
 
 		try {
@@ -518,19 +521,8 @@ public class ExternalFileManager {
 
 			}
 		} finally {
-			if (pstmt != null) {
-				try {
-					pstmt.close();
-				} catch (Exception e) {
-				}
-			}
-			;
-			if (pstmtInsert != null) {
-				try {
-					pstmtInsert.close();
-				} catch (Exception e) {
-				}
-			}
+			if (pstmt != null) {	try {pstmt.close();} catch (Exception e) {}}
+			if (pstmtInsert != null) {try {pstmtInsert.close();} catch (Exception e) {}}
 		}
 
 		if (tableExists && !fileExists) {
