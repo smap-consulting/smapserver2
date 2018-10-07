@@ -1263,7 +1263,8 @@ public class GetXForm {
 				Element elem = null;
 				for(KeyValueSimp kv : line) {
 					elem = outputXML.createElement(kv.k);
-					elem.setTextContent(kv.v);
+					String v = kv.v.replaceAll("'", "");
+					elem.setTextContent(v);
 					item.appendChild(elem);
 				}
 				line = stm.getLine();

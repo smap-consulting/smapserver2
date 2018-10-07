@@ -585,43 +585,45 @@ public class TaskManager {
 				int tgId = rs.getInt(1);
 				String tgName = rs.getString(2);
 				AssignFromSurvey as = new Gson().fromJson(rs.getString(3), AssignFromSurvey.class);
-				String addressString = rs.getString(4);
-				ArrayList<TaskAddressSettings> address = null;
-				if(addressString != null) {
-					address = new Gson().fromJson(addressString, new TypeToken<ArrayList<TaskAddressSettings>>() {}.getType());
-				}
-				int target_s_id = rs.getInt(5);
-
-				log.info("Assign Survey String: " + rs.getString(3));
-				log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
-
-				/*
-				 * Check filter to see if this rule should be fired
-				 * In addition avoid permanent loops of tasks being reassigned after completion
-				 *   Don't fire if form to be updated is the same one that has been submitted 
-				 */
-				boolean fires = false;
-				if(as.add_future  && source_s_id != target_s_id) {
-					log.info("Rule fired however target = source");
-				}
-				
-				if(as.filter != null && as.filter.advanced != null) {
-					fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
-					if(!fires) {
-						log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
+				if(as.add_future) {
+					String addressString = rs.getString(4);
+					ArrayList<TaskAddressSettings> address = null;
+					if(addressString != null) {
+						address = new Gson().fromJson(addressString, new TypeToken<ArrayList<TaskAddressSettings>>() {}.getType());
 					}
-				} else {
-					fires = true;
-				}
-				
-
-				if(fires) {
-					log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
-							" task survey: " + target_s_id);
-					TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
-							source_s_id, instanceId, as, address); // Get data from new submission
-					writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, source_s_id, 
-							target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
+					int target_s_id = rs.getInt(5);
+	
+					log.info("Assign Survey String: " + rs.getString(3));
+					log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
+	
+					/*
+					 * Check filter to see if this rule should be fired
+					 * In addition avoid permanent loops of tasks being reassigned after completion
+					 *   Don't fire if form to be updated is the same one that has been submitted 
+					 */
+					boolean fires = false;
+					if(as.add_future  && source_s_id != target_s_id) {
+						log.info("Rule fired however target = source");
+					}
+					
+					if(as.filter != null && as.filter.advanced != null) {
+						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
+						if(!fires) {
+							log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
+						}
+					} else {
+						fires = true;
+					}
+					
+	
+					if(fires) {
+						log.info("userevent: rule fires: " + (as.filter == null ? "no filter" : "yes filter") + " for survey: " + source_s_id + 
+								" task survey: " + target_s_id);
+						TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
+								source_s_id, instanceId, as, address); // Get data from new submission
+						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, source_s_id, 
+								target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
+					}
 				}
 			}
 

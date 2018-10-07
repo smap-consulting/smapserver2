@@ -1312,7 +1312,7 @@ public class GetHtml {
 	}
 
 	/*
-	 * Convert Makdown as per support in Enketo
+	 * Convert Markdown as per support in Enketo
 	 *  Supported
 	 *     links:  [xxx](url)
 	 *     strong: __, ** 
