@@ -2215,7 +2215,8 @@ public class TaskManager {
 											scheme,
 											server,
 											emailKey,
-											localisation);
+											localisation,
+											organisation.server_description);
 									setAssignmentStatus(sd, msg.aId, "accepted");
 								}
 							}

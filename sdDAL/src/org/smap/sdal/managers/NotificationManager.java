@@ -711,7 +711,8 @@ public class NotificationManager {
 											msg.scheme,
 											msg.server,
 											emailKey,
-											localisation);
+											localisation,
+											organisation.server_description);
 								}
 							}
 						} catch(Exception e) {

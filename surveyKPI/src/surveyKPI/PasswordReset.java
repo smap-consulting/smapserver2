@@ -133,7 +133,8 @@ public class PasswordReset extends Application {
 					    		request.getScheme(),
 					    		request.getServerName(),
 					    		emailKey,
-					    		localisation);
+					    		localisation,
+					    		null);
 					    response = Response.ok().build();
 					} else {
 						String msg = "Error password reset.  Email not enabled on this server.";

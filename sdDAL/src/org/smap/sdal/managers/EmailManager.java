@@ -86,7 +86,8 @@ public class EmailManager {
 			String scheme,
 			String serverName,
 			String emailKey,
-			ResourceBundle localisation) throws Exception  {
+			ResourceBundle localisation,
+			String serverDescription) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -195,10 +196,15 @@ public class EmailManager {
 
 			} else if(type.equals("newuser")) {
 
-				txtMessage.append(adminName);
-				txtMessage.append(" ");
-				txtMessage.append(localisation.getString("email_hga"));
-				txtMessage.append(" " + scheme + "://");
+				txtMessage.append(adminName).append(" ");
+				txtMessage.append(localisation.getString("email_hga1")).append(" ");
+				if(serverDescription == null) {
+					txtMessage.append(localisation.getString("email_hga2")).append(" ");
+				} else {
+					txtMessage.append(serverDescription).append(" ");
+				}
+				txtMessage.append(localisation.getString("email_hga3")).append(" ");
+				txtMessage.append(scheme).append("://");
 				txtMessage.append(serverName);
 				txtMessage.append("\n");
 				txtMessage.append(localisation.getString("email_sp"));

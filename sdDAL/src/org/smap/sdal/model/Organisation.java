@@ -51,6 +51,7 @@ public class Organisation {
 	public String website;
 	public String locale;
 	public String timeZone;
+	public String server_description;
 
 	public String getAdminEmail() {
 

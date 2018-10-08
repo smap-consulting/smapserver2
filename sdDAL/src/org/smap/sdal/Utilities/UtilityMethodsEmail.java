@@ -277,11 +277,12 @@ public class UtilityMethodsEmail {
 
 		Organisation o = new Organisation();
 
-		String sql = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host, " +
-				" o.email_domain, o.default_email_content,"
-				+ "o.locale, o.company_email, o.timezone, o.email_task " +
-				" from organisation o " +
-				" where o.id = ? ";
+		String sql = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host,"
+				+ "o.email_domain, o.default_email_content,"
+				+ "o.locale, o.company_email, o.timezone, o.email_task,"
+				+ "o.server_description "
+				+ "from organisation o "
+				+ "where o.id = ? ";
 
 		PreparedStatement pstmt = null;
 
@@ -306,6 +307,7 @@ public class UtilityMethodsEmail {
 					o.locale = "en";
 				}
 				o.email_task = rs.getBoolean(11);
+				o.server_description = rs.getString(12);
 
 			}
 		} catch (SQLException e) {

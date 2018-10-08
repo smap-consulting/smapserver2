@@ -409,7 +409,8 @@ public class UserManager {
 						scheme,
 						serverName,
 						emailKey,
-						localisation);
+						localisation,
+						organisation.server_description);
 
 			}
 		}  finally {		
