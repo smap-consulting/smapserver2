@@ -135,7 +135,8 @@ public class OrganisationList extends Application {
 					+ "default_email_content, "
 					+ "website, "
 					+ "locale,"
-					+ "timezone "
+					+ "timezone,"
+					+ "server_description "
 					+ "from organisation "
 					+ "order by name asc;";			
 						
@@ -183,6 +184,7 @@ public class OrganisationList extends Application {
 				if(org.timeZone == null) {
 					org.timeZone = "UTC";
 				}
+				org.server_description = resultSet.getString("server_description");
 				organisations.add(org);
 			}
 	

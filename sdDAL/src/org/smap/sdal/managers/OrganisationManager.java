@@ -74,6 +74,7 @@ public class OrganisationManager {
 				" website = ?, " +
 				" locale = ?, " +
 				" timezone = ?, " +
+				" server_description = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -103,8 +104,9 @@ public class OrganisationManager {
 			pstmt.setString(18, o.website);
 			pstmt.setString(19, o.locale);
 			pstmt.setString(20, o.timeZone);
-			pstmt.setString(21, userIdent);
-			pstmt.setInt(22, o.id);
+			pstmt.setString(21, o.server_description);
+			pstmt.setString(22, userIdent);
+			pstmt.setInt(23, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();

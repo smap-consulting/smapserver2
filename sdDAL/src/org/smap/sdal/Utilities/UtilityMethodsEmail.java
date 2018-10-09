@@ -216,11 +216,12 @@ public class UtilityMethodsEmail {
 
 		Organisation o = new Organisation();
 
-		String sqlOrganisation = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host, " +
-				" o.email_domain, o.default_email_content,"
-				+ "o.locale, o.company_email, o.timezone " +
-				" from organisation o, users u " +
-				" where u.o_id = o.id ";
+		String sqlOrganisation = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host, "
+				+ "o.email_domain, o.default_email_content,"
+				+ "o.locale, o.company_email, o.timezone,"
+				+ "o.server_description "
+				+ "from organisation o, users u "
+				+ "where u.o_id = o.id ";
 		String sqlUser = " and u.ident = ?;";
 		String sqlEmail = " and u.email ilike ?;";
 		String sql = null;
@@ -253,6 +254,7 @@ public class UtilityMethodsEmail {
 				o.locale = rs.getString(8);
 				o.company_email = rs.getString(9);
 				o.timeZone = rs.getString(10);
+				o.server_description = rs.getString(11);
 			}
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
