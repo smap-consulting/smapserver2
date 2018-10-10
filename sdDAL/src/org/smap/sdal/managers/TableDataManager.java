@@ -49,7 +49,7 @@ public class TableDataManager {
 	}
 
 	/*
-	 * Get the current columns
+	 * Get the prepared statment to retrieve the data
 	 */
 	public PreparedStatement getPreparedStatement(
 			Connection sd, 
@@ -93,7 +93,7 @@ public class TableDataManager {
 				columnSqlFrags.add(c.calculation);
 			}
 		}
-
+		
 		if (GeneralUtilityMethods.tableExists(cResults, table_name)) {
 			StringBuffer sqlGetData = new StringBuffer("");
 			sqlGetData.append("select ");
@@ -206,7 +206,6 @@ public class TableDataManager {
 				}
 			}
 
-			log.info("Get data: " + pstmt.toString());
 		} else {
 			throw new ApplicationException("Table does not exist");
 		}

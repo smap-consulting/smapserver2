@@ -3111,6 +3111,7 @@ public class GeneralUtilityMethods {
 			columnList.add(c);
 		}
 
+		ArrayList<MetaItem> preloads = getPreloads(sd, sId);
 		if (includeSurveyDuration && formParent == 0) {
 			durationColumn = new TableColumn();
 			durationColumn.name = "_duration";
@@ -3118,6 +3119,7 @@ public class GeneralUtilityMethods {
 			durationColumn.displayName = durationColumn.humanName;
 			durationColumn.type = SmapQuestionTypes.DURATION;
 			durationColumn.isMeta = true;
+			getStartEndName(preloads, durationColumn);
 			columnList.add(durationColumn);
 		}
 
@@ -3240,7 +3242,6 @@ public class GeneralUtilityMethods {
 
 			// Add preloads that have been specified in the survey definition
 			if (includePreloads) {
-				ArrayList<MetaItem> preloads = getPreloads(sd, sId);
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
 						c = new TableColumn();
@@ -3440,6 +3441,23 @@ public class GeneralUtilityMethods {
 		columnList.addAll(realQuestions); // Add the real questions after the property questions
 
 		return columnList;
+	}
+	
+	/*
+	 * Get the start duration and end duration names from the preloads
+	 */
+	public static void getStartEndName(ArrayList<MetaItem> preloads, TableColumn durn) {
+		for(MetaItem mi : preloads) {
+			if(mi.isPreload) {
+				if(mi.sourceParam != null) {
+					if(mi.sourceParam.equals("start")) {
+						durn.startName = mi.columnName;
+					} else if(mi.sourceParam.equals("end")) {
+						durn.endName = mi.columnName;
+					}
+				}
+			}
+		}
 	}
 
 	/*
