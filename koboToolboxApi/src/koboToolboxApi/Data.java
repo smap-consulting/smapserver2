@@ -273,6 +273,8 @@ public class Data extends Application {
 			
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk));
 			
+			response.setContentType("text/html; charset=UTF-8");
+			response.setCharacterEncoding("UTF-8");
 			outWriter = response.getWriter();
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
