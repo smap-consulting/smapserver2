@@ -563,6 +563,7 @@ public class SubRelationalDB extends Subscriber {
 				 *  In these cases the key policy will be applied 
 				 */
 
+				log.info("################### Processing straight replacement:" + keyPolicy + ": " + assignmentId );
 				if((keyPolicy == null || keyPolicy.equals("none")) && assignmentId == 0) {
 					if(updateId != null) {
 						log.info("Existing unique id:" + updateId);
@@ -609,6 +610,7 @@ public class SubRelationalDB extends Subscriber {
 			/*
 			 * Apply the key policy
 			 */
+			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
 			if(hasHrk && existingKey == 0 && keyPolicy != null && !keyPolicy.equals("none")) {
 				if(keyPolicy.equals("add")) {
 					log.info("Apply add policy - no action");
@@ -621,7 +623,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} else if(assignmentId > 0) {
 				// Apply a default key policy of merge
-				log.info("Apply default merge policy to an assignment");
+				log.info("######## Apply default merge policy to an assignment: " + assignmentId);
 				if(updateId != null) {
 					log.info("Existing unique id:" + updateId);
 					existingKey = getKeyFromId(cResults, topElement, updateId);
