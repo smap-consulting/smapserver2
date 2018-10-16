@@ -4169,7 +4169,7 @@ public class GeneralUtilityMethods {
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
-		String sqlChoices = "select ovalue, label_id from option where l_id = ? and not externalfile order by seq asc";
+		String sqlChoices = "select ovalue, label_id from option where l_id = ? and not externalfile order by seq desc";
 		PreparedStatement pstmtChoices = null;
 			
 		String sqlLabels = "select t.value, t.language " 

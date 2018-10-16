@@ -264,7 +264,22 @@ public class SurveyTableManager {
 			line = new ArrayList<KeyValueSimp> ();
 			for (int i = 0; i < sqlDef.colNames.size(); i++) {
 				String qname = sqlDef.qnames.get(i);
-				String value = rs.getString(qname);
+				// support labels separated by commas
+				String [] multQuestions = qname.split(",");
+				String value = "";
+				if(multQuestions.length > 1) {
+					for(String q : multQuestions) {
+						String v = rs.getString(q.trim());
+						if(v != null) {
+							if(value.length() > 0) {
+								value += ", ";
+							}
+							value += v;
+						}
+					}
+				} else {
+					value = rs.getString(qname);
+				}
 				if (value == null) {
 					value = "";
 				}
@@ -573,6 +588,7 @@ public class SurveyTableManager {
 		String linked_s_pd_sel = null;
 		SqlDef sqlDef = new SqlDef();
 		ArrayList<String> colNames = new ArrayList<>();
+		ArrayList<String> validatedQuestionNames = new ArrayList<>();
 		ArrayList<String> subTables = new ArrayList<>();
 		HashMap<Integer, Integer> forms = new HashMap<>();
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
@@ -612,7 +628,7 @@ public class SurveyTableManager {
 				}
 				String colName = null;
 				pstmtGetCol.setString(1, name);
-				log.info("Check presence of col name:" + pstmtGetCol.toString());
+				log.info("%%%%%%%%%%%%%%%%%%%%%%% Check presence of col name:" + pstmtGetCol.toString());
 				rs = pstmtGetCol.executeQuery();
 				if (rs.next()) {
 					colName = rs.getString(1);
@@ -624,6 +640,7 @@ public class SurveyTableManager {
 					continue; // Name not found
 				}
 				colNames.add(colName);
+				validatedQuestionNames.add(name);
 				forms.put(fId, fId);
 
 				if (!first) {
@@ -723,7 +740,7 @@ public class SurveyTableManager {
 
 		sqlDef.sql = sql.toString();
 		sqlDef.colNames = colNames;
-		sqlDef.qnames = qnames;
+		sqlDef.qnames = validatedQuestionNames;
 		return sqlDef;
 	}
 	
