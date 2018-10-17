@@ -4580,7 +4580,13 @@ public class GeneralUtilityMethods {
 											params = new ArrayList<String>();
 										}
 										params.add(rs.getString(1));
-										params.add(rs.getString(2));
+										String label = rs.getString(2);
+										if(label != null) {
+											String [] multLabels = label.split(",");
+											for(String v : multLabels) {
+												params.add(v.trim());
+											}
+										}
 									}
 								} else {
 									params = getRefQuestionsPulldata(criteria);

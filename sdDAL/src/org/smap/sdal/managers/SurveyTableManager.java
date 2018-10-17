@@ -627,32 +627,36 @@ public class SurveyTableManager {
 					continue; // Generated not extracted
 				}
 				String colName = null;
-				pstmtGetCol.setString(1, name);
-				log.info("%%%%%%%%%%%%%%%%%%%%%%% Check presence of col name:" + pstmtGetCol.toString());
-				rs = pstmtGetCol.executeQuery();
-				if (rs.next()) {
-					colName = rs.getString(1);
-					fId = rs.getInt(2);
-				} else if (SmapServerMeta.isServerReferenceMeta(name)) {
-					colName = name; // For columns that are not questions such as _hrk, _device
-					fId = topForm.id;
-				} else {
-					continue; // Name not found
+				String[] multNames = name.split(",");		// Allow for comma separated labels
+				for(String n : multNames) {
+					n = n.trim();
+					pstmtGetCol.setString(1, n);
+					log.info("%%%%%%%%%%%%%%%%%%%%%%% Check presence of col name:" + pstmtGetCol.toString());
+					rs = pstmtGetCol.executeQuery();
+					if (rs.next()) {
+						colName = rs.getString(1);
+						fId = rs.getInt(2);
+					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
+						colName = n; // For columns that are not questions such as _hrk, _device
+						fId = topForm.id;
+					} else {
+						continue; // Name not found
+					}
+					colNames.add(colName);
+					validatedQuestionNames.add(n);
+					forms.put(fId, fId);
+	
+					if (!first) {
+						sql.append(",");
+						order_cols.append(",");
+					}
+					sql.append(colName);
+					sql.append(" as ");
+					sql.append(n);
+					first = false;
+	
+					order_cols.append(colName);
 				}
-				colNames.add(colName);
-				validatedQuestionNames.add(name);
-				forms.put(fId, fId);
-
-				if (!first) {
-					sql.append(",");
-					order_cols.append(",");
-				}
-				sql.append(colName);
-				sql.append(" as ");
-				sql.append(name);
-				first = false;
-
-				order_cols.append(colName);
 			}
 
 			// 2. Add the tables
