@@ -858,6 +858,7 @@ public class PDFSurveyManager {
 									oId);
 	
 							newTable.setWidthPercentage(100);
+							newTable.setKeepTogether(true);
 	
 							// Add a gap if this is the first question of the record
 							// or the previous row was at a different depth
