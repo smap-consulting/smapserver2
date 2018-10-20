@@ -27,4 +27,5 @@ public class DeviceSettings {
 	public boolean ft_review_final;
 	public String ft_send;
 	public int ft_number_tasks;
+	public String ft_image_size;
 }

@@ -124,6 +124,7 @@ public class OrganisationList extends Application {
 					+ "ft_review_final,"
 					+ "ft_send,"
 					+ "ft_number_tasks,"
+					+ "ft_image_size,"
 					+ "changed_by, "
 					+ "changed_ts," 
 					+ "admin_email, "
@@ -166,6 +167,7 @@ public class OrganisationList extends Application {
 				org.ft_review_final = resultSet.getBoolean("ft_review_final");
 				org.ft_send = resultSet.getString("ft_send");
 				org.ft_number_tasks = resultSet.getInt("ft_number_tasks");
+				org.ft_image_size = resultSet.getString("ft_image_size");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
@@ -338,7 +340,7 @@ public class OrganisationList extends Application {
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
 				+ "ft_specify_instancename, ft_admin_menu,"
-				+ "ft_review_final, ft_send, ft_number_tasks "
+				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -362,6 +364,7 @@ public class OrganisationList extends Application {
 				d.ft_review_final = rs.getBoolean(6);
 				d.ft_send = rs.getString(7);
 				d.ft_number_tasks = rs.getInt(8);
+				d.ft_image_size = rs.getString(9);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -404,6 +407,7 @@ public class OrganisationList extends Application {
 				" ft_review_final = ?, " +
 				" ft_send = ?, " +
 				" ft_number_tasks = ?, " +
+				" ft_image_size = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -422,8 +426,9 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(6, d.ft_review_final);
 			pstmt.setString(7, d.ft_send);
 			pstmt.setInt(8, d.ft_number_tasks);
-			pstmt.setString(9, request.getRemoteUser());
+			pstmt.setString(9, d.ft_image_size);
 			pstmt.setString(10, request.getRemoteUser());
+			pstmt.setString(11, request.getRemoteUser());
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

@@ -39,6 +39,7 @@ public class Organisation {
 	public boolean ft_review_final;
 	public String ft_send;
 	public int ft_number_tasks;
+	public String ft_image_size;
 	public String changed_by;
 	public String changed_ts;
 	public String admin_email;
