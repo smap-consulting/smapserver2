@@ -6199,6 +6199,8 @@ public class GeneralUtilityMethods {
 
 		if(in != null) {
 			String params = removeSurroundingWhiteSpace(in, '=');
+			params = params.replace('\n', ' ');	// replace new lines with spaces
+			params = params.replace('\r', ' ');	// replace carriage returns with spaces
 
 			String[] pArray = params.split(";");
 			if(pArray.length == 1) {
