@@ -50,12 +50,14 @@ import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
+import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.Audit;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
@@ -170,6 +172,12 @@ public class SubRelationalDB extends Subscriber {
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId);
 
+			/*
+			 * Apply foreign keys
+			 */
+			ForeignKeyManager fkm = new ForeignKeyManager();
+			fkm.apply(sd, cResults);
+			
 			applyNotifications(sd, cResults, ue_id, remoteUser, server, survey.id, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
@@ -214,7 +222,7 @@ public class SubRelationalDB extends Subscriber {
 
 		return;
 	}
-
+	
 	/*
 	 * Apply any changes to assignment status
 	 */
@@ -514,6 +522,7 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
+		ArrayList<ForeignKey> foreignKeys = new ArrayList<> ();
 
 		try {
 
@@ -548,7 +557,8 @@ public class SubRelationalDB extends Subscriber {
 					sId,
 					uploadTime,
 					"/main",
-					assignmentId);
+					assignmentId,
+					foreignKeys);
 
 			/*
 			 * Update existing records
@@ -637,6 +647,14 @@ public class SubRelationalDB extends Subscriber {
 				}
 			}
 
+			/*
+			 * Record any foreign keys that need to be set between forms
+			 */
+			if(foreignKeys.size() > 0) {
+				ForeignKeyManager fkm = new ForeignKeyManager();
+				fkm.saveKeys(sd, updateId, foreignKeys, sId); 
+			}
+			
 			cResults.commit();
 
 			/*
@@ -699,7 +717,8 @@ public class SubRelationalDB extends Subscriber {
 			int sId,
 			Date uploadTime,
 			String auditPath,
-			int assignmentId) throws SQLException, Exception {
+			int assignmentId,
+			ArrayList<ForeignKey> foreignKeys) throws SQLException, Exception {
 
 		Keys keys = new Keys();
 		PreparedStatement pstmt = null;
@@ -832,8 +851,8 @@ public class SubRelationalDB extends Subscriber {
 					if (hasAudit) {
 						sql += ", ?";
 					}
-
-					sql += addSqlValues(columns, sIdent, device, server, false, hasAltitude);
+					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
+					sql += addSqlValues(columns, sIdent, device, server, false, hasAltitude, thisTableKeys);
 					sql += ");";
 
 					pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -889,6 +908,12 @@ public class SubRelationalDB extends Subscriber {
 						parent_key = rs.getInt(1);
 						keys.newKey = parent_key;
 					}
+					// Add primary key and table name to the foreign keys for this table
+					for(ForeignKey fk : thisTableKeys) {
+						fk.primaryKey = parent_key;
+						fk.tableName = tableName;
+					}
+					foreignKeys.addAll(thisTableKeys);
 				}
 			}
 
@@ -904,7 +929,8 @@ public class SubRelationalDB extends Subscriber {
 					
 					writeTableContent(child, parent_key, sIdent, remoteUser, server, device, uuid, formStatus, version,
 							surveyNotes, locationTrigger, cResults, sd, sId, uploadTime,
-							auditPath + "/" + child.getName() + "[" + recCounter + "]", assignmentId);
+							auditPath + "/" + child.getName() + "[" + recCounter + "]", assignmentId,
+							foreignKeys);
 					recCounter++;
 				}
 			}
@@ -1481,7 +1507,12 @@ public class SubRelationalDB extends Subscriber {
 		return sql;
 	}
 
-	String addSqlValues(List<IE> columns, String sName, String device, String server, boolean phoneOnly, boolean hasAltitude) {
+	String addSqlValues(List<IE> columns, String sName, String device, 
+			String server, 
+			boolean phoneOnly, 
+			boolean hasAltitude,
+			ArrayList<ForeignKey> foreignKeys) {
+		
 		String sql = "";
 		for(IE col : columns) {
 			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
@@ -1499,10 +1530,18 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				sql += addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, hasAltitude);
+				sql += addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, hasAltitude, foreignKeys);
 			} else {
 				sql += "," + getDbString(col, sName, device, server, colPhoneOnly, hasAltitude);
-			}				
+				// Check for a foreign key, the value will start with :::::
+				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
+					ForeignKey fl = new ForeignKey();
+					fl.instanceId = col.getValue().substring(5);
+					fl.qName = col.getName();
+					foreignKeys.add(fl);
+				}
+			}	
+			
 		}
 		return sql;
 	}
