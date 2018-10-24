@@ -21,6 +21,7 @@ public class AssignFromSurvey {
 	public ArrayList<TaskAddressSettings> address_columns;
 	public SqlWhereClause filter;
 	public int taskStart;				// ID of question that determines start time
+	public String taskStartType;			// date o datetime
 	public int taskAfter;				// How long after start date
 	public String taskUnits;				// Units for how long after
 	public int taskDuration;				// Duration of the task

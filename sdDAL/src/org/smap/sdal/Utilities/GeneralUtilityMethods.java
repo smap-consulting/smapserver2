@@ -934,15 +934,44 @@ public class GeneralUtilityMethods {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return name;
+	}
+	
+	/*
+	 * Get the organisation time zone for the organisation id
+	 */
+	static public String getOrganisationTZ(Connection sd, int o_id) throws SQLException {
+
+		String sqlGetOrgName = "select o.timezone "
+				+ " from organisation o " 
+				+ " where o.id = ?;";
+
+		PreparedStatement pstmt = null;
+		String tz = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sqlGetOrgName);
+			pstmt.setInt(1, o_id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				tz = rs.getString(1);
+				if (tz == null || tz.trim().length() == 0) {
+					tz = "UTC";
+				}
+			}
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Error", e);
+			throw e;
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return tz;
 	}
 
 	/*

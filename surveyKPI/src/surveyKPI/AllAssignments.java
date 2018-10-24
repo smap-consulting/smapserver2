@@ -73,6 +73,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -440,9 +441,11 @@ public class AllAssignments extends Application {
 								if(as.taskStart > 0) {
 									Question q = GeneralUtilityMethods.getQuestion(sd, as.taskStart);
 									name = q.name;
+									as.taskStartType = q.type;
 								} else {
 									MetaItem mi = GeneralUtilityMethods.getPreloadDetails(sd, sId, as.taskStart);
 									name = mi.columnName;
+									as.taskStartType = mi.type;
 								}
 								getTaskSql.append(",").append(tableName).append(".").append(name).append(" as taskstart");
 							}
@@ -456,6 +459,8 @@ public class AllAssignments extends Application {
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = cResults.prepareStatement(getTaskSql.toString());	
 							
+							// get default timezone
+							String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
@@ -524,7 +529,11 @@ public class AllAssignments extends Application {
 								// Start time (tid)
 								Timestamp initial = null;
 								if(as.taskStart != -1) {	
-									initial = resultSet.getTimestamp("taskstart");
+									if(as.taskStartType.equals("date")) {
+										initial = resultSet.getTimestamp("taskstart", Calendar.getInstance(TimeZone.getTimeZone(tz)));
+									} else {
+										initial = resultSet.getTimestamp("taskstart");
+									}
 								}
 								tid.taskStart = tm.getTaskStartTime(as, initial);	
 								
@@ -545,53 +554,6 @@ public class AllAssignments extends Application {
 										false,
 										request.getRemoteUser()); 
 								
-								/*
-								// Insert the task
-								int count = tm.insertTask(
-										pstmtInsert,
-										projectId,
-										projectName,
-										taskGroupId,
-										as.task_group_name,
-										title,
-										as.target_survey_id,
-										target_survey_url,
-										initial_data_url,
-										location,
-										instanceId,
-										addressString,
-										taskStart,
-										taskFinish,
-										locationTrigger,
-										false,
-										null);
-			
-								if(count != 1) {
-									log.info("Error: Failed to insert task");
-								} else {
-									int userId = as.user_id;
-									int roleId = as.role_id;
-									int fixedRoleId = as.fixed_role_id;
-									if(assignSql != null) {
-										String ident = resultSet.getString("_assign_key");
-										if(as.user_id == -2) {
-											userId = GeneralUtilityMethods.getUserIdOrgCheck(sd, ident, oId);   // Its a user ident
-										} else {
-											roleId = GeneralUtilityMethods.getRoleId(sd, ident, oId);   // Its a role name
-										}
-									}
-									
-									rsKeys = pstmtInsert.getGeneratedKeys();
-									if(rsKeys.next()) {
-										int taskId = rsKeys.getInt(1);
-										tm.applyAllAssignments(sd, pstmtRoles, pstmtRoles2, pstmtAssign, taskId,userId, roleId, 
-												fixedRoleId,
-												as.emails);
-								
-									}
-									if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};
-								}
-								*/
 							}
 
 							break;
