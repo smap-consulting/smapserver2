@@ -149,11 +149,13 @@ public class FormsManifest {
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, survey.id);
 				
 				if(m.type.equals("linked")) {
+					log.info("Linked file path: " + m.fileName);
 					filepath = basepath + "/media/" + sIdent+ "/" + 
 							request.getRemoteUser() + "/" + m.fileName;
 					filepath += ".csv";
 					m.fileName += ".csv";
 				} else {
+					log.info("CSV file path: " + m.filePath);
 					filepath = m.filePath;
 				}
 				
