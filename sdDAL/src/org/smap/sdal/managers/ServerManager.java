@@ -60,7 +60,8 @@ public class ServerManager {
 				+ "version,"
 				+ "mapbox_default,"
 				+ "google_key,"
-				+ "sms_url "
+				+ "sms_url,"
+				+ "keep_erased_days "
 				+ "from server;";
 		PreparedStatement pstmt = null;
 		ServerData data = new ServerData();
@@ -78,6 +79,7 @@ public class ServerManager {
 				data.mapbox_default = rs.getString("mapbox_default");
 				data.google_key = rs.getString("google_key");
 				data.sms_url = rs.getString("sms_url");
+				data.keep_erased_days = rs.getInt("keep_erased_days");
 			}
 
 		}  catch (Exception e) {

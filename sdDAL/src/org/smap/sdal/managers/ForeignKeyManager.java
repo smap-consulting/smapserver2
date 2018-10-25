@@ -56,6 +56,8 @@ public class ForeignKeyManager {
 				pstmt.executeUpdate();
 			}
 			
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
 		}
@@ -85,13 +87,6 @@ public class ForeignKeyManager {
 				+ "where s_id = ? "
 				+ "and name = 'main'";				
 		PreparedStatement pstmtGetFkTable = null;
-		
-		String sqlGetKeyQuestionTable = "select table_name from form "
-				+ "where s_id = ? "
-				+ "and f_id = (select f_id from question "
-					+ "where f_id in (select f_id from form where s_id = ?) "
-					+ "and qname = ?)";				
-		PreparedStatement pstmtGetKeyQuestionTable = null;
 		
 		PreparedStatement pstmtGetHrk = null;
 		PreparedStatement pstmtInsertKey = null;
@@ -172,19 +167,26 @@ public class ForeignKeyManager {
 									 */										
 									String keyColumnName = GeneralUtilityMethods.getColumnName(sd, sId, keyQuestion);
 									
+									if(keyColumnName != null) {
+									
 									String sqlInsertKey = "update " + tableName + " set " + keyColumnName +
 											" = ? where prikey = ?";
-									pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);
-									pstmtInsertKey.setString(1, key);
-									pstmtInsertKey.setInt(2, prikey);
-									log.info("Inserting key: " + pstmtInsertKey.toString());
-									int count = pstmtInsertKey.executeUpdate();
-									if(count == 0) {
-										pstmtResult.setString(1, "error: failed to set key");
-										pstmtResult.setInt(2, id);
-										pstmtResult.executeUpdate();
+										pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);
+										pstmtInsertKey.setString(1, key);
+										pstmtInsertKey.setInt(2, prikey);
+										log.info("Inserting key: " + pstmtInsertKey.toString());
+										int count = pstmtInsertKey.executeUpdate();
+										if(count == 0) {
+											pstmtResult.setString(1, "error: failed to set key");
+											pstmtResult.setInt(2, id);
+											pstmtResult.executeUpdate();
+										} else {
+											pstmtResult.setString(1, "ok: applied");
+											pstmtResult.setInt(2, id);
+											pstmtResult.executeUpdate();
+										}
 									} else {
-										pstmtResult.setString(1, "ok: applied");
+										pstmtResult.setString(1, "error: failed column name for question " + keyQuestion + " not found");
 										pstmtResult.setInt(2, id);
 										pstmtResult.executeUpdate();
 									}
@@ -209,13 +211,14 @@ public class ForeignKeyManager {
 			}
 			log.info("------------------------------------ End Apply foreign keys");
 			
+		} catch (Exception e) {
+			e.printStackTrace();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
 			if(pstmtForeign != null) {try {pstmtForeign.close();}catch(Exception e) {}}
 			if(pstmtResult != null) {try {pstmtResult.close();}catch(Exception e) {}}
 			if(pstmtGetHrk != null) {try {pstmtGetHrk.close();}catch(Exception e) {}}
 			if(pstmtGetFkTable != null) {try {pstmtGetFkTable.close();}catch(Exception e) {}}
-			if(pstmtGetKeyQuestionTable != null) {try {pstmtGetKeyQuestionTable.close();}catch(Exception e) {}}
 			if(pstmtInsertKey != null) {try {pstmtInsertKey.close();}catch(Exception e) {}}
 		}
 	}

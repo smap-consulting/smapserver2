@@ -59,6 +59,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.HostUnreachableException;
@@ -379,7 +380,7 @@ public class SubscriberBatch {
 
 			if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
-				eraseOldTemplates(sd, cResults, basePath);
+				eraseOldTemplates(sd, cResults, localisation, basePath);
 
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
@@ -605,12 +606,20 @@ public class SubscriberBatch {
 	/*
 	 * Erase deleted templates more than a specified number of days old
 	 */
-	private void eraseOldTemplates(Connection sd, Connection cResults, String basePath) {
+	private void eraseOldTemplates(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtTemp = null;
+		PreparedStatement pstmtFix = null;
 
 		try {
+			
+			ServerManager server = new ServerManager();
+			ServerData sdata = server.getServer(sd, localisation);
+			int interval = sdata.keep_erased_days;
+			if(interval <= 0) {
+				interval = 100;		// Default to 100
+			}
 
 			ServerManager sm = new ServerManager();
 			String sql = "select s_id, "
@@ -620,9 +629,19 @@ public class SubscriberBatch {
 					+ "display_name "
 					+ "from survey where deleted "
 					+ "and hidden = 'false' "
-					+ "and ((last_updated_time < now() - interval '100 days') or last_updated_time is null) "
+					+ "and (last_updated_time < now() - interval '" + interval + " days') "
 					+ "order by last_updated_time;";
 			pstmt = sd.prepareStatement(sql);
+			
+			String sqlFix = "select s_id, "
+					+ "p_id, "
+					+ "last_updated_time, "
+					+ "ident,"
+					+ "display_name "
+					+ "from survey where deleted "
+					+ "and hidden = 'false' "
+					+ "and last_updated_time is null";
+			pstmtFix = sd.prepareStatement(sqlFix);
 
 			String sqlTemp = "update survey set last_updated_time = ? where s_id = ?";
 			pstmtTemp = sd.prepareStatement(sqlTemp);
@@ -630,14 +649,13 @@ public class SubscriberBatch {
 			/*
 			 * Temporary fix for lack of accurate date when a survey was deleted
 			 */
-			ResultSet rs = pstmt.executeQuery();
+			ResultSet rs = pstmtFix.executeQuery();
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");
 				String deletedDate = rs.getString("last_updated_time");
 				String surveyDisplayName = rs.getString("display_name");
 
 				// Get deleted date from the display name
-
 				int idx1 = surveyDisplayName.indexOf("(20");
 				String date = null;
 				if(idx1 > -1) {
@@ -692,6 +710,7 @@ public class SubscriberBatch {
 			/*
 			 * Process surveys to be deleted for real now
 			 */
+			log.info("Erase interval set to: " + interval);
 			rs = pstmt.executeQuery();	
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");
@@ -709,7 +728,8 @@ public class SubscriberBatch {
 			e.printStackTrace();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
-			try {if (pstmtTemp != null) {pstmtTemp.close();}} catch (SQLException e) {}	
+			try {if (pstmtTemp != null) {pstmtTemp.close();}} catch (SQLException e) {}
+			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}	
 		}
 	}
 	/*

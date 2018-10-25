@@ -171,6 +171,7 @@ public class SubRelationalDB extends Subscriber {
 			writeAllTableContent(sd, cResults, instance, remoteUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId);
+			
 
 			/*
 			 * Apply foreign keys
@@ -189,7 +190,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 			se.setStatus("success");			
 
-		} catch (SQLInsertException e) {
+		} catch (SQLInsertException e) {  
 
 			se.setStatus("error");
 			se.setReason(e.getMessage());
@@ -198,7 +199,6 @@ public class SubRelationalDB extends Subscriber {
 			e.printStackTrace();
 			se.setStatus("error");
 			se.setReason("Configuration File:" + e.getMessage());
-			return;
 			
 		} finally {
 			try {
