@@ -527,15 +527,13 @@ public class AllAssignments extends Application {
 								}
 								
 								// Start time (tid)
-								Timestamp initial = null;
 								if(as.taskStart != -1) {	
 									if(as.taskStartType.equals("date")) {
-										initial = resultSet.getTimestamp("taskstart", Calendar.getInstance(TimeZone.getTimeZone(tz)));
+										tid.taskStart = resultSet.getTimestamp("taskstart", Calendar.getInstance(TimeZone.getTimeZone(tz)));
 									} else {
-										initial = resultSet.getTimestamp("taskstart");
+										tid.taskStart = resultSet.getTimestamp("taskstart");
 									}
 								}
-								tid.taskStart = tm.getTaskStartTime(as, initial);	
 								
 								// Write the task to the database
 								tm.writeTaskCreatedFromSurveyResults(

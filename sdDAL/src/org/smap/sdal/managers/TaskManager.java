@@ -684,7 +684,7 @@ public class TaskManager {
 			if(as.update_results) {
 				initial_data_url = "http://" + hostname + "/instanceXML/" + 
 						targetSurveyIdent + "/0?key=prikey&keyval=" + tid.prikey;					// deprecated
-				targetInstanceId = instanceId;										// New way to identify existing records to be updated
+				targetInstanceId = instanceId;													// New way to identify existing records to be updated
 			}
 
 			/*
@@ -1533,13 +1533,10 @@ public class TaskManager {
 	
 	public Timestamp getTaskStartTime(AssignFromSurvey as, Timestamp taskStart) {
 		
-		if(as.taskStart == -1) {									
+		if(as.taskStart == -1 || taskStart == null) {									
 			taskStart = new Timestamp(System.currentTimeMillis());
-		} else {
-			if(taskStart == null) {
-				taskStart = new Timestamp(System.currentTimeMillis());
-			}
-		}
+		} 
+		
 		if(as.taskAfter > 0) {
 			Calendar cal = Calendar.getInstance();
 			cal.setTime(taskStart);
