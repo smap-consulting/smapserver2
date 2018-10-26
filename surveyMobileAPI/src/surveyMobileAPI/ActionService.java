@@ -408,6 +408,7 @@ public class ActionService extends Application {
 
 		TableDataManager tdm = new TableDataManager(localisation);
 		JSONArray ja = null;
+		String tz = "UTC";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -426,7 +427,8 @@ public class ActionService extends Application {
 					true, 	// Return the specific primary key
 					"none", 				// include bad
 					null	,				// no custom filter
-					null					// no key filter
+					null,				// no key filter
+					tz
 			);
 
 			if (pstmt != null) {

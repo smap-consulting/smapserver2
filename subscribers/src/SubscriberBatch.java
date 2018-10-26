@@ -186,6 +186,7 @@ public class SubscriberBatch {
 			}
 
 			Date timeNow = new Date();
+			String tz = "UTC";
 			if(subscribers != null && !subscribers.isEmpty()) {
 
 				/*
@@ -500,8 +501,8 @@ public class SubscriberBatch {
 											false,			// Return records greater than or equal to primary key
 											"none",			// Do not return bad records
 											prikeyFilter,
-											null				// key filter
-											);
+											null	,			// key filter
+											tz);
 	
 									// Set parameters for custom filter
 	

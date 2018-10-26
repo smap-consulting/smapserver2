@@ -94,7 +94,7 @@ public class TableColumn {
 	/*
 	 * Get the sql to select this column from the database
 	 */
-	public String getSqlSelect(String urlprefix) {
+	public String getSqlSelect(String urlprefix, String tz) {
 		String selName = null;
 		
 		if(isAttachment()) {
@@ -107,6 +107,12 @@ public class TableColumn {
 			if(startName != null && endName != null) {
 				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ name;
 			}
+		} else if(type.equals("duration")) {
+			if(startName != null && endName != null) {
+				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ name;
+			}
+		} else if(!tz.equals("UTC") && type.equals("dateTime")) {
+			selName = name + " at time zone '" + tz + "'";
 		} else {
 			selName = name;
 		}

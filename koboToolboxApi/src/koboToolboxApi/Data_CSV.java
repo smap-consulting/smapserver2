@@ -180,6 +180,7 @@ public class Data_CSV extends Application {
 			@QueryParam("bad") String include_bad, // yes | only | none Include records marked as bad
 			@QueryParam("filename") String filename, 
 			@QueryParam("audit") String audit_set,
+			@QueryParam("tz") String tz,			// Time Zone
 			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate columns
 			) {
 
@@ -253,6 +254,10 @@ public class Data_CSV extends Application {
 
 		if (filename == null) {
 			filename = "data.csv";
+		}
+		
+		if(tz == null) {
+			tz = "UTC";
 		}
 
 		try {
@@ -329,7 +334,7 @@ public class Data_CSV extends Application {
 				if (i > 0) {
 					columnSelect.append(",");
 				}
-				columnSelect.append(c.getSqlSelect(urlprefix));
+				columnSelect.append(c.getSqlSelect(urlprefix, tz));
 				
 				if (!c.name.equals("_audit")) {
 					if (colHeadingAdded) {
@@ -387,15 +392,14 @@ public class Data_CSV extends Application {
 			if (GeneralUtilityMethods.tableExists(cResults, table_name)) {
 
 				TableDataManager tdm = new TableDataManager(localisation);
-				JSONArray ja = null;
 
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
 						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,
 						superUser, false, // Return records greater than or equal to primary key
 						include_bad,
 						null,
-						null		// key filter
-						);
+						null	,	// key filter
+						tz);
 
 				log.info("Get CSV data: " + pstmt.toString());
 				Audit auditData = null;

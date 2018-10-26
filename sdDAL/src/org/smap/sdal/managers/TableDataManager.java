@@ -74,7 +74,8 @@ public class TableDataManager {
 			boolean specificPrikey, 
 			String include_bad,
 			String customFilter,
-			ArrayList<KeyFilter> keyFilters)
+			ArrayList<KeyFilter> keyFilters,
+			String tz)
 			throws SQLException, Exception {
 
 		StringBuffer columnSelect = new StringBuffer();
@@ -88,7 +89,7 @@ public class TableDataManager {
 			if (i > 0) {
 				columnSelect.append(",");
 			}
-			columnSelect.append(c.getSqlSelect(urlprefix));
+			columnSelect.append(c.getSqlSelect(urlprefix, tz));
 			if (c.calculation != null && c.calculation.params != null) {
 				columnSqlFrags.add(c.calculation);
 			}

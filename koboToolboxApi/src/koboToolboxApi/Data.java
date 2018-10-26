@@ -158,11 +158,12 @@ public class Data extends Application {
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
-			@QueryParam("geojson") String geojson				// if set to yes then format as geoJson
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
 			) { 
 		
 		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson);
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz);
 	}
 	
 	/*
@@ -186,7 +187,8 @@ public class Data extends Application {
 			String include_bad,		// yes | only | none Include records marked as bad
 			String audit_set,		// if yes return audit data
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
-			String geojson			// If set to yes then render as geoJson rather than the kobo toolbox structure
+			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
+			String tz				// Timezone
 			) { 
 
 		// Authorisation - Access
@@ -266,11 +268,15 @@ public class Data extends Application {
 		if(format != null && format.equals("dt")) {
 			isDt = true;
 		}
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
 
 		PrintWriter outWriter = null;
 		try {
 
-			
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk));
 			
 			response.setContentType("text/html; charset=UTF-8");
@@ -375,7 +381,8 @@ public class Data extends Application {
 					false,			// Return records greater than or equal to primary key
 					include_bad,
 					null	,			// no custom filter
-					null				// key filter
+					null,			// key filter
+					tz
 					);
 			
 			// Write array start
@@ -505,6 +512,7 @@ public class Data extends Application {
 		PreparedStatement pstmtGetSimilar = null;
 		PreparedStatement pstmtGetData = null;
 
+		String tz = "UTC";
 
 		StringBuffer columnSelect = new StringBuffer();
 		StringBuffer similarWhere = new StringBuffer();
@@ -605,7 +613,7 @@ public class Data extends Application {
 					if(i > 0) {
 						columnSelect.append(",");
 					}
-					columnSelect.append(c.getSqlSelect(urlprefix));
+					columnSelect.append(c.getSqlSelect(urlprefix, tz));
 				}
 
 
@@ -649,11 +657,11 @@ public class Data extends Application {
 								if(stringFnApplies 
 										&& (aSelect[1].equals("lower") 
 												|| aSelect[1].equals("soundex"))) {
-									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix) + ")";
+									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix, tz) + ")";
 									columnSelect.append(s);
 									similarWhere.append(s + " = ?");
 								} else {
-									String s = c.getSqlSelect(urlprefix);
+									String s = c.getSqlSelect(urlprefix, tz);
 									columnSelect.append(s);
 									similarWhere.append(s + " = ?");
 								}
