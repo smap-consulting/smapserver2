@@ -52,6 +52,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
  * Manage the log table
+ * Assume emails are case insensitive
  */
 public class PeopleManager {
 	
@@ -85,24 +86,27 @@ public class PeopleManager {
 		
 		String key = null;
 		try {
-			
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, email);
-			
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				boolean unsubscribed = rs.getBoolean(1);
-				if(!unsubscribed) {
-					key = rs.getString(2);
+			if(email != null) {
+				email = email.toLowerCase();
+				
+				pstmt = sd.prepareStatement(sql);	
+				pstmt.setString(1, email);
+				
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					boolean unsubscribed = rs.getBoolean(1);
+					if(!unsubscribed) {
+						key = rs.getString(2);
+					}
+				} else {
+					// Create a key for this email and save it in the people table
+					key = UUID.randomUUID().toString();
+					pstmtCreate = sd.prepareStatement(sqlCreate);
+					pstmtCreate.setInt(1,  oId);
+					pstmtCreate.setString(2, email);
+					pstmtCreate.setString(3, key);
+					pstmtCreate.executeUpdate();
 				}
-			} else {
-				// Create a key for this email and save it in the people table
-				key = UUID.randomUUID().toString();
-				pstmtCreate = sd.prepareStatement(sqlCreate);
-				pstmtCreate.setInt(1,  oId);
-				pstmtCreate.setString(2, email);
-				pstmtCreate.setString(3, key);
-				pstmtCreate.executeUpdate();
 			}
 
 		} finally {
@@ -156,33 +160,37 @@ public class PeopleManager {
 				throw new ApplicationException(localisation.getString("email_subs"));
 			}
 			
-			/*
-			 * Get an existing UUID
-			 */
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, email);
-			
-			rs = pstmt.executeQuery();
-			if(rs.next()) {
-				// We already have an entry for this email
-				boolean unsubscribed = rs.getBoolean(1);
-				if(unsubscribed) {
-					// Create a new key and update the people table
-					key = UUID.randomUUID().toString();
-					pstmtUpdate = sd.prepareStatement(sqlUpdate);				
-					pstmtUpdate.setString(1, key);
-					pstmtUpdate.setString(2, email);
-					pstmtUpdate.executeUpdate();
+			if(email != null) {
+				
+				email = email.toLowerCase();
+				/*
+				 * Get an existing UUID
+				 */
+				pstmt = sd.prepareStatement(sql);	
+				pstmt.setString(1, email);
+				
+				rs = pstmt.executeQuery();
+				if(rs.next()) {
+					// We already have an entry for this email
+					boolean unsubscribed = rs.getBoolean(1);
+					if(unsubscribed) {
+						// Create a new key and update the people table
+						key = UUID.randomUUID().toString();
+						pstmtUpdate = sd.prepareStatement(sqlUpdate);				
+						pstmtUpdate.setString(1, key);
+						pstmtUpdate.setString(2, email);
+						pstmtUpdate.executeUpdate();
+					} else {
+						throw new ApplicationException(localisation.getString("c_as"));
+					}
 				} else {
-					throw new ApplicationException(localisation.getString("c_as"));
+					// Create a key for this email and save it in the people table
+					key = UUID.randomUUID().toString();
+					pstmtCreate = sd.prepareStatement(sqlCreate);
+					pstmtCreate.setString(1, email);
+					pstmtCreate.setString(2, key);
+					pstmtCreate.executeUpdate();
 				}
-			} else {
-				// Create a key for this email and save it in the people table
-				key = UUID.randomUUID().toString();
-				pstmtCreate = sd.prepareStatement(sqlCreate);
-				pstmtCreate.setString(1, email);
-				pstmtCreate.setString(2, key);
-				pstmtCreate.executeUpdate();
 			}
 
 		} finally {
