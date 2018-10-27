@@ -79,6 +79,7 @@ public class Reports extends Application {
 			@QueryParam("roles") String roles,
 			@QueryParam("filename") String filename,
 			@QueryParam("split_locn") boolean split_locn,
+			@QueryParam("tableau") boolean tableau,
 			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
 			@QueryParam("language") String language,
 			@QueryParam("exp_ro") boolean exp_ro,
@@ -129,6 +130,9 @@ public class Reports extends Application {
 			
 			if(split_locn) {
 				action.parameters.add(new KeyValueSimp("split_locn", "true"));
+			}
+			if(tableau) {
+				action.parameters.add(new KeyValueSimp("tableau", "true"));
 			}
 			if(merge_select_multiple) {
 				action.parameters.add(new KeyValueSimp("merge_select_multiple", "true"));
