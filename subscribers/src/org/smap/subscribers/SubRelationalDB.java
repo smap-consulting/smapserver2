@@ -538,6 +538,7 @@ public class SubRelationalDB extends Subscriber {
 				String msg = "Error: Top element name " + topElement.getName() + " in survey did not match a form in the template";
 				throw new Exception(msg);
 			}
+			
 			String hrk = GeneralUtilityMethods.getHrk(sd, sId);
 			boolean hasHrk = (hrk != null);
 			Keys keys = writeTableContent(
@@ -873,6 +874,7 @@ public class SubRelationalDB extends Subscriber {
 							pstmt.setString(stmtIndex++, locationTrigger);
 						}
 						if (hasScheduledStart) {
+							log.info("### Table has scheduled start.  Assignment id is: " + assignmentId);
 							if(assignmentId == 0) {
 								pstmt.setTimestamp(stmtIndex++, null);
 							} else {

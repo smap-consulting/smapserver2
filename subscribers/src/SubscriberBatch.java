@@ -712,6 +712,7 @@ public class SubscriberBatch {
 			 * Process surveys to be deleted for real now
 			 */
 			log.info("Erase interval set to: " + interval);
+			log.info("Check for templates to erase: " + pstmt.toString());
 			rs = pstmt.executeQuery();	
 			while(rs.next()) {
 				int sId = rs.getInt("s_id");

@@ -1712,7 +1712,7 @@ public class TaskManager {
 		
 		pstmt.setString(1, title);
 		pstmt.setInt(2,  target_s_id);
-		pstmt.setInt(3,  target_s_id);			// To set suvey name
+		pstmt.setInt(3,  target_s_id);			// To set survey name
 		pstmt.setString(4, formUrl);					
 		pstmt.setString(5, location);			// geopoint
 		pstmt.setString(6, address);
@@ -2268,6 +2268,7 @@ public class TaskManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, status);
 			pstmt.setInt(2, aId);
+			log.info("Set assignment status: " + pstmt.toString());
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
