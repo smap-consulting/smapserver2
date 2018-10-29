@@ -118,7 +118,7 @@ public class SurveyResults extends Application {
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
-				SurveyManager sm = new SurveyManager(localisation);
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
 				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
 				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
@@ -268,7 +268,7 @@ public class SurveyResults extends Application {
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
-				SurveyManager sm = new SurveyManager(localisation);
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
 				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
 				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
@@ -377,7 +377,7 @@ public class SurveyResults extends Application {
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
-				SurveyManager sm = new SurveyManager(localisation);
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
 				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
 				

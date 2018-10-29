@@ -324,7 +324,7 @@ public class MyAssignments extends Application {
 			/*
 			 * Get the complete list of forms accessible by this user
 			 */
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(sd, pstmt,
 					userName,
 					false, 

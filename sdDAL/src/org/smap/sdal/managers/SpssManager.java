@@ -68,7 +68,7 @@ public class SpssManager {
 		}
 		
 		org.smap.sdal.model.Survey survey = null;
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		StringBuffer sps = new StringBuffer();
 		
 		try {

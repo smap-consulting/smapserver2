@@ -76,7 +76,7 @@ public class GetHtml {
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		Connection sd = SDDataSource.getConnection(connectionString);
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 
 		try {
 

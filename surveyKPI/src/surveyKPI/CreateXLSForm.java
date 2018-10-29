@@ -96,7 +96,7 @@ public class CreateXLSForm extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			
 			// Get the survey details
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), 

@@ -267,7 +267,7 @@ public class SubscriberBatch {
 										String templateName = instance.getTemplateName();
 										SurveyTemplate template = new SurveyTemplate(orgLocalisation);
 
-										SurveyManager sm = new SurveyManager(localisation);
+										SurveyManager sm = new SurveyManager(localisation, "UTC");
 										sdalSurvey = sm.getSurveyId(sd, templateName);	// Get the survey from the templateName / ident
 										
 										template.readDatabase(sd, templateName, false);					

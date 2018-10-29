@@ -106,7 +106,7 @@ public class FormsManifest {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			sm = new SurveyManager(localisation);
+			sm = new SurveyManager(localisation, "UTC");
 			survey = sm.getSurveyId(connectionSD, key);	// Get the survey id from the templateName / key
 		} catch (Exception e) {
 		}

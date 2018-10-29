@@ -420,7 +420,7 @@ public class NotificationManager {
 				/*
 				 * Get survey details
 				 */
-				SurveyManager sm = new SurveyManager(localisation);
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
 						false, false, false, "geojson");
@@ -524,7 +524,7 @@ public class NotificationManager {
 			}
 		}
 		
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");

@@ -144,7 +144,7 @@ public class XFormData {
 					SurveyTemplate template = new SurveyTemplate(localisation);
 					templateName = template.readDatabase(sd, templateName, false);  // Update the template name if the survey has been replaced
 					
-					SurveyManager sm = new SurveyManager(localisation);
+					SurveyManager sm = new SurveyManager(localisation, "UTC");
 					survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key
 					
 					template.extendInstance(sd, si, false, survey);

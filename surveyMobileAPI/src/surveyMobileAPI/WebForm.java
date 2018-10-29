@@ -385,7 +385,7 @@ public class WebForm extends Application {
 				a.isValidTemporaryUser(sd, userIdent);
 			}
 			a.isAuthorised(sd, userIdent);
-			SurveyManager surveyManager = new SurveyManager(localisation);
+			SurveyManager surveyManager = new SurveyManager(localisation, "UTC");
 			survey = surveyManager.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				log.info("Error: Could not find survey id");
@@ -1009,7 +1009,7 @@ public class WebForm extends Application {
 		// Authorisation
 		if (user != null) {
 			a.isAuthorised(sd, user);
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			survey = sm.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				throw new NotFoundException();

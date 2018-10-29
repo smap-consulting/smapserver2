@@ -137,7 +137,7 @@ public class HtmlManifest extends Application{
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			a.isAuthorised(connectionSD, user);
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 			boolean superUser = false;
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());

@@ -89,7 +89,7 @@ public class PDFReportsManager {
 		
 		Response responseVal = null;
 		String basePath = GeneralUtilityMethods.getBasePath(request);
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		PreparedStatement pstmt = null;
 		ZipOutputStream zos = null;
 		

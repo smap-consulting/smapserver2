@@ -562,7 +562,7 @@ public class TaskManager {
 		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = null;
 
 		
@@ -2101,7 +2101,7 @@ public class TaskManager {
 		}
 		
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");

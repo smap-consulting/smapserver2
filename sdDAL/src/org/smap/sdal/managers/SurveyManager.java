@@ -79,11 +79,16 @@ public class SurveyManager {
 			Logger.getLogger(SurveyManager.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+	String tz;
 
 	private ResourceBundle localisation;
 	
-	public SurveyManager(ResourceBundle l) {
+	public SurveyManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	public ArrayList<Survey> getSurveys(Connection sd, PreparedStatement pstmt,
@@ -794,7 +799,7 @@ public class SurveyManager {
 				+ "c.c_id, "
 				+ "c.version, "
 				+ "u.name, "
-				+ "c.updated_time, "
+				+ "c.updated_time at time zone '" + tz + "',"
 				+ "c.apply_results, "
 				+ "c.success, "
 				+ "c.msg " 

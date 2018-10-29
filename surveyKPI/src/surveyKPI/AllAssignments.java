@@ -161,7 +161,7 @@ public class AllAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			projectName = GeneralUtilityMethods.getProjectName(sd, projectId);
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 

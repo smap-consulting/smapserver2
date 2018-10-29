@@ -125,7 +125,7 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			
 			surveys = sm.getSurveys(sd, pstmt,
@@ -167,7 +167,8 @@ public class Surveys extends Application {
 	@Produces("application/json")
 	public Response getSurveyDetails(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@QueryParam("get_changes") boolean getChanges
+			@QueryParam("get_changes") boolean getChanges,
+			@QueryParam("tz") String tz
 			) { 
 		
 		
@@ -195,7 +196,7 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, tz);
 			survey = sm.getById(sd, cResults,  request.getRemoteUser(), sId, 
 					true, 
 					basePath, 
@@ -279,7 +280,7 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			if(sm.surveyExists(sd, name, projectId)) {
 				String msg = localisation.getString("tu_ae");
 				msg = msg.replaceAll("%s1", name);
@@ -354,7 +355,7 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			/*
 			 * Parse the request
 			 */
@@ -511,7 +512,7 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			ChangeResponse resp = sm.applyChangeSetArray(sd, cResults, sId, request.getRemoteUser(), changes, true);
 			
 			// Force regeneration of any dynamic CSV files that this survey links to

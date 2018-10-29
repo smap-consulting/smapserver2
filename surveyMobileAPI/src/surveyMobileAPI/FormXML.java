@@ -90,7 +90,7 @@ public class FormXML extends Application{
 
 				// Authorisation
 				a.isAuthorised(connectionSD, user);
-				SurveyManager sm = new SurveyManager(localisation);
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 				a.isValidSurvey(connectionSD, user, survey.id, false, superUser);	// Validate that the user can access this survey
 
@@ -149,7 +149,7 @@ public class FormXML extends Application{
 
 		}
 
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 		a.isValidSurvey(connectionSD, tempUser, survey.id, false, superUser);	// Validate that the user can access this survey
 		SDDataSource.closeConnection("surveyMobileAPI-FormXML", connectionSD);

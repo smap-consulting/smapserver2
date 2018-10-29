@@ -1052,7 +1052,7 @@ public class Survey extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				SurveyManager mgr = new SurveyManager(localisation);
+				SurveyManager mgr = new SurveyManager(localisation, "UTC");
 				
 				if(undelete) {				 
 					mgr.restore(sd, sId, request.getRemoteUser());	// Restore the survey

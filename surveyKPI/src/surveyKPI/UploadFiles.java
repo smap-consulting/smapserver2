@@ -566,7 +566,7 @@ public class UploadFiles extends Application {
 				throw new ApplicationException(localisation.getString("tu_uft"));
 			}
 			
-			SurveyManager sm = new SurveyManager(localisation);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			Survey existingSurvey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			

@@ -253,7 +253,7 @@ public class XLSResultsManager {
 
 			try {
 
-				SurveyManager sm = new SurveyManager(localisation);
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				org.smap.sdal.model.Survey survey = sm.getById(sd, connectionResults, request.getRemoteUser(), sId, true, basePath, 
 						null, false, false, false, false, false, "real", false, false, superUser, "geojson");
 

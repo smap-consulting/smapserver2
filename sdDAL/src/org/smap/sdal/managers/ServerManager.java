@@ -115,7 +115,7 @@ public class ServerManager {
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		
-		SurveyManager surveyManager = new SurveyManager(localisation);
+		SurveyManager surveyManager = new SurveyManager(localisation, "UTC");
 
 		try {
 

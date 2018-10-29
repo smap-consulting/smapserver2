@@ -101,7 +101,7 @@ public class InstanceXML extends Application{
 
 		}
 		
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getSurveyId(sd, templateName);	// Get the survey id from the templateName / key
 		a.isAuthorised(sd, user);
 		boolean superUser = false;

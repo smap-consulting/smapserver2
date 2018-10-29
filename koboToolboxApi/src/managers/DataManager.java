@@ -34,7 +34,7 @@ public class DataManager {
 		 * Use existing survey manager call to get a list of surveys that the user can access
 		 */
 		ArrayList<Survey> surveys = null;	
-		SurveyManager sm = new SurveyManager(localisation);
+		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		surveys = sm.getSurveysAndForms(sd, request.getRemoteUser(), superUser);
 		
