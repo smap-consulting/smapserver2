@@ -779,7 +779,6 @@ public class SurveyManager {
 				+ "o.published "
 				+ "from option o "
 				+ "where o.l_id = ? "
-				+ "and o.externalfile = ? "
 				+ "order by o.seq";
 		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
 
@@ -1027,48 +1026,68 @@ public class SurveyManager {
 				external = GeneralUtilityMethods.listHasExternalChoices(sd, s.id, listId);
 			}
 
+			// Get external options if required
+			ArrayList<Option> externalOptions = new ArrayList<> ();
 			if(external) {
 				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
-				optionList.options = GeneralUtilityMethods.getExternalChoices(sd, 
+				externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
 						cResults, localisation, user, oId, s.id, qId, null, s.ident);
-			} else {
-				optionList.options = new ArrayList<Option> ();
-				pstmtGetOptions.setInt(1, listId);
-				pstmtGetOptions.setBoolean(2, external);
-				if(idx++ == 0) {
-					log.info("SQL Get options: " + pstmtGetOptions.toString());
-				}
-				rsGetOptions = pstmtGetOptions.executeQuery();
+			} 
+			
+			// Get options from meta definition - insert external if required when not a numeric option
+			optionList.options = new ArrayList<Option> ();
+			pstmtGetOptions.setInt(1, listId);
+			
+			if(idx++ == 0) {
+				log.info("SQL Get options: " + pstmtGetOptions.toString());
+			}
+			rsGetOptions = pstmtGetOptions.executeQuery();
 	
-				Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
-				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-	
-				while(rsGetOptions.next()) {
-					Option o = new Option();
-					o.id = rsGetOptions.getInt(1);
-					o.value = rsGetOptions.getString(2);
-					o.text_id = rsGetOptions.getString(3);
-					o.externalFile = rsGetOptions.getBoolean(4);
-					String cascade_filters = rsGetOptions.getString(5);
-					if(cascade_filters != null && !cascade_filters.equals("null")) {
-						try {
-							o.cascade_filters = gson.fromJson(cascade_filters, hmType);
-							for (String key : o.cascade_filters.keySet()) {
-								s.filters.put(key, true);
-							}
-	
-						} catch (Exception e) {
-							log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
+			Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
+			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+			boolean externalAdded = false;
+			while(rsGetOptions.next()) {
+				Option o = new Option();
+				o.id = rsGetOptions.getInt(1);
+				o.value = rsGetOptions.getString(2);
+				o.text_id = rsGetOptions.getString(3);
+				o.externalFile = rsGetOptions.getBoolean(4);
+				String cascade_filters = rsGetOptions.getString(5);
+				if(cascade_filters != null && !cascade_filters.equals("null")) {
+					try {
+						o.cascade_filters = gson.fromJson(cascade_filters, hmType);
+						for (String key : o.cascade_filters.keySet()) {
+							s.filters.put(key, true);
 						}
-					} else {
-						o.cascade_filters = new HashMap<String, String> ();	// An empty object
-					}
-					o.columnName = rsGetOptions.getString(6);
-					o.published = rsGetOptions.getBoolean(7);
 	
-					// Get the labels for the option
-					UtilityMethodsEmail.getLabels(sd, s, o.text_id, null, o.labels, basePath, oId);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);		// Ignore errors as this service does not support the old non json cascade format
+					}
+				} else {
+					o.cascade_filters = new HashMap<String, String> ();	// An empty object
+				}
+				o.columnName = rsGetOptions.getString(6);
+				o.published = rsGetOptions.getBoolean(7);
+	
+				// Get the labels for the option
+				UtilityMethodsEmail.getLabels(sd, s, o.text_id, null, o.labels, basePath, oId);
+				
+				// Check for numeric value - if external options are required then a numeric value indicates a static choice
+				boolean isInteger = false;
+				if(external) {
+					try {
+						Integer.parseInt(o.value);
+						isInteger = true;
+					} catch (Exception e) {
+						
+					}
+				}
+				
+				if(!external || isInteger) {
 					optionList.options.add(o);
+				} else if(!externalAdded) {
+					externalAdded = true;		// Don't double up if someone uses a non numeric static by mistake
+					optionList.options.addAll(externalOptions);
 				}
 			}
 

@@ -57,20 +57,36 @@ public class ChoiceManager {
 			checkLabels = false;
 		}
 		if(checkLabels) {
-			if(!external_choices) {
-				// 1. Search choices which are stored in the survey meta definition
-				int idx = 0;
-				for(String match : matches) {
-					if(idx++ > 0) {
+			
+			/*
+			 * 1. Search choices which are stored in the survey meta definition
+			 * If the choices are external then only numeric values are checked
+			 */			 
+			int idx = 0;
+			for(String match : matches) {
+				boolean isInteger = false;
+				try {
+					Integer.parseInt(match);
+					isInteger = true;
+				} catch (Exception e) {
+					
+				}
+				if(!external_choices || isInteger) {
+					if(labels.length() > 0) {
 						labels.append(", ");
 					}
-					labels.append(UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match));
+					
+					String label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match);
+					if(label != null) {
+						labels.append(label);
+					}
 				}
-			} else {
+			}
+			if(external_choices) {
 				// 2. Search choices which are stored in an external table
 				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, 
 						localisation, user, oId, sId, qId, matches, surveyIdent);
-				int idx = 0;
+				idx = 0;
 				int languageIdx = 0;
 				if(choices != null && choices.size() > 0) {
 					for(Option choice : choices) {
@@ -83,7 +99,8 @@ public class ChoiceManager {
 									languageIdx++;
 								}
 							}
-						} else {
+						}
+						if(labels.length() > 0) {
 							labels.append(", ");
 						}
 						if(choice.labels != null && choice.labels.size() > languageIdx) {
