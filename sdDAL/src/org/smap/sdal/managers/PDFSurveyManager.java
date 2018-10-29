@@ -1767,25 +1767,12 @@ public class PDFSurveyManager {
 
 				ListItem item = new ListItem(GeneralUtilityMethods.unesc(text), f);
 
-				if(isSelectMultiple) {
-					//if(aChoice.isSet) {
-					//	item.setListSymbol(new Chunk("\uf046", Symbols)); 
-					//	list.add(item);	
-					//} else {
-
-						item.setListSymbol(new Chunk("\uf096", Symbols)); 
-						list.add(item);
-					//}
-
+				if(isSelectMultiple) {	
+					item.setListSymbol(new Chunk("\uf096", Symbols)); 
+					list.add(item);
 				} else {
-					//if(aChoice.isSet) {
-					//	item.setListSymbol(new Chunk("\uf111", Symbols)); 
-					//	list.add(item);
-
-					//} else {
-						item.setListSymbol(new Chunk("\uf10c", Symbols)); 
-						list.add(item);
-					//}
+					item.setListSymbol(new Chunk("\uf10c", Symbols)); 
+					list.add(item);
 				}
 			}
 
