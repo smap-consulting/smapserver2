@@ -64,6 +64,8 @@ public class ChoiceManager {
 			 */			 
 			int idx = 0;
 			for(String match : matches) {
+				
+				boolean foundStatic = false;
 				boolean isInteger = false;
 				try {
 					Integer.parseInt(match);
@@ -71,44 +73,49 @@ public class ChoiceManager {
 				} catch (Exception e) {
 					
 				}
+
+				// Try for static choices first	
 				if(!external_choices || isInteger) {
-					if(labels.length() > 0) {
-						labels.append(", ");
-					}
-					
 					String label = UtilityMethodsEmail.getSingleLabel(sd, sId, languageName, l_id, match);
 					if(label != null) {
-						labels.append(label);
-					}
-				}
-			}
-			if(external_choices) {
-				// 2. Search choices which are stored in an external table
-				ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, 
-						localisation, user, oId, sId, qId, matches, surveyIdent);
-				idx = 0;
-				int languageIdx = 0;
-				if(choices != null && choices.size() > 0) {
-					for(Option choice : choices) {
-						if(idx++ == 0) {
-							// Get the language index
-							for(LanguageItem item : choice.externalLabel) {
-								if(languageName == null || languageName.equals("none") || languageName.equals(item.language)) {
-									break;
-								} else {
-									languageIdx++;
-								}
-							}
-						}
 						if(labels.length() > 0) {
 							labels.append(", ");
 						}
-						if(choice.labels != null && choice.labels.size() > languageIdx) {
-							labels.append(choice.labels.get(languageIdx).text);
+						labels.append(label);
+						foundStatic = true;
+					} 
+				}
+				if(external_choices && !foundStatic) {
+					// 2. Search choices which are stored in an external table
+					ArrayList<String> miniMatch = new ArrayList<> ();
+					miniMatch.add(match);
+					ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, 
+							localisation, user, oId, sId, qId, miniMatch, surveyIdent);
+					idx = 0;
+					int languageIdx = 0;
+					if(choices != null && choices.size() > 0) {
+						for(Option choice : choices) {
+							if(idx++ == 0) {
+								// Get the language index
+								for(LanguageItem item : choice.externalLabel) {
+									if(languageName == null || languageName.equals("none") || languageName.equals(item.language)) {
+										break;
+									} else {
+										languageIdx++;
+									}
+								}
+							}
+							if(choice.labels != null && choice.labels.size() > languageIdx) {
+								if(labels.length() > 0) {
+									labels.append(", ");
+								}
+								labels.append(choice.labels.get(languageIdx).text);
+							}
 						}
-					}
-				}			
+					}			
+				}
 			}
+			
 		}
 		
 		if(labels.length() == 0) {

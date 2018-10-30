@@ -20,7 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.sdal.managers;
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -39,7 +38,6 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
@@ -54,7 +52,6 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.InstanceMeta;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
-import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.LinkedSurvey;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
