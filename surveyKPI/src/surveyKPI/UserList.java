@@ -41,7 +41,6 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
@@ -452,7 +451,7 @@ public class UserList extends Application {
 								localisation);
 	
 						lm.writeLogOrganisation(sd, 
-								o_id, request.getRemoteUser(), "create", "User " + u.ident);
+								o_id, request.getRemoteUser(), "create", "User " + u.ident + " was created");
 								
 					} else {
 						// Existing user
@@ -464,7 +463,7 @@ public class UserList extends Application {
 								adminName);
 						
 						lm.writeLogOrganisation(sd, 
-								o_id, request.getRemoteUser(), "Update", "User " + u.ident);
+								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups));
 					}
 					
 					// Record the user change so that devices can be notified
@@ -619,6 +618,38 @@ public class UserList extends Application {
 		return response;
 	}
 	
+	private String getGroups(ArrayList<UserGroup> groups) {
+		StringBuffer g = new StringBuffer("");
+		if(groups != null) {
+			for(UserGroup ug : groups) {
+				String name = null;
+				switch(ug.id) {
+					case 1: name = "admin";
+							break;
+					case 2: name = "analyst";
+							break;
+					case 3: name = "enum";
+							break;
+					case 4: name = "org admin";
+							break;
+					case 5: name = "manage";
+							break;
+					case 6: name = "security";
+							break;
+					case 7: name = "view data";
+							break;
+				}
+				if(name != null) {
+					if(g.length() > 0) {
+						g.append(", ");
+					}
+					g.append(name);
+				}
+				
+			}
+		}
+		return g.toString();
+	}
 
 }
 
