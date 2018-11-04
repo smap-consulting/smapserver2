@@ -557,7 +557,7 @@ public class ActionManager {
 					}			
 				}
 				
-				// Filter out non matching surveys when suvey Id specified
+				// Filter out non matching surveys when survey Id specified
 				if(sId > 0 && (a == null || a.sId != sId)) {
 					continue;
 				}
