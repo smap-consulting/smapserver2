@@ -355,8 +355,8 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, password) " +
-				" values (?, ?, ?, ?, ?, md5(?));";
+		String sql = "insert into users (ident, realm, name, email, o_id, password, created) " +
+				" values (?, ?, ?, ?, ?, md5(?), now());";
 
 		PreparedStatement pstmt = null;
 

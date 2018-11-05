@@ -85,7 +85,8 @@ public class AdminReports extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
-			String filename = "report";
+			String filename = localisation.getString("ar_report_name") + "_" + year + "_" + month;
+			
 			ArrayList<AR> report = null;
 			if(bySurvey) {
 				report = getAdminReportSurvey(sd, oId, month, year);
@@ -98,6 +99,7 @@ public class AdminReports extends Application {
 			ArrayList<String> header = new ArrayList<String> ();
 			header.add(localisation.getString("ar_ident"));
 			header.add(localisation.getString("ar_user_name"));
+			header.add(localisation.getString("ar_user_created"));
 			if(byProject || bySurvey) {
 				header.add(localisation.getString("ar_project"));
 			}
@@ -124,7 +126,7 @@ public class AdminReports extends Application {
 
 	private ArrayList<AR> getAdminReport(Connection sd, int oId, int month, int year) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
-		String sql = "select users.id as id,users.ident as ident, users.name as name, "
+		String sql = "select users.id as id,users.ident as ident, users.name as name, users.created as created, "
 				+ "(select count (*) from upload_event ue, subscriber_event se "
 					+ "where ue.ue_id = se.ue_id "
 					+ "and se.status = 'success' "
@@ -154,6 +156,7 @@ public class AdminReports extends Application {
 				AR ar = new AR();
 				ar.userIdent = rs.getString("ident");
 				ar.userName = rs.getString("name");
+				ar.created = rs.getDate("created");
 				ar.usageInPeriod = rs.getInt("month");
 				ar.allTimeUsage = rs.getInt("all_time");
 				rows.add(ar);
@@ -167,7 +170,7 @@ public class AdminReports extends Application {
 
 	private ArrayList<AR> getAdminReportProject(Connection sd, int oId, int month, int year) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
-		String sql = "SELECT users.id as id,users.ident as ident, users.name as name, project.name as project_name, "
+		String sql = "SELECT users.id as id,users.ident as ident, users.name as name, project.name as project_name, users.created as created,"
 				+ "(select count (*) from upload_event ue, subscriber_event se "
 					+ "where ue.ue_id = se.ue_id "
 					+ "and se.status = 'success' "
@@ -203,6 +206,7 @@ public class AdminReports extends Application {
 				AR ar = new AR();
 				ar.userIdent = rs.getString("ident");
 				ar.userName = rs.getString("name");
+				ar.created = rs.getDate("created");
 				ar.project = rs.getString("project_name");
 				ar.usageInPeriod = rs.getInt("month");
 				ar.allTimeUsage = rs.getInt("all_time");
@@ -217,7 +221,8 @@ public class AdminReports extends Application {
 
 	private ArrayList<AR> getAdminReportSurvey(Connection sd, int oId, int month, int year) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
-		String sql = "SELECT users.id as id,users.ident as ident, users.name as name, project.name as project_name, survey.display_name as survey_name, "
+		String sql = "SELECT users.id as id,users.ident as ident, users.name as name, project.name as project_name, "
+				+ "survey.display_name as survey_name, users.created as created,"
 				+ "(select count (*) from upload_event ue, subscriber_event se "
 					+ "where ue.ue_id = se.ue_id "
 					+ "and se.status = 'success' "
@@ -256,6 +261,7 @@ public class AdminReports extends Application {
 				AR ar = new AR();
 				ar.userIdent = rs.getString("ident");
 				ar.userName = rs.getString("name");
+				ar.created = rs.getDate("created");
 				ar.project = rs.getString("project_name");
 				ar.survey = rs.getString("survey_name");
 				ar.usageInPeriod = rs.getInt("month");
