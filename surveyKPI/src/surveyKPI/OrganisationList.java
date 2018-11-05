@@ -337,6 +337,7 @@ public class OrganisationList extends Application {
 	 * Update the sensitive data for for an organisation
 	 */
 	@POST
+	@Path("/sensitive")
 	public Response updateOrganisationSensitiveData(@Context HttpServletRequest request, @FormParam("sensitive") String sensitive) { 
 			
 		Response response = null;	
@@ -411,6 +412,48 @@ public class OrganisationList extends Application {
 				response = Response.serverError().entity("not found").build();
 			}
 			
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+			SDDataSource.closeConnection("surveyKPI-OrganisationList-getDeviceSettings", sd);
+		}
+		
+		return response;
+	}
+	
+	@GET
+	@Path("/sensitive")
+	public Response getSensitivitySettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-getSensitivitySettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		String sql = "select sensitive_data "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, request.getRemoteUser());
+					
+			log.info("Get organisation sensitivity details: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				response = Response.ok(rs.getString(1)).build();
+			} else {
+				response = Response.serverError().entity("not found").build();
+			}
 			
 	
 		} catch (SQLException e) {
@@ -418,7 +461,7 @@ public class OrganisationList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
-			SDDataSource.closeConnection("surveyKPI-OrganisationList-getDeviceSettings", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
