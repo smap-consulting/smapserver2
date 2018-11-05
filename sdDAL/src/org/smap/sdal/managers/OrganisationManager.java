@@ -12,6 +12,10 @@ import java.util.logging.Logger;
 import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SensitiveData;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*****************************************************************************
 
@@ -44,7 +48,7 @@ public class OrganisationManager {
 	 * Update a new organisation
 	 */
 	public void updateOrganisation(
-			Connection connectionSD,
+			Connection sd,
 			Organisation o,
 			String userIdent,
 			String fileName,
@@ -83,7 +87,7 @@ public class OrganisationManager {
 		PreparedStatement pstmt = null;
 		
 		try {
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, o.name);
 			pstmt.setString(2, o.company_name);
 			pstmt.setString(3, o.company_address);
@@ -113,7 +117,7 @@ public class OrganisationManager {
 	
 			// Save the logo, if it has been passed
 			if(fileName != null) {
-				writeLogo(connectionSD, fileName, logoItem, o.id, basePath, userIdent, requestUrl);
+				writeLogo(sd, fileName, logoItem, o.id, basePath, userIdent, requestUrl);
 			}
 		} catch (SQLException e) {
 			throw e;
@@ -129,7 +133,7 @@ public class OrganisationManager {
 	 * Create a new organisation
 	 */
 	public int createOrganisation(
-			Connection connectionSD,
+			Connection sd,
 			Organisation o,
 			String userIdent,
 			String fileName,
@@ -167,21 +171,21 @@ public class OrganisationManager {
 			 * there are no users that have logged in to the organisation.  In that case it is assumed
 			 * to be inactive.
 			 */
-			pstmtCheckInactive = connectionSD.prepareStatement(sqlCheckInactive);
+			pstmtCheckInactive = sd.prepareStatement(sqlCheckInactive);
 			pstmtCheckInactive.setString(1,  o.name);
 			pstmtCheckInactive.setString(2,  email);
 			log.info("Check for inactive organisations: " + pstmtCheckInactive.toString());
 			ResultSet rs = pstmtCheckInactive.executeQuery();
 			
 			if(rs.next()) {
-				pstmtDeleteOrganisation = connectionSD.prepareStatement(sqlDeleteOrganisation);
+				pstmtDeleteOrganisation = sd.prepareStatement(sqlDeleteOrganisation);
 				pstmtDeleteOrganisation.setInt(1, rs.getInt(1));
 				
 				log.info("SQL delete inactive organisation: " + pstmtDeleteOrganisation.toString());
 				pstmtDeleteOrganisation.executeUpdate();
 			}
 			
-			pstmt = connectionSD.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, o.name);
 			pstmt.setString(2, o.company_name);
 			pstmt.setString(3, o.company_address);
@@ -218,7 +222,7 @@ public class OrganisationManager {
             
 			// Save the logo, if it has been passed
 			if(fileName != null) {			
-				writeLogo(connectionSD, fileName, logoItem, o_id, basePath, userIdent, requestUrl);
+				writeLogo(sd, fileName, logoItem, o_id, basePath, userIdent, requestUrl);
 	        } 
 	            
 		} catch (SQLException e) {
@@ -236,7 +240,7 @@ public class OrganisationManager {
 	}
 	
 	private void writeLogo( 
-			Connection connectionSD, 
+			Connection sd, 
 			String fileName, 
 			FileItem logoItem,
 			int oId,
@@ -245,7 +249,7 @@ public class OrganisationManager {
 			String requestUrl) {
 		
 		MediaInfo mediaInfo = new MediaInfo();
-		mediaInfo.setFolder(basePath, userIdent, oId, connectionSD, true);				 
+		mediaInfo.setFolder(basePath, userIdent, oId, sd, true);				 
 		mediaInfo.setServer(requestUrl);
 		
 		String folderPath = mediaInfo.getPath();
@@ -263,6 +267,29 @@ public class OrganisationManager {
 	
 		} else {
 			log.log(Level.SEVERE, "Media folder not found");
+		}
+	}
+
+	public void updateSensitiveData( 
+			Connection sd, 
+			int oId,
+			SensitiveData sensitiveData) throws SQLException {
+		
+		String sql = "update organisation set "
+				+ "sensitive_data = ? "
+				+ "where id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			String data = gson.toJson(sensitiveData);
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, data);
+			pstmt.setInt(2, oId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
 		}
 	}
 

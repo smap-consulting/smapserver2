@@ -83,11 +83,11 @@ public class GroupList extends Application {
 			
 			sql = "select id, name " +
 					" from groups " +  
-					" order by name ASC;";				
+					" order by name asc;";				
 						
 			pstmt = connectionSD.prepareStatement(sql);
 
-			log.info("SQL: " + sql);
+			log.info("Get groups: " + sql);
 			resultSet = pstmt.executeQuery();
 			while(resultSet.next()) {
 				UserGroup group = new UserGroup();

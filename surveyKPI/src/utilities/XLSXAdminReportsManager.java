@@ -27,6 +27,8 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -154,6 +156,12 @@ public class XLSXAdminReportsManager {
 						
 						cell = row.createCell(colNumber++);	// Name
 						cell.setCellValue(ar.userName);
+						
+						cell = row.createCell(colNumber++);	// User created
+						if(ar.created != null) {
+							cell.setCellStyle(styles.get("date"));
+							cell.setCellValue(ar.created);
+						}
 						
 						if(byProject || bySurvey) {
 							cell = row.createCell(colNumber++);	// Project
