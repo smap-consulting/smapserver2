@@ -320,7 +320,7 @@ public class OrganisationManager {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			if(rs.next()) {
 				SensitiveData sensData = gson.fromJson(rs.getString(1), SensitiveData.class);
-				if(sensData.signature != null && !sensData.signature.equals("none")) {
+				if(sensData != null && sensData.signature != null && !sensData.signature.equals("none")) {
 					if(sensData.signature.equals("admin_only")) {
 						boolean isAdmin = GeneralUtilityMethods.isAdminUser(sd, user);
 						if(!isAdmin) {

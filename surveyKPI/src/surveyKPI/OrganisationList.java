@@ -449,9 +449,13 @@ public class OrganisationList extends Application {
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) {
-				response = Response.ok(rs.getString(1)).build();
+				String resp = rs.getString(1);
+				if(resp == null || resp.length() == 0) {
+					resp = "{}";
+				}
+				response = Response.ok(resp).build();
 			} else {
-				response = Response.serverError().entity("not found").build();
+				response = Response.serverError().entity("{}").build();
 			}
 			
 	
