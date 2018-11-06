@@ -438,8 +438,7 @@ public class OrganisationList extends Application {
 		String sql = "select sensitive_data "
 				+ "from organisation "
 				+ "where "
-				+ "id = (select o_id from users where ident = ?)";
-	
+				+ "id = (select o_id from users where ident = ?)";	
 		PreparedStatement pstmt = null;
 		
 		try {

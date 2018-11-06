@@ -9,8 +9,12 @@ import java.sql.Statement;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.core.Response;
+
 import org.apache.commons.fileupload.FileItem;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
+import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SensitiveData;
 
@@ -293,5 +297,43 @@ public class OrganisationManager {
 		}
 	}
 
+	
+	public MySensitiveData getMySensitiveData( 
+			Connection sd, 
+			String user) throws SQLException {
+		
+		MySensitiveData msd = new MySensitiveData();
+		
+		String sql = "select sensitive_data "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, user);
+					
+			log.info("Get organisation sensitivity details: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			if(rs.next()) {
+				SensitiveData sensData = gson.fromJson(rs.getString(1), SensitiveData.class);
+				if(sensData.signature != null && !sensData.signature.equals("none")) {
+					if(sensData.signature.equals("admin_only")) {
+						boolean isAdmin = GeneralUtilityMethods.isAdminUser(sd, user);
+						if(!isAdmin) {
+							msd.signature = true;
+						}
+					}
+				}
+			}
+			
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		return msd;
+	}
 	
 }
