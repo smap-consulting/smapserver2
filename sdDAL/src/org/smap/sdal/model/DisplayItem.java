@@ -30,6 +30,7 @@ public class DisplayItem {
 	public String location;
 	public String zoom;					// Map zoom
 	public boolean isBarcode = false;
+	public boolean isSignature = false;
 	public boolean isHyperlink = false;
 	
 	public void debug() {

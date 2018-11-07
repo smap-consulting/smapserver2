@@ -1254,30 +1254,33 @@ public class PDFSurveyManager {
 			String [] appValues = appearance.split(" ");
 			if(appearance != null) {
 				for(int i = 0; i < appValues.length; i++) {
-					if(appValues[i].startsWith("pdflabelbg")) {
-						setColor(appValues[i], di, true);
-					} else if(appValues[i].startsWith("pdfvaluebg")) {
-						setColor(appValues[i], di, false);
-					} else if(appValues[i].startsWith("pdflabelw")) {
-						setWidths(appValues[i], di);
-					} else if(appValues[i].startsWith("pdfheight")) {
-						setHeight(appValues[i], di);
-					} else if(appValues[i].startsWith("pdfspace")) {
-						setSpace(appValues[i], di);
-					} else if(appValues[i].equals("pdflabelcaps")) {
+					String app = appValues[i].trim().toLowerCase();
+					if(app.startsWith("pdflabelbg")) {
+						setColor(app, di, true);
+					} else if(app.startsWith("pdfvaluebg")) {
+						setColor(app, di, false);
+					} else if(app.startsWith("pdflabelw")) {
+						setWidths(app, di);
+					} else if(app.startsWith("pdfheight")) {
+						setHeight(app, di);
+					} else if(app.startsWith("pdfspace")) {
+						setSpace(app, di);
+					} else if(app.equals("pdflabelcaps")) {
 						di.labelcaps = true;
-					} else if(appValues[i].equals("pdflabelbold")) {
+					} else if(app.equals("pdflabelbold")) {
 						di.labelbold = true;
-					} else if(appValues[i].startsWith("pdfmap")) {			// mapbox map id
-						di.map = getAppValue(appValues[i]);
-					} else if(appValues[i].startsWith("pdflocation")) {
-						di.location = getAppValue(appValues[i]);			// lon,lat,zoom
-					} else if(appValues[i].toLowerCase().startsWith("pdfbarcode")) {
+					} else if(app.startsWith("pdfmap")) {			// mapbox map id
+						di.map = getAppValue(app);
+					} else if(app.startsWith("pdflocation")) {
+						di.location = getAppValue(app);			// lon,lat,zoom
+					} else if(app.startsWith("pdfbarcode")) {
 						di.isBarcode = true;		
-					} else if(appValues[i].toLowerCase().startsWith("pdfzoom")) {
-						di.zoom = getAppValue(appValues[i]);		
-					} else if(appValues[i].toLowerCase().startsWith("pdfhyperlink")) {
+					} else if(app.startsWith("pdfzoom")) {
+						di.zoom = getAppValue(app);		
+					} else if(app.startsWith("pdfhyperlink")) {
 						di.isHyperlink = true;		
+					} else if(app.equals("signature")) {
+						di.isSignature = true;		
 					}
 				}
 			}
@@ -1538,6 +1541,9 @@ public class PDFSurveyManager {
 		if(di.type.startsWith("select")) {
 			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
+			if(di.isSignatue) {
+				System.out.println("Signature");
+			}
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
 				if(di.isHyperlink) {
 					Anchor anchor = new Anchor(serverRoot + di.value);
