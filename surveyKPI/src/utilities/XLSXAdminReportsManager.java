@@ -23,14 +23,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -43,18 +36,9 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.QueryGenerator;
-import org.smap.sdal.constants.SmapExportTypes;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.AR;
-import org.smap.sdal.model.ColDesc;
-import org.smap.sdal.model.ColValues;
-import org.smap.sdal.model.OptionDesc;
-import org.smap.sdal.model.QueryForm;
-import org.smap.sdal.model.SqlDesc;
 
 
 /*
@@ -147,6 +131,9 @@ public class XLSXAdminReportsManager {
 					colNumber++;
 				}
 				
+				int monthlyCol = 0;
+				int allTimeCol = 0;
+				int firstDataRow = rowNumber + 1;
 				for(AR ar : report) {
 					if(ar.usageInPeriod > 0 || ar.allTimeUsage > 0) {
 						colNumber = 0;
@@ -165,21 +152,48 @@ public class XLSXAdminReportsManager {
 						
 						if(byProject || bySurvey) {
 							cell = row.createCell(colNumber++);	// Project
+							cell.setCellValue(ar.p_id);
+							
+							cell = row.createCell(colNumber++);
 							cell.setCellValue(ar.project);
 						}
 						
 						if(bySurvey) {
 							cell = row.createCell(colNumber++);	// Survey
+							cell.setCellValue(ar.s_id);
+							
+							cell = row.createCell(colNumber++);	
 							cell.setCellValue(ar.survey);
 						}
 						
+						monthlyCol = colNumber;
 						cell = row.createCell(colNumber++);	// Monthly Usage
 						cell.setCellValue(ar.usageInPeriod);
 						
+						allTimeCol = colNumber;
 						cell = row.createCell(colNumber++);	// All time Usage
 						cell.setCellValue(ar.allTimeUsage);
 					}
 				}
+				
+				// Add totals
+				Row row = dataSheet.createRow(rowNumber++);	
+				
+				// Monthly
+				cell = row.createCell(monthlyCol);
+				String colAlpha = getColAlpha(monthlyCol);
+				String formula= "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
+				cell.setCellType(Cell.CELL_TYPE_FORMULA);
+				cell.setCellStyle(styles.get("bold"));
+				cell.setCellFormula(formula);
+				
+				// All time
+				cell = row.createCell(allTimeCol);
+				colAlpha = getColAlpha(allTimeCol);
+				formula = "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
+				cell.setCellType(Cell.CELL_TYPE_FORMULA);
+				cell.setCellStyle(styles.get("bold"));
+				cell.setCellFormula(formula);
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
@@ -212,6 +226,10 @@ public class XLSXAdminReportsManager {
 		}
 
 		return responseVal;
+	}
+	
+	private String getColAlpha(int col) {
+		return "ABCDEFGHIJKLMNOPQRSTUVQXYZ".substring(col, col + 1);
 	}
 
 }

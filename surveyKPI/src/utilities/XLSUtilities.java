@@ -198,6 +198,10 @@ public class XLSUtilities {
 		style.setAlignment(CellStyle.ALIGN_CENTER);
 		style.setFont(boldFont);  
 		styles.put("data_header", style);
+		
+		style = getBaseStyle(wb);
+		style.setFont(boldFont);  
+		styles.put("bold", style);
 
 		return styles;
 	}
