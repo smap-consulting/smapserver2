@@ -1541,9 +1541,6 @@ public class PDFSurveyManager {
 		if(di.type.startsWith("select")) {
 			processSelect(parser, remoteUser, valueCell, di, generateBlank, gv, oId);
 		} else if (di.type.equals("image")) {
-			if(di.isSignatue) {
-				System.out.println("Signature");
-			}
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
 				if(di.isHyperlink) {
 					Anchor anchor = new Anchor(serverRoot + di.value);
