@@ -162,7 +162,7 @@ public class ExternalFileManager {
 							if (pulldataIdent.equals("self")) {
 								pulldataIdent = sIdent;
 							}
-							log.info("PulldataIdent: " + pulldataIdent);
+							log.info("PulldataIdent:" + pulldataIdent + ", sIdent:" + sIdent + ":");
 	
 							if (pulldataIdent.equals(sIdent)) {
 								data_key = pdArray.get(i).data_key;

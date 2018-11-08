@@ -278,10 +278,17 @@ public class SubscriberBatch {
 										getAttachmentsFromIncompleteSurveys(sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent());
 
 										is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
-										s.upload(instance, is3, ue.getUserName(), 
-												ue.getServerName(), ue.getImei(), se,
-												confFilePath, ue.getFormStatus(),
-												basePath, uploadFile, ue.getUpdateId(),
+										s.upload(instance, 
+												is3, 
+												ue.getUserName(), 
+												ue.getServerName(), 
+												ue.getImei(), 
+												se,
+												confFilePath, 
+												ue.getFormStatus(),
+												basePath, 
+												uploadFile, 
+												ue.getUpdateId(),
 												ue.getId(),
 												ue.getUploadTime(),
 												ue.getSurveyNotes(),
