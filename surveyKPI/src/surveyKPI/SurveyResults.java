@@ -85,7 +85,6 @@ public class SurveyResults extends Application {
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtUnPublish = null;
 			PreparedStatement pstmtUnPublishOption = null;
-			PreparedStatement pstmtRemoveChangeHistory = null;
 			PreparedStatement pstmtRemoveChangeset = null;
 			PreparedStatement pstmtGetSoftDeletedQuestions = null;
 			Statement stmtRel = null;
@@ -104,9 +103,6 @@ public class SurveyResults extends Application {
 				
 				String sqlUnPublishOption = "update option set published = 'false' where l_id in (select l_id from listname where s_id = ?);";
 				pstmtUnPublishOption = sd.prepareStatement(sqlUnPublishOption);
-				
-				String sqlRemoveChangeHistory = "delete from change_history where s_id = ?;";
-				pstmtRemoveChangeHistory = connectionRel.prepareStatement(sqlRemoveChangeHistory);
 				
 				String sqlRemoveChangeset = "delete from changeset where s_id = ?;";
 				pstmtRemoveChangeset = connectionRel.prepareStatement(sqlRemoveChangeset);
@@ -156,16 +152,15 @@ public class SurveyResults extends Application {
 					log.info("Marking options as unpublished: " + pstmtUnPublishOption.toString());
 					pstmtUnPublishOption.executeUpdate();
 					
-					pstmtRemoveChangeHistory.setInt(1, gd.sId);
-					pstmtRemoveChangeHistory.executeUpdate();
-					
 					pstmtRemoveChangeset.setInt(1, gd.sId);
+					log.info("Removing changeset: " + pstmtRemoveChangeset.toString());
 					pstmtRemoveChangeset.executeUpdate();
 					
 					// Delete any soft deleted questions from the survey definitions
 					QuestionManager qm = new QuestionManager(localisation);
 					ArrayList<Question> questions = new ArrayList<Question> ();
 					pstmtGetSoftDeletedQuestions.setInt(1, gd.sId);
+					log.info("Get soft deleted questions: " + pstmtGetSoftDeletedQuestions.toString());
 					ResultSet rs = pstmtGetSoftDeletedQuestions.executeQuery();
 					while(rs.next()) {
 						Question q = new Question();
@@ -192,6 +187,8 @@ public class SurveyResults extends Application {
 			} catch (Exception e) {
 				String msg = e.getMessage();
 				if(msg != null && msg.contains("does not exist")) {
+					log.log(Level.SEVERE, msg);
+					e.printStackTrace();
 					response = Response.ok("").build();
 				} else {
 					log.log(Level.SEVERE, "Survey: Delete REsults");
@@ -203,7 +200,6 @@ public class SurveyResults extends Application {
 				try {if (pstmtUnPublish != null) {pstmtUnPublish.close();}} catch (SQLException e) {}
 				try {if (pstmtUnPublishOption != null) {pstmtUnPublishOption.close();}} catch (SQLException e) {}
 				try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
-				try {if (pstmtRemoveChangeHistory != null) {pstmtRemoveChangeHistory.close();}} catch (SQLException e) {}
 				try {if (pstmtGetSoftDeletedQuestions != null) {pstmtGetSoftDeletedQuestions.close();}} catch (SQLException e) {}
 
 				SDDataSource.closeConnection("surveyKPI-SurveyResults", sd);
