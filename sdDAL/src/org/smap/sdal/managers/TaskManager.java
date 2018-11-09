@@ -602,9 +602,6 @@ public class TaskManager {
 					 *   Don't fire if form to be updated is the same one that has been submitted 
 					 */
 					boolean fires = false;
-					if(as.add_future  && source_s_id != target_s_id) {
-						log.info("Rule fired however target = source");
-					}
 					
 					if(as.filter != null && as.filter.advanced != null) {
 						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
@@ -613,6 +610,10 @@ public class TaskManager {
 						}
 					} else {
 						fires = true;
+					}
+					
+					if(fires && source_s_id == target_s_id) {
+						log.info("Rule fired however target survey id = source id (" + source_s_id + ")");
 					}
 					
 	

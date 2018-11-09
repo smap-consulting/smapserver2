@@ -838,6 +838,7 @@ public class SurveyManager {
 
 		// Get the Forms
 		pstmtGetForms.setInt(1, s.id);
+		log.info("Get forms: " + pstmtGetForms.toString());
 		rsGetForms = pstmtGetForms.executeQuery();
 
 		while (rsGetForms.next()) {								
