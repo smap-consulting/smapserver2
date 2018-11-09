@@ -285,7 +285,10 @@ public class ExternalFileManager {
 					String dkv = null;
 					while (rs.next()) {
 						dkv = rs.getString("_data_key");
-						if (dkv != null && !dkv.equals(currentDkv)) {
+						if(dkv == null) {
+							continue;	// Ignore null keys
+						}
+						if (!dkv.equals(currentDkv)) {
 							// A new data key
 							writeRecords(non_unique_key, nonUniqueRecords, bw, currentDkv);
 							nonUniqueRecords = new ArrayList<StringBuilder>();

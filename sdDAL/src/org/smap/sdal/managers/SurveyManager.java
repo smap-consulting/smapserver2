@@ -364,7 +364,7 @@ public class SurveyManager {
 			log.info("Get Survey info: " + pstmt.toString());
 
 			resultSet = pstmt.executeQuery();	
-			if (resultSet.next()) {								
+			if (resultSet.next()) {							
 
 				s = new Survey();
 				s.setId(resultSet.getInt(1));
@@ -406,7 +406,9 @@ public class SurveyManager {
 				if(templateFile.exists()) {
 					s.pdfTemplateName = templateFile.getName();
 				}
-			} 
+			} else {
+				log.info("Error: survey not found");
+			}
 
 			if(full && s != null) {
 
