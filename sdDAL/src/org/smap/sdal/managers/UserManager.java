@@ -222,21 +222,43 @@ public class UserManager {
 				role.id = resultSet.getInt("id");
 				role.name = resultSet.getString("name");
 				user.roles.add(role);
-			}		
+			}
+			
+			/*
+			 * Get the oganisations that the user belongs to
+			 */
+			sql = "SELECT o.id as id, o.name as name " +
+					" from organisation o, user_organisation uo " +
+					" where o.id = uo.o_id " +
+					" and uo.u_id = ? " +
+					" order by o.name asc";
 
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-			throw new Exception(e);
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setInt(1, user.id);
 
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
+			log.info("SQL: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
 
+			if(user.orgs == null) {
+				user.orgs = new ArrayList<Organisation> ();
+			}
+			while(resultSet.next()) {			
+				Organisation o = new Organisation();
+				o.id = resultSet.getInt("id");
+				o.name = resultSet.getString("name");
+				user.orgs.add(o);
+			}
+			if(user.orgs.size() == 0) {
+				// If not organisation then add the users current organisation
+				Organisation o = new Organisation();
+				o.id = user.o_id;
+				o.name = user.organisation_name;
+				user.orgs.add(o);
 			}
 
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 		}
 
 		return user;
