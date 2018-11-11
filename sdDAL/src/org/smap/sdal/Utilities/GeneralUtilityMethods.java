@@ -72,7 +72,6 @@ import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
-import org.smap.sdal.model.UserOrgSettings;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -2339,9 +2338,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Update organisation settings
 	 */
-	public static UserOrgSettings updateOrganisationSettings(Connection sd, int currentOrgId, String user) throws SQLException {
+	public static void replaceOrganisationSettings(Connection sd, int newOrgId, String userIdent) throws SQLException {
 
-		UserOrgSettings settings = null;
 		PreparedStatement pstmt = null;
 
 		try {
@@ -2352,7 +2350,6 @@ public class GeneralUtilityMethods {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
 		}
-		return settings;
 	}
 
 	/*

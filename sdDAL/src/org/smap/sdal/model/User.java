@@ -51,9 +51,6 @@ public class User {
 	public ArrayList<Organisation> orgs;
 	public boolean keepProjects;
 	public boolean sendEmail;
-	public int this_month;
-	public int last_month;
-	public int all_time;
 	public boolean delSig;
 	public Action action_details;
 	public String lastalert;

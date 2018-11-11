@@ -30,8 +30,6 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
@@ -42,7 +40,6 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.User;
-import org.smap.sdal.model.UserOrgSettings;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -53,10 +50,8 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -232,16 +227,9 @@ public class UserSvc extends Application {
 				 * If the new settings are null then they are not authorised to move to this new organisation
 				 */
 				
-				UserOrgSettings settings = GeneralUtilityMethods.updateOrganisationSettings(sd, 
+				GeneralUtilityMethods.replaceOrganisationSettings(sd, 
 						u.current_org_id,
-						request.getRemoteUser());
-				if(settings != null) {		// The user is allowed to change to this organisation
-					updateProjectSettings = true;
-					u.current_project_id = settings.currentProject;
-					u.current_survey_id = settings.currentSurvey;
-					u.current_task_group_id = settings.currentTaskGroup;
-				}
-			
+						request.getRemoteUser());			
 			}
 			
 			if(updateProjectSettings) {
@@ -276,8 +264,7 @@ public class UserSvc extends Application {
 					pstmt.setInt(1, u.current_task_group_id);
 					pstmt.setString(2, request.getRemoteUser());
 				}
-				
-				
+					
 				log.info("Update user defaults: " + pstmt.toString());
 				int count = pstmt.executeUpdate();
 				if(count == 0) {
@@ -317,6 +304,7 @@ public class UserSvc extends Application {
 					pwdString = ident + ":smap:" + u.password;
 				}
 				
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, u.name);
 				pstmt.setString(2, u.settings);
