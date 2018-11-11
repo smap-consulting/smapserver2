@@ -35,6 +35,7 @@ public class User {
 	public boolean can_edit;
 	public boolean email_task;
 	public String ft_send_location;
+	public int current_org_id;
 	public int current_project_id;
 	public int current_survey_id;
 	public int current_task_group_id;

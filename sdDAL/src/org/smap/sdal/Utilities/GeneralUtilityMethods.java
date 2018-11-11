@@ -72,6 +72,7 @@ import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
+import org.smap.sdal.model.UserOrgSettings;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -2402,6 +2403,25 @@ public class GeneralUtilityMethods {
 		}
 		return resp;
 	}
+	
+	/*
+	 * Update organisation settings
+	 */
+	public static UserOrgSettings updateOrganisationSettings(Connection sd, int currentOrgId, String user) throws SQLException {
+
+		UserOrgSettings settings = null;
+		PreparedStatement pstmt = null;
+
+		try {
+			String sqlLanguages = "select distinct t.language from translation t where s_id = ? order by t.language asc";
+			pstmt = sd.prepareStatement(sqlLanguages);
+
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
+		}
+		return settings;
+	}
 
 	/*
 	 * Get languages that have been used in a survey resulting in a translation
@@ -2410,30 +2430,22 @@ public class GeneralUtilityMethods {
 	 * languages, some of which may not have any translation entries, are stored in
 	 * the languages table
 	 */
-	public static ArrayList<String> getLanguagesUsedInSurvey(Connection connectionSD, int sId) throws SQLException {
+	public static ArrayList<String> getLanguagesUsedInSurvey(Connection sd, int sId) throws SQLException {
 
-		PreparedStatement pstmtLanguages = null;
+		PreparedStatement pstmt = null;
 
 		ArrayList<String> languages = new ArrayList<String>();
 		try {
 			String sqlLanguages = "select distinct t.language from translation t where s_id = ? order by t.language asc";
-			pstmtLanguages = connectionSD.prepareStatement(sqlLanguages);
+			pstmt = sd.prepareStatement(sqlLanguages);
 
-			pstmtLanguages.setInt(1, sId);
-			ResultSet rs = pstmtLanguages.executeQuery();
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(rs.getString(1));
 			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmtLanguages != null) {
-					pstmtLanguages.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
 		}
 		return languages;
 	}
@@ -2443,15 +2455,15 @@ public class GeneralUtilityMethods {
 	 */
 	public static ArrayList<Language> getLanguages(Connection sd, int sId) throws SQLException {
 
-		PreparedStatement pstmtLanguages = null;
+		PreparedStatement pstmt = null;
 		ArrayList<Language> languages = new ArrayList<Language>();
 
 		try {
 			String sqlLanguages = "select id, language, seq from language where s_id = ? order by seq asc";
-			pstmtLanguages = sd.prepareStatement(sqlLanguages);
+			pstmt = sd.prepareStatement(sqlLanguages);
 
-			pstmtLanguages.setInt(1, sId);
-			ResultSet rs = pstmtLanguages.executeQuery();
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(new Language(rs.getInt(1), rs.getString(2)));
 			}
@@ -2466,16 +2478,8 @@ public class GeneralUtilityMethods {
 				GeneralUtilityMethods.setLanguages(sd, sId, languages);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmtLanguages != null) {
-					pstmtLanguages.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return languages;
