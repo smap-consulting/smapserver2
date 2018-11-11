@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
 
@@ -397,8 +398,14 @@ public class Items extends Application {
 					
 					for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
 						int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
-						QuestionInfo qaf = new QuestionInfo(sId, rqId, sd);
-						tables.add(qaf.getTableName(), qaf.getFId(), qaf.getParentFId());
+						if(rqId > 0) {
+							QuestionInfo qaf = new QuestionInfo(sId, rqId, sd);
+							tables.add(qaf.getTableName(), qaf.getFId(), qaf.getParentFId());
+						} else {
+							// assume meta and hence include main table
+							Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+							tables.add(tlf.tableName, tlf.id, tlf.parentform);
+						}
 					}
 				}
 				

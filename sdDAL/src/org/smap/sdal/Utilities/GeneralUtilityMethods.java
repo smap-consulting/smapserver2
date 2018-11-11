@@ -668,16 +668,8 @@ public class GeneralUtilityMethods {
 				superUser = (rs.getInt(1) > 0);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return superUser;
@@ -717,22 +709,9 @@ public class GeneralUtilityMethods {
 				}
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt1 != null) {
-					pstmt1.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmt2 != null) {
-					pstmt2.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt1 != null) {pstmt1.close();}} catch (Exception e) {	}
+			try {if (pstmt2 != null) {pstmt2.close();}} catch (Exception e) {}
 		}
 
 		return o_id;
@@ -758,16 +737,8 @@ public class GeneralUtilityMethods {
 				o_id = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return o_id;
@@ -793,16 +764,9 @@ public class GeneralUtilityMethods {
 				o_id = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
 			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+				if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return o_id;
@@ -832,11 +796,8 @@ public class GeneralUtilityMethods {
 				o_id = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}	} catch (Exception e) {}
 		}
 
 		return o_id;
@@ -958,11 +919,8 @@ public class GeneralUtilityMethods {
 				}
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return name;
@@ -992,9 +950,6 @@ public class GeneralUtilityMethods {
 				}
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -1108,16 +1063,8 @@ public class GeneralUtilityMethods {
 				u_ident = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return u_ident;
@@ -1143,16 +1090,8 @@ public class GeneralUtilityMethods {
 				email = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return email;
@@ -1174,16 +1113,8 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(2, sId);
 			pstmt.executeUpdate();
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 	}
@@ -1207,16 +1138,8 @@ public class GeneralUtilityMethods {
 				serverName = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return serverName;
@@ -1258,16 +1181,8 @@ public class GeneralUtilityMethods {
 				surveyIdent = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return surveyIdent;
@@ -1322,16 +1237,8 @@ public class GeneralUtilityMethods {
 				sId = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return sId;
@@ -1359,9 +1266,6 @@ public class GeneralUtilityMethods {
 				surveyName = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -1392,16 +1296,8 @@ public class GeneralUtilityMethods {
 				surveyName = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 
 		return surveyName;
@@ -1466,16 +1362,8 @@ public class GeneralUtilityMethods {
 				reported = (rs.getInt(1) > 0) ? true : false;
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return reported;
@@ -1501,16 +1389,8 @@ public class GeneralUtilityMethods {
 				p_id = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return p_id;
@@ -1536,16 +1416,8 @@ public class GeneralUtilityMethods {
 				hrk = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		if(hrk != null && hrk.trim().length() == 0) {
@@ -1592,8 +1464,6 @@ public class GeneralUtilityMethods {
 					qId = rs.getInt(1);
 					log.info("Found qId: " + qId);
 				} else {
-					// throw new Exception("Question not found: " + sId + " : " + formId + " : " +
-					// qName);
 					// Question has been deleted or renamed. Not to worry
 					log.info("Question not found: " + sId + " : " + formId + " : " + qName);
 				}
@@ -1608,16 +1478,8 @@ public class GeneralUtilityMethods {
 				}
 			}
 
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return qId;
@@ -1640,25 +1502,34 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 
 		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			pstmt.setString(2, qName);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				column_name = rs.getString(1);
-			}
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
+			
+			if(qName != null) {
+				if(qName.equals("_hrk")) {
+					column_name = "_hrk";
+				} else {
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setInt(1, sId);
+					pstmt.setString(2, qName);
+					ResultSet rs = pstmt.executeQuery();
+					if (rs.next()) {
+						column_name = rs.getString(1);
+					}
 				}
-			} catch (SQLException e) {
+				
+				if(column_name == null) {
+					// Try preloads
+					ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+					for(MetaItem item : preloads) {
+						if(item.name.equals(qName)) {							
+							column_name = item.columnName;
+							break;
+						}
+					}
+				}
 			}
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return column_name;
@@ -4173,16 +4044,8 @@ public class GeneralUtilityMethods {
 				qId = rs.getInt(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return qId;
@@ -5162,13 +5025,7 @@ public class GeneralUtilityMethods {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-		} finally {
-
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
+		} finally {try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {
 			}
 
 		}
