@@ -302,7 +302,7 @@ public class XFormData {
 				if(rsRepeating.next()) {
 					if(!rsRepeating.getBoolean(1)) {
 						log.info("Deleting temporary user");
-						UserManager um = new UserManager();
+						UserManager um = new UserManager(localisation);
 						um.deleteSingleSubmissionTemporaryUser(sd, user);
 					}
 				}

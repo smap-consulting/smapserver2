@@ -156,7 +156,7 @@ public class PDFTableManager {
 			) {
 
 		User user = null;
-		UserManager um = new UserManager();
+		UserManager um = new UserManager(localisation);
 		
 		try {
 			

@@ -192,7 +192,7 @@ public class PDFSurveyManager {
 		ServerManager serverManager = new ServerManager();
 		ServerData serverData = serverManager.getServer(sd, localisation);
 
-		UserManager um = new UserManager();
+		UserManager um = new UserManager(localisation);
 		int [] repIndexes = new int[20];		// Assume repeats don't go deeper than 20 levels
 
 		Document document = null;

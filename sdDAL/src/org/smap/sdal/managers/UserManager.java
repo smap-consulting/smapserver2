@@ -52,6 +52,12 @@ public class UserManager {
 	private static Logger log =
 			Logger.getLogger(UserManager.class.getName());
 
+	private ResourceBundle localisation;
+	
+	public UserManager(ResourceBundle l) {
+		localisation = l;
+	}
+	
 	/*
 	 * Get the user details
 	 */
@@ -756,4 +762,33 @@ public class UserManager {
 		}
 	}
 
+	/*
+	 * Switch a user to a new organisation
+	 */
+	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent) throws SQLException, ApplicationException {
+
+		String sqlValidate = "select count(*) "
+				+ "from user_organisation uo "
+				+ "where o_id = ? "
+				+ "and u_id = (select id from users where ident = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+			// 1.  Verify that the user has access to the new organisation
+			pstmt = sd.prepareStatement(sqlValidate);
+			pstmt.setInt(1, newOrgId);
+			pstmt.setString(2, userIdent);
+			log.info("Validate user organisation switch: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				
+			} else {
+				throw new ApplicationException(localisation.getString("u_org_nf"));
+			}
+			
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
+		}
+	}
 }

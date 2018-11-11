@@ -292,11 +292,15 @@ public class UserList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
 		a.isAuthorised(sd, request.getRemoteUser());
-		// End Authorisation
-			
-		ActionManager am = new ActionManager();		
+		// End Authorisation			
 		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			ActionManager am = new ActionManager(localisation);
+			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
@@ -474,7 +478,7 @@ public class UserList extends Application {
 						u.email = null;
 					}
 					
-					UserManager um = new UserManager();
+					UserManager um = new UserManager(localisation);
 					if(u.id == -1) {
 						// New user
 						um.createUser(sd, u, o_id,

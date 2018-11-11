@@ -41,6 +41,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -110,11 +112,14 @@ public class Reports extends Application {
 		// End Authorisation
 		
 		try {
-
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int pId = 0;
 		
-			ActionManager am = new ActionManager();
+			ActionManager am = new ActionManager(localisation);
 			Action action = new Action("report");
 			action.sId = sId;
 			action.pId = pId;	

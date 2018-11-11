@@ -1975,7 +1975,7 @@ public class TaskManager {
 			TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
 			
 			// Create an action this should be (mostly) identical for all emails
-			ActionManager am = new ActionManager();
+			ActionManager am = new ActionManager(localisation);
 			Action action = new Action("task");
 			action.surveyIdent = sIdent;
 			action.pId = pId;

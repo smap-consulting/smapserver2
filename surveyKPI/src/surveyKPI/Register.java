@@ -122,7 +122,7 @@ public class Register extends Application {
 			/*
 			 * 2. Create the user
 			 */
-			UserManager um = new UserManager();
+			UserManager um = new UserManager(localisation);
 			
 			User u = new User();
 			u.name = rd.admin_name;

@@ -294,7 +294,7 @@ public class WebForm extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager();
+			ActionManager am = new ActionManager(localisation);
 			a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then report the issue to the user

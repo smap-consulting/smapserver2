@@ -52,6 +52,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -83,9 +85,13 @@ public class UserSvc extends Application {
 		// Authorisation - Not required
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
-		UserManager um = new UserManager();
 		User user = null;
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			UserManager um = new UserManager(localisation);
 			user = um.getByIdent(sd, request.getRemoteUser());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -116,9 +122,12 @@ public class UserSvc extends Application {
 		// Authorisation - Not required
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
-		UserManager um = new UserManager();
-		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			UserManager um = new UserManager(localisation);
 			ArrayList<Alert> alerts = um.getAlertsByIdent(sd, request.getRemoteUser());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -204,6 +213,10 @@ public class UserSvc extends Application {
 		PreparedStatement pstmt = null;
 		try {	
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			// Ensure email is null if it has not been set
 			if(u.email != null && u.email.trim().isEmpty()) {
 				u.email = null;
@@ -227,9 +240,13 @@ public class UserSvc extends Application {
 				 * If the new settings are null then they are not authorised to move to this new organisation
 				 */
 				
-				GeneralUtilityMethods.replaceOrganisationSettings(sd, 
-						u.current_org_id,
-						request.getRemoteUser());			
+				UserManager um = new UserManager(localisation);
+				try {
+					um.switchUsersOrganisation(sd, u.current_org_id,	request.getRemoteUser());
+				} catch (Exception e) {
+					// log but otherwise ignore any errors
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
 			}
 			
 			if(updateProjectSettings) {

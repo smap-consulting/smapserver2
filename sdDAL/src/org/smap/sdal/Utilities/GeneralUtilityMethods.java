@@ -2334,23 +2334,6 @@ public class GeneralUtilityMethods {
 		}
 
 	}
-	
-	/*
-	 * Update organisation settings
-	 */
-	public static void replaceOrganisationSettings(Connection sd, int newOrgId, String userIdent) throws SQLException {
-
-		PreparedStatement pstmt = null;
-
-		try {
-			String sqlLanguages = "select distinct t.language from translation t where s_id = ? order by t.language asc";
-			pstmt = sd.prepareStatement(sqlLanguages);
-
-			
-		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
-		}
-	}
 
 	/*
 	 * Get languages that have been used in a survey resulting in a translation
@@ -6799,8 +6782,9 @@ public class GeneralUtilityMethods {
 	/*
 	 * Create a temporary user
 	 */
-	public static String createTempUser(Connection sd, int oId, String email, String assignee_name, int pId, TaskFeature tf) throws Exception {
-		UserManager um = new UserManager();
+	public static String createTempUser(Connection sd, ResourceBundle localisation, int oId, String email, 
+			String assignee_name, int pId, TaskFeature tf) throws Exception {
+		UserManager um = new UserManager(localisation);
 		String tempUserId = "u" + String.valueOf(UUID.randomUUID());
 		User u = new User();
 		u.ident = tempUserId;
