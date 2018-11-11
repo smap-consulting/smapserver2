@@ -41,6 +41,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
@@ -148,6 +149,15 @@ public class UserList extends Application {
 				+ "and ur.r_id = r.id "
 				+ "order by r.name asc";
 		PreparedStatement pstmtRoles = null;
+		
+		String sqlOrgs = "select o.id,"
+				+ "o.name "
+				+ "from organisation o,"
+				+ "user_organisation uo "
+				+ "where uo.u_id = ? "
+				+ "and uo.o_id = o.id "
+				+ "order by o.name asc";
+		PreparedStatement pstmtOrgs = null;
 				
 		ArrayList<User> users = new ArrayList<User> ();
 		
@@ -167,6 +177,9 @@ public class UserList extends Application {
 			
 			pstmtRoles = sd.prepareStatement(sqlRoles);
 			ResultSet rsRoles = null;
+			
+			pstmtOrgs = sd.prepareStatement(sqlOrgs);
+			ResultSet rsOrgs = null;
 			
 			pstmt.setInt(1, o_id);
 			log.info("Get user list: " + pstmt.toString());
@@ -217,6 +230,28 @@ public class UserList extends Application {
 					}
 				}
 				
+				// Organisations
+				if(isOrgUser) {
+					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
+					pstmtOrgs.setInt(1, user.id);
+					rsOrgs = pstmtOrgs.executeQuery();
+					user.orgs = new ArrayList<Organisation> ();
+					while(rsOrgs.next()) {
+						Organisation o = new Organisation();
+						o.id = rsOrgs.getInt("id");
+						o.name = rsOrgs.getString("name");
+						user.orgs.add(o);
+					}
+					if(user.orgs.size() == 0) {
+						/*
+						 * Add a default organisation equal to the users current organisation
+						 * This is only needed for users who were created before organisation linking was added
+						 */
+						Organisation o = new Organisation();
+						o.id = o_id;
+						user.orgs.add(o);
+					}
+				}
 				users.add(user);
 			}
 			
@@ -231,10 +266,11 @@ public class UserList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		    
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (SQLException e) {	}
-			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (SQLException e) {	}
-			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (Exception e) {	}
+			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (Exception e) {	}
+			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (Exception e) {	}
+			try {if (pstmtOrgs != null) {pstmtOrgs.close();	}} catch (Exception e) {}
 			SDDataSource.closeConnection(requestName, sd);
 		}
 

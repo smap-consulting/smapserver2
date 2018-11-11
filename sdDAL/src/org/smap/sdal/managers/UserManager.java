@@ -376,6 +376,9 @@ public class UserManager {
 			if (rs.next()){
 				u_id = rs.getInt(1);
 				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager);
+				if(isOrgUser) {
+					insertUserOrganisations(sd, u, u_id);
+				}
 			}
 
 			// Send a notification email to the user
@@ -534,6 +537,9 @@ public class UserManager {
 
 				// Update the groups, projects and roles
 				insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
+				if(isOrgUser) {
+					insertUserOrganisations(sd, u, u.id);
+				}
 
 			} else {
 				throw new Exception("Invalid user");
@@ -656,6 +662,56 @@ public class UserManager {
 			try {if (pstmtInsertUserGroup != null) {pstmtInsertUserGroup.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertUserRole != null) {pstmtInsertUserRole.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertProjectGroup != null) {pstmtInsertProjectGroup.close();}} catch (SQLException e) {}
+		}
+
+	}
+	
+	private void insertUserOrganisations(Connection sd, User u, int u_id) throws SQLException {
+
+		String sql;
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtInsertOrgUser = null;
+
+		log.info("Update organisations for user id:" + u_id);
+
+		// Delete existing organisation links
+		try {
+
+			String sqlInsertOrgUser = "insert into user_organisation (u_id, o_id) values (?, ?);";
+			pstmtInsertOrgUser = sd.prepareStatement(sqlInsertOrgUser);
+			pstmtInsertOrgUser.setInt(1, u_id);
+
+			/*
+			 * Update user groups
+			 */
+			log.info("Set autocommit false");
+			sd.setAutoCommit(false);
+			sql = "delete from user_organisation where u_id = ?;";
+
+			if(u.orgs != null) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, u.id);
+				log.info("SQL: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+				for(int j = 0; j < u.orgs.size(); j++) {
+					pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
+					pstmtInsertOrgUser.executeUpdate();
+				}
+			} else {
+				log.info("No user groups");
+			}
+			sd.commit();	// Commit changes to user group
+
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			try{sd.rollback();} catch(Exception ex) {}
+		} finally {
+			log.info("Set autocommit true");
+			sd.setAutoCommit(true);
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtInsertOrgUser != null) {pstmtInsertOrgUser.close();}} catch (SQLException e) {}
 		}
 
 	}
