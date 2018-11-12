@@ -518,6 +518,7 @@ public class UserManager {
 		PreparedStatement pstmt = null;
 
 		try {
+			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, u.id);
 			pstmt.setInt(2, o_id);
@@ -531,6 +532,9 @@ public class UserManager {
 				if(u.o_id == 0) {
 					u.o_id = o_id;
 				}
+				
+				// Update the saved settings for this user
+				updateSavedSettings(sd, u, u.id, u.o_id);
 				
 				// update existing user
 				String pwdString = null;
@@ -718,39 +722,47 @@ public class UserManager {
 		// Delete existing organisation links
 		try {
 
-			String sqlInsertOrgUser = "insert into user_organisation (u_id, o_id) values (?, ?);";
+			String sqlInsertOrgUser = "insert into user_organisation (u_id, o_id) values (?, ?)";
 			pstmtInsertOrgUser = sd.prepareStatement(sqlInsertOrgUser);
 			pstmtInsertOrgUser.setInt(1, u_id);
-
+			
 			/*
 			 * Update user groups
 			 */
-			log.info("Set autocommit false");
-			sd.setAutoCommit(false);
-			sql = "delete from user_organisation where u_id = ?;";
+			sql = "delete from user_organisation where u_id = ? and o_id != all (?)";
 
 			if(u.orgs != null) {
+				ArrayList<Integer> orgList = new ArrayList<Integer> ();
+				for(int j = 0; j < u.orgs.size(); j++) {
+					orgList.add(u.orgs.get(j).id);
+				}
+				
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
-				log.info("SQL: " + pstmt.toString());
+				pstmt.setArray(2, sd.createArrayOf("int", orgList.toArray(new Integer[orgList.size()])));
+				log.info("Delete removed org links: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				for(int j = 0; j < u.orgs.size(); j++) {
 					pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
-					pstmtInsertOrgUser.executeUpdate();
+					log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+					try {
+						pstmtInsertOrgUser.executeUpdate();
+					} catch (SQLException e) {
+						if(!e.getSQLState().equals("23505")) {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
+					}
 				}
 			} else {
 				log.info("No user groups");
 			}
-			sd.commit();	// Commit changes to user group
-
+		
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-			try{sd.rollback();} catch(Exception ex) {}
 		} finally {
 			log.info("Set autocommit true");
-			sd.setAutoCommit(true);
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertOrgUser != null) {pstmtInsertOrgUser.close();}} catch (SQLException e) {}
 		}
@@ -788,15 +800,6 @@ public class UserManager {
 				+ "where o_id = ? "
 				+ "and u_id = ?";
 		PreparedStatement pstmtValidate = null;
-		
-		String sqlUpdateSettings = "update user_organisation "
-				+ "set settings = ? "
-				+ "where o_id = ? "
-				+ "and u_id = ?";
-		PreparedStatement pstmtUpdateSettings = null;
-		
-		String sqlInsertSettings = "insert into user_organisation (u_id, o_id, settings) values(?, ?, ?) ";				
-		PreparedStatement pstmtInsertSettings = null;
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
@@ -814,37 +817,23 @@ public class UserManager {
 					pstmtValidate = sd.prepareStatement(sqlValidate);
 					pstmtValidate.setInt(1, newOrgId);
 					pstmtValidate.setInt(2, uId);
-					log.info("Validate user organisation switch: " + pstmt.toString());
+					log.info("Validate user organisation switch: " + pstmtValidate.toString());
 					rs = pstmtValidate.executeQuery();
 					if(rs.next()) {
 						
 						String targetSettings = rs.getString(1);
 						
 						// 3. Save the current organisation settings
-						User u = getByIdent(sd, userIdent);
-						u.password = null;		// Don't save the password
+						User u = null;
 						
-						pstmtUpdateSettings = sd.prepareStatement(sqlUpdateSettings);
-						pstmtUpdateSettings.setString(1, gson.toJson(u));
-						pstmtUpdateSettings.setInt(2, currentOrgId);
-						pstmtUpdateSettings.setInt(3, uId);
-						log.info("Update current org settings: " + pstmtUpdateSettings.toString());
-						int count = pstmtUpdateSettings.executeUpdate();
-						if(count == 0) {
-							// Need to insert the new settings
-							pstmtInsertSettings = sd.prepareStatement(sqlInsertSettings);
-							pstmtInsertSettings.setInt(1, uId);
-							pstmtInsertSettings.setInt(2, currentOrgId);
-							pstmtInsertSettings.setString(3,  gson.toJson(u));
-							log.info("Update current org settings: " + pstmtInsertSettings.toString());
-							pstmtInsertSettings.executeUpdate();
-						}
+						//updateSavedSettings(sd, u, uId, currentOrgId);
 						
 						// 4. Set the current settings to the new settings 
 						// Use default values from the current organisation if the new settings are null
 						if(targetSettings != null) {
 							u = gson.fromJson(targetSettings, User.class);
 						} else {
+							u = getByIdent(sd, userIdent);
 							// Clear settings from the current org that we do not want to add as the default to a new org
 							u.current_task_group_id = 0;
 							u.current_project_id = 0;
@@ -865,6 +854,41 @@ public class UserManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {}
 			try {if (pstmtValidate != null) {pstmtValidate.close();	}} catch (Exception e) {}
+		}
+	}
+	
+	private void updateSavedSettings(Connection sd, User u, int uId, int oId) throws SQLException {
+		
+		String sqlUpdateSettings = "update user_organisation "
+				+ "set settings = ? "
+				+ "where o_id = ? "
+				+ "and u_id = ?";
+		PreparedStatement pstmtUpdateSettings = null;
+		
+		String sqlInsertSettings = "insert into user_organisation (u_id, o_id, settings) values(?, ?, ?) ";				
+		PreparedStatement pstmtInsertSettings = null;
+		
+		u.password = null;		// Don't save the password
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		try {
+			pstmtUpdateSettings = sd.prepareStatement(sqlUpdateSettings);
+			pstmtUpdateSettings.setString(1, gson.toJson(u));
+			pstmtUpdateSettings.setInt(2, oId);
+			pstmtUpdateSettings.setInt(3, uId);
+			log.info("Update current org settings: " + pstmtUpdateSettings.toString());
+			int count = pstmtUpdateSettings.executeUpdate();
+			if(count == 0) {
+				// Need to insert the new settings
+				pstmtInsertSettings = sd.prepareStatement(sqlInsertSettings);
+				pstmtInsertSettings.setInt(1, uId);
+				pstmtInsertSettings.setInt(2, oId);
+				pstmtInsertSettings.setString(3,  gson.toJson(u));
+				log.info("Update current org settings: " + pstmtInsertSettings.toString());
+				pstmtInsertSettings.executeUpdate();
+			}
+		} finally {
 			try {if (pstmtUpdateSettings != null) {pstmtUpdateSettings.close();	}} catch (Exception e) {}
 			try {if (pstmtInsertSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
 		}
