@@ -512,7 +512,7 @@ public class UserManager {
 					+ "and u.o_id = ? "
 				+ "union "
 					+ "select uo.u_id "
-					+ "from user_organisation "
+					+ "from user_organisation uo "
 					+ "where uo.u_id = ? "
 					+ "and uo.o_id = ?";				
 		PreparedStatement pstmt = null;
@@ -528,27 +528,33 @@ public class UserManager {
 
 			if(resultSet.next()) {
 
+				if(u.o_id == 0) {
+					u.o_id = o_id;
+				}
+				
 				// update existing user
 				String pwdString = null;
 				if(u.password == null) {
 					// Do not update the password
-					sql = "update users set " +
-							" ident = ?, " +
-							" realm = ?, " +
-							" name = ?, " + 
-							" email = ? " +
-							" where " +
-							" id = ?;";
+					sql = "update users set "
+							+ "ident = ?, "
+							+ "realm = ?, "
+							+ "name = ?, " 
+							+ "email = ?, "
+							+ "o_id = ? "
+							+ "where "
+							+ "id = ?";
 				} else {
 					// Update the password
-					sql = "update users set " +
-							" ident = ?, " +
-							" realm = ?, " +
-							" name = ?, " + 
-							" email = ?, " +
-							" password = md5(?) " +
-							" where " +
-							" id = ?;";
+					sql = "update users set "
+							+ "ident = ?, "
+							+ "realm = ?, "
+							+ "name = ?, " 
+							+ "email = ?, "
+							+ "o_id, "
+							+ "password = md5(?) "
+							+ "where "
+							+ "id = ?";
 
 					pwdString = u.ident + ":smap:" + u.password;
 				}
@@ -559,14 +565,15 @@ public class UserManager {
 				pstmt.setString(2, "smap");
 				pstmt.setString(3, u.name);
 				pstmt.setString(4, u.email);
+				pstmt.setInt(5, u.o_id);
 				if(u.password == null) {
-					pstmt.setInt(5, u.id);
-				} else {
-					pstmt.setString(5, pwdString);
 					pstmt.setInt(6, u.id);
+				} else {
+					pstmt.setString(6, pwdString);
+					pstmt.setInt(7, u.id);
 				}
 
-				log.info("SQL: " + pstmt.toString());
+				log.info("Update user details: " + pstmt.toString());
 				pstmt.executeUpdate();
 
 				// Update the groups, projects and roles
@@ -844,6 +851,7 @@ public class UserManager {
 							u.current_survey_id = 0;
 							u.roles = null;
 							u.projects = null;
+							u.o_id = newOrgId;
 						}
 						boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, userIdent);
 						boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, userIdent);
@@ -851,9 +859,7 @@ public class UserManager {
 					} else {
 						throw new ApplicationException(localisation.getString("u_org_nf"));
 					}
-				} else {
-					log.info("Error: currentOrgId is the same as newOrgId: " + newOrgId);
-				}
+				} 
 			}			
 			
 		} finally {

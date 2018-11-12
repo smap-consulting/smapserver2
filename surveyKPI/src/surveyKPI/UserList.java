@@ -118,7 +118,7 @@ public class UserList extends Application {
 				+ "name, "
 				+ "email "
 				+ "from users "
-				+ "where users.o_id = ? "
+				+ "where (users.o_id = ? or id in (select uo.u_id from user_organisation uo where uo.o_id = users.o_id)) "
 				+ "and not users.temporary "
 				+ "order by ident asc";
 		PreparedStatement pstmt = null;
