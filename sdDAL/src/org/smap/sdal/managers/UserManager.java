@@ -11,6 +11,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -505,19 +506,24 @@ public class UserManager {
 
 
 		// Check the user is in the same organisation as the administrator doing the editing
-		String sql = "SELECT u.id " +
-				" FROM users u " +  
-				" WHERE u.id = ? " +
-				" AND u.o_id = ?;";				
-
-
+		String sql = "select u.id "
+					+ "from users u " 
+					+ "where u.id = ? "
+					+ "and u.o_id = ? "
+				+ "union "
+					+ "select uo.u_id "
+					+ "from user_organisation "
+					+ "where uo.u_id = ? "
+					+ "and uo.o_id = ?";				
 		PreparedStatement pstmt = null;
 
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, u.id);
 			pstmt.setInt(2, o_id);
-			log.info("SQL: " + pstmt.toString());
+			pstmt.setInt(3, u.id);
+			pstmt.setInt(4, o_id);
+			log.info("Validate user in correct organsiation: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 
 			if(resultSet.next()) {
@@ -765,30 +771,96 @@ public class UserManager {
 	/*
 	 * Switch a user to a new organisation
 	 */
-	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent) throws SQLException, ApplicationException {
+	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent) throws Exception {
 
-		String sqlValidate = "select count(*) "
+		String sql = "select id, o_id from users where ident = ?";
+		PreparedStatement pstmt = null;
+		
+		String sqlValidate = "select settings "
 				+ "from user_organisation uo "
 				+ "where o_id = ? "
-				+ "and u_id = (select id from users where ident = ?";
-		PreparedStatement pstmt = null;
+				+ "and u_id = ?";
+		PreparedStatement pstmtValidate = null;
+		
+		String sqlUpdateSettings = "update user_organisation "
+				+ "set settings = ? "
+				+ "where o_id = ? "
+				+ "and u_id = ?";
+		PreparedStatement pstmtUpdateSettings = null;
+		
+		String sqlInsertSettings = "insert into user_organisation (u_id, o_id, settings) values(?, ?, ?) ";				
+		PreparedStatement pstmtInsertSettings = null;
 
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		try {
-			// 1.  Verify that the user has access to the new organisation
-			pstmt = sd.prepareStatement(sqlValidate);
-			pstmt.setInt(1, newOrgId);
-			pstmt.setString(2, userIdent);
-			log.info("Validate user organisation switch: " + pstmt.toString());
+			// 1. Get the users current organisation
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  userIdent);
 			ResultSet rs = pstmt.executeQuery();
-			if(rs.next() && rs.getInt(1) > 0) {
-				
-			} else {
-				throw new ApplicationException(localisation.getString("u_org_nf"));
-			}
-			
+			if(rs.next()) {
+				int uId = rs.getInt(1);
+				int currentOrgId = rs.getInt(2);
+				if(currentOrgId != newOrgId) {
+					
+					// 2.  Verify that the user has access to the new organisation
+					pstmtValidate = sd.prepareStatement(sqlValidate);
+					pstmtValidate.setInt(1, newOrgId);
+					pstmtValidate.setInt(2, uId);
+					log.info("Validate user organisation switch: " + pstmt.toString());
+					rs = pstmtValidate.executeQuery();
+					if(rs.next()) {
+						
+						String targetSettings = rs.getString(1);
+						
+						// 3. Save the current organisation settings
+						User u = getByIdent(sd, userIdent);
+						u.password = null;		// Don't save the password
+						
+						pstmtUpdateSettings = sd.prepareStatement(sqlUpdateSettings);
+						pstmtUpdateSettings.setString(1, gson.toJson(u));
+						pstmtUpdateSettings.setInt(2, currentOrgId);
+						pstmtUpdateSettings.setInt(3, uId);
+						log.info("Update current org settings: " + pstmtUpdateSettings.toString());
+						int count = pstmtUpdateSettings.executeUpdate();
+						if(count == 0) {
+							// Need to insert the new settings
+							pstmtInsertSettings = sd.prepareStatement(sqlInsertSettings);
+							pstmtInsertSettings.setInt(1, uId);
+							pstmtInsertSettings.setInt(2, currentOrgId);
+							pstmtInsertSettings.setString(3,  gson.toJson(u));
+							log.info("Update current org settings: " + pstmtInsertSettings.toString());
+							pstmtInsertSettings.executeUpdate();
+						}
+						
+						// 4. Set the current settings to the new settings 
+						// Use default values from the current organisation if the new settings are null
+						if(targetSettings != null) {
+							u = gson.fromJson(targetSettings, User.class);
+						} else {
+							// Clear settings from the current org that we do not want to add as the default to a new org
+							u.current_task_group_id = 0;
+							u.current_project_id = 0;
+							u.current_survey_id = 0;
+							u.roles = null;
+							u.projects = null;
+						}
+						boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, userIdent);
+						boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, userIdent);
+						updateUser(sd, u, currentOrgId, isOrgUser, isSecurityManager, userIdent, null, null);
+					} else {
+						throw new ApplicationException(localisation.getString("u_org_nf"));
+					}
+				} else {
+					log.info("Error: currentOrgId is the same as newOrgId: " + newOrgId);
+				}
+			}			
 			
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {}
+			try {if (pstmtValidate != null) {pstmtValidate.close();	}} catch (Exception e) {}
+			try {if (pstmtUpdateSettings != null) {pstmtUpdateSettings.close();	}} catch (Exception e) {}
+			try {if (pstmtInsertSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
 		}
 	}
 }
