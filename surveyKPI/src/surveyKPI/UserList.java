@@ -116,7 +116,8 @@ public class UserList extends Application {
 		String sql = "select id,"
 				+ "ident, "
 				+ "name, "
-				+ "email "
+				+ "email, "
+				+ "o_id "
 				+ "from users "
 				+ "where (users.o_id = ? or id in (select uo.u_id from user_organisation uo where uo.o_id = users.o_id)) "
 				+ "and not users.temporary "
@@ -158,8 +159,15 @@ public class UserList extends Application {
 				+ "and uo.o_id = o.id "
 				+ "order by o.name asc";
 		PreparedStatement pstmtOrgs = null;
-				
+		
+		String sqlGetSavedUser = "select settings "
+				+ "from user_organisation uo "
+				+ "where o_id = ? "
+				+ "and u_id = ?";
+		PreparedStatement pstmtGetSavedUser = null;
+		
 		ArrayList<User> users = new ArrayList<User> ();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
@@ -185,77 +193,99 @@ public class UserList extends Application {
 			log.info("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
-				User user = new User();
-				
-				user.id = rs.getInt("id");
-				user.ident = rs.getString("ident");
-				user.name = rs.getString("name");
-				user.email = rs.getString("email");
-				
-				// Groups
-				if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
-				pstmtGroups.setInt(1, user.id);
-				rsGroups = pstmtGroups.executeQuery();
-				user.groups = new ArrayList<UserGroup> ();
-				while(rsGroups.next()) {
-					UserGroup ug = new UserGroup();
-					ug.id = rsGroups.getInt("id");
-					ug.name = rsGroups.getString("name");
-					user.groups.add(ug);
-				}
-				
-				// Projects
-				if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
-				pstmtProjects.setInt(1, user.id);
-				rsProjects = pstmtProjects.executeQuery();
-				user.projects = new ArrayList<Project> ();
-				while(rsProjects.next()) {
-					Project p = new Project();
-					p.id = rsProjects.getInt("id");
-					p.name = rsProjects.getString("name");
-					user.projects.add(p);
-				}
-				
-				// Roles
-				if(isOrgUser || isSecurityManager) {
-					if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
-					pstmtRoles.setInt(1, user.id);
-					rsRoles = pstmtRoles.executeQuery();
-					user.roles = new ArrayList<Role> ();
-					while(rsRoles.next()) {
-						Role r = new Role();
-						r.id = rsRoles.getInt("id");
-						r.name = rsRoles.getString("name");
-						user.roles.add(r);
+				int usersOrgId = rs.getInt("o_id");
+				User user = null;
+				int uId = rs.getInt("id");
+				String targetSettings = null;
+				if(usersOrgId != o_id) {
+					// User is not currently in this organisation
+					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
+					pstmtGetSavedUser.setInt(1, o_id);
+					pstmtGetSavedUser.setInt(2, uId);
+					log.info("Validate user organisation switch: " + pstmtGetSavedUser.toString());
+					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
+					if(rs2.next()) {
+						targetSettings = rs2.getString(1);
 					}
 				}
 				
-				// Organisations
-				if(isOrgUser) {
-					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
-					pstmtOrgs.setInt(1, user.id);
-					rsOrgs = pstmtOrgs.executeQuery();
-					user.orgs = new ArrayList<Organisation> ();
-					while(rsOrgs.next()) {
-						Organisation o = new Organisation();
-						o.id = rsOrgs.getInt("id");
-						o.name = rsOrgs.getString("name");
-						user.orgs.add(o);
+				if(targetSettings == null) {
+					// Current user
+					user = new User();
+				
+					user.id = rs.getInt("id");
+					user.ident = rs.getString("ident");
+					user.name = rs.getString("name");
+					user.email = rs.getString("email");
+					
+					// Groups
+					if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
+					pstmtGroups.setInt(1, user.id);
+					rsGroups = pstmtGroups.executeQuery();
+					user.groups = new ArrayList<UserGroup> ();
+					while(rsGroups.next()) {
+						UserGroup ug = new UserGroup();
+						ug.id = rsGroups.getInt("id");
+						ug.name = rsGroups.getString("name");
+						user.groups.add(ug);
 					}
-					if(user.orgs.size() == 0) {
-						/*
-						 * Add a default organisation equal to the users current organisation
-						 * This is only needed for users who were created before organisation linking was added
-						 */
-						Organisation o = new Organisation();
-						o.id = o_id;
-						user.orgs.add(o);
+					
+					// Projects
+					if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
+					pstmtProjects.setInt(1, user.id);
+					rsProjects = pstmtProjects.executeQuery();
+					user.projects = new ArrayList<Project> ();
+					while(rsProjects.next()) {
+						Project p = new Project();
+						p.id = rsProjects.getInt("id");
+						p.name = rsProjects.getString("name");
+						user.projects.add(p);
 					}
+					
+					// Roles
+					if(isOrgUser || isSecurityManager) {
+						if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
+						pstmtRoles.setInt(1, user.id);
+						rsRoles = pstmtRoles.executeQuery();
+						user.roles = new ArrayList<Role> ();
+						while(rsRoles.next()) {
+							Role r = new Role();
+							r.id = rsRoles.getInt("id");
+							r.name = rsRoles.getString("name");
+							user.roles.add(r);
+						}
+					}
+					
+					// Organisations
+					if(isOrgUser) {
+						if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
+						pstmtOrgs.setInt(1, user.id);
+						rsOrgs = pstmtOrgs.executeQuery();
+						user.orgs = new ArrayList<Organisation> ();
+						while(rsOrgs.next()) {
+							Organisation o = new Organisation();
+							o.id = rsOrgs.getInt("id");
+							o.name = rsOrgs.getString("name");
+							user.orgs.add(o);
+						}
+						if(user.orgs.size() == 0) {
+							/*
+							 * Add a default organisation equal to the users current organisation
+							 * This is only needed for users who were created before organisation linking was added
+							 */
+							Organisation o = new Organisation();
+							o.id = o_id;
+							user.orgs.add(o);
+						}
+					}
+				} else {
+					user = gson.fromJson(targetSettings, User.class);
 				}
-				users.add(user);
+				if(user != null) {
+					users.add(user);
+				}
 			}
 			
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -271,6 +301,7 @@ public class UserList extends Application {
 			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (Exception e) {	}
 			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (Exception e) {	}
 			try {if (pstmtOrgs != null) {pstmtOrgs.close();	}} catch (Exception e) {}
+			try {if (pstmtGetSavedUser != null) {pstmtGetSavedUser.close();	}} catch (Exception e) {}
 			SDDataSource.closeConnection(requestName, sd);
 		}
 

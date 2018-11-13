@@ -517,6 +517,9 @@ public class UserManager {
 					+ "and uo.o_id = ?";				
 		PreparedStatement pstmt = null;
 
+		String sqlGetOrgId = "select o_id from users where id = ?";
+		PreparedStatement pstmtGetOrgId = null;
+		
 		try {
 			
 			pstmt = sd.prepareStatement(sql);
@@ -529,69 +532,75 @@ public class UserManager {
 
 			if(resultSet.next()) {
 
-				if(u.o_id == 0) {
-					u.o_id = o_id;
+				// Get the current organisation of the user
+				pstmtGetOrgId = sd.prepareStatement(sqlGetOrgId);
+				pstmtGetOrgId.setInt(1, u.id);
+				ResultSet rs2 = pstmtGetOrgId.executeQuery();
+				if(rs2.next()) {
+					u.o_id = rs2.getInt(1);
 				}
 				
 				// Update the saved settings for this user
 				updateSavedSettings(sd, u, u.id, u.o_id);
 				
-				// update existing user
-				String pwdString = null;
-				if(u.password == null) {
-					// Do not update the password
-					sql = "update users set "
-							+ "ident = ?, "
-							+ "realm = ?, "
-							+ "name = ?, " 
-							+ "email = ?, "
-							+ "o_id = ? "
-							+ "where "
-							+ "id = ?";
-				} else {
-					// Update the password
-					sql = "update users set "
-							+ "ident = ?, "
-							+ "realm = ?, "
-							+ "name = ?, " 
-							+ "email = ?, "
-							+ "o_id, "
-							+ "password = md5(?) "
-							+ "where "
-							+ "id = ?";
+				if(u.o_id == o_id) {
+					// update the current settings for the user
+					String pwdString = null;
+					if(u.password == null) {
+						// Do not update the password
+						sql = "update users set "
+								+ "ident = ?, "
+								+ "realm = ?, "
+								+ "name = ?, " 
+								+ "email = ?, "
+								+ "o_id = ? "
+								+ "where "
+								+ "id = ?";
+					} else {
+						// Update the password
+						sql = "update users set "
+								+ "ident = ?, "
+								+ "realm = ?, "
+								+ "name = ?, " 
+								+ "email = ?, "
+								+ "o_id, "
+								+ "password = md5(?) "
+								+ "where "
+								+ "id = ?";
+	
+						pwdString = u.ident + ":smap:" + u.password;
+					}
+	
+					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setString(1, u.ident);
+					pstmt.setString(2, "smap");
+					pstmt.setString(3, u.name);
+					pstmt.setString(4, u.email);
+					pstmt.setInt(5, u.o_id);
+					if(u.password == null) {
+						pstmt.setInt(6, u.id);
+					} else {
+						pstmt.setString(6, pwdString);
+						pstmt.setInt(7, u.id);
+					}
 
-					pwdString = u.ident + ":smap:" + u.password;
-				}
+					log.info("Update user details: " + pstmt.toString());
+					pstmt.executeUpdate();
 
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, u.ident);
-				pstmt.setString(2, "smap");
-				pstmt.setString(3, u.name);
-				pstmt.setString(4, u.email);
-				pstmt.setInt(5, u.o_id);
-				if(u.password == null) {
-					pstmt.setInt(6, u.id);
-				} else {
-					pstmt.setString(6, pwdString);
-					pstmt.setInt(7, u.id);
-				}
-
-				log.info("Update user details: " + pstmt.toString());
-				pstmt.executeUpdate();
-
-				// Update the groups, projects and roles
-				insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
-				if(isOrgUser) {
-					insertUserOrganisations(sd, u, u.id);
+					// Update the groups, projects and roles
+					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
+					if(isOrgUser) {
+						insertUserOrganisations(sd, u, u.id);
+					}
 				}
 
 			} else {
 				throw new Exception("Invalid user");
 			}
 		} finally {		
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+			try {if (pstmtGetOrgId != null) {pstmtGetOrgId.close();} } catch (SQLException e) {}
 		}
 	}
 
