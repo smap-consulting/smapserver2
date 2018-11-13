@@ -208,7 +208,7 @@ public class UserSvc extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
 		Type type = new TypeToken<User>(){}.getType();		
-		User u = new Gson().fromJson(user, type);
+		User u = new Gson().fromJson(user, type);		// The user settings
 		
 		PreparedStatement pstmt = null;
 		try {	
@@ -238,8 +238,7 @@ public class UserSvc extends Application {
 				/*
 				 * The user is moving themselves to a different organisation
 				 * If the new settings are null then they are not authorised to move to this new organisation
-				 */
-				
+				 */				
 				UserManager um = new UserManager(localisation);
 				try {
 					um.switchUsersOrganisation(sd, u.current_org_id,	request.getRemoteUser());

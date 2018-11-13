@@ -531,7 +531,8 @@ public class UserList extends Application {
 								isSecurityManager,
 								request.getRemoteUser(),
 								request.getServerName(),
-								adminName);
+								adminName,
+								false);
 						
 						lm.writeLogOrganisation(sd, 
 								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups));

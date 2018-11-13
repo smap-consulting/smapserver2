@@ -232,7 +232,7 @@ public class UserManager {
 			}
 			
 			/*
-			 * Get the oganisations that the user belongs to
+			 * Get the organisations that the user belongs to
 			 */
 			sql = "SELECT o.id as id, o.name as name " +
 					" from organisation o, user_organisation uo " +
@@ -496,14 +496,16 @@ public class UserManager {
 	 * Update a users details
 	 */
 	public void updateUser(Connection sd, 
-			User u, 
-			int o_id, 
+			User u, 						// New details for user being updated
+			int adminUserOrgId, 			// Organisation Id of administrator updating the user
 			boolean isOrgUser, 
 			boolean isSecurityManager,
 			String userIdent,
 			String serverName,
-			String adminName) throws Exception {
+			String adminName,
+			boolean isSwitch) throws Exception {
 
+		int tCurrentUserOrgId = 0;		// Current logged in organisation of the user to be updated
 
 		// Check the user is in the same organisation as the administrator doing the editing
 		String sql = "select u.id "
@@ -524,10 +526,10 @@ public class UserManager {
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, u.id);
-			pstmt.setInt(2, o_id);
+			pstmt.setInt(2, adminUserOrgId);
 			pstmt.setInt(3, u.id);
-			pstmt.setInt(4, o_id);
-			log.info("Validate user in correct organsiation: " + pstmt.toString());
+			pstmt.setInt(4, adminUserOrgId);
+			log.info("Validate user in correct organisation: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 
 			if(resultSet.next()) {
@@ -537,13 +539,26 @@ public class UserManager {
 				pstmtGetOrgId.setInt(1, u.id);
 				ResultSet rs2 = pstmtGetOrgId.executeQuery();
 				if(rs2.next()) {
-					u.o_id = rs2.getInt(1);
+					tCurrentUserOrgId = rs2.getInt(1);
+				}
+				
+				/*
+				 * If the update does not identify the organisation then it will be for the currently 
+				 * logged in organisation
+				 */
+				if(u.o_id == 0) {
+					u.o_id = tCurrentUserOrgId;
 				}
 				
 				// Update the saved settings for this user
 				updateSavedSettings(sd, u, u.id, u.o_id);
 				
-				if(u.o_id == o_id) {
+				/*
+				 * Update the current settings if the organisation to be updated is the same
+				 * as the current organisation
+				 */
+				if(isSwitch || (u.o_id == tCurrentUserOrgId)) {
+					
 					// update the current settings for the user
 					String pwdString = null;
 					if(u.password == null) {
@@ -831,18 +846,18 @@ public class UserManager {
 					if(rs.next()) {
 						
 						String targetSettings = rs.getString(1);
-						
-						// 3. Save the current organisation settings
 						User u = null;
 						
-						//updateSavedSettings(sd, u, uId, currentOrgId);
+						// 3. Save the current organisation settings
+						User uCurrent = getByIdent(sd, userIdent);
+						updateSavedSettings(sd, uCurrent, uId, currentOrgId);
 						
 						// 4. Set the current settings to the new settings 
 						// Use default values from the current organisation if the new settings are null
 						if(targetSettings != null) {
 							u = gson.fromJson(targetSettings, User.class);
 						} else {
-							u = getByIdent(sd, userIdent);
+							u = uCurrent;
 							// Clear settings from the current org that we do not want to add as the default to a new org
 							u.current_task_group_id = 0;
 							u.current_project_id = 0;
@@ -853,7 +868,7 @@ public class UserManager {
 						}
 						boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, userIdent);
 						boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, userIdent);
-						updateUser(sd, u, currentOrgId, isOrgUser, isSecurityManager, userIdent, null, null);
+						updateUser(sd, u, currentOrgId, isOrgUser, isSecurityManager, userIdent, null, null, true);
 					} else {
 						throw new ApplicationException(localisation.getString("u_org_nf"));
 					}
