@@ -543,11 +543,11 @@ public class UserManager {
 				}
 				
 				/*
-				 * If the update does not identify the organisation then it will be for the currently 
-				 * logged in organisation
+				 * If the update does not identify the organisation then it will be for the organisation
+				 * of the person doing the update
 				 */
 				if(u.o_id == 0) {
-					u.o_id = tCurrentUserOrgId;
+					u.o_id = adminUserOrgId;
 				}
 				
 				// Update the saved settings for this user
@@ -895,6 +895,8 @@ public class UserManager {
 		u.password = null;		// Don't save the password
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		u.o_id = oId;
 		
 		try {
 			pstmtUpdateSettings = sd.prepareStatement(sqlUpdateSettings);

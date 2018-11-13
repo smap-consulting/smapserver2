@@ -196,21 +196,19 @@ public class UserList extends Application {
 				int usersOrgId = rs.getInt("o_id");
 				User user = null;
 				int uId = rs.getInt("id");
-				String targetSettings = null;
+
 				if(usersOrgId != o_id) {
 					// User is not currently in this organisation
 					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
 					pstmtGetSavedUser.setInt(1, o_id);
 					pstmtGetSavedUser.setInt(2, uId);
-					log.info("Validate user organisation switch: " + pstmtGetSavedUser.toString());
+					log.info("Get saved user details: " + pstmtGetSavedUser.toString());
 					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
 					if(rs2.next()) {
-						targetSettings = rs2.getString(1);
+						user = gson.fromJson(rs2.getString(1), User.class);
 					}
-				}
-				
-				if(targetSettings == null) {
-					// Current user
+				} else {
+					// Current user in the same organisation as the administrator
 					user = new User();
 				
 					user.id = rs.getInt("id");
@@ -278,9 +276,8 @@ public class UserList extends Application {
 							user.orgs.add(o);
 						}
 					}
-				} else {
-					user = gson.fromJson(targetSettings, User.class);
-				}
+				} 
+				
 				if(user != null) {
 					users.add(user);
 				}
