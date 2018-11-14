@@ -593,6 +593,8 @@ public class UserList extends Application {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtGetIdent = null;
+		PreparedStatement pstmtCountOrgs = null;
+		PreparedStatement pstmtSoftDelete = null;
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {	
@@ -616,11 +618,21 @@ public class UserList extends Application {
 					+ "and u.o_id = ?";								
 			pstmtGetIdent = sd.prepareStatement(sqlGetIdent);
 			
-			// Delete the user
-			String sqlUpdate = "DELETE FROM users u " +  
-					" WHERE u.id = ? " +			// Ensure the user is in the same organisation as the administrator doing the editing
-					" AND u.o_id = ?;";					
-			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			// Get the count of organisations that the user is in
+			String sqlCountOrgs = "select count(*) from user_organisation where u_id = ?";
+			pstmtCountOrgs = sd.prepareStatement(sqlCountOrgs);
+			
+			// Perform a hard delete of the user
+			String sqlUpdate = "delete from users u "  
+					+ "where u.id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
+					+ "and u.o_id = ?";					
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);	
+			
+			// Perform a soft delete of the user
+			String sqlSoftDelete = "delete from user_organisation "  
+					+ "where u_id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
+					+ "and o_id = ?";					
+			pstmtSoftDelete = sd.prepareStatement(sqlSoftDelete);	
 			
 			// Get the organisation id
 			pstmt.setString(1, request.getRemoteUser());
@@ -641,21 +653,44 @@ public class UserList extends Application {
 						ident = rs.getString(1);
 					}
 					
-					// Peform the delete
-					pstmtUpdate.setInt(1, u.id);
-					pstmtUpdate.setInt(2, o_id);
-					log.info("Delete user: " + pstmt.toString());
+					// Get the number of organisations that this user is a member of
+					int numberOrgs = 0;
+					pstmtCountOrgs.setInt(1, u.id);
+					rs = pstmtCountOrgs.executeQuery();
+					if(rs.next()) {
+						numberOrgs = rs.getInt(1);
+					}
 					
-					int count = pstmtUpdate.executeUpdate();
-					
-					if(count > 0) {	
-						// If a user was deleted then delete their directories
-						GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
+					if(numberOrgs <= 1) {
+						// Only one organisation so performa a Hard delete
+						pstmtUpdate.setInt(1, u.id);
+						pstmtUpdate.setInt(2, o_id);
+						log.info("Delete user: " + pstmtUpdate.toString());
 						
-						// Delete any csv table definitions that they have
-						SurveyTableManager stm = new SurveyTableManager(sd, localisation);
-						stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
-					}	
+						int count = pstmtUpdate.executeUpdate();
+						
+						if(count > 0) {	
+							// If a user was deleted then delete their directories
+							GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
+							
+							// Delete any csv table definitions that they have
+							SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+							stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
+							
+							lm.writeLogOrganisation(sd, 
+									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was completely deleted " + o_id);
+						}	
+					} else {
+						// soft delete
+						pstmtSoftDelete.setInt(1, u.id);
+						pstmtSoftDelete.setInt(2, o_id);
+						log.info("Soft Delete user: " + pstmtSoftDelete.toString());
+						
+						 pstmtSoftDelete.executeUpdate();
+						 
+						lm.writeLogOrganisation(sd, 
+									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was soft deleted from organisation " + o_id);
+					}
 
 				}
 		
@@ -680,6 +715,8 @@ public class UserList extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
+			try {if (pstmtCountOrgs != null) {pstmtCountOrgs.close();}} catch (SQLException e) {}
+			try {if (pstmtSoftDelete != null) {pstmtSoftDelete.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(requestName, sd);
 		}
