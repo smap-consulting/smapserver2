@@ -551,7 +551,7 @@ public class UserManager {
 				}
 				
 				// Update the saved settings for this user
-				updateSavedSettings(sd, u, u.id, u.o_id);
+				updateSavedSettings(sd, u, u.id, u.o_id, isOrgUser, isSecurityManager);
 				
 				/*
 				 * Update the current settings if the organisation to be updated is the same
@@ -667,7 +667,7 @@ public class UserManager {
 
 				for(int j = 0; j < u.groups.size(); j++) {
 					UserGroup g = u.groups.get(j);
-					if(g.id != 4 || isOrgUser) {	
+					if(isOrgUser || (isSecurityManager && g.id != 4) || (g.id != 4 && g.id != 6)) {	// 4 = og admin, 6 = securiy manager
 						pstmtInsertUserGroup.setInt(2, g.id);
 						pstmtInsertUserGroup.executeUpdate();
 					}
@@ -848,9 +848,9 @@ public class UserManager {
 						String targetSettings = rs.getString(1);
 						User u = null;
 						
-						// 3. Save the current organisation settings
+						// 3. Save the user settings for the current org
 						User uCurrent = getByIdent(sd, userIdent);
-						updateSavedSettings(sd, uCurrent, uId, currentOrgId);
+						updateSavedSettings(sd, uCurrent, uId, currentOrgId, true, true);		// Can pretend to be super user as just saving what is already specified
 						
 						// 4. Set the current settings to the new settings 
 						// Use default values from the current organisation if the new settings are null
@@ -881,7 +881,10 @@ public class UserManager {
 		}
 	}
 	
-	private void updateSavedSettings(Connection sd, User u, int uId, int oId) throws SQLException {
+	private void updateSavedSettings(Connection sd, User u, int uId, 
+			int oId,
+			boolean isOrgAdmin,
+			boolean isSecurityAdmin) throws SQLException {
 		
 		String sqlUpdateSettings = "update user_organisation "
 				+ "set settings = ? "
@@ -892,13 +895,40 @@ public class UserManager {
 		String sqlInsertSettings = "insert into user_organisation (u_id, o_id, settings) values(?, ?, ?) ";				
 		PreparedStatement pstmtInsertSettings = null;
 		
-		u.password = null;		// Don't save the password
+		String sqlGetSettings = "select settings from user_organisation where u_id = ? and o_id = ?";				
+		PreparedStatement pstmtGetSettings = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
-		u.o_id = oId;
-		
 		try {
+			// If the user is not a super user then get the existing settings and merge them
+			if(!isOrgAdmin) {		
+				pstmtGetSettings = sd.prepareStatement(sqlGetSettings);
+				pstmtGetSettings.setInt(1, uId);
+				pstmtGetSettings.setInt(2,oId);
+				ResultSet rs = pstmtGetSettings.executeQuery();
+				if(rs.next()) {
+					String currentUserString = rs.getString(1);
+					if(currentUserString != null) {
+						User uCurrent = gson.fromJson(currentUserString, User.class);
+						if(isSecurityAdmin) {
+							// Set org admin group value from current
+							for(UserGroup ug : uCurrent.groups) {
+								if(ug.id == 4) {
+									u.groups.add(ug);
+									break;
+								}
+							}
+						}
+						// Set roles from current
+						u.roles = uCurrent.roles;
+					}
+				}
+			}
+			
+			u.password = null;		// Don't save the password
+			u.o_id = oId;
+			
 			pstmtUpdateSettings = sd.prepareStatement(sqlUpdateSettings);
 			pstmtUpdateSettings.setString(1, gson.toJson(u));
 			pstmtUpdateSettings.setInt(2, oId);
@@ -911,12 +941,13 @@ public class UserManager {
 				pstmtInsertSettings.setInt(1, uId);
 				pstmtInsertSettings.setInt(2, oId);
 				pstmtInsertSettings.setString(3,  gson.toJson(u));
-				log.info("Update current org settings: " + pstmtInsertSettings.toString());
+				log.info("Insert settings: " + pstmtInsertSettings.toString());
 				pstmtInsertSettings.executeUpdate();
 			}
 		} finally {
 			try {if (pstmtUpdateSettings != null) {pstmtUpdateSettings.close();	}} catch (Exception e) {}
 			try {if (pstmtInsertSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
+			try {if (pstmtGetSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
 		}
 	}
 }
