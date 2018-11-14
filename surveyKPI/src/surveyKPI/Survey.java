@@ -301,12 +301,16 @@ public class Survey extends Application {
 		String sql = "update survey set public_link = ? where s_id = ?";
 		PreparedStatement pstmt = null;
 		try {
-			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			String tempUserId = GeneralUtilityMethods.createTempUser(
 					sd,
+					localisation,
 					oId,
 					null, 
 					"", 

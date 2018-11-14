@@ -2207,104 +2207,28 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return the columns in a CSV file that have the value and label for the given
-	 * question
-	 */
-	public static ValueLabelColsResp getValueLabelCols(Connection sd, int qId, String qDisplayName, String[] cols)
-			throws Exception {
-
-		ValueLabelColsResp resp = new ValueLabelColsResp();
-
-		if (cols == null) {
-			// No column in this CSV file so there are not going to be any matches
-			String msg = "No columns found in this csv file";
-			lm.writeLog(sd, 0, "", "csv file", msg);
-			throw new Exception(msg);
-		}
-
-		PreparedStatement pstmt = null;
-		String sql = "SELECT o.ovalue, t.value, t.language " 
-				+ "from option o, translation t, question q "
-				+ "where o.label_id = t.text_id " + "and o.l_id = q.l_id " + "and q.q_id = ? "
-				+ "and externalfile ='false' order by t.language asc;";
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, qId);
-			log.info("Get value/label combos: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-
-			while (rs.next()) {
-				boolean err = false;
-				ValueLabelCols vlc = new ValueLabelCols();
-
-				String valueName = rs.getString(1);
-				String labelName = rs.getString(2);
-				vlc.language = rs.getString(3);		
-
-				vlc.value = -1;
-				vlc.label = -1;
-				for (int i = 0; i < cols.length; i++) {
-					if (cols[i].toLowerCase().trim().equals(valueName.toLowerCase().trim())) {
-						vlc.value = i;
-					}
-					if (cols[i].toLowerCase().trim().equals(labelName.toLowerCase().trim())) {
-						vlc.label = i;
-					}
-				}
-
-				if (vlc.value == -1) {
-					String msg = "Column " + valueName + " not found in csv file for question " + qDisplayName;
-					lm.writeLog(sd, 0, "", "csv file", msg);
-					err = true;
-					resp.error = true;
-				} else if (vlc.label == -1) {
-					err = true;
-					String msg = "Column " + labelName + " not found in csv file for question " + qDisplayName;
-					lm.writeLog(sd, 0, "", "csv file", msg);
-					resp.error = true;
-				}
-				if(!err) {
-					resp.values.add(vlc);
-				}
-			} 
-		} finally {
-			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {};
-		}
-		return resp;
-	}
-
-	/*
 	 * Get languages that have been used in a survey resulting in a translation
 	 * entry This is used to get languages for surveys loaded from xlfForm prior to
 	 * the creation of the editor After the creation of the editor the available
 	 * languages, some of which may not have any translation entries, are stored in
 	 * the languages table
 	 */
-	public static ArrayList<String> getLanguagesUsedInSurvey(Connection connectionSD, int sId) throws SQLException {
+	public static ArrayList<String> getLanguagesUsedInSurvey(Connection sd, int sId) throws SQLException {
 
-		PreparedStatement pstmtLanguages = null;
+		PreparedStatement pstmt = null;
 
 		ArrayList<String> languages = new ArrayList<String>();
 		try {
 			String sqlLanguages = "select distinct t.language from translation t where s_id = ? order by t.language asc";
-			pstmtLanguages = connectionSD.prepareStatement(sqlLanguages);
+			pstmt = sd.prepareStatement(sqlLanguages);
 
-			pstmtLanguages.setInt(1, sId);
-			ResultSet rs = pstmtLanguages.executeQuery();
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(rs.getString(1));
 			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmtLanguages != null) {
-					pstmtLanguages.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {}
 		}
 		return languages;
 	}
@@ -2314,15 +2238,15 @@ public class GeneralUtilityMethods {
 	 */
 	public static ArrayList<Language> getLanguages(Connection sd, int sId) throws SQLException {
 
-		PreparedStatement pstmtLanguages = null;
+		PreparedStatement pstmt = null;
 		ArrayList<Language> languages = new ArrayList<Language>();
 
 		try {
 			String sqlLanguages = "select id, language, seq from language where s_id = ? order by seq asc";
-			pstmtLanguages = sd.prepareStatement(sqlLanguages);
+			pstmt = sd.prepareStatement(sqlLanguages);
 
-			pstmtLanguages.setInt(1, sId);
-			ResultSet rs = pstmtLanguages.executeQuery();
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				languages.add(new Language(rs.getInt(1), rs.getString(2)));
 			}
@@ -2337,16 +2261,8 @@ public class GeneralUtilityMethods {
 				GeneralUtilityMethods.setLanguages(sd, sId, languages);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmtLanguages != null) {
-					pstmtLanguages.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return languages;
@@ -6723,8 +6639,9 @@ public class GeneralUtilityMethods {
 	/*
 	 * Create a temporary user
 	 */
-	public static String createTempUser(Connection sd, int oId, String email, String assignee_name, int pId, TaskFeature tf) throws Exception {
-		UserManager um = new UserManager();
+	public static String createTempUser(Connection sd, ResourceBundle localisation, int oId, String email, 
+			String assignee_name, int pId, TaskFeature tf) throws Exception {
+		UserManager um = new UserManager(localisation);
 		String tempUserId = "u" + String.valueOf(UUID.randomUUID());
 		User u = new User();
 		u.ident = tempUserId;

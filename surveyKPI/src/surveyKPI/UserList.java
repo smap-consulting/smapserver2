@@ -41,6 +41,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
@@ -115,9 +116,10 @@ public class UserList extends Application {
 		String sql = "select id,"
 				+ "ident, "
 				+ "name, "
-				+ "email "
+				+ "email, "
+				+ "o_id "
 				+ "from users "
-				+ "where users.o_id = ? "
+				+ "where (users.o_id = ? or id in (select uo.u_id from user_organisation uo where uo.o_id = users.o_id)) "
 				+ "and not users.temporary "
 				+ "order by ident asc";
 		PreparedStatement pstmt = null;
@@ -148,8 +150,24 @@ public class UserList extends Application {
 				+ "and ur.r_id = r.id "
 				+ "order by r.name asc";
 		PreparedStatement pstmtRoles = null;
-				
+		
+		String sqlOrgs = "select o.id,"
+				+ "o.name "
+				+ "from organisation o,"
+				+ "user_organisation uo "
+				+ "where uo.u_id = ? "
+				+ "and uo.o_id = o.id "
+				+ "order by o.name asc";
+		PreparedStatement pstmtOrgs = null;
+		
+		String sqlGetSavedUser = "select settings "
+				+ "from user_organisation uo "
+				+ "where o_id = ? "
+				+ "and u_id = ?";
+		PreparedStatement pstmtGetSavedUser = null;
+		
 		ArrayList<User> users = new ArrayList<User> ();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
@@ -168,59 +186,103 @@ public class UserList extends Application {
 			pstmtRoles = sd.prepareStatement(sqlRoles);
 			ResultSet rsRoles = null;
 			
+			pstmtOrgs = sd.prepareStatement(sqlOrgs);
+			ResultSet rsOrgs = null;
+			
 			pstmt.setInt(1, o_id);
 			log.info("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
-				User user = new User();
-				
-				user.id = rs.getInt("id");
-				user.ident = rs.getString("ident");
-				user.name = rs.getString("name");
-				user.email = rs.getString("email");
-				
-				// Groups
-				if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
-				pstmtGroups.setInt(1, user.id);
-				rsGroups = pstmtGroups.executeQuery();
-				user.groups = new ArrayList<UserGroup> ();
-				while(rsGroups.next()) {
-					UserGroup ug = new UserGroup();
-					ug.id = rsGroups.getInt("id");
-					ug.name = rsGroups.getString("name");
-					user.groups.add(ug);
-				}
-				
-				// Projects
-				if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
-				pstmtProjects.setInt(1, user.id);
-				rsProjects = pstmtProjects.executeQuery();
-				user.projects = new ArrayList<Project> ();
-				while(rsProjects.next()) {
-					Project p = new Project();
-					p.id = rsProjects.getInt("id");
-					p.name = rsProjects.getString("name");
-					user.projects.add(p);
-				}
-				
-				// Roles
-				if(isOrgUser || isSecurityManager) {
-					if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
-					pstmtRoles.setInt(1, user.id);
-					rsRoles = pstmtRoles.executeQuery();
-					user.roles = new ArrayList<Role> ();
-					while(rsRoles.next()) {
-						Role r = new Role();
-						r.id = rsRoles.getInt("id");
-						r.name = rsRoles.getString("name");
-						user.roles.add(r);
+				int usersOrgId = rs.getInt("o_id");
+				User user = null;
+				int uId = rs.getInt("id");
+
+				if(usersOrgId != o_id) {
+					// User is not currently in this organisation
+					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
+					pstmtGetSavedUser.setInt(1, o_id);
+					pstmtGetSavedUser.setInt(2, uId);
+					log.info("Get saved user details: " + pstmtGetSavedUser.toString());
+					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
+					if(rs2.next()) {
+						user = gson.fromJson(rs2.getString(1), User.class);
 					}
-				}
+				} else {
+					// Current user in the same organisation as the administrator
+					user = new User();
 				
-				users.add(user);
+					user.id = rs.getInt("id");
+					user.ident = rs.getString("ident");
+					user.name = rs.getString("name");
+					user.email = rs.getString("email");
+					
+					// Groups
+					if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
+					pstmtGroups.setInt(1, user.id);
+					rsGroups = pstmtGroups.executeQuery();
+					user.groups = new ArrayList<UserGroup> ();
+					while(rsGroups.next()) {
+						UserGroup ug = new UserGroup();
+						ug.id = rsGroups.getInt("id");
+						ug.name = rsGroups.getString("name");
+						user.groups.add(ug);
+					}
+					
+					// Projects
+					if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
+					pstmtProjects.setInt(1, user.id);
+					rsProjects = pstmtProjects.executeQuery();
+					user.projects = new ArrayList<Project> ();
+					while(rsProjects.next()) {
+						Project p = new Project();
+						p.id = rsProjects.getInt("id");
+						p.name = rsProjects.getString("name");
+						user.projects.add(p);
+					}
+					
+					// Roles
+					if(isOrgUser || isSecurityManager) {
+						if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
+						pstmtRoles.setInt(1, user.id);
+						rsRoles = pstmtRoles.executeQuery();
+						user.roles = new ArrayList<Role> ();
+						while(rsRoles.next()) {
+							Role r = new Role();
+							r.id = rsRoles.getInt("id");
+							r.name = rsRoles.getString("name");
+							user.roles.add(r);
+						}
+					}
+					
+					// Organisations
+					if(isOrgUser) {
+						if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
+						pstmtOrgs.setInt(1, user.id);
+						rsOrgs = pstmtOrgs.executeQuery();
+						user.orgs = new ArrayList<Organisation> ();
+						while(rsOrgs.next()) {
+							Organisation o = new Organisation();
+							o.id = rsOrgs.getInt("id");
+							o.name = rsOrgs.getString("name");
+							user.orgs.add(o);
+						}
+						if(user.orgs.size() == 0) {
+							/*
+							 * Add a default organisation equal to the users current organisation
+							 * This is only needed for users who were created before organisation linking was added
+							 */
+							Organisation o = new Organisation();
+							o.id = o_id;
+							user.orgs.add(o);
+						}
+					}
+				} 
+				
+				if(user != null) {
+					users.add(user);
+				}
 			}
 			
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -231,10 +293,12 @@ public class UserList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		    
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (SQLException e) {	}
-			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (SQLException e) {	}
-			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (Exception e) {	}
+			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (Exception e) {	}
+			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (Exception e) {	}
+			try {if (pstmtOrgs != null) {pstmtOrgs.close();	}} catch (Exception e) {}
+			try {if (pstmtGetSavedUser != null) {pstmtGetSavedUser.close();	}} catch (Exception e) {}
 			SDDataSource.closeConnection(requestName, sd);
 		}
 
@@ -256,11 +320,15 @@ public class UserList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
 		a.isAuthorised(sd, request.getRemoteUser());
-		// End Authorisation
-			
-		ActionManager am = new ActionManager();		
+		// End Authorisation			
 		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			ActionManager am = new ActionManager(localisation);
+			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
@@ -438,7 +506,7 @@ public class UserList extends Application {
 						u.email = null;
 					}
 					
-					UserManager um = new UserManager();
+					UserManager um = new UserManager(localisation);
 					if(u.id == -1) {
 						// New user
 						um.createUser(sd, u, o_id,
@@ -460,7 +528,8 @@ public class UserList extends Application {
 								isSecurityManager,
 								request.getRemoteUser(),
 								request.getServerName(),
-								adminName);
+								adminName,
+								false);
 						
 						lm.writeLogOrganisation(sd, 
 								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups));
@@ -524,6 +593,8 @@ public class UserList extends Application {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtGetIdent = null;
+		PreparedStatement pstmtCountOrgs = null;
+		PreparedStatement pstmtSoftDelete = null;
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {	
@@ -547,11 +618,21 @@ public class UserList extends Application {
 					+ "and u.o_id = ?";								
 			pstmtGetIdent = sd.prepareStatement(sqlGetIdent);
 			
-			// Delete the user
-			String sqlUpdate = "DELETE FROM users u " +  
-					" WHERE u.id = ? " +			// Ensure the user is in the same organisation as the administrator doing the editing
-					" AND u.o_id = ?;";					
-			pstmtUpdate = sd.prepareStatement(sqlUpdate);
+			// Get the count of organisations that the user is in
+			String sqlCountOrgs = "select count(*) from user_organisation where u_id = ?";
+			pstmtCountOrgs = sd.prepareStatement(sqlCountOrgs);
+			
+			// Perform a hard delete of the user
+			String sqlUpdate = "delete from users u "  
+					+ "where u.id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
+					+ "and u.o_id = ?";					
+			pstmtUpdate = sd.prepareStatement(sqlUpdate);	
+			
+			// Perform a soft delete of the user
+			String sqlSoftDelete = "delete from user_organisation "  
+					+ "where u_id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
+					+ "and o_id = ?";					
+			pstmtSoftDelete = sd.prepareStatement(sqlSoftDelete);	
 			
 			// Get the organisation id
 			pstmt.setString(1, request.getRemoteUser());
@@ -572,21 +653,44 @@ public class UserList extends Application {
 						ident = rs.getString(1);
 					}
 					
-					// Peform the delete
-					pstmtUpdate.setInt(1, u.id);
-					pstmtUpdate.setInt(2, o_id);
-					log.info("Delete user: " + pstmt.toString());
+					// Get the number of organisations that this user is a member of
+					int numberOrgs = 0;
+					pstmtCountOrgs.setInt(1, u.id);
+					rs = pstmtCountOrgs.executeQuery();
+					if(rs.next()) {
+						numberOrgs = rs.getInt(1);
+					}
 					
-					int count = pstmtUpdate.executeUpdate();
-					
-					if(count > 0) {	
-						// If a user was deleted then delete their directories
-						GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
+					if(numberOrgs <= 1) {
+						// Only one organisation so performa a Hard delete
+						pstmtUpdate.setInt(1, u.id);
+						pstmtUpdate.setInt(2, o_id);
+						log.info("Delete user: " + pstmtUpdate.toString());
 						
-						// Delete any csv table definitions that they have
-						SurveyTableManager stm = new SurveyTableManager(sd, localisation);
-						stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
-					}	
+						int count = pstmtUpdate.executeUpdate();
+						
+						if(count > 0) {	
+							// If a user was deleted then delete their directories
+							GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
+							
+							// Delete any csv table definitions that they have
+							SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+							stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
+							
+							lm.writeLogOrganisation(sd, 
+									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was completely deleted " + o_id);
+						}	
+					} else {
+						// soft delete
+						pstmtSoftDelete.setInt(1, u.id);
+						pstmtSoftDelete.setInt(2, o_id);
+						log.info("Soft Delete user: " + pstmtSoftDelete.toString());
+						
+						 pstmtSoftDelete.executeUpdate();
+						 
+						lm.writeLogOrganisation(sd, 
+									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was soft deleted from organisation " + o_id);
+					}
 
 				}
 		
@@ -611,6 +715,8 @@ public class UserList extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
+			try {if (pstmtCountOrgs != null) {pstmtCountOrgs.close();}} catch (SQLException e) {}
+			try {if (pstmtSoftDelete != null) {pstmtSoftDelete.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(requestName, sd);
 		}

@@ -64,6 +64,12 @@ public class ActionManager {
 	public final static int PRI_MED = 2;
 	public final static int PRI_HIGH = 1;
 
+	private ResourceBundle localisation;
+	
+	public ActionManager(ResourceBundle l) {
+		localisation = l;
+	}
+	
 	/*
 	 * Update a data record from an anonymous form
 	 */
@@ -226,7 +232,7 @@ public class ActionManager {
 		String tempUserId = null;
 		String link = null;
 
-		UserManager um = new UserManager();
+		UserManager um = new UserManager(localisation);
 		tempUserId = "u" + String.valueOf(UUID.randomUUID());
 		User u = new User();
 		u.ident = tempUserId;

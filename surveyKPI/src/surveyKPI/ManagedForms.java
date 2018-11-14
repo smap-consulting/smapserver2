@@ -153,8 +153,14 @@ public class ManagedForms extends Application {
 		Connection cResults = ResultsDataSource.getConnection(requester);
 		
 		try {
-			ActionManager am = new ActionManager();
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			ActionManager am = new ActionManager(localisation);
 			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, managedId, settings);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
 		} finally {
 			
 			SDDataSource.closeConnection(requester, sd);
@@ -483,7 +489,7 @@ public class ManagedForms extends Application {
 			if(pId == 0) {
 				throw new Exception(localisation.getString("mf_blocked"));
 			}
-			ActionManager am = new ActionManager();
+			ActionManager am = new ActionManager(localisation);
 			Action action = new Action("respond");
 			action.sId = sId;
 			action.managedId = managedId;

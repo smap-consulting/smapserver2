@@ -111,7 +111,7 @@ public class ActionService extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager();
+			ActionManager am = new ActionManager(localisation);
 			Action a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then throw exception
@@ -188,7 +188,7 @@ public class ActionService extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager();
+			ActionManager am = new ActionManager(localisation);
 			Action a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then throw exception

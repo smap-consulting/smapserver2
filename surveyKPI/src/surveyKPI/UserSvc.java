@@ -30,8 +30,6 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
@@ -52,10 +50,10 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -85,12 +83,16 @@ public class UserSvc extends Application {
 		Response response = null;
 
 		// Authorisation - Not required
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
+		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
-		UserManager um = new UserManager();
 		User user = null;
 		try {
-			user = um.getByIdent(connectionSD, request.getRemoteUser());
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			UserManager um = new UserManager(localisation);
+			user = um.getByIdent(sd, request.getRemoteUser());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(user);
@@ -100,7 +102,7 @@ public class UserSvc extends Application {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UserSvc", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
 		}
 		
 
@@ -118,12 +120,15 @@ public class UserSvc extends Application {
 		Response response = null;
 
 		// Authorisation - Not required
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
-		
-		UserManager um = new UserManager();
+		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
 		try {
-			ArrayList<Alert> alerts = um.getAlertsByIdent(connectionSD, request.getRemoteUser());
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			UserManager um = new UserManager(localisation);
+			ArrayList<Alert> alerts = um.getAlertsByIdent(sd, request.getRemoteUser());
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(alerts);
@@ -133,7 +138,7 @@ public class UserSvc extends Application {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UserSvc", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
 		}
 		
 
@@ -200,22 +205,52 @@ public class UserSvc extends Application {
 		Response response = null;
 
 		// Authorisation - Not Required
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
+		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
 		Type type = new TypeToken<User>(){}.getType();		
-		User u = new Gson().fromJson(user, type);
+		User u = new Gson().fromJson(user, type);		// The user settings
 		
 		PreparedStatement pstmt = null;
 		try {	
+			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Ensure email is null if it has not been set
 			if(u.email != null && u.email.trim().isEmpty()) {
 				u.email = null;
 			}
 			
-			if(u.current_project_id > 0 || u.current_survey_id > 0 || u.current_task_group_id > 0) {
+			boolean updateProjectSettings = false;
+			boolean updateSettings = false;
+			boolean updateOrg = false;
+			if(u.current_org_id > 0) {
+				updateOrg = true;
+				updateSettings = true;
+			} else if(u.current_project_id > 0 || u.current_survey_id > 0 || u.current_task_group_id > 0) {
+				updateProjectSettings = true;
+			} else {
+				updateSettings = true;
+			}
+			
+			if(updateOrg) {
 				/*
-				 * If the current project/survey is to be changed then update both the project id, survey id and task_group_id
+				 * The user is moving themselves to a different organisation
+				 * If the new settings are null then they are not authorised to move to this new organisation
+				 */				
+				UserManager um = new UserManager(localisation);
+				try {
+					um.switchUsersOrganisation(sd, u.current_org_id,	request.getRemoteUser());
+				} catch (Exception e) {
+					// log but otherwise ignore any errors
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+			}
+			
+			if(updateProjectSettings) {
+				/*
+				 * If the current project/survey is to be changed then update the project id, survey id and task_group_id
 				 */
 				String sql = null;
 				if(u.current_project_id > 0) {
@@ -232,7 +267,7 @@ public class UserSvc extends Application {
 					sql = "update users set current_task_group_id = ? where ident = ?";
 				}
 							
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				if(u.current_project_id > 0) {
 					pstmt.setInt(1, u.current_project_id);
 					pstmt.setInt(2, u.current_survey_id);
@@ -245,15 +280,16 @@ public class UserSvc extends Application {
 					pstmt.setInt(1, u.current_task_group_id);
 					pstmt.setString(2, request.getRemoteUser());
 				}
-				
-				
+					
 				log.info("Update user defaults: " + pstmt.toString());
 				int count = pstmt.executeUpdate();
 				if(count == 0) {
 					log.info("Failed to update current project id and survey id");
 				}  
 
-			} else {
+			} 
+			
+			if(updateSettings){
 			
 				/*
 				 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
@@ -284,7 +320,8 @@ public class UserSvc extends Application {
 					pwdString = ident + ":smap:" + u.password;
 				}
 				
-				pstmt = connectionSD.prepareStatement(sql);
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, u.name);
 				pstmt.setString(2, u.settings);
 				pstmt.setString(3, u.language);
@@ -297,7 +334,8 @@ public class UserSvc extends Application {
 				}
 				
 				log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
-				lm.writeLog(connectionSD, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"));
+				lm.writeLog(sd, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"));
+				log.info("Update user details: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -313,7 +351,7 @@ public class UserSvc extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-UserSvc", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
 		}
 		
 		return response;
@@ -363,7 +401,7 @@ public class UserSvc extends Application {
 
 		// Authorisation - Not Required
 		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-UserSvc");
+		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
 		
 		
 		FileItem sigItem = null;
@@ -382,7 +420,7 @@ public class UserSvc extends Application {
 			 */
 			if(key != null) {
 				try {
-					user = GeneralUtilityMethods.getDynamicUser(connectionSD, key);
+					user = GeneralUtilityMethods.getDynamicUser(sd, key);
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
@@ -426,7 +464,7 @@ public class UserSvc extends Application {
 					if(item.getSize() > 0) {
 						sigItem = item;
 						fileName = String.valueOf(UUID.randomUUID());
-						int userId = GeneralUtilityMethods.getUserId(connectionSD, user);
+						int userId = GeneralUtilityMethods.getUserId(sd, user);
 						
 						userFolderPath = basePath + "/media/users/" +  userId;
 						sigFolderPath = userFolderPath + "/sig";
@@ -489,7 +527,7 @@ public class UserSvc extends Application {
 				
 			}
 			
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, u.name);
 			pstmt.setString(2, u.settings);
 			if(sigPath == null && !u.delSig) {
@@ -514,11 +552,6 @@ public class UserSvc extends Application {
 			
 			response = Response.ok(resp).build();
 						
-		} catch (SQLException e) {
-
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"Error", e);
-			
 		} catch (Exception e) {
 
 			response = Response.serverError().build();
@@ -528,7 +561,7 @@ public class UserSvc extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-UserSvc", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
 		}
 		
 		return response;
