@@ -919,6 +919,14 @@ public class UserManager {
 									break;
 								}
 							}
+						} else {
+							// Administrator
+							for(UserGroup ug : uCurrent.groups) {
+								if(ug.id == 4 || ug.id == 6) {
+									u.groups.add(ug);
+									break;
+								}
+							}
 						}
 						// Set roles from current
 						u.roles = uCurrent.roles;
