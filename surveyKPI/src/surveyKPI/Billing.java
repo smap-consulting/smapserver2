@@ -282,7 +282,7 @@ public class Billing extends Application {
 	private void populateBill(Connection sd, ArrayList<BillLineItem> items, int eId, int oId, int year, int month) throws SQLException {
 		
 		for(BillLineItem item : items) {
-			if(item.item == BillingDetail.USAGE) {
+			if(item.item == BillingDetail.SUBMISSIONS) {
 				addUsage(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.DISK) {
 				addDisk(sd, item, eId, oId, year, month);
@@ -301,31 +301,32 @@ public class Billing extends Application {
 	private void addUsage(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 
 		// SQL to get submissions for all organisations
-		String sqlSubmissions = "select  count(*) from upload_event ue, subscriber_event se "
+		String sql = "select  count(*) from upload_event ue, subscriber_event se "
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and subscriber = 'results_db' "
 				+ "and extract(month from upload_time) = ? "
 				+ "and extract(year from upload_time) = ?";		
-		PreparedStatement pstmtSubmissions = null;
+		PreparedStatement pstmt = null;
 		
 		try {
-			pstmtSubmissions = sd.prepareStatement(sqlSubmissions);
-			pstmtSubmissions.setInt(1, month);
-			pstmtSubmissions.setInt(2, year);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, month);
+			pstmt.setInt(2, year);
 			
-			int submissions = 0;
-			ResultSet rs = pstmtSubmissions.executeQuery();
+			item.quantity = 0;
+			log.info("Get submissions: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				submissions = rs.getInt(1);
+				item.quantity = rs.getInt(1);
 			}
-			item.amount = (submissions - item.free) * item.unitCost;
+			item.amount = (item.quantity - item.free) * item.unitCost;
 			if(item.amount < 0) {
 				item.amount = 0.0;
 			}
 			
 		} finally {
-			try {if (pstmtSubmissions != null) {pstmtSubmissions.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 	}
 	
@@ -347,20 +348,18 @@ public class Billing extends Application {
 			pstmtDisk.setInt(3, year);
 			
 			ResultSet rs = pstmtDisk.executeQuery();
-			int diskUsage;
-			double diskAmount;
+
 			if(rs.next()) {
 				if(oId == 0) {
-					diskUsage = (int) (rs.getDouble("total") / 1000.0);
+					item.quantity = (int) (rs.getDouble("total") / 1000.0);
 				} else {
-					diskUsage = (int) (rs.getDouble("organisation") / 1000.0);
+					item.quantity = (int) (rs.getDouble("organisation") / 1000.0);
 				}
-				diskAmount = (diskUsage - item.free) * item.unitCost;
-				diskAmount = Math.round(diskAmount * 100.0) / 100.0;
-				if(diskAmount < 0) {
-					diskAmount = 0.0;
+				item.amount = (item.quantity - item.free) * item.unitCost;
+				item.amount = Math.round(item.amount * 100.0) / 100.0;
+				if(item.amount < 0) {
+					item.amount = 0.0;
 				}
-				item.amount = diskAmount;
 			} 
 		} finally {
 			try {if (pstmtDisk != null) {pstmtDisk.close();}} catch (SQLException e) {}
@@ -384,17 +383,13 @@ public class Billing extends Application {
 			pstmt.setInt(2, year);
 			
 			ResultSet rs = pstmt.executeQuery();
-			int staticMapUsage;
-			double staticMapAmount;
 			if(rs.next()) {
-				staticMapUsage = rs.getInt("total");
+				item.quantity = rs.getInt("total");
 				
-				staticMapAmount = (staticMapUsage - item.free) * item.unitCost;
-				if(staticMapAmount < 0) {
-					staticMapAmount = 0.0;
+				item.amount = (item.quantity - item.free) * item.unitCost;
+				if(item.amount < 0) {
+					item.amount = 0.0;
 				}
-				item.amount = staticMapAmount;
-
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -420,16 +415,14 @@ public class Billing extends Application {
 			pstmt.setInt(2, year);
 			
 			ResultSet rs = pstmt.executeQuery();
-			int rekognitionUsage;
-			double rekognitionAmount;
+		
 			if(rs.next()) {
-				rekognitionUsage = rs.getInt("total");
+				item.quantity = rs.getInt("total");
 				
-				rekognitionAmount = (rekognitionUsage - item.free) * item.unitCost;
-				if(rekognitionAmount < 0) {
-					rekognitionAmount = 0.0;
+				item.amount = (item.quantity - item.free) * item.unitCost;
+				if(item.amount < 0) {
+					item.amount = 0.0;
 				}
-				item.amount = rekognitionAmount;
 				
 			}
 		} finally {
