@@ -6,8 +6,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -151,12 +156,65 @@ public class BillingManager {
 			try {if (pstmtDisk != null) {pstmtDisk.close();}} catch (SQLException e) {}		
 		}
 
-		
-		
-		
-		
 		return bills;
 		
+	}
+	
+	/*
+	 * Get the rates for the specified enterprise, organisation, year and month
+	 */
+	public ArrayList<BillLineItem> getRates(
+			Connection sd, 
+			int year,
+			int month,
+			int eId,
+			int oId) throws SQLException {
+		ArrayList<BillLineItem> items = null;
+		
+		String sql = "select rates from bill_rates "
+				+ "where o_id = ? "
+				+ "and e_id = ? "
+				+ "and ts_applies_from < ? "
+				+ "order by ts_applies_from desc "
+				+ "limit 1";
+		PreparedStatement pstmt = null;
+		
+		/*
+		 * Get the last set of rates that was created prior to the end of the requested month
+		 * Set the month to the next month and get the latest rates less than that
+		 */
+		if(month >= 12) {
+			month = 1;
+			year++;
+		} else {
+			month++;
+		}
+		LocalDate d = LocalDate.of(year, month, 1);
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, eId);
+			pstmt.setObject(3, d);
+			log.info("Get rates: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String rString = rs.getString(1);
+				if(rString != null) {
+					items = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
+				}
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		
+		if(items == null) {
+			items = new ArrayList<BillLineItem> ();
+		}
+		
+		return items;
+	
 	}
 }
 
