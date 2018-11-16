@@ -387,9 +387,6 @@ public class PDFSurveyManager {
 
 			}
 
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			throw e;
 		} finally {
 			if(document != null) try {document.close();} catch (Exception e) {};
 			if(writer != null) try {writer.close();} catch (Exception e) {};
