@@ -107,6 +107,8 @@ public class GeneralUtilityMethods {
 			"only", "or", "order", "outer", "overlaps", "placing", "primary", "references", "right", "select",
 			"session_user", "similar", "some", "symmetric", "table", "then", "to", "trailing", "true", "union",
 			"unique", "user", "using", "verbose", "when", "where" };
+	
+	 private static final String UTF8_BOM = "\uFEFF";
 
 	/*
 	 * Remove any characters from the name that will prevent it being used as a
@@ -6917,6 +6919,14 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return isSet;
+	}
+	
+	public static String removeBOM(String in) {
+		
+		if (in.startsWith(UTF8_BOM)) {
+            in = in.substring(1);
+        }
+		return in;
 	}
 
 }

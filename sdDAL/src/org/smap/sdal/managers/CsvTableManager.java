@@ -183,7 +183,7 @@ public class CsvTableManager {
 			}
 				
 			// Get the column headings from the new file
-			String newLine = brNew.readLine();
+			String newLine = GeneralUtilityMethods.removeBOM(brNew.readLine());
 			String cols[] = parser.parseLine(newLine);
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
