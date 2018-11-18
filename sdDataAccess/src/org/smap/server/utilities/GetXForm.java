@@ -1211,7 +1211,7 @@ public class GetXForm {
 			CSVParser parser = new CSVParser(localisation);
 
 			// Get Header
-			String line = br.readLine();
+			String line = GeneralUtilityMethods.removeBOM(br.readLine());
 			String cols[] = parser.parseLine(line);
 
 			while (line != null) {
