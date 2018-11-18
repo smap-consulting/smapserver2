@@ -22,7 +22,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -36,19 +35,13 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.BillingManager;
-import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.TaskGroup;
-import org.smap.sdal.model.TaskListGeoJson;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import utilities.XLSBillingManager;
-import utilities.XLSTaskManager;
-
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -249,7 +242,6 @@ public class Billing extends Application {
 		}	
 		// End Authorisation
 
-		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<BillingDetail> bills = null;
 		
 		try {
@@ -290,6 +282,8 @@ public class Billing extends Application {
 				addStaticMap(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.REKOGNITION) {
 				addRekognition(sd, item, eId, oId, year, month);
+			} else if(item.item == BillingDetail.MONTHLY) {
+				item.amount = item.unitCost;
 			}
 		}
 
@@ -306,14 +300,19 @@ public class Billing extends Application {
 				+ "and se.status = 'success' "
 				+ "and subscriber = 'results_db' "
 				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ?";		
+				+ "and extract(year from upload_time) = ?";	
+		if(oId > 0) {
+			sql += " and o_id = ?";
+		}
 		PreparedStatement pstmt = null;
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, month);
 			pstmt.setInt(2, year);
-			
+			if(oId > 0) {
+				pstmt.setInt(3, oId);
+			}
 			item.quantity = 0;
 			log.info("Get submissions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();

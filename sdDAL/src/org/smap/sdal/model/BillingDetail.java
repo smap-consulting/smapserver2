@@ -7,6 +7,7 @@ public class BillingDetail {
 	public static int DISK = 2;
 	public static int REKOGNITION = 3;
 	public static int STATIC_MAP = 4;
+	public static int MONTHLY = 5;
 	
 	public int oId;
 	public String oName;
