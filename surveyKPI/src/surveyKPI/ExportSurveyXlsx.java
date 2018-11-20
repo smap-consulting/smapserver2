@@ -68,6 +68,7 @@ public class ExportSurveyXlsx extends Application {
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,
 			@QueryParam("meta") boolean meta,
+			@QueryParam("tz") String tz,					// Timezone
 			
 			@Context HttpServletResponse response) {
 
@@ -84,6 +85,10 @@ public class ExportSurveyXlsx extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
 		
 		Connection cResults = null;
 		try {
@@ -113,7 +118,8 @@ public class ExportSurveyXlsx extends Application {
 					endDate,
 					dateId,
 					filter,
-					meta);
+					meta,
+					tz);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");

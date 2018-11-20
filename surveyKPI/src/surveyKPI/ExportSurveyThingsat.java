@@ -97,6 +97,8 @@ public class ExportSurveyThingsat extends Application {
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 		
+		String tz = "UTC";		// Default to UTC
+		
 		/*
 		 * Get the list of forms and surveys to be exported
 		 * Needs to be done prior to authorisation as it includes the list of surveys
@@ -218,7 +220,8 @@ public class ExportSurveyThingsat extends Application {
 					startingForm,
 					filter,
 					true,
-					false);		// Get all columns (not just instanceid)
+					false,
+					tz);		// Get all columns (not just instanceid)
 			
 			pstmt = connectionResults.prepareStatement(sqlDesc.sql + ";");
 			ResultSet rs = pstmt.executeQuery();

@@ -74,7 +74,8 @@ public class QueryGenerator {
 			QueryForm form,
 			String filter,
 			boolean meta,
-			boolean includeKeys) throws Exception {
+			boolean includeKeys,
+			String tz) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -157,7 +158,8 @@ public class QueryGenerator {
 					true,
 					meta,
 					includeKeys,
-					false				// have geometry
+					false,				// have geometry
+					tz
 					);
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
@@ -390,7 +392,8 @@ public class QueryGenerator {
 			boolean first,
 			boolean meta,
 			boolean includeKeys,
-			boolean haveGeometry
+			boolean haveGeometry,
+			String tz
 			) throws Exception {
 		
 		int colLimit = 10000;
@@ -440,28 +443,7 @@ public class QueryGenerator {
 			sqlDesc.availableColumns.add("instanceid");
 			sqlDesc.numberFields++;
 			
-			/*
-			c.name = "instancename";
-			c.humanName = "instancename";
-			c.type = "";
-			cols.add(c);			
-			sqlDesc.availableColumns.add("instancename");
-			sqlDesc.numberFields++;
-			*/
-			
-			//sqlDesc.cols = "prikey, instanceid, instancename";
 			sqlDesc.cols = "instanceid";
-			/*
-			if(GeneralUtilityMethods.hasColumn(connectionResults, form.table, "_hrk")) {
-				c = new TableColumn();
-				c.name = "_hrk";
-				c.humanName = "_hrk";
-				c.type = "";
-				cols.add(c);
-					
-				sqlDesc.cols += ",_hrk";
-			}
-			*/
 				
 		}
 		
@@ -617,9 +599,9 @@ public class QueryGenerator {
 				} else {
 				
 					if(type != null && (type.equals("date") || type.equals("dateTime"))) {
-						colBuf.append("to_char(");
-					} else if(type.equals("timestamptz")) {	// Return all timestamps at UTC with no time zone
-						colBuf.append("timezone('UTC', "); 
+						colBuf.append("to_char(timezone('").append(tz).append("', ");
+					} else if(type.equals("timestamptz")) {
+						colBuf.append("timezone('").append(tz).append("', "); 
 					}
 				
 					if(isAttachment && wantUrl) {	// Add the url prefix to the file
@@ -629,9 +611,9 @@ public class QueryGenerator {
 					}
 				
 					if(type != null && type.equals("date")) {
-						colBuf.append(", 'YYYY-MM-DD')");
+						colBuf.append("), 'YYYY-MM-DD')");
 					} else if(type != null && type.equals("dateTime")) {
-						colBuf.append(", 'YYYY-MM-DD HH24:MI:SS')");
+						colBuf.append("), 'YYYY-MM-DD HH24:MI:SS')");
 					} else if(type.equals("timestamptz")) { 
 						colBuf.append(")");
 					}
@@ -710,7 +692,8 @@ public class QueryGenerator {
 						false,
 						meta,
 						includeKeys,
-						haveGeometry
+						haveGeometry,
+						tz
 						);
 			}
 		}

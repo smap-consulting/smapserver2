@@ -93,7 +93,8 @@ public class XLSXReportsManager {
 			Date endDate,
 			int dateId,
 			String filter,
-			boolean meta) {
+			boolean meta,
+			String tz) {
 		
 		Response responseVal = null;
 
@@ -167,7 +168,8 @@ public class XLSXReportsManager {
 						startingForm,
 						filter,
 						meta,
-						false);
+						false,
+						tz);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				

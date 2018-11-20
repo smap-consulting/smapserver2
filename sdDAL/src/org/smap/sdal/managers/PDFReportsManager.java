@@ -93,6 +93,7 @@ public class PDFReportsManager {
 		PreparedStatement pstmt = null;
 		ZipOutputStream zos = null;
 		
+		String tz = "UTC";		// Default to UTC
 		File folder = null;
 		ArrayList<FileDescription> files = new ArrayList<> ();
 		
@@ -134,7 +135,8 @@ public class PDFReportsManager {
 					startingForm,
 					filter,
 					true,
-					true);		// Include the keys instanceid, instancename, prikey, hrk
+					true,
+					tz);		// Include the keys instanceid, instancename, prikey, hrk
 			
 			pstmt = cResults.prepareStatement(sqlDesc.sql);
 			log.info("Get records to convert to PDF's: " + pstmt.toString());

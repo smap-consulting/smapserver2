@@ -95,6 +95,8 @@ public class ActionServiceKPI extends Application {
 
 		try {
 
+			String tz = "UTC";		// Default to UTC
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
@@ -188,7 +190,8 @@ public class ActionServiceKPI extends Application {
 						endDate,
 						dateId,
 						filter,
-						meta);
+						meta,
+						tz);
 			} else if(a.reportType.equals("pdf")) {
 				PDFReportsManager prm = new PDFReportsManager(localisation);
 				prm.getReport(sd, 

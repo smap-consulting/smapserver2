@@ -127,6 +127,7 @@ public class ExportSurveyMisc extends Application {
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
+		String tz = "UTC";		// Default to UTC
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
@@ -247,7 +248,8 @@ public class ExportSurveyMisc extends Application {
 						startingForm,
 						filter,
 						true,
-						false);			// Get all columns (not just instanceid)
+						false,
+						tz);			// Get all columns (not just instanceid)
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
