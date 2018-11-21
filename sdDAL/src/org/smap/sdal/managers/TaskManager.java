@@ -81,6 +81,7 @@ public class TaskManager {
 	LogManager lm = new LogManager(); // Application log
 
 	private ResourceBundle localisation = null;
+	private String tz;
 	
 	private String fullStatusList[] = {
 			"new", 
@@ -106,8 +107,12 @@ public class TaskManager {
 		public Timestamp taskStart = null;			// Start time
 	}
 
-	public TaskManager(ResourceBundle l) {
+	public TaskManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	/*
@@ -604,7 +609,7 @@ public class TaskManager {
 					boolean fires = false;
 					
 					if(as.filter != null && as.filter.advanced != null) {
-						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId);
+						fires = GeneralUtilityMethods.testFilter(cResults, localisation, survey, as.filter.advanced, instanceId, tz);
 						if(!fires) {
 							log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
 						}
@@ -1346,7 +1351,7 @@ public class TaskManager {
 						pstmtSetStatus.setInt(2, aId);
 						pstmtSetStatus.executeUpdate();
 						
-						TaskManager tm = new TaskManager(localisation);
+						TaskManager tm = new TaskManager(localisation, tz);
 						TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
 						
 						// Create a submission message (The task may or may not have come from a submission)
@@ -1971,11 +1976,11 @@ public class TaskManager {
 				status = "unsent";
 			}
 			
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
 			
 			// Create an action this should be (mostly) identical for all emails
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			Action action = new Action("task");
 			action.surveyIdent = sIdent;
 			action.pId = pId;
@@ -2120,7 +2125,7 @@ public class TaskManager {
 				msg.content = sm.fillStringTemplate(survey, msg.content);
 			}
 			log.info("xxxxxxxxxxxxx2: " + msg.content);
-			TextManager tm = new TextManager(localisation);
+			TextManager tm = new TextManager(localisation, tz);
 			ArrayList<String> text = new ArrayList<> ();
 			text.add(msg.subject);
 			text.add(msg.content);

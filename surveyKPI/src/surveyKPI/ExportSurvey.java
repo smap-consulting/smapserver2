@@ -421,7 +421,8 @@ public class ExportSurvey extends Application {
 							false,		// survey duration
 							superUser,	// In this case we will export all data if super user
 							false,		// TODO add HXL export processing
-							false		// Don't include audit data
+							false,		// Don't include audit data
+							tz
 							);
 
 
@@ -972,13 +973,13 @@ public class ExportSurvey extends Application {
 			}
 
 			if(filterFrag != null) {
-				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount, tz);
 			}
 			
 			if(f.parkey != null) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
 			} else if(hasRbacFilter) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
 			//log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();

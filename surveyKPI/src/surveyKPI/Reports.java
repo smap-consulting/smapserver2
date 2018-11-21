@@ -115,11 +115,13 @@ public class Reports extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-						
+					
+			String tz = "UTC";
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int pId = 0;
 		
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			Action action = new Action("report");
 			action.sId = sId;
 			action.pId = pId;	

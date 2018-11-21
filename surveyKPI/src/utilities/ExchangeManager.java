@@ -87,6 +87,7 @@ public class ExchangeManager {
 	LogManager lm = new LogManager();		// Application log
 	
 	private ResourceBundle localisation;
+	private String tz;
 	
 	Workbook wb = null;
 	boolean isXLSX = false;
@@ -111,8 +112,12 @@ public class ExchangeManager {
 		}
 	}
 	
-	public ExchangeManager(ResourceBundle l) {
+	public ExchangeManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	HashMap<String, String> surveyNames = null;
@@ -210,7 +215,8 @@ public class ExchangeManager {
 							false,		// Survey duration
 							superUser,
 							false,
-							false		// Don't include audit data
+							false,		// Don't include audit data
+							tz
 							);
 						
 					// Get the list of spreadsheet columns

@@ -244,7 +244,8 @@ public class Items extends Application {
 						false,	// Include survey duration
 						superUser,
 						false,		// HXL only include with XLS exports
-						false		// Don't include audit data
+						false,		// Don't include audit data
+						tz
 						);		
 				
 				// Construct a new query that retrieves a geometry object as geoJson
@@ -450,7 +451,7 @@ public class Items extends Application {
 				// Get date column information
 				QuestionInfo date = null;
 				if((dateId != 0) && (startDate != null || endDate != null)) {
-					date = new QuestionInfo(localisation, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
+					date = new QuestionInfo(localisation, tz, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
 					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
 					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
 				}
@@ -513,11 +514,11 @@ public class Items extends Application {
 					pstmt = cResults.prepareStatement(sql);
 					int attribIdx = 1;					
 					if(advancedFilterFrag != null) {
-						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 					}		
 					// RBAC row filter
 					if(hasRbacRowFilter) {
-						attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
+						attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
 					}				
 					// dates
 					if(dateId != 0) {
@@ -549,12 +550,12 @@ public class Items extends Application {
 				int attribIdx = 1;
 				
 				if(advancedFilterFrag != null) {
-					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 				}
 				
 				// RBAC row filter
 				if(hasRbacRowFilter) {
-					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
 				}
 				
 				// dates
@@ -651,12 +652,12 @@ public class Items extends Application {
 				attribIdx = 1;
 				
 				if(advancedFilterFrag != null) {
-					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx);
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 				}
 				
 				// RBAC row filter
 				if(hasRbacRowFilter) {
-					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx);
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
 				}
 				if(dateId != 0) {
 					if(startDate != null) {
@@ -746,6 +747,8 @@ public class Items extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			log.info("New toggle bad");
 			cRel = ResultsDataSource.getConnection("surveyKPI-Items");
 			
@@ -764,7 +767,7 @@ public class Items extends Application {
 				int pId = tableSet.getInt(2);
 				boolean isChild = pId > 0;
 				UtilityMethodsEmail.markRecord(cRel, connectionSD, localisation, tName, value, 
-						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true);
+						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz);
 			} else {
 				throw new Exception("Could not get form id");
 			}

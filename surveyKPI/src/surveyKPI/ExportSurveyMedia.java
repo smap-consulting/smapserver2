@@ -182,7 +182,7 @@ public class ExportSurveyMedia extends Application {
 				/*
 				 * Get the question names
 				 */
-				QuestionInfo mediaQInfo = new QuestionInfo(localisation, sId, mediaQuestion, sd, 
+				QuestionInfo mediaQInfo = new QuestionInfo(localisation, tz, sId, mediaQuestion, sd, 
 						cResults, request.getRemoteUser(),
 						false, language, urlprefix, oId);	
 				String media_name = mediaQInfo.getColumnName();
@@ -195,7 +195,7 @@ public class ExportSurveyMedia extends Application {
 					if(nameQ.length > 0) {
 						for(int i = 0; i < nameQ.length; i++) {
 							int nameQId = Integer.parseInt(nameQ[i]);
-							QuestionInfo qi = new QuestionInfo(localisation, sId, nameQId, sd, 
+							QuestionInfo qi = new QuestionInfo(localisation, tz, sId, nameQId, sd, 
 									cResults, request.getRemoteUser(),
 									false, language, urlprefix, oId);
 							if(qi.getColumnName() != null) {

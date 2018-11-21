@@ -173,6 +173,10 @@ public class AllAssignments extends Application {
 			 * Create the task group if an existing task group was not specified
 			 */
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName, sId);
+			
+			// get default timezone
+			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
+			
 			ResultSet rsKeys = null;
 			if(as.task_group_id <= 0) {
 
@@ -227,7 +231,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Set the task email details
 			 */
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			tm.updateEmailDetails(sd, projectId, taskGroupId, as.emailDetails);
 			
 			/*
@@ -287,7 +291,7 @@ public class AllAssignments extends Application {
 								StringBuffer filterQuery = new StringBuffer(tableName);
 								filterQuery.append(".instanceid in ");
 								filterQuery.append(GeneralUtilityMethods.getFilterCheck(sd, 
-										localisation, survey, as.filter.advanced));
+										localisation, survey, as.filter.advanced, tz));
 								filterSql = filterQuery.toString();
 								
 								log.info("Query clause: " + filterSql);
@@ -295,7 +299,7 @@ public class AllAssignments extends Application {
 							} else if(as.filter != null && as.filter.qId > 0) {
 								String fValue = null;
 								String fValue2 = null;
-								filterQuestion = new QuestionInfo(localisation, sId, as.filter.qId, sd, 
+								filterQuestion = new QuestionInfo(localisation, tz, sId, as.filter.qId, sd, 
 										cResults, request.getRemoteUser(),
 										false, as.filter.lang, urlprefix, oId);
 								log.info("Filter question type: " + as.filter.qType);
@@ -458,9 +462,6 @@ public class AllAssignments extends Application {
 
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = cResults.prepareStatement(getTaskSql.toString());	
-							
-							// get default timezone
-							String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
 							
 							log.info("SQL Get Tasks: ----------------------- " + pstmt.toString());
 							if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
@@ -637,6 +638,8 @@ public class AllAssignments extends Application {
 		
 		PreparedStatement pstmtTaskGroup = null;
 
+		String tz = "UTC";	// set default timezone
+		
 		try {
 			log.info("Set autocommit sd false");
 
@@ -672,7 +675,7 @@ public class AllAssignments extends Application {
 
 			} 
 
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			tm.updateEmailDetails(sd, projectId, tgId, as.emailDetails);
 			
 			response = Response.ok().entity("{\"tg_id\": " + tgId + "}").build();
@@ -860,6 +863,7 @@ public class AllAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			String tz = "UTC";	// get default timezone
 			// Get the base path
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 
@@ -926,7 +930,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Get the forms for this survey 
 			 */
-			ExchangeManager xm = new ExchangeManager(localisation);
+			ExchangeManager xm = new ExchangeManager(localisation, tz);
 			ArrayList <FormDesc> formList = xm.getFormList(sd, sId);		
 
 			pstmtGetCol = sd.prepareStatement(sqlGetCol);  			// Prepare the statement to get the column names in the survey that are to be updated
@@ -996,7 +1000,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the results tables for the survey if they do not exist
 			 */
-			UtilityMethods.createSurveyTables(sd, results, localisation, sId, formList, sIdent);
+			UtilityMethods.createSurveyTables(sd, results, localisation, sId, formList, sIdent, tz);
 
 			/*
 			 * Delete the existing data if requested
@@ -1370,7 +1374,8 @@ public class AllAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			TaskManager tm = new TaskManager(localisation);
+			String tz = "UTC";	// get default timezone
+			TaskManager tm = new TaskManager(localisation, tz);
 			tm.deleteTasksInTaskGroup(connectionSD, tg_id);		// Note can't rely on cascading delete as temporary users need to be deleted
 			String deleteSQL = "delete from task_group where tg_id = ?; "; 
 			pstmtDelete = connectionSD.prepareStatement(deleteSQL);

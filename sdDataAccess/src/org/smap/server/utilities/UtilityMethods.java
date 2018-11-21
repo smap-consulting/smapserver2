@@ -283,9 +283,10 @@ public class UtilityMethods {
 			ResourceBundle localisation, 
 			int sId,
 			ArrayList<FormDesc> formList,
-			String sIdent) throws Exception {
+			String sIdent,
+			String tz) throws Exception {
 		
-		TableManager tm = new TableManager(localisation);
+		TableManager tm = new TableManager(localisation, tz);
 		FormDesc topForm = formList.get(0);
 		
 		SurveyTemplate template = new SurveyTemplate(localisation); 

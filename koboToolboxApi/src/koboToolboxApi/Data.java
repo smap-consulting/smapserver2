@@ -352,7 +352,8 @@ public class Data extends Application {
 					true,		// include survey duration
 					superUser,
 					false,		// TODO include HXL
-					audit
+					audit,
+					tz
 					);
 
 			if(mgmt) {
@@ -361,7 +362,7 @@ public class Data extends Application {
 				columns.addAll(config.columns);
 			}
 
-			TableDataManager tdm = new TableDataManager(localisation);
+			TableDataManager tdm = new TableDataManager(localisation, tz);
 
 			pstmt = tdm.getPreparedStatement(
 					sd, 
@@ -599,7 +600,8 @@ public class Data extends Application {
 					false,		// Include survey duration
 					superUser,
 					false,		// Only include HXL with CSV and Excel output
-					false
+					false,
+					tz
 					);
 
 			if(mgmt) {

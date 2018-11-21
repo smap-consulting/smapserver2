@@ -18,6 +18,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -2867,7 +2868,8 @@ public class GeneralUtilityMethods {
 			boolean includeSurveyDuration, 
 			boolean superUser,
 			boolean hxl,
-			boolean audit)
+			boolean audit,
+			String tz)
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
@@ -3255,7 +3257,7 @@ public class GeneralUtilityMethods {
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null, surveyIdent);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz);
 							if(options != null) {
 								for(Option o : options) {
 									String label ="";
@@ -4012,7 +4014,8 @@ public class GeneralUtilityMethods {
 			ResourceBundle localisation, 
 			String remoteUser,
 			int oId, int sId, int qId, ArrayList<String> matches,
-			String surveyIdent) throws Exception {
+			String surveyIdent,
+			String tz) throws Exception {
 
 		ArrayList<Option> choices = new ArrayList<Option> ();		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
@@ -4069,7 +4072,7 @@ public class GeneralUtilityMethods {
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "all", null, null, null, null, null);
+								stm.initData(pstmt, "all", null, null, null, null, null, tz);
 								
 								Option o = null;
 								while((o = stm.getLineAsOption(ovalue, languageItems)) != null) {
@@ -5819,7 +5822,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
 	 */
-	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId) throws Exception {
+	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId, String tz) throws Exception {
 
 		boolean testResult = false;
 
@@ -5842,7 +5845,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, instanceId);
 
 			int idx = 2;
-			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
 
 			log.info("Evaluate Filter: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -5864,7 +5867,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return SQL that can be used to filter out records not matching a filter
 	 */
-	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter) throws Exception {
+	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String tz) throws Exception {
 
 		String resp = null;
 
@@ -5884,7 +5887,7 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = cResults.prepareStatement(filterQuery.toString());
 			int idx = 1;
-			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
 
 			resp = pstmt.toString();
 
@@ -5938,9 +5941,9 @@ public class GeneralUtilityMethods {
 	/*
 	 * Set the parameters for an array of sql fragments
 	 */
-	public static int setArrayFragParams(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index) throws Exception {
+	public static int setArrayFragParams(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index, String tz) throws Exception {
 		for(SqlFrag rf : rfArray) {
-			index = setFragParams(pstmt, rf, index);
+			index = setFragParams(pstmt, rf, index, tz);
 		}
 		return index;
 	}
@@ -5948,7 +5951,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Set the parameters for an array of sql fragments
 	 */
-	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index) throws Exception {
+	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index, String tz) throws Exception {
 		int attribIdx = index;
 		for(int i = 0; i < frag.params.size(); i++) {
 			SqlFragParam p = frag.params.get(i);
@@ -5959,7 +5962,7 @@ public class GeneralUtilityMethods {
 			} else if(p.getType().equals("double")) {
 				pstmt.setDouble(attribIdx++,  p.dValue);
 			} else if(p.getType().equals("date")) {
-				pstmt.setDate(attribIdx++,  java.sql.Date.valueOf(p.sValue));
+				pstmt.setTimestamp(attribIdx++,  startOfDay(java.sql.Date.valueOf(p.sValue), tz));
 			} else {
 				throw new Exception("Unknown parameter type: " + p.getType());
 			}

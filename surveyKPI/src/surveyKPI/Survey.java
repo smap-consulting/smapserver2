@@ -123,7 +123,9 @@ public class Survey extends Application {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-						
+			
+			String tz = "UTC";	// Set default for timezone
+			
 			String sourceName = null;
 			String display_name = null;
 			String fileBasePath = null;		// File path excluding extensions
@@ -189,7 +191,7 @@ public class Survey extends Application {
 					try {
 						SurveyTemplate template = new SurveyTemplate(localisation);
 						template.readDatabase(sId, false);
-						GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
+						GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 
 						boolean useNodesets = !type.equals("codebook");		// For codebooks do not create nodesets in the XML
 						String xmlForm = xForm.get(template, false, useNodesets, false, request.getRemoteUser());

@@ -44,6 +44,7 @@ public abstract class Subscriber {
 	String host = null;
 	Document configurationDocument = null;
 	ResourceBundle localisation;
+	String tz = "UTC";		// set default tz
 
 	final int DUPLICATE_DROP = 1;
 	final int DUPLICATE_REPLACE = 2;

@@ -101,6 +101,8 @@ public class InstanceXML extends Application{
 
 		}
 		
+		String tz = "UTC";
+		
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getSurveyId(sd, templateName);	// Get the survey id from the templateName / key
 		a.isAuthorised(sd, user);
@@ -123,7 +125,7 @@ public class InstanceXML extends Application{
            	SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 			
-			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
+			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 			String instanceXML = xForm.getInstance(survey.id, templateName, template, key, keyval, priKey, false, false);	
 			
 			response = Response.ok(instanceXML).build();

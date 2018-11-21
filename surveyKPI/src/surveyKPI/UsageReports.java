@@ -86,7 +86,9 @@ public class UsageReports extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			MiscPDFManager pm = new MiscPDFManager(localisation);
+			String tz = "UTC";	// Set default for timezone
+			
+			MiscPDFManager pm = new MiscPDFManager(localisation, tz);
 			pm.createUsagePdf(
 					sd,
 					response.getOutputStream(),

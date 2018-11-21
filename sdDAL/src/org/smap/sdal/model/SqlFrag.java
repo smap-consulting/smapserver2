@@ -140,8 +140,6 @@ public class SqlFrag {
 				sql.append(" ? ");
 			}
 		}
-		
-		
 	}
 	
 	/*

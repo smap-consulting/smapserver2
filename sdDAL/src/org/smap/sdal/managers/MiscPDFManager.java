@@ -62,6 +62,7 @@ public class MiscPDFManager {
 			 Logger.getLogger(MiscPDFManager.class.getName());
 	
 	private ResourceBundle localisation = null;
+	private String tz;
 	
 	int marginLeft = 36;
 	int marginRight = 36;
@@ -93,8 +94,12 @@ public class MiscPDFManager {
 	public static Font defaultFont = null;
 	public static BaseColor VLG = new BaseColor(0xE8,0xE8,0xE8);
 
-	public MiscPDFManager(ResourceBundle l) {
+	public MiscPDFManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	/*
@@ -350,7 +355,7 @@ public class MiscPDFManager {
 			/*
 			 * Get the tasks for this task group
 			 */
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			TaskListGeoJson t = tm.getTasks(sd, tgId, false, 0, null, "all");	
 			PdfWriter writer = null;			
 				

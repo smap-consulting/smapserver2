@@ -324,7 +324,8 @@ public class Data_CSV extends Application {
 					true, // include instancename
 					true, // include survey duration
 					superUser, false, // TODO include HXL
-					audit);
+					audit,
+					tz);
 
 			if (mgmt) {
 				CustomReportsManager crm = new CustomReportsManager();
@@ -396,7 +397,7 @@ public class Data_CSV extends Application {
 
 			if (GeneralUtilityMethods.tableExists(cResults, table_name)) {
 
-				TableDataManager tdm = new TableDataManager(localisation);
+				TableDataManager tdm = new TableDataManager(localisation, tz);
 
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
 						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,

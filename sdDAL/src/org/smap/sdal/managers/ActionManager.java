@@ -65,9 +65,14 @@ public class ActionManager {
 	public final static int PRI_HIGH = 1;
 
 	private ResourceBundle localisation;
+	private String tz;
 	
-	public ActionManager(ResourceBundle l) {
+	public ActionManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	/*
@@ -385,7 +390,7 @@ public class ActionManager {
 			 * Get the data processing columns
 			 */
 			SurveyViewDefn svd = new SurveyViewDefn();
-			SurveyViewManager svm = new SurveyViewManager(localisation);
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			svm.getDataProcessingConfig(sd, managedId, svd, null, oId);
 
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form

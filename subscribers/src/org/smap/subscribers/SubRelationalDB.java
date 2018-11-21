@@ -121,6 +121,7 @@ public class SubRelationalDB extends Subscriber {
 			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
 
 		localisation = l;
+		tz = "UTC";			// Default default time zone
 		gBasePath = basePath;
 		gFilePath = filePath;
 		gAuditFilePath = auditFilePath;
@@ -379,7 +380,7 @@ public class SubRelationalDB extends Subscriber {
 						excludeEmpty);	
 
 				// Apply Tasks
-				TaskManager tm = new TaskManager(localisation);
+				TaskManager tm = new TaskManager(localisation, tz);
 				tm.updateTasksForSubmission(
 						sd,
 						cResults,
@@ -745,7 +746,7 @@ public class SubRelationalDB extends Subscriber {
 				 * if they do not already exist 2) Check if this survey is a duplicate
 				 */
 				keys.duplicateKeys = new ArrayList<Integer>();
-				TableManager tm = new TableManager(localisation);
+				TableManager tm = new TableManager(localisation, tz);
 				if (parent_key == 0) { // top level survey has a parent key of 0
 					
 					// Create new tables
@@ -1169,7 +1170,7 @@ public class SubRelationalDB extends Subscriber {
 
 			if(sourceKey > 0) {
 				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
-						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true);
+						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true, tz);
 			}
 
 		} finally {
@@ -1371,7 +1372,7 @@ public class SubRelationalDB extends Subscriber {
 					
 					// Mark the record being replaced as bad
 					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-							true, bad_reason, existingKey, sId, f_id, true, false, user, true);
+							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz);
 					
 					// Set the hrk of the new record to the hrk of the old record
 					// This can only be done for one old record, possibly there is never more than 1
@@ -1398,7 +1399,7 @@ public class SubRelationalDB extends Subscriber {
 					if(!replacedRecordsAreGood) {
 						bad_reason = localisation.getString("t_rep_bad") + previousKeys;
 						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true);
+								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true, tz);
 					}
 				}		
 			

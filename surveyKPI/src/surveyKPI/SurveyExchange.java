@@ -81,6 +81,8 @@ public class SurveyExchange extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export all Survey Data");
 			
 			connectionResults = ResultsDataSource.getConnection(connectionName);
@@ -99,7 +101,7 @@ public class SurveyExchange extends Application {
 			/*
 			 * Save the XLS export into the folder
 			 */
-			ExchangeManager xm = new ExchangeManager(localisation);
+			ExchangeManager xm = new ExchangeManager(localisation, tz);
 			ArrayList<FileDescription> files = xm.createExchangeFiles(
 					sd, 
 					connectionResults,

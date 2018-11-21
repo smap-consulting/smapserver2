@@ -105,6 +105,7 @@ public class WebForm extends Application {
 	private JsonResponse jr = null;
 	SurveyTemplate template = null;
 	ResourceBundle localisation = null;
+	String tz = "UTC";
 	Locale locale = null;
 	boolean viewOnly = false;
 	String userIdent = null;
@@ -292,9 +293,9 @@ public class WebForm extends Application {
 
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
+			
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then report the issue to the user
@@ -380,6 +381,7 @@ public class WebForm extends Application {
 			} catch (Exception e) {
 
 			}
+			tz = "UTC";
 			
 			if (isTemporaryUser) {
 				a.isValidTemporaryUser(sd, userIdent);
@@ -432,7 +434,7 @@ public class WebForm extends Application {
 			String instanceStrToEditId = null;
 			log.info("About to add instance:" + datakey + " : " + datakeyvalue);
 			if (datakey != null && datakeyvalue != null) {
-				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
+				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 				instanceXML = xForm.getInstance(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm);
 				instanceStrToEditId = xForm.getInstanceId();
@@ -663,7 +665,7 @@ public class WebForm extends Application {
 	private String getModelStr(HttpServletRequest request)
 			throws TransformerFactoryConfigurationError, Exception {
 
-		GetXForm xForm = new GetXForm(localisation, userIdent);
+		GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 		String model = xForm.get(template, true, true, true, userIdent);
 
 		// We only want the model - remove any XML preanble
@@ -1043,7 +1045,7 @@ public class WebForm extends Application {
 			String instanceXML = null;
 			String dataKey = "instanceid";
 
-			GetXForm xForm = new GetXForm(localisation, userIdent);
+			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 			instanceXML = xForm.getInstance(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false);
 
 			SurveyData surveyData = new SurveyData();

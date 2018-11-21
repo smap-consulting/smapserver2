@@ -100,7 +100,7 @@ public class ExternalFileManager {
 	 * Create a linked file
 	 */
 	public boolean createLinkedFile(Connection sd, Connection cRel, int sId, // The survey that contains the manifest item
-			String filename, String filepath, String userName) throws Exception {
+			String filename, String filepath, String userName, String tz) throws Exception {
 
 		ResultSet rs = null;
 		boolean linked_s_pd = false;
@@ -247,7 +247,7 @@ public class ExternalFileManager {
 				pstmtData = cRel.prepareStatement(sqlDef.sql);
 				int paramCount = 1;
 				if (sqlDef.hasRbacFilter) {
-					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtData, sqlDef.rfArray, paramCount);
+					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtData, sqlDef.rfArray, paramCount, tz);
 				}
 
 				// 6. Create the file

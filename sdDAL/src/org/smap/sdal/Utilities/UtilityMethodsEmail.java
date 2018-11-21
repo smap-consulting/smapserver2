@@ -50,7 +50,8 @@ public class UtilityMethodsEmail {
 			boolean modified,
 			boolean isChild,
 			String user,
-			boolean updateChildren) throws Exception {
+			boolean updateChildren,
+			String tz) throws Exception {
 
 		String sql = "update " + tName + " set _bad = ?, _bad_reason = ?, _modified = ? " + 
 				" where prikey = ? and _modified = 'false';";
@@ -96,7 +97,7 @@ public class UtilityMethodsEmail {
 						ResultSet rs = pstmtGetInstanceId.executeQuery();
 						if(rs.next()) {
 							// Delete tasks that referenced this now 'bad' record
-							TaskManager tm = new TaskManager(localisation);
+							TaskManager tm = new TaskManager(localisation, tz);
 							tm.deleteTaskforUpdateId(sd, sId, rs.getString(1), user);
 						}
 					}
@@ -136,7 +137,7 @@ public class UtilityMethodsEmail {
 					while(childRecs.next()) {
 						int childKey = childRecs.getInt(1);
 						markRecord(cRel, sd, localisation, childTable, value, reason, childKey, 
-								sId, childFormId, modified, true, user, updateChildren);
+								sId, childFormId, modified, true, user, updateChildren, tz);
 					}
 				}
 			}
