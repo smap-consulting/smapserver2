@@ -111,6 +111,8 @@ public class ExportSurveyXls extends Application {
 		
 		Connection connectionResults = null;
 		
+		String tz = "UTC";
+		
 		try {
 			
 			// Localisation
@@ -183,7 +185,8 @@ public class ExportSurveyXls extends Application {
 					endDate,
 					dateId,
 					false,		// superUser - Always apply filters
-					filter);
+					filter,
+					tz);
 			
 			responseVal = Response.ok("").build();
 			

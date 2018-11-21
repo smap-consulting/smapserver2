@@ -23,6 +23,7 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -5487,17 +5488,32 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Set the time on a java date to 23:59 and convert to a Timestamp
+	 * Use the passed in timezone as the basis for determining hour
 	 */
-	// Set the time on a date to 23:59
-	public static Timestamp endOfDay(Date d) {
+	public static Timestamp endOfDay(Date d, String tz) {
 
-		Calendar cal = Calendar.getInstance();
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
 		cal.setTime(d);
 		cal.set(Calendar.HOUR_OF_DAY, 23);
 		cal.set(Calendar.MINUTE, 59);
 		Timestamp endOfDay = new Timestamp(cal.getTime().getTime());
 
 		return endOfDay;
+	}
+	
+	/*
+	 * Set the time on a java date to 00:00 and convert to a Timestamp
+	 * Use the passed in timezone as the basis for determining hour
+	 */
+	public static Timestamp startOfDay(Date d, String tz) {
+
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
+		cal.setTime(d);
+		cal.set(Calendar.HOUR_OF_DAY, 0);
+		cal.set(Calendar.MINUTE, 0);
+		Timestamp startOfDay = new Timestamp(cal.getTime().getTime());
+
+		return startOfDay;
 	}
 
 	/*

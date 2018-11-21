@@ -165,6 +165,8 @@ public class Results extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
+		String tz = "UTC";		// default to UTC
+		
 		if(groupId != 0) {
 			hasGroup = true;
 		}
@@ -395,10 +397,10 @@ public class Results extends Application {
 			int attribIdx = 1;
 			if(dateId != 0) {
 				if(startDate != null) {
-					pstmt.setDate(attribIdx++, startDate);
+					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 				}
 				if(endDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
+					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 				}
 			}
 			

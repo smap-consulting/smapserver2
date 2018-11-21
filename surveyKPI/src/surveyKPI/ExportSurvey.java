@@ -184,6 +184,8 @@ public class ExportSurvey extends Application {
 
 		// Set defaults
 		format = "xls";	// Default to XLS
+		
+		String tz = "UTC";		// default timezone to UTC
 
 		log.info("New export, format:" + format + " flat:" + flat + " split:" + split_locn + 
 				" forms:" + include_forms + " filename: " + filename + ", merge select: " + merge_select_multiple);
@@ -667,7 +669,8 @@ public class ExportSurvey extends Application {
 						endDate,
 						dateId,
 						superUser,
-						filterFrag);
+						filterFrag,
+						tz);
 				outWriter.print("</tbody><table></body></html>");
 
 				log.info("Content Type:" + response.getContentType());
@@ -899,7 +902,8 @@ public class ExportSurvey extends Application {
 			Date endDate,
 			int dateId,
 			boolean superUser,
-			SqlFrag filterFrag) throws Exception {
+			SqlFrag filterFrag,
+			String tz) throws Exception {
 
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
@@ -960,10 +964,10 @@ public class ExportSurvey extends Application {
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
 				if(startDate != null) {
-					pstmt.setDate(paramCount++, startDate);
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.startOfDay(startDate, tz));
 				}
 				if(endDate != null) {
-					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate, tz));
 				}
 			}
 
@@ -1088,7 +1092,8 @@ public class ExportSurvey extends Application {
 								endDate,
 								dateId,
 								superUser,
-								null);
+								null,
+								tz);
 					}
 				}
 

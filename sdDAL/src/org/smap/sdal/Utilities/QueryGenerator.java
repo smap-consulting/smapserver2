@@ -293,10 +293,10 @@ public class QueryGenerator {
 		// if date filter is set then add it
 		if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
 			if(startDate != null) {
-				pstmtConvert.setDate(paramCount++, startDate);
+				pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.startOfDay(startDate, tz));
 			}
 			if(endDate != null) {
-				pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
+				pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate, tz));
 			}
 		}
 		
@@ -660,7 +660,7 @@ public class QueryGenerator {
 		}
 		
 		// Get the columns for child forms
-		if(form.childForms != null && form.childForms.size() > 0) {	
+		if(form.childForms != null && form.childForms.size() > 0) {
 			for(int i = 0; i < form.childForms.size(); i++) {
 				getSqlDesc(
 						localisation,

@@ -230,7 +230,8 @@ public class XLSResultsManager {
 			Date endDate, 
 			int dateId,
 			boolean superUser,
-			String results_filter) throws Exception {
+			String results_filter,
+			String tz) throws Exception {
 
 		Sheet resultsSheet = wb.createSheet("survey");
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
@@ -647,7 +648,8 @@ public class XLSResultsManager {
 						dateName,
 						dateForm,
 						superUser,
-						results_filter);
+						results_filter,
+						tz);
 
 
 			} finally {
@@ -991,7 +993,8 @@ public class XLSResultsManager {
 			String dateName,
 			int dateForm,
 			boolean superUser,
-			String advanced_filter) throws Exception {
+			String advanced_filter,
+			String tz) throws Exception {
 
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
@@ -1059,10 +1062,10 @@ public class XLSResultsManager {
 			int paramCount = 1;
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
 				if(startDate != null) {
-					pstmt.setDate(paramCount++, startDate);
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.startOfDay(startDate, tz));
 				}
 				if(endDate != null) {
-					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate, tz));
 				}
 			}
 
@@ -1169,7 +1172,8 @@ public class XLSResultsManager {
 								dateName, 
 								dateForm, 
 								superUser, 
-								null);
+								null,
+								tz);
 					}
 				}
 

@@ -150,6 +150,8 @@ public class Items extends Application {
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View Results");
 	
+		String tz = "UTC";		// set default to UTC
+		
 		Tables tables = new Tables(sId);
 		boolean hasRbacRowFilter = false;
 		StringBuffer message = new StringBuffer("");
@@ -520,10 +522,10 @@ public class Items extends Application {
 					// dates
 					if(dateId != 0) {
 						if(startDate != null) {
-							pstmt.setDate(attribIdx++, startDate);
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 						}
 						if(endDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 						}
 					}
 					log.info("Get the number of filtered records: " + pstmt.toString());
@@ -558,10 +560,10 @@ public class Items extends Application {
 				// dates
 				if(dateId != 0) {
 					if(startDate != null) {
-						pstmt.setDate(attribIdx++, startDate);
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 					}
 					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 					}
 				}
 				
@@ -658,10 +660,10 @@ public class Items extends Application {
 				}
 				if(dateId != 0) {
 					if(startDate != null) {
-						pstmt.setDate(attribIdx++, startDate);
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 					}
 					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate));
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 					}
 				}
 				
