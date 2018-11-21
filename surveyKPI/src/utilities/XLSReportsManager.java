@@ -105,8 +105,8 @@ public class XLSReportsManager {
 			String tz) throws IOException {
 		
 		this.localisation = l;
-		Sheet dataSheet = wb.createSheet("data");
-		Sheet taskSettingsSheet = wb.createSheet("settings");
+		Sheet dataSheet = wb.createSheet(localisation.getString("rep_data"));
+		Sheet taskSettingsSheet = wb.createSheet(localisation.getString("ep_settings"));
 		//taskListSheet.createFreezePane(3, 1);	// Freeze header row and first 3 columns
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
@@ -276,7 +276,7 @@ public class XLSReportsManager {
 		CreationHelper createHelper = wb.getCreationHelper();
 		
 		for(int index = 0; index < dArray.size(); index++) {
-			
+
 			Row row = sheet.createRow(rowNumber++);
 			ArrayList<KeyValue> record = dArray.get(index);
 			for(Column col : cols) {
@@ -285,9 +285,9 @@ public class XLSReportsManager {
 				if(col.dataIndex >= 0) {
 					value = record.get(col.dataIndex).v;
 				}
-				
+
 				cell.setCellStyle(styles.get("default"));	
-				
+
 				if(value != null && (value.startsWith("https://") || value.startsWith("http://"))) {
 					cell.setCellStyle(styles.get("link"));
 					if(isXLSX) {
@@ -299,53 +299,53 @@ public class XLSReportsManager {
 						url.setAddress(value);
 						cell.setHyperlink(url);
 					}
-					
+
 				}
-			
+
 				boolean cellWritten = false;
 				if(col.type.equals("datetime")) {
-	            	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-	            	try {
-	            		java.util.Date date = dateFormat.parse(value);
-	            		cell.setCellStyle(styles.get("datetime"));
-		            	cell.setCellValue(date);
-		            	cellWritten = true;
-	            	} catch (Exception e) {
-	        			// Ignore
-	        		}
-	            } else if(col.type.equals("date")) {
-	            	DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-	            	try {
-	            		java.util.Date date = dateFormat.parse(value);
-	            		cell.setCellStyle(styles.get("date"));
-		            	cell.setCellValue(date);
-		            	cellWritten = true;
-	            	} catch (Exception e) {
-	        			// Ignore
-	        		}
-	            } 
-	            
-	           	if(!cellWritten) {
-	           		
-	           		// Try to write as number by default
-	           		try {
-	        			double vDouble = Double.parseDouble(value);
-	
-	        			cell.setCellStyle(styles.get("default"));
-	        			cell.setCellValue(vDouble);
-	        			cellWritten = true;
-	        		} catch (Exception e) {
-	        			// Ignore
-	        		}
-	           		
-	        	}
-	           	
-	        	if(!cellWritten) {
-	        		cell.setCellStyle(styles.get("default"));
-	        		cell.setCellValue(value);
-	        	}
-				
-	        }	
+					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+					try {
+						java.util.Date date = dateFormat.parse(value);
+						cell.setCellStyle(styles.get("datetime"));
+						cell.setCellValue(date);
+						cellWritten = true;
+					} catch (Exception e) {
+						// Ignore
+					}
+				} else if(col.type.equals("date")) {
+					DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+					try {
+						java.util.Date date = dateFormat.parse(value);
+						cell.setCellStyle(styles.get("date"));
+						cell.setCellValue(date);
+						cellWritten = true;
+					} catch (Exception e) {
+						// Ignore
+					}
+				} 
+
+				if(!cellWritten) {
+
+					// Try to write as number by default
+					try {
+						double vDouble = Double.parseDouble(value);
+
+						cell.setCellStyle(styles.get("default"));
+						cell.setCellValue(vDouble);
+						cellWritten = true;
+					} catch (Exception e) {
+						// Ignore
+					}
+
+				}
+
+				if(!cellWritten) {
+					cell.setCellStyle(styles.get("default"));
+					cell.setCellValue(value);
+				}
+
+			}	
 		}
 		
 		// Populate settings sheet
