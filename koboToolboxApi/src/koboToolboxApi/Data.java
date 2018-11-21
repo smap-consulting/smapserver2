@@ -49,6 +49,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -160,7 +161,7 @@ public class Data extends Application {
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
-			) { 
+			) throws ApplicationException, Exception { 
 		
 		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz);
@@ -189,7 +190,7 @@ public class Data extends Application {
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String tz				// Timezone
-			) { 
+			) throws ApplicationException, Exception { 
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records");
@@ -271,6 +272,10 @@ public class Data extends Application {
 		
 		if(tz == null) {
 			tz = "UTC";
+		} else {
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone");
+			}
 		}
 		
 

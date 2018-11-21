@@ -47,6 +47,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
 import org.codehaus.jettison.json.JSONArray;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -182,7 +183,7 @@ public class Data_CSV extends Application {
 			@QueryParam("audit") String audit_set,
 			@QueryParam("tz") String tz,			// Time Zone
 			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate columns
-			) {
+			) throws ApplicationException, Exception {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records csv");
@@ -258,6 +259,10 @@ public class Data_CSV extends Application {
 		
 		if(tz == null) {
 			tz = "UTC";
+		} else {
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone");
+			}
 		}
 
 		try {

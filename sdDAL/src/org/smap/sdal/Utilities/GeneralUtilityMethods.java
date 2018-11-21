@@ -6740,6 +6740,33 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Return true if timezone is valid
+	 */
+	public static boolean isValidTimezone(Connection sd, String tz) throws Exception {
+		
+		boolean isValid = false;
+		String sql = "select count(*) from pg_timezone_names where name = ?"; 
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tz);
+		
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				isValid = rs.getInt(1)> 0;
+			}
+				
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return isValid;
+
+	}
+	
+	/*
 	 * Add the thread value that links replaced records
 	 */
 	public static void continueThread(Connection cResults, String table, int prikey, int sourceKey) throws SQLException {
