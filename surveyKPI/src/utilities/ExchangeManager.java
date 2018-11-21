@@ -66,8 +66,6 @@ import org.smap.sdal.model.TableColumn;
 
 import com.opencsv.CSVReader;
 
-import surveyKPI.ExportSurveyXls;
-
 /*
  * Handle import export of files
  * Handle the formats created by Smap Exports
@@ -84,7 +82,7 @@ import surveyKPI.ExportSurveyXls;
 public class ExchangeManager {
 	
 	private static Logger log =
-			 Logger.getLogger(ExportSurveyXls.class.getName());
+			 Logger.getLogger(ExchangeManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	

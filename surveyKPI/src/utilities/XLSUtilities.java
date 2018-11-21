@@ -46,12 +46,10 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.utilities.GetXForm;
 
-import surveyKPI.ExportSurveyXls;
-
 public class XLSUtilities {
 
 	private static Logger log =
-			Logger.getLogger(ExportSurveyXls.class.getName());
+			Logger.getLogger(XLSUtilities.class.getName());
 	/**
 	 * create a library of cell styles
 	 */
