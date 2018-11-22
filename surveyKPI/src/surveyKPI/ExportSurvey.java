@@ -27,6 +27,7 @@ import javax.ws.rs.core.Context;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -167,27 +168,22 @@ public class ExportSurvey extends Application {
 			@QueryParam("split_locn") boolean split_locn,
 			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
 			@QueryParam("language") String language,
-			@QueryParam("format") String format,
 			@QueryParam("exp_ro") boolean exp_ro,
 			@QueryParam("forms") String include_forms,
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
+			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("filter") String filter,
 
-			@Context HttpServletResponse response) {
+			@Context HttpServletResponse response) throws ApplicationException, Exception {
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 		HashMap<String, String> selectMultipleColumnNames = new HashMap<String, String> ();
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
 		surveyNames = new HashMap<String, String> ();
 
-		// Set defaults
-		format = "xls";	// Default to XLS
-		
-		String tz = "UTC";		// default timezone to UTC
-
-		log.info("New export, format:" + format + " flat:" + flat + " split:" + split_locn + 
+		log.info("New export:" + " flat:" + flat + " split:" + split_locn + 
 				" forms:" + include_forms + " filename: " + filename + ", merge select: " + merge_select_multiple);
 
 		// Authorisation - Access
@@ -201,6 +197,14 @@ public class ExportSurvey extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
+		if(tz == null) {
+			tz = "UTC";
+		} else {
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone");
+			}
+		}
+		
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS");
 
 		String escapedFileName = null;

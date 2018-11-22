@@ -84,6 +84,7 @@ public class Reports extends Application {
 			@QueryParam("odata2") boolean odata2,
 			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
 			@QueryParam("language") String language,
+			@QueryParam("tz") String tz,
 			@QueryParam("exp_ro") boolean exp_ro,
 			@QueryParam("embedimages") boolean embedImages,
 			@QueryParam("excludeparents") boolean excludeParents,
@@ -115,8 +116,6 @@ public class Reports extends Application {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-					
-			String tz = "UTC";
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int pId = 0;
@@ -146,6 +145,9 @@ public class Reports extends Application {
 			}
 			if(language != null) {
 				action.parameters.add(new KeyValueSimp("language", language));
+			}
+			if(tz != null) {
+				action.parameters.add(new KeyValueSimp("tz", tz));
 			}
 			if(exp_ro) {
 				action.parameters.add(new KeyValueSimp("exp_ro", "true"));
