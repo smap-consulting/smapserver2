@@ -94,12 +94,12 @@ public class ActionServiceKPI extends Application {
 		Connection cResults = ResultsDataSource.getConnection(requester);
 
 		try {
-
+			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, "UTC");		// Time zone should be ignored, real time zone will be retrieved from the action
 			Action a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then throw exception
@@ -126,6 +126,7 @@ public class ActionServiceKPI extends Application {
 			int dateId = 0;
 			String filter = null;
 			boolean meta = false;
+			String tz = "UTC";
 			
 			for(KeyValueSimp p : a.parameters) {
 				if(p.k.equals("form")) {
@@ -136,6 +137,8 @@ public class ActionServiceKPI extends Application {
 					merge_select_multiple = Boolean.parseBoolean(p.v);
 				} else if(p.k.equals("language")) {
 					language = p.v;
+				} else if(p.k.equals("tz")) {
+					tz = p.v;
 				} else if(p.k.equals("exp_ro")) {
 					exp_ro = Boolean.parseBoolean(p.v);
 				} else if(p.k.equals("embed_images")) {
@@ -188,7 +191,8 @@ public class ActionServiceKPI extends Application {
 						endDate,
 						dateId,
 						filter,
-						meta);
+						meta,
+						tz);
 			} else if(a.reportType.equals("pdf")) {
 				PDFReportsManager prm = new PDFReportsManager(localisation);
 				prm.getReport(sd, 

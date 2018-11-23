@@ -68,6 +68,7 @@ public class QuestionInfo {
 	 */
 	public QuestionInfo(
 			ResourceBundle l,
+			String tz,
 			int surveyId, 
 			int questionId, 
 			Connection sd, 
@@ -187,7 +188,7 @@ public class QuestionInfo {
 							// External
 							String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null, surveyIdent);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz);
 							int idx = 0;
 							int languageIdx = 0;
 							

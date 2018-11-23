@@ -56,6 +56,7 @@ public class TableManager {
 			Logger.getLogger(TableManager.class.getName());
 
 	private ResourceBundle localisation;
+	private String tz;
 	
 	/*
 	 * Class to store information about geometry columns
@@ -75,8 +76,12 @@ public class TableManager {
 		}
 	}
 
-	public TableManager(ResourceBundle l) {
+	public TableManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 
@@ -109,7 +114,7 @@ public class TableManager {
 			PreparedStatement pstmtAdd = null;
 
 			SurveyViewDefn svd = new SurveyViewDefn();
-			SurveyViewManager qm = new SurveyViewManager(localisation);
+			SurveyViewManager qm = new SurveyViewManager(localisation, tz);
 			qm.getDataProcessingConfig(sd, managedId, svd, null, GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId));
 
 			org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form

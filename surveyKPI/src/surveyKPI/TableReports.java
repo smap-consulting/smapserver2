@@ -139,7 +139,7 @@ public class TableReports extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			// Get columns
-			SurveyViewManager svm = new SurveyViewManager(localisation);
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, 0, sId, managedId, request.getRemoteUser(), oId, superUser);
 			
 			// Convert data to an array

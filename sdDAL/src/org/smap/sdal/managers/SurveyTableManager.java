@@ -175,7 +175,8 @@ public class SurveyTableManager {
 			String key_value,
 			String selection, 
 			ArrayList<String> arguments, 
-			ArrayList<String> whereColumns
+			ArrayList<String> whereColumns,
+			String tz
 			) throws Exception {
 		
 		if(sqlDef != null && sqlDef.colNames.size() > 0) {
@@ -222,7 +223,7 @@ public class SurveyTableManager {
 			pstmt = cResults.prepareStatement(sql.toString());
 			int paramCount = 1;
 			if (sqlDef.hasRbacFilter) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount, tz);
 			}
 			if(type.equals("lookup")) {
 				if(filter.length() > 0) {

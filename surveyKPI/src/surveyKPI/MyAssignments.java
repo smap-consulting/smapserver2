@@ -197,6 +197,8 @@ public class MyAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 			pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
 			String sqlNumberTasks = "select ft_number_tasks from organisation where id = ?";
@@ -371,7 +373,7 @@ public class MyAssignments extends Application {
 	
 						log.info("CSV File is:  " + dirPath + " : directory path created");
 	
-						efm.createLinkedFile(sd, cRel, survey.id, m.fileName , filepath, userName);
+						efm.createLinkedFile(sd, cRel, survey.id, m.fileName , filepath, userName, tz);
 					}
 				}
 

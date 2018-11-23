@@ -1036,7 +1036,7 @@ public class SurveyManager {
 			if(external) {
 				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
 				externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, user, oId, s.id, qId, null, s.ident);
+						cResults, localisation, user, oId, s.id, qId, null, s.ident, tz);
 			} 
 			
 			// Get options from meta definition - insert external if required when not a numeric option
@@ -3663,7 +3663,7 @@ public class SurveyManager {
 			
 			// Delete or update any reports for this survey
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
 			ArrayList<User> usersToDelete = am.getTemporaryUsers(sd, o_id, null, sId, 0);
 			if(newSurveyId == 0) {

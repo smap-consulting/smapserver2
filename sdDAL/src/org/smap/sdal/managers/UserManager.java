@@ -15,6 +15,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapUserGroups;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
@@ -557,7 +558,7 @@ public class UserManager {
 				 * Update the current settings if the organisation to be updated is the same
 				 * as the current organisation
 				 */
-				if(isSwitch || (u.o_id == tCurrentUserOrgId)) {
+				if((u.o_id == tCurrentUserOrgId) || isSwitch) {
 					
 					// update the current settings for the user
 					String pwdString = null;
@@ -866,9 +867,8 @@ public class UserManager {
 							u.projects = null;
 							u.o_id = newOrgId;
 						}
-						boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, userIdent);
-						boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, userIdent);
-						updateUser(sd, u, currentOrgId, isOrgUser, isSecurityManager, userIdent, null, null, true);
+						
+						updateUser(sd, u, currentOrgId, true, true, userIdent, null, null, true);
 					} else {
 						throw new ApplicationException(localisation.getString("u_org_nf"));
 					}
@@ -881,6 +881,16 @@ public class UserManager {
 		}
 	}
 	
+	/*
+	 * Save the User Settings, specified in u, into the user_admin table
+	 * Saved for organisation oId and user uId
+	 * 
+	 * This may be called by an administrator who does not have full rights to modify the user settings
+	 * hence some of the user groups may not be populated in u.  for this reason if the user is not an
+	 * organisational administrator then the currently saved settings are checked for the presence of these groups.
+	 * Also if the updating user is an administrator then the roles will not be set and must be sourced from currently
+	 * saved values.
+	 */
 	private void updateSavedSettings(Connection sd, User u, int uId, 
 			int oId,
 			boolean isOrgAdmin,
@@ -902,7 +912,7 @@ public class UserManager {
 		
 		try {
 			// If the user is not a super user then get the existing settings and merge them
-			if(!isOrgAdmin) {		
+			if(!isOrgAdmin) {	
 				pstmtGetSettings = sd.prepareStatement(sqlGetSettings);
 				pstmtGetSettings.setInt(1, uId);
 				pstmtGetSettings.setInt(2,oId);
@@ -914,7 +924,7 @@ public class UserManager {
 						if(isSecurityAdmin) {
 							// Set org admin group value from current
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == 4) {
+								if(ug.id == SmapUserGroups.ORG_ADMIN || ug.id == SmapUserGroups.OWNER || ug.id == SmapUserGroups.ENTERPRISE) {
 									u.groups.add(ug);
 									break;
 								}
@@ -922,14 +932,15 @@ public class UserManager {
 						} else {
 							// Administrator
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == 4 || ug.id == 6) {
+								if(ug.id == SmapUserGroups.ORG_ADMIN || ug.id == SmapUserGroups.SECURITY || ug.id == SmapUserGroups.OWNER || ug.id == SmapUserGroups.ENTERPRISE) {
 									u.groups.add(ug);
 									break;
 								}
 							}
+							// Set roles from current
+							u.roles = uCurrent.roles;						
 						}
-						// Set roles from current
-						u.roles = uCurrent.roles;
+					
 					}
 				}
 			}

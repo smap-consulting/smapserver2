@@ -66,8 +66,6 @@ import org.smap.sdal.model.TableColumn;
 
 import com.opencsv.CSVReader;
 
-import surveyKPI.ExportSurveyXls;
-
 /*
  * Handle import export of files
  * Handle the formats created by Smap Exports
@@ -84,11 +82,12 @@ import surveyKPI.ExportSurveyXls;
 public class ExchangeManager {
 	
 	private static Logger log =
-			 Logger.getLogger(ExportSurveyXls.class.getName());
+			 Logger.getLogger(ExchangeManager.class.getName());
 	
 	LogManager lm = new LogManager();		// Application log
 	
 	private ResourceBundle localisation;
+	private String tz;
 	
 	Workbook wb = null;
 	boolean isXLSX = false;
@@ -113,8 +112,12 @@ public class ExchangeManager {
 		}
 	}
 	
-	public ExchangeManager(ResourceBundle l) {
+	public ExchangeManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	HashMap<String, String> surveyNames = null;
@@ -212,7 +215,8 @@ public class ExchangeManager {
 							false,		// Survey duration
 							superUser,
 							false,
-							false		// Don't include audit data
+							false,		// Don't include audit data
+							tz
 							);
 						
 					// Get the list of spreadsheet columns

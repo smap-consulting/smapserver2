@@ -55,9 +55,14 @@ public class SurveyViewManager {
 			 Logger.getLogger(SurveyViewManager.class.getName());
 	
 	private ResourceBundle localisation = null;
+	String tz;
 	
-	public SurveyViewManager(ResourceBundle l) {
+	public SurveyViewManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	/*
@@ -162,7 +167,8 @@ public class SurveyViewManager {
 					true,		// Survey duration
 					superUser,
 					false,		// HXL only include with XLS exports
-					false		// Don't include audit data
+					false,		// Don't include audit data
+					tz
 					);		
 			
 			

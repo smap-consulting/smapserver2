@@ -78,6 +78,7 @@ public class GetXForm {
 	private boolean useNodesets = false;
 	private ResourceBundle localisation = null;
 	String remoteUser = null;
+	private String tz;
 	
 	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
 
@@ -85,8 +86,12 @@ public class GetXForm {
 	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
-	public GetXForm(ResourceBundle l, String user) {
+	public GetXForm(ResourceBundle l, String user, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 		remoteUser = user;
 	}
 	
@@ -1211,7 +1216,7 @@ public class GetXForm {
 			CSVParser parser = new CSVParser(localisation);
 
 			// Get Header
-			String line = br.readLine();
+			String line = GeneralUtilityMethods.removeBOM(br.readLine());
 			String cols[] = parser.parseLine(line);
 
 			while (line != null) {
@@ -1254,7 +1259,7 @@ public class GetXForm {
 		PreparedStatement pstmt = null;
 		ArrayList<KeyValueSimp> line = null;
 		try {
-			stm.initData(pstmt, "all", null, null, null, null, null);
+			stm.initData(pstmt, "all", null, null, null, null, null, tz);
 			line = stm.getLine();
 			while(line != null) {
 				// process line

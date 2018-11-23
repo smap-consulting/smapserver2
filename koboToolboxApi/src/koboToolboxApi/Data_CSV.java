@@ -47,6 +47,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
 import org.codehaus.jettison.json.JSONArray;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -182,7 +183,7 @@ public class Data_CSV extends Application {
 			@QueryParam("audit") String audit_set,
 			@QueryParam("tz") String tz,			// Time Zone
 			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate columns
-			) {
+			) throws ApplicationException, Exception {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records csv");
@@ -258,6 +259,10 @@ public class Data_CSV extends Application {
 		
 		if(tz == null) {
 			tz = "UTC";
+		} else {
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone");
+			}
 		}
 
 		try {
@@ -319,7 +324,8 @@ public class Data_CSV extends Application {
 					true, // include instancename
 					true, // include survey duration
 					superUser, false, // TODO include HXL
-					audit);
+					audit,
+					tz);
 
 			if (mgmt) {
 				CustomReportsManager crm = new CustomReportsManager();
@@ -391,7 +397,7 @@ public class Data_CSV extends Application {
 
 			if (GeneralUtilityMethods.tableExists(cResults, table_name)) {
 
-				TableDataManager tdm = new TableDataManager(localisation);
+				TableDataManager tdm = new TableDataManager(localisation, tz);
 
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
 						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,

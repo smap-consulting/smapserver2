@@ -19,6 +19,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -68,8 +69,9 @@ public class ExportSurveyXlsx extends Application {
 			@QueryParam("dateId") int dateId,
 			@QueryParam("filter") String filter,
 			@QueryParam("meta") boolean meta,
+			@QueryParam("tz") String tz,					// Timezone
 			
-			@Context HttpServletResponse response) {
+			@Context HttpServletResponse response) throws Exception {
 
 		Response responseVal;
 		
@@ -84,6 +86,14 @@ public class ExportSurveyXlsx extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
+		
+		if(tz == null) {
+			tz = "UTC";
+		} else {
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone");
+			}
+		}
 		
 		Connection cResults = null;
 		try {
@@ -113,7 +123,8 @@ public class ExportSurveyXlsx extends Application {
 					endDate,
 					dateId,
 					filter,
-					meta);
+					meta,
+					tz);
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 			response.setHeader("Content-type",  "text/html; charset=UTF-8");

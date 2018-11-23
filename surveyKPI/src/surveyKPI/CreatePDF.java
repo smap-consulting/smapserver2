@@ -109,13 +109,14 @@ public class CreatePDF extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 			
+			String tz = "UTC";	// Set the default timezone
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), sId, true, basePath, 
 					instanceId, true, generateBlank, true, false, true, "real", false, false, 
 					superUser, "geojson");
-			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, cResults, survey, request.getRemoteUser());
+			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
 			pm.createPdf(

@@ -40,6 +40,7 @@ public class TextManager {
 			 Logger.getLogger(TextManager.class.getName());
 	
 	private ResourceBundle localisation;
+	private String tz;
 	private ChoiceManager choiceManager = null;
 	
 	private class GlobalVariables {																// Level descended in form hierarchy
@@ -48,9 +49,13 @@ public class TextManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 
-	public TextManager(ResourceBundle l) {
+	public TextManager(ResourceBundle l, String tz) {
 		localisation = l;
-		choiceManager = new ChoiceManager(l);
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
+		choiceManager = new ChoiceManager(l, tz);
 	}
 	/*
 	 * Create the text output for an email message

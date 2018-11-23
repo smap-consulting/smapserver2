@@ -43,9 +43,14 @@ public class TableDataManager {
 
 	private static Logger log = Logger.getLogger(TableDataManager.class.getName());
 	private static ResourceBundle localisation;
+	String tz;
 	
-	public TableDataManager(ResourceBundle l) {
+	public TableDataManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 
 	/*
@@ -182,7 +187,7 @@ public class TableDataManager {
 
 			// Add parameters in table column selections
 			if (columnSqlFrags.size() > 0) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, paramCount, tz);
 			}
 			pstmt.setInt(paramCount++, start);
 			if (getParkey) {
@@ -195,7 +200,7 @@ public class TableDataManager {
 				pstmt.setString(paramCount++, hrk);
 			}
 			if (hasRbacFilter) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
 			
 			// Add key filter parameters

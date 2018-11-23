@@ -93,7 +93,8 @@ public class XLSXReportsManager {
 			Date endDate,
 			int dateId,
 			String filter,
-			boolean meta) {
+			boolean meta,
+			String tz) {
 		
 		Response responseVal = null;
 
@@ -122,6 +123,7 @@ public class XLSXReportsManager {
 			Workbook wb = null;
 			int rowNumber = 0;
 			Sheet dataSheet = null;
+			Sheet settingsSheet = null;
 			CellStyle errorStyle = null;
 
 			try {	
@@ -167,7 +169,8 @@ public class XLSXReportsManager {
 						startingForm,
 						filter,
 						meta,
-						false);
+						false,
+						tz);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				
@@ -176,12 +179,24 @@ public class XLSXReportsManager {
 				 */
 				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 				wb = new SXSSFWorkbook(10);		// Serialised output
-				dataSheet = wb.createSheet("data");
-				rowNumber = 0;
-				
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
 				errorStyle = styles.get("error");
+						
+				dataSheet = wb.createSheet(localisation.getString("rep_data"));
+				settingsSheet = wb.createSheet(localisation.getString("rep_settings"));
+				
+				// Populate settings sheet
+				int settingsRowIdx = 0;
+				Row settingsRow = settingsSheet.createRow(settingsRowIdx++);
+				Cell sk = settingsRow.createCell(0);
+				Cell sv = settingsRow.createCell(1);
+				sk.setCellStyle(headerStyle);	
+				sk.setCellValue("Time Zone:");
+				sv.setCellValue(tz);
+				
+				// Populate data sheet
+				rowNumber = 0;		
 				
 				/*
 				 * Write the labels if language has been set
@@ -249,6 +264,7 @@ public class XLSXReportsManager {
 						}
 					}
 				}
+				
 				/*
 				 * Write Question Name Header
 				 */

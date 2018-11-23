@@ -105,6 +105,8 @@ public class ExportSurveyMedia extends Application {
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 		
+		String tz = "UTC";		// Default to UTC
+		
 		/*
 		 * Get the list of forms and surveys to be exported
 		 * Needs to be done prior to authorisation as it includes the list of surveys
@@ -180,7 +182,7 @@ public class ExportSurveyMedia extends Application {
 				/*
 				 * Get the question names
 				 */
-				QuestionInfo mediaQInfo = new QuestionInfo(localisation, sId, mediaQuestion, sd, 
+				QuestionInfo mediaQInfo = new QuestionInfo(localisation, tz, sId, mediaQuestion, sd, 
 						cResults, request.getRemoteUser(),
 						false, language, urlprefix, oId);	
 				String media_name = mediaQInfo.getColumnName();
@@ -193,7 +195,7 @@ public class ExportSurveyMedia extends Application {
 					if(nameQ.length > 0) {
 						for(int i = 0; i < nameQ.length; i++) {
 							int nameQId = Integer.parseInt(nameQ[i]);
-							QuestionInfo qi = new QuestionInfo(localisation, sId, nameQId, sd, 
+							QuestionInfo qi = new QuestionInfo(localisation, tz, sId, nameQId, sd, 
 									cResults, request.getRemoteUser(),
 									false, language, urlprefix, oId);
 							if(qi.getColumnName() != null) {
@@ -241,7 +243,8 @@ public class ExportSurveyMedia extends Application {
 						startingForm,
 						filter,
 						true,
-						false);		// Get all columns (not just instanceid)
+						false,
+						tz);		// Get all columns (not just instanceid)
 				
 				/*
 				 * 1. Create the target folder

@@ -88,6 +88,8 @@ public class FormXML extends Application{
 				} catch (Exception e) {
 				}
 
+				String tz = "UTC";
+				
 				// Authorisation
 				a.isAuthorised(connectionSD, user);
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
@@ -97,7 +99,7 @@ public class FormXML extends Application{
 				// Extract the data
 				SurveyTemplate template = new SurveyTemplate(localisation);
 				template.readDatabase(survey.id, false);
-				GetXForm xForm = new GetXForm(localisation, user);
+				GetXForm xForm = new GetXForm(localisation, user, tz);
 				response = xForm.get(template, false, true, false, user);
 				log.info("userevent: " + user + " : download survey : " + templateName);		
 
@@ -149,6 +151,8 @@ public class FormXML extends Application{
 
 		}
 
+		String tz = "UTC";
+		
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		survey = sm.getSurveyId(connectionSD, templateName);	// Get the survey id from the templateName / key
 		a.isValidSurvey(connectionSD, tempUser, survey.id, false, superUser);	// Validate that the user can access this survey
@@ -163,7 +167,7 @@ public class FormXML extends Application{
 			SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 			//template.printModel();	// debug
-			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser());
+			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 			response = xForm.get(template, false, true, false, request.getRemoteUser());
 			log.info("userevent Temporary User: " + tempUser + " : download survey : " + templateName);		
 

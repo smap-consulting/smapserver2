@@ -124,6 +124,7 @@ public class PDFSurveyManager {
 	private Connection sd;
 	private Connection cResults;
 	private String user;
+	private String tz;
 	
 	// Other global values
 	int languageIdx = 0;
@@ -153,13 +154,17 @@ public class PDFSurveyManager {
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
 	
-	public PDFSurveyManager(ResourceBundle l, Connection sd, Connection cResults, Survey s, String u) {
+	public PDFSurveyManager(ResourceBundle l, Connection sd, Connection cResults, Survey s, String u, String tz) {
 		localisation = l;
-		choiceManager = new ChoiceManager(l);
+		choiceManager = new ChoiceManager(l, tz);
 		this.sd = sd;
 		this.cResults = cResults;
 		survey  = s;
 		user = u;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 
 	/*
@@ -387,9 +392,6 @@ public class PDFSurveyManager {
 
 			}
 
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			throw e;
 		} finally {
 			if(document != null) try {document.close();} catch (Exception e) {};
 			if(writer != null) try {writer.close();} catch (Exception e) {};

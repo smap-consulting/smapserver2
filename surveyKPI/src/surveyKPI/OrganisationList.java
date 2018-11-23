@@ -36,6 +36,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -217,7 +218,7 @@ public class OrganisationList extends Application {
 	 * Update the organisation details or create a new organisation
 	 */
 	@POST
-	public Response updateOrganisation(@Context HttpServletRequest request) { 
+	public Response updateOrganisation(@Context HttpServletRequest request) throws Exception { 
 		
 		Response response = null;
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
@@ -282,6 +283,11 @@ public class OrganisationList extends Application {
 			OrganisationManager om = new OrganisationManager();
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
+				if(o.timeZone != null && !o.timeZone.equals("UTC")) {
+					if(!GeneralUtilityMethods.isValidTimezone(sd, o.timeZone)) {
+						throw new ApplicationException("Invalid Timezone: " + o.timeZone);
+					}
+				}
 				if(o.id == -1) {
 					// New organisation
 						

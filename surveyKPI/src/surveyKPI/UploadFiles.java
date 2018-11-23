@@ -492,6 +492,8 @@ public class UploadFiles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
 			
 			/*
@@ -643,7 +645,7 @@ public class UploadFiles extends Application {
 				boolean valid = true;
 				String errMsg = null;
 				try {
-					XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser());
+					XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
 				} catch (Exception e) {
 									
 					String msg = e.getMessage();

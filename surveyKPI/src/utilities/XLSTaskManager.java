@@ -166,7 +166,7 @@ public class XLSTaskManager {
 	/*
 	 * Create a task list from an XLS file
 	 */
-	public ArrayList<TaskServerDefn> getXLSTaskList(String type, InputStream inputStream, ResourceBundle localisation) throws Exception {
+	public ArrayList<TaskServerDefn> getXLSTaskList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
 
 		Sheet sheet = null;
 		Sheet settingsSheet = null;
@@ -175,7 +175,6 @@ public class XLSTaskManager {
 		ArrayList<TaskServerDefn> tl = new ArrayList<TaskServerDefn> ();
 
 		HashMap<String, Integer> header = null;
-		String tz = "GMT";
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);

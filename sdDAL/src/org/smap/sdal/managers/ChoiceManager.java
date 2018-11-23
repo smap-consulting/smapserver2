@@ -37,9 +37,14 @@ public class ChoiceManager {
 			 Logger.getLogger(ChoiceManager.class.getName());
 
 	private ResourceBundle localisation;
+	private String tz;
 	
-	public ChoiceManager(ResourceBundle l) {
+	public ChoiceManager(ResourceBundle l, String tz) {
 		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	
@@ -90,7 +95,7 @@ public class ChoiceManager {
 					ArrayList<String> miniMatch = new ArrayList<> ();
 					miniMatch.add(match);
 					ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, 
-							localisation, user, oId, sId, qId, miniMatch, surveyIdent);
+							localisation, user, oId, sId, qId, miniMatch, surveyIdent, tz);
 					idx = 0;
 					int languageIdx = 0;
 					if(choices != null && choices.size() > 0) {

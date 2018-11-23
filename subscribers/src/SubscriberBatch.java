@@ -412,7 +412,7 @@ public class SubscriberBatch {
 
 					try {
 						ResultSet rs = pstmtNot.executeQuery();
-						TableDataManager tdm = new TableDataManager(localisation);
+						TableDataManager tdm = new TableDataManager(localisation, tz);
 
 						while(rs.next()) {
 							haveSyncNotifications = true;
@@ -476,7 +476,8 @@ public class SubscriberBatch {
 											true,		// include survey duration
 											true,		// Super user
 											false,		// Don't include HXL
-											true			// include audit data
+											true	,		// include audit data
+											tz
 											);
 	
 									if(mgmt) {

@@ -46,12 +46,10 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.utilities.GetXForm;
 
-import surveyKPI.ExportSurveyXls;
-
 public class XLSUtilities {
 
 	private static Logger log =
-			Logger.getLogger(ExportSurveyXls.class.getName());
+			Logger.getLogger(XLSUtilities.class.getName());
 	/**
 	 * create a library of cell styles
 	 */
@@ -549,7 +547,7 @@ public class XLSUtilities {
      * Validate a survey stored in the database using the javarosa api
      * Will throw an exception on errors
      */
-    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId, String user) throws Exception {
+    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId, String user, String tz) throws Exception {
 		
     		class FakePreloadHandler implements IPreloadHandler {
 
@@ -587,7 +585,7 @@ public class XLSUtilities {
 		
 		SurveyTemplate template = new SurveyTemplate(localisation);
 		template.readDatabase(sId, false);
-		GetXForm xForm = new GetXForm(localisation, user);
+		GetXForm xForm = new GetXForm(localisation, user, tz);
 
 		String xmlForm = xForm.get(template, false, true, false, user);
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());

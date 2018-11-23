@@ -27,6 +27,7 @@ import javax.ws.rs.core.Context;
 
 import org.apache.commons.lang3.StringEscapeUtils;
 import org.apache.poi.ss.usermodel.Cell;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -167,25 +168,22 @@ public class ExportSurvey extends Application {
 			@QueryParam("split_locn") boolean split_locn,
 			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
 			@QueryParam("language") String language,
-			@QueryParam("format") String format,
 			@QueryParam("exp_ro") boolean exp_ro,
 			@QueryParam("forms") String include_forms,
 			@QueryParam("from") Date startDate,
 			@QueryParam("to") Date endDate,
 			@QueryParam("dateId") int dateId,
+			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("filter") String filter,
 
-			@Context HttpServletResponse response) {
+			@Context HttpServletResponse response) throws ApplicationException, Exception {
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 		HashMap<String, String> selectMultipleColumnNames = new HashMap<String, String> ();
 		HashMap<String, String> selMultChoiceNames = new HashMap<String, String> ();
 		surveyNames = new HashMap<String, String> ();
 
-		// Set defaults
-		format = "xls";	// Default to XLS
-
-		log.info("New export, format:" + format + " flat:" + flat + " split:" + split_locn + 
+		log.info("New export:" + " flat:" + flat + " split:" + split_locn + 
 				" forms:" + include_forms + " filename: " + filename + ", merge select: " + merge_select_multiple);
 
 		// Authorisation - Access
@@ -199,6 +197,14 @@ public class ExportSurvey extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
+		if(tz == null) {
+			tz = "UTC";
+		} else {
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone");
+			}
+		}
+		
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS");
 
 		String escapedFileName = null;
@@ -419,7 +425,8 @@ public class ExportSurvey extends Application {
 							false,		// survey duration
 							superUser,	// In this case we will export all data if super user
 							false,		// TODO add HXL export processing
-							false		// Don't include audit data
+							false,		// Don't include audit data
+							tz
 							);
 
 
@@ -457,7 +464,7 @@ public class ExportSurvey extends Application {
 							}
 
 							if(qType.equals("dateTime")) {
-								humanName += " (GMT)";
+								humanName += " (" + tz +")";
 							}
 
 							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
@@ -667,7 +674,8 @@ public class ExportSurvey extends Application {
 						endDate,
 						dateId,
 						superUser,
-						filterFrag);
+						filterFrag,
+						tz);
 				outWriter.print("</tbody><table></body></html>");
 
 				log.info("Content Type:" + response.getContentType());
@@ -899,7 +907,8 @@ public class ExportSurvey extends Application {
 			Date endDate,
 			int dateId,
 			boolean superUser,
-			SqlFrag filterFrag) throws Exception {
+			SqlFrag filterFrag,
+			String tz) throws Exception {
 
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
@@ -960,21 +969,21 @@ public class ExportSurvey extends Application {
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
 				if(startDate != null) {
-					pstmt.setDate(paramCount++, startDate);
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.startOfDay(startDate, tz));
 				}
 				if(endDate != null) {
-					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate, tz));
 				}
 			}
 
 			if(filterFrag != null) {
-				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount);
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount, tz);
 			}
 			
 			if(f.parkey != null) {
 				pstmt.setInt(paramCount++, Integer.parseInt(f.parkey));
 			} else if(hasRbacFilter) {
-				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount);
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
 			//log.info("Get data: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -1088,7 +1097,8 @@ public class ExportSurvey extends Application {
 								endDate,
 								dateId,
 								superUser,
-								null);
+								null,
+								tz);
 					}
 				}
 

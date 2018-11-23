@@ -198,6 +198,8 @@ public class ExportSurveyOSM extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request,request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
+				String tz = "UTC";
+				
 				HashMap<Integer, FormDesc> forms = new HashMap<Integer, FormDesc> ();			// A description of each form in the survey
 				ArrayList <FormDesc> formList = new ArrayList<FormDesc> ();					// A list of all the forms
 				FormDesc topForm = null;
@@ -271,7 +273,8 @@ public class ExportSurveyOSM extends Application {
 							false,		// Survey duration
 							false,		// superUser - Always apply filters
 							false,		// HXL only include with XLS exports
-							false		// Don't include audit data
+							false,		// Don't include audit data
+							tz
 							);
 					
 					for(TableColumn col : f.cols) {

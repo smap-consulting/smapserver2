@@ -137,9 +137,11 @@ public class SurveyView extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
-			SurveyViewManager svm = new SurveyViewManager(localisation);
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			
 			// Get the default view
 			if(viewId == 0) {	
@@ -215,9 +217,11 @@ public class SurveyView extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());	// Get user id
 			
-			SurveyViewManager svm = new SurveyViewManager(localisation);
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			viewId = svm.save(sd, uId, viewId, sId, managedId, queryId, view, mapView, chartView);
 
 			// return the view id

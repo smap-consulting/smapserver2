@@ -102,6 +102,8 @@ public class Values extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(cResults, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 			
 			/*
@@ -112,7 +114,7 @@ public class Values extends Application {
 			/*
 			 * Add the the main question to the array of questions
 			 */
-			QuestionInfo aQ = new QuestionInfo(localisation, sId, qId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
+			QuestionInfo aQ = new QuestionInfo(localisation, tz, sId, qId, sd, cResults, request.getRemoteUser(), false, lang, urlprefix, oId);
 
 			/*
 			 * Create the sql statement

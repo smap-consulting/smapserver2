@@ -110,8 +110,10 @@ public class ActionService extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			String tz = "UTC";	// set default tz
+			
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			Action a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then throw exception
@@ -187,8 +189,10 @@ public class ActionService extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			String tz = "UTC";	// set default tz
+			
 			// 1. Get details on the action to be performed using the user credentials
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			Action a = am.getAction(sd, userIdent);
 
 			// 2. If temporary user does not exist then throw exception
@@ -197,7 +201,7 @@ public class ActionService extends Application {
 			}
 
 			// 3. Generate the form
-			outputString.append(addActionDocument(sd, cResults, request, localisation, a, userIdent, false)); 
+			outputString.append(addActionDocument(sd, cResults, request, localisation, a, userIdent, false, tz)); 
 
 			response = Response.status(Status.OK).entity(outputString.toString()).build();
 		} catch (Exception e) {
@@ -214,7 +218,7 @@ public class ActionService extends Application {
 	 * Add the HTML
 	 */
 	private StringBuffer addActionDocument(Connection sd, Connection cResults, HttpServletRequest request,
-			ResourceBundle localisation, Action a, String uIdent, boolean superUser) throws SQLException, Exception {
+			ResourceBundle localisation, Action a, String uIdent, boolean superUser, String tz) throws SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
 
@@ -227,7 +231,7 @@ public class ActionService extends Application {
 
 		output.append("<!DOCTYPE html>\n");
 
-		output.append(addHead(sd, cResults, localisation, request, a, uIdent, superUser));
+		output.append(addHead(sd, cResults, localisation, request, a, uIdent, superUser, tz));
 		output.append(addBody(request, localisation, s));
 
 		output.append("</html>\n");
@@ -238,7 +242,7 @@ public class ActionService extends Application {
 	 * Add the head section
 	 */
 	private StringBuffer addHead(Connection sd, Connection cResults, ResourceBundle localisation, HttpServletRequest request, Action a,
-			String uIdent, boolean superUser) throws SQLException, Exception {
+			String uIdent, boolean superUser, String tz) throws SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
 
@@ -269,7 +273,7 @@ public class ActionService extends Application {
 		output.append("<script>");
 
 		int uId = GeneralUtilityMethods.getUserId(sd, uIdent);
-		SurveyViewManager mfm = new SurveyViewManager(localisation);
+		SurveyViewManager mfm = new SurveyViewManager(localisation, tz);
 		mfc = mfm.getSurveyView(sd, cResults, uId, 0, a.sId, a.managedId, uIdent,
 				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
@@ -406,9 +410,10 @@ public class ActionService extends Application {
 
 		StringBuffer output = new StringBuffer();
 
-		TableDataManager tdm = new TableDataManager(localisation);
+		String tz = "UTC";	// Set default timezone
+		
+		TableDataManager tdm = new TableDataManager(localisation, tz);
 		JSONArray ja = null;
-		String tz = "UTC";
 
 		PreparedStatement pstmt = null;
 		try {

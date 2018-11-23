@@ -18,11 +18,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -107,6 +109,8 @@ public class GeneralUtilityMethods {
 			"only", "or", "order", "outer", "overlaps", "placing", "primary", "references", "right", "select",
 			"session_user", "similar", "some", "symmetric", "table", "then", "to", "trailing", "true", "union",
 			"unique", "user", "using", "verbose", "when", "where" };
+	
+	 private static final String UTF8_BOM = "\uFEFF";
 
 	/*
 	 * Remove any characters from the name that will prevent it being used as a
@@ -2864,7 +2868,8 @@ public class GeneralUtilityMethods {
 			boolean includeSurveyDuration, 
 			boolean superUser,
 			boolean hxl,
-			boolean audit)
+			boolean audit,
+			String tz)
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
@@ -3252,7 +3257,7 @@ public class GeneralUtilityMethods {
 						c.choices = new ArrayList<KeyValue> ();	
 						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null, surveyIdent);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz);
 							if(options != null) {
 								for(Option o : options) {
 									String label ="";
@@ -4009,7 +4014,8 @@ public class GeneralUtilityMethods {
 			ResourceBundle localisation, 
 			String remoteUser,
 			int oId, int sId, int qId, ArrayList<String> matches,
-			String surveyIdent) throws Exception {
+			String surveyIdent,
+			String tz) throws Exception {
 
 		ArrayList<Option> choices = new ArrayList<Option> ();		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
@@ -4066,7 +4072,7 @@ public class GeneralUtilityMethods {
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "all", null, null, null, null, null);
+								stm.initData(pstmt, "all", null, null, null, null, null, tz);
 								
 								Option o = null;
 								while((o = stm.getLineAsOption(ovalue, languageItems)) != null) {
@@ -5485,17 +5491,32 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Set the time on a java date to 23:59 and convert to a Timestamp
+	 * Use the passed in timezone as the basis for determining hour
 	 */
-	// Set the time on a date to 23:59
-	public static Timestamp endOfDay(Date d) {
+	public static Timestamp endOfDay(Date d, String tz) {
 
-		Calendar cal = Calendar.getInstance();
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
 		cal.setTime(d);
 		cal.set(Calendar.HOUR_OF_DAY, 23);
 		cal.set(Calendar.MINUTE, 59);
 		Timestamp endOfDay = new Timestamp(cal.getTime().getTime());
 
 		return endOfDay;
+	}
+	
+	/*
+	 * Set the time on a java date to 00:00 and convert to a Timestamp
+	 * Use the passed in timezone as the basis for determining hour
+	 */
+	public static Timestamp startOfDay(Date d, String tz) {
+
+		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
+		cal.setTime(d);
+		cal.set(Calendar.HOUR_OF_DAY, 0);
+		cal.set(Calendar.MINUTE, 0);
+		Timestamp startOfDay = new Timestamp(cal.getTime().getTime());
+
+		return startOfDay;
 	}
 
 	/*
@@ -5801,7 +5822,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
 	 */
-	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId) throws Exception {
+	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId, String tz) throws Exception {
 
 		boolean testResult = false;
 
@@ -5824,7 +5845,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, instanceId);
 
 			int idx = 2;
-			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
 
 			log.info("Evaluate Filter: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -5846,7 +5867,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return SQL that can be used to filter out records not matching a filter
 	 */
-	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter) throws Exception {
+	public static String getFilterCheck(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String tz) throws Exception {
 
 		String resp = null;
 
@@ -5866,7 +5887,7 @@ public class GeneralUtilityMethods {
 		try {
 			pstmt = cResults.prepareStatement(filterQuery.toString());
 			int idx = 1;
-			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx);
+			idx = GeneralUtilityMethods.setFragParams(pstmt, frag, idx, tz);
 
 			resp = pstmt.toString();
 
@@ -5920,9 +5941,9 @@ public class GeneralUtilityMethods {
 	/*
 	 * Set the parameters for an array of sql fragments
 	 */
-	public static int setArrayFragParams(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index) throws Exception {
+	public static int setArrayFragParams(PreparedStatement pstmt, ArrayList<SqlFrag> rfArray, int index, String tz) throws Exception {
 		for(SqlFrag rf : rfArray) {
-			index = setFragParams(pstmt, rf, index);
+			index = setFragParams(pstmt, rf, index, tz);
 		}
 		return index;
 	}
@@ -5930,7 +5951,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Set the parameters for an array of sql fragments
 	 */
-	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index) throws Exception {
+	public static int setFragParams(PreparedStatement pstmt, SqlFrag frag, int index, String tz) throws Exception {
 		int attribIdx = index;
 		for(int i = 0; i < frag.params.size(); i++) {
 			SqlFragParam p = frag.params.get(i);
@@ -5941,7 +5962,7 @@ public class GeneralUtilityMethods {
 			} else if(p.getType().equals("double")) {
 				pstmt.setDouble(attribIdx++,  p.dValue);
 			} else if(p.getType().equals("date")) {
-				pstmt.setDate(attribIdx++,  java.sql.Date.valueOf(p.sValue));
+				pstmt.setTimestamp(attribIdx++,  startOfDay(java.sql.Date.valueOf(p.sValue), tz));
 			} else {
 				throw new Exception("Unknown parameter type: " + p.getType());
 			}
@@ -6738,6 +6759,33 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Return true if timezone is valid
+	 */
+	public static boolean isValidTimezone(Connection sd, String tz) throws Exception {
+		
+		boolean isValid = false;
+		String sql = "select count(*) from pg_timezone_names where name = ?"; 
+		PreparedStatement pstmt = null;
+
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tz);
+		
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				isValid = rs.getInt(1)> 0;
+			}
+				
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return isValid;
+
+	}
+	
+	/*
 	 * Add the thread value that links replaced records
 	 */
 	public static void continueThread(Connection cResults, String table, int prikey, int sourceKey) throws SQLException {
@@ -6917,6 +6965,14 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return isSet;
+	}
+	
+	public static String removeBOM(String in) {
+		
+		if (in.startsWith(UTF8_BOM)) {
+            in = in.substring(1);
+        }
+		return in;
 	}
 
 }

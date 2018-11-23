@@ -116,8 +116,10 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			// Get task groups
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			ArrayList<TaskGroup> taskgroups = tm.getTaskGroups(sd, projectId);		
 			
 			// Return groups to calling program
@@ -161,8 +163,10 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			// Get assignments
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			TaskListGeoJson t = tm.getTasks(sd, tgId, true, userId, null, period);		
 			
 			// Return groups to calling program
@@ -205,9 +209,11 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			// Get locations
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			ArrayList<Location> locations = tm.getLocations(sd, oId);
 			
 			
@@ -263,6 +269,8 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			while(itr.hasNext()) {
 				
 				FileItem item = (FileItem) itr.next();
@@ -312,7 +320,7 @@ public class Tasks extends Application {
 					// Save locations to disk
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 					log.info("userevent: " + request.getRemoteUser() + " : upload locations from xls file: " + fileName + " for organisation: " + oId);
-					TaskManager tm = new TaskManager(localisation);
+					TaskManager tm = new TaskManager(localisation, tz);
 					tm.saveLocations(sd, locations, oId);
 					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", locations.size() + " locations / NFC tags uploaded from file " + fileName);
 					// Return tags to calling program
@@ -371,7 +379,9 @@ public class Tasks extends Application {
 			
 			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());			
 			
-			TaskManager tm = new TaskManager(localisation);
+			String tz = "UTC";	// Set default for timezone
+			
+			TaskManager tm = new TaskManager(localisation, tz);
 			
 			// Get the current locations
 			ArrayList<Location> locations = tm.getLocations(sd, organisation.id);
@@ -423,7 +433,7 @@ public class Tasks extends Application {
 		}
 		
 		if(tz == null) {
-			tz = "GMT";
+			tz = "UTC";
 		}
 		
 		log.info("Exporting tasks with timzone: " + tz);
@@ -435,7 +445,7 @@ public class Tasks extends Application {
 			Locale locale = new Locale(organisation.locale);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			
 			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
 			TaskListGeoJson tl = tm.getTasks(sd, tgId, true, 0, incStatus, "all");	// Get the task list
@@ -496,6 +506,8 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			/*
 			 * Parse the request
 			 */
@@ -553,10 +565,10 @@ public class Tasks extends Application {
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
-				ArrayList<TaskServerDefn> tArray = xf.getXLSTaskList(filetype, file.getInputStream(), localisation);
+				ArrayList<TaskServerDefn> tArray = xf.getXLSTaskList(filetype, file.getInputStream(), localisation, tz);
 				
 				// Save tasks to the database
-				TaskManager tm = new TaskManager(localisation);
+				TaskManager tm = new TaskManager(localisation, tz);
 				
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
@@ -634,11 +646,13 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";	// Set default for timezone
+			
 			cResults = ResultsDataSource.getConnection(requester);
 			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 			
-			TaskManager tm = new TaskManager(localisation);
+			TaskManager tm = new TaskManager(localisation, tz);
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			tm.writeTask(sd, cResults, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
@@ -688,7 +702,9 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			TaskManager tm = new TaskManager(localisation);
+			String tz = "UTC";	// Set default for timezone
+			
+			TaskManager tm = new TaskManager(localisation, tz);
 			tm.updateWhen(sd, pId, tf.properties.id, tf.properties.from, tf.properties.to);
 			response = Response.ok().build();
 		
@@ -738,7 +754,9 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			TaskManager tm = new TaskManager(localisation);
+			String tz = "UTC";	// Set default for timezone
+			
+			TaskManager tm = new TaskManager(localisation, tz);
 			tm.applyBulkAction(request, sd, tgId, pId, bulkAction);
 			response = Response.ok().build();
 		
@@ -779,7 +797,9 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			MiscPDFManager pm = new MiscPDFManager(localisation);  			
+			String tz = "UTC";	// Set default for timezone
+			
+			MiscPDFManager pm = new MiscPDFManager(localisation, tz);  			
 			pm.createTasksPdf(
 					sd,
 					response.getOutputStream(),
@@ -829,7 +849,9 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			TaskManager tm = new TaskManager(localisation);
+			String tz = "UTC";	// Set default for timezone
+			
+			TaskManager tm = new TaskManager(localisation, tz);
 			tm.updateEmailDetails(sd, pId, tgId, ted);
 			response = Response.ok().build();
 		

@@ -107,7 +107,9 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyViewManager mf = new SurveyViewManager(localisation);
+			String tz = "UTC";
+			
+			SurveyViewManager mf = new SurveyViewManager(localisation, tz);
 			ArrayList<ManagedFormItem> items = mf.getManagedForms(sd, pId);
 			response = Response.ok(gson.toJson(items)).build();
 		
@@ -157,7 +159,9 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			ActionManager am = new ActionManager(localisation);
+			String tz = "UTC";
+			
+			ActionManager am = new ActionManager(localisation, tz);
 			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, managedId, settings);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
@@ -219,8 +223,10 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, am.sId);	// Get the table name of the top level form
-			TableManager tm = new TableManager(localisation);
+			TableManager tm = new TableManager(localisation, tz);
 			
 			// 0. Ensure that the form data columns are fully published, don't add managed columns at this stage
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
@@ -247,7 +253,7 @@ public class ManagedForms extends Application {
 			// 1. Check that the managed form is compatible with the survey
 			if(am.manageId > 0) {
 				String compatibleMsg = compatibleManagedForm(sd, cResults, localisation, am.sId, 
-						am.manageId, request.getRemoteUser(), oId, superUser);
+						am.manageId, request.getRemoteUser(), oId, superUser, tz);
 				if(compatibleMsg != null) {
 					throw new Exception(localisation.getString("mf_nc") + " " + compatibleMsg);
 				}
@@ -306,7 +312,8 @@ public class ManagedForms extends Application {
 			int managedId,
 			String user,
 			int oId,
-			boolean superUser) {
+			boolean superUser,
+			String tz) {
 		
 		StringBuffer compatibleMsg = new StringBuffer("");
 		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();
@@ -316,7 +323,7 @@ public class ManagedForms extends Application {
 				
 			try {	
 				SurveyViewDefn svd = new SurveyViewDefn();
-				SurveyViewManager qm = new SurveyViewManager(localisation);
+				SurveyViewManager qm = new SurveyViewManager(localisation, tz);
 				qm.getDataProcessingConfig(sd, managedId, svd, null, oId);
 					
 				org.smap.sdal.model.Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);	// Get the table name of the top level form		
@@ -341,7 +348,8 @@ public class ManagedForms extends Application {
 						false,	// Include survey duration
 						superUser,
 						false,		// HXL only include with XLS exports
-						false		// Don't include audit data
+						false,		// Don't include audit data
+						tz
 						);
 				
 				for(TableColumn mc : svd.columns) {
@@ -473,6 +481,8 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			int pId = 0;
 			
@@ -489,7 +499,7 @@ public class ManagedForms extends Application {
 			if(pId == 0) {
 				throw new Exception(localisation.getString("mf_blocked"));
 			}
-			ActionManager am = new ActionManager(localisation);
+			ActionManager am = new ActionManager(localisation, tz);
 			Action action = new Action("respond");
 			action.sId = sId;
 			action.managedId = managedId;

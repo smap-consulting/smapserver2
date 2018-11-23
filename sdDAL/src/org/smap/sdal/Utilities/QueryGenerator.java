@@ -74,7 +74,8 @@ public class QueryGenerator {
 			QueryForm form,
 			String filter,
 			boolean meta,
-			boolean includeKeys) throws Exception {
+			boolean includeKeys,
+			String tz) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -85,6 +86,8 @@ public class QueryGenerator {
 	
 		PreparedStatement pstmtQLabel = null;
 		PreparedStatement pstmtListLabels = null;
+		
+		PreparedStatement pstmtConvert = null;
 		try {			
 			
 			sqlDesc.target_table = form.table;
@@ -157,156 +160,158 @@ public class QueryGenerator {
 					true,
 					meta,
 					includeKeys,
-					false				// have geometry
+					false,				// have geometry
+					tz
 					);
+		
+			/*
+			 * Validate the filter and convert to an SQL Fragment
+			 */
+			SqlFrag filterFrag = null;
+			if(filter != null && filter.length() > 0) {
+	
+				filterFrag = new SqlFrag();
+				filterFrag.addSqlFragment(filter, false, localisation);
+	
+	
+				for(String filterCol : filterFrag.columns) {
+					boolean valid = false;
+					for(String q : sqlDesc.names) {
+						if(filterCol.equals(q)) {
+							valid = true;
+							break;
+						}
+					}
+					if(!valid) {
+						String msg = localisation.getString("inv_qn_misc");
+						msg = msg.replace("%s1", filterCol);
+						throw new Exception(msg);
+					}
+				}
+			}
+			
+			StringBuffer shpSqlBuf = new StringBuffer();
+			shpSqlBuf.append("select ");
+			if(add_record_uuid) {
+				shpSqlBuf.append("uuid_generate_v4() as _record_uuid, ");
+			}
+			if(add_record_suid) {		// Smap unique id, globally unique (hopefully) but same value each time query is run
+				shpSqlBuf.append("'" + hostname + "_" + sqlDesc.target_table + "_' || " + sqlDesc.target_table + ".prikey as _record_suid, ");
+			}
+			shpSqlBuf.append(sqlDesc.cols);
+			shpSqlBuf.append(" from ");
+	
+			/*
+			 * Add the tables
+			 */
+			for(int i = 0; i < tables.size(); i++) {
+				
+				if(i > 0) {
+					shpSqlBuf.append(",");
+				}
+				shpSqlBuf.append(tables.get(i));
+			}
+			
+			shpSqlBuf.append(" where ");
+			
+			/*
+			 * Exclude "bad" records
+			 */
+			for(int i = 0; i < tables.size(); i++) {
+				if(i > 0) {
+					shpSqlBuf.append(" and ");
+				}
+				shpSqlBuf.append(tables.get(i));
+				shpSqlBuf.append("._bad='false'");
+			}
+			
+			
+			if(format.equals("shape") && sqlDesc.geometry_type != null) {
+				shpSqlBuf.append(" and " + sqlDesc.target_table + ".the_geom is not null");
+			}
+			
+			/*
+			 * The form list is in order of Parent to child forms
+			 */
+			if(form.childForms != null && form.childForms.size() > 0) {
+				shpSqlBuf.append(getJoins(connectionSD, localisation, form.childForms, form));
+			}
+			
+			String sqlRestrictToDateRange = null;
+			if(dateId != 0) {
+				String dateName = GeneralUtilityMethods.getColumnNameFromId(connectionSD, sId, dateId);
+				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
+				if(sqlRestrictToDateRange.trim().length() > 0) {
+					shpSqlBuf.append(" and ");
+					shpSqlBuf.append(sqlRestrictToDateRange);
+				}
+			}
+			
+			// Add the advanced filter fragment
+			if(filterFrag != null) {
+				shpSqlBuf.append( " and (");
+				shpSqlBuf.append(filterFrag.sql);
+				shpSqlBuf.append(") ");
+			}
+			
+			// Add RBAC/Role Row Filter
+			boolean hasRbacFilter = false;
+			ArrayList<SqlFrag> rfArray = null;
+			RoleManager rm = new RoleManager(localisation);
+			if(!superUser) {
+				rfArray = rm.getSurveyRowFilter(connectionSD, sId, user);
+				if(rfArray.size() > 0) {
+					String rFilter = rm.convertSqlFragsToSql(rfArray);
+					if(rFilter.length() > 0) {
+						shpSqlBuf.append(" and ");
+						shpSqlBuf.append(rFilter);
+						hasRbacFilter = true;
+					}
+				}
+			}
+			
+			/*
+			 * Sort the data by primary key ascending
+			 */
+			shpSqlBuf.append(" order by ");
+			shpSqlBuf.append(form.table);
+			shpSqlBuf.append(".prikey asc");
+			
+			/*
+			 * Prepare the sql string
+			 * Add the parameters to the prepared statement
+			 * Convert back to sql
+			 */
+			pstmtConvert = connectionResults.prepareStatement(shpSqlBuf.toString());
+			int paramCount = 1;
+			
+			// if date filter is set then add it
+			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
+				if(startDate != null) {
+					pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.startOfDay(startDate, tz));
+				}
+				if(endDate != null) {
+					pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				}
+			}
+			
+			if(filterFrag != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmtConvert, filterFrag, paramCount, tz);
+			}
+			
+			if(hasRbacFilter) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtConvert, rfArray, paramCount, tz);
+			}
+			
+			sqlDesc.sql = pstmtConvert.toString();
 		}  finally {
 			try {if (pstmtCols != null) {pstmtCols.close();}} catch (SQLException e) {}
 			try {if (pstmtGeom != null) {pstmtGeom.close();}} catch (SQLException e) {}
 			try {if (pstmtQType != null) {pstmtQType.close();}} catch (SQLException e) {}
 			try {if (pstmtQLabel != null) {pstmtQLabel.close();}} catch (SQLException e) {}
 			try {if (pstmtListLabels != null) {pstmtListLabels.close();}} catch (SQLException e) {}
+			try {if (pstmtConvert != null) {pstmtConvert.close();}} catch (SQLException e) {}
 		}
-		
-		/*
-		 * Validate the filter and convert to an SQL Fragment
-		 */
-		SqlFrag filterFrag = null;
-		if(filter != null && filter.length() > 0) {
-
-			filterFrag = new SqlFrag();
-			filterFrag.addSqlFragment(filter, false, localisation);
-
-
-			for(String filterCol : filterFrag.columns) {
-				boolean valid = false;
-				for(String q : sqlDesc.names) {
-					if(filterCol.equals(q)) {
-						valid = true;
-						break;
-					}
-				}
-				if(!valid) {
-					String msg = localisation.getString("inv_qn_misc");
-					msg = msg.replace("%s1", filterCol);
-					throw new Exception(msg);
-				}
-			}
-		}
-		
-		StringBuffer shpSqlBuf = new StringBuffer();
-		shpSqlBuf.append("select ");
-		if(add_record_uuid) {
-			shpSqlBuf.append("uuid_generate_v4() as _record_uuid, ");
-		}
-		if(add_record_suid) {		// Smap unique id, globally unique (hopefully) but same value each time query is run
-			shpSqlBuf.append("'" + hostname + "_" + sqlDesc.target_table + "_' || " + sqlDesc.target_table + ".prikey as _record_suid, ");
-		}
-		shpSqlBuf.append(sqlDesc.cols);
-		shpSqlBuf.append(" from ");
-
-		/*
-		 * Add the tables
-		 */
-		for(int i = 0; i < tables.size(); i++) {
-			
-			if(i > 0) {
-				shpSqlBuf.append(",");
-			}
-			shpSqlBuf.append(tables.get(i));
-		}
-		
-		shpSqlBuf.append(" where ");
-		
-		/*
-		 * Exclude "bad" records
-		 */
-		for(int i = 0; i < tables.size(); i++) {
-			if(i > 0) {
-				shpSqlBuf.append(" and ");
-			}
-			shpSqlBuf.append(tables.get(i));
-			shpSqlBuf.append("._bad='false'");
-		}
-		
-		
-		if(format.equals("shape") && sqlDesc.geometry_type != null) {
-			shpSqlBuf.append(" and " + sqlDesc.target_table + ".the_geom is not null");
-		}
-		
-		/*
-		 * The form list is in order of Parent to child forms
-		 */
-		if(form.childForms != null && form.childForms.size() > 0) {
-			shpSqlBuf.append(getJoins(connectionSD, localisation, form.childForms, form));
-		}
-		
-		String sqlRestrictToDateRange = null;
-		if(dateId != 0) {
-			String dateName = GeneralUtilityMethods.getColumnNameFromId(connectionSD, sId, dateId);
-			sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
-			if(sqlRestrictToDateRange.trim().length() > 0) {
-				shpSqlBuf.append(" and ");
-				shpSqlBuf.append(sqlRestrictToDateRange);
-			}
-		}
-		
-		// Add the advanced filter fragment
-		if(filterFrag != null) {
-			shpSqlBuf.append( " and (");
-			shpSqlBuf.append(filterFrag.sql);
-			shpSqlBuf.append(") ");
-		}
-		
-		// Add RBAC/Role Row Filter
-		boolean hasRbacFilter = false;
-		ArrayList<SqlFrag> rfArray = null;
-		RoleManager rm = new RoleManager(localisation);
-		if(!superUser) {
-			rfArray = rm.getSurveyRowFilter(connectionSD, sId, user);
-			if(rfArray.size() > 0) {
-				String rFilter = rm.convertSqlFragsToSql(rfArray);
-				if(rFilter.length() > 0) {
-					shpSqlBuf.append(" and ");
-					shpSqlBuf.append(rFilter);
-					hasRbacFilter = true;
-				}
-			}
-		}
-		
-		/*
-		 * Sort the data by primary key ascending
-		 */
-		shpSqlBuf.append(" order by ");
-		shpSqlBuf.append(form.table);
-		shpSqlBuf.append(".prikey asc");
-		
-		/*
-		 * Prepare the sql string
-		 * Add the parameters to the prepared statement
-		 * Convert back to sql
-		 */
-		PreparedStatement pstmtConvert = connectionResults.prepareStatement(shpSqlBuf.toString());
-		int paramCount = 1;
-		
-		// if date filter is set then add it
-		if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
-			if(startDate != null) {
-				pstmtConvert.setDate(paramCount++, startDate);
-			}
-			if(endDate != null) {
-				pstmtConvert.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate));
-			}
-		}
-		
-		if(filterFrag != null) {
-			paramCount = GeneralUtilityMethods.setFragParams(pstmtConvert, filterFrag, paramCount);
-		}
-		
-		if(hasRbacFilter) {
-			paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtConvert, rfArray, paramCount);
-		}
-		
-		sqlDesc.sql = pstmtConvert.toString();
 
 		return sqlDesc;
 	}
@@ -390,7 +395,8 @@ public class QueryGenerator {
 			boolean first,
 			boolean meta,
 			boolean includeKeys,
-			boolean haveGeometry
+			boolean haveGeometry,
+			String tz
 			) throws Exception {
 		
 		int colLimit = 10000;
@@ -423,7 +429,8 @@ public class QueryGenerator {
 				false,				// Survey duration
 				superUser,
 				false,				// HXL only include with XLS exports
-				false				// Don't include audit data
+				false,				// Don't include audit data
+				tz
 				);
 			
 		StringBuffer colBuf = new StringBuffer();
@@ -440,28 +447,7 @@ public class QueryGenerator {
 			sqlDesc.availableColumns.add("instanceid");
 			sqlDesc.numberFields++;
 			
-			/*
-			c.name = "instancename";
-			c.humanName = "instancename";
-			c.type = "";
-			cols.add(c);			
-			sqlDesc.availableColumns.add("instancename");
-			sqlDesc.numberFields++;
-			*/
-			
-			//sqlDesc.cols = "prikey, instanceid, instancename";
 			sqlDesc.cols = "instanceid";
-			/*
-			if(GeneralUtilityMethods.hasColumn(connectionResults, form.table, "_hrk")) {
-				c = new TableColumn();
-				c.name = "_hrk";
-				c.humanName = "_hrk";
-				c.type = "";
-				cols.add(c);
-					
-				sqlDesc.cols += ",_hrk";
-			}
-			*/
 				
 		}
 		
@@ -617,9 +603,9 @@ public class QueryGenerator {
 				} else {
 				
 					if(type != null && (type.equals("date") || type.equals("dateTime"))) {
-						colBuf.append("to_char(");
-					} else if(type.equals("timestamptz")) {	// Return all timestamps at UTC with no time zone
-						colBuf.append("timezone('UTC', "); 
+						colBuf.append("to_char(timezone('").append(tz).append("', ");
+					} else if(type.equals("timestamptz")) {
+						colBuf.append("timezone('").append(tz).append("', "); 
 					}
 				
 					if(isAttachment && wantUrl) {	// Add the url prefix to the file
@@ -629,9 +615,9 @@ public class QueryGenerator {
 					}
 				
 					if(type != null && type.equals("date")) {
-						colBuf.append(", 'YYYY-MM-DD')");
+						colBuf.append("), 'YYYY-MM-DD')");
 					} else if(type != null && type.equals("dateTime")) {
-						colBuf.append(", 'YYYY-MM-DD HH24:MI:SS')");
+						colBuf.append("), 'YYYY-MM-DD HH24:MI:SS')");
 					} else if(type.equals("timestamptz")) { 
 						colBuf.append(")");
 					}
@@ -678,7 +664,7 @@ public class QueryGenerator {
 		}
 		
 		// Get the columns for child forms
-		if(form.childForms != null && form.childForms.size() > 0) {	
+		if(form.childForms != null && form.childForms.size() > 0) {
 			for(int i = 0; i < form.childForms.size(); i++) {
 				getSqlDesc(
 						localisation,
@@ -710,7 +696,8 @@ public class QueryGenerator {
 						false,
 						meta,
 						includeKeys,
-						haveGeometry
+						haveGeometry,
+						tz
 						);
 			}
 		}

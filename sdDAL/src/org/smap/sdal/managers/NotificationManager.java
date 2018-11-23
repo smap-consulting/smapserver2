@@ -407,6 +407,8 @@ public class NotificationManager {
 			Locale locale = new Locale(organisation.locale);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String tz = "UTC";		// Set default time to UTC
+			
 			pstmtGetNotifications.setInt(1, sId);
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();
@@ -431,7 +433,7 @@ public class NotificationManager {
 				boolean proceed = true;
 				if(filter != null && filter.trim().length() > 0) {
 					try {
-						proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId);
+						proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId, tz);
 					} catch(Exception e) {
 						lm.writeLog(sd, sId, "subscriber", "notification", 
 								localisation.getString("filter_error")
@@ -529,7 +531,7 @@ public class NotificationManager {
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson");
 		
-		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, user);
+		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, user, organisation.timeZone);
 		
 		try {
 			
@@ -540,7 +542,7 @@ public class NotificationManager {
 			 */
 			msg.subject = sm.fillStringTemplate(survey, msg.subject);
 			msg.content = sm.fillStringTemplate(survey, msg.content);
-			TextManager tm = new TextManager(localisation);
+			TextManager tm = new TextManager(localisation, organisation.timeZone);
 			ArrayList<String> text = new ArrayList<> ();
 			text.add(msg.subject);
 			text.add(msg.content);

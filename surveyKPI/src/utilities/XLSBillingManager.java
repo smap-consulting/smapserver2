@@ -19,13 +19,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
+
 
 
 //import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -33,23 +28,14 @@ import java.time.ZonedDateTime;
 //import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.hssf.usermodel.HSSFDateUtil;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.TaskFeature;
-import org.smap.sdal.model.TaskListGeoJson;
-import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
-import org.smap.sdal.model.Location;
 
 
 
