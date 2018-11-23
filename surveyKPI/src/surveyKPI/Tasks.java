@@ -565,7 +565,7 @@ public class Tasks extends Application {
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
-				ArrayList<TaskServerDefn> tArray = xf.getXLSTaskList(filetype, file.getInputStream(), localisation);
+				ArrayList<TaskServerDefn> tArray = xf.getXLSTaskList(filetype, file.getInputStream(), localisation, tz);
 				
 				// Save tasks to the database
 				TaskManager tm = new TaskManager(localisation, tz);

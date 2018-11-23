@@ -464,7 +464,7 @@ public class ExportSurvey extends Application {
 							}
 
 							if(qType.equals("dateTime")) {
-								humanName += " (GMT)";
+								humanName += " (" + tz +")";
 							}
 
 							if(f.maxRepeats > 1) {	// Columns need to be repeated horizontally
