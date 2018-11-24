@@ -33,6 +33,7 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.RateDetail;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
@@ -163,15 +164,16 @@ public class BillingManager {
 	/*
 	 * Get the rates for the specified enterprise, organisation, year and month
 	 */
-	public ArrayList<BillLineItem> getRates(
+	public RateDetail getRates(
 			Connection sd, 
 			int year,
 			int month,
 			int eId,
 			int oId) throws SQLException {
-		ArrayList<BillLineItem> items = null;
 		
-		String sql = "select rates from bill_rates "
+		RateDetail rd = new RateDetail();
+		
+		String sql = "select rates, currency from bill_rates "
 				+ "where o_id = ? "
 				+ "and e_id = ? "
 				+ "and ts_applies_from < ? "
@@ -201,19 +203,66 @@ public class BillingManager {
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String rString = rs.getString(1);
-				if(rString != null) {
-					items = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
+				if(rString != null) {					
+					rd.line = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
 				}
+				rd.currency = rs.getString(2);
 			}
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
 		
-		if(items == null) {
-			items = new ArrayList<BillLineItem> ();
+		if(rd.line == null) {
+			rd.line = new ArrayList<BillLineItem> ();
 		}
 		
-		return items;
+		return rd;
+	
+	}
+	
+	/*
+	 * Get the array of rates for the specified enterprise, organisation
+	 */
+	public ArrayList<RateDetail> getRatesList(
+			Connection sd, 
+			int eId,
+			int oId) throws SQLException {
+		
+		ArrayList<RateDetail> rates = new ArrayList<RateDetail> ();
+		
+		String sql = "select rates, currency from bill_rates "
+				+ "where o_id = ? "
+				+ "and e_id = ? "
+				+ "order by ts_applies_from desc ";
+		PreparedStatement pstmt = null;
+		
+		/*
+		 * Get the last set of rates that was created prior to the end of the requested month
+		 * Set the month to the next month and get the latest rates less than that
+		 */
+	
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, eId);
+			log.info("Get rates list: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				RateDetail rd = new RateDetail();
+				String rString = rs.getString(1);
+				if(rString != null) {					
+					rd.line = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
+				}
+				rd.currency = rs.getString(2);
+				rates.add(rd);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		
+		return rates;
 	
 	}
 }

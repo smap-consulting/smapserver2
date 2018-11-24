@@ -38,6 +38,8 @@ import org.smap.sdal.managers.BillingManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.RateDetail;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -118,10 +120,11 @@ public class Billing extends Application {
 			bill.oId = oId;
 			bill.year = year;
 			bill.month = "month" + month;	
-			bill.currency = "USD";
 			
 			BillingManager bm = new BillingManager(localisation);		
-			bill.line = bm.getRates(sd, year, month, eId, oId);
+			RateDetail rd = bm.getRates(sd, year, month, eId, oId);
+			bill.line = rd.line;
+			bill.currency = rd.currency;
 			
 			/*
 			 * Server Charge
@@ -204,7 +207,7 @@ public class Billing extends Application {
 	}
 	
 	/*
-	 * Export Tasks for a task group in an XLS file
+	 * Export Billing details for an organisation
 	 */
 	@GET
 	@Path ("/organisations/xlsx")
@@ -287,6 +290,60 @@ public class Billing extends Application {
 			}
 		}
 
+	}
+	
+	/*
+	 * Get rates data
+	 */
+	@GET
+	@Path ("/rates")
+	@Produces("application/json")
+	public String getRates(@Context HttpServletRequest request,
+			@QueryParam("org") int oId,
+			@QueryParam("ent") int eId) throws Exception { 
+		
+		// Authorisation - Access
+		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
+		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		if(oId > 0) {
+			aOrg.isAuthorised(sd, request.getRemoteUser());
+			
+			boolean superUser = false;
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			if(!superUser) {
+				aOrg.isValidBillingOrganisation(sd, oId);
+			}
+		} else {
+			aServer.isAuthorised(sd, request.getRemoteUser());
+		}
+		
+		// End Authorisation
+		
+		ArrayList<RateDetail> rates = null;
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
+			
+			BillingManager bm = new BillingManager(localisation);		
+			rates = bm.getRatesList(sd, eId, oId);
+
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection("surveyKPI-Billing", sd);
+		}
+
+		return gson.toJson(rates);
 	}
 	
 	/*
