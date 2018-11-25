@@ -254,29 +254,30 @@ public class UserList extends Application {
 						}
 					}
 					
-					// Organisations
-					if(isOrgUser) {
-						if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
-						pstmtOrgs.setInt(1, user.id);
-						rsOrgs = pstmtOrgs.executeQuery();
-						user.orgs = new ArrayList<Organisation> ();
-						while(rsOrgs.next()) {
-							Organisation o = new Organisation();
-							o.id = rsOrgs.getInt("id");
-							o.name = rsOrgs.getString("name");
-							user.orgs.add(o);
-						}
-						if(user.orgs.size() == 0) {
-							/*
-							 * Add a default organisation equal to the users current organisation
-							 * This is only needed for users who were created before organisation linking was added
-							 */
-							Organisation o = new Organisation();
-							o.id = o_id;
-							user.orgs.add(o);
-						}
-					}
 				} 
+				
+				// Always get Organisation list from the current settings
+				if(isOrgUser) {
+					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
+					pstmtOrgs.setInt(1, user.id);
+					rsOrgs = pstmtOrgs.executeQuery();
+					user.orgs = new ArrayList<Organisation> ();
+					while(rsOrgs.next()) {
+						Organisation o = new Organisation();
+						o.id = rsOrgs.getInt("id");
+						o.name = rsOrgs.getString("name");
+						user.orgs.add(o);
+					}
+					if(user.orgs.size() == 0) {
+						/*
+						 * Add a default organisation equal to the users current organisation
+						 * This is only needed for users who were created before organisation linking was added
+						 */
+						Organisation o = new Organisation();
+						o.id = o_id;
+						user.orgs.add(o);
+					}
+				}
 				
 				if(user != null) {
 					users.add(user);
