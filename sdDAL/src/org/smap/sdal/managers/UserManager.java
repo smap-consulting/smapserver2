@@ -606,7 +606,12 @@ public class UserManager {
 
 					// Update the groups, projects and roles
 					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
-					if(isOrgUser) {
+					if(isOrgUser && !isSwitch) {
+						insertUserOrganisations(sd, u, u.id);
+					}
+				} else {
+					// update the list of organisation that the user has access to.  These are always stored as current
+					if(isOrgUser && !isSwitch) {
 						insertUserOrganisations(sd, u, u.id);
 					}
 				}
@@ -853,10 +858,11 @@ public class UserManager {
 						User uCurrent = getByIdent(sd, userIdent);
 						updateSavedSettings(sd, uCurrent, uId, currentOrgId, true, true);		// Can pretend to be super user as just saving what is already specified
 						
-						// 4. Set the current settings to the new settings 
+						// 4. Set the current settings to the settings for the new organisation 
 						// Use default values from the current organisation if the new settings are null
 						if(targetSettings != null) {
 							u = gson.fromJson(targetSettings, User.class);
+							u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
 						} else {
 							u = uCurrent;
 							// Clear settings from the current org that we do not want to add as the default to a new org
@@ -882,7 +888,7 @@ public class UserManager {
 	}
 	
 	/*
-	 * Save the User Settings, specified in u, into the user_admin table
+	 * Save the User Settings, specified in u, into the user_oganisation table
 	 * Saved for organisation oId and user uId
 	 * 
 	 * This may be called by an administrator who does not have full rights to modify the user settings
@@ -909,6 +915,10 @@ public class UserManager {
 		PreparedStatement pstmtGetSettings = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		ArrayList<Organisation> buOrgs = null; 
+		String buPassword = null;
+		int buOrgId = 0;
 		
 		try {
 			// If the user is not a super user then get the existing settings and merge them
@@ -945,7 +955,17 @@ public class UserManager {
 				}
 			}
 			
+			/*
+			 * Don't save the password or user organisation list
+			 * Also set the user organisation to the organisation that is being saved 
+			 * Restore the original settings after saving
+			 */
+			buPassword = u.password;
+			buOrgs = u.orgs;
+			buOrgId = u.o_id;
+			
 			u.password = null;		// Don't save the password
+			u.orgs = null;
 			u.o_id = oId;
 			
 			pstmtUpdateSettings = sd.prepareStatement(sqlUpdateSettings);
@@ -964,6 +984,11 @@ public class UserManager {
 				pstmtInsertSettings.executeUpdate();
 			}
 		} finally {
+			// Restore modified values
+			u.password = buPassword;
+			u.orgs = buOrgs;
+			u.o_id = buOrgId;
+			
 			try {if (pstmtUpdateSettings != null) {pstmtUpdateSettings.close();	}} catch (Exception e) {}
 			try {if (pstmtInsertSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
 			try {if (pstmtGetSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
