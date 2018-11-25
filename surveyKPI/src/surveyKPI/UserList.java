@@ -152,12 +152,19 @@ public class UserList extends Application {
 		PreparedStatement pstmtRoles = null;
 		
 		String sqlOrgs = "select o.id,"
-				+ "o.name "
+				+ "o.name as oname "
 				+ "from organisation o,"
 				+ "user_organisation uo "
 				+ "where uo.u_id = ? "
 				+ "and uo.o_id = o.id "
-				+ "order by o.name asc";
+				+ "union "
+				+ "select o.id,"
+				+ "o.name as oname "
+				+ "from organisation o,"
+				+ "users u "
+				+ "where u.o_id = o.id "
+				+ "and u.id = ? "
+				+ "order by oname asc";
 		PreparedStatement pstmtOrgs = null;
 		
 		String sqlGetSavedUser = "select settings "
@@ -211,7 +218,7 @@ public class UserList extends Application {
 					// Current user in the same organisation as the administrator
 					user = new User();
 				
-					user.id = rs.getInt("id");
+					user.id = uId;
 					user.ident = rs.getString("ident");
 					user.name = rs.getString("name");
 					user.email = rs.getString("email");
@@ -257,15 +264,17 @@ public class UserList extends Application {
 				} 
 				
 				// Always get Organisation list from the current settings
-				if(isOrgUser) {
+				if(isOrgUser && user != null) {
 					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
-					pstmtOrgs.setInt(1, user.id);
+					pstmtOrgs.setInt(1, uId);
+					pstmtOrgs.setInt(2, uId);
+					log.info("Getting organisations belonged to::::::::::::::::: " + pstmtOrgs.toString());
 					rsOrgs = pstmtOrgs.executeQuery();
 					user.orgs = new ArrayList<Organisation> ();
 					while(rsOrgs.next()) {
 						Organisation o = new Organisation();
 						o.id = rsOrgs.getInt("id");
-						o.name = rsOrgs.getString("name");
+						o.name = rsOrgs.getString("oname");
 						user.orgs.add(o);
 					}
 					if(user.orgs.size() == 0) {
