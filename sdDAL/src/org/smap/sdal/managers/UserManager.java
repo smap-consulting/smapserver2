@@ -11,11 +11,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.constants.SmapUserGroups;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
@@ -934,7 +934,7 @@ public class UserManager {
 						if(isSecurityAdmin) {
 							// Set org admin group value from current
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == SmapUserGroups.ORG_ADMIN || ug.id == SmapUserGroups.OWNER || ug.id == SmapUserGroups.ENTERPRISE) {
+								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
 									u.groups.add(ug);
 									break;
 								}
@@ -942,7 +942,8 @@ public class UserManager {
 						} else {
 							// Administrator
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == SmapUserGroups.ORG_ADMIN || ug.id == SmapUserGroups.SECURITY || ug.id == SmapUserGroups.OWNER || ug.id == SmapUserGroups.ENTERPRISE) {
+								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.SECURITY_ID || 
+										ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
 									u.groups.add(ug);
 									break;
 								}

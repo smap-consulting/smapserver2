@@ -38,6 +38,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
 import utilities.XLSUtilities;
@@ -95,6 +96,7 @@ public class ExportSurvey extends Application {
 		ArrayList<RecordDesc> records = null;
 		ArrayList<FormDesc> children = null;
 		ArrayList<TableColumn> columnList = null;
+		ArrayList<SqlParam> params = new ArrayList<SqlParam>();
 
 		@SuppressWarnings("unused")
 		public void debugForm() {
@@ -197,13 +199,7 @@ public class ExportSurvey extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
-		if(tz == null) {
-			tz = "UTC";
-		} else {
-			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
-				throw new ApplicationException("Invalid Timezone");
-			}
-		}
+		tz = (tz == null) ? "UTC" : tz;
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS");
 
@@ -515,8 +511,9 @@ public class ExportSurvey extends Application {
 								if(c.isGeometry()) {
 									selName = "ST_AsTEXT(" + name + ") ";
 									geomType = c.type;
-								} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
-									selName = "timezone('UTC', " + name + ") as " + name;	
+								} else if(qType.equals("dateTime")) {
+									selName = "timezone(?, " + name + ") as " + name;	
+									f.params.add(new SqlParam("string", tz));
 								} else {
 
 									if(isAttachment) {
@@ -966,6 +963,9 @@ public class ExportSurvey extends Application {
 			pstmt = connectionResults.prepareStatement(sql.toString());
 			int paramCount = 1;
 
+			// Add any parameters in the select
+			GeneralUtilityMethods.addSqlParams(pstmt, paramCount, f.params);
+			
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
 				if(startDate != null) {

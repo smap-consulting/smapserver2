@@ -68,6 +68,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.sdal.model.TableColumn;
@@ -6973,6 +6974,16 @@ public class GeneralUtilityMethods {
             in = in.substring(1);
         }
 		return in;
+	}
+	
+	public static void addSqlParams(PreparedStatement pstmt, int idx, ArrayList<SqlParam> params) throws SQLException {
+		if(params != null && params.size() > 0) {
+			for(SqlParam p : params) {
+				if(p.type.equals("string")) {
+					pstmt.setString(idx++, p.vString);
+				} 
+			}
+		}
 	}
 
 }

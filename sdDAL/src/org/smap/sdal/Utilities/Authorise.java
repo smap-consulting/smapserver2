@@ -42,6 +42,8 @@ public class Authorise {
 	public static String MANAGE = "manage";
 	public static String SECURITY = "security";
 	public static String VIEW_DATA = "view data";
+	public static String ENTERPRISE = "enterprise admin";
+	public static String OWNER = "server owner";
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -50,6 +52,8 @@ public class Authorise {
 	public static int MANAGE_ID = 5;
 	public static int SECURITY_ID = 6;
 	public static int VIEW_DATA_ID = 7;
+	public static final int ENTERPRISE_ID = 8;
+	public static final int OWNER_ID = 9;
 	
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 
