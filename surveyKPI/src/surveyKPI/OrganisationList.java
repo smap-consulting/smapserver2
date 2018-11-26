@@ -45,7 +45,6 @@ import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
-import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.User;
 
@@ -283,6 +282,7 @@ public class OrganisationList extends Application {
 			OrganisationManager om = new OrganisationManager();
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
+				
 				if(o.timeZone != null && !o.timeZone.equals("UTC")) {
 					if(!GeneralUtilityMethods.isValidTimezone(sd, o.timeZone)) {
 						throw new ApplicationException("Invalid Timezone: " + o.timeZone);
@@ -305,6 +305,8 @@ public class OrganisationList extends Application {
 				} else {
 					// Existing organisation
 
+					a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
+					
 					om.updateOrganisation(
 							sd, 
 							o, 
@@ -568,6 +570,7 @@ public class OrganisationList extends Application {
 				
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
+				a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
 				
 				/*
 				 * Ensure that there are no undeleted projects with surveys in this organisation
@@ -664,6 +667,7 @@ public class OrganisationList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-setOrganisation");
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<User>>(){}.getType();		

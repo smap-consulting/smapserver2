@@ -1065,6 +1065,57 @@ public class Authorise {
 	}
 	
 	/*
+	 * Verify that the user is a member of the same enterpise as the organisation
+	 */
+	public boolean isOrganisationInEnterprise(Connection conn, String user, int oId) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		String sql = "select count(*) from users u, organisation o "
+				+ "where u.o_id = o.id "
+				+ "and u.ident = ? "
+				+ "and o.e_id = (select e_id from organisation where id = ?)";
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			log.info("IsOrganisationInEnterprise: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Security: Enterprise validation failed for: " + user + " organisation was: " + oId);
+ 			
+ 			SDDataSource.closeConnection("isOrganisationInEnterprise", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the user is entitled to access this task
 	 */
 	public boolean isValidTask(Connection conn, String user, int tId) {
