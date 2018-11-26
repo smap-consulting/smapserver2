@@ -589,7 +589,10 @@ public class OrganisationList extends Application {
 					int count = resultSet.getInt(1);
 					if(count > 0) {
 						log.info("Count of undeleted projects:" + count);
-						throw new Exception("Error: Organisation " + o.name + " has undeleted projects.");
+						log.info("Count of undeleted pganisations:" + count);
+						String msg = localisation.getString("msg_undel_orgs");
+						msg = msg.replace("%s1", o.name);
+						throw new Exception(msg);
 					}
 				} else {
 					throw new Exception("Error getting project count");

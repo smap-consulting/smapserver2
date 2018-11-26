@@ -213,7 +213,8 @@ public class EnterpriseList extends Application {
 	 */
 	@DELETE
 	@Consumes("application/json")
-	public Response delEnterprise(@Context HttpServletRequest request, @FormParam("organisations") String organisations) { 
+	public Response delEnterprise(@Context HttpServletRequest request, 
+			@FormParam("data") String data) { 
 
 		Response response = null;
 
@@ -222,8 +223,8 @@ public class EnterpriseList extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 
-		Type type = new TypeToken<ArrayList<Organisation>>(){}.getType();		
-		ArrayList<Organisation> oArray = new Gson().fromJson(organisations, type);
+		Type type = new TypeToken<ArrayList<Enterprise>>(){}.getType();		
+		ArrayList<Enterprise> enterprises = new Gson().fromJson(data, type);
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtDrop = null;
@@ -237,55 +238,39 @@ public class EnterpriseList extends Application {
 			ResultSet resultSet = null;
 			sd.setAutoCommit(false);
 
-			for(int i = 0; i < oArray.size(); i++) {
-				Organisation o = oArray.get(i);
-
+			for(Enterprise e : enterprises) {
+				
 				/*
-				 * Ensure that there are no undeleted projects with surveys in this organisation
+				 * Ensure that there are no undeleted organisations in this enterprise
 				 */
-				sql = "SELECT count(*) " +
-						" from project p, survey s " +  
-						" where p.id = s.p_id " +
-						" and p.o_id = ? " +
-						" and s.deleted = 'false';";
+				sql = "select count(*) "
+						+ "from organisation  " 
+						+ "where e_id = ? ";
 
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, o.id);
-				log.info("SQL check for projects in an organisation: " + pstmt.toString());
+				pstmt.setInt(1, e.id);
 				resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					int count = resultSet.getInt(1);
 					if(count > 0) {
-						log.info("Count of undeleted projects:" + count);
-						throw new Exception("Error: Organisation " + o.name + " has undeleted projects.");
+						log.info("Count of undeleted pganisations:" + count);
+						String msg = localisation.getString("msg_undel_ents");
+						msg = msg.replace("%s1", e.name);
+						throw new Exception(msg);
 					}
 				} else {
 					throw new Exception("Error getting project count");
 				}
 
-				sql = "DELETE FROM organisation o " +  
-						" WHERE o.id = ?; ";			
+				sql = "delete from enterprise e "
+						+ "where e.id = ?";			
 
-				if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+				if(pstmt != null) try{pstmt.close();}catch(Exception ex) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, o.id);
-				log.info("SQL: " + sql + ":" + o.id);
+				pstmt.setInt(1, e.id);
+				log.info("SQL: " + sql + ":" + e.id);
 				pstmt.executeUpdate();
 
-				// Delete the organisation shared resources - not necessary
-				CsvTableManager tm = new CsvTableManager(sd, localisation);
-				tm.delete(o.id, 0, null);		
-
-				// Delete the organisation folder
-				String basePath = GeneralUtilityMethods.getBasePath(request);
-				String fileFolder = basePath + "/media/organisation/" + o.id;
-				File folder = new File(fileFolder);
-				try {
-					log.info("Deleting organisation folder: " + fileFolder);
-					FileUtils.deleteDirectory(folder);
-				} catch (IOException e) {
-					log.info("Error deleting organisation folder:" + fileFolder + " : " + e.getMessage());
-				}	    
 			}
 
 			response = Response.ok().build();
@@ -302,11 +287,7 @@ public class EnterpriseList extends Application {
 			log.info(ex.getMessage());
 			response = Response.serverError().entity(ex.getMessage()).build();
 
-			try{
-				sd.rollback();
-			} catch(Exception e2) {
-
-			}
+			try{	sd.rollback();} catch(Exception e2) {}
 
 		} finally {
 
