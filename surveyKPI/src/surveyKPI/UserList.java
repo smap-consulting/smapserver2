@@ -113,15 +113,17 @@ public class UserList extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		String sql = "select id,"
-				+ "ident, "
-				+ "name, "
-				+ "email, "
-				+ "o_id "
-				+ "from users "
-				+ "where (users.o_id = ? or id in (select uo.u_id from user_organisation uo where uo.o_id = users.o_id)) "
-				+ "and not users.temporary "
-				+ "order by ident asc";
+		String sql = "select u.id as u_id,"
+				+ "u.ident as u_ident, "
+				+ "u.name as u_name, "
+				+ "u.email as u_email, "
+				+ "u.o_id as u_o_id, "
+				+ "o.name as o_name "
+				+ "from users u, organisation o "
+				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = u.o_id)) "
+				+ "and not u.temporary "
+				+ "and u.o_id = o.id "
+				+ "order by u.ident asc";
 		PreparedStatement pstmt = null;
 		
 		String sqlGroups = "select g.id,"
@@ -200,9 +202,9 @@ public class UserList extends Application {
 			log.info("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
-				int usersOrgId = rs.getInt("o_id");
+				int usersOrgId = rs.getInt("u_o_id");
 				User user = null;
-				int uId = rs.getInt("id");
+				int uId = rs.getInt("u_id");
 
 				if(usersOrgId != o_id) {
 					// User is not currently in this organisation
@@ -213,15 +215,17 @@ public class UserList extends Application {
 					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
 					if(rs2.next()) {
 						user = gson.fromJson(rs2.getString(1), User.class);
+						user.o_name = rs.getString("o_name");
 					}
 				} else {
 					// Current user in the same organisation as the administrator
 					user = new User();
 				
 					user.id = uId;
-					user.ident = rs.getString("ident");
-					user.name = rs.getString("name");
-					user.email = rs.getString("email");
+					user.ident = rs.getString("u_ident");
+					user.name = rs.getString("u_name");
+					user.email = rs.getString("u_email");
+					user.o_name = rs.getString("o_name");
 					user.o_id = usersOrgId;
 					
 					// Groups
@@ -553,7 +557,7 @@ public class UserList extends Application {
 						aUpdate.isOrganisationInEnterprise(sd, request.getRemoteUser(), u.newCurrentOrgId);
 						// Validate that the user to be moved in currently in the same organisation as the person doing the moving
 						aUpdate.isValidOrganisation(sd, u.ident, o_id);
-						um.switchUsersOrganisation(sd, u.newCurrentOrgId,	 u.ident);
+						um.switchUsersOrganisation(sd, u.newCurrentOrgId,	 u.ident, false);
 					
 					}
 					// Record the user change so that devices can be notified

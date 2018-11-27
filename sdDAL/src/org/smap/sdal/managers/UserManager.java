@@ -820,7 +820,7 @@ public class UserManager {
 	/*
 	 * Switch a user to a new organisation
 	 */
-	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent) throws Exception {
+	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent, boolean validateOrgAccess) throws Exception {
 
 		String sql = "select id, o_id from users where ident = ?";
 		PreparedStatement pstmt = null;
@@ -849,35 +849,38 @@ public class UserManager {
 					pstmtValidate.setInt(2, uId);
 					log.info("Validate user organisation switch: " + pstmtValidate.toString());
 					rs = pstmtValidate.executeQuery();
-					if(rs.next()) {
-						
-						String targetSettings = rs.getString(1);
-						User u = null;
-						
-						// 3. Save the user settings for the current org
-						User uCurrent = getByIdent(sd, userIdent);
-						updateSavedSettings(sd, uCurrent, uId, currentOrgId, true, true);		// Can pretend to be super user as just saving what is already specified
-						
-						// 4. Set the current settings to the settings for the new organisation 
-						// Use default values from the current organisation if the new settings are null
-						if(targetSettings != null) {
-							u = gson.fromJson(targetSettings, User.class);
-							u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
-						} else {
-							u = uCurrent;
-							// Clear settings from the current org that we do not want to add as the default to a new org
-							u.current_task_group_id = 0;
-							u.current_project_id = 0;
-							u.current_survey_id = 0;
-							u.roles = null;
-							u.projects = null;
-							u.o_id = newOrgId;
-						}
-						
-						updateUser(sd, u, currentOrgId, true, true, userIdent, null, null, true);
-					} else {
+					
+					String targetSettings = null;
+					if(rs.next()) {				
+						targetSettings = rs.getString(1);
+					} else if (validateOrgAccess) {
 						throw new ApplicationException(localisation.getString("u_org_nf"));
 					}
+						
+					User u = null;
+						
+					// 3. Save the user settings for the current org
+					User uCurrent = getByIdent(sd, userIdent);
+					updateSavedSettings(sd, uCurrent, uId, currentOrgId, true, true);		// Can pretend to be super user as just saving what is already specified
+						
+					// 4. Set the current settings to the settings for the new organisation 
+					// Use default values from the current organisation if the new settings are null
+					if(targetSettings != null) {
+						u = gson.fromJson(targetSettings, User.class);
+						u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
+					} else {
+						u = uCurrent;
+						// Clear settings from the current org that we do not want to add as the default to a new org
+						u.current_task_group_id = 0;
+						u.current_project_id = 0;
+						u.current_survey_id = 0;
+						u.roles = null;
+						u.projects = null;
+						u.o_id = newOrgId;
+					}
+					
+					updateUser(sd, u, currentOrgId, true, true, userIdent, null, null, true);
+					
 				} 
 			}			
 			

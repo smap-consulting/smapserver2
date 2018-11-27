@@ -241,7 +241,7 @@ public class UserSvc extends Application {
 				 */				
 				UserManager um = new UserManager(localisation);
 				try {
-					um.switchUsersOrganisation(sd, u.o_id,	request.getRemoteUser());
+					um.switchUsersOrganisation(sd, u.o_id,	request.getRemoteUser(), true);
 				} catch (Exception e) {
 					// log but otherwise ignore any errors
 					log.log(Level.SEVERE, e.getMessage(), e);
