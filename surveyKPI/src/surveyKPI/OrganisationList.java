@@ -655,7 +655,7 @@ public class OrganisationList extends Application {
 	}
 	
 	/*
-	 * Change the organisation a user belongs to
+	 * Change the organisation a user or project belongs to
 	 */
 	@POST
 	@Path("/setOrganisation")
@@ -701,48 +701,56 @@ public class OrganisationList extends Application {
 			pstmt3 = sd.prepareStatement(sql3);	
 			pstmt4 = sd.prepareStatement(sql4);	
 
-			// Move Users
-			for(int i = 0; i < uArray.size(); i++) {
-				pstmt.setInt(1, orgId);
-				pstmt.setInt(2, uArray.get(i).id);
-
-				log.info("Move User: " + pstmt.toString());
-				pstmt.executeUpdate();
-				
-				log.info("userevent: " + request.getRemoteUser() + " : move user : " + uArray.get(i).id + " to: " + orgId);
+			// Move Users = deprecate
+			if(uArray != null) {
+				for(int i = 0; i < uArray.size(); i++) {
+					pstmt.setInt(1, orgId);
+					pstmt.setInt(2, uArray.get(i).id);
+	
+					log.info("Move User: " + pstmt.toString());
+					pstmt.executeUpdate();
+					
+					log.info("userevent: " + request.getRemoteUser() + " : move user : " + uArray.get(i).id + " to: " + orgId);
+				}
 			}
 			
 			// Move Projects
-			for(int i = 0; i < pArray.size(); i++) {
-				pstmt3.setInt(1, orgId);
-				pstmt3.setInt(2, pArray.get(i).id);
-				
-				log.info("Move Project: " + pstmt3.toString());
-				pstmt3.executeUpdate();
-				
-				log.info("userevent: " + request.getRemoteUser() + " : move project : " + pArray.get(i).id + " to: " + orgId);
+			if(pArray != null) {
+				for(int i = 0; i < pArray.size(); i++) {
+					pstmt3.setInt(1, orgId);
+					pstmt3.setInt(2, pArray.get(i).id);
+					
+					log.info("Move Project: " + pstmt3.toString());
+					pstmt3.executeUpdate();
+					
+					log.info("userevent: " + request.getRemoteUser() + " : move project : " + pArray.get(i).id + " to: " + orgId);
+				}
 			}
 			
 			// Remove projects from users if they are in a different organisation
-			for(int i = 0; i < uArray.size(); i++) {
-				
-				if(!uArray.get(i).keepProjects) {	// Org admin users keep all of their projects
-				
-					pstmt2.setInt(1, uArray.get(i).id);
-					pstmt2.setInt(2, orgId);
-					log.info("Delete Links to projects: " + pstmt2.toString());
-					pstmt2.executeUpdate();
+			if(uArray != null) {
+				for(int i = 0; i < uArray.size(); i++) {
+					
+					if(!uArray.get(i).keepProjects) {	// Org admin users keep all of their projects
+					
+						pstmt2.setInt(1, uArray.get(i).id);
+						pstmt2.setInt(2, orgId);
+						log.info("Delete Links to projects: " + pstmt2.toString());
+						pstmt2.executeUpdate();
+					}
 				}
 			}
 			
 			// Move users from projects if they are in a different organisation
-			for(int i = 0; i < pArray.size(); i++) {
-				
-				pstmt4.setInt(1, pArray.get(i).id);
-				pstmt4.setInt(2, orgId);
-				log.info("Delete Links to users: " + pstmt4.toString());
-				pstmt4.executeUpdate();
-
+			if(pArray != null) {
+				for(int i = 0; i < pArray.size(); i++) {
+					
+					pstmt4.setInt(1, pArray.get(i).id);
+					pstmt4.setInt(2, orgId);
+					log.info("Delete Links to users: " + pstmt4.toString());
+					pstmt4.executeUpdate();
+	
+				}
 			}
 			
 			response = Response.ok().build();

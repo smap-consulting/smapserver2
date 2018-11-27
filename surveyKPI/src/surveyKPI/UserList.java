@@ -222,6 +222,7 @@ public class UserList extends Application {
 					user.ident = rs.getString("ident");
 					user.name = rs.getString("name");
 					user.email = rs.getString("email");
+					user.o_id = usersOrgId;
 					
 					// Groups
 					if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
@@ -268,7 +269,6 @@ public class UserList extends Application {
 					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
 					pstmtOrgs.setInt(1, uId);
 					pstmtOrgs.setInt(2, uId);
-					log.info("Getting organisations belonged to::::::::::::::::: " + pstmtOrgs.toString());
 					rsOrgs = pstmtOrgs.executeQuery();
 					user.orgs = new ArrayList<Organisation> ();
 					while(rsOrgs.next()) {
@@ -283,7 +283,7 @@ public class UserList extends Application {
 						 * This is only needed for users who were created before organisation linking was added
 						 */
 						Organisation o = new Organisation();
-						o.id = o_id;
+						o.id = usersOrgId;
 						user.orgs.add(o);
 					}
 				}
@@ -547,6 +547,15 @@ public class UserList extends Application {
 								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups));
 					}
 					
+					if(isOrgUser && u.newCurrentOrgId != 0) {
+						
+						// Validate the the organisational administrator has access to the target organisation
+						aUpdate.isOrganisationInEnterprise(sd, request.getRemoteUser(), u.newCurrentOrgId);
+						// Validate that the user to be moved in currently in the same organisation as the person doing the moving
+						aUpdate.isValidOrganisation(sd, u.ident, o_id);
+						um.switchUsersOrganisation(sd, u.newCurrentOrgId,	 u.ident);
+					
+					}
 					// Record the user change so that devices can be notified
 					MessagingManager mm = new MessagingManager();
 					mm.userChange(sd, u.ident);

@@ -1023,14 +1023,15 @@ public class Authorise {
 		int count = 0;
 		boolean sqlError = false;
 
-		String sql = "select count(*) from users u " +
-				" where u.o_id = ?" +
-				" and u.ident = ?;";
+		String sql = "select count(*) from users u "
+				+ "where (u.o_id = ? and u.ident = ?) "
+				+ "or u.id in (select u_id from user_organisation where o_id = ?)";
 		
 		try {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, user);
+			pstmt.setInt(3, oId);
 			log.info("IsValidOrganisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();

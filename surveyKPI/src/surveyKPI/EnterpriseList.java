@@ -253,7 +253,7 @@ public class EnterpriseList extends Application {
 				if(resultSet.next()) {
 					int count = resultSet.getInt(1);
 					if(count > 0) {
-						log.info("Count of undeleted pganisations:" + count);
+						log.info("Count of undeleted oganisations:" + count);
 						String msg = localisation.getString("msg_undel_ents");
 						msg = msg.replace("%s1", e.name);
 						throw new Exception(msg);
