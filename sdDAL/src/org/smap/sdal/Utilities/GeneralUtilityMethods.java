@@ -3181,7 +3181,7 @@ public class GeneralUtilityMethods {
 					// Get the choices, either all from an external file or all from an internal
 					// file but not both
 					pstmtSelectMultipleNotCompressed.setInt(1, qId);
-					pstmtSelectMultipleNotCompressed.setBoolean(2, external);
+					pstmtSelectMultipleNotCompressed.setBoolean(2, false);	// no external
 					log.info("Get choices for select multiple question: " + pstmtSelectMultipleNotCompressed.toString());
 					ResultSet rsMultiples = pstmtSelectMultipleNotCompressed.executeQuery();
 
@@ -3900,46 +3900,27 @@ public class GeneralUtilityMethods {
 	 * Check to see if there are any choices from an external file for a question
 	 */
 	public static boolean hasExternalChoices(Connection sd, int qId) throws SQLException {
-
-		boolean external = false;
-		String sqlLegacy = "select count(*) from option o, question q where o.l_id = q.l_id and q.q_id = ? and o.externalfile = 'true';";
-		PreparedStatement pstmtLegacy = null;
 		
+		boolean external = false;
 		PreparedStatement pstmt = null;
 		String sql = "select q.appearance from question q "
 				+ "where q.q_id = ? "
 				+ "and q.appearance like '%search(%'";
 
 		try {
-			// Deprecate need to check appearance
-			pstmtLegacy = sd.prepareStatement(sqlLegacy);
-			pstmtLegacy.setInt(1, qId);
-			ResultSet rs = pstmtLegacy.executeQuery();
-			if (rs.next()) {
-				if (rs.getInt(1) > 0) {
-					external = true;
-				}
-			}
-
-			if(external == false) {
-				// Try new check
-				pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 				
-				pstmt.setInt(1, qId);
-				rs = pstmt.executeQuery();
-				if (rs.next()) {			
-					external = true;
-				}
-			}
-
-			
+			pstmt.setInt(1, qId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {			
+				external = true;
+			}	
 
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtLegacy != null) {pstmtLegacy.close();}} catch (SQLException e) {}
 		}
 
 		return external;
