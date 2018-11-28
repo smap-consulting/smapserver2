@@ -2572,29 +2572,31 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the answer for a specific question and a specific instance
 	 */
-	public static ArrayList<String> getResponseForEmailQuestion(Connection sd, Connection results, int sId, int qId,
+	public static ArrayList<String> getResponseForEmailQuestion(Connection sd, Connection results, int sId, String qName,
 			String instanceId) throws SQLException {
 
 		PreparedStatement pstmtQuestion = null;
 		PreparedStatement pstmtOption = null;
 		PreparedStatement pstmtResults = null;
 
-		String sqlQuestion = "select qType, qName, f_id from question where q_id = ?";
+		String sqlQuestion = "select qType, q_id, f_id from question where qname = ? and f_id in "
+				+ "(select f_id from form where s_id = ?)";
 		String sqlOption = "select o.ovalue, o.column_name from option o, question q where q.q_id = ? and q.l_id = o.l_id";
 
 		String qType = null;
-		String qName = null;
 		int fId = 0;
+		int qId = 0;
 
 		ArrayList<String> responses = new ArrayList<String>();
 		try {
 			pstmtQuestion = sd.prepareStatement(sqlQuestion);
-			pstmtQuestion.setInt(1, qId);
+			pstmtQuestion.setString(1, qName);
+			pstmtQuestion.setInt(2, sId);
 			log.info("GetResponseForQuestion: " + pstmtQuestion.toString());
 			ResultSet rs = pstmtQuestion.executeQuery();
 			if (rs.next()) {
 				qType = rs.getString(1);
-				qName = rs.getString(2);
+				qId = rs.getInt(2);
 				fId = rs.getInt(3);
 
 				ArrayList<String> tableStack = getTableStack(sd, fId);
@@ -3931,7 +3933,9 @@ public class GeneralUtilityMethods {
 	 */
 	public static int getQuestionIdFromName(Connection sd, int sId, String name) throws SQLException {
 
-		String sql = "select q_id " + "from question q " + "where q.qname = ? "
+		String sql = "select q_id " 
+				+ "from question q " 
+				+ "where q.qname = ? "
 				+ "and q.f_id in (select f_id from form where s_id = ?)";
 
 		int qId = 0;
@@ -3951,6 +3955,35 @@ public class GeneralUtilityMethods {
 		}
 
 		return qId;
+	}
+	
+	/*
+	 * Convert a question id to a question name
+	 */
+	public static String getQuestionNameFromId(Connection sd, int sId, int id) throws SQLException {
+
+		String sql = "select q.qname " 
+				+ "from question q " 
+				+ "where q.q_id = ? "
+				+ "and q.f_id in (select f_id from form where s_id = ?)";
+
+		String qName = null;
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.setInt(2, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				qName = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return qName;
 	}
 
 	/*
@@ -4280,16 +4313,8 @@ public class GeneralUtilityMethods {
 				name = rs.getString(1);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+		}  finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return name;
@@ -4335,22 +4360,9 @@ public class GeneralUtilityMethods {
 				listId = rs.getInt(1);
 
 			}
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmtGetListId != null) {
-					pstmtGetListId.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmtListName != null) {
-					pstmtListName.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmtGetListId != null) {pstmtGetListId.close();}} catch (SQLException e) {}
+			try {if (pstmtListName != null) {pstmtListName.close();}} catch (SQLException e) {}
 		}
 
 		return listId;

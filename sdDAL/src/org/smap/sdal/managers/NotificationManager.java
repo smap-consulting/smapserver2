@@ -105,7 +105,7 @@ public class NotificationManager {
 			pstmt = sd.prepareStatement(sql);	
 	
 			resultSet = pstmt.executeQuery();
-			addToList(resultSet, forwards, true);
+			addToList(sd, resultSet, forwards, true);
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		}
@@ -270,7 +270,7 @@ public class NotificationManager {
 		log.info("Project Forwards: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(resultSet, notifications, false);
+		addToList(sd, resultSet, notifications, false);
 
 		return notifications;
 		
@@ -329,7 +329,7 @@ public class NotificationManager {
 		
 	}
 
-	private void addToList(ResultSet resultSet, ArrayList<Notification> notifications, boolean getPassword) throws SQLException {
+	private void addToList(Connection sd, ResultSet resultSet, ArrayList<Notification> notifications, boolean getPassword) throws SQLException {
 		
 		while (resultSet.next()) {								
 
@@ -346,6 +346,10 @@ public class NotificationManager {
 			n.s_name = resultSet.getString(9);
 			String notifyDetailsString = resultSet.getString(10);
 			n.notifyDetails = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+			// Temporary - set question name from question id if this is set
+			if(n.notifyDetails.emailQuestionName == null && n.notifyDetails.emailQuestion > 0) {
+				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
+			}
 			n.filter = resultSet.getString(11);
 			n.name = resultSet.getString(12);
 			if(getPassword) {
@@ -467,6 +471,7 @@ public class NotificationManager {
 							nd.content,
 							nd.attach,
 							nd.emailQuestion,
+							nd.emailQuestionName,
 							nd.emailMeta,
 							nd.emails,
 							target,
@@ -618,9 +623,9 @@ public class NotificationManager {
 				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 					ArrayList<String> emailList = null;
-					log.info("Email question: " + msg.emailQuestion);
-					if(msg.emailQuestion > 0) {
-						emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
+					log.info("Email question: " + msg.getEmailQuestionName(sd));
+					if(msg.emailQuestionSet()) {
+						emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
 					} else {
 						emailList = new ArrayList<String> ();
 					}
@@ -755,9 +760,9 @@ public class NotificationManager {
 				if(sms_url != null) {
 					ArrayList<String> smsList = null;
 					ArrayList<String> responseList = new ArrayList<> ();
-					log.info("SMS question: " + msg.emailQuestion);
-					if(msg.emailQuestion > 0) {
-						smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
+					log.info("SMS question: " + msg.getEmailQuestionName(sd));
+					if(msg.emailQuestionSet()) {
+						smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
 					} else {
 						smsList = new ArrayList<String> ();
 					}

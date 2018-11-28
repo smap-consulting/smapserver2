@@ -381,7 +381,7 @@ public class NotificationList extends Application {
 		// End Authorisation
 		
 		log.info("Update notification for survey: " + request.getRemoteUser() + " : "+ n.s_id + " Remote s_id: " + 
-				n.remote_s_ident + " Email Question: " + n.notifyDetails.emailQuestion );
+				n.remote_s_ident + " Email Question: " + n.notifyDetails.emailQuestionName );
 		
 		PreparedStatement pstmt = null;
 		
