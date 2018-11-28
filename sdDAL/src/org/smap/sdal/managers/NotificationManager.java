@@ -86,6 +86,7 @@ public class NotificationManager {
 				+ "s.display_name, "
 				+ "f.notify_details, "
 				+ "f.filter, "
+				+ "f.name, "
 				+ "f.remote_password "
 				+ "from forward f, survey s "
 				+ "where f.s_id = s.s_id "
@@ -104,7 +105,7 @@ public class NotificationManager {
 			pstmt = sd.prepareStatement(sql);	
 	
 			resultSet = pstmt.executeQuery();
-			addToList(resultSet, forwards, true);
+			addToList(sd, resultSet, forwards, true);
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		}
@@ -121,8 +122,8 @@ public class NotificationManager {
 					
 			String sql = "insert into forward(" +
 					" s_id, enabled, " +
-					" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, target, filter) " +
-					" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
+					" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, target, filter, name) " +
+					" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
 	
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			
@@ -140,6 +141,7 @@ public class NotificationManager {
 			pstmt.setString(8, notifyDetails);
 			pstmt.setString(9, n.target);
 			pstmt.setString(10, n.filter);
+			pstmt.setString(11, n.name);
 			pstmt.executeUpdate();
 	}
 	
@@ -161,6 +163,7 @@ public class NotificationManager {
 					" notify_details = ?, " +
 					" target = ?, " +
 					" filter = ?, " +
+					" name = ?, " +
 					" remote_password = ? " +
 					" where id = ?; ";
 		} else {
@@ -173,7 +176,8 @@ public class NotificationManager {
 					" remote_user = ?, " +
 					" notify_details = ?, " +
 					" target = ?, " +
-					" filter = ? " +
+					" filter = ?, " +
+					" name = ? " +
 					" where id = ?; ";
 		}
 			
@@ -192,14 +196,15 @@ public class NotificationManager {
 		pstmt.setString(7, notifyDetails);
 		pstmt.setString(8, n.target);
 		pstmt.setString(9, n.filter);
+		pstmt.setString(10, n.name);
 		if(n.update_password) {
-			pstmt.setString(10, n.remote_password);
-			pstmt.setInt(11, n.id);
+			pstmt.setString(11, n.remote_password);
+			pstmt.setInt(12, n.id);
 		} else {
-			pstmt.setInt(10, n.id);
+			pstmt.setInt(11, n.id);
 		}
 
-		log.info("SQL: " + pstmt.toString());
+		log.info("Update Forward: " + pstmt.toString());
 		pstmt.executeUpdate();
 	}
 	
@@ -246,7 +251,7 @@ public class NotificationManager {
 		ResultSet resultSet = null;
 		String sql = "select f.id, f.s_id, f.enabled, " +
 				" f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user," +
-				" f.target, s.display_name, f.notify_details, f.filter" +
+				" f.target, s.display_name, f.notify_details, f.filter, f.name " +
 				" from forward f, survey s, users u, user_project up, project p " +
 				" where u.id = up.u_id" +
 				" and p.id = up.p_id" +
@@ -254,7 +259,8 @@ public class NotificationManager {
 				" and s.s_id = f.s_id" +
 				" and u.ident = ? " +
 				" and s.p_id = ? " + 
-				" and s.deleted = 'false'";
+				" and s.deleted = 'false' "
+				+ "order by f.name, s.display_name asc";
 		
 		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		pstmt = sd.prepareStatement(sql);	 			
@@ -264,7 +270,7 @@ public class NotificationManager {
 		log.info("Project Forwards: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(resultSet, notifications, false);
+		addToList(sd, resultSet, notifications, false);
 
 		return notifications;
 		
@@ -323,7 +329,7 @@ public class NotificationManager {
 		
 	}
 
-	private void addToList(ResultSet resultSet, ArrayList<Notification> notifications, boolean getPassword) throws SQLException {
+	private void addToList(Connection sd, ResultSet resultSet, ArrayList<Notification> notifications, boolean getPassword) throws SQLException {
 		
 		while (resultSet.next()) {								
 
@@ -340,9 +346,14 @@ public class NotificationManager {
 			n.s_name = resultSet.getString(9);
 			String notifyDetailsString = resultSet.getString(10);
 			n.notifyDetails = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+			// Temporary - set question name from question id if this is set
+			if(n.notifyDetails.emailQuestionName == null && n.notifyDetails.emailQuestion > 0) {
+				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
+			}
 			n.filter = resultSet.getString(11);
+			n.name = resultSet.getString(12);
 			if(getPassword) {
-				n.remote_password = resultSet.getString(12);
+				n.remote_password = resultSet.getString(13);
 			}
 			
 			notifications.add(n);
@@ -460,6 +471,7 @@ public class NotificationManager {
 							nd.content,
 							nd.attach,
 							nd.emailQuestion,
+							nd.emailQuestionName,
 							nd.emailMeta,
 							nd.emails,
 							target,
@@ -611,9 +623,9 @@ public class NotificationManager {
 				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 					ArrayList<String> emailList = null;
-					log.info("Email question: " + msg.emailQuestion);
-					if(msg.emailQuestion > 0) {
-						emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
+					log.info("Email question: " + msg.getEmailQuestionName(sd));
+					if(msg.emailQuestionSet()) {
+						emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
 					} else {
 						emailList = new ArrayList<String> ();
 					}
@@ -748,9 +760,9 @@ public class NotificationManager {
 				if(sms_url != null) {
 					ArrayList<String> smsList = null;
 					ArrayList<String> responseList = new ArrayList<> ();
-					log.info("SMS question: " + msg.emailQuestion);
-					if(msg.emailQuestion > 0) {
-						smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.emailQuestion, msg.instanceId);
+					log.info("SMS question: " + msg.getEmailQuestionName(sd));
+					if(msg.emailQuestionSet()) {
+						smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
 					} else {
 						smsList = new ArrayList<String> ();
 					}

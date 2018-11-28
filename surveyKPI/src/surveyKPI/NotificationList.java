@@ -26,10 +26,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -133,7 +131,6 @@ public class NotificationList extends Application {
 	@GET
 	public Response getTypes(@Context HttpServletRequest request) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
 		// No Authorisation required
@@ -174,7 +171,6 @@ public class NotificationList extends Application {
 	public Response getRemoteSurveys(@Context HttpServletRequest request,
 			@FormParam("remote") String remoteString) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
 		Type type = new TypeToken<Remote>(){}.getType();
@@ -290,14 +286,13 @@ public class NotificationList extends Application {
 	public Response addNotification(@Context HttpServletRequest request,
 			@FormParam("notification") String notificationString) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
 		Type type = new TypeToken<Notification>(){}.getType();
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		Notification n = gson.fromJson(notificationString, type);
 		
-		System.out.println("Notification:========== " + notificationString);
+		log.info("Add Notification:========== " + notificationString);
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
@@ -368,7 +363,6 @@ public class NotificationList extends Application {
 	public Response updateNotification(@Context HttpServletRequest request,
 			@FormParam("notification") String notificationString) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
 		Type type = new TypeToken<Notification>(){}.getType();
@@ -386,8 +380,8 @@ public class NotificationList extends Application {
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), n.s_id, false, superUser);
 		// End Authorisation
 		
-		log.info("Update notification for survey: " + n.s_id + " Remote s_id: " + 
-				n.remote_s_ident + " Email Question: " + n.notifyDetails.emailQuestion );
+		log.info("Update notification for survey: " + request.getRemoteUser() + " : "+ n.s_id + " Remote s_id: " + 
+				n.remote_s_ident + " Email Question: " + n.notifyDetails.emailQuestionName );
 		
 		PreparedStatement pstmt = null;
 		
@@ -440,7 +434,6 @@ public class NotificationList extends Application {
 	public Response deleteForward(@Context HttpServletRequest request,
 			@PathParam("id") int id) { 
 		
-		ResponseBuilder builder = Response.ok();
 		Response response = null;
 		
 		// Authorisation - Access

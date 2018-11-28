@@ -57,7 +57,7 @@ public class QuestionManager {
 	/*
 	 * These functions are used when adding CSV files. 
 	 * They will add the choices from the CSV files to the survey definition
-	 */
+	 *
 	public ArrayList<Question> getByCSV(Connection sd, 
 			int sId,
 			String csvFileName			
@@ -130,7 +130,7 @@ public class QuestionManager {
 		return questions;
 
 	}
-
+	*/
 
 	/*
 	 * Save a new question

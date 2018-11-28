@@ -579,7 +579,7 @@ public class UserManager {
 								+ "realm = ?, "
 								+ "name = ?, " 
 								+ "email = ?, "
-								+ "o_id, "
+								+ "o_id = ?, "
 								+ "password = md5(?) "
 								+ "where "
 								+ "id = ?";

@@ -2,6 +2,7 @@ package org.smap.sdal.model;
 
 public class Notification {
 	public int id;
+	public String name;
 	public String target;
 	public int s_id;
 	public String filter;
