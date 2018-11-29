@@ -818,6 +818,32 @@ public class UserManager {
 	}
 
 	/*
+	 * Move a user from their current organisation to another one in the list
+	 */
+	public void moveFromCurrent(Connection sd, String userIdent, int currentOrgId, int uId) throws Exception {
+		
+		String sqlGetAvailableOrgs = "select o_id "
+				+ "from user_organisation uo "
+				+ "where u_id = ? "
+				+ "and o_id != ?";
+		PreparedStatement pstmtGetOrgs = null;
+		
+		try {
+			// 2. Get the organisation to switch to
+			pstmtGetOrgs = sd.prepareStatement(sqlGetAvailableOrgs);
+			pstmtGetOrgs.setInt(1, uId);
+			pstmtGetOrgs.setInt(2, currentOrgId);
+			ResultSet rs2 = pstmtGetOrgs.executeQuery();
+			if(rs2.next()) {
+				int newOrgId = rs2.getInt(1);
+				switchUsersOrganisation(sd, newOrgId, userIdent, true);
+			}
+		} finally {
+			try {if (pstmtGetOrgs != null) {pstmtGetOrgs.close();	}} catch (Exception e) {}
+		}
+	}
+	
+	/*
 	 * Switch a user to a new organisation
 	 */
 	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent, boolean validateOrgAccess) throws Exception {
