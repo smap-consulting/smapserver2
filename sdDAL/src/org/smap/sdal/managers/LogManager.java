@@ -60,6 +60,8 @@ public class LogManager {
 	public static String DELETE = "delete";
 	public static String ERASE = "erase";
 	public static String VIEW = "view";
+	public static String MOVE_ORGANISATION = "move organisation";
+	public static String MOVE_PROJECT = "move project";
 	
 	/*
 	 * Write a log entry that includes the survey id

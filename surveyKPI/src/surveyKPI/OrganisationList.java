@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
@@ -76,6 +77,8 @@ public class OrganisationList extends Application {
 
 	private static Logger log =
 			 Logger.getLogger(OrganisationList.class.getName());
+	
+	LogManager lm = new LogManager();		// Application log
 	
 	public OrganisationList() {
 		
@@ -666,9 +669,10 @@ public class OrganisationList extends Application {
 			@FormParam("projects") String projects) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-OrganisationList-setOrganisation";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-setOrganisation");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
 		// End Authorisation
@@ -775,7 +779,54 @@ public class OrganisationList extends Application {
 			try {if (pstmt3 != null) {pstmt3.close();}	} catch (SQLException e) {}
 			try {if (pstmt4 != null) {pstmt4.close();}	} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList-setOrganisation", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Change the enterprise and organisation belongs to
+	 */
+	@POST
+	@Path("/setEnterprise")
+	@Consumes("application/json")
+	public Response changeEnterprise(@Context HttpServletRequest request,
+			@FormParam("orgId") int orgId,
+			@FormParam("entId") int entId) throws SQLException { 
+		
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-setEnterprise";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		
+		PreparedStatement pstmt = null;
+	
+		try {	
+			
+			String sql = "update organisation set e_id =  ? " +  
+					" WHERE id = ?; ";			
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  entId);
+			pstmt.setInt(2, orgId);
+			pstmt.executeUpdate();
+			log.info("Move organisation: " + pstmt.toString());
+			
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.MOVE_ORGANISATION, "Organisation " + orgId + " moved to enterprise " + entId);
+			
+			response = Response.ok().build();
+				
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
