@@ -40,6 +40,7 @@ public class User {
 	public int current_survey_id;
 	public int current_task_group_id;
 	public int o_id;
+	public int e_id;
 	public String o_name;
 	public String organisation_name;
 	public String company_name;

@@ -339,11 +339,13 @@ public class SurveyManager {
 				+ "s.exclude_empty,"
 				+ "s.meta,"
 				+ "s.group_survey_id,"
-				+ "s.public_link "
-				+ "from survey s, users u, user_project up, project p "
+				+ "s.public_link, "
+				+ "o.e_id "
+				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
 				+ "and s.p_id = up.p_id "
+				+ "and u.o_id = o.id "
 				+ "and u.ident = ? "
 				+ "and s.s_id = ? ");
 
@@ -401,6 +403,7 @@ public class SurveyManager {
 				}
 				s.groupSurveyId = resultSet.getInt(24);
 				s.publicLink = resultSet.getString(25);
+				s.e_id = resultSet.getInt(26);
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
@@ -1194,9 +1197,15 @@ public class SurveyManager {
 				+ "s.managed_id,"
 				+ "s.ident,"
 				+ "s.version,"
-				+ "s.meta "
-				+ "from survey s "
-				+ "where s.ident = ?";
+				+ "s.meta,"
+				+ "p.o_id,"
+				+ "o.e_id "
+				+ "from survey s,"
+				+ "project p,"
+				+ "organisation o "
+				+ "where s.ident = ? "
+				+ "and s.p_id = p.id "
+				+ "and p.o_id = o.id";
 
 
 		PreparedStatement pstmt = null;
@@ -1227,6 +1236,9 @@ public class SurveyManager {
 				} else {
 					getLegacyMeta();
 				}
+				s.o_id = resultSet.getInt(13);
+				s.e_id = resultSet.getInt(14);
+				
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();

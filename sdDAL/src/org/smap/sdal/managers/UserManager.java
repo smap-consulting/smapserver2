@@ -102,11 +102,12 @@ public class UserManager {
 					+ "o.can_edit, "
 					+ "o.email_task, "
 					+ "o.ft_send_location, "
-					+ "o.billing_enabled "
-					+ " from users u, organisation o "
-					+ " where u.ident = ? "
-					+ " and u.o_id = o.id "
-					+ " order by u.ident;"; 
+					+ "o.billing_enabled,"
+					+ "o.e_id "
+					+ "from users u, organisation o "
+					+ "where u.ident = ? "
+					+ "and u.o_id = o.id "
+					+ "order by u.ident"; 
 
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
@@ -134,6 +135,7 @@ public class UserManager {
 				user.current_survey_id = resultSet.getInt("current_survey_id");
 				user.current_task_group_id = resultSet.getInt("current_task_group_id");
 				user.o_id = resultSet.getInt("o_id");
+				user.e_id = resultSet.getInt("e_id");
 				user.organisation_name = resultSet.getString("organisation_name");
 				user.company_name = resultSet.getString("company_name");
 				user.company_address = resultSet.getString("company_address");
