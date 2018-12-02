@@ -74,6 +74,9 @@ public class XLSUtilities {
 		
 		Font redFont = wb.createFont();
 		redFont.setColor(IndexedColors.RED.getIndex());
+		
+		Font blueFont = wb.createFont();
+		blueFont.setColor(IndexedColors.BLUE.getIndex());
 
 		/*
 		 * Create styles
@@ -99,6 +102,10 @@ public class XLSUtilities {
 		style = wb.createCellStyle();
 		style.setFont(redFont);
 		styles.put("errorStyle", style);
+		
+		style = wb.createCellStyle();
+		style.setFont(blueFont);
+		styles.put("good", style);
 		
 		style = wb.createCellStyle();
 		style.setWrapText(true);

@@ -37,27 +37,29 @@ import utilities.XLSXReportsManager;
 /*
  * Export a survey in XLSX format
  * This export follows the approach of CSV exports where a single sub form can be selected
+ * Get access to a form for each user
  */
-@Path("/adminreport/usage/{year}/{month}")
-public class AdminReports extends Application {
+@Path("/adminreport/usage")
+public class AdminReportUsage extends Application {
 
 	Authorise a = null;
 
 	private static Logger log =
-			Logger.getLogger(AdminReports.class.getName());
+			Logger.getLogger(AdminReportUsage.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 	
-	public AdminReports() {
+	public AdminReportUsage() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
 	}
 	
 	/*
-	 * Get an export with a user authenticated by the web server
+	 * Get usage for a specific month
 	 */
 	@GET
+	@Path("/{year}/{month}")
 	public Response exportSurveyXlsx (@Context HttpServletRequest request, 
 			@PathParam("year") int year,
 			@PathParam("month") int month,
@@ -69,7 +71,7 @@ public class AdminReports extends Application {
 		Response responseVal;
 		
 		// Authorisation - Access
-		String connectionString = "surveyKPI - AdminReports";
+		String connectionString = "surveyKPI - AdminReports - Usage";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
@@ -373,61 +375,4 @@ public class AdminReports extends Application {
 		return rows;
 	}
 
-	/*
-	private ArrayList<AR> getAdminReportSurvey(Connection sd, int oId, int month, int year) throws SQLException {
-		ArrayList<AR> rows = new ArrayList<AR> ();
-		String sql = "SELECT users.id as id,users.ident as ident, users.name as name, project.name as project_name, "
-				+ "survey.display_name as survey_name, users.created as created,"
-				+ "(select count (*) from upload_event ue, subscriber_event se "
-					+ "where ue.ue_id = se.ue_id "
-					+ "and se.status = 'success' "
-					+ "and se.subscriber = 'results_db' "
-					+ "and extract(month from upload_time) = ? "
-					+ "and extract(year from upload_time) = ? "
-					+ "and ue.user_name = users.ident "
-					+ "and ue.p_id = project.id "
-					+ "and ue.s_id = survey.s_id) as month, "
-				+ "(select count (*) from upload_event ue, subscriber_event se "
-					+ "where ue.ue_id = se.ue_id "
-					+ "and se.status = 'success' "
-					+ "and se.subscriber = 'results_db' "
-					+ "and ue.user_name = users.ident "
-					+ "and ue.p_id = project.id "
-					+ "and ue.s_id = survey.s_id) as all_time "
-				+ "from users, project, survey "
-				+ "where users.o_id = ? "
-				+ "and not users.temporary "
-				+ "and project.o_id = ? "
-				+ "and project.id = survey.p_id "
-				+ "order by users.ident, project.name, survey.display_name";
-			
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
-			pstmt.setInt(3, oId);
-			pstmt.setInt(4, oId);
-			log.info("Admin report by survey: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			
-			while(rs.next()) {
-				AR ar = new AR();
-				ar.userIdent = rs.getString("ident");
-				ar.userName = rs.getString("name");
-				ar.created = rs.getDate("created");
-				ar.project = rs.getString("project_name");
-				ar.survey = rs.getString("survey_name");
-				ar.usageInPeriod = rs.getInt("month");
-				ar.allTimeUsage = rs.getInt("all_time");
-				rows.add(ar);
-			}
-			
-		} finally {
-			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
-		}
-		return rows;
-	}
-	*/
 }
