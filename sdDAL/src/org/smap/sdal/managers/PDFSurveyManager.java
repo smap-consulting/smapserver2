@@ -335,7 +335,7 @@ public class PDFSurveyManager {
 
 				writer.setInitialLeading(12);	
 
-				writer.setPageEvent(new PdfPageSizer(survey.displayName, survey.pName, 
+				writer.setPageEvent(new PdfPageSizer(survey.displayName, survey.projectName, 
 						user, basePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2)); 
 				document.open();

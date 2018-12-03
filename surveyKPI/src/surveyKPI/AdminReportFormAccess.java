@@ -57,7 +57,7 @@ public class AdminReportFormAccess extends Application {
 	}
 	
 	/*
-	 * Get usage for a specific month
+	 * Get report on ability of users to access a form
 	 */
 	@GET
 	@Path("/{formIdent}")

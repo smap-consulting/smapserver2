@@ -375,7 +375,7 @@ public class SurveyManager {
 				s.setDisplayName(resultSet.getString(4));
 				s.setDeleted(resultSet.getBoolean(5));
 				s.blocked = resultSet.getBoolean(6);
-				s.setPName(resultSet.getString(7));
+				s.setProjectName(resultSet.getString(7));
 				s.setPId(resultSet.getInt(8));
 				s.def_lang = resultSet.getString(9);
 				s.task_file = resultSet.getBoolean(10);

@@ -41,7 +41,8 @@ public class User {
 	public int current_task_group_id;
 	public int o_id;
 	public int e_id;
-	public String o_name;
+	public String current_org_name;
+	public int current_org_id;
 	public String organisation_name;
 	public String company_name;
 	public String company_address;

@@ -39,8 +39,11 @@ import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AR;
+import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.User;
 
 
 /*
@@ -54,6 +57,9 @@ public class XLSXAdminReportsManagerFormAccess {
 	
 	LogManager lm = new LogManager();		// Application log
 	ResourceBundle localisation = null;
+	
+	CellStyle good = null;
+	CellStyle bad = null;
 	
 	public XLSXAdminReportsManagerFormAccess(ResourceBundle l) {
 		localisation = l;
@@ -84,10 +90,11 @@ public class XLSXAdminReportsManagerFormAccess {
 		escapedFileName = escapedFileName.replace("%2C", ","); // Commas ok for file name within quotes
 
 		Workbook wb = null;
-		int rowNumber = 0;
-		Sheet overviewSheet = null;
 		Sheet dataSheet = null;
 		CellStyle errorStyle = null;
+		int rowNumber = 0;
+		int colNumber = 0;
+		int hasAccessCol = 0;
 
 		try {
 				
@@ -96,18 +103,17 @@ public class XLSXAdminReportsManagerFormAccess {
 			 */
 			GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 			wb = new SXSSFWorkbook(10);		// Serialised output
-			overviewSheet = wb.createSheet("overview");
 			dataSheet = wb.createSheet("data");
 			
 			Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 			CellStyle headerStyle = styles.get("header");
 			errorStyle = styles.get("errorStyle");
+			good = styles.get("good");
+			bad = styles.get("bad");
 			
 			/*
 			 * Write the overview data
 			 */
-			rowNumber = 0;
-
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			int sId = GeneralUtilityMethods.getSurveyId(sd, formIdent);
 			Survey survey = sm.getById(
@@ -130,39 +136,100 @@ public class XLSXAdminReportsManagerFormAccess {
 					null			// geom format
 					);
 			/*
-			 * Write the headers
+			 * Write the overview sheet
 			 */	
-			Row row = overviewSheet.createRow(rowNumber++);		
+			Row row = dataSheet.createRow(rowNumber++);		
 			
 			Cell cell = row.createCell(0);	// Ident
 			cell.setCellValue(localisation.getString("rep_form_ident"));
 			cell = row.createCell(1);	
-			cell.setCellStyle(styles.get("good"));
 			cell.setCellValue(formIdent);
 			
-			row = overviewSheet.createRow(rowNumber++);		
+			row = dataSheet.createRow(rowNumber++);		
 			cell = row.createCell(0);	// Found
 			cell.setCellValue(localisation.getString("rep_found"));
 			cell = row.createCell(1);	
 			if(survey != null) {
-				cell.setCellStyle(styles.get("good"));
+				cell.setCellStyle(good);
 				cell.setCellValue(localisation.getString("rep_yes"));
 			} else {
-				cell.setCellStyle(errorStyle);
+				cell.setCellStyle(bad);
 				cell.setCellValue(localisation.getString("rep_no"));
 			}
 			
 			if(survey != null) {
-				row = overviewSheet.createRow(rowNumber++);		
+				row = dataSheet.createRow(rowNumber++);		
 				cell = row.createCell(0);	// Survey Name
 				cell.setCellValue(localisation.getString("name"));
 				cell = row.createCell(1);	
-				cell.setCellStyle(styles.get("good"));
 				cell.setCellValue(survey.displayName);
+				
+				row = dataSheet.createRow(rowNumber++);		
+				cell = row.createCell(0);	// Project Name
+				cell.setCellValue(localisation.getString("ar_project"));
+				cell = row.createCell(1);	
+				cell.setCellValue(survey.projectName);
 			}
 
+			rowNumber++;
+			
+			/*
+			 * Add the headings 
+			 */
+			colNumber = 0;
+			row = dataSheet.createRow(rowNumber++);	
+			
+			cell = row.createCell(colNumber++);	// User Ident
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("ar_ident"));
+			
+			cell = row.createCell(colNumber++);	// User Name
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("ar_user_name"));
+			
+			cell = row.createCell(colNumber++);	// Has Access
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_has_access"));
+			
+			cell = row.createCell(colNumber++);	// In Organisation
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_current_org"));
+			
+			cell = row.createCell(colNumber++);	// Has Project
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_has_project"));
+			
+			/*
+			 * Process the users
+			 */
+			UserManager um = new UserManager(localisation);
+			ArrayList<User> users = um.getUserList(sd, oId, true, true);	
+			for(User u : users) {
+				colNumber = 0;
+				row = dataSheet.createRow(rowNumber++);	
 				
-		
+				cell = row.createCell(colNumber++);	// User Ident
+				cell.setCellValue(u.ident);
+				
+				cell = row.createCell(colNumber++);	// User Name
+				cell.setCellValue(u.name);
+				
+				hasAccessCol = colNumber++;			// Come back to the overall yes/no has access
+				
+				cell = row.createCell(colNumber++);	// Cur	
+				if(u.current_org_id == survey.o_id ? setCellGood(cell) : setCellBad(cell));
+				
+				cell = row.createCell(colNumber++);	// Has Project
+				boolean hasProject = false;
+				for(Project p : u.projects) {
+					if(p.id == survey.p_id) {
+						hasProject = true;
+						break;
+					}
+				}				
+				if(hasProject ? setCellGood(cell) : setCellBad(cell));
+				
+			}
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -194,4 +261,15 @@ public class XLSXAdminReportsManagerFormAccess {
 		return responseVal;
 	}
 
+	private boolean setCellGood(Cell cell) {
+		cell.setCellStyle(good);
+		cell.setCellValue(localisation.getString("rep_yes"));
+		return true;
+	}
+	
+	private boolean setCellBad(Cell cell) {
+		cell.setCellStyle(bad);
+		cell.setCellValue(localisation.getString("rep_no"));
+		return false;
+	}
 }

@@ -33,7 +33,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -114,208 +113,20 @@ public class UserList extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		String sql = "select u.id as u_id,"
-				+ "u.ident as u_ident, "
-				+ "u.name as u_name, "
-				+ "u.email as u_email, "
-				+ "u.o_id as u_o_id, "
-				+ "o.name as o_name "
-				+ "from users u, organisation o "
-				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
-				+ "and not u.temporary "
-				+ "and u.o_id = o.id "
-				+ "order by u.ident asc";
-		PreparedStatement pstmt = null;
-		
-		String sqlGroups = "select g.id,"
-				+ "g.name "
-				+ "from groups g,"
-				+ "user_group ug "
-				+ "where ug.u_id = ? "
-				+ "and ug.g_id = g.id "
-				+ "order by g.id asc";
-		PreparedStatement pstmtGroups = null;
-		
-		String sqlProjects = "select p.id,"
-				+ "p.name "
-				+ "from project p,"
-				+ "user_project up "
-				+ "where up.u_id = ? "
-				+ "and up.p_id = p.id "
-				+ "order by p.name asc";
-		PreparedStatement pstmtProjects = null;
-		
-		String sqlRoles = "select r.id,"
-				+ "r.name "
-				+ "from role r,"
-				+ "user_role ur "
-				+ "where ur.u_id = ? "
-				+ "and ur.r_id = r.id "
-				+ "order by r.name asc";
-		PreparedStatement pstmtRoles = null;
-		
-		String sqlOrgs = "select o.id,"
-				+ "o.name as oname "
-				+ "from organisation o,"
-				+ "user_organisation uo "
-				+ "where uo.u_id = ? "
-				+ "and uo.o_id = o.id "
-				+ "union "
-				+ "select o.id,"
-				+ "o.name as oname "
-				+ "from organisation o,"
-				+ "users u "
-				+ "where u.o_id = o.id "
-				+ "and u.id = ? "
-				+ "order by oname asc";
-		PreparedStatement pstmtOrgs = null;
-		
-		String sqlGetSavedUser = "select settings "
-				+ "from user_organisation uo "
-				+ "where o_id = ? "
-				+ "and u_id = ?";
-		PreparedStatement pstmtGetSavedUser = null;
-		
-		ArrayList<User> users = new ArrayList<User> ();
+		ArrayList<User> users = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 			
-			pstmt = sd.prepareStatement(sql);
-			ResultSet rs = null;
-
-			pstmtGroups = sd.prepareStatement(sqlGroups);
-			ResultSet rsGroups = null;
-			
-			pstmtProjects = sd.prepareStatement(sqlProjects);
-			ResultSet rsProjects = null;
-			
-			pstmtRoles = sd.prepareStatement(sqlRoles);
-			ResultSet rsRoles = null;
-			
-			pstmtOrgs = sd.prepareStatement(sqlOrgs);
-			ResultSet rsOrgs = null;
-			
-			pstmt.setInt(1, o_id);
-			pstmt.setInt(2, o_id);
-			log.info("Get user list: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-			while(rs.next()) {
-				int usersOrgId = rs.getInt("u_o_id");
-				String current_organisation_name = rs.getString("o_name");
-				User user = null;
-				int uId = rs.getInt("u_id");
-
-				boolean userFound = false;
-				if(usersOrgId != o_id) {
-					// User is not currently in this organisation
-					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
-					pstmtGetSavedUser.setInt(1, o_id);
-					pstmtGetSavedUser.setInt(2, uId);
-					log.info("Get saved user details: " + pstmtGetSavedUser.toString());
-					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
-					if(rs2.next()) {
-						user = gson.fromJson(rs2.getString(1), User.class);
-						if(user != null) {
-							userFound = true;
-							user.o_name = current_organisation_name;
-						}
-					}
-				}
-				/*
-				 * Get the current user.
-				 * If there was no archived user and the user is not in the current organisation then populate default
-				 * settings
-				 */
-				if(!userFound) {
-					// Current user in the same organisation as the administrator
-					user = new User();
-				
-					user.id = uId;
-					user.ident = rs.getString("u_ident");
-					user.name = rs.getString("u_name");
-					user.email = rs.getString("u_email");
-					if(usersOrgId == o_id) {
-						user.o_name = rs.getString("o_name");
-					} else {
-						user.o_name = current_organisation_name;
-					}
-					user.o_id = usersOrgId;
-					
-					// Groups
-					if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
-					pstmtGroups.setInt(1, user.id);
-					rsGroups = pstmtGroups.executeQuery();
-					user.groups = new ArrayList<UserGroup> ();
-					while(rsGroups.next()) {
-						UserGroup ug = new UserGroup();
-						ug.id = rsGroups.getInt("id");
-						ug.name = rsGroups.getString("name");
-						user.groups.add(ug);
-					}
-					
-					// Projects
-					if(usersOrgId == o_id) {
-						if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
-						pstmtProjects.setInt(1, user.id);
-						rsProjects = pstmtProjects.executeQuery();
-						user.projects = new ArrayList<Project> ();
-						while(rsProjects.next()) {
-							Project p = new Project();
-							p.id = rsProjects.getInt("id");
-							p.name = rsProjects.getString("name");
-							user.projects.add(p);
-						}
-						
-						// Roles
-						if(isOrgUser || isSecurityManager) {
-							if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
-							pstmtRoles.setInt(1, user.id);
-							rsRoles = pstmtRoles.executeQuery();
-							user.roles = new ArrayList<Role> ();
-							while(rsRoles.next()) {
-								Role r = new Role();
-								r.id = rsRoles.getInt("id");
-								r.name = rsRoles.getString("name");
-								user.roles.add(r);
-							}
-						}
-					}
-					
-				} 
-				
-				// Always get Organisation list from the current settings
-				if(isOrgUser && user != null) {
-					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
-					pstmtOrgs.setInt(1, uId);
-					pstmtOrgs.setInt(2, uId);
-					rsOrgs = pstmtOrgs.executeQuery();
-					user.orgs = new ArrayList<Organisation> ();
-					while(rsOrgs.next()) {
-						Organisation o = new Organisation();
-						o.id = rsOrgs.getInt("id");
-						o.name = rsOrgs.getString("oname");
-						user.orgs.add(o);
-					}
-					if(user.orgs.size() == 0) {
-						/*
-						 * Add a default organisation equal to the users current organisation
-						 * This is only needed for users who were created before organisation linking was added
-						 */
-						Organisation o = new Organisation();
-						o.id = usersOrgId;
-						user.orgs.add(o);
-					}
-				}
-				
-				if(user != null) {
-					users.add(user);
-				}
-			}
-			
+			UserManager um = new UserManager(localisation);
+			users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -326,12 +137,7 @@ public class UserList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		    
 		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
-			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (Exception e) {	}
-			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (Exception e) {	}
-			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (Exception e) {	}
-			try {if (pstmtOrgs != null) {pstmtOrgs.close();	}} catch (Exception e) {}
-			try {if (pstmtGetSavedUser != null) {pstmtGetSavedUser.close();	}} catch (Exception e) {}
+			
 			SDDataSource.closeConnection(requestName, sd);
 		}
 
@@ -570,15 +376,6 @@ public class UserList extends Application {
 								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups));
 					}
 					
-					if(isOrgUser && u.newCurrentOrgId != 0) {
-						
-						// Validate the the organisational administrator has access to the target organisation
-						aUpdate.isOrganisationInEnterprise(sd, request.getRemoteUser(), u.newCurrentOrgId);
-						// Validate that the user to be moved in currently in the same organisation as the person doing the moving
-						aUpdate.isValidOrganisation(sd, u.ident, o_id);
-						um.switchUsersOrganisation(sd, u.newCurrentOrgId,	 u.ident, false);	// It is not necessary to validate that the user being switched has access to the new organisation - the administrator is requesting this
-					
-					}
 					// Record the user change so that devices can be notified
 					MessagingManager mm = new MessagingManager();
 					mm.userChange(sd, u.ident);
@@ -626,17 +423,15 @@ public class UserList extends Application {
 		Response response = null;
 		String requestName = "surveyKPI - delUser";
 
-		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
-		ArrayList<User> uArray = new Gson().fromJson(users, type);		
-		User u = uArray.get(0);
-		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
-		aUpdate.isValidUser(sd, request.getRemoteUser(), u.id);		// Check that the user is in the organisation of the deleting user
 		// End Authorisation
 		
-		//PreparedStatement pstmt = null;
+		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
+		ArrayList<User> uArray = new Gson().fromJson(users, type);
+		
+		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 		PreparedStatement pstmtGetIdent = null;
 		PreparedStatement pstmtCountOrgs = null;
@@ -644,13 +439,18 @@ public class UserList extends Application {
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {	
-			
-			int o_id;		// Organisation of the user doing the deleting
+			int o_id;
 			ResultSet resultSet = null;
 			
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			// Get the organisation of the person calling this service
+			String sql = "SELECT u.o_id " +
+					" FROM users u " +  
+					" WHERE u.ident = ?;";										
+			pstmt = sd.prepareStatement(sql);
 			
 			// Get the ident of the person to be deleted
 			String sqlGetIdent = "select u.ident "
@@ -675,77 +475,71 @@ public class UserList extends Application {
 					+ "and o_id = ?";					
 			pstmtSoftDelete = sd.prepareStatement(sqlSoftDelete);	
 			
-			o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			
+			// Get the organisation id
+			pstmt.setString(1, request.getRemoteUser());
+			log.info("Get user organisation and id: " + pstmt.toString());			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				o_id = resultSet.getInt(1);
 				
-			/*
-			 * Check that the user is allowed to do what they have asked to do
-			 */
-			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean userToDeleteIsOrgUser = GeneralUtilityMethods.isOrgUserById(sd, u.id, o_id);
-			
-			if(!isOrgUser && u.all) {
-				throw new ApplicationException(localisation.getString("u_del_all"));
-			} else if(!isOrgUser && userToDeleteIsOrgUser) {
-				throw new ApplicationException(localisation.getString("u_del_org"));
-			}
-			
-			String ident = null;
-				
-			// Get the user ident to use in deleting dependent records
-			pstmtGetIdent.setInt(1, u.id);
-			pstmtGetIdent.setInt(2,o_id);
-			ResultSet rs = pstmtGetIdent.executeQuery();
-			if(rs.next()) {
-				ident = rs.getString(1);
-			}
-			
-			// Get the number of organisations that this user is a member of
-			int numberOrgs = 0;
-			pstmtCountOrgs.setInt(1, u.id);
-			rs = pstmtCountOrgs.executeQuery();
-			if(rs.next()) {
-				numberOrgs = rs.getInt(1);
-			}
-			
-			if(numberOrgs <= 1 || u.all) {
-				// Only one organisation or we are deleting from all the organisations
-				pstmtUpdate.setInt(1, u.id);
-				pstmtUpdate.setInt(2, o_id);
-				log.info("Delete user: " + pstmtUpdate.toString());
-				
-				int count = pstmtUpdate.executeUpdate();
-				
-				if(count > 0) {	
-					// If a user was deleted then delete their directories
-					GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
+				for(int i = 0; i < uArray.size(); i++) {
+					User u = uArray.get(i);
+					String ident = null;
 					
-					// Delete any csv table definitions that they have
-					SurveyTableManager stm = new SurveyTableManager(sd, localisation);
-					stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
+					// Get the user ident to use in deleting dependent records
+					pstmtGetIdent.setInt(1, u.id);
+					pstmtGetIdent.setInt(2,o_id);
+					ResultSet rs = pstmtGetIdent.executeQuery();
+					if(rs.next()) {
+						ident = rs.getString(1);
+					}
 					
-					lm.writeLogOrganisation(sd, 
-							o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was completely deleted " + o_id);
-				}	
-			} else {
-				// If the user is currently logged on to the organisation from which they are being deleted then switch to another organisation
-				int currentOrgId = GeneralUtilityMethods.getOrganisationId(sd, ident, 0);
-				if(currentOrgId == o_id) {
-					UserManager um = new UserManager(localisation);
-					um.moveFromCurrent(sd, ident, currentOrgId, u.id);
+					// Get the number of organisations that this user is a member of
+					int numberOrgs = 0;
+					pstmtCountOrgs.setInt(1, u.id);
+					rs = pstmtCountOrgs.executeQuery();
+					if(rs.next()) {
+						numberOrgs = rs.getInt(1);
+					}
+					
+					if(numberOrgs <= 1) {
+						// Only one organisation so performa a Hard delete
+						pstmtUpdate.setInt(1, u.id);
+						pstmtUpdate.setInt(2, o_id);
+						log.info("Delete user: " + pstmtUpdate.toString());
+						
+						int count = pstmtUpdate.executeUpdate();
+						
+						if(count > 0) {	
+							// If a user was deleted then delete their directories
+							GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
+							
+							// Delete any csv table definitions that they have
+							SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+							stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
+							
+							lm.writeLogOrganisation(sd, 
+									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was completely deleted " + o_id);
+						}	
+					} else {
+						// soft delete
+						pstmtSoftDelete.setInt(1, u.id);
+						pstmtSoftDelete.setInt(2, o_id);
+						log.info("Soft Delete user: " + pstmtSoftDelete.toString());
+						
+						 pstmtSoftDelete.executeUpdate();
+						 
+						lm.writeLogOrganisation(sd, 
+									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was soft deleted from organisation " + o_id);
+					}
+
 				}
-				// soft delete the archive
-				pstmtSoftDelete.setInt(1, u.id);
-				pstmtSoftDelete.setInt(2, o_id);
-				log.info("Soft Delete user: " + pstmtSoftDelete.toString());
-				
-				 pstmtSoftDelete.executeUpdate();
-				 
-				lm.writeLogOrganisation(sd, 
-							o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was soft deleted from organisation " + o_id);
+		
+				response = Response.ok().build();
+			} else {
+				log.log(Level.SEVERE,"Error: No organisation");
+			    response = Response.serverError().build();
 			}
-	
-			response = Response.ok().build();
 				
 		} catch (SQLException e) {
 			String state = e.getSQLState();
@@ -759,6 +553,7 @@ public class UserList extends Application {
 			
 		} finally {
 			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
 			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
 			try {if (pstmtCountOrgs != null) {pstmtCountOrgs.close();}} catch (SQLException e) {}
