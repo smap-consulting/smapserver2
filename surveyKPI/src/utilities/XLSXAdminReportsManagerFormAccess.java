@@ -102,6 +102,8 @@ public class XLSXAdminReportsManagerFormAccess {
 			Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 			CellStyle headerStyle = styles.get("header");
 			errorStyle = styles.get("errorStyle");
+			CellStyle good = styles.get("good");
+			CellStyle bad = styles.get("bad");
 			
 			/*
 			 * Write the overview data
@@ -130,14 +132,13 @@ public class XLSXAdminReportsManagerFormAccess {
 					null			// geom format
 					);
 			/*
-			 * Write the headers
+			 * Write the overview sheet
 			 */	
 			Row row = overviewSheet.createRow(rowNumber++);		
 			
 			Cell cell = row.createCell(0);	// Ident
 			cell.setCellValue(localisation.getString("rep_form_ident"));
 			cell = row.createCell(1);	
-			cell.setCellStyle(styles.get("good"));
 			cell.setCellValue(formIdent);
 			
 			row = overviewSheet.createRow(rowNumber++);		
@@ -145,10 +146,10 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellValue(localisation.getString("rep_found"));
 			cell = row.createCell(1);	
 			if(survey != null) {
-				cell.setCellStyle(styles.get("good"));
+				cell.setCellStyle(good);
 				cell.setCellValue(localisation.getString("rep_yes"));
 			} else {
-				cell.setCellStyle(errorStyle);
+				cell.setCellStyle(bad);
 				cell.setCellValue(localisation.getString("rep_no"));
 			}
 			
@@ -157,8 +158,13 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(0);	// Survey Name
 				cell.setCellValue(localisation.getString("name"));
 				cell = row.createCell(1);	
-				cell.setCellStyle(styles.get("good"));
 				cell.setCellValue(survey.displayName);
+				
+				row = overviewSheet.createRow(rowNumber++);		
+				cell = row.createCell(0);	// Project Name
+				cell.setCellValue(localisation.getString("ar_project"));
+				cell = row.createCell(1);	
+				cell.setCellValue(survey.projectName);
 			}
 
 				

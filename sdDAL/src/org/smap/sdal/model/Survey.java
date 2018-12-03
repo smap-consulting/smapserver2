@@ -31,7 +31,6 @@ public class Survey {
 	public int id;
 	public int o_id;
 	public int p_id;
-	public String pName;
 	public String ident;
 	public String displayName;
 	public String instanceNameDefn;
@@ -75,7 +74,7 @@ public class Survey {
 	// Getters
 	public int getId() {return id;}; 
 	public int getPId() {return p_id;};
-	public String getPName() {return pName;}; 
+	public String getProjectName() {return projectName;}; 
 	public String getIdent() {return ident;};
 	public String getDisplayName() {return displayName;}; 
 	public boolean getDeleted() { return deleted;};
@@ -175,7 +174,6 @@ public class Survey {
 	// Setters
 	public void setId(int v) { id = v;};
 	public void setPId(int v) { p_id = v;};
-	public void setPName(String v) { pName = v;};
 	public void setIdent(String v) { ident = v;};
 	public void setDisplayName(String v) { displayName = v;};
 	public void setDeleted(boolean v) { deleted = v;};

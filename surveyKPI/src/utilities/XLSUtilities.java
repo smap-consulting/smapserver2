@@ -23,9 +23,11 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.ClientAnchor;
+import org.apache.poi.ss.usermodel.Color;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Drawing;
+import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
@@ -104,8 +106,14 @@ public class XLSUtilities {
 		styles.put("errorStyle", style);
 		
 		style = wb.createCellStyle();
-		style.setFont(blueFont);
+		style.setFillForegroundColor(HSSFColor.LIGHT_GREEN.index);
+		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
 		styles.put("good", style);
+		
+		style = wb.createCellStyle();
+		style.setFillForegroundColor(HSSFColor.ROSE.index);
+		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		styles.put("bad", style);
 		
 		style = wb.createCellStyle();
 		style.setWrapText(true);
