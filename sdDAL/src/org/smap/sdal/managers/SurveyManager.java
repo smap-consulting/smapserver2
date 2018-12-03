@@ -2527,13 +2527,13 @@ public class SurveyManager {
 		/*
 		 * Retrieve the results record from the database (excluding select questions)
 		 */
-		String sql = null;
+		StringBuffer sql = new StringBuffer("");
 		boolean isTopLevel = false;
 		if(parentKey == 0) {
-			sql = "select prikey, _user ";		// Get user if this is a top level form
+			sql.append("select prikey, _user ");		// Get user if this is a top level form
 			isTopLevel = true;
 		} else {
-			sql = "select prikey ";
+			sql.append("select prikey ");
 		}
 		ArrayList<Question> questions = form.questions;
 		PreparedStatement pstmt = null;
@@ -2586,7 +2586,7 @@ public class SurveyManager {
 								col = q.columnName;
 							}
 
-							sql += "," + col;
+							sql.append(",").append(col);
 						}
 					}
 
@@ -2602,22 +2602,24 @@ public class SurveyManager {
 						if(mi.isPreload) {			
 							if(GeneralUtilityMethods.hasColumn(cResults, form.tableName, mi.columnName)) {
 								mi.published = true;
-								sql += "," + mi.columnName;				
+								sql.append(",").append(mi.columnName);				
 							} 
 						}
 					}
 					// Add instancename which is not in meta
-					sql += "," + "instancename";
+					sql.append(",instancename");
 				}
 				
-				sql += " from " + form.tableName;
+				sql.append(" from ").append(form.tableName);
 				if(parentId == 0) {
-					sql += " where instanceId = ?";
+					sql.append(" where instanceId = ?");
 				} else {
-					sql += " where parkey = ?";
+					sql.append(" where parkey = ?");
 				}
-
-				pstmt = cResults.prepareStatement(sql);	 
+				// Do not include records marked as bad - in particular some child records may have been marked as bad and these should be excluded from pdf reports
+				sql.append(" and not _bad");
+				
+				pstmt = cResults.prepareStatement(sql.toString());	 
 				if(instanceId != null) {
 					pstmt.setString(1, instanceId);;
 				} else {

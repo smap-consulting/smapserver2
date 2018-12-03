@@ -994,4 +994,198 @@ public class UserManager {
 			try {if (pstmtGetSettings != null) {pstmtInsertSettings.close();	}} catch (Exception e) {}
 		}
 	}
+	
+	/*
+	 * Get a list of users 
+	 */
+	public ArrayList<User> getUserList(Connection sd, int oId, boolean isOrgUser, boolean isSecurityManager) throws SQLException {
+		
+		ArrayList<User> users = new ArrayList<User> ();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		String sql = "select id,"
+				+ "ident, "
+				+ "name, "
+				+ "email, "
+				+ "o_id "
+				+ "from users "
+				+ "where (users.o_id = ? or id in (select uo.u_id from user_organisation uo where uo.o_id = users.o_id)) "
+				+ "and not users.temporary "
+				+ "order by ident asc";
+		PreparedStatement pstmt = null;
+		
+		String sqlGroups = "select g.id,"
+				+ "g.name "
+				+ "from groups g,"
+				+ "user_group ug "
+				+ "where ug.u_id = ? "
+				+ "and ug.g_id = g.id "
+				+ "order by g.id asc";
+		PreparedStatement pstmtGroups = null;
+		
+		String sqlProjects = "select p.id,"
+				+ "p.name "
+				+ "from project p,"
+				+ "user_project up "
+				+ "where up.u_id = ? "
+				+ "and up.p_id = p.id "
+				+ "order by p.name asc";
+		PreparedStatement pstmtProjects = null;
+		
+		String sqlRoles = "select r.id,"
+				+ "r.name "
+				+ "from role r,"
+				+ "user_role ur "
+				+ "where ur.u_id = ? "
+				+ "and ur.r_id = r.id "
+				+ "order by r.name asc";
+		PreparedStatement pstmtRoles = null;
+		
+		String sqlOrgs = "select o.id,"
+				+ "o.name as oname "
+				+ "from organisation o,"
+				+ "user_organisation uo "
+				+ "where uo.u_id = ? "
+				+ "and uo.o_id = o.id "
+				+ "union "
+				+ "select o.id,"
+				+ "o.name as oname "
+				+ "from organisation o,"
+				+ "users u "
+				+ "where u.o_id = o.id "
+				+ "and u.id = ? "
+				+ "order by oname asc";
+		PreparedStatement pstmtOrgs = null;
+		
+		String sqlGetSavedUser = "select settings "
+				+ "from user_organisation uo "
+				+ "where o_id = ? "
+				+ "and u_id = ?";
+		PreparedStatement pstmtGetSavedUser = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = null;
+
+			pstmtGroups = sd.prepareStatement(sqlGroups);
+			ResultSet rsGroups = null;
+			
+			pstmtProjects = sd.prepareStatement(sqlProjects);
+			ResultSet rsProjects = null;
+			
+			pstmtRoles = sd.prepareStatement(sqlRoles);
+			ResultSet rsRoles = null;
+			
+			pstmtOrgs = sd.prepareStatement(sqlOrgs);
+			ResultSet rsOrgs = null;
+			
+			pstmt.setInt(1, oId);
+			log.info("Get user list: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+			
+			while(rs.next()) {
+				int usersOrgId = rs.getInt("o_id");
+				User user = null;
+				int uId = rs.getInt("id");
+
+				if(usersOrgId != oId) {
+					// User is not currently in this organisation
+					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
+					pstmtGetSavedUser.setInt(1, oId);
+					pstmtGetSavedUser.setInt(2, uId);
+					log.info("Get saved user details: " + pstmtGetSavedUser.toString());
+					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
+					if(rs2.next()) {
+						user = gson.fromJson(rs2.getString(1), User.class);
+					}
+				} else {
+					// Current user in the same organisation as the administrator
+					user = new User();
+				
+					user.id = uId;
+					user.ident = rs.getString("ident");
+					user.name = rs.getString("name");
+					user.email = rs.getString("email");
+					
+					// Groups
+					if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
+					pstmtGroups.setInt(1, user.id);
+					rsGroups = pstmtGroups.executeQuery();
+					user.groups = new ArrayList<UserGroup> ();
+					while(rsGroups.next()) {
+						UserGroup ug = new UserGroup();
+						ug.id = rsGroups.getInt("id");
+						ug.name = rsGroups.getString("name");
+						user.groups.add(ug);
+					}
+					
+					// Projects
+					if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
+					pstmtProjects.setInt(1, user.id);
+					rsProjects = pstmtProjects.executeQuery();
+					user.projects = new ArrayList<Project> ();
+					while(rsProjects.next()) {
+						Project p = new Project();
+						p.id = rsProjects.getInt("id");
+						p.name = rsProjects.getString("name");
+						user.projects.add(p);
+					}
+					
+					// Roles
+					if(isOrgUser || isSecurityManager) {
+						if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
+						pstmtRoles.setInt(1, user.id);
+						rsRoles = pstmtRoles.executeQuery();
+						user.roles = new ArrayList<Role> ();
+						while(rsRoles.next()) {
+							Role r = new Role();
+							r.id = rsRoles.getInt("id");
+							r.name = rsRoles.getString("name");
+							user.roles.add(r);
+						}
+					}
+					
+				} 
+				
+				// Always get Organisation list from the current settings
+				if(isOrgUser && user != null) {
+					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
+					pstmtOrgs.setInt(1, uId);
+					pstmtOrgs.setInt(2, uId);
+					log.info("Getting organisations belonged to::::::::::::::::: " + pstmtOrgs.toString());
+					rsOrgs = pstmtOrgs.executeQuery();
+					user.orgs = new ArrayList<Organisation> ();
+					while(rsOrgs.next()) {
+						Organisation o = new Organisation();
+						o.id = rsOrgs.getInt("id");
+						o.name = rsOrgs.getString("oname");
+						user.orgs.add(o);
+					}
+					if(user.orgs.size() == 0) {
+						/*
+						 * Add a default organisation equal to the users current organisation
+						 * This is only needed for users who were created before organisation linking was added
+						 */
+						Organisation o = new Organisation();
+						o.id = oId;
+						user.orgs.add(o);
+					}
+				}
+				
+				if(user != null) {
+					users.add(user);
+				}
+			}
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			try {if (pstmtGroups != null) {pstmtGroups.close();	}} catch (Exception e) {	}
+			try {if (pstmtProjects != null) {pstmtProjects.close();	}} catch (Exception e) {	}
+			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (Exception e) {	}
+			try {if (pstmtOrgs != null) {pstmtOrgs.close();	}} catch (Exception e) {}
+			try {if (pstmtGetSavedUser != null) {pstmtGetSavedUser.close();	}} catch (Exception e) {}
+		}
+		return users;
+	}
 }
