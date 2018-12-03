@@ -1379,7 +1379,7 @@ public class GeneralUtilityMethods {
 
 	/*
 	 * Return true if the upload error has already been reported This function is
-	 * used to prevent large numbers of duplicate errors beign recorded when
+	 * used to prevent large numbers of duplicate errors being recorded when
 	 * submission of bad results is automatically retried
 	 */
 	public static boolean hasUploadErrorBeenReported(Connection sd, String user, String device, String ident,

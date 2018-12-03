@@ -722,7 +722,7 @@ public class SurveyTableManager {
 				} else {
 					orderBy.append(" asc");
 				}
-			} else {
+			} else if(order_cols != null) {
 				// order by the columns
 				orderBy.append(" order by ");
 				orderBy.append(order_cols);
