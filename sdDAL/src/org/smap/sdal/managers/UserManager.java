@@ -508,7 +508,7 @@ public class UserManager {
 			String adminName,
 			boolean isSwitch) throws Exception {
 
-		int tCurrentUserOrgId = 0;		// Current logged in organisation of the user to be updated
+		int currentUserOrgId = 0;		// Current logged in organisation of the user to be updated
 
 		// Check the user is in the same organisation as the administrator doing the editing
 		String sql = "select u.id "
@@ -542,7 +542,7 @@ public class UserManager {
 				pstmtGetOrgId.setInt(1, u.id);
 				ResultSet rs2 = pstmtGetOrgId.executeQuery();
 				if(rs2.next()) {
-					tCurrentUserOrgId = rs2.getInt(1);
+					currentUserOrgId = rs2.getInt(1);
 				}
 				
 				/*
@@ -554,13 +554,13 @@ public class UserManager {
 				}
 				
 				// Update the saved settings for this user
-				updateSavedSettings(sd, u, u.id, u.o_id, isOrgUser, isSecurityManager);
+				updateSavedSettings(sd, u, u.id, adminUserOrgId, isOrgUser, isSecurityManager);
 				
 				/*
 				 * Update the current settings if the organisation to be updated is the same
 				 * as the current organisation
 				 */
-				if((u.o_id == tCurrentUserOrgId) || isSwitch) {
+				if((adminUserOrgId == currentUserOrgId) || isSwitch) {
 					
 					// update the current settings for the user
 					String pwdString = null;
