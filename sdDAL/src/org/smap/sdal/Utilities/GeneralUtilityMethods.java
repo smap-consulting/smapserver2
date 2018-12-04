@@ -3176,10 +3176,6 @@ public class GeneralUtilityMethods {
 
 				if (qType.equals("select") && !compressed) {
 
-					// Check if there are any choices from an external csv file in this select
-					// multiple
-					boolean external = GeneralUtilityMethods.hasExternalChoices(sd, qId);
-
 					// Get the choices, either all from an external file or all from an internal
 					// file but not both
 					pstmtSelectMultipleNotCompressed.setInt(1, qId);
