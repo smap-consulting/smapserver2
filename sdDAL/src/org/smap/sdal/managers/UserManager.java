@@ -554,7 +554,7 @@ public class UserManager {
 				}
 				
 				// Update the saved settings for this user
-				updateSavedSettings(sd, u, u.id, adminUserOrgId, isOrgUser, isSecurityManager);
+				updateSavedSettings(sd, u, u.id, u.o_id, isOrgUser, isSecurityManager);
 				
 				/*
 				 * Update the current settings if the organisation to be updated is the same
