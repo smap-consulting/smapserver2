@@ -308,11 +308,12 @@ public class UserList extends Application {
 		PreparedStatement pstmt = null;
 		try {	
 			
-			ResourceBundle localisation = null;
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String sql = null;
 			int o_id;
 			String adminName = null;
-			String language;	// Language spoken by user
 			ResultSet resultSet = null;
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
@@ -320,7 +321,7 @@ public class UserList extends Application {
 			/*
 			 * Get the organisation and name of the user making the request
 			 */
-			sql = "SELECT u.o_id, u.name, u.language " +
+			sql = "SELECT u.o_id, u.name " +
 					" FROM users u " +  
 					" WHERE u.ident = ?;";				
 						
@@ -330,14 +331,7 @@ public class UserList extends Application {
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				o_id = resultSet.getInt(1);
-				adminName = resultSet.getString(2);
-				language = resultSet.getString(3);
-				
-				// Set locale
-				if(language == null) {
-					language = "en";
-				}
-				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", new Locale(language));
+				adminName = resultSet.getString(2);			
 				
 				for(int i = 0; i < uArray.size(); i++) {
 					User u = uArray.get(i);
