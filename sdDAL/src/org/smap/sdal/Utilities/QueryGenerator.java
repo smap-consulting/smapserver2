@@ -287,7 +287,7 @@ public class QueryGenerator {
 			int paramCount = 1;
 			
 			// Add any parameters in the select
-			GeneralUtilityMethods.addSqlParams(pstmtConvert, paramCount, sqlDesc.params);
+			paramCount = GeneralUtilityMethods.addSqlParams(pstmtConvert, paramCount, sqlDesc.params);
 			
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {

@@ -106,7 +106,7 @@ public class XLSReportsManager {
 		
 		this.localisation = l;
 		Sheet dataSheet = wb.createSheet(localisation.getString("rep_data"));
-		Sheet taskSettingsSheet = wb.createSheet(localisation.getString("ep_settings"));
+		Sheet taskSettingsSheet = wb.createSheet(localisation.getString("rep_settings"));
 		//taskListSheet.createFreezePane(3, 1);	// Freeze header row and first 3 columns
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);

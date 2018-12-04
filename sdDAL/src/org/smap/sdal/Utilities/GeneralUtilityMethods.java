@@ -7003,7 +7003,7 @@ public class GeneralUtilityMethods {
 		return in;
 	}
 	
-	public static void addSqlParams(PreparedStatement pstmt, int idx, ArrayList<SqlParam> params) throws SQLException {
+	public static int addSqlParams(PreparedStatement pstmt, int idx, ArrayList<SqlParam> params) throws SQLException {
 		if(params != null && params.size() > 0) {
 			for(SqlParam p : params) {
 				if(p.type.equals("string")) {
@@ -7011,6 +7011,7 @@ public class GeneralUtilityMethods {
 				} 
 			}
 		}
+		return idx;
 	}
 	
 	public static User getArchivedUser(Connection sd, int oId, int uId) throws SQLException {

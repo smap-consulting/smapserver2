@@ -964,7 +964,7 @@ public class ExportSurvey extends Application {
 			int paramCount = 1;
 
 			// Add any parameters in the select
-			GeneralUtilityMethods.addSqlParams(pstmt, paramCount, f.params);
+			paramCount = GeneralUtilityMethods.addSqlParams(pstmt, paramCount, f.params);
 			
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
