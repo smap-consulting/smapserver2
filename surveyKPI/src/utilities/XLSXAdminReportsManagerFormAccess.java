@@ -206,6 +206,9 @@ public class XLSXAdminReportsManagerFormAccess {
 			ArrayList<User> users = um.getUserList(sd, oId, true, true);	
 			for(User u : users) {
 				colNumber = 0;
+				boolean hasProject = false;
+				boolean isInOrg = false;
+				
 				row = dataSheet.createRow(rowNumber++);	
 				
 				cell = row.createCell(colNumber++);	// User Ident
@@ -216,11 +219,11 @@ public class XLSXAdminReportsManagerFormAccess {
 				
 				hasAccessCol = colNumber++;			// Come back to the overall yes/no has access
 				
-				cell = row.createCell(colNumber++);	// Cur	
-				if(u.current_org_id == survey.o_id ? setCellGood(cell) : setCellBad(cell));
+				cell = row.createCell(colNumber++);	// Current Organisation
+				isInOrg = u.current_org_id == survey.o_id;
+				if(isInOrg ? setCellGood(cell) : setCellBad(cell));
 				
 				cell = row.createCell(colNumber++);	// Has Project
-				boolean hasProject = false;
 				for(Project p : u.projects) {
 					if(p.id == survey.p_id) {
 						hasProject = true;
@@ -229,6 +232,11 @@ public class XLSXAdminReportsManagerFormAccess {
 				}				
 				if(hasProject ? setCellGood(cell) : setCellBad(cell));
 				
+				/*
+				 * Set the overriding assessment of whether or not the user has access
+				 */
+				cell = row.createCell(hasAccessCol);
+				if(isInOrg && hasProject ? setCellGood(cell) : setCellBad(cell));
 			}
 
 		} catch (Exception e) {
