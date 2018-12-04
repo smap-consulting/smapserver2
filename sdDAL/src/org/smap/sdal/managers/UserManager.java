@@ -11,11 +11,11 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.constants.SmapUserGroups;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
@@ -102,11 +102,12 @@ public class UserManager {
 					+ "o.can_edit, "
 					+ "o.email_task, "
 					+ "o.ft_send_location, "
-					+ "o.billing_enabled "
-					+ " from users u, organisation o "
-					+ " where u.ident = ? "
-					+ " and u.o_id = o.id "
-					+ " order by u.ident;"; 
+					+ "o.billing_enabled,"
+					+ "o.e_id "
+					+ "from users u, organisation o "
+					+ "where u.ident = ? "
+					+ "and u.o_id = o.id "
+					+ "order by u.ident"; 
 
 			pstmt = connectionSD.prepareStatement(sql);
 			pstmt.setString(1, ident);
@@ -134,6 +135,7 @@ public class UserManager {
 				user.current_survey_id = resultSet.getInt("current_survey_id");
 				user.current_task_group_id = resultSet.getInt("current_task_group_id");
 				user.o_id = resultSet.getInt("o_id");
+				user.e_id = resultSet.getInt("e_id");
 				user.organisation_name = resultSet.getString("organisation_name");
 				user.company_name = resultSet.getString("company_name");
 				user.company_address = resultSet.getString("company_address");
@@ -818,9 +820,35 @@ public class UserManager {
 	}
 
 	/*
+	 * Move a user from their current organisation to another one in the list
+	 */
+	public void moveFromCurrent(Connection sd, String userIdent, int currentOrgId, int uId) throws Exception {
+		
+		String sqlGetAvailableOrgs = "select o_id "
+				+ "from user_organisation uo "
+				+ "where u_id = ? "
+				+ "and o_id != ?";
+		PreparedStatement pstmtGetOrgs = null;
+		
+		try {
+			// 2. Get the organisation to switch to
+			pstmtGetOrgs = sd.prepareStatement(sqlGetAvailableOrgs);
+			pstmtGetOrgs.setInt(1, uId);
+			pstmtGetOrgs.setInt(2, currentOrgId);
+			ResultSet rs2 = pstmtGetOrgs.executeQuery();
+			if(rs2.next()) {
+				int newOrgId = rs2.getInt(1);
+				switchUsersOrganisation(sd, newOrgId, userIdent, true);
+			}
+		} finally {
+			try {if (pstmtGetOrgs != null) {pstmtGetOrgs.close();	}} catch (Exception e) {}
+		}
+	}
+	
+	/*
 	 * Switch a user to a new organisation
 	 */
-	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent) throws Exception {
+	public void switchUsersOrganisation(Connection sd, int newOrgId, String userIdent, boolean validateOrgAccess) throws Exception {
 
 		String sql = "select id, o_id from users where ident = ?";
 		PreparedStatement pstmt = null;
@@ -849,35 +877,38 @@ public class UserManager {
 					pstmtValidate.setInt(2, uId);
 					log.info("Validate user organisation switch: " + pstmtValidate.toString());
 					rs = pstmtValidate.executeQuery();
-					if(rs.next()) {
-						
-						String targetSettings = rs.getString(1);
-						User u = null;
-						
-						// 3. Save the user settings for the current org
-						User uCurrent = getByIdent(sd, userIdent);
-						updateSavedSettings(sd, uCurrent, uId, currentOrgId, true, true);		// Can pretend to be super user as just saving what is already specified
-						
-						// 4. Set the current settings to the settings for the new organisation 
-						// Use default values from the current organisation if the new settings are null
-						if(targetSettings != null) {
-							u = gson.fromJson(targetSettings, User.class);
-							u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
-						} else {
-							u = uCurrent;
-							// Clear settings from the current org that we do not want to add as the default to a new org
-							u.current_task_group_id = 0;
-							u.current_project_id = 0;
-							u.current_survey_id = 0;
-							u.roles = null;
-							u.projects = null;
-							u.o_id = newOrgId;
-						}
-						
-						updateUser(sd, u, currentOrgId, true, true, userIdent, null, null, true);
-					} else {
+					
+					String targetSettings = null;
+					if(rs.next()) {				
+						targetSettings = rs.getString(1);
+					} else if (validateOrgAccess) {
 						throw new ApplicationException(localisation.getString("u_org_nf"));
 					}
+						
+					User u = null;
+						
+					// 3. Save the user settings for the current org
+					User uCurrent = getByIdent(sd, userIdent);
+					updateSavedSettings(sd, uCurrent, uId, currentOrgId, true, true);		// Can pretend to be super user as just saving what is already specified
+						
+					// 4. Set the current settings to the settings for the new organisation 
+					// Use default values from the current organisation if the new settings are null
+					if(targetSettings != null) {
+						u = gson.fromJson(targetSettings, User.class);
+						u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
+					} else {
+						u = uCurrent;
+						// Clear settings from the current org that we do not want to add as the default to a new org
+						u.current_task_group_id = 0;
+						u.current_project_id = 0;
+						u.current_survey_id = 0;
+						u.roles = null;
+						u.projects = null;
+						u.o_id = newOrgId;
+					}
+					
+					updateUser(sd, u, currentOrgId, true, true, userIdent, null, null, true);
+					
 				} 
 			}			
 			
@@ -934,7 +965,7 @@ public class UserManager {
 						if(isSecurityAdmin) {
 							// Set org admin group value from current
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == SmapUserGroups.ORG_ADMIN || ug.id == SmapUserGroups.OWNER || ug.id == SmapUserGroups.ENTERPRISE) {
+								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
 									u.groups.add(ug);
 									break;
 								}
@@ -942,7 +973,8 @@ public class UserManager {
 						} else {
 							// Administrator
 							for(UserGroup ug : uCurrent.groups) {
-								if(ug.id == SmapUserGroups.ORG_ADMIN || ug.id == SmapUserGroups.SECURITY || ug.id == SmapUserGroups.OWNER || ug.id == SmapUserGroups.ENTERPRISE) {
+								if(ug.id == Authorise.ORG_ID || ug.id == Authorise.SECURITY_ID || 
+										ug.id == Authorise.OWNER_ID || ug.id == Authorise.ENTERPRISE_ID) {
 									u.groups.add(ug);
 									break;
 								}
@@ -1003,15 +1035,17 @@ public class UserManager {
 		ArrayList<User> users = new ArrayList<User> ();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
-		String sql = "select id,"
-				+ "ident, "
-				+ "name, "
-				+ "email, "
-				+ "o_id "
-				+ "from users "
-				+ "where (users.o_id = ? or id in (select uo.u_id from user_organisation uo where uo.o_id = users.o_id)) "
-				+ "and not users.temporary "
-				+ "order by ident asc";
+		String sql = "select u.id as u_id,"
+				+ "u.ident as u_ident, "
+				+ "u.name as u_name, "
+				+ "u.email as u_email, "
+				+ "u.o_id as u_o_id, "
+				+ "o.name as o_name "
+				+ "from users u, organisation o "
+				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
+				+ "and not u.temporary "
+				+ "and u.o_id = o.id "
+				+ "order by u.ident asc";
 		PreparedStatement pstmt = null;
 		
 		String sqlGroups = "select g.id,"
@@ -1081,14 +1115,16 @@ public class UserManager {
 			ResultSet rsOrgs = null;
 			
 			pstmt.setInt(1, oId);
+			pstmt.setInt(2, oId);
 			log.info("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
-			
 			while(rs.next()) {
-				int usersOrgId = rs.getInt("o_id");
+				int usersOrgId = rs.getInt("u_o_id");
+				String current_organisation_name = rs.getString("o_name");
 				User user = null;
-				int uId = rs.getInt("id");
+				int uId = rs.getInt("u_id");
 
+				boolean userFound = false;
 				if(usersOrgId != oId) {
 					// User is not currently in this organisation
 					pstmtGetSavedUser = sd.prepareStatement(sqlGetSavedUser);
@@ -1098,15 +1134,34 @@ public class UserManager {
 					ResultSet rs2 = pstmtGetSavedUser.executeQuery();
 					if(rs2.next()) {
 						user = gson.fromJson(rs2.getString(1), User.class);
+						if(user != null) {
+							userFound = true;
+							user.current_org_name = current_organisation_name;
+							user.current_org_id = usersOrgId;
+						}
 					}
-				} else {
+				}
+				/*
+				 * Get the current user.
+				 * If there was no archived user and the user is not in the current organisation then populate default
+				 * settings
+				 */
+				if(!userFound) {
 					// Current user in the same organisation as the administrator
 					user = new User();
 				
 					user.id = uId;
-					user.ident = rs.getString("ident");
-					user.name = rs.getString("name");
-					user.email = rs.getString("email");
+					user.ident = rs.getString("u_ident");
+					user.name = rs.getString("u_name");
+					user.email = rs.getString("u_email");
+					if(usersOrgId == oId) {
+						user.current_org_name = rs.getString("o_name");
+						user.current_org_id = usersOrgId;
+					} else {
+						user.current_org_name = current_organisation_name;
+						user.current_org_id = usersOrgId;
+					}
+					user.o_id = usersOrgId;
 					
 					// Groups
 					if(rsGroups != null) try {rsGroups.close();} catch(Exception e) {};
@@ -1121,28 +1176,30 @@ public class UserManager {
 					}
 					
 					// Projects
-					if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
-					pstmtProjects.setInt(1, user.id);
-					rsProjects = pstmtProjects.executeQuery();
-					user.projects = new ArrayList<Project> ();
-					while(rsProjects.next()) {
-						Project p = new Project();
-						p.id = rsProjects.getInt("id");
-						p.name = rsProjects.getString("name");
-						user.projects.add(p);
-					}
-					
-					// Roles
-					if(isOrgUser || isSecurityManager) {
-						if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
-						pstmtRoles.setInt(1, user.id);
-						rsRoles = pstmtRoles.executeQuery();
-						user.roles = new ArrayList<Role> ();
-						while(rsRoles.next()) {
-							Role r = new Role();
-							r.id = rsRoles.getInt("id");
-							r.name = rsRoles.getString("name");
-							user.roles.add(r);
+					if(usersOrgId == oId) {
+						if(rsProjects != null) try {rsProjects.close();} catch(Exception e) {};
+						pstmtProjects.setInt(1, user.id);
+						rsProjects = pstmtProjects.executeQuery();
+						user.projects = new ArrayList<Project> ();
+						while(rsProjects.next()) {
+							Project p = new Project();
+							p.id = rsProjects.getInt("id");
+							p.name = rsProjects.getString("name");
+							user.projects.add(p);
+						}
+						
+						// Roles
+						if(isOrgUser || isSecurityManager) {
+							if(rsRoles != null) try {rsRoles.close();} catch(Exception e) {};
+							pstmtRoles.setInt(1, user.id);
+							rsRoles = pstmtRoles.executeQuery();
+							user.roles = new ArrayList<Role> ();
+							while(rsRoles.next()) {
+								Role r = new Role();
+								r.id = rsRoles.getInt("id");
+								r.name = rsRoles.getString("name");
+								user.roles.add(r);
+							}
 						}
 					}
 					
@@ -1153,7 +1210,6 @@ public class UserManager {
 					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
 					pstmtOrgs.setInt(1, uId);
 					pstmtOrgs.setInt(2, uId);
-					log.info("Getting organisations belonged to::::::::::::::::: " + pstmtOrgs.toString());
 					rsOrgs = pstmtOrgs.executeQuery();
 					user.orgs = new ArrayList<Organisation> ();
 					while(rsOrgs.next()) {
@@ -1168,7 +1224,7 @@ public class UserManager {
 						 * This is only needed for users who were created before organisation linking was added
 						 */
 						Organisation o = new Organisation();
-						o.id = oId;
+						o.id = usersOrgId;
 						user.orgs.add(o);
 					}
 				}

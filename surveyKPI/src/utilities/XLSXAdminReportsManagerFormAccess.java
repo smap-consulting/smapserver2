@@ -217,7 +217,7 @@ public class XLSXAdminReportsManagerFormAccess {
 				hasAccessCol = colNumber++;			// Come back to the overall yes/no has access
 				
 				cell = row.createCell(colNumber++);	// Cur	
-				if(u.o_id == survey.o_id ? setCellGood(cell) : setCellBad(cell));
+				if(u.current_org_id == survey.o_id ? setCellGood(cell) : setCellBad(cell));
 				
 				cell = row.createCell(colNumber++);	// Has Project
 				boolean hasProject = false;

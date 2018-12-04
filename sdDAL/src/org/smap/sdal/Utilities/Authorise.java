@@ -42,6 +42,8 @@ public class Authorise {
 	public static String MANAGE = "manage";
 	public static String SECURITY = "security";
 	public static String VIEW_DATA = "view data";
+	public static String ENTERPRISE = "enterprise admin";
+	public static String OWNER = "server owner";
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -50,6 +52,8 @@ public class Authorise {
 	public static int MANAGE_ID = 5;
 	public static int SECURITY_ID = 6;
 	public static int VIEW_DATA_ID = 7;
+	public static final int ENTERPRISE_ID = 8;
+	public static final int OWNER_ID = 9;
 	
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 
@@ -195,7 +199,70 @@ public class Authorise {
 	}
 	
 	/*
-	 * Check to make sure the user is a valid temporary user
+	 * Check to make sure the user id is in the organisation of the user making the request
+	 */
+	public boolean isValidUser(Connection sd, String adminUser, int uId) {
+		
+		ResultSet resultSet = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+
+		String sql = "select u.id "
+					+ "from users u " 
+					+ "where u.id = ? "
+					+ "and u.o_id = ? "
+				+ "union "
+					+ "select uo.u_id "
+					+ "from user_organisation uo "
+					+ "where uo.u_id = ? "
+					+ "and uo.o_id = ?";				
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			int adminUserOrgId = GeneralUtilityMethods.getOrganisationId(sd, adminUser, 0);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, uId);
+			pstmt.setInt(2, adminUserOrgId);
+			pstmt.setInt(3, uId);
+			pstmt.setInt(4, adminUserOrgId);
+			log.info("Validate user in correct organisation: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+
+			if(resultSet.next()) {
+				count = 1;
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"SQL Error during authorisation", e);
+			sqlError = true;
+		} finally {		
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+		// Check to see if the user was authorised to access this service
+ 		if(count == 0 || sqlError) {
+ 			log.info("Authorisation failed for: " + adminUser);
+ 			SDDataSource.closeConnection("isAuthorised", sd);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
+	 * Check to make sure the billing organisation is valid
 	 */
 	public boolean isValidBillingOrganisation(Connection conn, int oId) {
 		ResultSet resultSet = null;
@@ -1019,14 +1086,15 @@ public class Authorise {
 		int count = 0;
 		boolean sqlError = false;
 
-		String sql = "select count(*) from users u " +
-				" where u.o_id = ?" +
-				" and u.ident = ?;";
+		String sql = "select count(*) from users u "
+				+ "where (u.o_id = ? and u.ident = ?) "
+				+ "or u.id in (select u_id from user_organisation where o_id = ?)";
 		
 		try {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, user);
+			pstmt.setInt(3, oId);
 			log.info("IsValidOrganisation: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
@@ -1049,6 +1117,57 @@ public class Authorise {
  			log.info("Security: Project validation failed for: " + user + " organisation was: " + oId);
  			
  			SDDataSource.closeConnection("isValidOrganisation", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
+	 * Verify that the user is a member of the same enterpise as the organisation
+	 */
+	public boolean isOrganisationInEnterprise(Connection conn, String user, int oId) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		String sql = "select count(*) from users u, organisation o "
+				+ "where u.o_id = o.id "
+				+ "and u.ident = ? "
+				+ "and o.e_id = (select e_id from organisation where id = ?)";
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			log.info("IsOrganisationInEnterprise: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Security: Enterprise validation failed for: " + user + " organisation was: " + oId);
+ 			
+ 			SDDataSource.closeConnection("isOrganisationInEnterprise", conn);
 			
 			if(sqlError) {
 				throw new ServerException();

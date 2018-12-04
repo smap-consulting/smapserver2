@@ -37,6 +37,7 @@ import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
 /*
@@ -284,6 +285,9 @@ public class QueryGenerator {
 			 */
 			pstmtConvert = connectionResults.prepareStatement(shpSqlBuf.toString());
 			int paramCount = 1;
+			
+			// Add any parameters in the select
+			GeneralUtilityMethods.addSqlParams(pstmtConvert, paramCount, sqlDesc.params);
 			
 			// if date filter is set then add it
 			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
@@ -603,9 +607,11 @@ public class QueryGenerator {
 				} else {
 				
 					if(type != null && (type.equals("date") || type.equals("dateTime"))) {
-						colBuf.append("to_char(timezone('").append(tz).append("', ");
+						colBuf.append("to_char(timezone(?, ");
+						sqlDesc.params.add(new SqlParam("string", tz));
 					} else if(type.equals("timestamptz")) {
-						colBuf.append("timezone('").append(tz).append("', "); 
+						colBuf.append("timezone(?, "); 
+						sqlDesc.params.add(new SqlParam("string", tz));
 					}
 				
 					if(isAttachment && wantUrl) {	// Add the url prefix to the file

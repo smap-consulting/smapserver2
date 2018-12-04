@@ -257,13 +257,7 @@ public class Data_CSV extends Application {
 			filename = "data.csv";
 		}
 		
-		if(tz == null) {
-			tz = "UTC";
-		} else {
-			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
-				throw new ApplicationException("Invalid Timezone");
-			}
-		}
+		tz = (tz == null) ? "UTC" : tz;
 
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));

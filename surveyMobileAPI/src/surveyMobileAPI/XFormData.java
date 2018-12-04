@@ -262,6 +262,8 @@ public class XFormData {
 			ue.setFilePath(saveDetails.filePath);
 			ue.setAuditFilePath(auditFilePath);
 			ue.setProjectId(survey.getPId());
+			ue.setOrganisationId(survey.o_id);
+			ue.setEnterpriseId(survey.e_id);
 			ue.setUploadTime(new Date());
 			ue.setFileName(saveDetails.fileName);
 			ue.setSurveyName(survey.getDisplayName());

@@ -65,36 +65,29 @@ public class GroupList extends Application {
 	public Response getGroups(@Context HttpServletRequest request) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-GroupList";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-GroupList");
+		Connection connectionSD = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
-		
-		/*
-		 * 
-		 */	
+	
 		PreparedStatement pstmt = null;
 		ArrayList<UserGroup> groups = new ArrayList<UserGroup> ();
 		
 		try {
-			String sql = null;
-			ResultSet resultSet = null;
-			
-			sql = "select id, name " +
-					" from groups " +  
-					" order by name asc;";				
+			String sql = "select id, name "
+					+ "from groups "  
+					+ "order by name asc";				
 						
 			pstmt = connectionSD.prepareStatement(sql);
-
-			log.info("Get groups: " + sql);
-			resultSet = pstmt.executeQuery();
+			ResultSet resultSet = pstmt.executeQuery();
+			
 			while(resultSet.next()) {
 				UserGroup group = new UserGroup();
 				group.id = resultSet.getInt("id");
 				group.name = resultSet.getString("name");
 				groups.add(group);
-		
 			}
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -109,7 +102,7 @@ public class GroupList extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-GroupList", connectionSD);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
 
 		return response;

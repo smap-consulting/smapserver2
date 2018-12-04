@@ -68,6 +68,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.sdal.model.TableColumn;
@@ -596,12 +597,12 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return true if the user has the organisational administrator role
 	 */
-	static public boolean isOrgUser(Connection con, String ident) {
+	static public boolean isOrgUser(Connection con, String ident) throws SQLException {
 
 		String sql = "select count(*) " 
 				+ "from users u, user_group ug " 
 				+ "where u.id = ug.u_id "
-				+ "and ug.g_id = 4 " 
+				+ "and ug.g_id = " + Authorise.ORG_ID + " "
 				+ "and u.ident = ? ";
 
 		boolean isOrg = false;
@@ -614,8 +615,46 @@ public class GeneralUtilityMethods {
 			if (resultSet.next()) {
 				isOrg = (resultSet.getInt(1) > 0);
 			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return isOrg;
+	}
+	
+	/*
+	 * Return true if the user identified by their id has the organisational administrator role
+	 * Also check in the archive as they may not be logged in to this organisation
+	 */
+	static public boolean isOrgUserById(Connection sd, int id, int o_id) throws SQLException {
+
+		String sql = "select count(*) " 
+				+ "from users u, user_group ug " 
+				+ "where u.id = ug.u_id "
+				+ "and ug.g_id = " + Authorise.ORG_ID + " "
+				+ "and u.id = ?"
+				+ "and u.o_id =?";
+
+		boolean isOrg = false;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.setInt(2, o_id);
+			ResultSet resultSet = pstmt.executeQuery();
+
+			if (resultSet.next()) {
+				isOrg = (resultSet.getInt(1) > 0);
+			} else {
+				// User is presumably in a different organisation at the moment
+				User u = getArchivedUser(sd, o_id, id);
+				for(UserGroup ug : u.groups) {
+					if(ug.id == Authorise.ORG_ID) {
+						isOrg = true;
+						break;
+					}
+				}
+			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
@@ -680,7 +719,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Get the organisation id for the user If there is no organisation for that
+	 * Get the current organisation id for the user If there is no organisation for that
 	 * user then use the survey id, this is used when getting the organisation for a
 	 * subscriber log
 	 */
@@ -6963,6 +7002,42 @@ public class GeneralUtilityMethods {
         }
 		return in;
 	}
+	
+	public static void addSqlParams(PreparedStatement pstmt, int idx, ArrayList<SqlParam> params) throws SQLException {
+		if(params != null && params.size() > 0) {
+			for(SqlParam p : params) {
+				if(p.type.equals("string")) {
+					pstmt.setString(idx++, p.vString);
+				} 
+			}
+		}
+	}
+	
+	public static User getArchivedUser(Connection sd, int oId, int uId) throws SQLException {
+		
+		String sql = "select settings "
+				+ "from user_organisation uo "
+				+ "where o_id = ? "
+				+ "and u_id = ?";
+		PreparedStatement pstmt = null;
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		User u = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, uId);			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				u = gson.fromJson(rs.getString(1), User.class);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		return u;
+	}
+	
 
 }
 

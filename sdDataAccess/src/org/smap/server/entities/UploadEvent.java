@@ -47,6 +47,10 @@ public class UploadEvent implements Serializable {
 	
 	private int p_id;
 	
+	private int o_id;
+	
+	private int e_id;
+	
 	private String imei;
 	
 	private String origSurveyIdent;
@@ -116,6 +120,14 @@ public class UploadEvent implements Serializable {
 	
 	public int getProjectId() {
 		return p_id;
+	}
+	
+	public int getOrganisationId() {
+		return o_id;
+	}
+	
+	public int getEnterpriseId() {
+		return e_id;
 	}
 	
 	public String getImei() {
@@ -211,6 +223,14 @@ public class UploadEvent implements Serializable {
 	
 	public void setProjectId(int name) {
 		this.p_id = name;
+	}
+	
+	public void setOrganisationId(int v) {
+		this.o_id = v;
+	}
+	
+	public void setEnterpriseId(int v) {
+		this.e_id = v;
 	}
 	
 	public void setImei(String imei) {

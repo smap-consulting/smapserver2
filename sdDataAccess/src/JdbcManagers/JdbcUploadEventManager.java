@@ -47,6 +47,8 @@ public class JdbcUploadEventManager {
 			+ "server_name,"
 			+ "s_id,"
 			+ "p_id,"
+			+ "o_id,"
+			+ "e_id,"
 			+ "form_status,"
 			+ "file_path,"
 			+ "orig_survey_ident,"
@@ -59,7 +61,7 @@ public class JdbcUploadEventManager {
 			+ "location_trigger,"
 			+ "audit_file_path) "
 			+ "values (nextval('ue_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?"
-			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?);";
 	
 	PreparedStatement pstmtUnprocessed = null;
@@ -126,17 +128,19 @@ public class JdbcUploadEventManager {
 		pstmt.setString(8, ue.getServerName());
 		pstmt.setInt(9, ue.getSurveyId());
 		pstmt.setInt(10,  ue.getProjectId());
-		pstmt.setString(11, ue.getFormStatus());
-		pstmt.setString(12, ue.getFilePath());
-		pstmt.setString(13, ue.getOrigSurveyIdent());
-		pstmt.setString(14,  ue.getUpdateId());
-		pstmt.setString(15,  ue.getIdent());
-		pstmt.setBoolean(16, ue.getIncomplete());
-		pstmt.setString(17, ue.getInstanceId());
-		pstmt.setInt(18, ue.getAssignmentId());
-		pstmt.setString(19, ue.getSurveyNotes());
-		pstmt.setString(20, ue.getLocationTrigger());
-		pstmt.setString(21, ue.getAuditFilePath());
+		pstmt.setInt(11,  ue.getOrganisationId());
+		pstmt.setInt(12,  ue.getEnterpriseId());
+		pstmt.setString(13, ue.getFormStatus());
+		pstmt.setString(14, ue.getFilePath());
+		pstmt.setString(15, ue.getOrigSurveyIdent());
+		pstmt.setString(16,  ue.getUpdateId());
+		pstmt.setString(17,  ue.getIdent());
+		pstmt.setBoolean(18, ue.getIncomplete());
+		pstmt.setString(19, ue.getInstanceId());
+		pstmt.setInt(20, ue.getAssignmentId());
+		pstmt.setString(21, ue.getSurveyNotes());
+		pstmt.setString(22, ue.getLocationTrigger());
+		pstmt.setString(23, ue.getAuditFilePath());
 	
 		pstmt.executeUpdate();
 	}

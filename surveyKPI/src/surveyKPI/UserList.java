@@ -127,7 +127,6 @@ public class UserList extends Application {
 			
 			UserManager um = new UserManager(localisation);
 			users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
-			
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						

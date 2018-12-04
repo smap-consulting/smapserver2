@@ -270,14 +270,7 @@ public class Data extends Application {
 			isDt = true;
 		}
 		
-		if(tz == null) {
-			tz = "UTC";
-		} else {
-			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
-				throw new ApplicationException("Invalid Timezone");
-			}
-		}
-		
+		tz = (tz == null) ? "UTC" : tz;
 
 		PrintWriter outWriter = null;
 		try {

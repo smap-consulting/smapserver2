@@ -528,7 +528,7 @@ public class PDFSurveyManager {
 					if(r.value != null) {
 						// Convert date to local time
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-						df.setTimeZone(TimeZone.getTimeZone("GMT"));
+						df.setTimeZone(TimeZone.getTimeZone("UTC"));
 						Date date = df.parse(r.value);
 						String tzString = null;
 						
@@ -1610,7 +1610,7 @@ public class PDFSurveyManager {
 				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time
 					
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-					df.setTimeZone(TimeZone.getTimeZone("GMT"));
+					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					Date date = df.parse(di.value);
 					String tzString = null;
 					

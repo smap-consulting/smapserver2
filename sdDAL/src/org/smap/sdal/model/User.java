@@ -35,11 +35,14 @@ public class User {
 	public boolean can_edit;
 	public boolean email_task;
 	public String ft_send_location;
-	public int current_org_id;
+	public int newCurrentOrgId;
 	public int current_project_id;
 	public int current_survey_id;
 	public int current_task_group_id;
 	public int o_id;
+	public int e_id;
+	public String current_org_name;
+	public int current_org_id;
 	public String organisation_name;
 	public String company_name;
 	public String company_address;
@@ -57,6 +60,6 @@ public class User {
 	public boolean seen;
 	public boolean billing_enabled;
 	public boolean singleSubmission;
-	
+	public boolean all;		// Set on delete when the user should be deleted from all organisations
 	
 }

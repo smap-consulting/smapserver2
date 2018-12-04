@@ -424,7 +424,7 @@ public class Surveys extends Application {
 			 * Parse the request
 			 */
 			Type type = new TypeToken<ArrayList<Pulldata>>(){}.getType();
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			ArrayList<Pulldata> pulldataList = gson.fromJson(pulldata, type);
 			
 			String parsedPd = gson.toJson(pulldataList);

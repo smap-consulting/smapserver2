@@ -87,13 +87,7 @@ public class ExportSurveyXlsx extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
-		if(tz == null) {
-			tz = "UTC";
-		} else {
-			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
-				throw new ApplicationException("Invalid Timezone");
-			}
-		}
+		tz = (tz == null) ? "UTC" : tz;
 		
 		Connection cResults = null;
 		try {

@@ -225,7 +225,7 @@ public class UserSvc extends Application {
 			boolean updateProjectSettings = false;
 			boolean updateSettings = false;
 			boolean updateOrg = false;
-			if(u.current_org_id > 0) {
+			if(u.o_id > 0) {
 				updateOrg = true;
 				updateSettings = true;
 			} else if(u.current_project_id > 0 || u.current_survey_id > 0 || u.current_task_group_id > 0) {
@@ -241,7 +241,7 @@ public class UserSvc extends Application {
 				 */				
 				UserManager um = new UserManager(localisation);
 				try {
-					um.switchUsersOrganisation(sd, u.current_org_id,	request.getRemoteUser());
+					um.switchUsersOrganisation(sd, u.o_id,	request.getRemoteUser(), true);
 				} catch (Exception e) {
 					// log but otherwise ignore any errors
 					log.log(Level.SEVERE, e.getMessage(), e);

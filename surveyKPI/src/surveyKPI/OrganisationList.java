@@ -41,11 +41,11 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
-import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.User;
 
@@ -77,6 +77,8 @@ public class OrganisationList extends Application {
 
 	private static Logger log =
 			 Logger.getLogger(OrganisationList.class.getName());
+	
+	LogManager lm = new LogManager();		// Application log
 	
 	public OrganisationList() {
 		
@@ -283,6 +285,7 @@ public class OrganisationList extends Application {
 			OrganisationManager om = new OrganisationManager();
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
+				
 				if(o.timeZone != null && !o.timeZone.equals("UTC")) {
 					if(!GeneralUtilityMethods.isValidTimezone(sd, o.timeZone)) {
 						throw new ApplicationException("Invalid Timezone: " + o.timeZone);
@@ -305,6 +308,8 @@ public class OrganisationList extends Application {
 				} else {
 					// Existing organisation
 
+					a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
+					
 					om.updateOrganisation(
 							sd, 
 							o, 
@@ -568,6 +573,7 @@ public class OrganisationList extends Application {
 				
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
+				a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
 				
 				/*
 				 * Ensure that there are no undeleted projects with surveys in this organisation
@@ -586,7 +592,10 @@ public class OrganisationList extends Application {
 					int count = resultSet.getInt(1);
 					if(count > 0) {
 						log.info("Count of undeleted projects:" + count);
-						throw new Exception("Error: Organisation " + o.name + " has undeleted projects.");
+						log.info("Count of undeleted pganisations:" + count);
+						String msg = localisation.getString("msg_undel_orgs");
+						msg = msg.replace("%s1", o.name);
+						throw new Exception(msg);
 					}
 				} else {
 					throw new Exception("Error getting project count");
@@ -649,7 +658,7 @@ public class OrganisationList extends Application {
 	}
 	
 	/*
-	 * Change the organisation a user belongs to
+	 * Change the organisation a user or project belongs to
 	 */
 	@POST
 	@Path("/setOrganisation")
@@ -660,10 +669,12 @@ public class OrganisationList extends Application {
 			@FormParam("projects") String projects) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-OrganisationList-setOrganisation";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-setOrganisation");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isOrganisationInEnterprise(sd, request.getRemoteUser(), orgId);
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
@@ -694,48 +705,56 @@ public class OrganisationList extends Application {
 			pstmt3 = sd.prepareStatement(sql3);	
 			pstmt4 = sd.prepareStatement(sql4);	
 
-			// Move Users
-			for(int i = 0; i < uArray.size(); i++) {
-				pstmt.setInt(1, orgId);
-				pstmt.setInt(2, uArray.get(i).id);
-
-				log.info("Move User: " + pstmt.toString());
-				pstmt.executeUpdate();
-				
-				log.info("userevent: " + request.getRemoteUser() + " : move user : " + uArray.get(i).id + " to: " + orgId);
+			// Move Users = deprecate
+			if(uArray != null) {
+				for(int i = 0; i < uArray.size(); i++) {
+					pstmt.setInt(1, orgId);
+					pstmt.setInt(2, uArray.get(i).id);
+	
+					log.info("Move User: " + pstmt.toString());
+					pstmt.executeUpdate();
+					
+					log.info("userevent: " + request.getRemoteUser() + " : move user : " + uArray.get(i).id + " to: " + orgId);
+				}
 			}
 			
 			// Move Projects
-			for(int i = 0; i < pArray.size(); i++) {
-				pstmt3.setInt(1, orgId);
-				pstmt3.setInt(2, pArray.get(i).id);
-				
-				log.info("Move Project: " + pstmt3.toString());
-				pstmt3.executeUpdate();
-				
-				log.info("userevent: " + request.getRemoteUser() + " : move project : " + pArray.get(i).id + " to: " + orgId);
+			if(pArray != null) {
+				for(int i = 0; i < pArray.size(); i++) {
+					pstmt3.setInt(1, orgId);
+					pstmt3.setInt(2, pArray.get(i).id);
+					
+					log.info("Move Project: " + pstmt3.toString());
+					pstmt3.executeUpdate();
+					
+					log.info("userevent: " + request.getRemoteUser() + " : move project : " + pArray.get(i).id + " to: " + orgId);
+				}
 			}
 			
 			// Remove projects from users if they are in a different organisation
-			for(int i = 0; i < uArray.size(); i++) {
-				
-				if(!uArray.get(i).keepProjects) {	// Org admin users keep all of their projects
-				
-					pstmt2.setInt(1, uArray.get(i).id);
-					pstmt2.setInt(2, orgId);
-					log.info("Delete Links to projects: " + pstmt2.toString());
-					pstmt2.executeUpdate();
+			if(uArray != null) {
+				for(int i = 0; i < uArray.size(); i++) {
+					
+					if(!uArray.get(i).keepProjects) {	// Org admin users keep all of their projects
+					
+						pstmt2.setInt(1, uArray.get(i).id);
+						pstmt2.setInt(2, orgId);
+						log.info("Delete Links to projects: " + pstmt2.toString());
+						pstmt2.executeUpdate();
+					}
 				}
 			}
 			
 			// Move users from projects if they are in a different organisation
-			for(int i = 0; i < pArray.size(); i++) {
-				
-				pstmt4.setInt(1, pArray.get(i).id);
-				pstmt4.setInt(2, orgId);
-				log.info("Delete Links to users: " + pstmt4.toString());
-				pstmt4.executeUpdate();
-
+			if(pArray != null) {
+				for(int i = 0; i < pArray.size(); i++) {
+					
+					pstmt4.setInt(1, pArray.get(i).id);
+					pstmt4.setInt(2, orgId);
+					log.info("Delete Links to users: " + pstmt4.toString());
+					pstmt4.executeUpdate();
+	
+				}
 			}
 			
 			response = Response.ok().build();
@@ -760,7 +779,54 @@ public class OrganisationList extends Application {
 			try {if (pstmt3 != null) {pstmt3.close();}	} catch (SQLException e) {}
 			try {if (pstmt4 != null) {pstmt4.close();}	} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList-setOrganisation", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Change the enterprise and organisation belongs to
+	 */
+	@POST
+	@Path("/setEnterprise")
+	@Consumes("application/json")
+	public Response changeEnterprise(@Context HttpServletRequest request,
+			@FormParam("orgId") int orgId,
+			@FormParam("entId") int entId) throws SQLException { 
+		
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-setEnterprise";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		
+		PreparedStatement pstmt = null;
+	
+		try {	
+			
+			String sql = "update organisation set e_id =  ? " +  
+					" WHERE id = ?; ";			
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  entId);
+			pstmt.setInt(2, orgId);
+			pstmt.executeUpdate();
+			log.info("Move organisation: " + pstmt.toString());
+			
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.MOVE_ORGANISATION, "Organisation " + orgId + " moved to enterprise " + entId);
+			
+			response = Response.ok().build();
+				
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;

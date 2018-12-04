@@ -29,6 +29,7 @@ public class Survey {
 	private static Logger log =Logger.getLogger(Survey.class.getName());
 	
 	public int id;
+	public int e_id;
 	public int o_id;
 	public int p_id;
 	public String ident;
