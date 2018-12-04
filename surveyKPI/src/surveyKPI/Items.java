@@ -113,7 +113,8 @@ public class Items extends Application {
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("filter") String sFilter,
-			@QueryParam("advanced_filter") String advanced_filter) { 
+			@QueryParam("advanced_filter") String advanced_filter,
+			@QueryParam("tz") String tz) { 
 		
 		JSONObject jo = new JSONObject();
 		boolean bGeom = true;
@@ -150,7 +151,7 @@ public class Items extends Application {
 		
 		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View Results");
 	
-		String tz = "UTC";		// set default to UTC
+		tz = (tz == null) ? "UTC" : tz;
 		
 		Tables tables = new Tables(sId);
 		boolean hasRbacRowFilter = false;
