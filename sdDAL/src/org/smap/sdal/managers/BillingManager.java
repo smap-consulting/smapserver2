@@ -8,6 +8,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -191,7 +192,7 @@ public class BillingManager {
 		} else {
 			month++;
 		}
-		LocalDate d = LocalDate.of(year, month, 1);
+		LocalDateTime d = LocalDateTime.of(year, month, 1, 0, 0);
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		
 		try {
