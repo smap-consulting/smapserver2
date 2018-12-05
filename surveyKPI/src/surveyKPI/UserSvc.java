@@ -342,10 +342,15 @@ public class UserSvc extends Application {
 				pstmt.executeUpdate();
 			}
 			
-			response = Response.ok().build();
+			UserManager um = new UserManager(localisation);
+			User userResp = um.getByIdent(sd, request.getRemoteUser());
+
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(userResp);
+			response = Response.ok(resp).build();
 			
 			
-		} catch (SQLException e) {
+		} catch (Exception e) {
 
 			response = Response.serverError().build();
 			log.log(Level.SEVERE,"Error", e);
