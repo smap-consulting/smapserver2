@@ -98,10 +98,10 @@ public class Utility extends Application {
 			) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-Utility - getTimezones";
 
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Utility");
-		a.isAuthorised(sd, request.getRemoteUser());
+		// Authorisation - Not required
+		Connection sd = SDDataSource.getConnection(connectionString);
 		// End Authorisation
 		
 		String sql = "select name, utc_offset from pg_timezone_names order by utc_offset asc";
@@ -128,7 +128,7 @@ public class Utility extends Application {
 
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Utility", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
