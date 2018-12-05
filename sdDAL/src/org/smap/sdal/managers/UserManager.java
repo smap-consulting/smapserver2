@@ -103,7 +103,8 @@ public class UserManager {
 					+ "o.email_task, "
 					+ "o.ft_send_location, "
 					+ "o.billing_enabled,"
-					+ "o.e_id "
+					+ "o.e_id,"
+					+ "u.timezone "
 					+ "from users u, organisation o "
 					+ "where u.ident = ? "
 					+ "and u.o_id = o.id "
@@ -150,6 +151,7 @@ public class UserManager {
 				user.lastalert = resultSet.getString("lastalert");
 				user.seen = resultSet.getBoolean("seen");
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
+				user.timezone = resultSet.getString("timezone");
 			}
 
 			/*

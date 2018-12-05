@@ -299,23 +299,25 @@ public class UserSvc extends Application {
 				String ident = request.getRemoteUser();
 				if(u.password == null) {
 					// Do not update the password
-					sql = "update users set " +
-							" name = ?, " + 
-							" settings = ?, " + 
-							" language = ?, " + 
-							" email = ? " +
-							" where " +
-							" ident = ?;";
+					sql = "update users set "
+							+ "name = ?, "
+							+ "settings = ?, "
+							+ "language = ?, "
+							+ "email = ?, "
+							+ "timezone = ? "
+							+ "where "
+							+ "ident = ?";
 				} else {
 					// Update the password
-					sql = "update users set " +
-							" name = ?, " + 
-							" settings = ?, " + 
-							" language = ?, " + 
-							" email = ?, " +
-							" password = md5(?) " +
-							" where " +
-							" ident = ?;";
+					sql = "update users set "
+							+ "name = ?, " 
+							+ "settings = ?, "
+							+ "language = ?, "
+							+ "email = ?, "
+							+ "timezone = ? "
+							+ "password = md5(?) "
+							+ "where "
+							+ "ident = ?";
 					
 					pwdString = ident + ":smap:" + u.password;
 				}
@@ -326,11 +328,12 @@ public class UserSvc extends Application {
 				pstmt.setString(2, u.settings);
 				pstmt.setString(3, u.language);
 				pstmt.setString(4, u.email);
+				pstmt.setString(5, u.timezone);
 				if(u.password == null) {
-					pstmt.setString(5, ident);
-				} else {
-					pstmt.setString(5, pwdString);
 					pstmt.setString(6, ident);
+				} else {
+					pstmt.setString(6, pwdString);
+					pstmt.setString(7, ident);
 				}
 				
 				log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);

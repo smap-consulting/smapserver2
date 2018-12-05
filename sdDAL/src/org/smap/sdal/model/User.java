@@ -60,5 +60,5 @@ public class User {
 	public boolean billing_enabled;
 	public boolean singleSubmission;
 	public boolean all;		// Set on delete when the user should be deleted from all organisations
-	
+	public String timezone;
 }
