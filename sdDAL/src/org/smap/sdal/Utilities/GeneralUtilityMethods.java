@@ -21,6 +21,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -5522,11 +5523,16 @@ public class GeneralUtilityMethods {
 	 * Use the passed in timezone as the basis for determining hour
 	 */
 	public static Timestamp endOfDay(Date d, String tz) {
-
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
+		
+		Calendar cal = new GregorianCalendar();
 		cal.setTime(d);
 		cal.set(Calendar.HOUR_OF_DAY, 23);
 		cal.set(Calendar.MINUTE, 59);
+		
+		TimeZone timeZone = TimeZone.getTimeZone(tz);
+		int offsetFromUTC = timeZone.getOffset(d.getTime());
+		cal.add(Calendar.MILLISECOND, -offsetFromUTC);
+		
 		Timestamp endOfDay = new Timestamp(cal.getTime().getTime());
 
 		return endOfDay;
@@ -5538,10 +5544,16 @@ public class GeneralUtilityMethods {
 	 */
 	public static Timestamp startOfDay(Date d, String tz) {
 
-		Calendar cal = Calendar.getInstance(TimeZone.getTimeZone(tz));
+		Calendar cal = new GregorianCalendar();
 		cal.setTime(d);
 		cal.set(Calendar.HOUR_OF_DAY, 0);
 		cal.set(Calendar.MINUTE, 0);
+		
+		TimeZone timeZone = TimeZone.getTimeZone(tz);
+		int offsetFromUTC = timeZone.getOffset(d.getTime());
+		
+		// Subtract the offset between the tz and UTC in order to get the UTC time of the calendar value assuming it is in the specified timezone
+		cal.add(Calendar.MILLISECOND, -offsetFromUTC);
 		Timestamp startOfDay = new Timestamp(cal.getTime().getTime());
 
 		return startOfDay;

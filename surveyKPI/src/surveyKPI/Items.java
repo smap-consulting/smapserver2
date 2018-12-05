@@ -59,6 +59,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -116,6 +117,8 @@ public class Items extends Application {
 			@QueryParam("filter") String sFilter,
 			@QueryParam("advanced_filter") String advanced_filter,
 			@QueryParam("tz") String tz) { 
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("dd-yyyy HH:mm");
 		
 		JSONObject jo = new JSONObject();
 		boolean bGeom = true;
