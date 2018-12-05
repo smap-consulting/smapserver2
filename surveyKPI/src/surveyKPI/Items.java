@@ -47,6 +47,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
 import utilities.QuestionInfo;
@@ -224,6 +225,7 @@ public class Items extends Application {
 				}
 				
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				ArrayList<SqlParam> params = new ArrayList<SqlParam>();
 				ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						cResults,
@@ -276,6 +278,10 @@ public class Items extends Application {
 					} else if(c.name.equals("prikey") || c.name.equals("parkey") 
 							|| c.name.equals("_bad") || c.name.equals("_bad_reason")) {
 						cols.append(tName + "." + c.name + " as " +  c.name);
+					
+					} else if(c.type != null && (c.type.equals("date") || c.type.equals("dateTime"))) {
+						cols.append("timezone(?, ").append(tName).append(".").append(c.name).append(") as " +  c.name);
+						params.add(new SqlParam("string", tz));
 						
 					}  else {
 						cols.append(tName + "." + c.name + " as " +  c.name);
@@ -513,7 +519,9 @@ public class Items extends Application {
 					
 					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 					pstmt = cResults.prepareStatement(sql);
-					int attribIdx = 1;					
+					
+					int attribIdx = 1;	
+					
 					if(advancedFilterFrag != null) {
 						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
 					}		
@@ -549,6 +557,9 @@ public class Items extends Application {
 				 * Set prepared statement values
 				 */
 				int attribIdx = 1;
+				
+				// Add any parameters in the select
+				attribIdx = GeneralUtilityMethods.addSqlParams(pstmt, attribIdx, params);
 				
 				if(advancedFilterFrag != null) {
 					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
