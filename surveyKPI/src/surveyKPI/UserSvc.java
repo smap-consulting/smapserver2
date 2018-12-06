@@ -222,17 +222,10 @@ public class UserSvc extends Application {
 				u.email = null;
 			}
 			
-			boolean updateProjectSettings = false;
-			boolean updateSettings = false;
 			boolean updateOrg = false;
 			if(u.o_id > 0) {
 				updateOrg = true;
-				updateSettings = true;
-			} else if(u.current_project_id > 0 || u.current_survey_id > 0 || u.current_task_group_id > 0) {
-				updateProjectSettings = true;
-			} else {
-				updateSettings = true;
-			}
+			} 
 			
 			if(updateOrg) {
 				/*
@@ -248,99 +241,56 @@ public class UserSvc extends Application {
 				}
 			}
 			
-			if(updateProjectSettings) {
-				/*
-				 * If the current project/survey is to be changed then update the project id, survey id and task_group_id
-				 */
-				String sql = null;
-				if(u.current_project_id > 0) {
-					sql = "update users set current_project_id = ?, "
-							+ "current_survey_id = ?, "
-							+ "current_task_group_id = ? "
-							+ "where ident = ?";
-				} else if(u.current_survey_id > 0) {
-					// Only update the survey id
-					sql = "update users set current_survey_id = ? "
-							+ "where ident = ?";
-				} else if(u.current_task_group_id > 0) {
-					// Only update the task group id
-					sql = "update users set current_task_group_id = ? where ident = ?";
-				}
-							
-				pstmt = sd.prepareStatement(sql);
-				if(u.current_project_id > 0) {
-					pstmt.setInt(1, u.current_project_id);
-					pstmt.setInt(2, u.current_survey_id);
-					pstmt.setInt(3, u.current_task_group_id);
-					pstmt.setString(4, request.getRemoteUser());
-				} else if(u.current_survey_id > 0) {
-					pstmt.setInt(1, u.current_survey_id);
-					pstmt.setString(2, request.getRemoteUser());
-				} else if(u.current_task_group_id > 0) {
-					pstmt.setInt(1, u.current_task_group_id);
-					pstmt.setString(2, request.getRemoteUser());
-				}
-					
-				log.info("Update user defaults: " + pstmt.toString());
-				int count = pstmt.executeUpdate();
-				if(count == 0) {
-					log.info("Failed to update current project id and survey id");
-				}  
-
-			} 
 			
-			if(updateSettings){
-			
-				/*
-				 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
-				 */
-				String pwdString = null;
-				String sql = null;
-				String ident = request.getRemoteUser();
-				if(u.password == null) {
-					// Do not update the password
-					sql = "update users set "
-							+ "name = ?, "
-							+ "settings = ?, "
-							+ "language = ?, "
-							+ "email = ?, "
-							+ "timezone = ? "
-							+ "where "
-							+ "ident = ?";
-				} else {
-					// Update the password
-					sql = "update users set "
-							+ "name = ?, " 
-							+ "settings = ?, "
-							+ "language = ?, "
-							+ "email = ?, "
-							+ "timezone = ? "
-							+ "password = md5(?) "
-							+ "where "
-							+ "ident = ?";
-					
-					pwdString = ident + ":smap:" + u.password;
-				}
+			/*
+			 * Update what can be updated by the user, excluding the current project id, survey id, form id and task group
+			 */
+			String pwdString = null;
+			String sql = null;
+			String ident = request.getRemoteUser();
+			if(u.password == null) {
+				// Do not update the password
+				sql = "update users set "
+						+ "name = ?, "
+						+ "settings = ?, "
+						+ "language = ?, "
+						+ "email = ?, "
+						+ "timezone = ? "
+						+ "where "
+						+ "ident = ?";
+			} else {
+				// Update the password
+				sql = "update users set "
+						+ "name = ?, " 
+						+ "settings = ?, "
+						+ "language = ?, "
+						+ "email = ?, "
+						+ "timezone = ? "
+						+ "password = md5(?) "
+						+ "where "
+						+ "ident = ?";
 				
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, u.name);
-				pstmt.setString(2, u.settings);
-				pstmt.setString(3, u.language);
-				pstmt.setString(4, u.email);
-				pstmt.setString(5, u.timezone);
-				if(u.password == null) {
-					pstmt.setString(6, ident);
-				} else {
-					pstmt.setString(6, pwdString);
-					pstmt.setString(7, ident);
-				}
-				
-				log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
-				lm.writeLog(sd, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"));
-				log.info("Update user details: " + pstmt.toString());
-				pstmt.executeUpdate();
+				pwdString = ident + ":smap:" + u.password;
 			}
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, u.name);
+			pstmt.setString(2, u.settings);
+			pstmt.setString(3, u.language);
+			pstmt.setString(4, u.email);
+			pstmt.setString(5, u.timezone);
+			if(u.password == null) {
+				pstmt.setString(6, ident);
+			} else {
+				pstmt.setString(6, pwdString);
+				pstmt.setString(7, ident);
+			}
+			
+			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
+			lm.writeLog(sd, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"));
+			log.info("Update user details: " + pstmt.toString());
+			pstmt.executeUpdate();
 			
 			UserManager um = new UserManager(localisation);
 			User userResp = um.getByIdent(sd, request.getRemoteUser());
@@ -350,6 +300,81 @@ public class UserSvc extends Application {
 			response = Response.ok(resp).build();
 			
 			
+		} catch (Exception e) {
+
+			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Update the current survey, project and task group
+	 */
+	@POST
+	@Consumes("application/json")
+	@Path("/currentproject")
+	public Response updateCurrentProject(@Context HttpServletRequest request, @FormParam("user") String user) { 
+		
+		Response response = null;
+
+		// Authorisation - Not Required
+		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
+		
+		Type type = new TypeToken<User>(){}.getType();		
+		User u = new Gson().fromJson(user, type);		// The user settings
+		
+		PreparedStatement pstmt = null;
+		try {	
+			
+			// Localisation			
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			String sql = null;
+			if(u.current_project_id > 0) {
+				sql = "update users set current_project_id = ?, "
+						+ "current_survey_id = ?, "
+						+ "current_task_group_id = ? "
+						+ "where ident = ?";
+			} else if(u.current_survey_id > 0) {
+				// Only update the survey id
+				sql = "update users set current_survey_id = ? "
+						+ "where ident = ?";
+			} else if(u.current_task_group_id > 0) {
+				// Only update the task group id
+				sql = "update users set current_task_group_id = ? where ident = ?";
+			}
+						
+			pstmt = sd.prepareStatement(sql);
+			if(u.current_project_id > 0) {
+				pstmt.setInt(1, u.current_project_id);
+				pstmt.setInt(2, u.current_survey_id);
+				pstmt.setInt(3, u.current_task_group_id);
+				pstmt.setString(4, request.getRemoteUser());
+			} else if(u.current_survey_id > 0) {
+				pstmt.setInt(1, u.current_survey_id);
+				pstmt.setString(2, request.getRemoteUser());
+			} else if(u.current_task_group_id > 0) {
+				pstmt.setInt(1, u.current_task_group_id);
+				pstmt.setString(2, request.getRemoteUser());
+			}
+				
+			log.info("Update user defaults: " + pstmt.toString());
+			int count = pstmt.executeUpdate();
+			if(count == 0) {
+				log.info("Failed to update current project id and survey id");
+			}  
+
+			response = Response.ok().build();
+				
 		} catch (Exception e) {
 
 			response = Response.serverError().build();
