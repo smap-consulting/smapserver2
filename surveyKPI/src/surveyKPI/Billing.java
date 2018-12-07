@@ -126,13 +126,6 @@ public class Billing extends Application {
 			bill.line = rd.line;
 			bill.currency = rd.currency;
 			
-			/*
-			 * Server Charge
-			 */			
-			if(eId == 0 && oId == 0) {
-				bill.line.add(new BillLineItem("server", 1, 0, 50, 50));
-			}
-			
 			populateBill(sd, bill.line, eId, oId, year, month);
 
 			
@@ -347,7 +340,7 @@ public class Billing extends Application {
 	}
 	
 	/*
-	 * Get submisison data
+	 * Get submission data
 	 */
 	private void addUsage(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 

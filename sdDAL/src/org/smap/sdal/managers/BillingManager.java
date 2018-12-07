@@ -4,51 +4,16 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.UUID;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Request;
-
-import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
-import org.smap.sdal.model.Form;
-import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.KeyValueSimp;
-import org.smap.sdal.model.KeyValueTask;
-import org.smap.sdal.model.Location;
-import org.smap.sdal.model.Project;
 import org.smap.sdal.model.RateDetail;
-import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TaskAddressSettings;
-import org.smap.sdal.model.TaskBulkAction;
-import org.smap.sdal.model.TaskFeature;
-import org.smap.sdal.model.TaskGroup;
-import org.smap.sdal.model.TaskListGeoJson;
-import org.smap.sdal.model.TaskProperties;
-import org.smap.sdal.model.User;
-import org.smap.sdal.model.UserGroup;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
@@ -256,6 +221,8 @@ public class BillingManager {
 				if(rString != null) {					
 					rd.line = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
 				}
+				rd.oId = oId;
+				rd.eId = eId;
 				rd.currency = rs.getString(2);
 				rates.add(rd);
 			}
