@@ -20,7 +20,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
@@ -30,6 +32,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -37,6 +40,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.BillingManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
+import org.smap.sdal.model.Enterprise;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.RateDetail;
 
@@ -57,23 +61,45 @@ import java.util.logging.Logger;
 @Path("/billing")
 public class Billing extends Application {
 
-	Authorise aOrg = null;
 	Authorise aServer = null;
+	Authorise aServerManager = null;
+	
 	Authorise aEnterprise = null;
+	Authorise aEnterpriseManager = null;
+	
+	Authorise aOrg = null;
+	Authorise aOrgManager = null;
+
 	
 	private static Logger log =
 			 Logger.getLogger(Tasks.class.getName());
 	
 	public Billing() {
+		
+		// Server Owner
 		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.OWNER);				// Edit access to server bill
+		aServerManager = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.OWNER);				// Edit access to server bill
 		authorisations.add(Authorise.ENTERPRISE);		// View access to server bill
 		aServer = new Authorise(authorisations, null);
+		
+		// Enterprise
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ENTERPRISE);		// Edit access to enterprise bill
+		aEnterpriseManager = new Authorise(authorisations, null);
 		
 		authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ENTERPRISE);		// Edit access to enterprise bill
 		authorisations.add(Authorise.ORG);				// View access to enterprise bill
 		aEnterprise = new Authorise(authorisations, null);
+		
+		// Organisation
+		authorisations = new ArrayList<String> ();
+		authorisations.add(Authorise.ORG);				// Edit access to enterprise bill		
+		aOrgManager = new Authorise(authorisations, null);
 		
 		authorisations = new ArrayList<String> ();
 		authorisations.add(Authorise.ORG);				// Edit access to enterprise bill
@@ -151,67 +177,6 @@ public class Billing extends Application {
 		}
 
 		return gson.toJson(bill);
-	}
-	
-	@GET
-	@Path("/organisations")
-	@Produces("application/json")
-	public Response getOrganisations(@Context HttpServletRequest request,
-			@QueryParam("month") int month,
-			@QueryParam("year") int year,
-			@QueryParam("org") int oId) throws Exception { 
-	
-		Response responseVal = null;
-		
-		String connectionString = "surveyKPI-Billing-organisations";
-		
-		if(month < 1 || month > 12) {
-			throw new ApplicationException("Month must be specified and be between 1 and 12");
-		}
-		if(year == 0) {
-			throw new ApplicationException("Year must be specified");
-		}
-		
-		
-		// Authorisation - Access
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		Connection sd = SDDataSource.getConnection(connectionString);
-		if(oId > 0) {
-			aOrg.isAuthorised(sd, request.getRemoteUser());
-			
-			boolean superUser = false;
-			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-			} catch (Exception e) {
-			}
-			if(!superUser) {
-				aOrg.isValidBillingOrganisation(sd, oId);
-			}
-		} else {
-			aServer.isAuthorised(sd, request.getRemoteUser());
-		}	
-		// End Authorisation
-		
-		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		ArrayList<BillingDetail> bills = null;
-		try {
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			BillingManager bm = new BillingManager(localisation);
-			bills = bm.getOrganisationBillData(sd, year, month);
-
-			responseVal = Response.status(Status.OK).entity(gson.toJson(bills)).build();
-		} catch (Exception e) {
-			e.printStackTrace();
-			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
-		} finally {
-			
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-
-		return responseVal;
 	}
 	
 	/*
@@ -496,6 +461,95 @@ public class Billing extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
+	}
+	
+	/*
+	 * Enable / Disable billing
+	 */
+	@POST
+	@Path("/enable")
+	public Response enableBilling(
+			@Context HttpServletRequest request,
+			@FormParam("enabled") String enable,
+			@FormParam("level") String level,
+			@FormParam("id") String id) throws Exception { 
+
+		if(level == null) {
+			throw new ApplicationException("Billing level must be set");
+		}
+		if(enable == null) {
+			throw new ApplicationException("Enable or disable billing must be specified");
+		}
+		
+		String connectionString = "SurveyKPI-Billing-enable";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		if(level.equals("owner")) {
+			aServerManager.isAuthorised(sd, request.getRemoteUser());
+		} else if(level.equals("ent")) {
+			aEnterpriseManager.isAuthorised(sd, request.getRemoteUser());
+		} else if(level.equals("org")) {
+			aOrgManager.isAuthorised(sd, request.getRemoteUser());
+		} else {
+			SDDataSource.closeConnection(connectionString, sd);
+			throw new AuthorisationException();
+		}
+		// End Authorisation
+
+		Response response = null;
+
+		String sqlOwner = "update server set billing_enabled = ?";
+		String sqlEnterprise = "update enterprise set billing_enabled = ? where id = ?";
+		String sqlOrganisation = "update organisation set billing_enabled = ? where id = ?";
+		
+		PreparedStatement pstmt = null;
+
+		try {
+				
+			int iId = 0;
+			if(id != null) {
+				iId = Integer.parseInt(id);
+			}
+			
+			boolean bEnable = false;
+			if(enable.equals("true")) {
+				bEnable = true;
+			}
+			
+			System.out.println("Level: " + level + " do " + enable + " id " + id);
+			
+			if(level.equals("owner")) {
+				pstmt = sd.prepareStatement(sqlOwner);
+			} else if(level.equals("ent")) {
+				if(iId == 0) {
+					throw new ApplicationException("Enterprise ID must be specified");
+				}
+				pstmt = sd.prepareStatement(sqlEnterprise);
+				pstmt.setInt(2,  iId);
+			} else {		// Must be organisation
+				if(iId == 0) {
+					throw new ApplicationException("Organisation ID must be specified");
+				}
+				pstmt = sd.prepareStatement(sqlOrganisation);
+				pstmt.setInt(2,  iId);
+			} 
+			pstmt.setBoolean(1, bEnable);
+			log.info("Toggle enabled: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			response = Response.ok().build();
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
 	}
 	
 }
