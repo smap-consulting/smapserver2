@@ -59,17 +59,25 @@ public class Billing extends Application {
 
 	Authorise aOrg = null;
 	Authorise aServer = null;
+	Authorise aEnterprise = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Tasks.class.getName());
 	
 	public Billing() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ORG);
+		authorisations.add(Authorise.OWNER);				// Edit access to server bill
+		authorisations.add(Authorise.ENTERPRISE);		// View access to server bill
 		aServer = new Authorise(authorisations, null);
 		
 		authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ENTERPRISE);		// Edit access to enterprise bill
+		authorisations.add(Authorise.ORG);				// View access to enterprise bill
+		aEnterprise = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();
+		authorisations.add(Authorise.ORG);				// Edit access to enterprise bill
+		authorisations.add(Authorise.ADMIN);				// View access to organisation bill
 		aOrg = new Authorise(authorisations, null);
 	}
 	
@@ -81,6 +89,8 @@ public class Billing extends Application {
 			@QueryParam("org") int oId,
 			@QueryParam("ent") int eId) throws Exception { 
 	
+		String connectionString = "surveyKPI-Billing-getServer";
+		
 		if(month < 1 || month > 12) {
 			throw new ApplicationException("Month must be specified and be between 1 and 12");
 		}
@@ -90,17 +100,20 @@ public class Billing extends Application {
 		
 		// Authorisation - Access
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
 			aOrg.isAuthorised(sd, request.getRemoteUser());
 			
-			boolean superUser = false;
-			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-			} catch (Exception e) {
-			}
-			if(!superUser) {
+			boolean 	orgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());			
+			if(!orgUser) {
 				aOrg.isValidBillingOrganisation(sd, oId);
+			}
+		} else if(eId > 0) { 
+			aEnterprise.isAuthorised(sd, request.getRemoteUser());
+			
+			boolean entUser = GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser());			
+			if(!entUser) {
+				aOrg.isValidBillingEnterprise(sd, eId);
 			}
 		} else {
 			aServer.isAuthorised(sd, request.getRemoteUser());
@@ -134,7 +147,7 @@ public class Billing extends Application {
 			throw new Exception(e.getMessage());
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Billing", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return gson.toJson(bill);
@@ -150,6 +163,8 @@ public class Billing extends Application {
 	
 		Response responseVal = null;
 		
+		String connectionString = "surveyKPI-Billing-organisations";
+		
 		if(month < 1 || month > 12) {
 			throw new ApplicationException("Month must be specified and be between 1 and 12");
 		}
@@ -160,7 +175,7 @@ public class Billing extends Application {
 		
 		// Authorisation - Access
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
 			aOrg.isAuthorised(sd, request.getRemoteUser());
 			
@@ -193,7 +208,7 @@ public class Billing extends Application {
 			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Billing", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return responseVal;
@@ -212,6 +227,8 @@ public class Billing extends Application {
 			@QueryParam("year") int year,
 			@QueryParam("org") int oId) throws Exception { 
 
+		String connectionString = "surveyKPI-Billing-getOrganisationReport";
+		
 		if(month < 1 || month > 12) {
 			throw new ApplicationException("Month must be specified and be between 1 and 12");
 		}
@@ -221,7 +238,7 @@ public class Billing extends Application {
 		
 		// Authorisation - Access
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
 			aOrg.isAuthorised(sd, request.getRemoteUser());
 			
@@ -261,7 +278,7 @@ public class Billing extends Application {
 			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			
-			SDDataSource.closeConnection("createXLSTasks", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
 			
 		}
 		return Response.ok("").build();
@@ -295,9 +312,11 @@ public class Billing extends Application {
 			@QueryParam("org") int oId,
 			@QueryParam("ent") int eId) throws Exception { 
 		
+		String connectionString = "surveyKPI-Billing-getRates";
+		
 		// Authorisation - Access
 		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		Connection sd = SDDataSource.getConnection("surveyKPI-Billing");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		if(oId > 0) {
 			aOrg.isAuthorised(sd, request.getRemoteUser());
 			
@@ -333,7 +352,7 @@ public class Billing extends Application {
 			throw new Exception(e.getMessage());
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Billing", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return gson.toJson(rates);

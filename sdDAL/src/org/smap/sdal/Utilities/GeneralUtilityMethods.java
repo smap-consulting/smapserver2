@@ -596,6 +596,34 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Return true if the user has the enterprise administrator role
+	 */
+	static public boolean isEntUser(Connection con, String ident) throws SQLException {
+
+		String sql = "select count(*) " 
+				+ "from users u, user_group ug " 
+				+ "where u.id = ug.u_id "
+				+ "and ug.g_id = " + Authorise.ENTERPRISE + " "
+				+ "and u.ident = ? ";
+
+		boolean isEnt = false;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = con.prepareStatement(sql);
+			pstmt.setString(1, ident);
+			ResultSet resultSet = pstmt.executeQuery();
+
+			if (resultSet.next()) {
+				isEnt = (resultSet.getInt(1) > 0);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return isEnt;
+	}
+	
+	/*
 	 * Return true if the user has the organisational administrator role
 	 */
 	static public boolean isOrgUser(Connection con, String ident) throws SQLException {
@@ -698,8 +726,11 @@ public class GeneralUtilityMethods {
 	static public boolean isSuperUser(Connection sd, String user) throws SQLException {
 		boolean superUser = false;
 
-		String sqlGetOrgId = "select count(*) " + "from users u, user_group ug " + "where u.ident = ? "
-				+ "and u.id = ug.u_id " + "and (ug.g_id = 6 or ug.g_id = 4)";
+		String sqlGetOrgId = "select count(*) " 
+				+ "from users u, user_group ug " 
+				+ "where u.ident = ? "
+				+ "and u.id = ug.u_id " 
+				+ "and (ug.g_id = 6 or ug.g_id = 4)";
 
 		PreparedStatement pstmt = null;
 
