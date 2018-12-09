@@ -104,12 +104,21 @@ public class Utility extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		// End Authorisation
 		
-		String sql = "select name, utc_offset from pg_timezone_names where substring(name FROM 1 FOR 3) <> 'Etc' order by utc_offset asc";
+		String sql = "select name, utc_offset from pg_timezone_names "
+				+ "where substring(name FROM 1 FOR 3) <> 'Etc' "
+				+ "and substring(name FROM 1 FOR 7) <> 'SystemV' "
+				+ "and substring(name FROM 1 FOR 5) <> 'posix' "
+				+ "and name <> 'GMT0' "
+				+ "and name <> 'GMT-0' "
+				+ "and name <> 'GMT+0' "
+				+ "and name <> 'UCT' "
+				+ "order by utc_offset asc";
 		PreparedStatement pstmt;
 		
 		try {
 			ArrayList<SmapTimeZone> timezones = new ArrayList<> ();
 			pstmt = sd.prepareStatement(sql);
+			log.info("Get timezones: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				String id = rs.getString(1);
