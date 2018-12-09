@@ -14,6 +14,7 @@ public class BillingDetail {
 	public int year;
 	public String month;				// Month of bill
 	public String currency;			// Currency of bill
+	public boolean enabled;			// Set true if billing is enabled
 	
 	public ArrayList<BillLineItem> line = null;
 

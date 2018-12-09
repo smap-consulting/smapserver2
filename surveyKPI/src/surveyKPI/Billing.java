@@ -164,6 +164,7 @@ public class Billing extends Application {
 			RateDetail rd = bm.getRates(sd, year, month, eId, oId);
 			bill.line = rd.line;
 			bill.currency = rd.currency;
+			bill.enabled = bm.isBillEnabled(sd, eId, oId);
 			
 			populateBill(sd, bill.line, eId, oId, year, month);
 

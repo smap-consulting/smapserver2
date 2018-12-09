@@ -233,6 +233,46 @@ public class BillingManager {
 		return rates;
 	
 	}
+	
+	/*
+	 * Return true if the bill is enabled for this enterprise / organisation / server
+	 */
+	public boolean isBillEnabled(
+			Connection sd, 
+			int eId,
+			int oId) throws SQLException {
+		
+		boolean enabled = true;
+		
+		String sqlServer = "select billing_enabled from server ";
+		String sqlEnterprise = "select billing_enabled from enterprise where id = ? ";
+		String sqlOrganisation = "select billing_enabled from organisation where id = ? ";
+				
+		PreparedStatement pstmt = null;
+
+		try {
+			if(oId == 0 && eId == 0) {
+				pstmt = sd.prepareStatement(sqlServer);
+			} else if(eId > 0) {
+				pstmt = sd.prepareStatement(sqlEnterprise);
+				pstmt.setInt(1, eId);
+			} else if(oId > 0) {
+				pstmt = sd.prepareStatement(sqlOrganisation);
+				pstmt.setInt(1, oId);
+			}
+		
+			log.info("Is billing enabled: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				enabled = rs.getBoolean(1);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
+		}
+		
+		return enabled;
+	
+	}
 }
 
 
