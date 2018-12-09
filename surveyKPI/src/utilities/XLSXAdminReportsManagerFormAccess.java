@@ -36,14 +36,17 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AR;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
+import org.smap.sdal.model.UserGroup;
 
 
 /*
@@ -95,6 +98,7 @@ public class XLSXAdminReportsManagerFormAccess {
 		int rowNumber = 0;
 		int colNumber = 0;
 		int hasAccessCol = 0;
+		int hasNoAccessReasonCol = 0;
 
 		try {
 				
@@ -121,7 +125,7 @@ public class XLSXAdminReportsManagerFormAccess {
 					null, 		// cResults
 					request.getRemoteUser(), 
 					sId, 
-					false,		// full details
+					true,		// full details
 					null, 		// basePath
 					null, 		// instance id
 					false, 		// get results
@@ -136,7 +140,7 @@ public class XLSXAdminReportsManagerFormAccess {
 					null			// geom format
 					);
 			/*
-			 * Write the overview sheet
+			 * Write the form overview
 			 */	
 			Row row = dataSheet.createRow(rowNumber++);		
 			
@@ -170,13 +174,12 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(1);	
 				cell.setCellValue(survey.projectName);
 			}
-
-			rowNumber++;
 			
 			/*
 			 * Add the headings 
 			 */
 			colNumber = 0;
+			Row preHeaderRow = dataSheet.createRow(rowNumber++);	
 			row = dataSheet.createRow(rowNumber++);	
 			
 			cell = row.createCell(colNumber++);	// User Ident
@@ -191,6 +194,10 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_has_access"));
 			
+			cell = row.createCell(colNumber++);	// No Access reason
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_reason"));
+			
 			cell = row.createCell(colNumber++);	// In Organisation
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_current_org"));
@@ -198,6 +205,40 @@ public class XLSXAdminReportsManagerFormAccess {
 			cell = row.createCell(colNumber++);	// Has Project
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("rep_has_project"));
+			
+			// Add a marker that security groups have stated
+			cell = preHeaderRow.createCell(colNumber);	
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_sec_groups"));
+			
+			cell = row.createCell(colNumber++);	// Admin
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_admin"));
+			
+			cell = row.createCell(colNumber++);	// Analyst
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_analyst"));
+			
+			cell = row.createCell(colNumber++);	// Enum
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_enum"));
+			
+			cell = row.createCell(colNumber++);	// View Data
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("rep_view"));
+			
+			int idx = 0;
+			for(String roleName : survey.roles.keySet()) {	// Role
+				if(idx++ == 0) {
+					// Add a marker that roles have stated
+					cell = preHeaderRow.createCell(colNumber);	
+					cell.setCellStyle(headerStyle);
+					cell.setCellValue(localisation.getString("rep_roles"));
+				}
+				cell = row.createCell(colNumber++);	
+				cell.setCellStyle(headerStyle);
+				cell.setCellValue(roleName);
+			}
 			
 			/*
 			 * Process the users
@@ -208,6 +249,10 @@ public class XLSXAdminReportsManagerFormAccess {
 				colNumber = 0;
 				boolean hasProject = false;
 				boolean isInOrg = false;
+				boolean hasAdmin = false;
+				boolean hasAnalyst = false;
+				boolean hasEnum = false;
+				boolean hasView = false;
 				
 				row = dataSheet.createRow(rowNumber++);	
 				
@@ -217,7 +262,8 @@ public class XLSXAdminReportsManagerFormAccess {
 				cell = row.createCell(colNumber++);	// User Name
 				cell.setCellValue(u.name);
 				
-				hasAccessCol = colNumber++;			// Come back to the overall yes/no has access
+				hasAccessCol = colNumber++;					// Come back to the overall yes/no has access
+				hasNoAccessReasonCol = colNumber++;			// Come back to the reason for no access
 				
 				cell = row.createCell(colNumber++);	// Current Organisation
 				isInOrg = u.current_org_id == survey.o_id;
@@ -233,10 +279,77 @@ public class XLSXAdminReportsManagerFormAccess {
 				if(hasProject ? setCellGood(cell) : setCellBad(cell));
 				
 				/*
-				 * Set the overriding assessment of whether or not the user has access
+				 * Add security group cells
+				 */
+				for(UserGroup ug : u.groups) {
+					if(ug.id == Authorise.ADMIN_ID) {
+						hasAdmin = true;
+					} else if(ug.id == Authorise.ANALYST_ID) {
+						hasAnalyst = true;
+					} else if(ug.id == Authorise.ENUM_ID) {
+						hasEnum = true;
+					} else if(ug.id == Authorise.VIEW_DATA_ID) {
+						hasView = true;
+					}
+				}	
+				cell = row.createCell(colNumber++);	// Has Admin
+				if(hasAdmin ? setCellGood(cell) : setCellBad(cell));
+				cell = row.createCell(colNumber++);	// Has Analyst
+				if(hasAnalyst ? setCellGood(cell) : setCellBad(cell));
+				cell = row.createCell(colNumber++);	// Has Enum
+				if(hasEnum ? setCellGood(cell) : setCellBad(cell));
+				cell = row.createCell(colNumber++);	// Has View
+				if(hasView ? setCellGood(cell) : setCellBad(cell));
+				
+				boolean hasRole = false;
+				if(survey.roles.size() == 0) {
+					hasRole = true;		// No roles to worry about
+				} else {
+					for(String roleName : survey.roles.keySet()) {	// Role
+						boolean hasThisRole = false;
+						for(Role r : u.roles) {
+							if(r.name.equals(roleName)) {
+								hasThisRole = true;
+								hasRole = true;
+								break;
+							}
+						}
+						cell = row.createCell(colNumber++);	// Role
+						if(hasThisRole ? setCellGood(cell) : setCellBad(cell));
+					}
+				}
+				
+				/*
+				 * Set the overall assessment of whether or not the user has access
 				 */
 				cell = row.createCell(hasAccessCol);
-				if(isInOrg && hasProject ? setCellGood(cell) : setCellBad(cell));
+				boolean hasAccess = 
+						isInOrg && 
+						hasProject &&
+						(hasAdmin || hasAnalyst || hasEnum || hasView) &&
+						hasRole;
+				if(hasAccess ? setCellGood(cell) : setCellBad(cell));
+				
+				/*
+				 * Set the reason for no access
+				 */
+				if(!hasAccess) {
+					StringBuffer reason = new StringBuffer("");
+					if(!isInOrg) {
+						reason.append(localisation.getString("rep_reason_org")).append(". ");
+					}
+					if(!hasProject) {
+						reason.append(localisation.getString("rep_reason_project")).append(". ");
+					}
+					if(!hasAdmin && !hasAnalyst && !hasEnum && !hasView) {
+						reason.append(localisation.getString("rep_reason_sec_group")).append(". ");
+					}
+					if(!hasRole) {
+						reason.append(localisation.getString("rep_reason_role")).append(". ");
+					}
+					cell = row.createCell(hasNoAccessReasonCol);
+					cell.setCellValue(reason.toString());
+				}
 			}
 
 		} catch (Exception e) {
