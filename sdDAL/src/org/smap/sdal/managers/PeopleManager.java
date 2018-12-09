@@ -4,32 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.ResourceBundle;
-import java.util.TimeZone;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.AssignFromSurvey;
-import org.smap.sdal.model.Assignment;
-import org.smap.sdal.model.Location;
-import org.smap.sdal.model.Task;
-import org.smap.sdal.model.TaskAssignment;
-import org.smap.sdal.model.TaskBulkAction;
-import org.smap.sdal.model.TaskFeature;
-import org.smap.sdal.model.TaskGroup;
-import org.smap.sdal.model.TaskListGeoJson;
-import org.smap.sdal.model.TaskProperties;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
 
 /*****************************************************************************
 
@@ -125,14 +104,14 @@ public class PeopleManager {
 		
 		String sqlRegulate = "select count(*) "
 				+ "from people "
-				+ "where email ilike ? "
+				+ "where email = ? "
 				+ "and unsubscribed "
 				+ "and (when_requested_subscribe + interval '1 day') > timestamp 'now' ";
 		PreparedStatement pstmtRegulate = null;
 		
 		String sql = "select unsubscribed, uuid "
 				+ "from people "
-				+ "where email ilike ?";
+				+ "where email = ?";
 		PreparedStatement pstmt = null;
 		
 		// Create an entry with the user initially unsubscribed
@@ -144,25 +123,27 @@ public class PeopleManager {
 		String sqlUpdate = "update people set "
 				+ "uuid = ?, "
 				+ "when_requested_subscribe = now() "
-				+ "where email ilike ?";		
+				+ "where email = ?";		
 		PreparedStatement pstmtUpdate = null;
 		
 		String key = null;
 		try {
 			
-			// Make sure no subscribe requests have been made in the last 24 hours
-			pstmtRegulate = sd.prepareStatement(sqlRegulate);
-			pstmtRegulate.setString(1, email);
-			log.info("Check for aleady sent subscription request: " + pstmtRegulate.toString());
-			ResultSet rs = pstmtRegulate.executeQuery();
-			if(rs.next() && rs.getInt(1) > 0) {
-				log.info("Email request subscription already sent");
-				throw new ApplicationException(localisation.getString("email_subs"));
-			}
 			
 			if(email != null) {
 				
 				email = email.toLowerCase();
+				
+				// Make sure no subscribe requests have been made in the last 24 hours
+				pstmtRegulate = sd.prepareStatement(sqlRegulate);
+				pstmtRegulate.setString(1, email);
+				log.info("Check for aleady sent subscription request: " + pstmtRegulate.toString());
+				ResultSet rs = pstmtRegulate.executeQuery();
+				if(rs.next() && rs.getInt(1) > 0) {
+					log.info("Email request subscription already sent");
+					throw new ApplicationException(localisation.getString("email_subs"));
+				}
+				
 				/*
 				 * Get an existing UUID
 				 */
