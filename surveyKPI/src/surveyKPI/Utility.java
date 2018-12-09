@@ -104,7 +104,7 @@ public class Utility extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		// End Authorisation
 		
-		String sql = "select name, utc_offset from pg_timezone_names order by utc_offset asc";
+		String sql = "select name, utc_offset from pg_timezone_names where substring(name FROM 1 FOR 3) <> 'Etc' order by utc_offset asc";
 		PreparedStatement pstmt;
 		
 		try {
