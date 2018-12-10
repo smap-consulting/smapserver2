@@ -165,6 +165,8 @@ public class Billing extends Application {
 			bill.line = rd.line;
 			bill.currency = rd.currency;
 			bill.enabled = bm.isBillEnabled(sd, eId, oId);
+			bill.ratesOid = rd.oId;	// The organisation that these rates were specified for
+			bill.ratesEid = rd.eId;	// The enterprise that these rates were specified for
 			
 			populateBill(sd, bill.line, eId, oId, year, month);
 

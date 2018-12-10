@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.RateDetail;
@@ -135,7 +136,7 @@ public class BillingManager {
 			int year,
 			int month,
 			int eId,
-			int oId) throws SQLException {
+			int oId) throws SQLException, ApplicationException {
 		
 		RateDetail rd = new RateDetail();
 		
@@ -158,22 +159,64 @@ public class BillingManager {
 			month++;
 		}
 		LocalDateTime d = LocalDateTime.of(year, month, 1, 0, 0);
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
+			
+			// Try with the passed organisation and enterprise
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, eId);
 			pstmt.setObject(3, d);
 			log.info("Get rates: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				String rString = rs.getString(1);
-				if(rString != null) {					
-					rd.line = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
+				getRates(rs, rd);
+				rd.oId = oId;
+				rd.eId = eId;
+			} else {
+				// Go up one level
+				if(oId > 0) {
+					oId = 0;		// Try the enterprise level rates
+				} else if(eId > 0) {
+					eId = 0;		// Try the server level rates
+				} else {
+					throw new ApplicationException("Rates not found");
 				}
-				rd.currency = rs.getString(2);
+				pstmt.setInt(1, oId);
+				pstmt.setInt(2, eId);
+				log.info("Get rates2: " + pstmt.toString());
+				rs.close();
+				rs = pstmt.executeQuery();
+				if(rs.next()) {
+					getRates(rs, rd);
+					rd.oId = oId;
+					rd.eId = eId;
+				} else {
+					// Go up a second level
+					if(eId > 0) {
+						eId = 0;		// Try the server level rates
+					} else {
+						throw new ApplicationException("Rates not found");
+					}
+					pstmt.setInt(1, oId);
+					pstmt.setInt(2, eId);
+					log.info("Get rates3: " + pstmt.toString());
+					rs.close();
+					rs = pstmt.executeQuery();
+					if(rs.next()) {
+						getRates(rs, rd);
+						rd.oId = oId;
+						rd.eId = eId;
+					} else {
+						throw new ApplicationException("Rates not found");
+					}
+				}
 			}
+		} catch (ApplicationException e) {
+			rd.oId = -1;
+			rd.eId = -1;
+			log.info("Error: rates not found");
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}
@@ -184,6 +227,15 @@ public class BillingManager {
 		
 		return rd;
 	
+	}
+	
+	private void getRates(ResultSet rs, RateDetail rd) throws SQLException {
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		String rString = rs.getString(1);
+		if(rString != null) {					
+			rd.line = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
+		}
+		rd.currency = rs.getString(2);
 	}
 	
 	/*

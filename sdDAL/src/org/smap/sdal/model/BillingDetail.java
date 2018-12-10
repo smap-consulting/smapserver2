@@ -10,6 +10,9 @@ public class BillingDetail {
 	public static int MONTHLY = 5;
 	
 	public int oId;
+	public int eId;
+	public int ratesOid;
+	public int ratesEid; 
 	public String oName;
 	public int year;
 	public String month;				// Month of bill
