@@ -898,6 +898,25 @@ public class UserManager {
 					if(targetSettings != null) {
 						u = gson.fromJson(targetSettings, User.class);
 						u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
+						
+						/*
+						 * A user cannpt lose organisational administration, enterprise administration or server owner privileges just be switching organisation
+						 */
+						for(UserGroup ug: uCurrent.groups) {
+							if(ug.id == Authorise.ORG_ID || ug.id == Authorise.ENTERPRISE_ID || ug.id == Authorise.OWNER_ID) {
+								boolean alreadyThere = false;
+								for(UserGroup ugNew : u.groups) {
+									if(ugNew.id == ug.id) {
+										alreadyThere = true;
+										break;
+									}
+								}
+								if(!alreadyThere) {
+									u.groups.add(ug);
+								}
+							}
+						}
+						
 					} else {
 						u = uCurrent;
 						// Clear settings from the current org that we do not want to add as the default to a new org
