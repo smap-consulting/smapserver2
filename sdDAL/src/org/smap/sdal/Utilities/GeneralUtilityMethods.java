@@ -603,7 +603,7 @@ public class GeneralUtilityMethods {
 		String sql = "select count(*) " 
 				+ "from users u, user_group ug " 
 				+ "where u.id = ug.u_id "
-				+ "and ug.g_id = " + Authorise.ENTERPRISE + " "
+				+ "and ug.g_id = " + Authorise.ENTERPRISE_ID + " "
 				+ "and u.ident = ? ";
 
 		boolean isEnt = false;
