@@ -76,9 +76,10 @@ public class LogManager {
 				+ "log_time,"
 				+ "s_id,"
 				+ "o_id,"
+				+ "e_id,"
 				+ "user_ident,"
 				+ "event,"
-				+ "note) values (now(), ?, ?, ?, ?, ?);";
+				+ "note) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -88,9 +89,10 @@ public class LogManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, oId);
-			pstmt.setString(3, uIdent);
-			pstmt.setString(4,  event);
-			pstmt.setString(5,  note);
+			pstmt.setInt(3, oId);
+			pstmt.setString(4, uIdent);
+			pstmt.setString(5,  event);
+			pstmt.setString(6,  note);
 			
 			pstmt.executeUpdate();
 
