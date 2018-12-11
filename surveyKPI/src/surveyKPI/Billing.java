@@ -252,7 +252,7 @@ public class Billing extends Application {
 		return Response.ok("").build();
 	}
 
-	private void populateBill(Connection sd, ArrayList<BillLineItem> items, int eId, int oId, int year, int month) throws SQLException {
+	private void populateBill(Connection sd, ArrayList<BillLineItem> items, int eId, int oId, int year, int month) throws SQLException, ApplicationException {
 		
 		for(BillLineItem item : items) {
 			if(item.item == BillingDetail.SUBMISSIONS) {
@@ -337,9 +337,11 @@ public class Billing extends Application {
 				+ "and se.status = 'success' "
 				+ "and subscriber = 'results_db' "
 				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ?";	
+				+ "and extract(year from upload_time) = ? ";	
 		if(oId > 0) {
-			sql += " and o_id = ?";
+			sql += "and o_id = ?";
+		} else if(eId > 0) {
+			sql += "and e_id = ?";
 		}
 		PreparedStatement pstmt = null;
 		
@@ -349,6 +351,8 @@ public class Billing extends Application {
 			pstmt.setInt(2, year);
 			if(oId > 0) {
 				pstmt.setInt(3, oId);
+			} else if(eId > 0) {
+				pstmt.setInt(3, eId);
 			}
 			item.quantity = 0;
 			log.info("Get submissions: " + pstmt.toString());
@@ -369,34 +373,58 @@ public class Billing extends Application {
 	/*
 	 * Get Disk Usage
 	 */
-	private void addDisk(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
+	private void addDisk(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException, ApplicationException {
 		
 		String sqlDisk = "select  max(total) as total, max(upload) + max(media) + max(template) + max(attachments) as organisation "
 				+ "from disk_usage where o_id = ?  "
 				+ "and extract(month from when_measured) = ? "
 				+ "and extract(year from when_measured) = ?";
+		
+		String sqlDiskEnterprise = "select  max(total) as total, max(upload) + max(media) + max(template) + max(attachments) as organisation "
+				+ "from disk_usage where e_id = ?  "
+				+ "and extract(month from when_measured) = ? "
+				+ "and extract(year from when_measured) = ?";
+		
 		PreparedStatement pstmtDisk = null;
 		
 		try {
-			pstmtDisk = sd.prepareStatement(sqlDisk);
-			pstmtDisk.setInt(1, oId);
+			if(eId == 0) {
+				pstmtDisk = sd.prepareStatement(sqlDisk);
+				pstmtDisk.setInt(1, oId);
+			} else {
+				pstmtDisk = sd.prepareStatement(sqlDiskEnterprise);
+				pstmtDisk.setInt(1, eId);
+			}			
 			pstmtDisk.setInt(2, month);
 			pstmtDisk.setInt(3, year);
 			
+			log.info("Get disk usage: " + pstmtDisk.toString());
 			ResultSet rs = pstmtDisk.executeQuery();
 
-			if(rs.next()) {
-				if(oId == 0) {
-					item.quantity = (int) (rs.getDouble("total") / 1000.0);
+			int count = 0;
+			Double quantity = 0.0;
+			while(rs.next()) {
+				if(oId == 0 && eId == 0) {
+					quantity = rs.getDouble("total");
+				} else if(eId == 0) {
+					quantity = rs.getDouble("organisation");
 				} else {
-					item.quantity = (int) (rs.getDouble("organisation") / 1000.0);
+					quantity += rs.getDouble("organisation");		// Aggregate quantities
 				}
-				item.amount = (item.quantity - item.free) * item.unitCost;
-				item.amount = Math.round(item.amount * 100.0) / 100.0;
-				if(item.amount < 0) {
-					item.amount = 0.0;
-				}
-			} 
+				count++;
+			}
+			if(count > 1 && eId == 0) {
+				throw new ApplicationException("Too many billing results");
+			}
+			
+			item.quantity = (int) (quantity / 1000.0);
+			item.amount = (item.quantity - item.free) * item.unitCost;
+			item.amount = Math.round(item.amount * 100.0) / 100.0;
+			if(item.amount < 0) {
+				item.amount = 0.0;
+			}
+			log.info("Disk quantity: " + eId + " : " + oId + " : " + quantity);
+
 		} finally {
 			try {if (pstmtDisk != null) {pstmtDisk.close();}} catch (SQLException e) {}
 		}
