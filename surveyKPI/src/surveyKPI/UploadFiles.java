@@ -603,12 +603,11 @@ public class UploadFiles extends Application {
 				msg = msg.replaceAll("%s1", displayName);
 				throw new ApplicationException(msg);
 			} else if(type.equals("xls") || type.equals("xlsx")) {
-				XLSTemplateUploadManager tum = new XLSTemplateUploadManager();
+				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(localisation, warnings);
 				Survey s = tum.getSurvey(sd, 
 						oId, 
 						type, 
 						fileItem.getInputStream(), 
-						localisation, 
 						displayName,
 						projectId,
 						questionNames,
