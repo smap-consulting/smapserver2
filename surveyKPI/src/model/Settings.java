@@ -15,6 +15,7 @@ public class Settings {
 	public int layerId;
 	public String region;
 	public String lang;
+	public String subject_type;
 	public int qId;
 	public boolean qId_is_calc;
 	public int dateQuestionId;

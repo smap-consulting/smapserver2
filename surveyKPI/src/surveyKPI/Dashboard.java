@@ -61,6 +61,7 @@ public class Dashboard extends Application {
 		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
 	}
+	
 	/*
 	 * Get the dashboard settings
 	 * The survey id is obtained from the survey table based on the survey name stored in the
@@ -113,7 +114,8 @@ public class Dashboard extends Application {
 					"d.ds_to_date as toDate, " +
 					"d.ds_q_is_calc as qId_is_calc, " +
 					"d.ds_filter as filter, " +
-					"d.ds_advanced_filter as advanced_filter " +
+					"d.ds_advanced_filter as advanced_filter, " +
+					"d.ds_subject_type as subject_type " +
 					" from dashboard_settings d, users u, user_project up, survey s " +
 					" where u.id = up.u_id " +
 					" and up.p_id = ? " +
@@ -163,6 +165,7 @@ public class Dashboard extends Application {
 				s.qId_is_calc = resultSet.getBoolean("qId_is_calc");
 				s.filter = resultSet.getString("filter");
 				s.advanced_filter = resultSet.getString("advanced_filter");
+				s.subject_type = resultSet.getString("subject_type");
 				
 				sArray.add(s);
 				
@@ -231,8 +234,8 @@ public class Dashboard extends Application {
 					"ds_state, ds_seq, ds_title, ds_s_id, ds_s_name, ds_type, ds_layer_id, ds_region," +
 					" ds_lang, ds_q_id, ds_date_question_id, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, " +
 					" ds_group_question_id, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group," +
-					" ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter) values (" +
-					"?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+					" ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type) values (" +
+					"?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 			pstmtAddView = connectionSD.prepareStatement(sqlAddView);	 			
 			
 			String sqlReplaceView = "update dashboard_settings set " +
@@ -260,7 +263,8 @@ public class Dashboard extends Application {
 					" ds_to_date = ?," +
 					" ds_q_is_calc = ?," +
 					" ds_filter = ?," +
-					" ds_advanced_filter = ?" +
+					" ds_advanced_filter = ?," +
+					" ds_subject_type = ? " +
 					" where ds_id = ? " +
 					" and ds_user_ident = ?;";						
 			pstmtReplaceView = connectionSD.prepareStatement(sqlReplaceView);
@@ -308,6 +312,7 @@ public class Dashboard extends Application {
 						pstmtAddView.setBoolean(24, s.qId_is_calc);
 						pstmtAddView.setString(25, s.filter);
 						pstmtAddView.setString(26, s.advanced_filter);
+						pstmtAddView.setString(27, s.subject_type);
 						log.info("Add view: " + pstmtAddView.toString());
 						pstmtAddView.executeUpdate();		
 
@@ -339,8 +344,9 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setBoolean(23, s.qId_is_calc);
 						pstmtReplaceView.setString(24, s.filter);
 						pstmtReplaceView.setString(25, s.advanced_filter);
-						pstmtReplaceView.setInt(26, s.id);
-						pstmtReplaceView.setString(27, user);
+						pstmtReplaceView.setString(26, s.subject_type);
+						pstmtReplaceView.setInt(27, s.id);
+						pstmtReplaceView.setString(28, user);
 						
 						log.info("Update view: " + pstmtReplaceView.toString());
 						pstmtReplaceView.executeUpdate();
