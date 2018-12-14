@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MessagingManager;
@@ -487,7 +488,7 @@ public class Survey {
 	 */
 	private boolean getExistingCompressedFlag(Connection sd, String tableName, int existingSurveyId, String qName) throws SQLException {
 		boolean compressed = true;
-		String sql = "select compressed from question where qName = ? and f_id = "
+		String sql = "select compressed, qtype from question where qName = ? and f_id = "
 				+ "(select f_id from form where s_id = ? and table_name = ? and not reference)";
 		PreparedStatement pstmt = null;
 		
@@ -497,8 +498,13 @@ public class Survey {
 			pstmt.setInt(2,  existingSurveyId);
 			pstmt.setString(3,  tableName);
 			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				compressed = rs.getBoolean(1);
+			if(rs.next()) {				
+				String qType = rs.getString(2);
+				if(qType != null && qType.equals("select")) {
+					compressed = rs.getBoolean(1);
+				} else {
+					compressed = true;		// default to true if we are not updating an existing uncompressed select
+				}
 			}	
 		} finally {
 			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}

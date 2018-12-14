@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import org.apache.poi.ss.usermodel.*;
 import org.javarosa.xpath.XPathParseTool;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
@@ -92,7 +93,6 @@ public class XLSTemplateUploadManager {
 	int metaId = -1000;
 
 	Survey survey = null;
-	ResourceBundle localisation = null;
 
 	private class FunctionCheck {
 		String name;
@@ -106,8 +106,14 @@ public class XLSTemplateUploadManager {
 		}
 	}
 	private ArrayList<FunctionCheck> functions = new ArrayList<> ();
+	private ResourceBundle localisation = null;
+	private ArrayList<ApplicationWarning> warnings = null;
 
-	public XLSTemplateUploadManager() {
+	public XLSTemplateUploadManager(ResourceBundle l, ArrayList<ApplicationWarning> w) {
+		
+		localisation = l;
+		warnings = w;
+		
 		// Initialise Function Check array
 		functions.add(new FunctionCheck("count", 1, "count(nodeset)"));
 		functions.add(new FunctionCheck("if", 3, "if(condition, a, b)"));
@@ -122,7 +128,6 @@ public class XLSTemplateUploadManager {
 			int oId, 
 			String type, 
 			InputStream inputStream, 
-			ResourceBundle localisation, 
 			String displayName,
 			int p_id,
 			HashMap<String, String> questionNames,
@@ -130,7 +135,6 @@ public class XLSTemplateUploadManager {
 			boolean merge,
 			int existingVersion) throws Exception {
 
-		this.localisation = localisation;
 		this.questionNames = questionNames;
 		this.optionNames = optionNames;
 		this.merge = merge;
@@ -1099,7 +1103,9 @@ public class XLSTemplateUploadManager {
 
 		} else if(listMap.get(o.value) != null) {
 			// Check for a duplicate value
-			throw XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);
+			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);
+			warnings.add(new ApplicationWarning(e.getMessage()));
+			//throw XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);
 
 		}
 

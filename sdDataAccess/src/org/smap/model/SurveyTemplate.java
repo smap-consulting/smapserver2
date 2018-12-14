@@ -1307,6 +1307,7 @@ public class SurveyTemplate {
 			 * Post processing of question list
 			 */
 			for(int i= 0; i < qList.size(); i++) {
+				boolean cascadeInstanceAlreadyLoaded = false;
 				Question q = qList.get(i);
 				int f_id = q.getFormId();
 				Form f = getFormById(f_id);
@@ -1381,6 +1382,8 @@ public class SurveyTemplate {
 						
 						if(!cascadeInstanceLoaded(cascadeName)) {
 							cascadeInstances.add(ci);
+						} else {
+							cascadeInstanceAlreadyLoaded = true;
 						}
 						cascade = true;
 					}
@@ -1409,21 +1412,24 @@ public class SurveyTemplate {
 						o.setQuestionRef(qRef);
 						String oRef = qRef + "/" + o.getId();
 						if(oRef != null) {
-							if(cascade) {
+							if(cascade && !cascadeInstanceAlreadyLoaded) {
 
 								if((includeExternal && o.getExternalFile()) || (!includeExternal && !o.getExternalFile())) {
 									o.setListName(cascadeName);
 									// Cascade options are shared, check that this option has not been added already by another question
-									String existingRef = cascadeOptionLoaded(cascadeName, o.getLabelId(), o.getValue());
-									if(existingRef == null) {
-										cascade_options.put(oRef, o);
+									//String existingRef = cascadeOptionLoaded(cascadeName, o.getLabelId(), o.getValue());
+									//if(existingRef == null) {
+									cascade_options.put(oRef, o);
+									/*
 									} else {
 										/*
 										 * Replace existing if the new option has more cascading filters
 										 * All this complexity is required because pyxform puts a list in two places
 										 *  in the xform output depending on whether or not it has cascades
 										 *  We want to give preference to options that have a cascade
-										 */
+										 *  
+										 *  No longer needed as pyxform has been removed
+										 *
 										// 
 										if(o.getCascadeFilters() != null) {
 											boolean replace = false;
@@ -1441,6 +1447,7 @@ public class SurveyTemplate {
 											}
 										}
 									}
+								*/
 								}
 							} else {
 								options.put(oRef, o);
