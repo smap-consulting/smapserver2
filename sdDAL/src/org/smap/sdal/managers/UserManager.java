@@ -23,6 +23,7 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
+import org.smap.sdal.model.UserSimple;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -1262,6 +1263,47 @@ public class UserManager {
 			try {if (pstmtRoles != null) {pstmtRoles.close();	}} catch (Exception e) {	}
 			try {if (pstmtOrgs != null) {pstmtOrgs.close();	}} catch (Exception e) {}
 			try {if (pstmtGetSavedUser != null) {pstmtGetSavedUser.close();	}} catch (Exception e) {}
+		}
+		return users;
+	}
+	
+	/*
+	 * Get a list of users with just basic information
+	 */
+	public ArrayList<UserSimple> getUserListSimple(Connection sd, int oId) throws SQLException {
+		
+		ArrayList<UserSimple> users = new ArrayList<> ();
+		
+		String sql = "select u.id as id,"
+				+ "u.ident as ident, "
+				+ "u.name as name "			
+				+ "from users u "
+				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
+				+ "and not u.temporary "
+				+ "order by u.ident asc";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = null;
+			
+			pstmt.setInt(1, oId);
+			pstmt.setInt(2, oId);
+			log.info("Get user list: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+			while(rs.next()) {
+				UserSimple u = new UserSimple();
+				u.id = rs.getInt("id");
+				u.ident = rs.getString("ident");
+				u.name = rs.getString("name");
+
+				users.add(u);
+			}
+			
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
 		}
 		return users;
 	}

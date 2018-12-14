@@ -41,11 +41,9 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.Project;
-import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
+import org.smap.sdal.model.UserSimple;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -143,6 +141,51 @@ public class UserList extends Application {
 
 		return response;
 	}
+	
+	@GET
+	@Produces("application/json")
+	@Path("/simple")
+	public Response getUsersSimple(
+			@Context HttpServletRequest request
+			) { 
+
+		Response response = null;
+		String requestName = "surveyKPI-getUsers";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requestName);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		ArrayList<UserSimple> users = null;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			
+			UserManager um = new UserManager(localisation);
+			users = um.getUserListSimple(sd, oId);
+			String resp = gson.toJson(users);
+			response = Response.ok(resp).build();
+						
+			
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(requestName, sd);
+		}
+
+		return response;
+	}
+
 
 	@GET
 	@Path("/temporary")
