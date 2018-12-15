@@ -10,6 +10,7 @@ public class Settings {
 	public String title;
 	public int pId;
 	public int sId;
+	public int uId;
 	public String sName;
 	public String type;
 	public int layerId;

@@ -94,6 +94,7 @@ public class Dashboard extends Application {
 					"d.ds_state as state," +
 					"d.ds_title as title," +
 					"d.ds_s_id as sId," +
+					"d.ds_u_id as uId," +
 					"d.ds_s_name as sName," +
 					"d.ds_type as type," +
 					"d.ds_layer_id as layerId," +
@@ -132,6 +133,7 @@ public class Dashboard extends Application {
 					"d.ds_state as state," +
 					"d.ds_title as title," +
 					"d.ds_s_id as sId," +
+					"d.ds_u_id as uId," +
 					"d.ds_s_name as sName," +
 					"d.ds_type as type," +
 					"d.ds_layer_id as layerId," +
@@ -246,8 +248,8 @@ public class Dashboard extends Application {
 					"ds_state, ds_seq, ds_title, ds_s_id, ds_s_name, ds_type, ds_layer_id, ds_region," +
 					" ds_lang, ds_q_id, ds_date_question_id, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, " +
 					" ds_group_question_id, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group," +
-					" ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type) values (" +
-					"?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+					" ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type, ds_u_id) values (" +
+					"?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 			pstmtAddView = connectionSD.prepareStatement(sqlAddView);	 			
 			
 			String sqlReplaceView = "update dashboard_settings set " +
@@ -276,7 +278,8 @@ public class Dashboard extends Application {
 					" ds_q_is_calc = ?," +
 					" ds_filter = ?," +
 					" ds_advanced_filter = ?," +
-					" ds_subject_type = ? " +
+					" ds_subject_type = ?, " +
+					" ds_u_id = ? " +
 					" where ds_id = ? " +
 					" and ds_user_ident = ?;";						
 			pstmtReplaceView = connectionSD.prepareStatement(sqlReplaceView);
@@ -325,6 +328,7 @@ public class Dashboard extends Application {
 						pstmtAddView.setString(25, s.filter);
 						pstmtAddView.setString(26, s.advanced_filter);
 						pstmtAddView.setString(27, s.subject_type);
+						pstmtAddView.setInt(28, s.uId);
 						log.info("Add view: " + pstmtAddView.toString());
 						pstmtAddView.executeUpdate();		
 
@@ -357,8 +361,9 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setString(24, s.filter);
 						pstmtReplaceView.setString(25, s.advanced_filter);
 						pstmtReplaceView.setString(26, s.subject_type);
-						pstmtReplaceView.setInt(27, s.id);
-						pstmtReplaceView.setString(28, user);
+						pstmtReplaceView.setInt(27, s.uId);
+						pstmtReplaceView.setInt(28, s.id);
+						pstmtReplaceView.setString(29, user);
 						
 						log.info("Update view: " + pstmtReplaceView.toString());
 						pstmtReplaceView.executeUpdate();
@@ -465,6 +470,7 @@ public class Dashboard extends Application {
 		s.title = resultSet.getString("title");
 		s.pId = idx;	// panel id
 		s.sId = resultSet.getInt("sId");
+		s.uId = resultSet.getInt("uId");
 		s.sName = resultSet.getString("sName");
 		s.type = resultSet.getString("type");
 		s.layerId = resultSet.getInt("layerId");
