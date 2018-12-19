@@ -67,10 +67,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/*
- * Returns data for the passed in table name
- */
-@Path("/items/{form}")
+@Path("/items")
 public class Items extends Application {
 	
 	Authorise a = null;
@@ -94,6 +91,7 @@ public class Items extends Application {
 	
 	/*
 	 * JSON
+	 * Gets data for the supplied form id
 	 * Usage /surveyKPI/items/{formId}?geom=yes|no&feats=yes|no&mustHaveGeom=yes|no
 	 *   geom=yes  then location information will be returned
 	 *   feats=yes then features associated with geometries will be returned
@@ -103,6 +101,7 @@ public class Items extends Application {
 	 *   	Not return "bad" records unless get_bad is set to true
 	 */
 	@GET
+	@Path("/{form}")
 	@Produces("application/json")
 	public String getTable(@Context HttpServletRequest request,
 			@PathParam("form") int fId, 
@@ -595,7 +594,7 @@ public class Items extends Application {
 					
 					jr.put("type", "Feature");
 
-					for(int i = 0; i < colNames.size(); i++) {		
+					for(int i = 0; i < colNames.size(); i++) {	
 						
 						if(i == geomIdx) {							
 							// Add Geometry (assume one geometry type per table)
@@ -729,10 +728,417 @@ public class Items extends Application {
 	}
 	
 	/*
-	 * Update the settings
+	 * Get the user activity
+	 */
+	@GET
+	@Path("/user/{user}")
+	@Produces("application/json")
+	public String getUserActivity(@Context HttpServletRequest request,
+			@PathParam("user") int uId, 
+			@QueryParam("start_key") int start_key,
+			@QueryParam("rec_limit") int rec_limit,
+			@QueryParam("dateId") int dateId,		// Id of question containing the date to filter by
+			@QueryParam("startDate") Date startDate,
+			@QueryParam("endDate") Date endDate,
+			@QueryParam("filter") String sFilter,
+			@QueryParam("advanced_filter") String advanced_filter,
+			@QueryParam("tz") String tz) { 
+		
+		SimpleDateFormat sdf = new SimpleDateFormat("dd-yyyy HH:mm");
+		
+		JSONObject jo = new JSONObject();
+		JSONArray columns = new JSONArray();
+		JSONArray types = new JSONArray();
+		
+		int maxRec = 0;
+		int recCount = 0;	
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-Items");		
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidUser(sd, request.getRemoteUser(), uId);
+		// End Authorisation
+		
+		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Activity for " + uId);
+	
+		tz = (tz == null) ? "UTC" : tz;
+		
+		StringBuffer message = new StringBuffer("");
+		
+		if(uId > 0) {
+			
+			PreparedStatement pstmt = null;
+			
+			int totalCount = 0;
+			 
+			try {
+				
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				String user = GeneralUtilityMethods.getUserIdent(sd, uId);	
+				
+				JSONObject jTotals = new JSONObject();
+				jo.put("totals", jTotals);
+				jTotals.put("start_key", start_key);
+				
+				// Get the number of records
+				String sql = "SELECT count(*) FROM upload_event where user_name = ?";
+				
+				pstmt = sd.prepareStatement(sql);	
+				pstmt.setString(1, user);
+				log.info("Get the number of records: " + pstmt.toString());	
+				ResultSet resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					totalCount = resultSet.getInt(1);
+					jTotals.put("total_count", totalCount);
+				}
+				
+
+				
+				 /*
+				  * Get the where clause passed by the client
+				  *  This may reference columns in a different table
+				  *
+				  * TODO
+				  * 
+				Filter filter = null;
+				if(sFilter != null) {
+					Type type = new TypeToken<Filter>(){}.getType();
+					Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+					filter = gson.fromJson(sFilter, type);
+					
+					if(filter.value != null) {
+						filter.value = filter.value.replace("'", "''");	// Escape apostrophes
+					}
+					
+					QuestionInfo fQ = new QuestionInfo(sId, filter.qId, sd);	
+					tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
+					log.info("Filter expression: " + fQ.getFilterExpression(filter.value, null));
+					
+					if(sqlFilter.length() > 0) {
+						sqlFilter += " and " + fQ.getFilterExpression(filter.value, null);
+					} else {
+						sqlFilter = fQ.getFilterExpression(filter.value, null);
+					}
+				}
+				*/
+				
+				/*
+				 * Validate the advanced filter and convert to an SQL Fragment
+				 *
+				 * TODO
+				 * 
+				SqlFrag advancedFilterFrag = null;
+				if(advanced_filter != null && advanced_filter.length() > 0) {
+
+					advancedFilterFrag = new SqlFrag();
+					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation);
+
+					for(String filterCol : advancedFilterFrag.humanNames) {
+						if(GeneralUtilityMethods.getColumnName(sd, sId, filterCol) == null) {
+							String msg = localisation.getString("inv_qn_misc");
+							msg = msg.replace("%s1", filterCol);
+							throw new ApplicationException(msg);
+						}
+					}
+				}
+				*/
+				
+				/*
+				 * Add the advanced filter fragment
+				 * 
+				 * TODO
+				 *
+				if(advancedFilterFrag != null) {
+					if(sqlFilter.length() > 0) {
+						sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
+					} else {
+						sqlFilter = "(" + advancedFilterFrag.sql + ")";
+					}	
+					
+					for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
+						int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
+						if(rqId > 0) {
+							QuestionInfo qaf = new QuestionInfo(sId, rqId, sd);
+							tables.add(qaf.getTableName(), qaf.getFId(), qaf.getParentFId());
+						} else {
+							// assume meta and hence include main table
+							Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+							tables.add(tlf.tableName, tlf.id, tlf.parentform);
+						}
+					}
+				}
+				*/
+				
+				/*
+				 * Add row filtering performed by RBAC
+				 *
+				 * TODO
+				RoleManager rm = new RoleManager(localisation);
+				ArrayList<SqlFrag> rfArray = null;
+				if(!superUser) {
+					rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
+					String rfString = "";
+					if(rfArray.size() > 0) {
+						for(SqlFrag rf : rfArray) {
+							if(rf.columns.size() > 0) {
+								for(int i = 0; i < rf.columns.size(); i++) {
+									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
+									QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
+									tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+								}
+								if(rfString.length() > 0) {
+									rfString += " or";
+								}
+								rfString += " (" + rf.sql.toString() + ")";
+								hasRbacRowFilter = true;
+							}
+						}
+						if(rfString.trim().length() > 0) {
+							if(sqlFilter.length() > 0) {
+								sqlFilter += " and " + "(" + rfString + ")";
+							} else {
+								sqlFilter = "(" + rfString + ")";
+							}
+						}
+					}
+				}
+				*/
+				
+				/*
+				 * Get the date question used to set start and end date
+				 *
+				 * TODO
+				// Get date column information
+				QuestionInfo date = null;
+				if((dateId != 0) && (startDate != null || endDate != null)) {
+					date = new QuestionInfo(localisation, tz, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
+					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
+					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
+				}
+				*/	
+				
+				jTotals.put("rec_limit", rec_limit);
+				String sqlLimit = "";
+				if(rec_limit > 0) {
+					sqlLimit = "LIMIT " + rec_limit;
+				}
+				
+				// Get columns for main select
+				StringBuffer sql2 = new StringBuffer("select ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
+				sql2.append("survey_name ");
+				sql2.append(" from upload_event ");
+				
+				// Get count of available records
+				StringBuffer sqlFC = new StringBuffer("select count(*) ");				
+				sqlFC.append(" from upload_event ");
+				
+				String whereClause = "where user_name = ? ";
+				
+				
+				sql2.append(whereClause);
+				sqlFC.append(whereClause);
+				sql2.append(" order by ue_id asc ").append(sqlLimit);
+				
+				// Get the number of filtered records			
+				if(sqlFC.length() > 0) {
+				
+					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+					pstmt = sd.prepareStatement(sqlFC.toString());
+					
+					int attribIdx = 1;	
+					
+					// Add user
+					pstmt.setString(attribIdx, user);
+					
+					/*
+					 * TODO
+					 *
+					if(advancedFilterFrag != null) {
+						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
+					}
+					*/
+					
+					/*
+					 * TODO
+					 * rows based RBAC should be applied on launch of webform / pdf
+					 * Should we hide usage for surveys that have a role which the administrator does not have?
+					 *
+					// RBAC row filter
+					if(hasRbacRowFilter) {
+						attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
+					}	
+					*/			
+					// dates
+					if(dateId != 0) {
+						if(startDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+						}
+						if(endDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+						}
+					}
+					log.info("Get the number of filtered records: " + pstmt.toString());
+					resultSet = pstmt.executeQuery();
+					if(resultSet.next()) {
+						jTotals.put("filtered_count", resultSet.getInt(1));
+					} else {
+						jTotals.put("filtered_count", 0);
+					}
+				} else {
+					jTotals.put("filtered_count", totalCount);
+				}
+
+				
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql2.toString());
+				
+				/*
+				 * Set prepared statement values
+				 */
+				int attribIdx = 1;
+				
+				// Add user
+				pstmt.setString(attribIdx, user);
+				
+				/*
+				 * TODO
+				 *
+				if(advancedFilterFrag != null) {
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
+				}
+				
+				// RBAC row filter
+				if(hasRbacRowFilter) {
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
+				}
+				*/
+				
+				// dates
+				if(dateId != 0) {
+					if(startDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					}
+					if(endDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					}
+				}
+				
+				// Request the data
+				log.info("xxxxxxxxxxxx Get Usage Data: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+	
+				JSONArray ja = new JSONArray();
+				int index = 0;
+				while (resultSet.next()) {
+					JSONObject jr = new JSONObject();
+					JSONObject jp = new JSONObject();
+					
+					jr.put("type", "Feature");
+
+					String value;
+					value = resultSet.getString("survey_name");
+					String headerName = localisation.getString("a_name");
+					jp.put(headerName, value);
+					
+					if(index++ == 0) {
+						columns.put(headerName);
+						types.put("string");
+					}
+					
+					jr.put("properties", jp);
+					ja.put(jr);
+					recCount++;
+				 }
+				
+				String maxRecordWhere = "";
+				if(whereClause.equals("")) {
+					maxRecordWhere = " where ue_id < " + maxRec;
+				} else {
+					maxRecordWhere = whereClause + " and ue_id < " + maxRec;
+				}
+				// Determine if there are more records to be returned
+				sql = "select count(*) from upload_event " + maxRecordWhere + ";";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);	
+				
+				// Apply the parameters again
+				attribIdx = 1;
+				
+				// Add user
+				pstmt.setString(attribIdx, user);
+				
+				/*
+				 * TODO
+				 *
+				if(advancedFilterFrag != null) {
+					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
+				}
+				
+				// RBAC row filter
+				if(hasRbacRowFilter) {
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
+				}
+				if(dateId != 0) {
+					if(startDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					}
+					if(endDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					}
+				}
+				*/
+				
+				log.info("Check for more records: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					jTotals.put("more_recs", resultSet.getInt(1));
+				}
+				 jTotals.put("max_rec", maxRec);
+				 jTotals.put("returned_count", recCount);
+				 
+				 jo.put("type", "FeatureCollection");
+				 jo.put("features", ja);
+				 jo.put("cols", columns);
+				 jo.put("types", types);
+				 jo.put("formName", "Usage");
+				
+			} catch (SQLException e) {
+			    
+				String msg = e.getMessage();
+				if(msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+					// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+				} else {
+					message.append(msg);
+					log.log(Level.SEVERE, message.toString(), e);
+				}
+				
+			} catch (Exception e) {
+				log.log(Level.SEVERE, message.toString(), e);
+				message.append(e.getMessage());
+			} finally {
+				
+				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+				
+				SDDataSource.closeConnection("surveyKPI-Items", sd);
+			}
+		}
+
+		try {
+			jo.put("message", message);
+		} catch (Exception e) {
+		}
+		return jo.toString();
+	}
+	
+	/*
+	 * Update the bad record status
 	 */
 	@POST
-	@Path("/bad/{key}")
+	@Path("/{form}/bad/{key}")
 	@Consumes("application/json")
 	public Response toggleBad(@Context HttpServletRequest request,
 			@PathParam("form") int fId,
