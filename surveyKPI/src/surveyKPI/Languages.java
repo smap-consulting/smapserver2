@@ -66,7 +66,7 @@ public class Languages extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getLanguages(@Context HttpServletRequest request,
-			@PathParam("sId") String sId) { 
+			@PathParam("sId") int sId) { 
 	
 		Response response = null;
 
@@ -74,10 +74,6 @@ public class Languages extends Application {
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Languages");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
-		
-		if(sId != null) {
-			sId = sId.replace("'", "''"); 
-		} 
 			
 		ArrayList<String> langs = new ArrayList<String> ();	
 
@@ -85,13 +81,14 @@ public class Languages extends Application {
 		try {
 			String sql = null;
 
-			sql = "SELECT DISTINCT language " +
-					"FROM translation " +  
-					"WHERE s_id = " + sId + " " +
-					"ORDER BY language ASC;";
+			sql = "select distinct language "
+					+ "from translation "
+					+ "where s_id = ? "
+					+ "order by language asc";
 
 			
-			pstmt = connectionSD.prepareStatement(sql);	 			
+			pstmt = connectionSD.prepareStatement(sql);	 
+			pstmt.setInt(1,sId);
 			ResultSet resultSet = pstmt.executeQuery();
 
 			while (resultSet.next()) {				
