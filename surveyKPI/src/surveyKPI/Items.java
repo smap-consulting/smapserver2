@@ -471,7 +471,7 @@ public class Items extends Application {
 				jTotals.put("rec_limit", rec_limit);
 				String sqlLimit = "";
 				if(rec_limit > 0) {
-					sqlLimit = "LIMIT " + rec_limit;
+					sqlLimit = "limit " + rec_limit;
 				}
 				StringBuffer sql2 = new StringBuffer("select distinct ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
 				StringBuffer sqlFC = new StringBuffer("select count(*) ");	
@@ -785,7 +785,7 @@ public class Items extends Application {
 				jTotals.put("start_key", start_key);
 				
 				// Get the number of records
-				String sql = "SELECT count(*) FROM upload_event where user_name = ?";
+				String sql = "select count(*) FROM upload_event where user_name = ?";
 				
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setString(1, user);
@@ -796,7 +796,10 @@ public class Items extends Application {
 					jTotals.put("total_count", totalCount);
 				}
 				
-
+				StringBuffer sqlFilter = new StringBuffer("");
+				if(start_key > 0) {
+					sqlFilter.append(" ue_id < ").append(start_key);
+				}
 				
 				 /*
 				  * Get the where clause passed by the client
@@ -924,24 +927,26 @@ public class Items extends Application {
 				jTotals.put("rec_limit", rec_limit);
 				String sqlLimit = "";
 				if(rec_limit > 0) {
-					sqlLimit = "LIMIT " + rec_limit;
+					sqlLimit = "limit " + rec_limit;
 				}
 				
 				// Get columns for main select
-				StringBuffer sql2 = new StringBuffer("select ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
-				sql2.append("survey_name ");
+				StringBuffer sql2 = new StringBuffer("select ");	
+				sql2.append("ue_id, survey_name ");
 				sql2.append(" from upload_event ");
 				
 				// Get count of available records
 				StringBuffer sqlFC = new StringBuffer("select count(*) ");				
 				sqlFC.append(" from upload_event ");
 				
-				String whereClause = "where user_name = ? ";
-				
+				StringBuffer whereClause = new StringBuffer("where user_name = ? ");
+				if(sqlFilter.length() > 0) {
+					whereClause.append(" and ").append(sqlFilter);	
+				}
 				
 				sql2.append(whereClause);
 				sqlFC.append(whereClause);
-				sql2.append(" order by ue_id asc ").append(sqlLimit);
+				sql2.append(" order by ue_id desc ").append(sqlLimit);
 				
 				// Get the number of filtered records			
 				if(sqlFC.length() > 0) {
@@ -1032,27 +1037,30 @@ public class Items extends Application {
 				resultSet = pstmt.executeQuery();
 	
 				JSONArray ja = new JSONArray();
-				int index = 0;
 				while (resultSet.next()) {
 					JSONObject jr = new JSONObject();
 					JSONObject jp = new JSONObject();
 					
 					jr.put("type", "Feature");
 
-					String value;
-					value = resultSet.getString("survey_name");
-					String headerName = localisation.getString("a_name");
-					jp.put(headerName, value);
+					jp.put("prikey", resultSet.getString("ue_id"));									// prikey
+					jp.put(localisation.getString("a_name"), resultSet.getString("survey_name"));		// survey name
 					
-					if(index++ == 0) {
-						columns.put(headerName);
-						types.put("string");
-					}
+					maxRec = resultSet.getInt("ue_id");
 					
 					jr.put("properties", jp);
 					ja.put(jr);
 					recCount++;
 				 }
+				
+				/*
+				 * Add columns and types
+				 */
+				columns.put("prikey");
+				columns.put(localisation.getString("a_name"));
+				
+				types.put("integer");
+				types.put("string");
 				
 				String maxRecordWhere = "";
 				if(whereClause.equals("")) {
