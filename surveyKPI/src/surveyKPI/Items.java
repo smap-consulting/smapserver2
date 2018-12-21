@@ -737,11 +737,9 @@ public class Items extends Application {
 			@PathParam("user") int uId, 
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit,
-			@QueryParam("dateId") int dateId,		// Id of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("filter") String sFilter,
-			@QueryParam("advanced_filter") String advanced_filter,
 			@QueryParam("tz") String tz) { 
 		
 		SimpleDateFormat sdf = new SimpleDateFormat("dd-yyyy HH:mm");
@@ -801,81 +799,6 @@ public class Items extends Application {
 					sqlFilter.append(" ue_id < ").append(start_key);
 				}
 				
-				 /*
-				  * Get the where clause passed by the client
-				  *  This may reference columns in a different table
-				  *
-				  * TODO
-				  * 
-				Filter filter = null;
-				if(sFilter != null) {
-					Type type = new TypeToken<Filter>(){}.getType();
-					Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-					filter = gson.fromJson(sFilter, type);
-					
-					if(filter.value != null) {
-						filter.value = filter.value.replace("'", "''");	// Escape apostrophes
-					}
-					
-					QuestionInfo fQ = new QuestionInfo(sId, filter.qId, sd);	
-					tables.add(fQ.getTableName(), fQ.getFId(), fQ.getParentFId());
-					log.info("Filter expression: " + fQ.getFilterExpression(filter.value, null));
-					
-					if(sqlFilter.length() > 0) {
-						sqlFilter += " and " + fQ.getFilterExpression(filter.value, null);
-					} else {
-						sqlFilter = fQ.getFilterExpression(filter.value, null);
-					}
-				}
-				*/
-				
-				/*
-				 * Validate the advanced filter and convert to an SQL Fragment
-				 *
-				 * TODO
-				 * 
-				SqlFrag advancedFilterFrag = null;
-				if(advanced_filter != null && advanced_filter.length() > 0) {
-
-					advancedFilterFrag = new SqlFrag();
-					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation);
-
-					for(String filterCol : advancedFilterFrag.humanNames) {
-						if(GeneralUtilityMethods.getColumnName(sd, sId, filterCol) == null) {
-							String msg = localisation.getString("inv_qn_misc");
-							msg = msg.replace("%s1", filterCol);
-							throw new ApplicationException(msg);
-						}
-					}
-				}
-				*/
-				
-				/*
-				 * Add the advanced filter fragment
-				 * 
-				 * TODO
-				 *
-				if(advancedFilterFrag != null) {
-					if(sqlFilter.length() > 0) {
-						sqlFilter += " and " + "(" + advancedFilterFrag.sql + ")";
-					} else {
-						sqlFilter = "(" + advancedFilterFrag.sql + ")";
-					}	
-					
-					for(int i = 0; i < advancedFilterFrag.columns.size(); i++) {
-						int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, advancedFilterFrag.humanNames.get(i));
-						if(rqId > 0) {
-							QuestionInfo qaf = new QuestionInfo(sId, rqId, sd);
-							tables.add(qaf.getTableName(), qaf.getFId(), qaf.getParentFId());
-						} else {
-							// assume meta and hence include main table
-							Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
-							tables.add(tlf.tableName, tlf.id, tlf.parentform);
-						}
-					}
-				}
-				*/
-				
 				/*
 				 * Add row filtering performed by RBAC
 				 *
@@ -911,18 +834,14 @@ public class Items extends Application {
 				}
 				*/
 				
-				/*
-				 * Get the date question used to set start and end date
-				 *
-				 * TODO
-				// Get date column information
-				QuestionInfo date = null;
-				if((dateId != 0) && (startDate != null || endDate != null)) {
-					date = new QuestionInfo(localisation, tz, sId, dateId, sd, cResults, request.getRemoteUser(), false, "", urlprefix, oId);	// Not interested in label any language will do
-					tables.add(date.getTableName(), date.getFId(), date.getParentFId());
-					log.info("Date name: " + date.getColumnName() + " Date Table: " + date.getTableName());
+				// Add start and end dates
+				String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, "upload_time");
+				if(sqlRestrictToDateRange.trim().length() > 0) {
+					if(sqlFilter.length() > 0) {
+						sqlFilter.append(" and ");
+					}
+					sqlFilter.append(sqlRestrictToDateRange);
 				}
-				*/	
 				
 				jTotals.put("rec_limit", rec_limit);
 				String sqlLimit = "";
@@ -936,8 +855,7 @@ public class Items extends Application {
 				sql2.append(" from upload_event ue left outer join survey s on ue.s_id = s.s_id ");
 				
 				// Get count of available records
-				StringBuffer sqlFC = new StringBuffer("select count(*) ");				
-				sqlFC.append(" from upload_event ");
+				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ");				
 				
 				StringBuffer whereClause = new StringBuffer("where user_name = ? ");
 				if(sqlFilter.length() > 0) {
@@ -957,15 +875,7 @@ public class Items extends Application {
 					int attribIdx = 1;	
 					
 					// Add user
-					pstmt.setString(attribIdx, user);
-					
-					/*
-					 * TODO
-					 *
-					if(advancedFilterFrag != null) {
-						attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
-					}
-					*/
+					pstmt.setString(attribIdx++, user);
 					
 					/*
 					 * TODO
@@ -978,14 +888,13 @@ public class Items extends Application {
 					}	
 					*/			
 					// dates
-					if(dateId != 0) {
-						if(startDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-						}
-						if(endDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
-						}
+					if(startDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
 					}
+					if(endDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					}
+
 					log.info("Get the number of filtered records: " + pstmt.toString());
 					resultSet = pstmt.executeQuery();
 					if(resultSet.next()) {
@@ -1024,13 +933,11 @@ public class Items extends Application {
 				*/
 				
 				// dates
-				if(dateId != 0) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
-					}
+				if(startDate != null) {
+					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+				}
+				if(endDate != null) {
+					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
 				}
 				
 				// Request the data
@@ -1090,7 +997,7 @@ public class Items extends Application {
 				attribIdx = 1;
 				
 				// Add user
-				pstmt.setString(attribIdx, user);
+				pstmt.setString(attribIdx++, user);
 				
 				/*
 				 * TODO
@@ -1112,6 +1019,14 @@ public class Items extends Application {
 					}
 				}
 				*/
+				
+				// dates
+				if(startDate != null) {
+					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+				}
+				if(endDate != null) {
+					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				}
 				
 				log.info("Check for more records: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
