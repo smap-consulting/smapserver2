@@ -932,7 +932,7 @@ public class Items extends Application {
 				
 				// Get columns for main select
 				StringBuffer sql2 = new StringBuffer("select ");	
-				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, ue.instanceid ");
+				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, ue.instanceid, to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time ");
 				sql2.append(" from upload_event ue left outer join survey s on ue.s_id = s.s_id ");
 				
 				// Get count of available records
@@ -1007,7 +1007,8 @@ public class Items extends Application {
 				int attribIdx = 1;
 				
 				// Add user
-				pstmt.setString(attribIdx, user);
+				pstmt.setString(attribIdx++, tz);
+				pstmt.setString(attribIdx++, user);
 				
 				/*
 				 * TODO
@@ -1054,6 +1055,7 @@ public class Items extends Application {
 					}
 					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
+					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
 					
 					maxRec = resultSet.getInt("ue_id");
 					
@@ -1067,9 +1069,11 @@ public class Items extends Application {
 				 */
 				columns.put("prikey");
 				columns.put(localisation.getString("a_name"));
+				columns.put(localisation.getString("a_ut"));
 				
 				types.put("integer");
 				types.put("string");
+				types.put("dateTime");
 				
 				String maxRecordWhere = "";
 				if(whereClause.equals("")) {
