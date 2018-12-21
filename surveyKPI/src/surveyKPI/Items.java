@@ -948,6 +948,7 @@ public class Items extends Application {
 	
 				JSONArray ja = new JSONArray();
 				while (resultSet.next()) {
+					boolean includeRecord = true;
 					JSONObject jr = new JSONObject();
 					JSONObject jp = new JSONObject();
 					
@@ -965,13 +966,35 @@ public class Items extends Application {
 					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
-					jp.put(localisation.getString("a_l"), resultSet.getString("location"));
+					String location = resultSet.getString("location");
+					String type = "map";
+					if(type.equals("map")) {
+						if(location != null) {
+							JSONObject jg = null;
+							JSONArray jCoords = new JSONArray();
+							String[] coords = location.split(" ");
+							if(coords.length == 2) {
+								jCoords.put(Double.parseDouble(coords[0]));
+								jCoords.put(Double.parseDouble(coords[1]));
+								jg = new JSONObject();
+								jg.put("type", "Point");
+								jg.put("coordinates", jCoords);
+								jr.put("geometry", jg);
+							}
+						} else {
+							includeRecord = false;
+						}
+					} else {
+						jp.put(localisation.getString("a_l"), location);
+					}
 					
 					maxRec = resultSet.getInt("ue_id");
 					
-					jr.put("properties", jp);
-					ja.put(jr);
-					recCount++;
+					if(includeRecord) {
+						jr.put("properties", jp);
+						ja.put(jr);
+						recCount++;
+					}
 				 }
 				
 				/*
