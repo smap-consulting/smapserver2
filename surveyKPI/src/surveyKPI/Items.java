@@ -783,7 +783,7 @@ public class Items extends Application {
 				jTotals.put("start_key", start_key);
 				
 				// Get the number of records
-				String sql = "select count(*) FROM upload_event where user_name = ?";
+				String sql = "select count(*) from upload_event where user_name = ?";
 				
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setString(1, user);
@@ -851,7 +851,9 @@ public class Items extends Application {
 				
 				// Get columns for main select
 				StringBuffer sql2 = new StringBuffer("select ");	
-				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, ue.instanceid, to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time ");
+				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, "
+						+ "ue.instanceid, to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
+						+ "location ");
 				sql2.append(" from upload_event ue left outer join survey s on ue.s_id = s.s_id ");
 				
 				// Get count of available records
@@ -941,7 +943,7 @@ public class Items extends Application {
 				}
 				
 				// Request the data
-				log.info("xxxxxxxxxxxx Get Usage Data: " + pstmt.toString());
+				log.info("Get Usage Data: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
 	
 				JSONArray ja = new JSONArray();
@@ -963,6 +965,7 @@ public class Items extends Application {
 					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
+					jp.put(localisation.getString("a_l"), resultSet.getString("location"));
 					
 					maxRec = resultSet.getInt("ue_id");
 					
@@ -977,13 +980,15 @@ public class Items extends Application {
 				columns.put("prikey");
 				columns.put(localisation.getString("a_name"));
 				columns.put(localisation.getString("a_ut"));
+				columns.put(localisation.getString("a_l"));
 				
 				types.put("integer");
 				types.put("string");
 				types.put("dateTime");
+				types.put("string");
 				
 				String maxRecordWhere = "";
-				if(whereClause.equals("")) {
+				if(whereClause.length() == 0) {
 					maxRecordWhere = " where ue_id < " + maxRec;
 				} else {
 					maxRecordWhere = whereClause + " and ue_id < " + maxRec;
