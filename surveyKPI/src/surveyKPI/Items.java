@@ -932,7 +932,7 @@ public class Items extends Application {
 				
 				// Get columns for main select
 				StringBuffer sql2 = new StringBuffer("select ");	
-				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, ue.instanceid ");
+				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, ue.instanceid ");
 				sql2.append(" from upload_event ue left outer join survey s on ue.s_id = s.s_id ");
 				
 				// Get count of available records
@@ -1046,7 +1046,13 @@ public class Items extends Application {
 					jp.put("prikey", resultSet.getString("ue_id"));									// prikey
 					jp.put(localisation.getString("a_name"), resultSet.getString("survey_name"));		// survey name
 					jp.put("s_id", resultSet.getString("s_id"));										// survey id
-					jp.put("survey_ident", resultSet.getString("ident"));								// survey ident
+					
+					// Get the ident of the currently active survey version
+					String ident = resultSet.getString("original_ident");
+					if(ident == null || ident.trim().length() == 0) {
+						ident = resultSet.getString("ident");
+					}
+					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
 					
 					maxRec = resultSet.getInt("ue_id");

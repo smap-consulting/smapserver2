@@ -38,6 +38,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -55,7 +56,7 @@ import org.smap.sdal.managers.SurveyManager;
  *   .hint - Hints
  */
 
-@Path("/pdf/{sId}")
+@Path("/pdf/{sIdent}")
 public class CreatePDF extends Application {
 	
 	Authorise a = null;
@@ -75,8 +76,8 @@ public class CreatePDF extends Application {
 	@GET
 	@Produces("application/x-download")
 	public Response getPDFService (@Context HttpServletRequest request, 
-			@Context HttpServletResponse response,
-			@PathParam("sId") int sId,
+			@Context HttpServletResponse resp,
+			@PathParam("sIdent") String sIdent,
 			@QueryParam("instance") String instanceId,
 			@QueryParam("language") String language,
 			@QueryParam("landscape") boolean landscape,
@@ -84,43 +85,55 @@ public class CreatePDF extends Application {
 			@QueryParam("utcOffset") int utcOffset		// Offset in minutes
 			) throws Exception {
 		
-		log.info("Create PDF from survey:" + sId + " for record: " + instanceId);
+		log.info("Create PDF from survey:" + sIdent + " for record: " + instanceId);
+		Response response = null;
+		String connectionString = "createPDF";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("createPDF");	
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		// Get the users locale
+		Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+		ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());		
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		String errorMsg = null;
+		try {
+			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		} catch (Exception e) {
+			errorMsg = "Error:" + localisation.getString("mf_snf");			
+		}
+		if(errorMsg != null) {
+			return Response.serverError().entity(errorMsg).build();		// Don't throw an authorisation exception just report the error
+		}
 		// End Authorisation 
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Create PDF for instance: " + instanceId);
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Create PDF for instance: " + instanceId);
 		
-		Connection cResults = ResultsDataSource.getConnection("createPDF");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
 		// Get the base path
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
 			
 			String tz = "UTC";	// Set the default timezone
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
-			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), sId, true, basePath, 
+			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
 					instanceId, true, generateBlank, true, false, true, "real", false, false, 
 					superUser, "geojson");
-			PDFSurveyManager pm = new PDFSurveyManager(localisation, connectionSD, cResults, survey, request.getRemoteUser(), tz);
+			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
 			pm.createPdf(
-					response.getOutputStream(),
+					resp.getOutputStream(),
 					basePath, 
 					urlprefix,
 					request.getRemoteUser(),
@@ -128,16 +141,20 @@ public class CreatePDF extends Application {
 					generateBlank,
 					filename,
 					landscape,
-					response,
+					resp,
 					utcOffset);
 			
+			response = Response.ok("").build();
+			
+		} catch(Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
-			SDDataSource.closeConnection("createPDF", connectionSD);	
-			ResultsDataSource.closeConnection("createPDF", cResults);
+			SDDataSource.closeConnection(connectionString, sd);	
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
-		return Response.ok("").build();
+		return response;
 	}
 	
 

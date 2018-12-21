@@ -789,15 +789,16 @@ public class UtilityMethodsEmail {
 		
 		try {
 
+			// Note - there is a limit 1 on the sub query as ovalues need not be unique
 			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id = "
-					+ "(select label_id from option where l_id = ? and ovalue = ?)";
+					+ "(select label_id from option where l_id = ? and ovalue = ? limit 1)";
 			pstmt = connectionSD.prepareStatement(sql);
 
 			pstmt.setInt(1, sId);
 			pstmt.setString(2, languageName);
 			pstmt.setInt(3,  l_id);
 			pstmt.setString(4, value);
-
+			
 			ResultSet resultSet = pstmt.executeQuery();		
 			while(resultSet.next()) {
 
