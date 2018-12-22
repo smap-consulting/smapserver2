@@ -818,8 +818,10 @@ public class Items extends Application {
 				StringBuffer sql2 = new StringBuffer("select ");	
 				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, "
 						+ "ue.instanceid, to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
-						+ "location ");
-				sql2.append(" from upload_event ue left outer join survey s on ue.s_id = s.s_id ");
+						+ "ue.location, p.name as project_name, ue.survey_notes ");
+				sql2.append(" from upload_event ue ");
+				sql2.append("left outer join survey s on ue.s_id = s.s_id ");
+				sql2.append("left outer join project p on ue.p_id = p.id ");
 				
 				// Get count of available records
 				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
@@ -914,6 +916,8 @@ public class Items extends Application {
 					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
+					jp.put(localisation.getString("ar_project"), resultSet.getString("project_name"));
+					jp.put(localisation.getString("a_sn"), resultSet.getString("survey_notes"));
 					String location = resultSet.getString("location");
 
 					if(location != null) {							// For map
@@ -944,13 +948,17 @@ public class Items extends Application {
 				 */
 				columns.put("prikey");
 				columns.put(localisation.getString("a_name"));
+				columns.put(localisation.getString("ar_project"));
 				columns.put(localisation.getString("a_ut"));
 				columns.put(localisation.getString("a_l"));
-				
+				columns.put(localisation.getString("a_sn"));
+					
 				types.put("integer");
 				types.put("string");
-				types.put("dateTime");
 				types.put("string");
+				types.put("dateTime");
+				types.put("string");	
+				types.put("string");	
 				
 				String maxRecordWhere = "";
 				if(whereClause.length() == 0) {
