@@ -5493,6 +5493,15 @@ public class GeneralUtilityMethods {
 				+ "(s.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
 				+ ") ";
 	}
+	
+	/*
+	 * Return the SQL that does survey level Role Based Access Control (modified for use with upload event)
+	 */
+	public static String getSurveyRBACUploadEvent() {
+		return "and ((ue.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
+				+ "(ue.s_id in (select s_id from users u, user_role ur, survey_role sr where u.ident = ? and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+				+ ") ";
+	}
 
 	/*
 	 * Return true if the question column name is in the survey

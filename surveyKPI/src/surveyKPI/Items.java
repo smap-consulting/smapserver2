@@ -775,7 +775,6 @@ public class Items extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 				String user = GeneralUtilityMethods.getUserIdent(sd, uId);	
 				
 				JSONObject jTotals = new JSONObject();
@@ -794,45 +793,11 @@ public class Items extends Application {
 					jTotals.put("total_count", totalCount);
 				}
 				
+				StringBuffer sqlPage = new StringBuffer("");
 				StringBuffer sqlFilter = new StringBuffer("");
 				if(start_key > 0) {
-					sqlFilter.append(" ue_id < ").append(start_key);
+					sqlPage.append(" and ue_id < ").append(start_key);
 				}
-				
-				/*
-				 * Add row filtering performed by RBAC
-				 *
-				 * TODO
-				RoleManager rm = new RoleManager(localisation);
-				ArrayList<SqlFrag> rfArray = null;
-				if(!superUser) {
-					rfArray = rm.getSurveyRowFilter(sd, sId, request.getRemoteUser());
-					String rfString = "";
-					if(rfArray.size() > 0) {
-						for(SqlFrag rf : rfArray) {
-							if(rf.columns.size() > 0) {
-								for(int i = 0; i < rf.columns.size(); i++) {
-									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
-									QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
-									tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
-								}
-								if(rfString.length() > 0) {
-									rfString += " or";
-								}
-								rfString += " (" + rf.sql.toString() + ")";
-								hasRbacRowFilter = true;
-							}
-						}
-						if(rfString.trim().length() > 0) {
-							if(sqlFilter.length() > 0) {
-								sqlFilter += " and " + "(" + rfString + ")";
-							} else {
-								sqlFilter = "(" + rfString + ")";
-							}
-						}
-					}
-				}
-				*/
 				
 				// Add start and end dates
 				String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, "upload_time");
@@ -857,14 +822,18 @@ public class Items extends Application {
 				sql2.append(" from upload_event ue left outer join survey s on ue.s_id = s.s_id ");
 				
 				// Get count of available records
-				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ");				
+				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
 				
 				StringBuffer whereClause = new StringBuffer("where user_name = ? ");
+				whereClause.append(GeneralUtilityMethods.getSurveyRBACUploadEvent());
 				if(sqlFilter.length() > 0) {
 					whereClause.append(" and ").append(sqlFilter);	
 				}
 				
 				sql2.append(whereClause);
+				if(sqlPage.length() > 0) {
+					sql2.append(sqlPage);
+				}
 				sqlFC.append(whereClause);
 				sql2.append(" order by ue_id desc ").append(sqlLimit);
 				
@@ -878,17 +847,8 @@ public class Items extends Application {
 					
 					// Add user
 					pstmt.setString(attribIdx++, user);
-					
-					/*
-					 * TODO
-					 * rows based RBAC should be applied on launch of webform / pdf
-					 * Should we hide usage for surveys that have a role which the administrator does not have?
-					 *
-					// RBAC row filter
-					if(hasRbacRowFilter) {
-						attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
-					}	
-					*/			
+					pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
+						
 					// dates
 					if(startDate != null) {
 						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
@@ -920,19 +880,8 @@ public class Items extends Application {
 				// Add user
 				pstmt.setString(attribIdx++, tz);
 				pstmt.setString(attribIdx++, user);
+				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 				
-				/*
-				 * TODO
-				 *
-				if(advancedFilterFrag != null) {
-					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
-				}
-				
-				// RBAC row filter
-				if(hasRbacRowFilter) {
-					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
-				}
-				*/
 				
 				// dates
 				if(startDate != null) {
@@ -948,7 +897,6 @@ public class Items extends Application {
 	
 				JSONArray ja = new JSONArray();
 				while (resultSet.next()) {
-					boolean includeRecord = true;
 					JSONObject jr = new JSONObject();
 					JSONObject jp = new JSONObject();
 					
@@ -967,34 +915,28 @@ public class Items extends Application {
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
 					String location = resultSet.getString("location");
-					String type = "map";
-					if(type.equals("map")) {
-						if(location != null) {
-							JSONObject jg = null;
-							JSONArray jCoords = new JSONArray();
-							String[] coords = location.split(" ");
-							if(coords.length == 2) {
-								jCoords.put(Double.parseDouble(coords[0]));
-								jCoords.put(Double.parseDouble(coords[1]));
-								jg = new JSONObject();
-								jg.put("type", "Point");
-								jg.put("coordinates", jCoords);
-								jr.put("geometry", jg);
-							}
-						} else {
-							includeRecord = false;
-						}
-					} else {
-						jp.put(localisation.getString("a_l"), location);
+
+					if(location != null) {							// For map
+						JSONObject jg = null;
+						JSONArray jCoords = new JSONArray();
+						String[] coords = location.split(" ");
+						if(coords.length == 2) {
+							jCoords.put(Double.parseDouble(coords[0]));
+							jCoords.put(Double.parseDouble(coords[1]));
+							jg = new JSONObject();
+							jg.put("type", "Point");
+							jg.put("coordinates", jCoords);
+							jr.put("geometry", jg);
+						} 
 					}
+					jp.put(localisation.getString("a_l"), location);		// For table
 					
-					maxRec = resultSet.getInt("ue_id");
-					
-					if(includeRecord) {
-						jr.put("properties", jp);
-						ja.put(jr);
-						recCount++;
-					}
+					maxRec = resultSet.getInt("ue_id");				
+
+					jr.put("properties", jp);
+					ja.put(jr);
+					recCount++;
+
 				 }
 				
 				/*
@@ -1017,7 +959,7 @@ public class Items extends Application {
 					maxRecordWhere = whereClause + " and ue_id < " + maxRec;
 				}
 				// Determine if there are more records to be returned
-				sql = "select count(*) from upload_event " + maxRecordWhere + ";";
+				sql = "select count(*) from upload_event ue " + maxRecordWhere + ";";
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);	
 				
@@ -1026,28 +968,9 @@ public class Items extends Application {
 				
 				// Add user
 				pstmt.setString(attribIdx++, user);
+				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 				
-				/*
-				 * TODO
-				 *
-				if(advancedFilterFrag != null) {
-					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);
-				}
-				
-				// RBAC row filter
-				if(hasRbacRowFilter) {
-					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
-				}
-				if(dateId != 0) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
-					}
-				}
-				*/
-				
+			
 				// dates
 				if(startDate != null) {
 					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
