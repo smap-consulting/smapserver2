@@ -101,6 +101,7 @@ public class BillingManager {
 				String name = rs.getString(3);
 				
 				BillingDetail bill = new BillingDetail();
+				bill.line = new ArrayList<BillLineItem> ();
 				bill.oId = oId;
 				bill.oName = name;
 				bill.year = year;
