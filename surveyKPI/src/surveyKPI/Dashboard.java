@@ -31,6 +31,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 
 import model.Settings;
@@ -77,9 +78,9 @@ public class Dashboard extends Application {
 		Response response = null;
 		 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Dashboard");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Dashboard");
 		// No check for valid user as only panels owned by a user are returned
-		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
 		ArrayList<Settings> sArray = new ArrayList<Settings> ();
@@ -127,42 +128,45 @@ public class Dashboard extends Application {
 					+ "and ds_subject_type = 'survey'" +
 					" order by ds_seq asc";
 			
-			String sqlUser = "select " +
-					"d.ds_id as id," +
-					"d.ds_seq as seq," +
-					"d.ds_state as state," +
-					"d.ds_title as title," +
-					"d.ds_s_id as sId," +
-					"d.ds_u_id as uId," +
-					"d.ds_s_name as sName," +
-					"d.ds_type as type," +
-					"d.ds_layer_id as layerId," +
-					"d.ds_region as region," +
-					"d.ds_lang as lang," +
-					"d.ds_q_id as qId," +
-					"d.ds_date_question_id as dateQuestionId," +
-					"d.ds_question as question," +
-					"d.ds_fn as fn," +
-					"d.ds_table as table, " + 
-					"d.ds_key_words as key_words, " +
-					"d.ds_q1_function as q1_function, " +
-					"d.ds_group_question_id as groupQuestionId, " +
-					"d.ds_group_question_text as groupQuestionText, " +
-					"d.ds_group_type as groupType, " +
-					"d.ds_time_group as timeGroup, " +
-					"d.ds_from_date as fromDate, " +
-					"d.ds_to_date as toDate, " +
-					"d.ds_q_is_calc as qId_is_calc, " +
-					"d.ds_filter as filter, " +
-					"d.ds_advanced_filter as advanced_filter, " +
-					"d.ds_subject_type as subject_type " +
-					" from dashboard_settings d, users u " +
-					" where u.ident = ? "
-					+ "and ds_subject_type = 'user' " +
-					" order by ds_seq asc;";
+			String sqlUser = "select "
+					+ "d.ds_id as id,"
+					+ "d.ds_seq as seq,"
+					+ "d.ds_state as state,"
+					+ "d.ds_title as title,"
+					+ "d.ds_s_id as sId,"
+					+ "d.ds_u_id as uId,"
+					+ "d.ds_s_name as sName,"
+					+ "d.ds_type as type,"
+					+ "d.ds_layer_id as layerId,"
+					+ "d.ds_region as region,"
+					+ "d.ds_lang as lang,"
+					+ "d.ds_q_id as qId,"
+					+ "d.ds_date_question_id as dateQuestionId,"
+					+ "d.ds_question as question,"
+					+ "d.ds_fn as fn,"
+					+ "d.ds_table as table, "
+					+ "d.ds_key_words as key_words, "
+					+ "d.ds_q1_function as q1_function, "
+					+ "d.ds_group_question_id as groupQuestionId, "
+					+ "d.ds_group_question_text as groupQuestionText, "
+					+ "d.ds_group_type as groupType, "
+					+ "d.ds_time_group as timeGroup, "
+					+ "d.ds_from_date as fromDate, "
+					+ "d.ds_to_date as toDate, "
+					+ "d.ds_q_is_calc as qId_is_calc, "
+					+ "d.ds_filter as filter, "
+					+ "d.ds_advanced_filter as advanced_filter, "
+					+ "d.ds_subject_type as subject_type "
+					+ "from dashboard_settings d "
+					+ "where d.ds_user_ident = ? "
+					+ "and d.ds_subject_type = 'user' "
+					+ "and d.ds_u_id in (select id from users where o_id = ?) "
+					+ "order by ds_seq asc;";
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
 			// Add Survey panels
-			pstmt = connectionSD.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, projectId);
 			pstmt.setString(2, request.getRemoteUser());
 
@@ -177,8 +181,9 @@ public class Dashboard extends Application {
 			
 			// Add  user panels
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-			pstmt = connectionSD.prepareStatement(sqlUser);	
+			pstmt = sd.prepareStatement(sqlUser);	
 			pstmt.setString(1, request.getRemoteUser());
+			pstmt.setInt(2, oId);
 
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {				
@@ -201,7 +206,7 @@ public class Dashboard extends Application {
 			
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Dashboard", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Dashboard", sd);
 			
 		}
 
@@ -404,7 +409,7 @@ public class Dashboard extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Dashboard");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Dashboard");
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -424,7 +429,7 @@ public class Dashboard extends Application {
 						"and ds_user_ident = ?;";
 				log.info(sql + " : " + s.state + " : " + s.id + " : " + user);
 				
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, s.state);
 				pstmt.setInt(2, s.id);
 				pstmt.setString(3, user);
@@ -436,7 +441,7 @@ public class Dashboard extends Application {
 						"and ds_user_ident = ?;";
 				//log.info(sql + " : " + s.id + " : " + user);
 
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, s.id);
 				pstmt.setInt(2, s.id);
 				pstmt.setString(3, user);
@@ -453,7 +458,7 @@ public class Dashboard extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Dashboard", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Dashboard", sd);
 		}
 		
 		return response;
