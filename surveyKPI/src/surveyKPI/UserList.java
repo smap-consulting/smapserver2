@@ -66,6 +66,7 @@ public class UserList extends Application {
 	Authorise a = null;
 	Authorise aUpdate = null;
 	Authorise aSM = null;
+	Authorise aSimpleList = null;
 
 	private static Logger log =
 			 Logger.getLogger(UserList.class.getName());
@@ -81,6 +82,10 @@ public class UserList extends Application {
 		authorisations.add(Authorise.SECURITY);
 		authorisations.add(Authorise.ORG);
 		a = new Authorise(authorisations, null);
+		
+		// Also allow users with View rights to view the simple list of uses
+		authorisations.add(Authorise.VIEW_DATA);
+		aSimpleList = new Authorise(authorisations, null);
 		
 		// Only allow administrators, org administrators and security managers to update user list
 		authorisations = new ArrayList<String> ();	
@@ -150,10 +155,10 @@ public class UserList extends Application {
 			) { 
 
 		Response response = null;
-		String requestName = "surveyKPI-getUsers";
+		String connectionString = "surveyKPI-getUsers";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(requestName);
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -168,7 +173,7 @@ public class UserList extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
 			UserManager um = new UserManager(localisation);
-			users = um.getUserListSimple(sd, oId);
+			users = um.getUserListSimple(sd, oId, true);		// Always sort by name
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -180,7 +185,7 @@ public class UserList extends Application {
 		    
 		} finally {
 			
-			SDDataSource.closeConnection(requestName, sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;

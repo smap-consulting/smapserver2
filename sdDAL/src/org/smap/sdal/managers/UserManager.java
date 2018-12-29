@@ -1270,7 +1270,7 @@ public class UserManager {
 	/*
 	 * Get a list of users with just basic information
 	 */
-	public ArrayList<UserSimple> getUserListSimple(Connection sd, int oId) throws SQLException {
+	public ArrayList<UserSimple> getUserListSimple(Connection sd, int oId, boolean orderByName) throws SQLException {
 		
 		ArrayList<UserSimple> users = new ArrayList<> ();
 		
@@ -1279,8 +1279,13 @@ public class UserManager {
 				+ "u.name as name "			
 				+ "from users u "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
-				+ "and not u.temporary "
-				+ "order by u.ident asc";
+				+ "and not u.temporary ";
+		
+		if(orderByName) {
+			sql += "order by u.name asc";
+		} else {
+			sql += "order by u.ident asc";
+		}
 		
 		PreparedStatement pstmt = null;
 		
