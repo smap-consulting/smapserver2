@@ -974,7 +974,6 @@ public class Items extends Application {
 				// Add user
 				pstmt.setString(attribIdx++, user);
 				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
-				
 			
 				// dates
 				if(startDate != null) {
