@@ -59,7 +59,6 @@ import com.google.gson.reflect.TypeToken;
 
 import java.lang.reflect.Type;
 import java.sql.*;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -117,8 +116,6 @@ public class Items extends Application {
 			@QueryParam("advanced_filter") String advanced_filter,
 			@QueryParam("tz") String tz) { 
 		
-		SimpleDateFormat sdf = new SimpleDateFormat("dd-yyyy HH:mm");
-		
 		JSONObject jo = new JSONObject();
 		boolean bGeom = true;
 		boolean bMustHaveGeom = true;
@@ -127,6 +124,7 @@ public class Items extends Application {
 		String language = "none";
 		ArrayList<String> colNames = new ArrayList<String> ();
 		HashMap<String, String> surveyNames = new HashMap<String, String> ();
+		String connectionString = "surveyKPI-Items";
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";	
 
@@ -139,7 +137,7 @@ public class Items extends Application {
 		}
 	
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Items");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		int sId = 0;
 		boolean superUser = false;
 		try {
@@ -180,7 +178,7 @@ public class Items extends Application {
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
 				// Connect to the results database
-				cResults = ResultsDataSource.getConnection("surveyKPI-Items");	
+				cResults = ResultsDataSource.getConnection(connectionString);	
 				
 				// Prepare the statement to get the form details
 				String sqlFDetails = "select table_name, parentform, name from form " +
@@ -715,8 +713,8 @@ public class Items extends Application {
 				try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
 				try {if (pstmtFDetails != null) {pstmtFDetails.close();	}} catch (SQLException e) {	}
 				
-				SDDataSource.closeConnection("surveyKPI-Items", sd);
-				ResultsDataSource.closeConnection("surveyKPI-Items", cResults);	
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, cResults);	
 			}
 		}
 
@@ -742,8 +740,7 @@ public class Items extends Application {
 			@QueryParam("filter") String sFilter,
 			@QueryParam("tz") String tz) { 
 		
-		SimpleDateFormat sdf = new SimpleDateFormat("dd-yyyy HH:mm");
-		
+		String connectionString = "surveyKPI-Items-Users";
 		JSONObject jo = new JSONObject();
 		JSONArray columns = new JSONArray();
 		JSONArray types = new JSONArray();
@@ -752,7 +749,7 @@ public class Items extends Application {
 		int recCount = 0;	
 	
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Items");		
+		Connection sd = SDDataSource.getConnection(connectionString);		
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidUser(sd, request.getRemoteUser(), uId);
 		// End Authorisation
@@ -1018,7 +1015,7 @@ public class Items extends Application {
 				
 				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 				
-				SDDataSource.closeConnection("surveyKPI-Items", sd);
+				SDDataSource.closeConnection(connectionString, sd);
 			}
 		}
 
@@ -1044,23 +1041,24 @@ public class Items extends Application {
 			) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-Items-bad";
 	
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Items");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
 		
-		aUpdate.isAuthorised(connectionSD, request.getRemoteUser());
-		aUpdate.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
 		Connection cRel = null; 
 		PreparedStatement pstmt = null;
 		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tz = "UTC";
@@ -1072,7 +1070,7 @@ public class Items extends Application {
 			String sql = "SELECT DISTINCT table_name, parentform FROM form f " +
 					" where f.s_id = ?" + 
 					" and f.f_id = ?;";
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, fId);
 			log.info("Get table name: " + pstmt.toString());
@@ -1082,7 +1080,7 @@ public class Items extends Application {
 				String tName = tableSet.getString(1);
 				int pId = tableSet.getInt(2);
 				boolean isChild = pId > 0;
-				UtilityMethodsEmail.markRecord(cRel, connectionSD, localisation, tName, value, 
+				UtilityMethodsEmail.markRecord(cRel, sd, localisation, tName, value, 
 						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz);
 			} else {
 				throw new Exception("Could not get form id");
@@ -1100,7 +1098,7 @@ public class Items extends Application {
 			}
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Items", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection("surveyKPI-Items", cRel);
 		}
 		
