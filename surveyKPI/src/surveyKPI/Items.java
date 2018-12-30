@@ -769,7 +769,7 @@ public class Items extends Application {
 			try {
 				
 				/*
-				 * View data users can only see data on themselves
+				 * View data users can only see usage data on themselves
 				 */
 				if(GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser())) {
 					uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
