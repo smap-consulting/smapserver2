@@ -1270,7 +1270,11 @@ public class UserManager {
 	/*
 	 * Get a list of users with just basic information
 	 */
-	public ArrayList<UserSimple> getUserListSimple(Connection sd, int oId, boolean orderByName) throws SQLException {
+	public ArrayList<UserSimple> getUserListSimple(Connection sd, 
+			int oId, 
+			boolean orderByName,
+			boolean isOnlyViewData,
+			String ident) throws SQLException {
 		
 		ArrayList<UserSimple> users = new ArrayList<> ();
 		
@@ -1281,6 +1285,9 @@ public class UserManager {
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
 				+ "and not u.temporary ";
 		
+		if(isOnlyViewData) {
+			sql += "and u.ident = ? ";
+		}
 		if(orderByName) {
 			sql += "order by u.name asc";
 		} else {
@@ -1296,6 +1303,10 @@ public class UserManager {
 			
 			pstmt.setInt(1, oId);
 			pstmt.setInt(2, oId);
+			if(isOnlyViewData) {
+				pstmt.setString(3, ident);
+			}
+			
 			log.info("Get user list: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {

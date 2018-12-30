@@ -171,9 +171,9 @@ public class UserList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			
+			boolean isOnlyViewData = GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser());
 			UserManager um = new UserManager(localisation);
-			users = um.getUserListSimple(sd, oId, true);		// Always sort by name
+			users = um.getUserListSimple(sd, oId, true, isOnlyViewData, request.getRemoteUser());		// Always sort by name
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						

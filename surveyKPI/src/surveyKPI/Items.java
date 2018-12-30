@@ -768,6 +768,13 @@ public class Items extends Application {
 			 
 			try {
 				
+				/*
+				 * View data users can only see data on themselves
+				 */
+				if(GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser())) {
+					uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				}
+				
 				// Get the users locale
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);

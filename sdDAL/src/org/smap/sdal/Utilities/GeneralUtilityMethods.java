@@ -749,6 +749,46 @@ public class GeneralUtilityMethods {
 
 		return superUser;
 	}
+	
+	/*
+	 * Return true if the user has view data but not admin and not analysis
+	 */
+	static public boolean isOnlyViewData(Connection sd, String user) throws SQLException {
+		boolean onlyView = false;
+
+		String sqlGetAccessIds = "select ug.g_id " 
+				+ "from users u, user_group ug " 
+				+ "where u.ident = ? "
+				+ "and u.id = ug.u_id " 
+				+ "and (ug.g_id = " + Authorise.VIEW_DATA_ID 
+				+ " or ug.g_id = " + Authorise.ADMIN_ID 
+				+ " or ug.g_id = " + Authorise.ANALYST_ID 
+				+ " or ug.g_id = " + Authorise.ORG_ID
+				+ ")";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sqlGetAccessIds);
+			pstmt.setString(1, user);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				int gId = rs.getInt(1);
+				if(gId == Authorise.VIEW_DATA_ID) {
+					onlyView = true;
+				} else {
+					onlyView = false;
+					break;
+				}
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return onlyView;
+	}
 
 	/*
 	 * Get the current organisation id for the user If there is no organisation for that
