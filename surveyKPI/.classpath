@@ -56,7 +56,6 @@
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/poi-ooxml-schemas-3.13-20150929.jar"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/xmlbeans-2.6.0.jar"/>
 	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/amazon"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/grammars-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry kind="lib" path="WebContent/WEB-INF/lib/xmlworker-5.5.4.jar"/>

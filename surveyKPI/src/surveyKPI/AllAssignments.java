@@ -46,6 +46,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.Assignment;
+import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
@@ -79,6 +80,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
 
 /*
  * Used by an administrator or analyst to view task status and make updates
@@ -839,13 +841,16 @@ public class AllAssignments extends Application {
 		PreparedStatement pstmtDelLinks = null;
 
 		String uploadedFileName = null;
+		String sourceFormName = null;
 		String fileName = null;
 		String filePath = null;
 		File savedFile = null;									// The uploaded file
 		ArrayList<File> dataFiles = new ArrayList<File> ();		// Uploaded data files - There may be multiple of these in a zip file
-	
+		File zipFolder = null;									// Temporary folder created using the contents of a zip
 		String contentType = null;
+		String importSource = "file";		// default to file
 		int sId = 0;
+		int sourceSurveyId = 0;
 		String sIdent = null;		// Survey Ident
 		String sName = null;			// Survey Name
 		ArrayList<MetaItem> preloads = null;
@@ -854,15 +859,25 @@ public class AllAssignments extends Application {
 		HashMap<String, File> formFileMap = null;
 		ArrayList<String> responseMsg = new ArrayList<String> ();
 		int recordsWritten = 0;
+		String validateSurvey = null;
+		
+		Calendar cal = Calendar.getInstance();
+		Timestamp importTime = new Timestamp(cal.getTime().getTime());
 
 		Connection results = ResultsDataSource.getConnection("surveyKPI-AllAssignments-LoadTasks From File");
 		boolean superUser = false;
+		ResourceBundle localisation = null;
 		try {
 
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
+			try {
+				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			} catch (Exception e) {
+			}
+			
 			String tz = "UTC";	// get default timezone
 			// Get the base path
 			String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -875,22 +890,32 @@ public class AllAssignments extends Application {
 
 				if(item.isFormField()) {
 					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
-
+					System.out.println(item.getFieldName() + " : " + item.getString());
 					if(item.getFieldName().equals("survey")) {
 						sId = Integer.parseInt(item.getString());
-						try {
-							superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-						} catch (Exception e) {
+						
+						if(sId > 0) {
+							validateSurvey = "target";
+							a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+							a.canLoadTasks(sd, sId);
+	
+							sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+							sName = GeneralUtilityMethods.getSurveyName(sd, sId);
 						}
-						a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-						a.canLoadTasks(sd, sId);
-
-						sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-						sName = GeneralUtilityMethods.getSurveyName(sd, sId);
 						preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 					} else if(item.getFieldName().equals("clear_existing")) {
 						clear_existing = true;
-					}
+					} else if(item.getFieldName().equals("import_source")) {
+						importSource = item.getString();
+					} else if(item.getFieldName().equals("import_form")) {
+						sourceSurveyId = Integer.parseInt(item.getString());
+						if(sourceSurveyId > 0) {
+							validateSurvey = "source";
+							a.isValidSurvey(sd, request.getRemoteUser(), sourceSurveyId, false, superUser);
+							
+							sourceFormName = GeneralUtilityMethods.getSurveyName(sd, sourceSurveyId);
+						}
+					} 
 
 
 				} else if(!item.isFormField()) {
@@ -922,9 +947,41 @@ public class AllAssignments extends Application {
 				}
 
 			}
+			
 			log.info("Content Type: " + contentType);
-			if(contentType == null) {
-				throw new Exception("Missing file");
+			if(importSource.equals("file") && contentType == null) {
+				throw new Exception(localisation.getString("mf_mf"));
+			} else if(importSource.equals("form") && sourceSurveyId < 1) {
+				throw new Exception(localisation.getString("mf_ms"));
+			} else if(importSource.equals("form") && sourceSurveyId > 0) {
+				// download the survey
+				
+				String folderPath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
+				File folder = new File(folderPath);
+				folder.mkdir();
+		
+				/*
+				 * Save the XLS export into the folder
+				 */
+				ExchangeManager xm = new ExchangeManager(localisation, tz);
+				ArrayList<FileDescription> files = xm.createExchangeFiles(
+						sd, 
+						results,
+						request.getRemoteUser(),
+						sId, 
+						request,
+						folderPath,
+						superUser,
+						true);
+				
+				fileName = String.valueOf(UUID.randomUUID()) + ".zip";
+				filePath = basePath + "/temp/" + fileName;
+				savedFile = new File(filePath);
+				GeneralUtilityMethods.writeFilesToZipOutputStream(new ZipOutputStream(new FileOutputStream(savedFile)), files);	
+				folder.delete();		// Clean up
+				
+				// Set the uploaded file name to the source form name
+				uploadedFileName = sourceFormName;
 			}
 
 			/*
@@ -941,7 +998,7 @@ public class AllAssignments extends Application {
 			// Refer to http://www.mkyong.com/java/how-to-decompress-files-from-a-zip-file/
 			if(savedFile.getName().endsWith(".zip")) {
 				String zipFolderPath = savedFile.getAbsolutePath() + ".dir";
-				File zipFolder = new File(zipFolderPath);
+				zipFolder = new File(zipFolderPath);
 				if(!zipFolder.exists()) {
 					zipFolder.mkdir();
 				}
@@ -985,10 +1042,10 @@ public class AllAssignments extends Application {
 					zis.closeEntry();
 				}
 				zis.close();
+				savedFile.delete();		// clean up
 			} else {
 				dataFiles.add(savedFile);
 			} 
-
 
 			/*
 			 * Get a mapping between form name and file name
@@ -1062,7 +1119,8 @@ public class AllAssignments extends Application {
 							basePath,
 							localisation,
 							preloads,
-							uploadedFileName);
+							uploadedFileName,
+							importTime);
 
 					if(formIdx == 0) {
 						recordsWritten = count;
@@ -1083,33 +1141,65 @@ public class AllAssignments extends Application {
 
 			results.commit();
 
-			StringBuffer logMessage = new StringBuffer("");
-			logMessage.append(recordsWritten);
-			logMessage.append(" "); 
-			logMessage.append(localisation.getString("imp_frm"));
-			logMessage.append(" "); 
-			logMessage.append(uploadedFileName);
-			logMessage.append(" "); 
-			logMessage.append(localisation.getString("imp_fs"));
-			logMessage.append(" "); 
-			logMessage.append(sName);
-			logMessage.append(" "); 
-			logMessage.append(localisation.getString("imp_pr"));
-			logMessage.append(" "); 
-			logMessage.append((clear_existing ? localisation.getString("imp_del") : localisation.getString("imp_pres")));
+			String logMessage = null;
+			if (importSource.equals("file")) {
+				logMessage = localisation.getString("imp_file");
+			} else {
+				logMessage = localisation.getString("imp_form");
+			}
+			logMessage = logMessage.replace("%s1", String.valueOf(recordsWritten));
+			logMessage = logMessage.replace("%s2", uploadedFileName);
+			logMessage = logMessage.replace("%s3", sName);
+			logMessage += ". ";
+			if(clear_existing) {
+				logMessage += localisation.getString("imp_pr_del");
+			} else {
+				logMessage += localisation.getString("imp_pr_pres");
+			}
+			
+			String tMessage = localisation.getString("imp_time");
+			tMessage = tMessage.replace("%s1", String.valueOf(importTime));
 
-			lm.writeLog(sd, sId, request.getRemoteUser(), "import data", logMessage.toString());
+			logMessage += ". " + tMessage;
+			
+			lm.writeLog(sd, sId, request.getRemoteUser(), "import data", logMessage);
 			log.info("userevent: " + request.getRemoteUser() + " : loading file into survey: " + sId + " Previous contents are" + (clear_existing ? " deleted" : " preserved"));  // Write user event in english only
 
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
+			/*
+			 * Remove any temporary files created
+			 */
+			for(File f : dataFiles) {
+				f.delete();
+			}
+			for(String path : mediaFiles.keySet()) {
+				File f = mediaFiles.get(path);
+				f.delete();
+			}
+			if(zipFolder != null) {
+				zipFolder.delete();
+			}
+			
+			/*
+			 * Return results
+			 */
 			responseMsg.add(localisation.getString("imp_c"));
 			response = Response.status(Status.OK).entity(gson.toJson(responseMsg)).build();
 
 		} catch (AuthorisationException e) {
 			log.log(Level.SEVERE,"", e);
 			try { results.rollback();} catch (Exception ex){}
-			response = Response.status(Status.FORBIDDEN).entity("Cannot load tasks from a file to this form. You need to enable loading tasks for this form in the form settings in the editor page.").build();
+			
+			String msg = "";
+			if(validateSurvey != null && validateSurvey.equals("target")) {
+				msg = localisation.getString("msg_load_file");
+				msg = msg.replace("%s1", String.valueOf(sId));
+			} else {
+				msg = localisation.getString("msg_load_form");
+				msg = msg.replace("%s1", String.valueOf(sourceSurveyId));
+			}
+			response = Response.status(Status.FORBIDDEN).entity(msg).build();
 
 		} catch (NotFoundException e) {
 			log.log(Level.SEVERE,"", e);
@@ -1118,9 +1208,9 @@ public class AllAssignments extends Application {
 
 		} catch (Exception e) {
 			String msg = e.getMessage();
-			if(msg != null && msg.startsWith("org.postgresql.util.PSQLException: Zero bytes")) {
-				msg = "Invalid file format. Only zip and csv files accepted";
-				log.info("Error: " + msg + " : " + e.getMessage());
+			if(msg != null && (msg.startsWith("org.postgresql.util.PSQLException: Zero bytes") 
+					|| msg.equals("java.lang.reflect.InvocationTargetException"))) {
+				msg = localisation.getString("msg_load_format");
 			} else {
 				log.log(Level.SEVERE,"", e);
 			}

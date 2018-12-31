@@ -378,7 +378,8 @@ public class ExchangeManager {
 			String basePath,
 			ResourceBundle localisation,
 			ArrayList<MetaItem> preloads,
-			String importSource
+			String importSource,
+			Timestamp importTime
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -395,9 +396,6 @@ public class ExchangeManager {
 		
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtDeleteExisting = null;
-
-		Calendar cal = Calendar.getInstance();
-		Timestamp importTime = new Timestamp(cal.getTime().getTime());
 		
 		try {
 			
@@ -430,7 +428,7 @@ public class ExchangeManager {
 							instanceIdColumn = i;
 						}
 						// If this column is in the survey then add it to the list of columns to be processed
-						Column col = getColumn(pstmtGetCol, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
+						Column col = getColumn(results, form.table_name, pstmtGetCol, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
 						if(col != null) {
 							col.index = i;
 							if(col.geomCol != null) {
@@ -444,7 +442,7 @@ public class ExchangeManager {
 								columns.add(col);
 							}
 						} else {
-							col = getColumn(pstmtGetColGS, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
+							col = getColumn(results, form.table_name, pstmtGetColGS, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
 							if(col != null) {
 								col.index = i;
 								if(col.geomCol != null) {
@@ -633,24 +631,6 @@ public class ExchangeManager {
 									value = null;
 								}
 								pstmtInsert.setString(index++, value);
-							//} else if(col.type.equals("select")) {		assume compressed
-							//	String [] choices = value.split("\\s");
-							//	for(int k = 0; k < col.choices.size(); k++) {
-							//		Option cVal = col.choices.get(k);
-							//		boolean hasChoice = false;
-							//		for(int l = 0; l < choices.length; l++) {
-							//			if(cVal.value.equals(choices[l])) {
-							//				hasChoice = true;
-							//				break;
-							//			}
-							//		}
-							//		if(hasChoice) {
-							//			pstmtInsert.setInt(index++, 1);
-							//		} else {
-							//			pstmtInsert.setInt(index++, 0);
-							//		}
-							//		
-							//	}
 							} else if(col.type.equals("int")) {
 								int iVal = 0;
 								if(notEmpty(value)) {
@@ -1144,6 +1124,8 @@ public class ExchangeManager {
 	 * Check to see if a question is in a form
 	 */
 	private Column getColumn(
+			Connection cResults,
+			String tableName,
 			PreparedStatement pstmtGetCol, 
 			PreparedStatement pstmtGetChoices, 
 			String qName,
@@ -1189,6 +1171,9 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = "_hrk";
 				col.type = "string";
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
+					GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "text");
+				}
 			} else if(qName.equals("User") || qName.equals("_user")) {
 				col = new Column();
 				col.name = qName;
@@ -1219,6 +1204,9 @@ public class ExchangeManager {
 				col.name = qName;
 				col.columnName = SmapServerMeta.SCHEDULED_START_NAME;
 				col.type = "dateTime";
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
+					GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "timestamp with time zone");
+				}
 			} else if(qName.equals("Version") || qName.equals("_version")) {
 				col = new Column();
 				col.name = qName;
