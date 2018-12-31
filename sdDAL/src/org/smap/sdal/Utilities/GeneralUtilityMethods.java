@@ -5173,7 +5173,31 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Method to check for presence of the specified column
+	 * Method to add a column to a table
+	 */
+	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
+
+		String sql = "alter table " + tablename + " add column " + columnName + " " + type;
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		log.info("Adding column: " + pstmt.toString());
+		try {
+			pstmt.executeUpdate();
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			if(msg.contains("already exists")) {
+				log.info("Column already exists");
+			} else {
+				throw e;
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+	}
+	
+	/*
+	 * Method to check for presence of the specified column in a specific schema
 	 */
 	public static boolean hasColumnInSchema(Connection cRel, String tablename, String columnName, String schema) {
 

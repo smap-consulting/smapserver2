@@ -843,7 +843,7 @@ public class AllAssignments extends Application {
 		String filePath = null;
 		File savedFile = null;									// The uploaded file
 		ArrayList<File> dataFiles = new ArrayList<File> ();		// Uploaded data files - There may be multiple of these in a zip file
-		HashMap<String, String> formFile = new HashMap<String, String> ();	// Mapping between form and the file that contains the data to populate it
+	
 		String contentType = null;
 		int sId = 0;
 		String sIdent = null;		// Survey Ident
@@ -1061,7 +1061,8 @@ public class AllAssignments extends Application {
 							responseMsg,
 							basePath,
 							localisation,
-							preloads);
+							preloads,
+							uploadedFileName);
 
 					if(formIdx == 0) {
 						recordsWritten = count;

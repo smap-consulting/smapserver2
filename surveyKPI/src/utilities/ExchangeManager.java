@@ -42,6 +42,7 @@ import java.text.SimpleDateFormat;
 //import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -376,7 +377,8 @@ public class ExchangeManager {
 			ArrayList<String> responseMsg,
 			String basePath,
 			ResourceBundle localisation,
-			ArrayList<MetaItem> preloads
+			ArrayList<MetaItem> preloads,
+			String importSource
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -394,6 +396,9 @@ public class ExchangeManager {
 		PreparedStatement pstmtInsert = null;
 		PreparedStatement pstmtDeleteExisting = null;
 
+		Calendar cal = Calendar.getInstance();
+		Timestamp importTime = new Timestamp(cal.getTime().getTime());
+		
 		try {
 			
 			form.keyMap = new HashMap<String, String> ();
@@ -467,58 +472,45 @@ public class ExchangeManager {
 				log.info("Loading data from " + columns.size() + " columns out of " + line.length + " columns in the data file");
 				
 				if(columns.size() > 0 || (lonIndex >= 0 && latIndex >= 0)) {
-								
+						
+					/*
+					 * Add the source column if it is not already in the results table
+					 */
+					if(!GeneralUtilityMethods.hasColumn(results, form.table_name, "_import_source")) {
+						GeneralUtilityMethods.addColumn(results, form.table_name, "_import_source", "text");
+					}
+					if(!GeneralUtilityMethods.hasColumn(results, form.table_name, "_import_time")) {
+						GeneralUtilityMethods.addColumn(results, form.table_name, "_import_time", "timestamp with time zone");
+					}
 					/*
 					 * Create the insert statement
 					 */		
-					boolean addedCol = false;
 					StringBuffer sqlInsert = new StringBuffer("insert into " + form.table_name + "(");
+					sqlInsert.append("_import_source, _import_time");
 					if(form.parent == 0) {
-						sqlInsert.append("instanceid");
-						addedCol = true;
+						sqlInsert.append(",instanceid");
 					}
 					
-					for(int i = 0; i < columns.size(); i++) {
-						
-						Column col = columns.get(i);
-						
+					for(int i = 0; i < columns.size(); i++) {						
+						Column col = columns.get(i);						
 						if(col.write) {
-							//if(col.type.equals("select")) {		Commented out as assume compressed
-							//	for(int j = 0; j < col.choices.size(); j++) {
-							//		if(addedCol) {
-							//			sqlInsert.append(",");
-							//		}
-							//		sqlInsert.append(col.columnName + "__" + col.choices.get(j).columnName);
-							//		addedCol = true;
-							//	}
-							//} else {
-								if(addedCol) {
-									sqlInsert.append(",");
-								}
-								sqlInsert.append(col.columnName);
-								addedCol = true;
-							//}
+							sqlInsert.append(",").append(col.columnName);
 						}
-	
 					}
 					
 					// Add the geopoint column if latitude and longitude were provided in the data file
 					if(lonIndex >= 0 && latIndex >= 0 ) {
-						if(addedCol) {
-							sqlInsert.append(",");
-						}
+						sqlInsert.append(",").append("the_geom");;
 						hasGeopoint = true;
-						sqlInsert.append("the_geom");
 					}
 					
 					/*
 					 * Add place holders for the data
 					 */
-					addedCol = false;
 					sqlInsert.append(") values("); 
+					sqlInsert.append("?, ?");			// _import_source and _import_time
 					if(form.parent == 0) {
-						sqlInsert.append("?");		// instanceid
-						addedCol = true;
+						sqlInsert.append(",?");		// instanceid
 					}
 					
 					
@@ -527,47 +519,22 @@ public class ExchangeManager {
 						Column col = columns.get(i);
 						
 						if(col.write) {
-							//if(col.type.equals("select")) {		// Assume compressed
-								
-							//	for(int j = 0; j < col.choices.size(); j++) {
-							//		if(addedCol) {
-							//			sqlInsert.append(",");
-							//		}	
-							//		sqlInsert.append("?");
-							//		addedCol = true;
-							//	}
-							//} else 
 							if(col.type.equals("geoshape")) {
-								if(addedCol) {
-									sqlInsert.append(",");
-								}
-								sqlInsert.append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
-								addedCol = true;
+								sqlInsert.append(",").append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
 								
 							} else if(col.type.equals("geotrace")) {
-								if(addedCol) {
-									sqlInsert.append(",");
-								}
-								sqlInsert.append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
-								addedCol = true;
+								sqlInsert.append(",").append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
 							} else {
-								if(addedCol) {
-									sqlInsert.append(",");
-								}
-								sqlInsert.append("?");
-								addedCol = true;
+								sqlInsert.append(",").append("?");
 							}
 						}
 					}
 					
 					// Add the geopoint value
 					if(hasGeopoint) {
-						if(addedCol) {
-							sqlInsert.append(",");
-						}
-						sqlInsert.append("ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326)");
+						sqlInsert.append(",").append("ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326)");
 					}
-					sqlInsert.append(");");
+					sqlInsert.append(")");
 					
 					pstmtInsert = results.prepareStatement(sqlInsert.toString(), Statement.RETURN_GENERATED_KEYS);
 					
@@ -588,6 +555,8 @@ public class ExchangeManager {
 						int index = 1;
 						String prikey = null;
 						boolean writeRecord = true;
+						pstmtInsert.setString(index++, importSource);
+						pstmtInsert.setTimestamp(index++, importTime);
 						if(form.parent == 0) {
 							String instanceId = null;
 							if(instanceIdColumn >= 0) {
@@ -799,8 +768,6 @@ public class ExchangeManager {
 				}
 				
 			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			
 			try{if(xlsReader != null) {xlsReader.close();}} catch (Exception e) {}
