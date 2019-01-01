@@ -968,7 +968,7 @@ public class AllAssignments extends Application {
 						sd, 
 						results,
 						request.getRemoteUser(),
-						sId, 
+						sourceSurveyId, 
 						request,
 						folderPath,
 						superUser,
