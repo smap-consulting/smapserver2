@@ -265,7 +265,7 @@ public class UserSvc extends Application {
 						+ "settings = ?, "
 						+ "language = ?, "
 						+ "email = ?, "
-						+ "timezone = ? "
+						+ "timezone = ?, "
 						+ "password = md5(?) "
 						+ "where "
 						+ "ident = ?";
@@ -273,7 +273,6 @@ public class UserSvc extends Application {
 				pwdString = ident + ":smap:" + u.password;
 			}
 			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, u.name);
 			pstmt.setString(2, u.settings);
