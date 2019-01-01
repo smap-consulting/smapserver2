@@ -87,11 +87,9 @@ public class GeneralUtilityMethods {
 
 	private static LogManager lm = new LogManager();		// Application log
 
-	private static int LENGTH_QUESTION_NAME = 45; // 63 max size of postgresql column names. Allow 10 chars for options
-	// + 2 chars for option separator
-	private static int LENGTH_QUESTION_RAND = 3;
-	private static int LENGTH_OPTION_NAME = 16;
-	private static int LENGTH_OPTION_RAND = 3;
+	private static int LENGTH_QUESTION_NAME = 57; // 63 max size of postgresql column names.
+	private static int LENGTH_QUESTION_RAND = 5;
+
 
 	private static String[] smapMeta = new String[] { "_hrk", "instanceid", "_instanceid", "_start", "_end", "_device",
 			"prikey", "parkey", "_bad", "_bad_reason", "_user", "_survey_notes", 
@@ -155,17 +153,16 @@ public class GeneralUtilityMethods {
 
 			// If the name exceeds the max length then truncate to max size and add random
 			// characters to the end of the name
-			int maxlength = isQuestion ? (LENGTH_QUESTION_NAME - LENGTH_QUESTION_RAND)
-					: (LENGTH_OPTION_NAME - LENGTH_OPTION_RAND);
-			int randLength = isQuestion ? LENGTH_QUESTION_RAND : LENGTH_OPTION_RAND;
-
-			if (out.length() >= maxlength) {
-				out = out.substring(0, maxlength);
-
-				String rand = String.valueOf(UUID.randomUUID());
-				rand = rand.substring(0, randLength);
-
-				out += rand;
+			if(isQuestion) {
+				int maxlength = LENGTH_QUESTION_NAME - LENGTH_QUESTION_RAND;
+				if (out.length() >= maxlength) {
+					out = out.substring(0, maxlength);
+	
+					String rand = String.valueOf(UUID.randomUUID());
+					rand = rand.substring(0, LENGTH_QUESTION_RAND);
+	
+					out += rand;
+				}
 			}
 		}
 
