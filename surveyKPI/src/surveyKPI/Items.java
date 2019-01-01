@@ -294,6 +294,15 @@ public class Items extends Application {
 					newColIdx++;
 				}
 				
+				boolean hasImportSourceColumn = GeneralUtilityMethods.hasColumn(cResults, tName, "_import_source");
+				if(hasImportSourceColumn) {
+					// add a hidden import source column
+					if(newColIdx > 0) {
+						cols.append(",");
+					}
+					cols.append(tName + "._import_source as _import_source");
+				}
+				
 				/*
 				 * Add the server side calculations
 				 */
@@ -583,7 +592,7 @@ public class Items extends Application {
 				// Request the data
 				log.info("Get Item Data: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
-	
+				
 				JSONArray ja = new JSONArray();
 				while (resultSet.next()) {
 					JSONObject jr = new JSONObject();
@@ -617,10 +626,20 @@ public class Items extends Application {
 								maxRec = resultSet.getInt("prikey");
 							} else if(name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 								// Get the display name
-								String displayName = surveyNames.get(value);
-								if(displayName == null && value.length() > 0) {
-									displayName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(value));
-									surveyNames.put(value, displayName);
+								String displayName = "";
+								if(value.length() > 0 && !value.equals("0")) {
+									displayName = surveyNames.get(value);
+									if(displayName == null) {
+										displayName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(value));
+										surveyNames.put(value, displayName);
+									}
+								} else {
+									if(hasImportSourceColumn) {
+										displayName = resultSet.getString("_import_source");
+										if(displayName == null) {
+											displayName = "";
+										}
+									} 
 								}
 								jp.put(headerName, displayName);
 							} else {
