@@ -168,7 +168,8 @@ public class SurveyViewManager {
 					superUser,
 					false,		// HXL only include with XLS exports
 					false,		// Don't include audit data
-					tz
+					tz,
+					true			// convert question name to display name if it is set
 					);		
 			
 			

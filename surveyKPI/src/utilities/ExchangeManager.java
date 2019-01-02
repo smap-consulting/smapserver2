@@ -217,8 +217,8 @@ public class ExchangeManager {
 							superUser,
 							false,
 							false,		// Don't include audit data
-							tz
-							);
+							tz,
+							false);		// Don't use the display name in column headings for exchange files
 						
 					// Get the list of spreadsheet columns
 					ArrayList<Column> cols = new ArrayList<Column> ();
@@ -973,7 +973,6 @@ public class ExchangeManager {
 						multipleChoiceValue = null;
 						currentSelectMultipleQuestionName = null;
 					}
-
 					
 					if(c.isAttachment() && value != null && value.trim().length() > 0) {
 						
@@ -1014,7 +1013,6 @@ public class ExchangeManager {
 					}
 				}
 				rowIndex++;
-
 				
 			}
 			

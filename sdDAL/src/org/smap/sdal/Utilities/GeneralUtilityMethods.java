@@ -2979,7 +2979,8 @@ public class GeneralUtilityMethods {
 			boolean superUser,
 			boolean hxl,
 			boolean audit,
-			String tz)
+			String tz,
+			boolean useDisplayNameForQuestionName)	// If set substitute display name for the question name if it is not null
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
@@ -3254,8 +3255,10 @@ public class GeneralUtilityMethods {
 				String display_name = rsQuestions.getString(8);
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
-				if (display_name != null && display_name.trim().length() > 0) {
-					question_human_name = display_name;
+				if(useDisplayNameForQuestionName) {
+					if (display_name != null && display_name.trim().length() > 0) {
+						question_human_name = display_name;
+					}
 				}
 				String hxlCode = getHxlCode(appearance, question_human_name);
 

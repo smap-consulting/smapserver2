@@ -346,7 +346,8 @@ public class Data extends Application {
 					superUser,
 					false,		// TODO include HXL
 					audit,
-					tz
+					tz,
+					true				// convert question name to display name if it is set
 					);
 
 			if(mgmt) {
@@ -594,7 +595,8 @@ public class Data extends Application {
 					superUser,
 					false,		// Only include HXL with CSV and Excel output
 					false,
-					tz
+					tz,
+					true				// convert question name to display name if it is set
 					);
 
 			if(mgmt) {

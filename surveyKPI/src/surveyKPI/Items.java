@@ -248,7 +248,8 @@ public class Items extends Application {
 						superUser,
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data
-						tz
+						tz,
+						true			// Convert question names to display name if it is set
 						);		
 				
 				// Construct a new query that retrieves a geometry object as geoJson

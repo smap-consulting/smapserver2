@@ -319,7 +319,9 @@ public class Data_CSV extends Application {
 					true, // include survey duration
 					superUser, false, // TODO include HXL
 					audit,
-					tz);
+					tz,
+					true				// convert question name to display name if it is set
+					);
 
 			if (mgmt) {
 				CustomReportsManager crm = new CustomReportsManager();

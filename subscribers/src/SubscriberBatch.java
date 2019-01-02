@@ -477,7 +477,8 @@ public class SubscriberBatch {
 											true,		// Super user
 											false,		// Don't include HXL
 											true	,		// include audit data
-											tz
+											tz,
+											true			// convert question name to display name if it is set
 											);
 	
 									if(mgmt) {
