@@ -1639,7 +1639,7 @@ public class QuestionManager {
 				 + "column_name_applied, "
 				 + "l_id,"
 				 + "display_name,"
-				 + "compressed "
+				 + "true "								// compressed, new forms will be true
 				 + "from question where f_id = ? "		// Existing form id
 				 + "and soft_deleted = 'false';";	
 		PreparedStatement pstmt = null;
