@@ -2662,7 +2662,7 @@ public class SurveyManager {
 						
 						for(MetaItem mi : preloads) {
 							if(mi.isPreload && mi.published) {			
-								record.add(new Result(mi.columnName, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, mi.id, 0, null, null));
+								record.add(new Result(mi.name, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, mi.id, 0, null, null));
 							}
 						}
 						record.add(new Result("instancename", "instancename", resultSet.getString("instancename"), false, fIdx, -1, 0, null, null));
