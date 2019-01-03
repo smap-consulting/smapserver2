@@ -436,7 +436,7 @@ public class NotificationManager {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
-						false, false, false, "geojson");
+						false, false, true, "geojson");	// petend to be super user
 				
 				/*
 				 * Test the filter
@@ -446,10 +446,15 @@ public class NotificationManager {
 					try {
 						proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId, tz);
 					} catch(Exception e) {
+						String msg = e.getMessage();
+						if(msg == null) {
+							msg = "";
+						}
+						log.log(Level.SEVERE, e.getMessage(), e);
 						lm.writeLog(sd, sId, "subscriber", "notification", 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
-								.replace("%s2", e.getMessage()));
+								.replace("%s2", msg));
 					}
 				}
 				
