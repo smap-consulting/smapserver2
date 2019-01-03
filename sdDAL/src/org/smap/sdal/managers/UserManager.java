@@ -105,10 +105,12 @@ public class UserManager {
 					+ "o.ft_send_location, "
 					+ "o.billing_enabled,"
 					+ "o.e_id,"
-					+ "u.timezone "
-					+ "from users u, organisation o "
+					+ "u.timezone,"
+					+ "e.name as enterprise_name  "
+					+ "from users u, organisation o, enterprise e "
 					+ "where u.ident = ? "
 					+ "and u.o_id = o.id "
+					+ "and o.e_id = e.id "
 					+ "order by u.ident"; 
 
 			pstmt = connectionSD.prepareStatement(sql);
@@ -153,6 +155,7 @@ public class UserManager {
 				user.seen = resultSet.getBoolean("seen");
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 				user.timezone = resultSet.getString("timezone");
+				user.enterprise_name = resultSet.getString("enterprise_name");
 			}
 
 			/*
