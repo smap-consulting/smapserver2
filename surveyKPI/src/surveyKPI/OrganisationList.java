@@ -26,6 +26,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -94,7 +95,8 @@ public class OrganisationList extends Application {
 	
 	@GET
 	@Produces("application/json")
-	public Response getOrganisations(@Context HttpServletRequest request) { 
+	public Response getOrganisations(@Context HttpServletRequest request,
+			@QueryParam("enterprise") int e_id) { 
 
 		Response response = null;
 		
@@ -107,6 +109,19 @@ public class OrganisationList extends Application {
 		ArrayList<Organisation> organisations = new ArrayList<Organisation> ();
 		
 		try {
+			
+			if(e_id > 0) {
+				// Check that the user is an enterprise administrator
+				if(!GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser())) {
+					e_id = 0;
+				}
+			}
+			
+			// Use the users enterprise id if one was not specified
+			if(e_id == 0) {
+				e_id = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
+			}
+			
 			String sql = null;
 			ResultSet resultSet = null;
 			
@@ -147,9 +162,11 @@ public class OrganisationList extends Application {
 					+ "timezone,"
 					+ "server_description "
 					+ "from organisation "
+					+ "where organisation.e_id = ? "
 					+ "order by name asc;";			
 						
 			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, e_id);
 			log.info("Get organisation list: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			

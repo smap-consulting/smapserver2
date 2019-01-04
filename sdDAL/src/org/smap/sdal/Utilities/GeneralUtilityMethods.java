@@ -788,6 +788,36 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Get the current enterprise id for the user 
+	 */
+	static public int getEnterpriseId(Connection sd, String user) throws SQLException {
+
+		int e_id = -1;
+
+		String sql = "select o.e_id " 
+				+ "from users u, organisation o " 
+				+ "where u.ident = ? "
+				+ "and u.o_id = o.id";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, user);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				e_id = rs.getInt(1);
+			} 
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
+		}
+
+		return e_id;
+	}
+
+	/*
 	 * Get the current organisation id for the user If there is no organisation for that
 	 * user then use the survey id, this is used when getting the organisation for a
 	 * subscriber log
@@ -796,10 +826,15 @@ public class GeneralUtilityMethods {
 
 		int o_id = -1;
 
-		String sql1 = "select o_id " + " from users u " + " where u.ident = ?;";
+		String sql1 = "select o_id " 
+				+ " from users u " 
+				+ " where u.ident = ?;";
 		PreparedStatement pstmt1 = null;
 
-		String sql2 = "select p.o_id " + "from survey s, project p " + "where s.p_id = p.id " + "and s.s_id = ?";
+		String sql2 = "select p.o_id " 
+				+ "from survey s, project p " 
+				+ "where s.p_id = p.id " 
+				+ "and s.s_id = ?";
 		PreparedStatement pstmt2 = null;
 
 		try {
@@ -828,7 +863,7 @@ public class GeneralUtilityMethods {
 
 		return o_id;
 	}
-
+	
 	/*
 	 * Get the organisation id for the survey
 	 */

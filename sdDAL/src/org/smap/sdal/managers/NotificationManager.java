@@ -436,7 +436,7 @@ public class NotificationManager {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
-						false, false, true, "geojson");	// petend to be super user
+						false, false, true, "geojson");	// pretend to be super user
 				
 				/*
 				 * Test the filter
