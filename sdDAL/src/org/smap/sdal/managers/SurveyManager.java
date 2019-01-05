@@ -111,12 +111,13 @@ public class SurveyManager {
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, p.name, p.id, p.tasks_only,"
-				+ "s.group_survey_id, s.public_link "
-				+ "from survey s, users u, user_project up, project p "
+				+ "s.group_survey_id, s.public_link, o.can_submit "
+				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
 				+ "and s.p_id = up.p_id "
 				+ "and p.o_id = u.o_id "
+				+ "and u.o_id = o.id "
 				+ "and u.ident = ? "
 				+ "and s.hidden = 'false' ");
 
@@ -163,7 +164,11 @@ public class SurveyManager {
 				//s.setName(resultSet.getString(2));
 				s.setDisplayName(resultSet.getString(3));
 				s.setDeleted(resultSet.getBoolean(4));
-				s.setBlocked(resultSet.getBoolean(5));
+				
+				boolean surveyBlocked = resultSet.getBoolean(5);
+				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
+				s.setBlocked(surveyBlocked || !orgCanSubmit);
+				
 				s.setIdent(resultSet.getString(6));
 				s.setManagedId(resultSet.getInt(7));
 				s.setVersion(resultSet.getInt(8));
@@ -203,11 +208,12 @@ public class SurveyManager {
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls "
-				+ "from survey s, users u, user_project up, project p "
+				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
 				+ "and s.p_id = up.p_id "
 				+ "and p.o_id = u.o_id "
+				+ "and u.o_id = o.id "
 				+ "and u.ident = ? "
 				+ "and s.deleted = 'false' ");
 
@@ -242,7 +248,11 @@ public class SurveyManager {
 				//s.setName(resultSet.getString(2));
 				s.setDisplayName(resultSet.getString(3));
 				s.setDeleted(resultSet.getBoolean(4));
-				s.setBlocked(resultSet.getBoolean(5));
+				
+				boolean surveyBlocked = resultSet.getBoolean(5);
+				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
+				s.setBlocked(surveyBlocked || !orgCanSubmit);
+				
 				s.setIdent(resultSet.getString(6));
 				s.setManagedId(resultSet.getInt(7));
 				s.setVersion(resultSet.getInt(8));
@@ -1199,7 +1209,8 @@ public class SurveyManager {
 				+ "s.version,"
 				+ "s.meta,"
 				+ "p.o_id,"
-				+ "o.e_id "
+				+ "o.e_id,"
+				+ "o.can_submit "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
@@ -1220,7 +1231,11 @@ public class SurveyManager {
 				s = new Survey();
 				s.setPId(resultSet.getInt(1));
 				s.setId(resultSet.getInt(2));
-				s.setBlocked(resultSet.getBoolean(3));
+				
+				boolean surveyBlocked = resultSet.getBoolean(3);
+				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
+				s.setBlocked(surveyBlocked || !orgCanSubmit);
+				
 				s.surveyClass = resultSet.getString(4);
 				s.deleted = resultSet.getBoolean(5);
 				s.displayName = resultSet.getString(6);

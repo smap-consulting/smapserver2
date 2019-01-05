@@ -928,20 +928,29 @@ public class Authorise {
 		int count = 0;
 		boolean sqlError = false;
 
-		String sql = "select count(*) from survey s " +
-				" where s.s_id = ? " +
-				" and s.blocked = ?;"; 
+		String sql = "select s.blocked, o.can_submit "
+				+ "from survey s, project p, organisation o "
+				+ "where s.s_id = ? "
+				+ "and s.p_id = p.id "
+				+ "and p.o_id = o.id ";
 		
 		try {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			pstmt.setBoolean(2, isBlocked);
 			
 			log.info("isBlocked: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			resultSet.next();
 			
-			count = resultSet.getInt(1);
+			boolean surveyBlocked = resultSet.getBoolean("blocked");
+			boolean orgCanSubmit = resultSet.getBoolean("can_submit");	
+			
+			if(isBlocked && (surveyBlocked || !orgCanSubmit)) {
+				count = 1;
+			} else if (!isBlocked && (!surveyBlocked && orgCanSubmit)) {
+				count = 1;
+			}
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation - isBlocked", e);
 			sqlError = true;
