@@ -84,6 +84,9 @@ public class OrganisationManager {
 				" timezone = ?, " +
 				" server_description = ?, " +
 				" changed_by = ?, " + 
+				" can_notify = ?, " + 
+				" can_use_api = ?, " + 
+				" can_submit = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
 				" id = ?;";
@@ -114,7 +117,10 @@ public class OrganisationManager {
 			pstmt.setString(20, o.timeZone);
 			pstmt.setString(21, o.server_description);
 			pstmt.setString(22, userIdent);
-			pstmt.setInt(23, o.id);
+			pstmt.setBoolean(23, o.can_notify);
+			pstmt.setBoolean(24, o.can_use_api);
+			pstmt.setBoolean(25, o.can_submit);
+			pstmt.setInt(26, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -159,14 +165,16 @@ public class OrganisationManager {
 										//  emails to the smame possibly wrong address		
 		PreparedStatement pstmtCheckInactive = null;
 		
-		String sql = "insert into organisation (name, company_name, " +
-				"company_address, " +
-				"company_phone, " +
-				"company_email, " +
-				"allow_email, allow_facebook, allow_twitter, can_edit, email_task, " +
-				"changed_by, admin_email, smtp_host, email_domain, email_user, email_password, " +
-				"email_port, default_email_content, website, locale, timezone, changed_ts) " +
-				" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now());";
+		String sql = "insert into organisation (name, company_name, "
+				+ "company_address, "
+				+ "company_phone, "
+				+ "company_email, "
+				+ "allow_email, allow_facebook, allow_twitter, can_edit, email_task, "
+				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
+				+ "email_port, default_email_content, website, locale, timezone, "
+				+ "can_notify, can_use_api, can_submit, changed_ts) "
+				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
+				+ "?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -215,6 +223,11 @@ public class OrganisationManager {
 				o.timeZone = "UTC";			// Default time zone for organisation
 			}
 			pstmt.setString(21, o.timeZone);
+			
+			pstmt.setBoolean(22, o.can_notify);
+			pstmt.setBoolean(22, o.can_use_api);
+			pstmt.setBoolean(22, o.can_submit);
+			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
