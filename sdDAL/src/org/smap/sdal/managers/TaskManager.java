@@ -2066,7 +2066,6 @@ public class TaskManager {
 		return isDeleted;
 	}
 	
-	
 	/*
 	 * Process an email task
 	 */
@@ -2116,133 +2115,146 @@ public class TaskManager {
 			
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
-			/*
-			 * Add details from the survey to the subject and email content
-			 */
-			log.info("xxxxxxxxxxxxx1: " + msg.content);
-			if(survey != null) {
-				msg.subject = sm.fillStringTemplate(survey, msg.subject);
-				msg.content = sm.fillStringTemplate(survey, msg.content);
-			}
-			log.info("xxxxxxxxxxxxx2: " + msg.content);
-			TextManager tm = new TextManager(localisation, tz);
-			ArrayList<String> text = new ArrayList<> ();
-			text.add(msg.subject);
-			text.add(msg.content);
-			tm.createTextOutput(sd,
-						cResults,
-						text,
-						basePath, 
-						msg.user,
-						survey,
-						utcOffset,
-						"none",
-						organisation.id);
-			msg.subject = text.get(0);
-			msg.content = text.get(1);
-			log.info("xxxxxxxxxxxxx3: " + msg.content);
-			
-			docURL = "/webForm" + msg.actionLink;
-				
-			/*
-			 * Send document to target
-			 */
-			String status = "success";				// Notification log
-			String notify_details = null;			// Notification log
-			String error_details = null;				// Notification log
+			// Notification log
+			ArrayList<String> unsubscribedList  = null;
+			String error_details = null;
+			String notify_details = null;
+			String status = null;
 			boolean unsubscribed = false;
-			if(msg.target.equals("email")) {
-				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
-				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-					if(UtilityMethodsEmail.isValidEmail(msg.email)) {
+			
+			if(organisation.email_task) {
+				/*
+				 * Add details from the survey to the subject and email content
+				 */
+				log.info("xxxxxxxxxxxxx1: " + msg.content);
+				if(survey != null) {
+					msg.subject = sm.fillStringTemplate(survey, msg.subject);
+					msg.content = sm.fillStringTemplate(survey, msg.content);
+				}
+				log.info("xxxxxxxxxxxxx2: " + msg.content);
+				TextManager tm = new TextManager(localisation, tz);
+				ArrayList<String> text = new ArrayList<> ();
+				text.add(msg.subject);
+				text.add(msg.content);
+				tm.createTextOutput(sd,
+							cResults,
+							text,
+							basePath, 
+							msg.user,
+							survey,
+							utcOffset,
+							"none",
+							organisation.id);
+				msg.subject = text.get(0);
+				msg.content = text.get(1);
+				log.info("xxxxxxxxxxxxx3: " + msg.content);
+				
+				docURL = "/webForm" + msg.actionLink;
+					
+				/*
+				 * Send document to target
+				 */
+				status = "success";				// Notification log
+				notify_details = null;			// Notification log
+				error_details = null;				// Notification log
+				unsubscribed = false;
+				if(msg.target.equals("email")) {
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+						if(UtilityMethodsEmail.isValidEmail(msg.email)) {
+								
+							log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
 							
-						log.info("userevent: " + msg.user + " sending email of '" + docURL + "' to " + msg.email);
-						
-						// Set the subject
-						String subject = "";
-						if(msg.subject != null && msg.subject.trim().length() > 0) {
-							subject = msg.subject;
-						} else {
-							if(server != null && server.contains("smap")) {
-								subject = "Smap ";
-							}
-							subject += localisation.getString("c_notify");
-						}
-						
-						String from = "smap";
-						if(msg.from != null && msg.from.trim().length() > 0) {
-							from = msg.from;
-						}
-						String content = null;
-						if(msg.content != null && msg.content.trim().length() > 0) {
-							content = msg.content;
-						} else {
-							content = organisation.default_email_content;
-						}
-						
-						notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
-						
-						log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
-								" from: " + from + 
-								" subject: " + subject +
-								" smtp_host: " + emailServer.smtpHost +
-								" email_domain: " + emailServer.emailDomain);
-						try {
-							EmailManager em = new EmailManager();
-							PeopleManager peopleMgr = new PeopleManager(localisation);
-							InternetAddress[] emailArray = InternetAddress.parse(msg.email);
-							String emailKey = null;
-							
-							for(InternetAddress ia : emailArray) {								
-								emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
-								if(emailKey == null) {
-									unsubscribed = true;
-									setAssignmentStatus(sd, msg.aId, "unsubscribed");
-								} else {
-									log.info("Send email: " + msg.email + " : " + docURL);
-									em.sendEmail(
-											ia.getAddress(), 
-											null, 
-											"notify", 
-											subject, 
-											content,
-											from,		
-											null, 
-											null, 
-											null, 
-											docURL, 
-											filePath,
-											filename,
-											organisation.getAdminEmail(), 
-											emailServer,
-											scheme,
-											server,
-											emailKey,
-											localisation,
-											organisation.server_description);
-									setAssignmentStatus(sd, msg.aId, "accepted");
+							// Set the subject
+							String subject = "";
+							if(msg.subject != null && msg.subject.trim().length() > 0) {
+								subject = msg.subject;
+							} else {
+								if(server != null && server.contains("smap")) {
+									subject = "Smap ";
 								}
+								subject += localisation.getString("c_notify");
 							}
-						} catch(Exception e) {
-							status = "error";
-							error_details = e.getMessage();
-							setAssignmentStatus(sd, msg.aId, "error");
+							
+							String from = "smap";
+							if(msg.from != null && msg.from.trim().length() > 0) {
+								from = msg.from;
+							}
+							String content = null;
+							if(msg.content != null && msg.content.trim().length() > 0) {
+								content = msg.content;
+							} else {
+								content = organisation.default_email_content;
+							}
+							
+							notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
+							
+							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
+									" from: " + from + 
+									" subject: " + subject +
+									" smtp_host: " + emailServer.smtpHost +
+									" email_domain: " + emailServer.emailDomain);
+							try {
+								EmailManager em = new EmailManager();
+								PeopleManager peopleMgr = new PeopleManager(localisation);
+								InternetAddress[] emailArray = InternetAddress.parse(msg.email);
+								String emailKey = null;
+								
+								for(InternetAddress ia : emailArray) {							
+									emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
+									if(emailKey == null) {
+										unsubscribed = true;
+										setAssignmentStatus(sd, msg.aId, "unsubscribed");
+									} else {
+										log.info("Send email: " + msg.email + " : " + docURL);
+										em.sendEmail(
+												ia.getAddress(), 
+												null, 
+												"notify", 
+												subject, 
+												content,
+												from,		
+												null, 
+												null, 
+												null, 
+												docURL, 
+												filePath,
+												filename,
+												organisation.getAdminEmail(), 
+												emailServer,
+												scheme,
+												server,
+												emailKey,
+												localisation,
+												organisation.server_description);
+										setAssignmentStatus(sd, msg.aId, "accepted");
+									}
+								}
+							} catch(Exception e) {
+								status = "error";
+								error_details = e.getMessage();
+								setAssignmentStatus(sd, msg.aId, "error");
+							}
+						} else {
+							log.log(Level.INFO, "Info: List of email recipients is empty");
+							lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
+							writeToMonitor = false;
 						}
 					} else {
-						log.log(Level.INFO, "Info: List of email recipients is empty");
-						lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
-						writeToMonitor = false;
+						status = "error";
+						error_details = "smtp_host not set";
+						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
 					}
-				} else {
+					
+				}  else {
 					status = "error";
-					error_details = "smtp_host not set";
-					log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
+					error_details = "Invalid target: " + msg.target;
+					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
 				}
-				
-			}  else {
+			} else {
 				status = "error";
-				error_details = "Invalid target: " + msg.target;
-				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
+				error_details = localisation.getString("susp_email_task");
+				log.log(Level.SEVERE, "Error: notification services suspended");
 			}
 			
 			// Write log message

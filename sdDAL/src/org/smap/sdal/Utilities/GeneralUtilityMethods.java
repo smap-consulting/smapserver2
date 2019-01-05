@@ -64,6 +64,7 @@ import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -817,6 +818,116 @@ public class GeneralUtilityMethods {
 		return e_id;
 	}
 
+	/*
+	 * Get the organisation object for this orrganisation id
+	 */
+	static public Organisation getOrganisation(Connection sd, int oId) throws SQLException {
+
+		Organisation org = null;
+
+		/*
+		 * Get the organisation
+		 */
+		String sql = "select id, "
+				+ "name, "
+				+ "company_name, "
+				+ "company_address, "
+				+ "company_phone, "
+				+ "company_email, "
+				+ "can_edit, "
+				+ "can_notify, "
+				+ "can_use_api, "
+				+ "can_submit, "
+				+ "email_task, "
+				+ "ft_delete,"
+				+ "ft_send_location,"
+				+ "ft_sync_incomplete,"
+				+ "ft_odk_style_menus,"
+				+ "ft_specify_instancename,"
+				+ "ft_admin_menu,"
+				+ "ft_review_final,"
+				+ "ft_send,"
+				+ "ft_number_tasks,"
+				+ "ft_image_size,"
+				+ "changed_by, "
+				+ "changed_ts," 
+				+ "admin_email, "
+				+ "smtp_host, "
+				+ "email_domain, "
+				+ "email_user, "
+				+ "email_password, "
+				+ "email_port, "
+				+ "default_email_content, "
+				+ "website, "
+				+ "locale,"
+				+ "timezone,"
+				+ "server_description,"
+				+ "e_id "
+				+ "from organisation "
+				+ "where organisation.id = ? "
+				+ "order by name asc;";			
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+
+			ResultSet resultSet = pstmt.executeQuery();
+			
+			if(resultSet.next()) {
+				org = new Organisation();
+				org.id = resultSet.getInt("id");
+				org.name = resultSet.getString("name");
+				org.company_name = resultSet.getString("company_name");
+				org.company_address = resultSet.getString("company_address");
+				org.company_phone = resultSet.getString("company_phone");
+				org.company_email = resultSet.getString("company_email");
+				org.can_edit = resultSet.getBoolean("can_edit");
+				org.can_notify = resultSet.getBoolean("can_notify");
+				org.can_use_api = resultSet.getBoolean("can_use_api");
+				org.can_submit = resultSet.getBoolean("can_submit");
+				org.email_task = resultSet.getBoolean("email_task");
+				org.ft_delete = resultSet.getString("ft_delete");
+				org.ft_send_location = resultSet.getString("ft_send_location");
+				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
+				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
+				org.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
+				org.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
+				org.ft_review_final = resultSet.getBoolean("ft_review_final");
+				org.ft_send = resultSet.getString("ft_send");
+				org.ft_number_tasks = resultSet.getInt("ft_number_tasks");
+				org.ft_image_size = resultSet.getString("ft_image_size");
+				org.changed_by = resultSet.getString("changed_by");
+				org.changed_ts = resultSet.getString("changed_ts");
+				org.admin_email = resultSet.getString("admin_email");
+				org.smtp_host = resultSet.getString("smtp_host");
+				org.email_domain = resultSet.getString("email_domain");
+				org.email_user = resultSet.getString("email_user");
+				org.email_password = resultSet.getString("email_password");
+				org.email_port = resultSet.getInt("email_port");
+				org.default_email_content = resultSet.getString("default_email_content");
+				org.website = resultSet.getString("website");
+				org.locale = resultSet.getString("locale");
+				if(org.locale == null) {
+					org.locale = "en";	// Default english
+				}
+				org.timeZone = resultSet.getString("timeZone");
+				if(org.timeZone == null) {
+					org.timeZone = "UTC";
+				}
+				org.server_description = resultSet.getString("server_description");
+			}
+
+	
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
+		}
+
+		return org;
+	}
+	
 	/*
 	 * Get the current organisation id for the user If there is no organisation for that
 	 * user then use the survey id, this is used when getting the organisation for a

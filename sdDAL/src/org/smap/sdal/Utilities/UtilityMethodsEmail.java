@@ -273,7 +273,7 @@ public class UtilityMethodsEmail {
 
 	/*
 	 * Get the details for the provided organisation
-	 */
+	 *
 	static public Organisation getOrganisationDefaults(
 			Connection sd, 
 			int oId) throws SQLException {
@@ -321,7 +321,7 @@ public class UtilityMethodsEmail {
 		}
 		return o;
 	}
-
+	*/
 
 	/*
 	 * Get the smtp host for the organisation that the user belongs to

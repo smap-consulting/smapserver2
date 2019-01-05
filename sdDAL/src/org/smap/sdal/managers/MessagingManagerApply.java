@@ -105,7 +105,8 @@ public class MessagingManagerApply {
 				String data = rs.getString(5);
 				
 				// Localisation
-				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, o_id);
+				Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
+				
 				Locale locale = new Locale(organisation.locale);
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
@@ -163,23 +164,20 @@ public class MessagingManagerApply {
 					
 				} else if(topic.equals("email_task")) {
 					TaskManager tm = new TaskManager(localisation, tz);
-					if(organisation.email_task) {
-						EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
-						
-						tm.emailTask(
-								sd, 
-								cResults, 
-								organisation, 
-								msg,
-								id,
-								msg.user,
-								basePath,
-								"https",
-								serverName); 
-					} else {
 
-						log.info("Error: xxxxxx Attempting to send email task but these are not enabled");
-					}
+					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
+						
+					tm.emailTask(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							msg.user,
+							basePath,
+							"https",
+							serverName); 
+					
 					
 				} else {
 					// Assume a direct email to be processed immediately

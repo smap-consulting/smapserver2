@@ -229,7 +229,7 @@ public class SubscriberBatch {
 
 								try {
 									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, ue.getSurveyId());
-									Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, oId);
+									Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 									Locale orgLocale = new Locale(organisation.locale);
 									ResourceBundle orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
 

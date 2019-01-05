@@ -554,265 +554,278 @@ public class NotificationManager {
 			
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
-			/*
-			 * Add details from the survey to the subject and email content
-			 */
-			msg.subject = sm.fillStringTemplate(survey, msg.subject);
-			msg.content = sm.fillStringTemplate(survey, msg.content);
-			TextManager tm = new TextManager(localisation, organisation.timeZone);
-			ArrayList<String> text = new ArrayList<> ();
-			text.add(msg.subject);
-			text.add(msg.content);
-			tm.createTextOutput(sd,
-						cResults,
-						text,
-						msg.basePath, 
-						msg.user,
-						survey,
-						utcOffset,
-						"none",
-						organisation.id);
-			msg.subject = text.get(0);
-			msg.content = text.get(1);
+			// Notification log
+			ArrayList<String> unsubscribedList  = new ArrayList<> ();
+			String error_details = null;
+			String notify_details = null;
+			String status = null;
 			
-			if(msg.attach != null && !msg.attach.equals("none")) {
+			if(organisation.can_notify) {
 				
-				if(msg.attach.startsWith("pdf")) {
-					docURL = null;
-					
-					// Create temporary PDF and get file name
-					filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
-					FileOutputStream outputStream = null;
-					try {
-						outputStream = new FileOutputStream(filePath); 
-					} catch (Exception e) {
-						log.log(Level.SEVERE, "Error creating temporary PDF file", e);
-					}
-										
-					// Split orientation from nd.attach
-					boolean landscape = false;
-					if(msg.attach != null && msg.attach.startsWith("pdf")) {
-						landscape = msg.attach.equals("pdf_landscape");
-						msg.attach = "pdf";
-					}
-	
-					filename = pm.createPdf(
-							outputStream,
+				/*
+				 * Add details from the survey to the subject and email content
+				 */
+				msg.subject = sm.fillStringTemplate(survey, msg.subject);
+				msg.content = sm.fillStringTemplate(survey, msg.content);
+				TextManager tm = new TextManager(localisation, organisation.timeZone);
+				ArrayList<String> text = new ArrayList<> ();
+				text.add(msg.subject);
+				text.add(msg.content);
+				tm.createTextOutput(sd,
+							cResults,
+							text,
 							msg.basePath, 
-							msg.serverRoot,
 							msg.user,
-							"none", 
-							generateBlank,
-							null,
-							landscape,
-							null,
-							utcOffset);
-					
-					logContent = filePath;
-					
-				} else {
-					docURL = "/webForm/" + msg.ident +
-							"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
-					logContent = docURL;
-				}
-			} 
+							survey,
+							utcOffset,
+							"none",
+							organisation.id);
+				msg.subject = text.get(0);
+				msg.content = text.get(1);
 				
-			/*
-			 * Send document to target
-			 */
-			ArrayList<String> unsubscribedList = new ArrayList<>();
-			String status = "success";				// Notification log
-			String notify_details = null;			// Notification log
-			String error_details = null;				// Notification log
-			if(msg.target.equals("email")) {
-				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
-				if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
-					ArrayList<String> emailList = null;
-					log.info("Email question: " + msg.getEmailQuestionName(sd));
-					if(msg.emailQuestionSet()) {
-						emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
-					} else {
-						emailList = new ArrayList<String> ();
-					}
+				if(msg.attach != null && !msg.attach.equals("none")) {
 					
-					// Add any meta email addresses to the per question emails
-					String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, msg.sId, msg.emailMeta, msg.instanceId);
-					if(metaEmail != null) {
-						emailList.add(metaEmail);
-					}
-					
-					// Add the static emails to the per question emails
-					if(msg.emails != null) {
-						for(String email : msg.emails) {
-							if(email.length() > 0) {
-								log.info("Adding static email: " + email); 
-								emailList.add(email);
-							}
-						}
-					}
-							
-					// Convert emails into a comma separated string
-					String emails = "";
-					for(String email : emailList) {	
-						if(sentEndPoints.get(email) == null) {
-							if(UtilityMethodsEmail.isValidEmail(email)) {
-								if(emails.length() > 0) {
-									emails += ",";
-								}
-								emails += email;
-							} else {
-								log.info("Email Notifications: Discarding invalid email: " + email);
-							}
-							sentEndPoints.put(email, email);
-						} else {
-							log.info("Duplicate email: " + email);
-						}
-					}
+					if(msg.attach.startsWith("pdf")) {
+						docURL = null;
 						
-					if(emails.trim().length() > 0) {
-						log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
-						
-						// Set the subject
-						String subject = "";
-						if(msg.subject != null && msg.subject.trim().length() > 0) {
-							subject = msg.subject;
-						} else {
-							if(msg.server != null && msg.server.contains("smap")) {
-								subject = "Smap ";
-							}
-							subject += localisation.getString("c_notify");
-						}
-						
-						String from = "smap";
-						if(msg.from != null && msg.from.trim().length() > 0) {
-							from = msg.from;
-						}
-						String content = null;
-						if(msg.content != null && msg.content.trim().length() > 0) {
-							content = msg.content;
-						} else {
-							content = organisation.default_email_content;
-						}
-						
-						notify_details = "Sending email to: " + emails + " containing link " + logContent;
-						
-						log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
-								" from: " + from + 
-								" subject: " + subject +
-								" smtp_host: " + emailServer.smtpHost +
-								" email_domain: " + emailServer.emailDomain);
+						// Create temporary PDF and get file name
+						filePath = msg.basePath + "/temp/" + String.valueOf(UUID.randomUUID()) + ".pdf";
+						FileOutputStream outputStream = null;
 						try {
-							EmailManager em = new EmailManager();
-							PeopleManager peopleMgr = new PeopleManager(localisation);
-							InternetAddress[] emailArray = InternetAddress.parse(emails);
-							String emailKey = null;
-							
-							for(InternetAddress ia : emailArray) {								
-								emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
-								if(emailKey == null) {
-									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
-								} else {
-									em.sendEmail(
-											ia.getAddress(), 
-											null, 
-											"notify", 
-											subject, 
-											content,
-											from,		
-											null, 
-											null, 
-											null, 
-											docURL, 
-											filePath,
-											filename,
-											organisation.getAdminEmail(), 
-											emailServer,
-											msg.scheme,
-											msg.server,
-											emailKey,
-											localisation,
-											organisation.server_description);
+							outputStream = new FileOutputStream(filePath); 
+						} catch (Exception e) {
+							log.log(Level.SEVERE, "Error creating temporary PDF file", e);
+						}
+											
+						// Split orientation from nd.attach
+						boolean landscape = false;
+						if(msg.attach != null && msg.attach.startsWith("pdf")) {
+							landscape = msg.attach.equals("pdf_landscape");
+							msg.attach = "pdf";
+						}
+		
+						filename = pm.createPdf(
+								outputStream,
+								msg.basePath, 
+								msg.serverRoot,
+								msg.user,
+								"none", 
+								generateBlank,
+								null,
+								landscape,
+								null,
+								utcOffset);
+						
+						logContent = filePath;
+						
+					} else {
+						docURL = "/webForm/" + msg.ident +
+								"?datakey=instanceid&datakeyvalue=" + msg.instanceId;
+						logContent = docURL;
+					}
+				} 
+					
+				/*
+				 * Send document to target
+				 */
+				status = "success";					// Notification log
+				notify_details = null;				// Notification log
+				error_details = null;				// Notification log
+				if(msg.target.equals("email")) {
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
+					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+						ArrayList<String> emailList = null;
+						log.info("Email question: " + msg.getEmailQuestionName(sd));
+						if(msg.emailQuestionSet()) {
+							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
+						} else {
+							emailList = new ArrayList<String> ();
+						}
+						
+						// Add any meta email addresses to the per question emails
+						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, msg.sId, msg.emailMeta, msg.instanceId);
+						if(metaEmail != null) {
+							emailList.add(metaEmail);
+						}
+						
+						// Add the static emails to the per question emails
+						if(msg.emails != null) {
+							for(String email : msg.emails) {
+								if(email.length() > 0) {
+									log.info("Adding static email: " + email); 
+									emailList.add(email);
 								}
 							}
-						} catch(Exception e) {
-							status = "error";
-							error_details = e.getMessage();
 						}
-					} else {
-						log.log(Level.INFO, "Info: List of email recipients is empty");
-						lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
-						writeToMonitor = false;
-					}
-				} else {
-					status = "error";
-					error_details = "smtp_host not set";
-					log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
-				}
-				
-			} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
-				
-				// Get the URL to use in sending the SMS
-				String sql = "select s.sms_url "
-						+ "from server s";
-				
-				String sms_url = null;
-				pstmtGetSMSUrl = sd.prepareStatement(sql);
-				ResultSet rs = pstmtGetSMSUrl.executeQuery();
-				if(rs.next()) {
-					sms_url = rs.getString("sms_url");	
-				}
-				
-				if(sms_url != null) {
-					ArrayList<String> smsList = null;
-					ArrayList<String> responseList = new ArrayList<> ();
-					log.info("SMS question: " + msg.getEmailQuestionName(sd));
-					if(msg.emailQuestionSet()) {
-						smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
-					} else {
-						smsList = new ArrayList<String> ();
-					}
-					
-					// Add the static sms numbers to the per question sms numbers
-					for(String sms : msg.emails) {
-						if(sms.length() > 0) {
-							log.info("Adding static sms: " + sms); 
-							smsList.add(sms);
-						}
-					}
-					
-					if(smsList.size() > 0) {
-						SMSManager smsUrlMgr = new SMSManager();
-						for(String sms : smsList) {
-							
-							if(sentEndPoints.get(sms) == null) {
-								log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
-								responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
-								sentEndPoints.put(sms, sms);
+								
+						// Convert emails into a comma separated string
+						String emails = "";
+						for(String email : emailList) {	
+							if(sentEndPoints.get(email) == null) {
+								if(UtilityMethodsEmail.isValidEmail(email)) {
+									if(emails.length() > 0) {
+										emails += ",";
+									}
+									emails += email;
+								} else {
+									log.info("Email Notifications: Discarding invalid email: " + email);
+								}
+								sentEndPoints.put(email, email);
 							} else {
-								log.info("Duplicate phone number: " + sms);
+								log.info("Duplicate email: " + email);
+							}
+						}
+							
+						if(emails.trim().length() > 0) {
+							log.info("userevent: " + msg.user + " sending email of '" + logContent + "' to " + emails);
+							
+							// Set the subject
+							String subject = "";
+							if(msg.subject != null && msg.subject.trim().length() > 0) {
+								subject = msg.subject;
+							} else {
+								if(msg.server != null && msg.server.contains("smap")) {
+									subject = "Smap ";
+								}
+								subject += localisation.getString("c_notify");
 							}
 							
-						} 
+							String from = "smap";
+							if(msg.from != null && msg.from.trim().length() > 0) {
+								from = msg.from;
+							}
+							String content = null;
+							if(msg.content != null && msg.content.trim().length() > 0) {
+								content = msg.content;
+							} else {
+								content = organisation.default_email_content;
+							}
+							
+							notify_details = "Sending email to: " + emails + " containing link " + logContent;
+							
+							log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
+									" from: " + from + 
+									" subject: " + subject +
+									" smtp_host: " + emailServer.smtpHost +
+									" email_domain: " + emailServer.emailDomain);
+							try {
+								EmailManager em = new EmailManager();
+								PeopleManager peopleMgr = new PeopleManager(localisation);
+								InternetAddress[] emailArray = InternetAddress.parse(emails);
+								String emailKey = null;
+								
+								for(InternetAddress ia : emailArray) {								
+									emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
+									if(emailKey == null) {
+										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
+									} else {
+										em.sendEmail(
+												ia.getAddress(), 
+												null, 
+												"notify", 
+												subject, 
+												content,
+												from,		
+												null, 
+												null, 
+												null, 
+												docURL, 
+												filePath,
+												filename,
+												organisation.getAdminEmail(), 
+												emailServer,
+												msg.scheme,
+												msg.server,
+												emailKey,
+												localisation,
+												organisation.server_description);
+									}
+								}
+							} catch(Exception e) {
+								status = "error";
+								error_details = e.getMessage();
+							}
+						} else {
+							log.log(Level.INFO, "Info: List of email recipients is empty");
+							lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
+							writeToMonitor = false;
+						}
 					} else {
-						log.info("No phone numbers to send to");
-						writeToMonitor = false;
+						status = "error";
+						error_details = "smtp_host not set";
+						log.log(Level.SEVERE, "Error: Attempt to do email notification but email server not set");
 					}
 					
-					notify_details = "Sending sms " + smsList.toString() 
-							+ ((logContent == null || logContent.equals("null")) ? "" :" containing link " + logContent)
-							+ " with response " + responseList.toString();
+				} else if(msg.target.equals("sms")) {   // SMS URL notification - SMS message is posted to an arbitrary URL 
+					
+					// Get the URL to use in sending the SMS
+					String sql = "select s.sms_url "
+							+ "from server s";
+					
+					String sms_url = null;
+					pstmtGetSMSUrl = sd.prepareStatement(sql);
+					ResultSet rs = pstmtGetSMSUrl.executeQuery();
+					if(rs.next()) {
+						sms_url = rs.getString("sms_url");	
+					}
+					
+					if(sms_url != null) {
+						ArrayList<String> smsList = null;
+						ArrayList<String> responseList = new ArrayList<> ();
+						log.info("SMS question: " + msg.getEmailQuestionName(sd));
+						if(msg.emailQuestionSet()) {
+							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
+						} else {
+							smsList = new ArrayList<String> ();
+						}
+						
+						// Add the static sms numbers to the per question sms numbers
+						for(String sms : msg.emails) {
+							if(sms.length() > 0) {
+								log.info("Adding static sms: " + sms); 
+								smsList.add(sms);
+							}
+						}
+						
+						if(smsList.size() > 0) {
+							SMSManager smsUrlMgr = new SMSManager();
+							for(String sms : smsList) {
+								
+								if(sentEndPoints.get(sms) == null) {
+									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
+									responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
+									sentEndPoints.put(sms, sms);
+								} else {
+									log.info("Duplicate phone number: " + sms);
+								}
+								
+							} 
+						} else {
+							log.info("No phone numbers to send to");
+							writeToMonitor = false;
+						}
+						
+						notify_details = "Sending sms " + smsList.toString() 
+								+ ((logContent == null || logContent.equals("null")) ? "" :" containing link " + logContent)
+								+ " with response " + responseList.toString();
+						
+					} else {
+						status = "error";
+						error_details = "SMS URL not set";
+						log.log(Level.SEVERE, "Error: Attempt to do SMS notification but SMS URL not set");
+					}
+		
 					
 				} else {
 					status = "error";
-					error_details = "SMS URL not set";
-					log.log(Level.SEVERE, "Error: Attempt to do SMS notification but SMS URL not set");
+					error_details = "Invalid target: " + msg.target;
+					log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
 				}
-	
-				
 			} else {
+				notify_details = organisation.name;
 				status = "error";
-				error_details = "Invalid target: " + msg.target;
-				log.log(Level.SEVERE, "Error: Invalid target" + msg.target);
+				error_details = localisation.getString("susp_notify");
+				log.log(Level.SEVERE, "Error: notification services suspended");
 			}
 			
 			// Write log message
