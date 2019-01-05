@@ -77,6 +77,7 @@ public class XLSFormManager {
 		public static final int COL_CHOICE_NAME = 101;
 		public static final int COL_CHOICE_LABEL = 102;
 		public static final int COL_DEFAULT = 103;
+		public static final int COL_CHOICE_DISPLAY_NAME = 104;
 
 		// Settings sheet columns
 		public static final int COL_DEFAULT_LANGUAGE = 200;
@@ -274,6 +275,9 @@ public class XLSFormManager {
 
 			} else if(type == COL_CHOICE_NAME) {				
 				value = o.value;		
+
+			} else if(type == COL_CHOICE_DISPLAY_NAME) {				
+				value = o.display_name;		
 
 			} else if(type == COL_CHOICE_LABEL) {				
 				value = o.labels.get(labelIndex).text;	
@@ -689,6 +693,7 @@ public class XLSFormManager {
 
 		cols.add(new Column(colNumber++, "list name", Column.COL_LIST_NAME, 0, "list name"));
 		cols.add(new Column(colNumber++, "name", Column.COL_CHOICE_NAME, 0, "choice_name"));
+		cols.add(new Column(colNumber++, "display_name", Column.COL_CHOICE_DISPLAY_NAME, 0, "choice_display_name"));
 
 		// Add label columns
 		int labelIndex = 0;
