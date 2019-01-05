@@ -793,6 +793,7 @@ public class SurveyManager {
 				+ "o.externalfile, "
 				+ "o.cascade_filters, "
 				+ "o.column_name, "
+				+ "o.display_name, "
 				+ "o.published "
 				+ "from option o "
 				+ "where o.l_id = ? "
@@ -1085,7 +1086,8 @@ public class SurveyManager {
 					o.cascade_filters = new HashMap<String, String> ();	// An empty object
 				}
 				o.columnName = rsGetOptions.getString(6);
-				o.published = rsGetOptions.getBoolean(7);
+				o.display_name = rsGetOptions.getString(7);
+				o.published = rsGetOptions.getBoolean(8);
 	
 				// Get the labels for the option
 				UtilityMethodsEmail.getLabels(sd, s, o.text_id, null, o.labels, basePath, oId);

@@ -13,6 +13,7 @@ public class Option {
 	public int sourceSeq;
 	public String value;
 	public String columnName;
+	public String display_name;
 	public String defLabel;
 	public boolean externalFile;
 	public boolean published;
