@@ -322,13 +322,14 @@ public class Survey {
 		String sqlOption = "insert into option ("
 				+ "o_id, "
 				+ "seq, "
-				+ "ovalue, "
+				+ "ovalue,"
 				+ "cascade_filters, "
 				+ "externalfile, "
 				+ "column_name, "
+				+ "display_name, "
 				+ "l_id,"
 				+ "published) "
-				+ "values (nextval('o_seq'), ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('o_seq'), ?, ?, ?, ?, ?, ?, ?, ?);";
 		PreparedStatement pstmtOption = null;
 		
 		String sqlUpdateOption = "update option set label_id = ? where o_id = ?";
@@ -374,8 +375,9 @@ public class Survey {
 					pstmtOption.setString(3, gson.toJson(o.cascade_filters));
 					pstmtOption.setBoolean(4, false);
 					pstmtOption.setString(5, o.columnName);
-					pstmtOption.setInt(6, ol.id);
-					pstmtOption.setBoolean(7, o.published);
+					pstmtOption.setString(6, o.display_name);
+					pstmtOption.setInt(7, ol.id);
+					pstmtOption.setBoolean(8, o.published);
 					pstmtOption.executeUpdate();
 					
 					

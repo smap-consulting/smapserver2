@@ -313,6 +313,7 @@ public class XLSTemplateUploadManager {
 		o.optionList = listName;
 
 		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum, null);
+		o.display_name = XLSUtilities.getTextColumn(row, "display_name", choicesHeader, lastCellNum, null);
 		getLabels(row, lastCellNum, choicesHeader, o.labels, "choice");
 		
 		if(merge) {
