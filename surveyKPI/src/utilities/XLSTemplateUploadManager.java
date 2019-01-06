@@ -408,11 +408,14 @@ public class XLSTemplateUploadManager {
 								|| h.equals("label")
 								|| h.startsWith("label::") 
 								|| h.equals("image")
-								|| h.startsWith("image::") 
+								|| h.startsWith("image::")  		// deprecate?
+								|| h.equals("media::image") 
 								|| h.equals("audio")
-								|| h.startsWith("audio::") 
+								|| h.startsWith("audio::") 		// deprecate?
+								|| h.equals("media::audio") 
 								|| h.equals("video") 
-								|| h.startsWith("video::")) {
+								|| h.equals("media::video")
+								|| h.startsWith("video::")) { 	// deprecate?
 							continue;
 						}
 						// The rest must be filter columns
@@ -709,9 +712,19 @@ public class XLSTemplateUploadManager {
 			Label lab = new Label();
 			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum, defaultLabel);
 			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
+			
 			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
+			if(lab.image == null) {
+				lab.image = XLSUtilities.getTextColumn(row, "media::image", header, lastCellNum, null);
+			}
 			lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum, null);
+			if(lab.video == null) {
+				lab.video = XLSUtilities.getTextColumn(row, "media::video", header, lastCellNum, null);
+			}
 			lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum, null);
+			if(lab.audio == null) {
+				lab.audio = XLSUtilities.getTextColumn(row, "media::audio", header, lastCellNum, null);
+			}
 			
 			lab.text = GeneralUtilityMethods.cleanXlsNames(lab.text);
 			labels.add(lab);
