@@ -165,11 +165,11 @@ public class OrganisationManager {
 					if(emailServer.smtpHost != null) {
 						
 						PeopleManager pm = new PeopleManager(localisation);
-						emailKey = pm.getEmailKey(sd, o.id, originalOrg.admin_email);
+						emailKey = pm.getEmailKey(sd, o.id, originalOrg.getAdminEmail());
 						if(emailKey == null) {
 							// Person has unsubscribed
 							String msg = localisation.getString("email_us");
-							msg = msg.replaceFirst("%s1", originalOrg.admin_email);
+							msg = msg.replaceFirst("%s1", originalOrg.getAdminEmail());
 							log.info(msg);
 						} else {
 							String subject = localisation.getString("email_org_change");
@@ -198,7 +198,7 @@ public class OrganisationManager {
 							// Catch and log exceptions
 							try {
 								em.sendEmail(
-										originalOrg.admin_email, 
+										originalOrg.getAdminEmail(), 
 										null, 
 										"orgchange", 
 										subject, 
@@ -218,7 +218,7 @@ public class OrganisationManager {
 										localisation,
 										originalOrg.server_description);
 							} catch(Exception e) {
-								lm.writeLogOrganisation(sd, o.id, userIdent, "error", e.getMessage());
+								lm.writeLogOrganisation(sd, o.id, userIdent, "organisation update", e.getMessage());
 							}
 						}
 					}

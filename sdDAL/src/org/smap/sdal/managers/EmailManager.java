@@ -293,8 +293,6 @@ public class EmailManager {
 				multipart.addBodyPart(messageBodyPart);
 			}
 
-			System.out.println("Content: " + txtMessage.toString());
-
 			msg.setContent(multipart);
 
 			msg.setHeader("X-Mailer", "msgsend");
