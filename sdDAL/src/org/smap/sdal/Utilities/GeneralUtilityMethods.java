@@ -3166,7 +3166,7 @@ public class GeneralUtilityMethods {
 		TableColumn durationColumn = null;
 
 		// Get sensitive data restrictions
-		OrganisationManager om = new OrganisationManager();
+		OrganisationManager om = new OrganisationManager(localisation);
 		MySensitiveData msd = om.getMySensitiveData(sd, user);
 		
 		// Get column restrictions for RBAC

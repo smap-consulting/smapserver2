@@ -259,6 +259,9 @@ public class OrganisationList extends Application {
 		String fileName = null;
 		String organisations = null;
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Parse the request
 			 */
@@ -305,7 +308,7 @@ public class OrganisationList extends Application {
 			String userIdent = request.getRemoteUser();
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 				
-			OrganisationManager om = new OrganisationManager();
+			OrganisationManager om = new OrganisationManager(localisation);
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
 				
@@ -340,7 +343,9 @@ public class OrganisationList extends Application {
 							fileName,
 							requestUrl,
 							basePath,
-							logoItem);	
+							logoItem,
+							request.getServerName(),
+							request.getScheme());	
 				}
 			
 				response = Response.ok().build();
@@ -383,9 +388,12 @@ public class OrganisationList extends Application {
 		// End Authorisation
 
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			SensitiveData sensitiveData = new Gson().fromJson(sensitive, SensitiveData.class);	
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);		
-			OrganisationManager om = new OrganisationManager();
+			OrganisationManager om = new OrganisationManager(localisation);
 			om.updateSensitiveData(sd, oId, sensitiveData);		
 			
 			response = Response.ok().build();

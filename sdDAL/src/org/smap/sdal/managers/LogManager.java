@@ -106,7 +106,7 @@ public class LogManager {
 	}
 	
 	/*
-	 * Write a log entry that at the organisation level
+	 * Write a log entry at the organisation level
 	 */
 	public void writeLogOrganisation(Connection sd, 
 			int oId,

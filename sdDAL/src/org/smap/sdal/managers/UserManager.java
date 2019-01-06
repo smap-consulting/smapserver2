@@ -423,7 +423,6 @@ public class UserManager {
 			if(u.sendEmail) {
 				log.info("Checking to see if email enabled: " + u.sendEmail);
 
-				log.info("Send email");
 				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, userIdent);
 
 				String subject = localisation.getString("email_ac") + " " + serverName;

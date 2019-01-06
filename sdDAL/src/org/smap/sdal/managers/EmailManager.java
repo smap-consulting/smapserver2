@@ -257,6 +257,15 @@ public class EmailManager {
 				txtMessage.append(adminEmail);
 				txtMessage.append(".");
 
+			} else if(type.equals("informational")) {
+				
+				txtMessage.append(content);
+				txtMessage.append("\n\n");
+				txtMessage.append(localisation.getString("email_dnr"));
+				txtMessage.append(" ");
+				txtMessage.append(adminEmail);
+				txtMessage.append(".");
+
 			}
 			// Add unsubscribe
 			if(emailKey != null) {
@@ -284,6 +293,7 @@ public class EmailManager {
 				multipart.addBodyPart(messageBodyPart);
 			}
 
+			System.out.println("Content: " + txtMessage.toString());
 
 			msg.setContent(multipart);
 

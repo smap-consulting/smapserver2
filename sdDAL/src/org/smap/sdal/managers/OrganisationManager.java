@@ -6,14 +6,19 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.fileupload.FileItem;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SensitiveData;
@@ -45,8 +50,16 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 public class OrganisationManager {
 	
+	LogManager lm = new LogManager();		// Application log
+	
 	private static Logger log =
 			 Logger.getLogger(OrganisationManager.class.getName());
+	
+	private ResourceBundle localisation;
+	
+	public OrganisationManager(ResourceBundle l) {
+		localisation = l;
+	}
 
 	/*
 	 * Update a new organisation
@@ -58,7 +71,9 @@ public class OrganisationManager {
 			String fileName,
 			String requestUrl,
 			String basePath,
-			FileItem logoItem
+			FileItem logoItem,
+			String serverName,
+			String scheme
 			) throws SQLException {
 		
 		String sql = "update organisation set " +
@@ -94,6 +109,10 @@ public class OrganisationManager {
 		PreparedStatement pstmt = null;
 		
 		try {
+			
+			// Get the current settings in case we need to notify the administrator of a change
+			Organisation originalOrg = GeneralUtilityMethods.getOrganisation(sd, o.id);
+			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, o.name);
 			pstmt.setString(2, o.company_name);
@@ -129,8 +148,84 @@ public class OrganisationManager {
 			if(fileName != null) {
 				writeLogo(sd, fileName, logoItem, o.id, basePath, userIdent, requestUrl);
 			}
-		} catch (SQLException e) {
-			throw e;
+			
+			/*
+			 * Notify the administrator if access permissions to the organisation have been changed
+			 */
+			if(originalOrg.can_notify != o.can_notify 
+					|| originalOrg.can_use_api != o.can_use_api 
+					|| originalOrg.can_submit != o.can_submit
+					|| originalOrg.email_task != o.email_task) {
+				
+				EmailServer emailServer = null;
+				String emailKey = null;
+				
+				if(originalOrg.admin_email != null) {
+					emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
+					if(emailServer.smtpHost != null) {
+						
+						PeopleManager pm = new PeopleManager(localisation);
+						emailKey = pm.getEmailKey(sd, o.id, originalOrg.admin_email);
+						if(emailKey == null) {
+							// Person has unsubscribed
+							String msg = localisation.getString("email_us");
+							msg = msg.replaceFirst("%s1", originalOrg.admin_email);
+							log.info(msg);
+						} else {
+							String subject = localisation.getString("email_org_change");
+							subject = subject.replaceAll("%s1", serverName);
+							subject = subject.replaceAll("%s2", originalOrg.name);
+							System.out.println("Sending email confirmation: Header = " + subject);
+							
+							String content = localisation.getString("org_change");
+							content = content.replaceAll("%s1", originalOrg.name);
+							StringBuffer contentBuf = new StringBuffer(content);
+							if(originalOrg.can_notify != o.can_notify) {
+								contentBuf.append("\n    ").append(o.can_notify ? localisation.getString("en_notify") : localisation.getString("susp_notify"));
+							}
+							if(originalOrg.can_use_api != o.can_use_api) {
+								contentBuf.append("\n    ").append(o.can_use_api ? localisation.getString("en_api") : localisation.getString("susp_api"));
+							}
+							if(originalOrg.can_submit != o.can_submit) {
+								contentBuf.append("\n    ").append(o.can_submit ? localisation.getString("en_submit") : localisation.getString("susp_submit"));
+							}
+							if(originalOrg.email_task != o.email_task) {
+								contentBuf.append("\n    ").append(o.email_task ? localisation.getString("en_email_tasks") : localisation.getString("susp_email_tasks"));
+							}
+							
+							String sender = "";
+							EmailManager em = new EmailManager();
+							// Catch and log exceptions
+							try {
+								em.sendEmail(
+										originalOrg.admin_email, 
+										null, 
+										"orgchange", 
+										subject, 
+										contentBuf.toString(), 
+										sender, 
+										"", 
+										null, 
+										null, 
+										null, 
+										null,
+										null,
+										originalOrg.getAdminEmail(), 
+										emailServer,
+										scheme,
+										serverName,
+										emailKey,
+										localisation,
+										originalOrg.server_description);
+							} catch(Exception e) {
+								lm.writeLogOrganisation(sd, o.id, userIdent, "error", e.getMessage());
+							}
+						}
+					}
+				}
+				
+			}
+			
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}

@@ -100,7 +100,7 @@ public class Register extends Application {
 			/*
 			 * 1. Create organisation
 			 */
-			OrganisationManager om = new OrganisationManager();
+			OrganisationManager om = new OrganisationManager(localisation);
 			Organisation o = new Organisation();
 			o.admin_email = rd.email;
 			o.name = rd.org_name;

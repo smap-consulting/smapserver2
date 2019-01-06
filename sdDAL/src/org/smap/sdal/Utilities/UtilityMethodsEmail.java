@@ -220,7 +220,10 @@ public class UtilityMethodsEmail {
 		String sqlOrganisation = "select o.id, o.name, o.company_name, o.admin_email, o.smtp_host, "
 				+ "o.email_domain, o.default_email_content,"
 				+ "o.locale, o.company_email, o.timezone,"
-				+ "o.server_description "
+				+ "o.server_description,"
+				+ "o.can_notify,"
+				+ "o.can_use_api,"
+				+ "o.can_submit "
 				+ "from organisation o, users u "
 				+ "where u.o_id = o.id ";
 		String sqlUser = " and u.ident = ?;";
@@ -256,6 +259,10 @@ public class UtilityMethodsEmail {
 				o.company_email = rs.getString(9);
 				o.timeZone = rs.getString(10);
 				o.server_description = rs.getString(11);
+				o.can_notify = rs.getBoolean(12);
+				o.can_use_api = rs.getBoolean(13);
+				o.can_submit = rs.getBoolean(14);
+						
 			}
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
