@@ -819,6 +819,35 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
+	 * Return true if the api is enabled for the users organisation
+	 */
+	static public boolean isApiEnabled(Connection sd, String user) throws SQLException {
+		boolean enabled = false;
+		
+		String sql = "Select o.can_use_api "
+				+ "from users u, organisation o "
+				+ "where u.o_id = o.id "
+				+ "and u.ident = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, user);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				enabled = rs.getBoolean(1);
+			} 
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
+		}
+
+		return enabled;
+	}
+	
+	/*
 	 * Get the organisation object for this orrganisation id
 	 */
 	static public Organisation getOrganisation(Connection sd, int oId) throws SQLException {

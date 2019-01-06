@@ -267,6 +267,10 @@ public class Data_CSV extends Application {
 			outWriter = response.getWriter();
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			
 			// Get the managed Id
 			if (mgmt) {
 				pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
@@ -502,11 +506,8 @@ public class Data_CSV extends Application {
 
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
-				try {
-					response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-				} catch (Exception ex) {
-				}
-				;
+				outWriter.print(e.getMessage());
+				
 			} finally {
 
 				outWriter.flush();

@@ -207,7 +207,7 @@ public class SurveyManager {
 		PreparedStatement pstmt = null;
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
-				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls "
+				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, o.can_submit "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
