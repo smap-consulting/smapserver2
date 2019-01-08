@@ -267,9 +267,9 @@ public class OrganisationManager {
 				+ "allow_email, allow_facebook, allow_twitter, can_edit, email_task, "
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
-				+ "can_notify, can_use_api, can_submit, changed_ts) "
+				+ "can_notify, can_use_api, can_submit, e_id, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, now());";
+				+ "?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -320,8 +320,9 @@ public class OrganisationManager {
 			pstmt.setString(21, o.timeZone);
 			
 			pstmt.setBoolean(22, o.can_notify);
-			pstmt.setBoolean(22, o.can_use_api);
-			pstmt.setBoolean(22, o.can_submit);
+			pstmt.setBoolean(23, o.can_use_api);
+			pstmt.setBoolean(24, o.can_submit);
+			pstmt.setInt(25, 1);			// TODO set from current organisation enterprise id
 			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
