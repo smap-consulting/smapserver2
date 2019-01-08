@@ -105,7 +105,6 @@ public class Data_CSV extends Application {
 		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV");
 		a.isAuthorised(sd, request.getRemoteUser());
 
-		StringBuffer record = null;
 		PrintWriter outWriter = null;
 
 		if (filename == null) {
@@ -358,7 +357,11 @@ public class Data_CSV extends Application {
 							if(c.type.equals("rank")) {
 								choiceName = c.name + " - " + idx;
 							} else {
-								choiceName = c.name + " - " + kv.k;
+								if(c.selectDisplayNames) {
+									choiceName = kv.v;
+								} else {
+									choiceName = c.name + " - " + kv.v;
+								}
 							}
 							columnHeadings.append(choiceName);
 							
@@ -444,7 +447,7 @@ public class Data_CSV extends Application {
 								for(KeyValue kv: c.choices) {
 									boolean addChoice = false;
 									for(String selValue : selected) {
-										if(selValue.equals(kv.v)) {
+										if(selValue.equals(kv.k)) {
 											addChoice = true;
 											break;
 										}	
@@ -456,6 +459,15 @@ public class Data_CSV extends Application {
 									record.append("\"" + choiceValue + "\"");
 									
 								}
+							} else if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
+								// Convert value to display name
+								for(KeyValue kv: c.choices) {
+									if(kv.k.equals(val)) {
+										val = kv.v;
+										break;
+									}
+								}
+								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
 							} else {
 								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
 							}
