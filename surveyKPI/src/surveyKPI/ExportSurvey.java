@@ -484,7 +484,7 @@ public class ExportSurvey extends Application {
 									if(qType.equals("select") && !merge_select_multiple && c.choices != null &&  c.compressed) {
 										// Add headings for choices
 										for(int i = 0; i < c.choices.size(); i++) {
-											String hName = humanName + " - " + c.choices.get(i).k;
+											String hName = humanName + " - " + c.choices.get(i).v;
 											qName.append(getContent(sd, hName, true,false, hName, qType, split_locn));
 										}
 									} else {
@@ -1016,7 +1016,7 @@ public class ExportSurvey extends Application {
 						value = "";	
 					}
 
-					if(merge_select_multiple) {
+					if(c.type.equals("select") && merge_select_multiple && !c.compressed) {
 						String choice = choiceNames.get(columnName);
 						if(choice != null) {
 							// Have to handle merge of select multiple
@@ -1058,18 +1058,25 @@ public class ExportSurvey extends Application {
 							vArray = value.split(" ");
 						} 
 						
-						for(int j = 0; j < c.choices.size(); j++) {
+						for(int j = 0; j < c.choices.size(); j++) {	
 							
-							if(j < vArray.length) {
-								record.append(getContent(sd, vArray[j], false, false, columnName, columnType, split_locn));
+							String v = "0";
+							if(vArray != null) {
 								
-							} else {
-								// Just write spaces
-								record.append(getContent(sd, "", false, false, columnName, columnType, split_locn));
+								String choiceValue = c.choices.get(j).k;
+								for(int k = 0; k < vArray.length; k++) {
+									if(vArray[k].equals(choiceValue)) {
+										v = "1";
+										break;
+									}
+								}
 							}
-								
+							
+							
+							record.append(getContent(sd, v, false, false, columnName, columnType, split_locn));
 								
 						}
+								
 					} else {
 						record.append(getContent(sd, value, false, false, columnName, columnType, split_locn));
 					}
