@@ -294,7 +294,11 @@ public class XLSXReportsManager {
 						for(int i = 0; i < item.choices.size(); i++) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
-							cell.setCellValue(values.name + " - " + item.choices.get(i).k);
+							if(item.selectDisplayNames) {
+								cell.setCellValue(item.choices.get(i).v);	// Just show the choice display name
+							} else {
+								cell.setCellValue(values.name + " - " + item.choices.get(i).v);
+							}
 						}
 					} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
 						for(int i = 0; i < item.choices.size(); i++) {
@@ -306,11 +310,6 @@ public class XLSXReportsManager {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue(values.name);
-						//if(item.humanName != null && item.humanName.trim().length() > 0) {
-						//	cell.setCellValue(item.humanName);
-						//} else {
-						//	cell.setCellValue(values.name);
-						//}
 					}
 				}
 				
@@ -384,8 +383,7 @@ public class XLSXReportsManager {
 								vArray = values.value.split(" ");
 							} 
 							
-							for(int i = 0; i < item.choices.size(); i++) {
-								
+							for(int i = 0; i < item.choices.size(); i++) {			
 								
 								String v = "0";
 								if(vArray != null) {
@@ -420,10 +418,22 @@ public class XLSXReportsManager {
 											values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 								} else {
 									// Just write spaces
-								}
-									
+								}		
 									
 							}
+						} else if(item.qType != null && item.qType.equals("select1") && item.selectDisplayNames) {
+							Cell cell = dataRow.createCell(colNumber++);
+							String value = values.value;
+							for(int i = 0; i < item.choices.size(); i++) {							
+									
+								String choiceValue = item.choices.get(i).k;
+								if(choiceValue != null && choiceValue.equals(value)) {
+									value = item.choices.get(i).v;
+								}
+									
+							}
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, value, 
+									values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 						} else {
 							Cell cell = dataRow.createCell(colNumber++);
 							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
@@ -432,9 +442,6 @@ public class XLSXReportsManager {
 					}
 					
 				}
-				
-
-
 
 			} catch (ApplicationException e) {
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
