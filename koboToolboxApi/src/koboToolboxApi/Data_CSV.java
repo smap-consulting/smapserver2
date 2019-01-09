@@ -312,18 +312,21 @@ public class Data_CSV extends Application {
 					language,
 					sId,
 					sIdent,
-					request.getRemoteUser(), parentform, fId, table_name, false, getParkey, // Include parent key if the
-					// form is not the top level
-					// form (fId is 0)
+					request.getRemoteUser(), 
+					parentform, 
+					fId, 
+					table_name, 
+					true,				// Read Only 
+					getParkey, 			// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")), true, // include instance id
-					true, // include other meta data
-					true, // include preloads
-					true, // include instancename
-					true, // include survey duration
-					superUser, false, // TODO include HXL
+					true, 				// include other meta data
+					true, 				// include preloads
+					true, 				// include instancename
+					true, 				// include survey duration
+					superUser, false, 	// TODO include HXL
 					audit,
 					tz,
-					true				// convert question name to display name if it is set
+					true					// convert question name to display name if it is set
 					);
 
 			if (mgmt) {

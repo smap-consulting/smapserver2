@@ -341,7 +341,7 @@ public class Data extends Application {
 					parentform,
 					fId,
 					table_name,
-					false,
+					true,		// Read Only
 					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")),
 					true,		// include instance id
@@ -596,7 +596,7 @@ public class Data extends Application {
 					parentform,
 					fId,
 					table_name,
-					false,
+					true,		// Read Only
 					false,		// Don't include parent key
 					false,		// Don't include "bad" columns
 					true,		// include instance id
