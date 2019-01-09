@@ -51,6 +51,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
@@ -126,11 +127,14 @@ public class XFormData {
 			 */
 			Iterator<FileItem> iter = items.iterator();
 			String thisInstanceId = null;
+			String thisStart = null;
+			String thisEnd = null;
+			String thisInstanceName = null;
 			while (iter.hasNext()) {
 				FileItem item = (FileItem) iter.next();
 				String name = item.getFieldName();
 				if (name.equals("xml_submission_file") || name.equals("xml_submission_data")) { // xml_submission_data is the name used by webForms
-
+					
 					si = new SurveyInstance(item.getInputStream());
 
 					// Extend the instance with data available in the template
@@ -140,16 +144,34 @@ public class XFormData {
 					saveDetails = saveToDisk(item, request, basePath, null, templateName, null, 0, 0);
 					log.info("Saved xml_submission file:" + saveDetails.fileName + " (FieldName: " + item.getFieldName()
 							+ ")");
-
+					
 					SurveyTemplate template = new SurveyTemplate(localisation);
 					templateName = template.readDatabase(sd, templateName, false);  // Update the template name if the survey has been replaced
 					
 					SurveyManager sm = new SurveyManager(localisation, "UTC");
 					survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key
-					
+
 					template.extendInstance(sd, si, false, survey);
 
 					thisInstanceId = si.getUuid();
+					
+					/*
+					 * Get meta values from the instance
+					 */
+					String topFormPath = "/main/";
+					for(MetaItem mi : survey.meta) {
+						if(mi.isPreload) {
+							if(mi.sourceParam.equals("start")) {
+								thisStart = si.getValue(topFormPath + mi.name);
+							} else if(mi.sourceParam.equals("end")) {
+								thisEnd = si.getValue(topFormPath + mi.name);
+							}
+						} else {
+							if(mi.name.toLowerCase().equals("instancename")) {
+								thisInstanceName = si.getValue(topFormPath + "meta/" + mi.name);
+							}
+						}
+					}
 
 					break; // There is only one XML submission file
 				}
@@ -277,6 +299,9 @@ public class XFormData {
 			ue.setIncomplete(incomplete);
 			ue.setLocationTrigger(locationTrigger);
 			ue.setSurveyNotes(surveyNotes);
+			ue.setStart(thisStart);
+			ue.setEnd(thisEnd);
+			ue.setInstanceName(thisInstanceName);
 
 			JdbcUploadEventManager uem = null;
 			try {

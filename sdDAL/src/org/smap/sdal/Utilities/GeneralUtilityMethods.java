@@ -18,7 +18,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -43,7 +42,6 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
-import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
@@ -7338,6 +7336,17 @@ public class GeneralUtilityMethods {
 		return u;
 	}
 	
+	/*
+	 * From: https://stackoverflow.com/questions/2201925/converting-iso-8601-compliant-string-to-java-util-date
+	 */
+	public static Timestamp getTimestamp(String timeString) {
+		Timestamp t = null;
+		if(timeString != null) {
+			Calendar x = javax.xml.bind.DatatypeConverter.parseDateTime(timeString);
+			t =  new Timestamp(x.getTime().getTime());
+		}
+		return t;
+	}
 
 }
 

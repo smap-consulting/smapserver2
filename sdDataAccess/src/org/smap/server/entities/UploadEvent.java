@@ -20,7 +20,15 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 package org.smap.server.entities;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 
 /*
@@ -28,7 +36,12 @@ import java.util.Date;
  */
 public class UploadEvent implements Serializable {
 
+	private static Logger log =
+			Logger.getLogger(UploadEvent.class.getName());
+	
 	private static final long serialVersionUID = -4784547709615805141L;
+	
+	private static DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ+|-hh:mm");
 
 	// Database Attributes
 	private int ue_id;
@@ -80,6 +93,12 @@ public class UploadEvent implements Serializable {
 	private String surveyNotes;
 	
 	private String locationTrigger;
+	
+	private String startTime;
+	
+	private String endTime;
+	
+	private String instanceName;
 	
 	/*
 	 * Constructor
@@ -190,6 +209,18 @@ public class UploadEvent implements Serializable {
 		return locationTrigger;
 	}
 	
+	public Timestamp getStart() {		
+		return GeneralUtilityMethods.getTimestamp(startTime);
+	}
+	
+	public Timestamp getEnd() {		
+		return GeneralUtilityMethods.getTimestamp(endTime);
+	}
+	
+	public String getInstanceName() {
+		return instanceName;
+	}
+	
 	/*
 	 * Setters
 	 */
@@ -297,5 +328,16 @@ public class UploadEvent implements Serializable {
 	public void setLocationTrigger(String value) {
 		locationTrigger = value;
 	}
-
+	
+	public void setStart(String value) {
+		this.startTime = value;
+	}
+	
+	public void setEnd(String value) {
+		this.endTime = value;
+	}
+	
+	public void setInstanceName(String value) {
+		this.instanceName = value;
+	}
 }
