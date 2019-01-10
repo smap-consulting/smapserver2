@@ -280,11 +280,14 @@ public class Items extends Application {
 							|| c.name.equals("_bad") || c.name.equals("_bad_reason")) {
 						cols.append(tName + "." + c.name + " as " +  c.name);
 					
-					} else if(c.type != null && (c.type.equals("date") || c.type.equals("dateTime"))) {
+					} else if(c.type != null && c.type.equals("dateTime")) {
 						cols.append("timezone(?, ").append(tName).append(".").append(c.name).append(") as " +  c.name);
 						params.add(new SqlParam("string", tz));
 						
-					}  else {
+					}  else if(c.type != null && c.type.equals("date")) {
+						cols.append(tName).append(".").append(c.name).append(" as ").append(c.name);
+						
+					} else {
 						cols.append(tName + "." + c.name + " as " +  c.name);
 						
 					}

@@ -903,7 +903,7 @@ public class UserManager {
 						u.orgs = uCurrent.orgs;		// There is only one true set of organisations the user has access to and these are the current ones
 						
 						/*
-						 * A user cannpt lose organisational administration, enterprise administration or server owner privileges just be switching organisation
+						 * A user cannpt lose organisational administration, enterprise administration or server owner privileges just by switching organisation
 						 */
 						for(UserGroup ug: uCurrent.groups) {
 							if(ug.id == Authorise.ORG_ID || ug.id == Authorise.ENTERPRISE_ID || ug.id == Authorise.OWNER_ID) {
