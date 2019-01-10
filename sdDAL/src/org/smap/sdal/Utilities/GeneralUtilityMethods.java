@@ -7348,14 +7348,15 @@ public class GeneralUtilityMethods {
 			 * work around java 8 bug
 			 * https://stackoverflow.com/questions/39033525/error-java-time-format-datetimeparseexception-could-not-be-parsed-unparsed-tex
 			 */
-			int lengthOfAbbreviatedOffset = 3;
-			if ( timeString.indexOf ( "+" ) == ( timeString.length () - lengthOfAbbreviatedOffset ) ) {
+			if ( timeString.indexOf ( "+" ) == ( timeString.length () - 3 ) ) {
 			    // If third character from end is a PLUS SIGN, append ':00'.
 			    timeString += ":00";
-			} else if ( timeString.indexOf ( "-" ) == ( timeString.length () - lengthOfAbbreviatedOffset ) ) {
+			} else if ( timeString.lastIndexOf ( "-" ) == ( timeString.length () - 3 ) ) {
 			    // If third character from end is a PLUS SIGN, append ':00'.
 			    timeString += ":00";
 			}
+			
+			log.info("timestring to test: " + timeString);
 
 			try {
 				OffsetDateTime odt = OffsetDateTime.parse( timeString );
