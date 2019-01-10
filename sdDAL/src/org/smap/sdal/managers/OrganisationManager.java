@@ -322,7 +322,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(22, o.can_notify);
 			pstmt.setBoolean(23, o.can_use_api);
 			pstmt.setBoolean(24, o.can_submit);
-			pstmt.setInt(25, 1);			// TODO set from current organisation enterprise id
+			pstmt.setInt(25, o.e_id);			// TODO set from current organisation enterprise id
 			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();

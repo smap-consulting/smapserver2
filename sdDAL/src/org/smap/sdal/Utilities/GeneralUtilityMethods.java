@@ -18,6 +18,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -7336,14 +7338,33 @@ public class GeneralUtilityMethods {
 		return u;
 	}
 	
-	/*
-	 * From: https://stackoverflow.com/questions/2201925/converting-iso-8601-compliant-string-to-java-util-date
-	 */
 	public static Timestamp getTimestamp(String timeString) {
+			
 		Timestamp t = null;
+		
 		if(timeString != null) {
-			Calendar x = javax.xml.bind.DatatypeConverter.parseDateTime(timeString);
-			t =  new Timestamp(x.getTime().getTime());
+			
+			/*
+			 * work around java 8 bug
+			 * https://stackoverflow.com/questions/39033525/error-java-time-format-datetimeparseexception-could-not-be-parsed-unparsed-tex
+			 */
+			int lengthOfAbbreviatedOffset = 3;
+			if ( timeString.indexOf ( "+" ) == ( timeString.length () - lengthOfAbbreviatedOffset ) ) {
+			    // If third character from end is a PLUS SIGN, append ':00'.
+			    timeString += ":00";
+			} else if ( timeString.indexOf ( "-" ) == ( timeString.length () - lengthOfAbbreviatedOffset ) ) {
+			    // If third character from end is a PLUS SIGN, append ':00'.
+			    timeString += ":00";
+			}
+
+			try {
+				OffsetDateTime odt = OffsetDateTime.parse( timeString );
+				Instant instant = odt.toInstant();
+				java.util.Date date = Date.from( instant );				
+				t =  new Timestamp(date.getTime());
+			} catch (Exception e) {
+				log.info("Failed to parse string into Timestamp: "  + timeString + " : " + e.getMessage());			
+			}
 		}
 		return t;
 	}
