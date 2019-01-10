@@ -174,7 +174,7 @@ public class GetHtml {
 		// Languages
 		bodyElement = outputDoc.createElement("select");
 		bodyElement.setAttribute("id", "form-languages");
-		if (survey.languages == null || survey.languages.size() == 0) {
+		if (survey.languages == null || survey.languages.size() <= 1) {
 			bodyElement.setAttribute("style", "display:none;");
 		}
 		bodyElement.setAttribute("data-default-lang", survey.def_lang);
