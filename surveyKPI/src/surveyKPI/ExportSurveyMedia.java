@@ -242,6 +242,7 @@ public class ExportSurveyMedia extends Application {
 						false,		// superUser - Always apply filters
 						startingForm,
 						filter,
+						null,			// transform
 						true,
 						false,
 						tz);		// Get all columns (not just instanceid)

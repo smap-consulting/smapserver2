@@ -52,6 +52,8 @@ import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
+import org.smap.sdal.model.Transform;
+import org.smap.sdal.model.TransformDetail;
 
 
 /*
@@ -93,6 +95,7 @@ public class XLSXReportsManager {
 			Date endDate,
 			int dateId,
 			String filter,
+			Transform transform,
 			boolean meta,
 			String tz) {
 		
@@ -168,6 +171,7 @@ public class XLSXReportsManager {
 						false,				// Super user - always apply filters
 						startingForm,
 						filter,
+						transform,
 						meta,
 						false,
 						tz);
@@ -181,6 +185,7 @@ public class XLSXReportsManager {
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
+				CellStyle wideStyle = styles.get("wide");
 				errorStyle = styles.get("error");
 						
 				dataSheet = wb.createSheet(localisation.getString("rep_data"));
@@ -217,7 +222,25 @@ public class XLSXReportsManager {
 								merge_select_multiple,
 								surveyName);	
 						
-						if(split_locn && values.name.equals("the_geom")) {
+						// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't write the label here
+						if(isWideColumn(transform, values.name)) {
+							continue;
+						}
+						
+						int tdIndex = getTransformIndex(transform, values.name);
+						if(tdIndex >= 0 ) {
+							/*
+							 * Replace this question with the wide labels
+							 */
+							for(String tc : transform.transforms.get(tdIndex).columns) {
+								for(String tv : transform.transforms.get(tdIndex).values) {
+									Cell cell = headerRow.createCell(colNumber++);
+									cell.setCellStyle(wideStyle);
+									cell.setCellValue(tc + " - " +tv);
+								}
+							}
+								
+						} else if(split_locn && values.name.equals("the_geom")) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.label);
@@ -282,7 +305,26 @@ public class XLSXReportsManager {
 							merge_select_multiple,
 							surveyName);	
 						
-					if(split_locn && values.name.equals("the_geom")) {
+					// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't write the label here
+					if(isWideColumn(transform, values.name)) {
+						continue;
+					}
+					
+					int tdIndex = getTransformIndex(transform, values.name);
+					
+					if(tdIndex >= 0 ) {
+						/*
+						 * Replace this question with the wide labels
+						 */
+						for(String tc : transform.transforms.get(tdIndex).columns) {
+							for(String tv : transform.transforms.get(tdIndex).values) {
+								Cell cell = headerRow.createCell(colNumber++);
+								cell.setCellStyle(wideStyle);
+								cell.setCellValue(tc + " - " +tv);
+							}
+						}
+							
+					} else if(split_locn && values.name.equals("the_geom")) {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Latitude");
@@ -482,6 +524,42 @@ public class XLSXReportsManager {
 		}
 
 		return responseVal;
+	}
+	
+	private boolean isWideColumn(Transform transform, String name) {
+		boolean val = false;
+		
+		if(transform != null) {
+			for(TransformDetail td : transform.transforms) {
+				for(String col : td.columns) {
+					if(col.equals(name)) {
+						val = true;
+						break;
+					}
+				}
+				if(val) {
+					break;
+				}
+
+			}
+		}
+		return val;
+	}
+	
+	private int getTransformIndex(Transform transform, String name) {
+		int idx = -1;
+		
+		if(transform != null) {
+			int count = 0;
+			for(TransformDetail td : transform.transforms) {
+				if(td.splitterQuestion.equals(name)) {
+					idx = count;
+					break;
+				}
+				count++;
+			}
+		}
+		return idx;
 	}
 
 }

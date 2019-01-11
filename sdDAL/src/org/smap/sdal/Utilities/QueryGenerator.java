@@ -39,6 +39,7 @@ import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.Transform;
 
 /*
  * Create a query to retrieve results data
@@ -74,6 +75,7 @@ public class QueryGenerator {
 			boolean superUser,
 			QueryForm form,
 			String filter,
+			Transform transform,
 			boolean meta,
 			boolean includeKeys,
 			String tz) throws Exception {
@@ -272,9 +274,37 @@ public class QueryGenerator {
 			}
 			
 			/*
-			 * Sort the data by primary key ascending
+			 * If transform is enabled sort first by the keys then:
+			 * sort by primary key ascending
+			 * Assume question names are unique in the report / survey
 			 */
+			int sortColumnCount = 0;
 			shpSqlBuf.append(" order by ");
+			if(transform != null && transform.key_questions.size() > 0) {
+				for(String key : transform.key_questions) {
+					// validate
+					boolean valid = false;
+					for(String q : sqlDesc.names) {
+						if(key.equals(q)) {
+							valid = true;
+							break;
+						}
+					}
+					if(!valid) {
+						String msg = localisation.getString("inv_qn_transform");
+						msg = msg.replace("%s1", key);
+						throw new Exception(msg);
+					}
+					if(sortColumnCount++ > 0) {
+						shpSqlBuf.append(",");
+					}
+					shpSqlBuf.append(key);
+				}
+			}
+			// Finally add prikey to the sort
+			if(sortColumnCount++ > 0) {
+				shpSqlBuf.append(",");
+			}
 			shpSqlBuf.append(form.table);
 			shpSqlBuf.append(".prikey asc");
 			

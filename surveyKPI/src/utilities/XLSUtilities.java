@@ -87,6 +87,12 @@ public class XLSUtilities {
 		CellStyle style = wb.createCellStyle();
 		style.setFont(boldFont);
 		styles.put("header", style);
+		
+		style = wb.createCellStyle();
+		style.setFont(boldFont);
+		style.setFillForegroundColor(HSSFColor.LIGHT_GREEN.index);
+		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		styles.put("wide", style);
 
 		style = wb.createCellStyle();
 		style.setFont(boldFont);
