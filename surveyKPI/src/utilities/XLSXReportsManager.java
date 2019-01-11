@@ -360,7 +360,6 @@ public class XLSXReportsManager {
 				 * Accumulate data to be written into an array and write it out in a second pass
 				 * This supports functionality such as long to wide transforms where fewer records are written than read
 				 */
-				HashMap<String, String> transformData = new HashMap<> ();
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
 				log.info("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
@@ -390,13 +389,17 @@ public class XLSXReportsManager {
 						int tdIndex = getTransformIndex(transform, values.name);					
 						if(tdIndex >= 0 ) {
 							
+							ReadData rd = new ReadData(values.name, true, "string");
+							dataItems.add(rd);
+							rd.transformData = new HashMap<> ();
+							
 							System.out.println("We are going to split on: " + values.name);
 							System.out.println("Value is: " + values.value);
 							for(String tv : transform.transforms.get(tdIndex).values) {
 								if(tv.equals(values.value)) {
 									// Valid value
 									for(String tc : transform.transforms.get(tdIndex).columns) {
-										transformData.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
+										rd.transformData.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
 									}
 									break;
 								}
@@ -407,9 +410,8 @@ public class XLSXReportsManager {
 
 							String coords [] = GeneralUtilityMethods.getLonLat(values.value);
 
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, values.type);
 							dataItems.add(rd);
-							rd.type = values.type;
 							
 							if(coords.length > 1) {
 								rd.values.add(coords[1]);
@@ -422,18 +424,16 @@ public class XLSXReportsManager {
 						} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
 
 							// Can't split linestrings and polygons, leave latitude and longitude as blank
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, "string");
 							dataItems.add(rd);
-							rd.type = "string";
 							rd.values.add(values.value);
 							rd.values.add(values.value);
 
 
 						} else if(split_locn && values.type != null && values.type.equals("geopoint") ) {
 							// Geopoint that needs to be split but there is no data
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, "string");
 							dataItems.add(rd);
-							rd.type = "string";
 							rd.values.add("");
 							rd.values.add("");
 
@@ -444,9 +444,8 @@ public class XLSXReportsManager {
 								vArray = values.value.split(" ");
 							} 
 							
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, values.type);
 							dataItems.add(rd);
-							rd.type = values.type;
 							
 							for(int i = 0; i < item.choices.size(); i++) {			
 								
@@ -471,9 +470,8 @@ public class XLSXReportsManager {
 								vArray = values.value.split(" ");
 							} 
 							
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, values.type);
 							dataItems.add(rd);
-							rd.type = values.type;
 							
 							for(int i = 0; i < item.choices.size(); i++) {							
 								if(i < vArray.length) {
@@ -496,13 +494,13 @@ public class XLSXReportsManager {
 									
 							}
 							
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, values.type);
 							dataItems.add(rd);
 							rd.values.add(value);
 							rd.type = values.type;
 							
 						} else {
-							ReadData rd = new ReadData();
+							ReadData rd = new ReadData(values.name, false, values.type);
 							dataItems.add(rd);
 							rd.values.add(values.value);
 							rd.type = values.type;
@@ -514,10 +512,21 @@ public class XLSXReportsManager {
 					 */
 					colNumber = 0;
 					for(ReadData item : dataItems) {
-						for(String v : item.values) {
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-									item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+						if(item.isTransform) {
+							int tdIndex = getTransformIndex(transform, item.name);	
+							for(String tc : transform.transforms.get(tdIndex).columns) {
+								for(String tv : transform.transforms.get(tdIndex).values) {
+									Cell cell = dataRow.createCell(colNumber++);
+									XLSUtilities.setCellValue(wb, dataSheet, cell, styles, item.transformData.get(tc + " - " + tv), 
+											item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+								}
+							}
+						} else {
+							for(String v : item.values) {
+								Cell cell = dataRow.createCell(colNumber++);
+								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
+										item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+							}
 						}
 					}
 					
