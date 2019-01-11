@@ -415,7 +415,7 @@ public class UserManager {
 				u_id = rs.getInt(1);
 				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager);
 				if(isOrgUser) {
-					insertUserOrganisations(sd, u, u_id);
+					insertUserOrganisations(sd, u, u_id, o_id);
 				}
 			}
 
@@ -614,12 +614,12 @@ public class UserManager {
 					// Update the groups, projects and roles
 					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
 					if(isOrgUser && !isSwitch) {
-						insertUserOrganisations(sd, u, u.id);
+						insertUserOrganisations(sd, u, u.id, u.o_id);
 					}
 				} else {
 					// update the list of organisation that the user has access to.  These are always stored as current
 					if(isOrgUser && !isSwitch) {
-						insertUserOrganisations(sd, u, u.id);
+						insertUserOrganisations(sd, u, u.id, u.o_id);
 					}
 				}
 
@@ -748,7 +748,7 @@ public class UserManager {
 
 	}
 	
-	private void insertUserOrganisations(Connection sd, User u, int u_id) throws SQLException {
+	private void insertUserOrganisations(Connection sd, User u, int u_id, int o_id) throws SQLException {
 
 		String sql;
 		PreparedStatement pstmt = null;
@@ -764,7 +764,7 @@ public class UserManager {
 			pstmtInsertOrgUser.setInt(1, u_id);
 			
 			/*
-			 * Update user groups
+			 * Update user organisation linke
 			 */
 			sql = "delete from user_organisation where u_id = ? and o_id != all (?)";
 
@@ -780,14 +780,26 @@ public class UserManager {
 				log.info("Delete removed org links: " + pstmt.toString());
 				pstmt.executeUpdate();
 
+				// Create an entry for the users current organisation
+				pstmtInsertOrgUser.setInt(2, o_id);
+				log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+				try {
+					pstmtInsertOrgUser.executeUpdate();
+				} catch (SQLException e) {
+					if(!e.getSQLState().equals("23505")) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+				}
 				for(int j = 0; j < u.orgs.size(); j++) {
-					pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
-					log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
-					try {
-						pstmtInsertOrgUser.executeUpdate();
-					} catch (SQLException e) {
-						if(!e.getSQLState().equals("23505")) {
-							log.log(Level.SEVERE, e.getMessage(), e);
+					if(u.orgs.get(j).id != o_id) {
+						pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
+						log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+						try {
+							pstmtInsertOrgUser.executeUpdate();
+						} catch (SQLException e) {
+							if(!e.getSQLState().equals("23505")) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+							}
 						}
 					}
 				}
