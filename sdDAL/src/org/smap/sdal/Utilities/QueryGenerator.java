@@ -483,10 +483,12 @@ public class QueryGenerator {
 			sqlDesc.numberFields++;
 			
 			sqlDesc.cols = "instanceid";
-				
+			sqlDesc.colNameLookup.put(c.name, "instanceid");
 		}
 		
 		for(TableColumn col : cols) {
+			
+			sqlDesc.colNameLookup.put(col.question_name, col.name);
 			
 			String name = null;
 			String type = null;

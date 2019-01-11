@@ -147,6 +147,29 @@ public class XLSXReportsManager {
 
 				QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 
+				
+				/*
+				 * Create XLSX File
+				 */
+				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
+				wb = new SXSSFWorkbook(10);		// Serialised output
+				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
+				CellStyle headerStyle = styles.get("header");
+				CellStyle wideStyle = styles.get("wide");
+				errorStyle = styles.get("error");
+						
+				dataSheet = wb.createSheet(localisation.getString("rep_data"));
+				settingsSheet = wb.createSheet(localisation.getString("rep_settings"));
+				
+				// Populate settings sheet
+				int settingsRowIdx = 0;
+				Row settingsRow = settingsSheet.createRow(settingsRowIdx++);
+				Cell sk = settingsRow.createCell(0);
+				Cell sv = settingsRow.createCell(1);
+				sk.setCellStyle(headerStyle);	
+				sk.setCellValue("Time Zone:");
+				sv.setCellValue(tz);
+				
 				// Get the SQL for this query
 				SqlDesc sqlDesc = QueryGenerator.gen(sd, 
 						cResults,
@@ -178,28 +201,6 @@ public class XLSXReportsManager {
 						tz);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
-				
-				/*
-				 * Create XLSX File
-				 */
-				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
-				wb = new SXSSFWorkbook(10);		// Serialised output
-				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
-				CellStyle headerStyle = styles.get("header");
-				CellStyle wideStyle = styles.get("wide");
-				errorStyle = styles.get("error");
-						
-				dataSheet = wb.createSheet(localisation.getString("rep_data"));
-				settingsSheet = wb.createSheet(localisation.getString("rep_settings"));
-				
-				// Populate settings sheet
-				int settingsRowIdx = 0;
-				Row settingsRow = settingsSheet.createRow(settingsRowIdx++);
-				Cell sk = settingsRow.createCell(0);
-				Cell sv = settingsRow.createCell(1);
-				sk.setCellStyle(headerStyle);	
-				sk.setCellValue("Time Zone:");
-				sv.setCellValue(tz);
 				
 				// Populate data sheet
 				rowNumber = 0;		
@@ -359,6 +360,7 @@ public class XLSXReportsManager {
 				 * Accumulate data to be written into an array and write it out in a second pass
 				 * This supports functionality such as long to wide transforms where fewer records are written than read
 				 */
+				HashMap<String, String> transformData = new HashMap<> ();
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
 				log.info("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
@@ -388,7 +390,18 @@ public class XLSXReportsManager {
 						int tdIndex = getTransformIndex(transform, values.name);					
 						if(tdIndex >= 0 ) {
 							
-							System.out.println("TODO process split question");
+							System.out.println("We are going to split on: " + values.name);
+							System.out.println("Value is: " + values.value);
+							for(String tv : transform.transforms.get(tdIndex).values) {
+								if(tv.equals(values.value)) {
+									// Valid value
+									for(String tc : transform.transforms.get(tdIndex).columns) {
+										transformData.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
+									}
+									break;
+								}
+							}
+							
 								
 						} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 
@@ -511,12 +524,7 @@ public class XLSXReportsManager {
 				}
 			
 
-			} catch (ApplicationException e) {
-				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				// Return an OK status so the message gets added to the web page
-				// Prepend the message with "Error: ", this will be removed by the client
-				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
-			} catch (Exception e) {
+			}  catch (Exception e) {
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				lm.writeLog(sd, sId, username, "error", e.getMessage());

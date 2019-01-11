@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class SqlDesc {
 	//public ArrayList<String> tables = new ArrayList<String>();
@@ -14,4 +15,5 @@ public class SqlDesc {
 	public boolean gotPriKey = false;
 	public ArrayList<String> availableColumns = new ArrayList<String>();	// The subset of required columns that are available due to RBAC etc
 	public ArrayList<SqlParam> params = new ArrayList<SqlParam>();
+	public HashMap<String, String>  colNameLookup = new HashMap<> ();
 }
