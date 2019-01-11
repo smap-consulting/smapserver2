@@ -280,11 +280,14 @@ public class Items extends Application {
 							|| c.name.equals("_bad") || c.name.equals("_bad_reason")) {
 						cols.append(tName + "." + c.name + " as " +  c.name);
 					
-					} else if(c.type != null && (c.type.equals("date") || c.type.equals("dateTime"))) {
+					} else if(c.type != null && c.type.equals("dateTime")) {
 						cols.append("timezone(?, ").append(tName).append(".").append(c.name).append(") as " +  c.name);
 						params.add(new SqlParam("string", tz));
 						
-					}  else {
+					}  else if(c.type != null && c.type.equals("date")) {
+						cols.append(tName).append(".").append(c.name).append(" as ").append(c.name);
+						
+					} else {
 						cols.append(tName + "." + c.name + " as " +  c.name);
 						
 					}
@@ -841,8 +844,15 @@ public class Items extends Application {
 				// Get columns for main select
 				StringBuffer sql2 = new StringBuffer("select ");	
 				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, "
-						+ "ue.instanceid, to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
-						+ "ue.location, p.name as project_name, ue.survey_notes ");
+						+ "ue.instanceid, "
+						+ "to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
+						+ "ue.location, "
+						+ "p.name as project_name, "
+						+ "ue.survey_notes,"
+						+ "ue.instance_name, "
+						+ "to_char(timezone(?, ue.start_time), 'YYYY-MM-DD HH24:MI:SS') as start_time,"
+						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time"
+						+ "");
 				sql2.append(" from upload_event ue ");
 				sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 				sql2.append("left outer join project p on ue.p_id = p.id ");
@@ -904,7 +914,9 @@ public class Items extends Application {
 				int attribIdx = 1;
 				
 				// Add user
-				pstmt.setString(attribIdx++, tz);
+				pstmt.setString(attribIdx++, tz);	// upload time
+				pstmt.setString(attribIdx++, tz);	// start time
+				pstmt.setString(attribIdx++, tz);	// end time
 				pstmt.setString(attribIdx++, user);
 				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 				
@@ -942,6 +954,9 @@ public class Items extends Application {
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
 					jp.put(localisation.getString("ar_project"), resultSet.getString("project_name"));
 					jp.put(localisation.getString("a_sn"), resultSet.getString("survey_notes"));
+					jp.put(localisation.getString("a_in"), resultSet.getString("instance_name"));
+					jp.put(localisation.getString("a_st"), resultSet.getString("start_time"));
+					jp.put(localisation.getString("a_et"), resultSet.getString("end_time"));
 					String location = resultSet.getString("location");
 
 					if(location != null) {							// For map
@@ -976,6 +991,9 @@ public class Items extends Application {
 				columns.put(localisation.getString("a_ut"));
 				columns.put(localisation.getString("a_l"));
 				columns.put(localisation.getString("a_sn"));
+				columns.put(localisation.getString("a_in"));
+				columns.put(localisation.getString("a_st"));
+				columns.put(localisation.getString("a_et"));
 					
 				types.put("integer");
 				types.put("string");
@@ -983,6 +1001,9 @@ public class Items extends Application {
 				types.put("dateTime");
 				types.put("string");	
 				types.put("string");	
+				types.put("string");	
+				types.put("dateTime");
+				types.put("dateTime");
 				
 				String maxRecordWhere = "";
 				if(whereClause.length() == 0) {

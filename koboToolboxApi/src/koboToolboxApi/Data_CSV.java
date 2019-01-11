@@ -105,7 +105,6 @@ public class Data_CSV extends Application {
 		Connection sd = SDDataSource.getConnection("koboToolBoxApi-getDataCSV");
 		a.isAuthorised(sd, request.getRemoteUser());
 
-		StringBuffer record = null;
 		PrintWriter outWriter = null;
 
 		if (filename == null) {
@@ -313,18 +312,21 @@ public class Data_CSV extends Application {
 					language,
 					sId,
 					sIdent,
-					request.getRemoteUser(), parentform, fId, table_name, false, getParkey, // Include parent key if the
-					// form is not the top level
-					// form (fId is 0)
+					request.getRemoteUser(), 
+					parentform, 
+					fId, 
+					table_name, 
+					true,				// Read Only 
+					getParkey, 			// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")), true, // include instance id
-					true, // include other meta data
-					true, // include preloads
-					true, // include instancename
-					true, // include survey duration
-					superUser, false, // TODO include HXL
+					true, 				// include other meta data
+					true, 				// include preloads
+					true, 				// include instancename
+					true, 				// include survey duration
+					superUser, false, 	// TODO include HXL
 					audit,
 					tz,
-					true				// convert question name to display name if it is set
+					true					// convert question name to display name if it is set
 					);
 
 			if (mgmt) {
@@ -358,7 +360,11 @@ public class Data_CSV extends Application {
 							if(c.type.equals("rank")) {
 								choiceName = c.name + " - " + idx;
 							} else {
-								choiceName = c.name + " - " + kv.k;
+								if(c.selectDisplayNames) {
+									choiceName = kv.v;
+								} else {
+									choiceName = c.name + " - " + kv.v;
+								}
 							}
 							columnHeadings.append(choiceName);
 							
@@ -444,7 +450,7 @@ public class Data_CSV extends Application {
 								for(KeyValue kv: c.choices) {
 									boolean addChoice = false;
 									for(String selValue : selected) {
-										if(selValue.equals(kv.v)) {
+										if(selValue.equals(kv.k)) {
 											addChoice = true;
 											break;
 										}	
@@ -456,6 +462,15 @@ public class Data_CSV extends Application {
 									record.append("\"" + choiceValue + "\"");
 									
 								}
+							} else if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
+								// Convert value to display name
+								for(KeyValue kv: c.choices) {
+									if(kv.k.equals(val)) {
+										val = kv.v;
+										break;
+									}
+								}
+								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
 							} else {
 								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
 							}

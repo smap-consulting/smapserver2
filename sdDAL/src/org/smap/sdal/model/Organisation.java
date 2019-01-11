@@ -56,6 +56,7 @@ public class Organisation {
 	public String locale;
 	public String timeZone;
 	public String server_description;
+	public int e_id;		// Enterprise id
 
 	public String getAdminEmail() {
 

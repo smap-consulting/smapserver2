@@ -18,7 +18,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
@@ -43,7 +44,6 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
-import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
@@ -3202,7 +3202,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 + sqlQuestion2 + sqlQuestion3);
 
 		// Get column names for select multiple questions in an uncompressed legacy select multiple
-		String sqlSelectMultipleNotCompressed = "select distinct o.column_name, o.ovalue, o.seq " 
+		String sqlSelectMultipleNotCompressed = "select distinct o.column_name, o.ovalue, o.seq, o.display_name " 
 				+ "from option o, question q "
 				+ "where o.l_id = q.l_id " 
 				+ "and q.q_id = ? " 
@@ -3211,14 +3211,14 @@ public class GeneralUtilityMethods {
 				+ "order by o.seq;";
 		PreparedStatement pstmtSelectMultipleNotCompressed = sd.prepareStatement(sqlSelectMultipleNotCompressed);
 				
-		// Get column names for select multiple questions for compressed select multiples (ignoe published)
-		String sqlSelectMultiple = "select distinct o.column_name, o.ovalue, o.seq " 
+		// Get column names for select multiple questions for compressed select multiples (ignore published)
+		String sqlSelectMultiple = "select distinct o.column_name, o.ovalue, o.seq, o.display_name " 
 				+ "from option o, question q "
 				+ "where o.l_id = q.l_id " 
 				+ "and q.q_id = ? " 
 				+ "and o.externalfile = ? " 
 				+ "order by o.seq;";
-		PreparedStatement pstmtSelectMultiple = sd.prepareStatement(sqlSelectMultiple);
+		PreparedStatement pstmtSelectChoices = sd.prepareStatement(sqlSelectMultiple);
 
 		updateUnPublished(sd, cResults, table_name, f_id);		// Ensure that all columns marked not published really are
 		
@@ -3460,7 +3460,7 @@ public class GeneralUtilityMethods {
 					continue; // Drop read only columns if they are not selected to be exported
 				}
 
-				if (qType.equals("select") && !compressed) {
+				if (qType.equals("select") && !compressed) {		// deprecated
 
 					// Get the choices, either all from an external file or all from an internal
 					// file but not both
@@ -3481,7 +3481,7 @@ public class GeneralUtilityMethods {
 							uniqueColumns.put(uk, uk);
 
 							c = new TableColumn();
-
+							
 							String optionName = rsMultiples.getString(1);
 							String optionLabel = rsMultiples.getString(2);
 							c.name = question_column_name + "__" + optionName;
@@ -3536,10 +3536,11 @@ public class GeneralUtilityMethods {
 						realQuestions.add(c);
 					}
 					
-					if (qType.equals("select") || qType.equals("rank")) {
+					if (qType.equals("select1") || qType.equals("select") || qType.equals("rank")) {
 		
 						c.choices = new ArrayList<KeyValue> ();	
-						if(GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
+						// Don't get external select 1 choices it is not necessary
+						if(!qType.equals("select1") && GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
 									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz);
 							if(options != null) {
@@ -3556,29 +3557,36 @@ public class GeneralUtilityMethods {
 								}
 							}
 						} else {
-							// Compressed select multiple add the options
-							pstmtSelectMultiple.setInt(1, qId);
-							pstmtSelectMultiple.setBoolean(2, false);	// No external
-							ResultSet rsMultiples = pstmtSelectMultiple.executeQuery();
+							// Compressed select multiple or internal select1 add the options
+							pstmtSelectChoices.setInt(1, qId);
+							pstmtSelectChoices.setBoolean(2, false);	// No external
+							ResultSet rsMultiples = pstmtSelectChoices.executeQuery();
 						
 							while (rsMultiples.next()) {
 								// Get the choices
-	
-								String optionName = rsMultiples.getString(2);	// Set to choice value
-								String optionLabel = rsMultiples.getString(2);	// ALso set to choice value
+								String displayName = rsMultiples.getString(4);
+								String choiceValue = rsMultiples.getString(2);
+								if(displayName == null || displayName.trim().length() == 0) {
+									displayName =choiceValue; 
+								} else {
+									// Record that we are using display names
+									c.selectDisplayNames = true;
+								}
+								String optionName = choiceValue;		// Set to choice value
+								String optionLabel = displayName;	// Set to choice value / display name
 	
 								c.choices.add(new KeyValue(optionName, optionLabel));
 								
 							}
 						}
-					}
+					} 
 				}
 
 			}
 		} finally {
 			try {if (pstmtQuestions != null) {pstmtQuestions.close();	}} catch (Exception e) {}
 			try {if (pstmtSelectMultipleNotCompressed != null) {pstmtSelectMultipleNotCompressed.close();}} catch (Exception e) {}
-			try {if (pstmtSelectMultiple != null) {pstmtSelectMultiple.close();}} catch (Exception e) {}
+			try {if (pstmtSelectChoices != null) {pstmtSelectChoices.close();}} catch (Exception e) {}
 		}
 
 		columnList.addAll(realQuestions); // Add the real questions after the property questions
@@ -7330,6 +7338,37 @@ public class GeneralUtilityMethods {
 		return u;
 	}
 	
+	public static Timestamp getTimestamp(String timeString) {
+			
+		Timestamp t = null;
+		
+		if(timeString != null) {
+			
+			/*
+			 * work around java 8 bug
+			 * https://stackoverflow.com/questions/39033525/error-java-time-format-datetimeparseexception-could-not-be-parsed-unparsed-tex
+			 */
+			if ( timeString.indexOf ( "+" ) == ( timeString.length () - 3 ) ) {
+			    // If third character from end is a PLUS SIGN, append ':00'.
+			    timeString += ":00";
+			} else if ( timeString.lastIndexOf ( "-" ) == ( timeString.length () - 3 ) ) {
+			    // If third character from end is a PLUS SIGN, append ':00'.
+			    timeString += ":00";
+			}
+			
+			log.info("timestring to test: " + timeString);
+
+			try {
+				OffsetDateTime odt = OffsetDateTime.parse( timeString );
+				Instant instant = odt.toInstant();
+				java.util.Date date = Date.from( instant );				
+				t =  new Timestamp(date.getTime());
+			} catch (Exception e) {
+				log.info("Failed to parse string into Timestamp: "  + timeString + " : " + e.getMessage());			
+			}
+		}
+		return t;
+	}
 
 }
 

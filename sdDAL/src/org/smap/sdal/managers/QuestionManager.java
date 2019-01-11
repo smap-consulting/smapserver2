@@ -944,8 +944,8 @@ public class QuestionManager {
 	public void saveOptions(Connection sd, int sId, ArrayList<Option> options, boolean updateLabels) throws SQLException {
 
 		PreparedStatement pstmtInsertOption = null;
-		String sql = "insert into option (o_id, l_id, seq, label_id, ovalue, column_name, cascade_filters, externalfile) " +
-				"values (nextval('o_seq'), ?, ?, ?, ?, ?, ?, 'false');";
+		String sql = "insert into option (o_id, l_id, seq, label_id, ovalue, column_name, cascade_filters, display_name, externalfile) " +
+				"values (nextval('o_seq'), ?, ?, ?, ?, ?, ?, ?, 'false');";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update option set seq = seq + 1 where l_id = ? and seq >= ?;";
@@ -982,7 +982,8 @@ public class QuestionManager {
 				pstmtInsertOption.setString(3, transId + ":label" );
 				pstmtInsertOption.setString(4, o.value );
 				pstmtInsertOption.setString(5, GeneralUtilityMethods.cleanName(o.value, false, false, false) );
-				pstmtInsertOption.setString(6, gson.toJson(o.cascade_filters));			
+				pstmtInsertOption.setString(6, gson.toJson(o.cascade_filters));	
+				pstmtInsertOption.setString(7, o.display_name);	
 
 				log.info("Insert option: " + pstmtInsertOption.toString());
 				pstmtInsertOption.executeUpdate();

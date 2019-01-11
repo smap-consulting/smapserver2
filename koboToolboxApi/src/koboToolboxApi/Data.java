@@ -192,8 +192,10 @@ public class Data extends Application {
 			String tz				// Timezone
 			) throws ApplicationException, Exception { 
 
+		String connectionString = "koboToolboxApi - get data records";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -223,7 +225,7 @@ public class Data extends Application {
 
 		String language = "none";
 
-		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get data records");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
 		String sqlGetManagedId = "select managed_id from survey where s_id = ?";
 		PreparedStatement pstmtGetManagedId = null;
@@ -339,7 +341,7 @@ public class Data extends Application {
 					parentform,
 					fId,
 					table_name,
-					false,
+					true,		// Read Only
 					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")),
 					true,		// include instance id
@@ -463,8 +465,8 @@ public class Data extends Application {
 			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
 
-			ResultsDataSource.closeConnection("koboToolboxApi - get data records", cResults);			
-			SDDataSource.closeConnection("koboToolboxApi - get data records", sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);			
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		//return response;
@@ -490,8 +492,10 @@ public class Data extends Application {
 
 		Response response = null;
 
+		String connectionString = "koboToolboxApi - get similar data records";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -502,7 +506,7 @@ public class Data extends Application {
 		// End Authorisation
 
 		String language = "none";
-		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get similar data records");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
 		String sqlGetMainForm = "select f_id, table_name from form where s_id = ? and parentform = 0;";
 		PreparedStatement pstmtGetMainForm = null;
@@ -592,7 +596,7 @@ public class Data extends Application {
 					parentform,
 					fId,
 					table_name,
-					false,
+					true,		// Read Only
 					false,		// Don't include parent key
 					false,		// Don't include "bad" columns
 					true,		// include instance id
@@ -814,8 +818,8 @@ public class Data extends Application {
 			try {if (pstmtGetSimilar != null) {pstmtGetSimilar.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
 
-			ResultsDataSource.closeConnection("koboToolboxApi - get data records", cResults);			
-			SDDataSource.closeConnection("koboToolboxApi - get data records", sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);			
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;

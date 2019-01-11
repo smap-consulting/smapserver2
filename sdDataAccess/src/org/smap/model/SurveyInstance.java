@@ -25,7 +25,9 @@ public class SurveyInstance {
 	private String displayName = null;
 	private String surveyGeopoint = null;		// A location that can be used as the location of the survey (Used by monitor, some analysis programs)
 	private String imei = null;
+	
 	private String uuid = null;
+	
 	private int version = 1;
 	
 	private IE topInstanceElement = null;
@@ -106,6 +108,16 @@ public class SurveyInstance {
 			surveyGeopoint = match.getValue();
 			break;
 		}
+	}
+	
+	public String getValue(String ref) {
+		String value = null;
+		List<IE> matches = topInstanceElement.getMatchingElements(ref);
+		if(matches.size() > 0) {
+			value = matches.get(0).getValue();
+		}
+		
+		return value;
 	}
 	
 	public void setForm(String ref, String tableName, String formType, boolean reference) {

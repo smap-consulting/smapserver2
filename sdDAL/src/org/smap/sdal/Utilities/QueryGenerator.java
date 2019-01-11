@@ -599,11 +599,14 @@ public class QueryGenerator {
 						|| format.equals("thingsat") || format.equals("xlsx"))) {
 					if(sqlDesc.geometry_type.equals("wkbPoint") && (format.equals("csv") || format.equals("stata") || format.equals("spss")) ) {		// Split location into Lon, Lat
 						colBuf.append("ST_Y(" + form.table + "." + name + ") as lat, ST_X(" + form.table + "." + name + ") as lon");
-						sqlDesc.colNames.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, col.humanName));
-						sqlDesc.colNames.add(new ColDesc("lon", type, type, label, null, false, col.question_name, null, false, col.humanName));
+						sqlDesc.colNames.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, 
+								col.humanName, col.selectDisplayNames));
+						sqlDesc.colNames.add(new ColDesc("lon", type, type, label, null, false, col.question_name, null, false, 
+								col.humanName, col.selectDisplayNames));
 					} else {																								// Use well known text
 						colBuf.append("ST_AsText(" + form.table + "." + name + ") as the_geom");
-						sqlDesc.colNames.add(new ColDesc("the_geom", type, type, label, null, false, col.question_name, null, false, col.humanName));
+						sqlDesc.colNames.add(new ColDesc("the_geom", type, type, label, null, false, col.question_name, null, false, 
+								col.humanName, col.selectDisplayNames));
 					}
 				} else {
 				
@@ -646,7 +649,7 @@ public class QueryGenerator {
 					
 					sqlDesc.colNames.add(new ColDesc(name, type, type, label, 
 							optionListLabels, needsReplace, col.question_name,
-							col.choices, col.compressed, col.humanName));
+							col.choices, col.compressed, col.humanName, col.selectDisplayNames));
 					sqlDesc.names.add(col.name);
 				}
 				

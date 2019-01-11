@@ -15,11 +15,11 @@ public class MetaItem {
 	
 	public MetaItem(
 			int id,
-			String type, 	// type				
+			String type, 			// dateTime, string		
 			String name, 			// nodeset
-			String sourceParam, 		// jr:preloadParams
+			String sourceParam, 		// jr:preloadParams  - deviceid, end, start, 
 			String columnName, 
-			String dataType, 		// jr:preload
+			String dataType, 		// jr:preload - timestamp, property, null
 			boolean isPreload,
 			String display_name
 			) throws Exception {

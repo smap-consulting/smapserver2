@@ -386,10 +386,15 @@ public class TableDataManager {
 					String[] selected = {""};
 					selected = value.split(" ");
 					for(KeyValue kv: c.choices) {
-						String choiceName = name + " - " + kv.k;
+						String choiceName = null;
+						if(c.selectDisplayNames) {
+							choiceName = kv.v;
+						} else {
+							choiceName = name + " - " + kv.v;
+						}
 						boolean addChoice = false;
 						for(String selValue : selected) {
-							if(selValue.equals(kv.v)) {
+							if(selValue.equals(kv.k)) {
 								addChoice = true;
 								break;
 							}	
@@ -401,7 +406,16 @@ public class TableDataManager {
 
 					name = c.humanName;
 
-					if (c.type != null && c.type.equals("decimal")) {
+					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
+						// Convert value to display name
+						value = rs.getString(i + 1);
+						for(KeyValue kv: c.choices) {
+							if(kv.k.equals(value)) {
+								value = kv.v;
+								break;
+							}
+						}
+					} else if (c.type != null && c.type.equals("decimal")) {
 						Double dValue = rs.getDouble(i + 1);
 						dValue = Math.round(dValue * 10000.0) / 10000.0;
 						value = String.valueOf(dValue);

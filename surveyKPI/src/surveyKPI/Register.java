@@ -111,6 +111,7 @@ public class Register extends Application {
 			o.can_use_api = true;
 			o.can_submit = true;
 			o.email_task = false;
+			o.e_id = 1;				// Default organisation!
 			
 			int o_id = om.createOrganisation(
 					sd, 

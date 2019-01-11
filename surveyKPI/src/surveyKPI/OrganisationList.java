@@ -320,6 +320,7 @@ public class OrganisationList extends Application {
 				if(o.id == -1) {
 					// New organisation
 						
+					o.e_id = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
 					om.createOrganisation(
 							sd, 
 							o, 
