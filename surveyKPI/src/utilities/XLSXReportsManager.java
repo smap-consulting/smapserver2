@@ -51,6 +51,7 @@ import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
+import org.smap.sdal.model.ReadData;
 import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.Transform;
 import org.smap.sdal.model.TransformDetail;
@@ -310,8 +311,7 @@ public class XLSXReportsManager {
 						continue;
 					}
 					
-					int tdIndex = getTransformIndex(transform, values.name);
-					
+					int tdIndex = getTransformIndex(transform, values.name);					
 					if(tdIndex >= 0 ) {
 						/*
 						 * Replace this question with the wide labels
@@ -356,16 +356,17 @@ public class XLSXReportsManager {
 				}
 				
 				/*
-				 * Write each row of data
+				 * Accumulate data to be written into an array and write it out in a second pass
+				 * This supports functionality such as long to wide transforms where fewer records are written than read
 				 */
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
 				log.info("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				while(rs.next()) {
+					ArrayList<ReadData> dataItems = new ArrayList<> ();
 					
 					Row dataRow = dataSheet.createRow(rowNumber++);	
 					
-					colNumber = 0;
 					dataColumn = 0;
 					while(dataColumn < sqlDesc.colNames.size()) {
 						ColValues values = new ColValues();
@@ -378,45 +379,50 @@ public class XLSXReportsManager {
 								merge_select_multiple,
 								surveyName);						
 
-						if(split_locn && values.value != null && values.value.startsWith("POINT")) {
+						
+						// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't add the data
+						if(isWideColumn(transform, values.name)) {
+							continue;
+						}
+						
+						int tdIndex = getTransformIndex(transform, values.name);					
+						if(tdIndex >= 0 ) {
+							
+							System.out.println("TODO process split question");
+								
+						} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 
 							String coords [] = GeneralUtilityMethods.getLonLat(values.value);
 
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.type = values.type;
+							
 							if(coords.length > 1) {
-								Cell cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[1], 
-										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-								cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, coords[0], 
-										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+								rd.values.add(coords[1]);
+								rd.values.add(coords[0]);
 							} else {
-								Cell cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
-								cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-										"decimal", embedImages, basePath, rowNumber, colNumber - 1, true);
+								rd.values.add(values.value);
+								rd.values.add(values.value);
 							}
 
 						} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
 
 							// Can't split linestrings and polygons, leave latitude and longitude as blank
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.type = "string";
+							rd.values.add(values.value);
+							rd.values.add(values.value);
 
 
 						} else if(split_locn && values.type != null && values.type.equals("geopoint") ) {
 							// Geopoint that needs to be split but there is no data
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
-							cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, "", 
-									"string", embedImages, basePath, rowNumber, colNumber - 1, true);
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.type = "string";
+							rd.values.add("");
+							rd.values.add("");
 
 						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null  && item.compressed) {
 							
@@ -424,6 +430,10 @@ public class XLSXReportsManager {
 							if(values.value != null) {
 								vArray = values.value.split(" ");
 							} 
+							
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.type = values.type;
 							
 							for(int i = 0; i < item.choices.size(); i++) {			
 								
@@ -438,10 +448,7 @@ public class XLSXReportsManager {
 										}
 									}
 								}
-								Cell cell = dataRow.createCell(colNumber++);
-								cell.setCellStyle(headerStyle);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-										values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+								rd.values.add(v);
 									
 							}
 						} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
@@ -451,21 +458,22 @@ public class XLSXReportsManager {
 								vArray = values.value.split(" ");
 							} 
 							
-							for(int i = 0; i < item.choices.size(); i++) {
-								
-								Cell cell = dataRow.createCell(colNumber++);
-								cell.setCellStyle(headerStyle);
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.type = values.type;
+							
+							for(int i = 0; i < item.choices.size(); i++) {							
 								if(i < vArray.length) {
-									XLSUtilities.setCellValue(wb, dataSheet, cell, styles, vArray[i], 
-											values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+									rd.values.add(vArray[i]);	
 								} else {
-									// Just write spaces
+									rd.values.add("");  // Just write spaces
 								}		
 									
 							}
 						} else if(item.qType != null && item.qType.equals("select1") && item.selectDisplayNames) {
-							Cell cell = dataRow.createCell(colNumber++);
+							
 							String value = values.value;
+							// Convert the value into the display name
 							for(int i = 0; i < item.choices.size(); i++) {							
 									
 								String choiceValue = item.choices.get(i).k;
@@ -474,16 +482,34 @@ public class XLSXReportsManager {
 								}
 									
 							}
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, value, 
-									values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+							
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.values.add(value);
+							rd.type = values.type;
+							
 						} else {
+							ReadData rd = new ReadData();
+							dataItems.add(rd);
+							rd.values.add(values.value);
+							rd.type = values.type;
+						}
+					}
+					
+					/*
+					 * Now lets actually write out the record
+					 */
+					colNumber = 0;
+					for(ReadData item : dataItems) {
+						for(String v : item.values) {
 							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, values.value, 
-									values.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
+									item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 						}
 					}
 					
 				}
+			
 
 			} catch (ApplicationException e) {
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
