@@ -99,8 +99,6 @@ public class ActionServiceKPI extends Application {
 
 		Connection sd = SDDataSource.getConnection(requester);
 		Connection cResults = ResultsDataSource.getConnection(requester);
-		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 		try {
 			
@@ -169,9 +167,7 @@ public class ActionServiceKPI extends Application {
 					meta = Boolean.parseBoolean(p.v);
 				} else if(p.k.equals("landscape")) {
 					landscape = Boolean.parseBoolean(p.v);
-				} else if(p.k.equals("transform")) {
-					t = gson.fromJson(p.v, Transform.class);
-				}
+				} 
 			}
 			
 			/*

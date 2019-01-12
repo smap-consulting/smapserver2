@@ -33,6 +33,7 @@ public class Action {
 	// Attributes for reports
 	public String reportType;
 	public String filename;
+	public Transform transform;
 	
 	// General parameters
 	public ArrayList<KeyValueSimp> parameters = null;

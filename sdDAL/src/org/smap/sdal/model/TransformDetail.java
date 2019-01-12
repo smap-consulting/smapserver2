@@ -12,8 +12,8 @@ import java.util.ArrayList;
  */
 public class TransformDetail {	
 	
-	public String splitterQuestion;
+	public String valuesQuestion;
 	public ArrayList<String> values = new ArrayList<> ();			// Each value is applied to each column
-	public ArrayList<String> columns = new ArrayList<> ();
+	public ArrayList<String> wideColumns = new ArrayList<> ();
 	
 }

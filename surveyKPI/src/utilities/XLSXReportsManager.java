@@ -234,7 +234,7 @@ public class XLSXReportsManager {
 							/*
 							 * Replace this question with the wide labels
 							 */
-							for(String tc : transform.transforms.get(tdIndex).columns) {
+							for(String tc : transform.transforms.get(tdIndex).wideColumns) {
 								for(String tv : transform.transforms.get(tdIndex).values) {
 									Cell cell = headerRow.createCell(colNumber++);
 									cell.setCellStyle(wideStyle);
@@ -317,7 +317,7 @@ public class XLSXReportsManager {
 						/*
 						 * Replace this question with the wide labels
 						 */
-						for(String tc : transform.transforms.get(tdIndex).columns) {
+						for(String tc : transform.transforms.get(tdIndex).wideColumns) {
 							for(String tv : transform.transforms.get(tdIndex).values) {
 								Cell cell = headerRow.createCell(colNumber++);
 								cell.setCellStyle(wideStyle);
@@ -372,7 +372,7 @@ public class XLSXReportsManager {
 				while(rs.next()) {
 					
 					// If we are doing a transform then get the key of this record
-					if(transform != null && transform.key_questions.size() > 0) {
+					if(transform != null && transform.enabled) {
 						key = getKeyValue(rs, transform);
 						if(previousKey == null) {
 							previousKey = key;
@@ -383,7 +383,7 @@ public class XLSXReportsManager {
 					 * Write out the previous record if this report does not use transforms or the key has changed
 					 */
 					System.out.println("Key: " + key + " : " + previousKey);
-					if(dataItems != null && (transform == null || transform.key_questions.size() == 0 || !key.equals(previousKey))) {
+					if(dataItems != null && (transform == null || transform.enabled || !key.equals(previousKey))) {
 						System.out.println("    Writing record");
 						previousKey = key;
 						dataRow = dataSheet.createRow(rowNumber++);	
@@ -430,7 +430,7 @@ public class XLSXReportsManager {
 							for(String tv : transform.transforms.get(tdIndex).values) {
 								if(tv.equals(values.value)) {
 									// Valid value
-									for(String tc : transform.transforms.get(tdIndex).columns) {
+									for(String tc : transform.transforms.get(tdIndex).wideColumns) {
 										itemTransform.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
 									}
 									break;
@@ -599,7 +599,7 @@ public class XLSXReportsManager {
 			if(item.isTransform) {
 				int tdIndex = getTransformIndex(transform, item.name);	
 				HashMap<String, String> itemTransform = transformData.get(item.name);
-				for(String tc : transform.transforms.get(tdIndex).columns) {
+				for(String tc : transform.transforms.get(tdIndex).wideColumns) {
 					for(String tv : transform.transforms.get(tdIndex).values) {
 						Cell cell = dataRow.createCell(colNumber++);
 						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, itemTransform.get(tc + " - " + tv), 
@@ -620,7 +620,7 @@ public class XLSXReportsManager {
 		
 		if(transform != null) {
 			for(TransformDetail td : transform.transforms) {
-				for(String col : td.columns) {
+				for(String col : td.wideColumns) {
 					if(col.equals(name)) {
 						val = true;
 						break;
@@ -641,7 +641,7 @@ public class XLSXReportsManager {
 		if(transform != null) {
 			int count = 0;
 			for(TransformDetail td : transform.transforms) {
-				if(td.splitterQuestion.equals(name)) {
+				if(td.valuesQuestion.equals(name)) {
 					idx = count;
 					break;
 				}
