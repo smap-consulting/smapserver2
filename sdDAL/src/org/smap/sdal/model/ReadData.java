@@ -10,7 +10,6 @@ public class ReadData {
 	public String name;
 	
 	public boolean isTransform = false;
-	public HashMap<String, String> transformData = null;
 	
 	public ReadData(String name, boolean isTransform, String type) {
 		this.name = name;

@@ -360,14 +360,41 @@ public class XLSXReportsManager {
 				 * Accumulate data to be written into an array and write it out in a second pass
 				 * This supports functionality such as long to wide transforms where fewer records are written than read
 				 */
+				String key = "";															// transforms
+				String previousKey = null;													// transforms
+				HashMap<String, HashMap<String, String>> transformData = null;				// transforms
+				
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
 				log.info("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
+				ArrayList<ReadData> dataItems = null;
+				Row dataRow = null;
 				while(rs.next()) {
-					ArrayList<ReadData> dataItems = new ArrayList<> ();
 					
-					Row dataRow = dataSheet.createRow(rowNumber++);	
+					// If we are doing a transform then get the key of this record
+					if(transform != null && transform.key_questions.size() > 0) {
+						key = getKeyValue(rs, transform);
+						if(previousKey == null) {
+							previousKey = key;
+						}
+					}
 					
+					/*
+					 * Write out the previous record if this report does not use transforms or the key has changed
+					 */
+					System.out.println("Key: " + key + " : " + previousKey);
+					if(dataItems != null && (transform == null || transform.key_questions.size() == 0 || !key.equals(previousKey))) {
+						System.out.println("    Writing record");
+						previousKey = key;
+						dataRow = dataSheet.createRow(rowNumber++);	
+						writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
+								basePath, rowNumber);
+						transformData = null;
+					}
+					
+					dataItems = new ArrayList<> ();
+					
+					System.out.println("Getting data for: " + rs.getString("prikey"));
 					dataColumn = 0;
 					while(dataColumn < sqlDesc.colNames.size()) {
 						ColValues values = new ColValues();
@@ -391,15 +418,20 @@ public class XLSXReportsManager {
 							
 							ReadData rd = new ReadData(values.name, true, "string");
 							dataItems.add(rd);
-							rd.transformData = new HashMap<> ();
+							if(transformData == null) {
+								transformData = new HashMap<> ();
+							}
+							HashMap<String, String> itemTransform = transformData.get(values.name);
+							if(itemTransform == null) {
+								itemTransform = new HashMap<String, String> ();
+								transformData.put(values.name, itemTransform);
+							}
 							
-							System.out.println("We are going to split on: " + values.name);
-							System.out.println("Value is: " + values.value);
 							for(String tv : transform.transforms.get(tdIndex).values) {
 								if(tv.equals(values.value)) {
 									// Valid value
 									for(String tc : transform.transforms.get(tdIndex).columns) {
-										rd.transformData.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
+										itemTransform.put(tc + " - " + values.value, rs.getString(sqlDesc.colNameLookup.get(tc)));
 									}
 									break;
 								}
@@ -506,31 +538,14 @@ public class XLSXReportsManager {
 							rd.type = values.type;
 						}
 					}
-					
-					/*
-					 * Now lets actually write out the record
-					 */
-					colNumber = 0;
-					for(ReadData item : dataItems) {
-						if(item.isTransform) {
-							int tdIndex = getTransformIndex(transform, item.name);	
-							for(String tc : transform.transforms.get(tdIndex).columns) {
-								for(String tv : transform.transforms.get(tdIndex).values) {
-									Cell cell = dataRow.createCell(colNumber++);
-									XLSUtilities.setCellValue(wb, dataSheet, cell, styles, item.transformData.get(tc + " - " + tv), 
-											item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-								}
-							}
-						} else {
-							for(String v : item.values) {
-								Cell cell = dataRow.createCell(colNumber++);
-								XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-										item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-							}
-						}
-					}
-					
+
 				}
+				
+				// Write the last row
+				System.out.println("Write the last row");
+				dataRow = dataSheet.createRow(rowNumber++);	
+				writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
+						basePath, rowNumber);
 			
 
 			}  catch (Exception e) {
@@ -569,6 +584,37 @@ public class XLSXReportsManager {
 		return responseVal;
 	}
 	
+	private void writeOutData(ArrayList<ReadData> dataItems, Transform transform, 
+			HashMap<String, HashMap<String, String>> transformData,
+			Row dataRow,
+			Workbook wb,
+			Sheet dataSheet,
+			Map<String, CellStyle> styles,
+			boolean embedImages,
+			String basePath,
+			int rowNumber) {
+		
+		int colNumber = 0;
+		for(ReadData item : dataItems) {
+			if(item.isTransform) {
+				int tdIndex = getTransformIndex(transform, item.name);	
+				HashMap<String, String> itemTransform = transformData.get(item.name);
+				for(String tc : transform.transforms.get(tdIndex).columns) {
+					for(String tv : transform.transforms.get(tdIndex).values) {
+						Cell cell = dataRow.createCell(colNumber++);
+						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, itemTransform.get(tc + " - " + tv), 
+								item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+					}
+				}
+			} else {
+				for(String v : item.values) {
+					Cell cell = dataRow.createCell(colNumber++);
+					XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
+							item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+				}
+			}
+		}
+	}
 	private boolean isWideColumn(Transform transform, String name) {
 		boolean val = false;
 		
@@ -603,6 +649,14 @@ public class XLSXReportsManager {
 			}
 		}
 		return idx;
+	}
+	
+	private String getKeyValue(ResultSet rs, Transform transform) throws SQLException {
+		StringBuilder key = new StringBuilder("");
+		for(String c : transform.key_questions) {
+			key.append(rs.getString(c));
+		}
+		return key.toString();
 	}
 
 }

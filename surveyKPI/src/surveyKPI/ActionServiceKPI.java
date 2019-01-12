@@ -176,7 +176,7 @@ public class ActionServiceKPI extends Application {
 			
 			/*
 			 * UNIT TEST DATA - DO NOT PUT IN PRODUCTION
-			 */
+			 *
 			System.out.println("******************************************   UNIT TEST");
 			t = new Transform();
 			t.key_questions.add("key1");
@@ -188,10 +188,8 @@ public class ActionServiceKPI extends Application {
 			td.values.add("y");
 			td.columns.add("split_col1");
 			td.columns.add("split_col2");
-					
-			/*
-			 * End UNIT TEST
-			 */
+			System.out.println("******************************************   END UNIT TEST");	
+			*/
 			
 			// Default to the top level form
 			if(fId == 0) {
