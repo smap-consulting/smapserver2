@@ -843,7 +843,11 @@ public class Items extends Application {
 				
 				// Get columns for main select
 				StringBuffer sql2 = new StringBuffer("select ");	
-				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, "
+				sql2.append("ue.ue_id, "
+						+ "ue.survey_name, "
+						+ "ue.s_id, "
+						+ "s.ident, "
+						+ "s.original_ident, "
 						+ "ue.instanceid, "
 						+ "to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
 						+ "ue.location, "
@@ -851,9 +855,9 @@ public class Items extends Application {
 						+ "ue.survey_notes,"
 						+ "ue.instance_name, "
 						+ "to_char(timezone(?, ue.start_time), 'YYYY-MM-DD HH24:MI:SS') as start_time,"
-						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time"
-						+ "");
-				sql2.append(" from upload_event ue ");
+						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time,"
+						+ "ue.imei ");
+				sql2.append("from upload_event ue ");
 				sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 				sql2.append("left outer join project p on ue.p_id = p.id ");
 				
@@ -913,7 +917,6 @@ public class Items extends Application {
 				 */
 				int attribIdx = 1;
 				
-				// Add user
 				pstmt.setString(attribIdx++, tz);	// upload time
 				pstmt.setString(attribIdx++, tz);	// start time
 				pstmt.setString(attribIdx++, tz);	// end time
@@ -951,6 +954,7 @@ public class Items extends Application {
 					}
 					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
+					jp.put(localisation.getString("a_device"), resultSet.getString("imei"));
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
 					jp.put(localisation.getString("ar_project"), resultSet.getString("project_name"));
 					jp.put(localisation.getString("a_sn"), resultSet.getString("survey_notes"));
@@ -987,6 +991,7 @@ public class Items extends Application {
 				 */
 				columns.put("prikey");
 				columns.put(localisation.getString("a_name"));
+				columns.put(localisation.getString("a_device"));
 				columns.put(localisation.getString("ar_project"));
 				columns.put(localisation.getString("a_ut"));
 				columns.put(localisation.getString("a_l"));
@@ -996,6 +1001,7 @@ public class Items extends Application {
 				columns.put(localisation.getString("a_et"));
 					
 				types.put("integer");
+				types.put("string");
 				types.put("string");
 				types.put("string");
 				types.put("dateTime");
