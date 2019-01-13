@@ -50,12 +50,6 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.Transform;
-import org.smap.sdal.model.TransformColumn;
-import org.smap.sdal.model.TransformDetail;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import utilities.XLSXReportsManager;
 
 /*
@@ -134,7 +128,6 @@ public class ActionServiceKPI extends Application {
 			String filter = null;
 			boolean meta = false;
 			String tz = "UTC";
-			Transform t = null;
 			
 			for(KeyValueSimp p : a.parameters) {
 				if(p.k.equals("form")) {
@@ -216,7 +209,7 @@ public class ActionServiceKPI extends Application {
 						endDate,
 						dateId,
 						filter,
-						t,
+						a.transform,
 						meta,
 						tz);
 			} else if(a.reportType.equals("pdf")) {

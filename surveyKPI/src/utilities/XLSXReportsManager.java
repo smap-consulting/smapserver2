@@ -383,7 +383,7 @@ public class XLSXReportsManager {
 					 * Write out the previous record if this report does not use transforms or the key has changed
 					 */
 					System.out.println("Key: " + key + " : " + previousKey);
-					if(dataItems != null && (transform == null || transform.enabled || !key.equals(previousKey))) {
+					if(dataItems != null && (transform == null || (transform.enabled && !key.equals(previousKey)))) {
 						System.out.println("    Writing record");
 						previousKey = key;
 						dataRow = dataSheet.createRow(rowNumber++);	
