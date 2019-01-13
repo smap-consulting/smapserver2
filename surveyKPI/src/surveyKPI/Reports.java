@@ -31,6 +31,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -132,6 +133,18 @@ public class Reports extends Application {
 			action.pId = GeneralUtilityMethods.getProjectId(sd, action.sId);
 			action.surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
 			action.filename = (action.filename == null) ? "report" : action.filename;
+			
+			/*
+			 * Validate roles
+			 */
+			if(!superUser) {
+				for(Role role : action.roles) {
+					if(!GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser(), role.id)) {
+						throw new ApplicationException("User does not have role: " + role.id);
+					}
+				}
+			}
+			
 			
 			//Action action = new Action("report");
 			

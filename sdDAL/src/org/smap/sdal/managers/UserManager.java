@@ -735,8 +735,8 @@ public class UserManager {
 			}
 
 		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
 			try{sd.rollback();} catch(Exception ex) {}
+			throw e;
 		} finally {
 			log.info("Set autocommit true");
 			sd.setAutoCommit(true);

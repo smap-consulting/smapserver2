@@ -35,7 +35,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.RoleManager;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleName;
 

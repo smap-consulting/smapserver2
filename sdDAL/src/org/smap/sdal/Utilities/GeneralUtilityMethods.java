@@ -559,42 +559,68 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return true if the user has the security role
+	 * Return true if the user has the specified role
 	 */
-	static public boolean hasSecurityRole(Connection sd, String user) throws SQLException {
-		boolean securityRole = false;
+	static public boolean hasSecurityRole(Connection sd, String user, int rId) throws SQLException {
+		boolean value = false;
 
-		String sqlGetOrgId = "select count(*) " + "from users u, user_group ug " + "where u.ident = ? "
-				+ "and u.id = ug.u_id " + "and ug.g_id = 6";
+		String sql = "select count(*) " 
+				+ "from users u, user_role ur " 
+				+ "where u.ident = ? "
+				+ "and u.id = ur.u_id " 
+				+ "and ur.r_id = ?";
 
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetOrgId);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, user);
+			pstmt.setInt(2, rId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				value = (rs.getInt(1) > 0);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return value;
+	}
+	
+	/*
+	 * Return true if the user has the security group
+	 */
+	static public boolean hasSecurityRole(Connection sd, String user) throws SQLException {
+		boolean securityRole = false;
+
+		String sql = "select count(*) " 
+				+ "from users u, user_group ug " 
+				+ "where u.ident = ? "
+				+ "and u.id = ug.u_id " 
+				+ "and ug.g_id = 6";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				securityRole = (rs.getInt(1) > 0);
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return securityRole;
 	}
 
 	/*
-	 * Return true if the user has the enterprise administrator role
+	 * Return true if the user has the enterprise administrator group
 	 */
 	static public boolean isEntUser(Connection con, String ident) throws SQLException {
 
