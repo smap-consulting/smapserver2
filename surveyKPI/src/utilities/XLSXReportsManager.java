@@ -382,7 +382,10 @@ public class XLSXReportsManager {
 					/*
 					 * Write out the previous record if this report does not use transforms or the key has changed
 					 */
-					if(dataItems != null && (transform == null || (transform.enabled && !key.equals(previousKey)))) {
+					if(dataItems != null && 
+							(transform == null || 
+							!transform.enabled  || 
+							(transform.enabled && !key.equals(previousKey)))) {
 						previousKey = key;
 						dataRow = dataSheet.createRow(rowNumber++);	
 						writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
@@ -614,7 +617,7 @@ public class XLSXReportsManager {
 	private boolean isWideColumn(Transform transform, String name) {
 		boolean val = false;
 		
-		if(transform != null) {
+		if(transform != null && transform.enabled) {
 			for(TransformDetail td : transform.transforms) {
 				for(String col : td.wideColumns) {
 					if(col.equals(name)) {
