@@ -382,9 +382,7 @@ public class XLSXReportsManager {
 					/*
 					 * Write out the previous record if this report does not use transforms or the key has changed
 					 */
-					System.out.println("Key: " + key + " : " + previousKey);
 					if(dataItems != null && (transform == null || (transform.enabled && !key.equals(previousKey)))) {
-						System.out.println("    Writing record");
 						previousKey = key;
 						dataRow = dataSheet.createRow(rowNumber++);	
 						writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
@@ -394,7 +392,6 @@ public class XLSXReportsManager {
 					
 					dataItems = new ArrayList<> ();
 					
-					System.out.println("Getting data for: " + rs.getString("prikey"));
 					dataColumn = 0;
 					while(dataColumn < sqlDesc.colNames.size()) {
 						ColValues values = new ColValues();
@@ -542,7 +539,6 @@ public class XLSXReportsManager {
 				}
 				
 				// Write the last row
-				System.out.println("Write the last row");
 				dataRow = dataSheet.createRow(rowNumber++);	
 				writeOutData(dataItems, transform, transformData, dataRow, wb, dataSheet, styles, embedImages, 
 						basePath, rowNumber);
