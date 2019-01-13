@@ -161,14 +161,37 @@ public class XLSXReportsManager {
 				dataSheet = wb.createSheet(localisation.getString("rep_data"));
 				settingsSheet = wb.createSheet(localisation.getString("rep_settings"));
 				
-				// Populate settings sheet
+				/*
+				 * Populate settings sheet
+				 */
 				int settingsRowIdx = 0;
 				Row settingsRow = settingsSheet.createRow(settingsRowIdx++);
 				Cell sk = settingsRow.createCell(0);
 				Cell sv = settingsRow.createCell(1);
 				sk.setCellStyle(headerStyle);	
-				sk.setCellValue("Time Zone:");
+				sk.setCellValue(localisation.getString("a_tz"));
 				sv.setCellValue(tz);
+				
+				settingsRow = settingsSheet.createRow(settingsRowIdx++);
+				sk = settingsRow.createCell(0);
+				sv = settingsRow.createCell(1);	
+				sk.setCellValue(localisation.getString("a_dfq"));
+				sv.setCellStyle(headerStyle);	
+				sv.setCellValue(GeneralUtilityMethods.getQuestionNameFromId(sd, sId, dateId));
+				
+				settingsRow = settingsSheet.createRow(settingsRowIdx++);
+				sk = settingsRow.createCell(0);
+				sv = settingsRow.createCell(1);	
+				sk.setCellValue(localisation.getString("a_st"));
+				sv.setCellStyle(styles.get("date"));	
+				sv.setCellValue(startDate);
+				
+				settingsRow = settingsSheet.createRow(settingsRowIdx++);
+				sk = settingsRow.createCell(0);
+				sv = settingsRow.createCell(1);
+				sk.setCellValue(localisation.getString("a_et"));
+				sv.setCellStyle(styles.get("date"));	
+				sv.setCellValue(endDate);
 				
 				// Get the SQL for this query
 				SqlDesc sqlDesc = QueryGenerator.gen(sd, 

@@ -4287,12 +4287,29 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 
 		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, id);
-			pstmt.setInt(2, sId);
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				qName = rs.getString(1);
+			if(id >= 0) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, id);
+				pstmt.setInt(2, sId);
+				ResultSet rs = pstmt.executeQuery();
+				if (rs.next()) {
+					qName = rs.getString(1);
+				}
+			} else {
+				if(id == SmapServerMeta.UPLOAD_TIME_ID) {
+					qName = SmapServerMeta.UPLOAD_TIME_NAME;
+				} else if(id == SmapServerMeta.SCHEDULED_START_ID) {
+					qName = SmapServerMeta.SCHEDULED_START_NAME;
+				} else {
+					ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+					for(MetaItem mi : preloads) {
+						if(mi.id == id) {
+							qName = mi.name;
+							break;
+						}
+					}
+					
+				}
 			}
 
 		} finally {
