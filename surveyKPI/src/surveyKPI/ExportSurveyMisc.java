@@ -298,12 +298,12 @@ public class ExportSurveyMisc extends Application {
 					e.setAttribute("field", "the_geom");
 					layerElement.appendChild(e);
 
-					for(int i = 0; i < sqlDesc.colNames.size(); i++) {
-						ColDesc cd = sqlDesc.colNames.get(i);
-						if(!cd.name.equals("the_geom")) {
+					for(int i = 0; i < sqlDesc.column_details.size(); i++) {
+						ColDesc cd = sqlDesc.column_details.get(i);
+						if(!cd.column_name.equals("the_geom")) {
 							e = outputXML.createElement("Field");
-							e.setAttribute("name", cd.name);
-							e.setAttribute("src", cd.name);
+							e.setAttribute("name", cd.column_name);
+							e.setAttribute("src", cd.column_name);
 							e.setAttribute("type", cd.google_type);
 							layerElement.appendChild(e);
 						}
@@ -353,22 +353,22 @@ public class ExportSurveyMisc extends Application {
 					w.println("label define yesno 0 \"No\" 1 \"Yes\"");
 
 					// Write the variable commands
-					for(int i = 0; i < sqlDesc.colNames.size(); i++) {
-						ColDesc cd = sqlDesc.colNames.get(i);
+					for(int i = 0; i < sqlDesc.column_details.size(); i++) {
+						ColDesc cd = sqlDesc.column_details.get(i);
 						if(cd.qType != null && cd.qType.equals("select") && cd.compressed) {			
 							if(!merge_select_multiple && cd.choices != null) {
 								for(int j = 0; j < cd.choices.size(); j++) {
-									String selName = cd.name + "__" + cd.choices.get(j).k;
+									String selName = cd.column_name + "__" + cd.choices.get(j).k;
 									String selLabel = cd.label + " - " + cd.choices.get(j).v;
 									w.println("\n* variable: " + selName);
 									w.println("label variable " + selName + " \"" + selLabel +"\"");
 									w.println("label values " + selName + " yesno");
 								}
 							} else {
-								w.println("label values " + cd.name + " yesno");
+								w.println("label values " + cd.column_name + " yesno");
 							}
 						} else {
-							w.println("\n* variable: " + cd.name);
+							w.println("\n* variable: " + cd.column_name);
 							writeStataDataConversion(w, cd);
 							writeStataQuestionLabel(w,cd);
 							if(cd.qType != null && cd.qType.equals("select1")) {
@@ -376,10 +376,10 @@ public class ExportSurveyMisc extends Application {
 								if(cd.needsReplace) {
 									writeStataEncodeString(w, cd, valueLabel);
 								}
-								w.println("label values " + cd.name + " " + valueLabel);
+								w.println("label values " + cd.column_name + " " + valueLabel);
 							}
 							if(cd.qType != null && cd.qType.equals("select")) {	
-								w.println("label values " + cd.name + " yesno");
+								w.println("label values " + cd.column_name + " yesno");
 							}
 						}
 					}
@@ -458,14 +458,14 @@ public class ExportSurveyMisc extends Application {
 					 */
 					int dataColumn = 0;
 					StringBuffer header = new StringBuffer("");
-					while(dataColumn < sqlDesc.colNames.size()) {
+					while(dataColumn < sqlDesc.column_details.size()) {
 						ColValues values = new ColValues();
-						ColDesc item = sqlDesc.colNames.get(dataColumn);
+						ColDesc item = sqlDesc.column_details.get(dataColumn);
 						dataColumn = GeneralUtilityMethods.getColValues(
 								null, 
 								values, 
 								dataColumn,
-								sqlDesc.colNames, 
+								sqlDesc.column_details, 
 								merge_select_multiple,
 								surveyName);	
 							
@@ -480,7 +480,7 @@ public class ExportSurveyMisc extends Application {
 							if((item.qType == null || !item.qType.equals("select")) && (item.humanName != null && item.humanName.trim().length() > 0)) {
 								addValueToBuf(header, item.humanName);
 							} else {
-								addValueToBuf(header, item.name);
+								addValueToBuf(header, item.column_name);
 							}
 						}
 					}
@@ -497,14 +497,14 @@ public class ExportSurveyMisc extends Application {
 						
 						dataColumn = 0;
 						StringBuffer dataBuffer = new StringBuffer("");
-						while(dataColumn < sqlDesc.colNames.size()) {
+						while(dataColumn < sqlDesc.column_details.size()) {
 							ColValues values = new ColValues();
-							ColDesc item = sqlDesc.colNames.get(dataColumn);
+							ColDesc item = sqlDesc.column_details.get(dataColumn);
 							dataColumn = GeneralUtilityMethods.getColValues(
 									rs, 
 									values, 
 									dataColumn,
-									sqlDesc.colNames, 
+									sqlDesc.column_details, 
 									merge_select_multiple,
 									surveyName);						
 
@@ -623,16 +623,16 @@ public class ExportSurveyMisc extends Application {
 	 */
 	void writeStataDataConversion(PrintWriter w, ColDesc cd) {
 		if((cd.qType != null && cd.qType.equals("date")) || (cd.db_type != null && cd.db_type.equals("date"))) {
-			w.println("generate double `temp' = date(" + cd.name + ", \"YMD\")");		// Convert to double
+			w.println("generate double `temp' = date(" + cd.column_name + ", \"YMD\")");		// Convert to double
 			w.println("format %-tdCCYY-NN-DD `temp'");
 		} else if(cd.qType != null && cd.qType.equals("time")) {
-			w.println("generate double `temp' = clock(" + cd.name + ", \"hms\")");		// Convert to double
+			w.println("generate double `temp' = clock(" + cd.column_name + ", \"hms\")");		// Convert to double
 			w.println("format %-tcHH:MM:SS `temp'");
 		} else if((cd.qType != null && cd.qType.equals("dateTime")) || (cd.db_type != null && cd.db_type.equals("dateTime"))) {
-			w.println("generate double `temp' = clock(" + cd.name + ", \"YMDhms\")");		// Convert to double
+			w.println("generate double `temp' = clock(" + cd.column_name + ", \"YMDhms\")");		// Convert to double
 			w.println("format %-tcCCYY-NN-DD_HH:MM:SS `temp'");
 		} else if(cd.db_type.equals("timestamptz")) {
-			w.println("generate double `temp' = clock(" + cd.name + ", \"YMDhms\")");	// Convert to double
+			w.println("generate double `temp' = clock(" + cd.column_name + ", \"YMDhms\")");	// Convert to double
 			w.println("format %-tcCCYY-NN-DD_HH:MM:SS `temp'");							// Set the display format
 
 		} else {
@@ -640,26 +640,26 @@ public class ExportSurveyMisc extends Application {
 		}
 
 		// rename the temp file created by the date functions 
-		w.println("move `temp' " + cd.name);										// Move to the location of the variable
-		w.println("drop " + cd.name);												// Remove the old variable
-		w.println("rename `temp' " + cd.name);										// Rename the temporary variable
+		w.println("move `temp' " + cd.column_name);										// Move to the location of the variable
+		w.println("drop " + cd.column_name);												// Remove the old variable
+		w.println("rename `temp' " + cd.column_name);										// Rename the temporary variable
 	}
 
 	void writeStataEncodeString(PrintWriter w, ColDesc cd, String valueLabel) {
 		w.println("capture {");			// Capture errors as if there is no data then there will be a type mismatch
 		for(int i = 0; i < cd.optionLabels.size(); i++) {
 			OptionDesc od = cd.optionLabels.get(i);
-			w.println("replace " + cd.name + " = \"" + od.label + "\" if (" + cd.name + " == \"" + od.value + "\")");	// Replace values with labels
+			w.println("replace " + cd.column_name + " = \"" + od.label + "\" if (" + cd.column_name + " == \"" + od.value + "\")");	// Replace values with labels
 		}
-		w.println("encode " + cd.name + ", generate(`temp') label(" + valueLabel + ")");			// Encode the variable
-		w.println("drop " + cd.name);												// Remove the old variable
-		w.println("rename `temp' " + cd.name);										// Rename the temporary variable
+		w.println("encode " + cd.column_name + ", generate(`temp') label(" + valueLabel + ")");			// Encode the variable
+		w.println("drop " + cd.column_name);												// Remove the old variable
+		w.println("rename `temp' " + cd.column_name);										// Rename the temporary variable
 		w.println("}");
 	}
 
 	void writeStataQuestionLabel(PrintWriter w, ColDesc cd) {
 		if(cd.label != null) {
-			w.println("label variable " + cd.name + " \"" + cd.label + "\"");			// Set the label
+			w.println("label variable " + cd.column_name + " \"" + cd.label + "\"");			// Set the label
 		}
 	}
 

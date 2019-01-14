@@ -12,11 +12,10 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
  *  Secondly it includes support for managed forms
  */
 public class TableColumn {
-	public String name;
+	public String column_name;
 	public int qId;
 	public String question_name;
 	public String option_name;
-	public String humanName;
 	public String displayName;
 	public boolean include;		// Include in the table
 	public boolean hide;		// Only show on expand
@@ -46,9 +45,10 @@ public class TableColumn {
 	// Manage extraction of data
 	public SqlFrag calculation = null;
 	
-	public TableColumn(String n, String hn) {
-		name = n;
-		humanName = hn;
+	public TableColumn(String column_name, String question_name, String displayName) {
+		this.column_name = column_name;
+		this.question_name = question_name;
+		this.displayName = displayName;
 		include = true;
 		hide = false;
 		
@@ -99,23 +99,23 @@ public class TableColumn {
 		String selName = null;
 		
 		if(isAttachment()) {
-			selName = "'" + urlprefix + "' || " + name + " as " + name;
+			selName = "'" + urlprefix + "' || " + column_name + " as " + column_name;
 		} else if(isGeometry()) {
 			selName = "ST_AsGeoJson(the_geom) ";
 		} else if(isCalculate() && calculation != null) {
 			selName = calculation.sql.toString();
 		} else if(type.equals("duration")) {
 			if(startName != null && endName != null) {
-				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ name;
+				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
 			}
 		} else if(type.equals("duration")) {
 			if(startName != null && endName != null) {
-				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ name;
+				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
 			}
 		} else if(!tz.equals("UTC") && type.equals("dateTime")) {
-			selName = name + " at time zone '" + tz + "'";
+			selName = column_name + " at time zone '" + tz + "'";
 		} else {
-			selName = name;
+			selName = column_name;
 		}
 		
 		// open and close curly brackets are used to delimit quotes when these should not be used to identify a parameter

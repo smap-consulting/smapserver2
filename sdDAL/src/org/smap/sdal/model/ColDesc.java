@@ -3,7 +3,7 @@ package org.smap.sdal.model;
 import java.util.ArrayList;
 
 public class ColDesc {
-	public String name;
+	public String column_name;
 	public String google_type;
 	public String db_type;
 	public String qType;
@@ -25,7 +25,7 @@ public class ColDesc {
 			String humanName,
 			boolean selMultipleDisplayNames) {
 		
-		name = n;
+		column_name = n;
 		this.db_type = db_type;
 		this.qType = qType;
 		this.label = label;

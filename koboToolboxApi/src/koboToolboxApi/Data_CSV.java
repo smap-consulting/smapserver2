@@ -325,8 +325,7 @@ public class Data_CSV extends Application {
 					true, 				// include survey duration
 					superUser, false, 	// TODO include HXL
 					audit,
-					tz,
-					true					// convert question name to display name if it is set
+					tz
 					);
 
 			if (mgmt) {
@@ -344,7 +343,7 @@ public class Data_CSV extends Application {
 				}
 				columnSelect.append(c.getSqlSelect(urlprefix, tz));
 				
-				if (!c.name.equals("_audit")) {
+				if (!c.column_name.equals("_audit")) {
 					if (colHeadingAdded) {
 						columnHeadings.append(",");
 					}
@@ -358,19 +357,19 @@ public class Data_CSV extends Application {
 							}
 							String choiceName = null;
 							if(c.type.equals("rank")) {
-								choiceName = c.name + " - " + idx;
+								choiceName = c.column_name + " - " + idx;
 							} else {
 								if(c.selectDisplayNames) {
 									choiceName = kv.v;
 								} else {
-									choiceName = c.name + " - " + kv.v;
+									choiceName = c.column_name + " - " + kv.v;
 								}
 							}
 							columnHeadings.append(choiceName);
 							
 						}
 					} else {
-						columnHeadings.append(c.humanName);
+						columnHeadings.append(c.displayName);
 					}
 				}
 			}
@@ -378,21 +377,21 @@ public class Data_CSV extends Application {
 			// Add the audit columns
 			if(audit) {
 				for (TableColumn c : columns) {
-					if (includeInAudit(c.name)) {
+					if (includeInAudit(c.column_name)) {
 						columnHeadings.append(",");
-						columnHeadings.append(c.humanName);
+						columnHeadings.append(c.displayName);
 						columnHeadings.append(" ");
 						columnHeadings.append("(time ms)");
 					}
 				}
 				for (TableColumn c : columns) {
-					if (includeInAudit(c.name)) {
+					if (includeInAudit(c.column_name)) {
 						columnHeadings.append(",");
-						columnHeadings.append(c.humanName);
+						columnHeadings.append(c.displayName);
 						columnHeadings.append(" ");
 						columnHeadings.append("(lat)");
 						columnHeadings.append(",");
-						columnHeadings.append(c.humanName);
+						columnHeadings.append(c.displayName);
 						columnHeadings.append(" ");
 						columnHeadings.append("(lon)");
 					}
@@ -437,7 +436,7 @@ public class Data_CSV extends Application {
 						if (val == null) {
 							val = "";
 						}
-						if (!c.name.equals("_audit")) {
+						if (!c.column_name.equals("_audit")) {
 							if (i > 0) {
 								record.append(",");
 							}
@@ -483,25 +482,25 @@ public class Data_CSV extends Application {
 					if (audit && auditData != null) {
 						if(auditData.time != null) {
 							for (TableColumn c : columns) {
-								if (includeInAudit(c.name)) {
+								if (includeInAudit(c.column_name)) {
 									record.append(",");
-									if(auditData.time.get(c.name) != null) {
-										record.append(auditData.time.get(c.name));
+									if(auditData.time.get(c.column_name) != null) {
+										record.append(auditData.time.get(c.column_name));
 									}
 								}
 							}
 						} else {
 							for (TableColumn c : columns) {
-								if (includeInAudit(c.name)) {
+								if (includeInAudit(c.column_name)) {
 									record.append(",");
 								}
 							}
 						}
 						if(auditData.location != null) {
 							for (TableColumn c : columns) {
-								if (includeInAudit(c.name)) {
+								if (includeInAudit(c.column_name)) {
 									record.append(",");
-									GeoPoint g = auditData.location.get(c.name);
+									GeoPoint g = auditData.location.get(c.column_name);
 									if(g != null) {
 										record.append(g.lat);
 										record.append(",");

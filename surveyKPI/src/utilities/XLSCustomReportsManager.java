@@ -98,9 +98,9 @@ public class XLSCustomReportsManager {
 			} else if(name.equals("data type")) {
 				value = props.type;
 			} else if(name.equals("name")) {
-				value = props.name;
+				value = props.column_name;
 			} else if(name.equals("display name")) {
-				value = props.humanName;
+				value = props.displayName;
 			} else if(name.equals("hide")) {
 				value = props.readonly ? "yes" : "no";
 			} else if(name.equals("filter")) {
@@ -295,7 +295,7 @@ public class XLSCustomReportsManager {
 												" " + localisation.getString("mf_or") + ": " + (j + 1));
 									}
 
-									currentCol.name = colName;
+									currentCol.column_name = colName;
 								} else {
 									throw new Exception(localisation.getString("mf_mn") + 
 											localisation.getString("mf_or") + ": " + (j + 1));
@@ -305,7 +305,7 @@ public class XLSCustomReportsManager {
 								String dispName = XLSUtilities.getColumn(row, "display name", header, lastCellNum, null);
 								if(dispName != null) {
 
-									currentCol.humanName = dispName;
+									currentCol.displayName = dispName;
 								} else {
 									throw new Exception(localisation.getString("mf_mdn") + 
 											" " + localisation.getString("mf_or") + ": " + (j + 1));
@@ -538,7 +538,7 @@ public class XLSCustomReportsManager {
 
 			// 1. Check for condition calculations without any corresponding contion entries
 			if(col.isCondition && col.calculation == null) {
-				throw new Exception(localisation.getString("mf_ncr") + ": " + col.name);
+				throw new Exception(localisation.getString("mf_ncr") + ": " + col.column_name);
 			}
 		}
 	

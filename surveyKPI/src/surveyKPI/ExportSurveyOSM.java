@@ -274,12 +274,11 @@ public class ExportSurveyOSM extends Application {
 							false,		// superUser - Always apply filters
 							false,		// HXL only include with XLS exports
 							false,		// Don't include audit data
-							tz,
-							true			// convert question name to display name if it is set
+							tz
 							);
 					
 					for(TableColumn col : f.cols) {
-						String name = col.name;
+						String name = col.column_name;
 						String qType = col.type;
 						
 						// Ignore the following columns
@@ -479,7 +478,7 @@ public class ExportSurveyOSM extends Application {
 				
 				for(TableColumn col : f.cols) {
 					
-					String key = col.name;
+					String key = col.column_name;
 					if(key.equals("prikey") ||
 							key.equals("instancename") ||	
 							key.equals("parkey") ||	

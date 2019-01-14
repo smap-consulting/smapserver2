@@ -248,8 +248,7 @@ public class Items extends Application {
 						superUser,
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data
-						tz,
-						true			// Convert question names to display name if it is set
+						tz
 						);		
 				
 				// Construct a new query that retrieves a geometry object as geoJson
@@ -269,31 +268,31 @@ public class Items extends Application {
 							|| c.type.equals("geoshape")) {
 						
 						geomIdx = newColIdx;
-						cols.append("ST_AsGeoJSON(" + tName + "." + c.name + ") ");
+						cols.append("ST_AsGeoJSON(" + tName + "." + c.column_name + ") ");
 						geomType = c.type;
 						newColIdx++;
 					
 					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
-							cols.append("'" + urlprefix + "' || " + tName + "." + c.name + " as " + c.name);
+							cols.append("'" + urlprefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
 				
-					} else if(c.name.equals("prikey") || c.name.equals("parkey") 
-							|| c.name.equals("_bad") || c.name.equals("_bad_reason")) {
-						cols.append(tName + "." + c.name + " as " +  c.name);
+					} else if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
+							|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")) {
+						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
 					
 					} else if(c.type != null && c.type.equals("dateTime")) {
-						cols.append("timezone(?, ").append(tName).append(".").append(c.name).append(") as " +  c.name);
+						cols.append("timezone(?, ").append(tName).append(".").append(c.column_name).append(") as " +  c.column_name);
 						params.add(new SqlParam("string", tz));
 						
 					}  else if(c.type != null && c.type.equals("date")) {
-						cols.append(tName).append(".").append(c.name).append(" as ").append(c.name);
+						cols.append(tName).append(".").append(c.column_name).append(" as ").append(c.column_name);
 						
 					} else {
-						cols.append(tName + "." + c.name + " as " +  c.name);
+						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
 						
 					}
 					
-					colNames.add(c.name);
-					columns.put(c.humanName);
+					colNames.add(c.column_name);
+					columns.put(c.displayName);
 					types.put(c.type);
 					newColIdx++;
 				}

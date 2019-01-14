@@ -422,8 +422,7 @@ public class ExportSurvey extends Application {
 							superUser,	// In this case we will export all data if super user
 							false,		// TODO add HXL export processing
 							false,		// Don't include audit data
-							tz,
-							true			// convert question name to display name if it is set
+							tz
 							);
 
 
@@ -431,10 +430,10 @@ public class ExportSurvey extends Application {
 						for(int j = 0; j < f.columnList.size(); j++) {
 
 							c = f.columnList.get(j);
-							String name = c.name;
+							String name = c.column_name;
 							String qType = c.type;
 							boolean ro = c.readonly;
-							String humanName = c.humanName;
+							String humanName = c.question_name;
 
 							boolean isAttachment = false;
 							boolean isSelectMultiple = false;
@@ -605,8 +604,8 @@ public class ExportSurvey extends Application {
 								}
 
 								TableColumn tc = new TableColumn();
-								tc.name = selName;
-								tc.humanName = selName;
+								tc.column_name = selName;
+								tc.question_name = selName;
 								tc.type = sscType;
 								f.columnList.add(tc);
 
@@ -640,7 +639,7 @@ public class ExportSurvey extends Application {
 					for(String filterCol : filterFrag.columns) {
 						boolean valid = false;
 						for(TableColumn tc : topForm.columnList) {
-							if(filterCol.equals(tc.name)) {
+							if(filterCol.equals(tc.column_name)) {
 								valid = true;
 								break;
 							}
@@ -1008,7 +1007,7 @@ public class ExportSurvey extends Application {
 
 					TableColumn c = f.columnList.get(i);
 
-					String columnName = c.name;
+					String columnName = c.column_name;
 					String columnType = c.type;
 					String value = resultSet.getString(i + 1);
 

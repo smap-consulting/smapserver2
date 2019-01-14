@@ -413,7 +413,7 @@ public class ActionManager {
 				TableColumn tc = null;
 				for (int j = 0; j < svd.columns.size(); j++) {
 					TableColumn xx = svd.columns.get(j);
-					if (xx.name.equals(u.name)) {
+					if (xx.column_name.equals(u.name)) {
 						if (!xx.readonly) {
 							updateable = true;
 							tc = xx;

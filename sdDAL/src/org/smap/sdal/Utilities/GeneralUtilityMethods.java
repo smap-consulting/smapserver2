@@ -3180,8 +3180,7 @@ public class GeneralUtilityMethods {
 			boolean superUser,
 			boolean hxl,
 			boolean audit,
-			String tz,
-			boolean useDisplayNameForQuestionName)	// If set substitute display name for the question name if it is not null
+			String tz)	// If set substitute display name for the question name if it is not null
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
@@ -3249,8 +3248,7 @@ public class GeneralUtilityMethods {
 		updateUnPublished(sd, cResults, table_name, f_id);		// Ensure that all columns marked not published really are
 		
 		TableColumn c = new TableColumn();
-		c.name = "prikey";
-		c.humanName = "prikey";
+		c.column_name = "prikey";
 		c.displayName = "ID";
 		c.type = SmapQuestionTypes.INT;
 		if (includeOtherMeta) {
@@ -3260,8 +3258,7 @@ public class GeneralUtilityMethods {
 		// Add HRK if it has been specified
 		if (includeOtherMeta && GeneralUtilityMethods.columnType(cResults, table_name, "_hrk") != null) {
 			c = new TableColumn();
-			c.name = "_hrk";
-			c.humanName = "Key";
+			c.column_name = "_hrk";
 			c.displayName = "Key";
 			c.type = SmapQuestionTypes.STRING;
 			columnList.add(c);
@@ -3269,8 +3266,7 @@ public class GeneralUtilityMethods {
 
 		if (includeParentKey) {
 			c = new TableColumn();
-			c.name = "parkey";
-			c.humanName = "parkey";
+			c.column_name = "parkey";
 			c.displayName = "parkey";
 			c.type = SmapQuestionTypes.INT;
 			columnList.add(c);
@@ -3279,9 +3275,8 @@ public class GeneralUtilityMethods {
 		ArrayList<MetaItem> preloads = getPreloads(sd, sId);
 		if (includeSurveyDuration && formParent == 0) {
 			durationColumn = new TableColumn();
-			durationColumn.name = "_duration";
-			durationColumn.humanName = localisation.getString("a_sd");
-			durationColumn.displayName = durationColumn.humanName;
+			durationColumn.column_name = "_duration";
+			durationColumn.displayName = localisation.getString("a_sd");
 			durationColumn.type = SmapQuestionTypes.DURATION;
 			durationColumn.isMeta = true;
 			getStartEndName(preloads, durationColumn);
@@ -3290,16 +3285,14 @@ public class GeneralUtilityMethods {
 
 		if (includeBad) {
 			c = new TableColumn();
-			c.name = "_bad";
-			c.humanName = "_bad";
-			c.displayName = "Bad";
+			c.column_name = "_bad";
+			c.displayName = "_bad";
 			c.type = SmapQuestionTypes.BOOLEAN;
 			columnList.add(c);
 
 			c = new TableColumn();
-			c.name = "_bad_reason";
-			c.humanName = "_bad_reason";
-			c.displayName = "Bad Reason";
+			c.column_name = "_bad_reason";
+			c.displayName = "_bad_reason";
 			c.type = SmapQuestionTypes.STRING;;
 			columnList.add(c);
 		}
@@ -3308,9 +3301,8 @@ public class GeneralUtilityMethods {
 		if (includeOtherMeta && formParent == 0) {
 
 			c = new TableColumn();
-			c.name = "_user";
-			c.humanName = localisation.getString("a_user");
-			c.displayName = c.humanName;
+			c.column_name = "_user";
+			c.displayName = localisation.getString("a_user");
 			c.type = SmapQuestionTypes.STRING;
 			c.isMeta = true;
 			columnList.add(c);
@@ -3322,17 +3314,15 @@ public class GeneralUtilityMethods {
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.UPLOAD_TIME_NAME) != null) {
 
 				c = new TableColumn();
-				c.name = SmapServerMeta.UPLOAD_TIME_NAME;
-				c.humanName = localisation.getString("a_ut");
-				c.displayName = c.humanName;
+				c.column_name = SmapServerMeta.UPLOAD_TIME_NAME;
+				c.displayName = localisation.getString("a_ut");
 				c.type = SmapQuestionTypes.DATETIME;
 				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
-				c.name = SmapServerMeta.SURVEY_ID_NAME;
-				c.humanName = localisation.getString("a_name");
-				c.displayName = c.humanName;
+				c.column_name = SmapServerMeta.SURVEY_ID_NAME;
+				c.displayName = localisation.getString("a_name");
 				c.type = "";
 				c.isMeta = true;
 				columnList.add(c);
@@ -3340,9 +3330,8 @@ public class GeneralUtilityMethods {
 
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, SmapServerMeta.SCHEDULED_START_NAME) != null) {
 				c = new TableColumn();
-				c.name = SmapServerMeta.SCHEDULED_START_NAME;
-				c.humanName = SmapServerMeta.SCHEDULED_START_NAME;
-				c.displayName = c.humanName;
+				c.column_name = SmapServerMeta.SCHEDULED_START_NAME;
+				c.displayName = SmapServerMeta.SCHEDULED_START_NAME;
 				c.type = SmapQuestionTypes.DATETIME;
 				c.isMeta = true;
 				columnList.add(c);
@@ -3350,9 +3339,8 @@ public class GeneralUtilityMethods {
 			
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_version") != null) {
 				c = new TableColumn();
-				c.name = "_version";
-				c.humanName = localisation.getString("a_v");
-				c.displayName = c.humanName;
+				c.column_name = "_version";
+				c.displayName = localisation.getString("a_v");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
@@ -3360,9 +3348,8 @@ public class GeneralUtilityMethods {
 
 			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_complete") != null) {
 				c = new TableColumn();
-				c.name = "_complete";
-				c.humanName = localisation.getString("a_comp");
-				c.displayName = c.humanName;
+				c.column_name = "_complete";
+				c.displayName = localisation.getString("a_comp");
 				c.type = SmapQuestionTypes.BOOLEAN;
 				c.isMeta = true;
 				columnList.add(c);
@@ -3371,8 +3358,7 @@ public class GeneralUtilityMethods {
 			if (includeInstanceId && (uptodateTable
 					|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
 				c = new TableColumn();
-				c.name = "instanceid";
-				c.humanName = "instanceid";
+				c.column_name = "instanceid";
 				c.displayName = "instanceid";
 				c.type = "";
 				c.isMeta = true;
@@ -3381,25 +3367,22 @@ public class GeneralUtilityMethods {
 
 			if (uptodateTable) {
 				c = new TableColumn();
-				c.name = "_survey_notes";
-				c.humanName = localisation.getString("a_sn");
-				c.displayName = c.humanName;
+				c.column_name = "_survey_notes";
+				c.displayName = localisation.getString("a_sn");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
-				c.name = "_location_trigger";
-				c.humanName = localisation.getString("a_lt");
-				c.displayName = c.humanName;
+				c.column_name = "_location_trigger";
+				c.displayName = localisation.getString("a_lt");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
 
 				c = new TableColumn();
-				c.name = "instancename";
-				c.humanName = localisation.getString("a_inst");
-				c.displayName = c.humanName;
+				c.column_name = "instancename";
+				c.displayName = localisation.getString("a_inst");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
@@ -3410,9 +3393,8 @@ public class GeneralUtilityMethods {
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
 						c = new TableColumn();
-						c.name = mi.columnName;
-						c.humanName = mi.name;
-						c.displayName = c.humanName;
+						c.column_name = mi.columnName;
+						c.displayName = mi.name;
 						c.type = mi.dataType;
 						if(c.type != null && c.type.equals("timestamp")) {
 							c.type = "dateTime";
@@ -3426,8 +3408,7 @@ public class GeneralUtilityMethods {
 
 		if (audit && GeneralUtilityMethods.columnType(cResults, table_name, "_audit") != null) {
 			c = new TableColumn();
-			c.name = "_audit";
-			c.humanName = "Audit";
+			c.column_name = "_audit";
 			c.displayName = "Audit";
 			c.type = SmapQuestionTypes.AUDIT;
 			columnList.add(c);
@@ -3446,7 +3427,7 @@ public class GeneralUtilityMethods {
 			 */
 			while (rsQuestions.next()) {
 
-				String question_human_name = rsQuestions.getString(1);
+				String question_name = rsQuestions.getString(1);
 				String qType = rsQuestions.getString(2);
 				String question_column_name = rsQuestions.getString(3);
 				int qId = rsQuestions.getInt(4);
@@ -3456,12 +3437,11 @@ public class GeneralUtilityMethods {
 				String display_name = rsQuestions.getString(8);
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
-				if(useDisplayNameForQuestionName) {
-					if (display_name != null && display_name.trim().length() > 0) {
-						question_human_name = display_name;
-					}
+
+				if (display_name == null || display_name.trim().length() > 0) {
+						display_name = question_name;
 				}
-				String hxlCode = getHxlCode(appearance, question_human_name);
+				String hxlCode = getHxlCode(appearance, question_name);
 
 				if (durationColumn != null && source_param != null) {
 					if (source_param.equals("start")) {
@@ -3510,11 +3490,10 @@ public class GeneralUtilityMethods {
 							
 							String optionName = rsMultiples.getString(1);
 							String optionLabel = rsMultiples.getString(2);
-							c.name = question_column_name + "__" + optionName;
-							c.humanName = question_human_name + " - " + optionLabel;
-							c.displayName = c.humanName;
+							c.column_name = question_column_name + "__" + optionName;
+							c.displayName = question_name + " - " + optionLabel;
 							c.option_name = rsMultiples.getString(2);
-							c.question_name = question_human_name;
+							c.question_name = question_name;
 							c.l_id = l_id;
 							c.qId = qId;
 							c.type = qType;
@@ -3537,10 +3516,9 @@ public class GeneralUtilityMethods {
 					}
 				} else {
 					c = new TableColumn();
-					c.name = question_column_name;
-					c.humanName = question_human_name;
-					c.displayName = (display_name == null || display_name.trim().length() == 0) ? question_human_name : display_name;
-					c.question_name = question_human_name;
+					c.column_name = question_column_name;
+					c.displayName = (display_name == null || display_name.trim().length() == 0) ? question_name : display_name;
+					c.question_name = question_name;
 					c.qId = qId;
 					c.type = qType;
 					c.readonly = ro;
@@ -6848,7 +6826,7 @@ public class GeneralUtilityMethods {
 			if(item.humanName != null) {
 				values.name = item.humanName;
 			} else {
-				values.name = item.name;
+				values.name = item.column_name;
 			}
 			values.label = item.label;
 			if(rs != null) {
@@ -6858,7 +6836,7 @@ public class GeneralUtilityMethods {
 		}
 		values.type = item.qType;
 		
-		if(item.name != null && item.name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+		if(item.column_name != null && item.column_name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
 			values.value = surveyName;
 		}
 

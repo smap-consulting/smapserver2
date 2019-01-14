@@ -184,14 +184,18 @@ public class XLSXReportsManager {
 				sv = settingsRow.createCell(1);	
 				sk.setCellValue(localisation.getString("a_st"));
 				sv.setCellStyle(styles.get("date"));	
-				sv.setCellValue(startDate);
+				if(startDate != null) {
+					sv.setCellValue(startDate);
+				}
 				
 				settingsRow = settingsSheet.createRow(settingsRowIdx++);
 				sk = settingsRow.createCell(0);
 				sv = settingsRow.createCell(1);
 				sk.setCellValue(localisation.getString("a_et"));
 				sv.setCellStyle(styles.get("date"));	
-				sv.setCellValue(endDate);
+				if(endDate != null) {
+					sv.setCellValue(endDate);
+				}
 				
 				// Get the SQL for this query
 				SqlDesc sqlDesc = QueryGenerator.gen(sd, 
@@ -235,15 +239,15 @@ public class XLSXReportsManager {
 					Row headerRow = dataSheet.createRow(rowNumber++);				
 					int colNumber = 0;
 					int dataColumn = 0;
-					while(dataColumn < sqlDesc.colNames.size()) {
+					while(dataColumn < sqlDesc.column_details.size()) {
 						ColValues values = new ColValues();
-						ColDesc item = sqlDesc.colNames.get(dataColumn);
+						ColDesc item = sqlDesc.column_details.get(dataColumn);
 						
 						dataColumn = GeneralUtilityMethods.getColValues(
 								null, 
 								values, 
 								dataColumn,
-								sqlDesc.colNames, 
+								sqlDesc.column_details, 
 								merge_select_multiple,
 								surveyName);	
 						
@@ -319,14 +323,14 @@ public class XLSXReportsManager {
 				Row headerRow = dataSheet.createRow(rowNumber++);				
 				int colNumber = 0;
 				int dataColumn = 0;
-				while(dataColumn < sqlDesc.colNames.size()) {
+				while(dataColumn < sqlDesc.column_details.size()) {
 					ColValues values = new ColValues();
-					ColDesc item = sqlDesc.colNames.get(dataColumn);
+					ColDesc item = sqlDesc.column_details.get(dataColumn);
 					dataColumn = GeneralUtilityMethods.getColValues(
 							null, 
 							values, 
 							dataColumn,
-							sqlDesc.colNames, 
+							sqlDesc.column_details, 
 							merge_select_multiple,
 							surveyName);	
 						
@@ -419,14 +423,14 @@ public class XLSXReportsManager {
 					dataItems = new ArrayList<> ();
 					
 					dataColumn = 0;
-					while(dataColumn < sqlDesc.colNames.size()) {
+					while(dataColumn < sqlDesc.column_details.size()) {
 						ColValues values = new ColValues();
-						ColDesc item = sqlDesc.colNames.get(dataColumn);
+						ColDesc item = sqlDesc.column_details.get(dataColumn);
 						dataColumn = GeneralUtilityMethods.getColValues(
 								rs, 
 								values, 
 								dataColumn,
-								sqlDesc.colNames, 
+								sqlDesc.column_details, 
 								merge_select_multiple,
 								surveyName);						
 
