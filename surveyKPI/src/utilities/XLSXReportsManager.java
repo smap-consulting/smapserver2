@@ -342,13 +342,14 @@ public class XLSXReportsManager {
 					int tdIndex = getTransformIndex(transform, values.name);					
 					if(tdIndex >= 0 ) {
 						/*
-						 * Replace this question with the wide labels
+						 * Replace this question with the wide question names
 						 */
 						for(String tc : transform.transforms.get(tdIndex).wideColumns) {
+							String displayName = GeneralUtilityMethods.getDisplayName(sd, sId, tc);
 							for(String tv : transform.transforms.get(tdIndex).values) {
 								Cell cell = headerRow.createCell(colNumber++);
 								cell.setCellStyle(wideStyle);
-								cell.setCellValue(tc + " - " + tv);
+								cell.setCellValue(displayName + " - " + tv);
 							}
 						}
 							

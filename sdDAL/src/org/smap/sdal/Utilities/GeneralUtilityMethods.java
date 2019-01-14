@@ -4249,6 +4249,39 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Convert a question name to a display name
+	 */
+	public static String getDisplayName(Connection sd, int sId, String name) throws SQLException {
+
+		String sql = "select display_name " 
+				+ "from question q " 
+				+ "where q.qname = ? "
+				+ "and q.f_id in (select f_id from form where s_id = ?)";
+
+		String display_name = null;
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, name);
+			pstmt.setInt(2, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				display_name = rs.getString(1);
+			} 
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		if(display_name == null) {
+			display_name = name;
+		}
+		
+		return display_name;
+	}
+	
+	/*
 	 * Convert a question id to a question name
 	 */
 	public static String getQuestionNameFromId(Connection sd, int sId, int id) throws SQLException {
