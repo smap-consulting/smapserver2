@@ -10,7 +10,7 @@ public class ColDesc {
 	public String label;
 	public boolean needsReplace;
 	public String question_name;		// Used with select multiple questions
-	public String humanName;
+	public String displayName;
 	public ArrayList<OptionDesc> optionLabels = null;		// Used for Stata generation
 	public ArrayList<KeyValue>  choices = null;			// Used for compressing select multiples
 	public boolean compressed = false;
@@ -22,7 +22,7 @@ public class ColDesc {
 			String question_name,
 			ArrayList<KeyValue> choices,
 			boolean compressed,
-			String humanName,
+			String displayName,
 			boolean selMultipleDisplayNames) {
 		
 		column_name = n;
@@ -34,7 +34,7 @@ public class ColDesc {
 		this.question_name = question_name;
 		this.choices = choices;
 		this.compressed = compressed;
-		this.humanName = humanName;
+		this.displayName = displayName;
 		this.selectDisplayNames = selMultipleDisplayNames;
 		
 		// Google Maps Engine supports the types "String", "Integer", and "Real"

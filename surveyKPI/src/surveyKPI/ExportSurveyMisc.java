@@ -477,8 +477,8 @@ public class ExportSurveyMisc extends Application {
 								addValueToBuf(header, values.name + "__" + item.choices.get(i).k);
 							}
 						} else {
-							if((item.qType == null || !item.qType.equals("select")) && (item.humanName != null && item.humanName.trim().length() > 0)) {
-								addValueToBuf(header, item.humanName);
+							if((item.qType == null || !item.qType.equals("select")) && (item.displayName != null && item.displayName.trim().length() > 0)) {
+								addValueToBuf(header, item.displayName);
 							} else {
 								addValueToBuf(header, item.column_name);
 							}

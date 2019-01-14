@@ -348,7 +348,7 @@ public class XLSXReportsManager {
 							for(String tv : transform.transforms.get(tdIndex).values) {
 								Cell cell = headerRow.createCell(colNumber++);
 								cell.setCellStyle(wideStyle);
-								cell.setCellValue(tc + " - " +tv);
+								cell.setCellValue(tc + " - " + tv);
 							}
 						}
 							

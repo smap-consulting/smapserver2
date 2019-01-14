@@ -3438,9 +3438,6 @@ public class GeneralUtilityMethods {
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
 
-				if (display_name == null || display_name.trim().length() > 0) {
-						display_name = question_name;
-				}
 				String hxlCode = getHxlCode(appearance, question_name);
 
 				if (durationColumn != null && source_param != null) {
@@ -3525,7 +3522,7 @@ public class GeneralUtilityMethods {
 					c.hxlCode = hxlCode;
 					c.l_id = l_id;
 					c.compressed = compressed;
-				
+					
 					// Check for sensitive data
 					if(msd.signature) {
 						if(qType.equals("image") && appearance != null && appearance.contains("signature")) {
@@ -5273,7 +5270,7 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, qId);
 
 			ResultSet rs = pstmt.executeQuery();
-			System.out.println(pstmt.toString());
+			log.info(pstmt.toString());
 			if (rs.next()) {
 				tableExists = tableExists(cResults, rs.getString(1));
 			}
@@ -6818,13 +6815,13 @@ public class GeneralUtilityMethods {
 				dataColumn += item.choices.size();
 			}
 
-			values.name = item.question_name;
+			values.name = item.displayName;
 			values.label = item.label;
 			values.value = selMulValue.toString();
 
 		} else {
-			if(item.humanName != null) {
-				values.name = item.humanName;
+			if(item.displayName != null) {
+				values.name = item.displayName;
 			} else {
 				values.name = item.column_name;
 			}
