@@ -51,7 +51,9 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.MissingSurveyException;
 import org.smap.server.entities.MissingTemplateException;
@@ -159,16 +161,33 @@ public class XFormData {
 					 * Get meta values from the instance
 					 */
 					String topFormPath = "/main/";
-					for(MetaItem mi : survey.meta) {
-						if(mi.isPreload) {
-							if(mi.sourceParam.equals("start")) {
-								thisStart = si.getValue(topFormPath + mi.name);
-							} else if(mi.sourceParam.equals("end")) {
-								thisEnd = si.getValue(topFormPath + mi.name);
+					if(survey.meta.size() > 0) {
+						// New meta items stored with survey
+						for(MetaItem mi : survey.meta) {
+							if(mi.isPreload) {
+								if(mi.sourceParam.equals("start")) {
+									thisStart = si.getValue(topFormPath + mi.name);
+								} else if(mi.sourceParam.equals("end")) {
+									thisEnd = si.getValue(topFormPath + mi.name);
+								}
+							} else {
+								if(mi.name.toLowerCase().equals("instancename")) {
+									thisInstanceName = si.getValue(topFormPath + "meta/" + mi.name);
+								}
 							}
-						} else {
-							if(mi.name.toLowerCase().equals("instancename")) {
-								thisInstanceName = si.getValue(topFormPath + "meta/" + mi.name);
+						}
+					} else {
+						// Old style meta items which were questions
+						Form f = survey.getFirstForm();
+						for(Question q : f.questions) {
+							if(q.isPreload()) {
+								if(q.source_param != null && q.source_param.equals("start")) {
+									thisStart = si.getValue(topFormPath + q.name);
+								} else if(q.source_param != null && q.source_param.equals("end")) {
+									thisStart = si.getValue(topFormPath + q.name);
+								} else if(q.name.toLowerCase().equals("instancename")) {
+									thisInstanceName = si.getValue(topFormPath + "meta/" + q.name);
+								}
 							}
 						}
 					}
