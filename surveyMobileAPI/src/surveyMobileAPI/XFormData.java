@@ -179,14 +179,16 @@ public class XFormData {
 					} else {
 						// Old style meta items which were questions
 						Form f = survey.getFirstForm();
-						for(Question q : f.questions) {
-							if(q.isPreload()) {
-								if(q.source_param != null && q.source_param.equals("start")) {
-									thisStart = si.getValue(topFormPath + q.name);
-								} else if(q.source_param != null && q.source_param.equals("end")) {
-									thisStart = si.getValue(topFormPath + q.name);
-								} else if(q.name.toLowerCase().equals("instancename")) {
-									thisInstanceName = si.getValue(topFormPath + "meta/" + q.name);
+						if(f != null) {
+							for(Question q : f.questions) {
+								if(q.isPreload()) {
+									if(q.source_param != null && q.source_param.equals("start")) {
+										thisStart = si.getValue(topFormPath + q.name);
+									} else if(q.source_param != null && q.source_param.equals("end")) {
+										thisStart = si.getValue(topFormPath + q.name);
+									} else if(q.name.toLowerCase().equals("instancename")) {
+										thisInstanceName = si.getValue(topFormPath + "meta/" + q.name);
+									}
 								}
 							}
 						}
