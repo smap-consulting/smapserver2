@@ -797,28 +797,43 @@ public class UtilityMethodsEmail {
 		try {
 
 			// Note - there is a limit 1 on the sub query as ovalues need not be unique
+			String sqlDisplayName = "select display_name from option where l_id = ? and ovalue = ? limit 1";
+			
 			String sql = "select t.type, t.value "
 					+ "from translation t "
 					+ "where t.s_id = ? "
 					+ "and t.language = ? "
 					+ "and t.text_id = "
 						+ "(select label_id from option where l_id = ? and ovalue = ? limit 1)";
-			pstmt = connectionSD.prepareStatement(sql);
-
-			pstmt.setInt(1, sId);
-			pstmt.setString(2, languageName);
-			pstmt.setInt(3,  l_id);
-			pstmt.setString(4, value);
 			
-			ResultSet resultSet = pstmt.executeQuery();		
-			while(resultSet.next()) {
-
-				String t = resultSet.getString(1).trim();
-				String v = resultSet.getString(2);
-
-				if(t.equals("none")) {
-					label = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
-				} 
+			// Display name takes precedence
+			pstmt = connectionSD.prepareStatement(sqlDisplayName);
+			pstmt.setInt(1, l_id);
+			pstmt.setString(2, value);
+			ResultSet resultSet = pstmt.executeQuery();	
+			if(resultSet.next()) {
+				label = resultSet.getString(1);
+			}
+			
+			if(label == null || label.trim().length() == 0) {
+				if(pstmt != null) try{pstmt.close();}catch(Exception e){}
+				pstmt = connectionSD.prepareStatement(sql);
+	
+				pstmt.setInt(1, sId);
+				pstmt.setString(2, languageName);
+				pstmt.setInt(3,  l_id);
+				pstmt.setString(4, value);
+				
+				resultSet = pstmt.executeQuery();		
+				while(resultSet.next()) {
+	
+					String t = resultSet.getString(1).trim();
+					String v = resultSet.getString(2);
+	
+					if(t.equals("none")) {
+						label = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
+					} 
+				}
 			}
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);
