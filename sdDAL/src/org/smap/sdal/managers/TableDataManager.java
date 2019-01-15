@@ -404,7 +404,17 @@ public class TableDataManager {
 					}
 				} else {
 
-					name = c.question_name;
+					if(c.column_name.equals("prikey")) {
+						name = "prikey";						// Instead of ID, for backwards compatability
+					} else {
+						name = c.question_name;
+						if(name == null) {
+							name = c.displayName;
+						}
+						if(name == null) {
+							name = c.column_name;
+						}
+					}
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
