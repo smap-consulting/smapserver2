@@ -292,7 +292,11 @@ public class Items extends Application {
 					}
 					
 					colNames.add(c.column_name);
-					columns.put(c.displayName);
+					if(c.column_name.equals("prikey")) {
+						columns.put(c.column_name);		// For backward compatability (temporary)
+					} else {
+						columns.put(c.displayName);
+					}
 					types.put(c.type);
 					newColIdx++;
 				}
