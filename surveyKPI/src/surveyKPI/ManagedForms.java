@@ -349,8 +349,7 @@ public class ManagedForms extends Application {
 						superUser,
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data
-						tz,
-						true			// convert question name to display name if it is set
+						tz
 						);
 				
 				for(TableColumn mc : svd.columns) {
@@ -373,7 +372,7 @@ public class ManagedForms extends Application {
 							AutoUpdate au = new AutoUpdate("imagelabel");
 							au.labelColType = "text";
 							au.sourceColName = refColumn;
-							au.targetColName = mc.name;
+							au.targetColName = mc.column_name;
 							au.tableName =f.tableName;
 							autoUpdates.add(au);
 						}
@@ -416,7 +415,7 @@ public class ManagedForms extends Application {
 		
 		// Check to see if the referenced column is in the managed form
 		for(TableColumn mc2 : svd.columns) {
-			if(refColumn.equals(mc2.name)) {
+			if(refColumn.equals(mc2.column_name)) {
 				refDetails.type = mc2.type;
 				referenceExists = true;
 				break;
@@ -426,7 +425,7 @@ public class ManagedForms extends Application {
 		// Check to see if the referenced column is in the form that is being attached to
 		if(!referenceExists) {
 			for(TableColumn fc2 : formColumns) {
-				if(refColumn.equals(fc2.humanName)) {
+				if(refColumn.equals(fc2.question_name)) {
 					refDetails.type = fc2.type;
 					referenceExists = true;
 					break;

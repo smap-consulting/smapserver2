@@ -134,8 +134,8 @@ public class TableManager {
 						type = tc.type;
 					}
 
-					if(!GeneralUtilityMethods.hasColumn(cResults, f.tableName, tc.name)) {
-						sqlAdd = "alter table " + f.tableName + " add column " + tc.name + " " + type;
+					if(!GeneralUtilityMethods.hasColumn(cResults, f.tableName, tc.column_name)) {
+						sqlAdd = "alter table " + f.tableName + " add column " + tc.column_name + " " + type;
 
 						pstmtAdd = cResults.prepareStatement(sqlAdd);
 						log.info("Adding management column: " + pstmtAdd.toString());
@@ -153,7 +153,7 @@ public class TableManager {
 						}
 					}
 				} else {
-					log.info("Error: managed column not added as type was null: " + tc.name);
+					log.info("Error: managed column not added as type was null: " + tc.column_name);
 				}
 			}
 		}

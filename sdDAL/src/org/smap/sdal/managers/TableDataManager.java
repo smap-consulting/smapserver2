@@ -272,7 +272,7 @@ public class TableDataManager {
 
 					// String name = rsMetaData.getColumnName(i);
 					// name = c.humanName;
-					name = c.humanName;
+					name = c.question_name;
 
 					if (c.type != null && c.type.equals("decimal")) {
 						Double dValue = rs.getDouble(i + 1);
@@ -378,7 +378,7 @@ public class TableDataManager {
 
 				} else if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
 					// Split the select multiple into its choices
-					name = c.humanName;
+					name = c.question_name;
 					value = rs.getString(i + 1);
 					if (value == null) {
 						value = "";
@@ -404,7 +404,17 @@ public class TableDataManager {
 					}
 				} else {
 
-					name = c.humanName;
+					if(c.column_name.equals("prikey")) {
+						name = "prikey";						// Instead of ID, for backwards compatability
+					} else {
+						name = c.question_name;
+						if(name == null) {
+							name = c.displayName;
+						}
+						if(name == null) {
+							name = c.column_name;
+						}
+					}
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
@@ -480,13 +490,13 @@ public class TableDataManager {
 		String col = "prikey"; // default to prikey
 		sort = sort.trim();
 		for (int i = 0; i < columns.size(); i++) {
-			if (columns.get(i).humanName.equals(sort)) {
+			if (columns.get(i).question_name.equals(sort)) {
 				TableColumn c = columns.get(i);
 
 				if (c.isCalculate()) {
 					col = c.calculation.sql.toString();
 				} else {
-					col = c.name;
+					col = c.column_name;
 				}
 				break;
 			}
@@ -495,7 +505,7 @@ public class TableDataManager {
 	}
 	
 	/*
-	 * Convert the human name for the sort column into sql
+	 * Convert the question name for the sort column into sql
 	 */
 	private String getColumnType(ArrayList<TableColumn> columns, String name) {
 		String type = null; 
@@ -504,7 +514,7 @@ public class TableDataManager {
 			type = "int";
 		} else {
 			for (int i = 0; i < columns.size(); i++) {
-				if (columns.get(i).humanName.equals(name)) {
+				if (columns.get(i).question_name.equals(name)) {
 					TableColumn c = columns.get(i);
 					type = c.type;
 					break;

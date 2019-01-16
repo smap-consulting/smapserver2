@@ -215,9 +215,9 @@ public class XLSReportsManager {
 			if(!tc.hide && tc.include) {
 				int dataIndex = -1;
 				if(record != null) {
-					dataIndex = getDataIndex(record, tc.humanName);
+					dataIndex = getDataIndex(record, tc.question_name);
 				}
-				cols.add(new Column(dataIndex, tc.name, tc.humanName, tc.type, colIndex++));
+				cols.add(new Column(dataIndex, tc.column_name, tc.question_name, tc.type, colIndex++));
 			}
 		}
 	

@@ -39,6 +39,7 @@ import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.Transform;
 
 /*
  * Create a query to retrieve results data
@@ -74,6 +75,7 @@ public class QueryGenerator {
 			boolean superUser,
 			QueryForm form,
 			String filter,
+			Transform transform,
 			boolean meta,
 			boolean includeKeys,
 			String tz) throws Exception {
@@ -177,7 +179,7 @@ public class QueryGenerator {
 	
 				for(String filterCol : filterFrag.columns) {
 					boolean valid = false;
-					for(String q : sqlDesc.names) {
+					for(String q : sqlDesc.column_names) {
 						if(filterCol.equals(q)) {
 							valid = true;
 							break;
@@ -272,9 +274,37 @@ public class QueryGenerator {
 			}
 			
 			/*
-			 * Sort the data by primary key ascending
+			 * If transform is enabled sort first by the keys then:
+			 * sort by primary key ascending
+			 * Assume question names are unique in the report / survey
 			 */
+			int sortColumnCount = 0;
 			shpSqlBuf.append(" order by ");
+			if(transform != null && transform.key_questions.size() > 0) {
+				for(String key : transform.key_questions) {
+					// validate
+					boolean valid = false;
+					for(ColDesc cd : sqlDesc.column_details) {
+						if(key.equals(cd.question_name)) {
+							valid = true;
+							break;
+						}
+					}
+					if(!valid) {
+						String msg = localisation.getString("inv_qn_transform");
+						msg = msg.replace("%s1", key);
+						throw new Exception(msg);
+					}
+					if(sortColumnCount++ > 0) {
+						shpSqlBuf.append(",");
+					}
+					shpSqlBuf.append(key);
+				}
+			}
+			// Finally add prikey to the sort
+			if(sortColumnCount++ > 0) {
+				shpSqlBuf.append(",");
+			}
 			shpSqlBuf.append(form.table);
 			shpSqlBuf.append(".prikey asc");
 			
@@ -434,8 +464,7 @@ public class QueryGenerator {
 				superUser,
 				false,				// HXL only include with XLS exports
 				false,				// Don't include audit data
-				tz,
-				true			// convert question name to display name if it is set
+				tz
 				);
 			
 		StringBuffer colBuf = new StringBuffer();
@@ -445,20 +474,23 @@ public class QueryGenerator {
 				
 			TableColumn c = new TableColumn();
 				
-			c.name = "instanceid";
-			c.humanName = "instanceid";
+			c.column_name = "instanceid";
+			c.question_name = "instanceid";
 			c.type = "";
 			cols.add(c);			
 			sqlDesc.availableColumns.add("instanceid");
 			sqlDesc.numberFields++;
 			
 			sqlDesc.cols = "instanceid";
-				
+			sqlDesc.colNameLookup.put(c.column_name, "instanceid");
 		}
 		
 		for(TableColumn col : cols) {
 			
-			String name = null;
+			System.out.println(" xxxx " + col.question_name + " : " + col.column_name);
+			sqlDesc.colNameLookup.put(col.question_name, col.column_name);
+			
+			String column_name = null;
 			String type = null;
 			String label = null;
 			String text_id = null;
@@ -467,16 +499,16 @@ public class QueryGenerator {
 			ArrayList<OptionDesc> optionListLabels = null;
 			
 			int qId = col.qId;			
-			name = col.name;
+			column_name = col.column_name;
 			type = col.type;
 
 			if(GeneralUtilityMethods.isGeometry(type)) {
 				type = "geometry";
 			}
 			
-			if(name.equals("parkey") ||	name.equals("_bad") ||	name.equals("_bad_reason")
-					||	name.equals("_task_key") ||	name.equals("_task_replace") ||	name.equals("_modified")
-					||	name.equals("_instanceid") ||	name.equals("instanceid")) {
+			if(column_name.equals("parkey") ||	column_name.equals("_bad") ||	column_name.equals("_bad_reason")
+					||	column_name.equals("_task_key") ||	column_name.equals("_task_replace") ||	column_name.equals("_modified")
+					||	column_name.equals("_instanceid") ||	column_name.equals("instanceid")) {
 				continue;
 			}
 			
@@ -491,7 +523,7 @@ public class QueryGenerator {
 			}
 			
 			if(type.equals("geometry")) {
-				String sqlGeom = "SELECT GeometryType(" + name + ") FROM " + form.table + ";";
+				String sqlGeom = "SELECT GeometryType(" + column_name + ") FROM " + form.table + ";";
 
 				pstmtGeom = cResults.prepareStatement(sqlGeom);
 				log.info("Get geometry type: " + pstmtGeom.toString());
@@ -523,15 +555,15 @@ public class QueryGenerator {
 			if(requiredColumns != null) {
 				boolean wantThisOne = false;
 				for(int j = 0; j < requiredColumns.size(); j++) {
-					if(requiredColumns.get(j).equals(name)) {
+					if(requiredColumns.get(j).equals(column_name)) {
 						wantThisOne = true;
 						for(String namedQ : namedQuestions) {
-							if(namedQ.equals(name)) {
-								sqlDesc.availableColumns.add(name);
+							if(namedQ.equals(column_name)) {
+								sqlDesc.availableColumns.add(column_name);
 							}
 						}
 						break;
-					} else if(name.equals("prikey") && requiredColumns.get(j).equals("_prikey_lowest")
+					} else if(column_name.equals("prikey") && requiredColumns.get(j).equals("_prikey_lowest")
 							&& sqlDesc.gotPriKey == false && level == 0) {
 						wantThisOne = true;	// Don't include in the available columns list as prikey as processed separately
 						break;
@@ -540,7 +572,7 @@ public class QueryGenerator {
 				if(!wantThisOne) {
 					continue;
 				}
-			} else if(name.equals("prikey") && (!first || !meta)) {	// Only return the primary key of the top level form
+			} else if(column_name.equals("prikey") && (!first || !meta)) {	// Only return the primary key of the top level form
 				continue;
 			}
 			
@@ -558,10 +590,10 @@ public class QueryGenerator {
 				pstmtQType.setInt(1, form.form);
 				if(type.equals("select") && !col.compressed) {
 					// Select multiple question
-					String [] mNames = name.split("__");
+					String [] mNames = column_name.split("__");
 					pstmtQType.setString(2, mNames[0]);
 				} else {
-					pstmtQType.setString(2, name);
+					pstmtQType.setString(2, column_name);
 				}
 					
 				ResultSet rsType = pstmtQType.executeQuery();
@@ -570,7 +602,7 @@ public class QueryGenerator {
 					text_id = rsType.getString(3);
 					list_name = rsType.getString(5);
 					if(list_name == null) {
-						list_name = name;		// Default list name to question name if it has not been set
+						list_name = column_name;		// Default list name to question name if it has not been set
 					}
 					list_name = validStataName(list_name);	// Make sure the list name is a valid stata name
 				}
@@ -598,15 +630,15 @@ public class QueryGenerator {
 				if(sqlDesc.geometry_type != null && type.equals("geometry") && (format.equals("vrt") || format.equals("csv") || format.equals("stata") 
 						|| format.equals("thingsat") || format.equals("xlsx"))) {
 					if(sqlDesc.geometry_type.equals("wkbPoint") && (format.equals("csv") || format.equals("stata") || format.equals("spss")) ) {		// Split location into Lon, Lat
-						colBuf.append("ST_Y(" + form.table + "." + name + ") as lat, ST_X(" + form.table + "." + name + ") as lon");
-						sqlDesc.colNames.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, 
-								col.humanName, col.selectDisplayNames));
-						sqlDesc.colNames.add(new ColDesc("lon", type, type, label, null, false, col.question_name, null, false, 
-								col.humanName, col.selectDisplayNames));
+						colBuf.append("ST_Y(" + form.table + "." + column_name + ") as lat, ST_X(" + form.table + "." + column_name + ") as lon");
+						sqlDesc.column_details.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, 
+								col.displayName, col.selectDisplayNames));
+						sqlDesc.column_details.add(new ColDesc("lon", type, type, label, null, false, col.question_name, null, false, 
+								col.displayName, col.selectDisplayNames));
 					} else {																								// Use well known text
-						colBuf.append("ST_AsText(" + form.table + "." + name + ") as the_geom");
-						sqlDesc.colNames.add(new ColDesc("the_geom", type, type, label, null, false, col.question_name, null, false, 
-								col.humanName, col.selectDisplayNames));
+						colBuf.append("ST_AsText(" + form.table + "." + column_name + ") as the_geom");
+						sqlDesc.column_details.add(new ColDesc("the_geom", type, type, label, null, false, col.question_name, null, false, 
+								col.displayName, col.selectDisplayNames));
 					}
 				} else {
 				
@@ -619,9 +651,9 @@ public class QueryGenerator {
 					}
 				
 					if(isAttachment && wantUrl) {	// Add the url prefix to the file
-						colBuf.append("'" + urlprefix + "' || " + form.table + "." + name);
+						colBuf.append("'" + urlprefix + "' || " + form.table + "." + column_name);
 					} else {
-						colBuf.append(form.table + "." + name);
+						colBuf.append(form.table + "." + column_name);
 					}
 				
 					if(type != null && type.equals("date")) {
@@ -638,19 +670,19 @@ public class QueryGenerator {
 					colBuf.append(" as ");
 					
 					// Now any modifications to name will only apply to the output name not the column name
-					if(format.equals("shape") && name.startsWith("_")) {
-						name = name.replaceFirst("_", "x");	// Shape files must start with alpha's
+					if(format.equals("shape") && column_name.startsWith("_")) {
+						column_name = column_name.replaceFirst("_", "x");	// Shape files must start with alpha's
 					}
-					colBuf.append(name);
+					colBuf.append(column_name);
 					if(form.surveyLevel > 0) {
 						colBuf.append("_");
 						colBuf.append(form.surveyLevel);	// Differentiate questions from different surveys
 					}
 					
-					sqlDesc.colNames.add(new ColDesc(name, type, type, label, 
+					sqlDesc.column_details.add(new ColDesc(column_name, type, type, label, 
 							optionListLabels, needsReplace, col.question_name,
-							col.choices, col.compressed, col.humanName, col.selectDisplayNames));
-					sqlDesc.names.add(col.name);
+							col.choices, col.compressed, col.displayName, col.selectDisplayNames));
+					sqlDesc.column_names.add(col.column_name);
 				}
 				
 				// Add the option labels to a hashmap to ensure they are unique
@@ -661,7 +693,7 @@ public class QueryGenerator {
 				idx++;
 				sqlDesc.numberFields++;
 			} else {
-				log.info("Warning: Field dropped during shapefile generation: " + form.table + "." + name);
+				log.info("Warning: Field dropped during shapefile generation: " + form.table + "." + column_name);
 			}
 		}
 		

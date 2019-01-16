@@ -134,6 +134,7 @@ public class PDFReportsManager {
 					false,			// superUser - Always apply filters
 					startingForm,
 					filter,
+					null,			// transform
 					true,
 					true,
 					tz);		// Include the keys instanceid, instancename, prikey, hrk

@@ -49,6 +49,7 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.SurveyViewDefn;
+import org.smap.sdal.model.Transform;
 import utilities.XLSXReportsManager;
 
 /*
@@ -159,8 +160,25 @@ public class ActionServiceKPI extends Application {
 					meta = Boolean.parseBoolean(p.v);
 				} else if(p.k.equals("landscape")) {
 					landscape = Boolean.parseBoolean(p.v);
-				}
+				} 
 			}
+			
+			/*
+			 * UNIT TEST DATA - DO NOT PUT IN PRODUCTION
+			 *
+			System.out.println("******************************************   UNIT TEST");
+			t = new Transform();
+			t.key_questions.add("key1");
+			t.key_questions.add("key2");
+			TransformDetail td = new TransformDetail();
+			t.transforms.add(td);
+			td.splitterQuestion = "splitter";
+			td.values.add("x");
+			td.values.add("y");
+			td.columns.add("split_col1");
+			td.columns.add("split_col2");
+			System.out.println("******************************************   END UNIT TEST");	
+			*/
 			
 			// Default to the top level form
 			if(fId == 0) {
@@ -191,6 +209,7 @@ public class ActionServiceKPI extends Application {
 						endDate,
 						dateId,
 						filter,
+						a.transform,
 						meta,
 						tz);
 			} else if(a.reportType.equals("pdf")) {
@@ -221,6 +240,7 @@ public class ActionServiceKPI extends Application {
 			responseVal = Response.status(Status.OK).entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
 		}
 
 		return responseVal;

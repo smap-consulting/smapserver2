@@ -217,50 +217,47 @@ public class ExchangeManager {
 							superUser,
 							false,
 							false,		// Don't include audit data
-							tz,
-							false);		// Don't use the display name in column headings for exchange files
+							tz);
 						
 					// Get the list of spreadsheet columns
 					ArrayList<Column> cols = new ArrayList<Column> ();
 					for(int j = 0; j < f.columnList.size(); j++) {
 
 						c = f.columnList.get(j);
-						String name = c.name;
+						//String name = c.column_name;
 						String qType = c.type;
 						String humanName;
 						String optionName = null;
 						
-						// Hack for meta values use the column name as the human name may have been translated
+						// Hack for meta values use the column name as the question name may have been translated
 						if(c.isMeta) {
-							humanName = name;
-						} else if(qType.equals("select")) {
-							humanName = c.question_name;
+							humanName = c.column_name;
 						} else {
-							humanName = c.humanName;
-						}
+							humanName = c.question_name;
+						} 
 						
 						if(qType.equals("select")) {
 							optionName = c.option_name;
 
-							selMultChoiceNames.put(name, optionName);		// Add the name of sql column to a look up table for the get data stage
+							selMultChoiceNames.put(c.column_name, optionName);		// Add the name of sql column to a look up table for the get data stage
 							String n = selectMultipleColumnNames.get(humanName);
 							if(n == null) {
 								// New Select multiple
 								selectMultipleColumnNames.put(humanName, humanName);		// Record that we have this select multiple
-								addToHeader(sd, cols, "none", humanName, name, qType, sId, f,true);
+								addToHeader(sd, cols, "none", humanName, c.column_name, qType, sId, f,true);
 							}
 						} else {
-							addToHeader(sd, cols, "none", humanName, name, qType, sId, f,true);
+							addToHeader(sd, cols, "none", humanName, c.column_name, qType, sId, f,true);
 						}
 						
 						// Set the sql selection text for this column
 						String selName = null;
 						if(c.isGeometry()) {
-							selName = "ST_AsTEXT(" + name + ") ";
+							selName = "ST_AsTEXT(" + c.column_name + ") ";
 						} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
-							selName = "timezone('UTC', " + name + ") as " + name;	
+							selName = "timezone('UTC', " + c.column_name + ") as " + c.column_name;	
 						} else {
-							selName = name;
+							selName = c.column_name;
 						}
 						
 						if(f.columns == null) {
@@ -924,7 +921,7 @@ public class ExchangeManager {
 					
 					TableColumn c = f.columnList.get(i);
 
-					String columnName = c.name;
+					String columnName = c.column_name;
 					String columnType = c.type;
 					String value = resultSet.getString(i + 1);
 					boolean writeValue = true;

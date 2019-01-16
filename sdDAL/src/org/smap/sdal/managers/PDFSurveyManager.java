@@ -1055,11 +1055,18 @@ public class PDFSurveyManager {
 			Question question = getQuestionFromResult(sd, r, form);
 
 			Label label = null;
-			if(question.labels.size() > 0) {
-				label = question.labels.get(languageIdx);
-			} else {
+			if(question.display_name != null && question.display_name.trim().length() > 0) {
+				// Use display name in preference to labels if it exists
 				label = new Label();
-				log.info("Error: No label found for question: " + question.name);
+				label.text = question.display_name;
+			} else {
+				// Use labels as this is the old way
+				if(question.labels.size() > 0) {
+					label = question.labels.get(languageIdx);
+				} else {
+					label = new Label();
+					log.info("Error: No label found for question: " + question.name);
+				}
 			}
 
 			boolean isNewPage = question.isNewPage();
@@ -1765,7 +1772,12 @@ public class PDFSurveyManager {
 			OptionList ol = survey.optionLists.get(question.list_name);
 			for(Option o : ol.options) {
 
-				String text = o.labels.get(languageIdx).text;
+				String text = null;
+				if(o.display_name != null && o.display_name.trim().length() > 0) {
+					text = o.display_name;
+				} else {
+					text = o.labels.get(languageIdx).text;
+				}
 				lang = GeneralUtilityMethods.getLanguage(text);
 				f = getFont(lang);
 				isRtl = isRtl(lang);

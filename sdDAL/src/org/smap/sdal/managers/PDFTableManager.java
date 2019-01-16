@@ -348,9 +348,9 @@ public class PDFTableManager {
 			if(!tc.hide && tc.include) {
 				int dataIndex = -1;
 				if(record != null) {
-					dataIndex = getDataIndex(record, tc.humanName);
+					dataIndex = getDataIndex(record, tc.question_name);
 				}
-				cols.add(new PdfColumn(localisation, dataIndex, tc.humanName, tc.barcode, tc.type));
+				cols.add(new PdfColumn(localisation, dataIndex, tc.question_name, tc.barcode, tc.type));
 			}
 		}
 	

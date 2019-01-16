@@ -352,8 +352,7 @@ public class Data extends Application {
 					superUser,
 					false,		// TODO include HXL
 					audit,
-					tz,
-					true				// convert question name to display name if it is set
+					tz
 					);
 
 			if(mgmt) {
@@ -607,8 +606,7 @@ public class Data extends Application {
 					superUser,
 					false,		// Only include HXL with CSV and Excel output
 					false,
-					tz,
-					true				// convert question name to display name if it is set
+					tz
 					);
 
 			if(mgmt) {
@@ -654,7 +652,7 @@ public class Data extends Application {
 					String [] aSelect = selectPairs[i].split("::");
 					if(aSelect.length > 1) {
 						for(int j = 0; j < columns.size(); j++) {
-							if(columns.get(j).name.equals(aSelect[0])) {
+							if(columns.get(j).column_name.equals(aSelect[0])) {
 								TableColumn c = columns.get(j);
 								boolean stringFnApplies = false;
 
@@ -765,9 +763,7 @@ public class Data extends Application {
 
 							} else {
 
-								//String name = rsMetaData.getColumnName(i);	
-								//name = c.humanName;
-								name = c.name;
+								name = c.column_name;
 								value = rsD.getString(i + 1);	
 
 								if(value == null) {

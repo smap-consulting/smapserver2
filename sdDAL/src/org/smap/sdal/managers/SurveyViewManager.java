@@ -168,8 +168,7 @@ public class SurveyViewManager {
 					superUser,
 					false,		// HXL only include with XLS exports
 					false,		// Don't include audit data
-					tz,
-					true			// convert question name to display name if it is set
+					tz
 					);		
 			
 			
@@ -180,17 +179,17 @@ public class SurveyViewManager {
 			 */			
 			for(int i = 0; i < columnList.size(); i++) {
 				TableColumn c = columnList.get(i);
-				if(keepThis(c.name)) {
-					TableColumn tc = new TableColumn(c.name, c.humanName);
+				if(keepThis(c.column_name)) {
+					TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
 					if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
-						tc.hide = hideDefault(c.humanName);
+						tc.hide = hideDefault(c.question_name);
 					}
 					tc.filter = c.filter;
 					tc.type = c.type;
 					tc.l_id = c.l_id;
 					for(int j = 0; j < configColumns.size(); j++) {
 						TableColumnConfig tcConfig = configColumns.get(j);
-						if(tcConfig.name.equals(tc.name)) {
+						if(tcConfig.name.equals(tc.column_name)) {
 							tc.hide = tcConfig.hide;
 							tc.barcode = tcConfig.barcode;
 							tc.filterValue = tcConfig.filterValue;
@@ -200,8 +199,8 @@ public class SurveyViewManager {
 						}
 					}
 					
-					if(tc.name.equals("the_geom")) {
-						tc.name = "_geolocation";
+					if(tc.column_name.equals("the_geom")) {
+						tc.column_name = "_geolocation";
 					}
 					if(tc.include) {
 						svd.columns.add(tc);
@@ -407,7 +406,7 @@ public class SurveyViewManager {
 			if(configColumns != null) {
 				for(int j = 0; j < configColumns.size(); j++) {
 					TableColumnConfig tcConfig = configColumns.get(j);
-					if(tcConfig.name.equals(tc.name)) {
+					if(tcConfig.name.equals(tc.column_name)) {
 						tc.hide = tcConfig.hide;
 						tc.barcode = tcConfig.barcode;
 						tc.filterValue = tcConfig.filterValue;
@@ -419,7 +418,7 @@ public class SurveyViewManager {
 			// remove columns from the data form that are in the configuration form
 			for(int j = 0; j < svd.columns.size(); j++) {
 				TableColumn fc = svd.columns.get(j);
-				if(fc.name.equals(tc.name)) {
+				if(fc.column_name.equals(tc.column_name)) {
 					svd.columns.remove(j);
 					break;
 				}

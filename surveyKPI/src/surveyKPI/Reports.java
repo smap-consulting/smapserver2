@@ -20,7 +20,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -29,6 +31,7 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -68,35 +71,36 @@ public class Reports extends Application {
 	}
 
 	/*
-	 * Get link to a report
+	 * Update a report and return a link
 	 */
-	@GET
+	@POST
 	@Produces("application/json")
 	@Path("/link/{sId}")
 	public Response getLink(
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
-			@QueryParam("name") String name,
-			@QueryParam("reportType") String type,
-			@QueryParam("roles") String roles,
-			@QueryParam("filename") String filename,
-			@QueryParam("split_locn") boolean split_locn,
-			@QueryParam("odata2") boolean odata2,
-			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
-			@QueryParam("language") String language,
-			@QueryParam("tz") String tz,
-			@QueryParam("exp_ro") boolean exp_ro,
-			@QueryParam("embedimages") boolean embedImages,
-			@QueryParam("excludeparents") boolean excludeParents,
-			@QueryParam("hxl") boolean hxl,
-			@QueryParam("form") int form,
-			@QueryParam("from") Date startDate,
-			@QueryParam("to") Date endDate,
-			@QueryParam("dateId") int dateId,
-			@QueryParam("filter") String filter,
-			@QueryParam("meta") boolean meta,
-			@QueryParam("landscape") boolean landscape,
-			@QueryParam("ident") String ident		// Used when updating a link
+			@FormParam("report") String report,
+			//@QueryParam("name") String name,	// done
+			//@QueryParam("reportType") String type,
+			//@QueryParam("roles") String roles,
+			//@QueryParam("filename") String filename,		// done
+			//@QueryParam("split_locn") boolean split_locn,
+			//@QueryParam("odata2") boolean odata2,
+			//@QueryParam("merge_select_multiple") boolean merge_select_multiple,
+			//@QueryParam("language") String language,
+			@QueryParam("tz") String tz,			// Keep this one to set up action manager
+			//@QueryParam("exp_ro") boolean exp_ro,
+			//@QueryParam("embedimages") boolean embedImages,
+			//@QueryParam("excludeparents") boolean excludeParents,
+			//@QueryParam("hxl") boolean hxl,
+			// @QueryParam("form") int form,  // done
+			//@QueryParam("from") Date startDate,
+			//@QueryParam("to") Date endDate,
+			//@QueryParam("dateId") int dateId,
+			//@QueryParam("filter") String filter,
+			//@QueryParam("meta") boolean meta,
+			//@QueryParam("landscape") boolean landscape,
+			@QueryParam("ident") String ident		// Used when updating a link - keep this
 			) { 
 		
 		Response response = null;
@@ -112,77 +116,98 @@ public class Reports extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		
 		try {
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			int pId = 0;
-		
+					
 			ActionManager am = new ActionManager(localisation, tz);
-			Action action = new Action("report");
-			action.sId = sId;
-			action.pId = pId;	
+			Action action = gson.fromJson(report, Action.class);
 			
-			action.pId = GeneralUtilityMethods.getProjectId(sd, sId);
-			action.reportType = type;
-			action.name = name;
+			action.action = "report";
+			action.sId = sId;
+			action.pId = GeneralUtilityMethods.getProjectId(sd, action.sId);
 			action.surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
-			action.filename = (filename == null) ? "report" : filename;
+			action.filename = (action.filename == null) ? "report" : action.filename;
+			
+			/*
+			 * Validate roles
+			 */
+			if(!superUser) {
+				for(Role role : action.roles) {
+					if(!GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser(), role.id)) {
+						throw new ApplicationException("User does not have role: " + role.id);
+					}
+				}
+			}
+			
+			
+			//Action action = new Action("report");
+			
+			//action.pId = pId;				
+			//action.pId = GeneralUtilityMethods.getProjectId(sd, sId);
+			//action.reportType = type;
+			//action.name = name;
+			//action.surveyName = GeneralUtilityMethods.getSurveyName(sd, sId);
+			//action.filename = (filename == null) ? "report" : filename;
 			
 			// Parameters
-			action.parameters = new ArrayList<KeyValueSimp> ();
+			//action.parameters = new ArrayList<KeyValueSimp> ();
 			
-			if(split_locn) {
-				action.parameters.add(new KeyValueSimp("split_locn", "true"));
-			}
-			if(odata2) {
-				action.parameters.add(new KeyValueSimp("odata2", "true"));
-			}
-			if(merge_select_multiple) {
-				action.parameters.add(new KeyValueSimp("merge_select_multiple", "true"));
-			}
-			if(language != null) {
-				action.parameters.add(new KeyValueSimp("language", language));
-			}
-			if(tz != null) {
-				action.parameters.add(new KeyValueSimp("tz", tz));
-			}
-			if(exp_ro) {
-				action.parameters.add(new KeyValueSimp("exp_ro", "true"));
-			}
-			if(embedImages) {
-				action.parameters.add(new KeyValueSimp("embed_images", "true"));
-			}
-			if(excludeParents) {
-				action.parameters.add(new KeyValueSimp("excludeParents", "true"));
-			}
-			if(hxl) {
-				action.parameters.add(new KeyValueSimp("hxl", "true"));
-			}
-			if(form > 0) {
-				action.parameters.add(new KeyValueSimp("form", String.valueOf(form)));
-			}
-			if(startDate != null) {
-				action.parameters.add(new KeyValueSimp("startDate", String.valueOf(startDate)));
-			}
-			if(endDate != null) {
-				action.parameters.add(new KeyValueSimp("endDate", String.valueOf(endDate)));
-			}
-			if(dateId != 0) {
-				action.parameters.add(new KeyValueSimp("dateId", String.valueOf(dateId)));
-			}
-			if(filter != null) {
-				action.parameters.add(new KeyValueSimp("filter", filter));
-			}
-			if(meta) {
-				action.parameters.add(new KeyValueSimp("meta", "true"));
-			}
-			if(landscape) {
-				action.parameters.add(new KeyValueSimp("landscape", "true"));
-			}
+			//if(split_locn) {
+			//	action.parameters.add(new KeyValueSimp("split_locn", "true"));
+			//}
+			//if(odata2) {
+			//	action.parameters.add(new KeyValueSimp("odata2", "true"));
+			//}
+			//if(merge_select_multiple) {
+			//	action.parameters.add(new KeyValueSimp("merge_select_multiple", "true"));
+			//}
+			//if(language != null) {
+			//	action.parameters.add(new KeyValueSimp("language", language));
+			//}
+			//if(tz != null) {
+			//	action.parameters.add(new KeyValueSimp("tz", tz));
+			//}
+			//if(exp_ro) {
+			//	action.parameters.add(new KeyValueSimp("exp_ro", "true"));
+			//}
+			//if(embedImages) {
+			//	action.parameters.add(new KeyValueSimp("embed_images", "true"));
+			//}
+			//if(excludeParents) {
+			//	action.parameters.add(new KeyValueSimp("excludeParents", "true"));
+			//}
+			//if(hxl) {
+			//	action.parameters.add(new KeyValueSimp("hxl", "true"));
+			//}
+			//if(form > 0) {
+			//	action.parameters.add(new KeyValueSimp("form", String.valueOf(form)));
+			//}
+			//if(startDate != null) {
+			//	action.parameters.add(new KeyValueSimp("startDate", String.valueOf(startDate)));
+			//}
+			//if(endDate != null) {
+			//	action.parameters.add(new KeyValueSimp("endDate", String.valueOf(endDate)));
+			//}
+			//if(dateId != 0) {
+			//	action.parameters.add(new KeyValueSimp("dateId", String.valueOf(dateId)));
+			//}
+			//if(filter != null) {
+			//	action.parameters.add(new KeyValueSimp("filter", filter));
+			//}
+			//if(meta) {
+			//	action.parameters.add(new KeyValueSimp("meta", "true"));
+			//}
+			//if(landscape) {
+			//	action.parameters.add(new KeyValueSimp("landscape", "true"));
+			//}
 			
+			/*
 			if(roles != null) {
 				String [] rArray = roles.split(",");
 				if(rArray.length > 0) {
@@ -198,6 +223,7 @@ public class Reports extends Application {
 					}
 				}
 			}
+			*/
 			
 			log.info("Creating action for report: " + "");	
 			ActionLink al = new ActionLink();
@@ -212,7 +238,6 @@ public class Reports extends Application {
 			
 			al.link = request.getScheme() + "://" + request.getServerName() + link;					
 			
-			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(al, ActionLink.class);
 			response = Response.ok(resp).build();
 				

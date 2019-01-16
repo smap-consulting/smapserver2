@@ -248,8 +248,7 @@ public class Items extends Application {
 						superUser,
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data
-						tz,
-						true			// Convert question names to display name if it is set
+						tz
 						);		
 				
 				// Construct a new query that retrieves a geometry object as geoJson
@@ -269,31 +268,35 @@ public class Items extends Application {
 							|| c.type.equals("geoshape")) {
 						
 						geomIdx = newColIdx;
-						cols.append("ST_AsGeoJSON(" + tName + "." + c.name + ") ");
+						cols.append("ST_AsGeoJSON(" + tName + "." + c.column_name + ") ");
 						geomType = c.type;
 						newColIdx++;
 					
 					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
-							cols.append("'" + urlprefix + "' || " + tName + "." + c.name + " as " + c.name);
+							cols.append("'" + urlprefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
 				
-					} else if(c.name.equals("prikey") || c.name.equals("parkey") 
-							|| c.name.equals("_bad") || c.name.equals("_bad_reason")) {
-						cols.append(tName + "." + c.name + " as " +  c.name);
+					} else if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
+							|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")) {
+						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
 					
 					} else if(c.type != null && c.type.equals("dateTime")) {
-						cols.append("timezone(?, ").append(tName).append(".").append(c.name).append(") as " +  c.name);
+						cols.append("timezone(?, ").append(tName).append(".").append(c.column_name).append(") as " +  c.column_name);
 						params.add(new SqlParam("string", tz));
 						
 					}  else if(c.type != null && c.type.equals("date")) {
-						cols.append(tName).append(".").append(c.name).append(" as ").append(c.name);
+						cols.append(tName).append(".").append(c.column_name).append(" as ").append(c.column_name);
 						
 					} else {
-						cols.append(tName + "." + c.name + " as " +  c.name);
+						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
 						
 					}
 					
-					colNames.add(c.name);
-					columns.put(c.humanName);
+					colNames.add(c.column_name);
+					if(c.column_name.equals("prikey")) {
+						columns.put(c.column_name);		// For backward compatability (temporary)
+					} else {
+						columns.put(c.displayName);
+					}
 					types.put(c.type);
 					newColIdx++;
 				}
@@ -843,7 +846,11 @@ public class Items extends Application {
 				
 				// Get columns for main select
 				StringBuffer sql2 = new StringBuffer("select ");	
-				sql2.append("ue.ue_id, ue.survey_name, ue.s_id, s.ident, s.original_ident, "
+				sql2.append("ue.ue_id, "
+						+ "ue.survey_name, "
+						+ "ue.s_id, "
+						+ "s.ident, "
+						+ "s.original_ident, "
 						+ "ue.instanceid, "
 						+ "to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
 						+ "ue.location, "
@@ -851,9 +858,9 @@ public class Items extends Application {
 						+ "ue.survey_notes,"
 						+ "ue.instance_name, "
 						+ "to_char(timezone(?, ue.start_time), 'YYYY-MM-DD HH24:MI:SS') as start_time,"
-						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time"
-						+ "");
-				sql2.append(" from upload_event ue ");
+						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time,"
+						+ "ue.imei ");
+				sql2.append("from upload_event ue ");
 				sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 				sql2.append("left outer join project p on ue.p_id = p.id ");
 				
@@ -913,7 +920,6 @@ public class Items extends Application {
 				 */
 				int attribIdx = 1;
 				
-				// Add user
 				pstmt.setString(attribIdx++, tz);	// upload time
 				pstmt.setString(attribIdx++, tz);	// start time
 				pstmt.setString(attribIdx++, tz);	// end time
@@ -951,6 +957,7 @@ public class Items extends Application {
 					}
 					jp.put("survey_ident", ident);								// survey ident
 					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
+					jp.put(localisation.getString("a_device"), resultSet.getString("imei"));
 					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
 					jp.put(localisation.getString("ar_project"), resultSet.getString("project_name"));
 					jp.put(localisation.getString("a_sn"), resultSet.getString("survey_notes"));
@@ -987,6 +994,7 @@ public class Items extends Application {
 				 */
 				columns.put("prikey");
 				columns.put(localisation.getString("a_name"));
+				columns.put(localisation.getString("a_device"));
 				columns.put(localisation.getString("ar_project"));
 				columns.put(localisation.getString("a_ut"));
 				columns.put(localisation.getString("a_l"));
@@ -996,6 +1004,7 @@ public class Items extends Application {
 				columns.put(localisation.getString("a_et"));
 					
 				types.put("integer");
+				types.put("string");
 				types.put("string");
 				types.put("string");
 				types.put("dateTime");

@@ -1323,6 +1323,9 @@ public class SubRelationalDB extends Subscriber {
 			boolean hasHrk,
 			int sId) throws SQLException, Exception {
 
+		System.out.println("------------");
+		System.out.println("    new: " + newKey);
+		System.out.println("    existing: " + existingKey);
 		/*
 		 * Set the record as bad with the reason being that it has been replaced
 		 */		

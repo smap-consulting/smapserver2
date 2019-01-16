@@ -117,6 +117,7 @@ public class ExportSurveyXlsx extends Application {
 					endDate,
 					dateId,
 					filter,
+					null,
 					meta,
 					tz);
 		} catch(Exception e) {
