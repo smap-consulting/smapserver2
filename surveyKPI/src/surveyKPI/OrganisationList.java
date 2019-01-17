@@ -167,8 +167,7 @@ public class OrganisationList extends Application {
 					+ "website, "
 					+ "locale,"
 					+ "timezone,"
-					+ "server_description,"
-					+ "webform "
+					+ "server_description "
 					+ "from organisation "
 					+ "where organisation.e_id = ? "
 					+ "order by name asc;";			
@@ -223,11 +222,6 @@ public class OrganisationList extends Application {
 					org.timeZone = "UTC";
 				}
 				org.server_description = resultSet.getString("server_description");
-				
-				String wfString =  resultSet.getString("webform");
-				if(wfString != null && wfString.trim().startsWith("{")) {
-					org.webform = gson.fromJson(resultSet.getString("webform"), WebformOptions.class);
-				}
 				organisations.add(org);
 			}
 	
@@ -424,8 +418,10 @@ public class OrganisationList extends Application {
 	public Response getDeviceSettings(@Context HttpServletRequest request) {
 		Response response = null;
 		
+		String connectionString = "surveyKPI-OrganisationList-getDeviceSettings";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-getDeviceSettings");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		aAdmin.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -469,7 +465,60 @@ public class OrganisationList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
-			SDDataSource.closeConnection("surveyKPI-OrganisationList-getDeviceSettings", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	@GET
+	@Path("/webform")
+	public Response getWebformSettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-getWebformSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		String sql = "select webform "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, request.getRemoteUser());
+					
+			log.info("Get organisation device details: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				
+				WebformOptions webform = null;
+				String wfString =  rs.getString("webform");
+				if(wfString != null && wfString.trim().startsWith("{")) {
+					webform = gson.fromJson(rs.getString("webform"), WebformOptions.class);
+				}
+								
+				String resp = gson.toJson(webform);
+				response = Response.ok(resp).build();
+			} else {
+				response = Response.serverError().entity("not found").build();
+			}
+			
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
