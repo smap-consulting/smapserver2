@@ -66,6 +66,8 @@ import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /*
  * Returns a list of all projects that are in the same organisation as the user making the request
@@ -526,8 +528,9 @@ public class OrganisationList extends Application {
 	public Response updateDeviceSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) {
 		Response response = null;
 		
+		String connectionString = "surveyKPI-OrganisationList-updateDeviceSettings";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateDeviceSettings");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		aAdmin.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -574,12 +577,77 @@ public class OrganisationList extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}		
-			SDDataSource.closeConnection("surveyKPI-OrganisationList-updateDeviceSettings", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
 	}
 
+	@POST
+	@Path("/webform")
+	public Response updateWebformSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) throws ApplicationException {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-updateWebformSettings";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		WebformOptions webform = gson.fromJson(settings, WebformOptions.class);
+		
+		/*
+		 * Validate options
+		 * Objective is to prevent sql injection
+		 */
+		Pattern pattern;
+		Matcher matcher;
+
+		String hexRegex = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$";
+		pattern = Pattern.compile(hexRegex);
+
+		if(webform.page_background_color != null && webform.page_background_color.trim().length() > 0) {
+			matcher = pattern.matcher(webform.page_background_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + webform.page_background_color);
+			}
+		}	
+		if(webform.paper_background_color != null && webform.paper_background_color.trim().length() > 0) {
+			matcher = pattern.matcher(webform.paper_background_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + webform.paper_background_color);
+			}
+		}
+	
+		String sql = "update organisation set " +			
+				" webform = ? " +
+				" where " +
+				" id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, gson.toJson(webform));
+			pstmt.setString(2, request.getRemoteUser());
+					
+			log.info("Update organisation with webform details: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			response = Response.ok().build();
+	
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}		
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
 	
 	/*
 	 * Delete an organisation
