@@ -484,40 +484,21 @@ public class OrganisationList extends Application {
 		// End Authorisation
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		
-		String sql = "select webform "
-				+ "from organisation "
-				+ "where "
-				+ "id = (select o_id from users where ident = ?)";
-	
-		PreparedStatement pstmt = null;
-		
+
 		try {
-			pstmt = sd.prepareStatement(sql);	
-			pstmt.setString(1, request.getRemoteUser());
-					
-			log.info("Get organisation device details: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			if(rs.next()) {
-				
-				WebformOptions webform = null;
-				String wfString =  rs.getString("webform");
-				if(wfString != null && wfString.trim().startsWith("{")) {
-					webform = gson.fromJson(rs.getString("webform"), WebformOptions.class);
-				}
-								
-				String resp = gson.toJson(webform);
-				response = Response.ok(resp).build();
-			} else {
-				response = Response.serverError().entity("not found").build();
-			}
+			OrganisationManager om = new OrganisationManager(localisation);		
+			WebformOptions webform = om.getWebform(sd, request.getRemoteUser());
+			
+			String resp = gson.toJson(webform);
+			response = Response.ok(resp).build();
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
 			SDDataSource.closeConnection(connectionString, sd);
 		}
 		

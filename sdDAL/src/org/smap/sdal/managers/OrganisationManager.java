@@ -17,11 +17,13 @@ import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SensitiveData;
+import org.smap.sdal.model.WebformOptions;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -443,6 +445,47 @@ public class OrganisationManager {
 			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
 		}
 		return msd;
+	}
+	
+	/*
+	 * Get webform options
+	 */
+	public WebformOptions getWebform(Connection sd, String user) throws SQLException {
+		
+		WebformOptions webform = null;
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		String sql = "select webform "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, user);
+					
+			log.info("Get organisation webform options: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				
+				String wfString =  rs.getString("webform");
+				if(wfString != null && wfString.trim().startsWith("{")) {
+					webform = gson.fromJson(rs.getString("webform"), WebformOptions.class);
+				}									
+			} 
+			if(webform == null) {
+				webform = new WebformOptions();
+			}
+			
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+		}
+		
+		return webform;
 	}
 	
 }

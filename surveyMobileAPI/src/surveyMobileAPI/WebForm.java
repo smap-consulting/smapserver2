@@ -55,6 +55,7 @@ import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
@@ -63,6 +64,7 @@ import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.WebformOptions;
 import org.smap.server.utilities.GetHtml;
 import org.smap.server.utilities.GetXForm;
 
@@ -111,6 +113,7 @@ public class WebForm extends Application {
 	String userIdent = null;
 	boolean isTemporaryUser = false;
 	HashMap<String, Integer> gRecordCounts = null;
+	private WebformOptions options;
 
 	/*
 	 * Get instance data Respond with JSON
@@ -412,6 +415,10 @@ public class WebForm extends Application {
 				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);
 				serverData = sm.getServer(sd, localisation);
 				
+				// Get the organisaiton specific options
+				OrganisationManager om = new OrganisationManager(localisation);
+				options = om.getWebform(sd, request.getRemoteUser());
+				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "WebForm", e);
 			} finally {
@@ -555,6 +562,21 @@ public class WebForm extends Application {
 		}
 		output.append("<link type='text/css' href='/build/css/webform.css' media='all' rel='stylesheet' />\n");
 
+		/*
+		 * Add organisation specific css settings
+		 */
+		if(options != null) {
+			output.append("<style type=\"text/css\">");
+			if(options.page_background_color != null && options.page_background_color.trim().length() > 0) {
+				output.append("body {background-color: " + options.page_background_color + "}");
+			}
+			if(options.paper_background_color != null && options.paper_background_color.trim().length() > 0) {
+				output.append(".paper {background-color: " + options.paper_background_color + "}");
+			}
+			output.append(".form-footer .enketo-power {right: " + options.footer_horizontal_offset + "px}");
+
+			output.append("</style>");
+		}
 		output.append("<link rel='shortcut icon' href='/favicon.ico'>\n");
 		// <!-- For third-generation iPad with high-resolution Retina display: -->
 		output.append(
