@@ -57,6 +57,7 @@ public class Organisation {
 	public String timeZone;
 	public String server_description;
 	public int e_id;		// Enterprise id
+	public WebformOptions webform;
 
 	public String getAdminEmail() {
 

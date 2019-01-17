@@ -49,6 +49,7 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.SensitiveData;
 import org.smap.sdal.model.User;
+import org.smap.sdal.model.WebformOptions;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -124,9 +125,10 @@ public class OrganisationList extends Application {
 			
 			String sql = null;
 			ResultSet resultSet = null;
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
 			/*
-			 * Get the organisation
+			 * Get the organisations
 			 */
 			sql = "select id, name, "
 					+ "company_name, "
@@ -163,7 +165,8 @@ public class OrganisationList extends Application {
 					+ "website, "
 					+ "locale,"
 					+ "timezone,"
-					+ "server_description "
+					+ "server_description,"
+					+ "webform "
 					+ "from organisation "
 					+ "where organisation.e_id = ? "
 					+ "order by name asc;";			
@@ -218,10 +221,14 @@ public class OrganisationList extends Application {
 					org.timeZone = "UTC";
 				}
 				org.server_description = resultSet.getString("server_description");
+				
+				String wfString =  resultSet.getString("webform");
+				if(wfString != null && wfString.trim().startsWith("{")) {
+					org.webform = gson.fromJson(resultSet.getString("webform"), WebformOptions.class);
+				}
 				organisations.add(org);
 			}
 	
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(organisations);
 			response = Response.ok(resp).build();
 			
