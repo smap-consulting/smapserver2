@@ -378,7 +378,7 @@ public class TableDataManager {
 
 				} else if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
 					// Split the select multiple into its choices
-					name = c.question_name;
+					name = c.displayName;
 					value = rs.getString(i + 1);
 					if (value == null) {
 						value = "";
@@ -404,17 +404,7 @@ public class TableDataManager {
 					}
 				} else {
 
-					if(c.column_name.equals("prikey")) {
-						name = "prikey";						// Instead of ID, for backwards compatability
-					} else {
-						name = c.question_name;
-						if(name == null) {
-							name = c.displayName;
-						}
-						if(name == null) {
-							name = c.column_name;
-						}
-					}
+					name = c.displayName;
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
@@ -491,9 +481,6 @@ public class TableDataManager {
 		sort = sort.trim();
 		for (int i = 0; i < columns.size(); i++) {
 			String name = columns.get(i).question_name;
-			if(name == null) {
-				name = columns.get(i).column_name;
-			}
 			if (name.equals(sort)) {
 				TableColumn c = columns.get(i);
 
