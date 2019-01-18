@@ -490,7 +490,11 @@ public class TableDataManager {
 		String col = "prikey"; // default to prikey
 		sort = sort.trim();
 		for (int i = 0; i < columns.size(); i++) {
-			if (columns.get(i).question_name.equals(sort)) {
+			String name = columns.get(i).question_name;
+			if(name == null) {
+				name = columns.get(i).column_name;
+			}
+			if (name.equals(sort)) {
 				TableColumn c = columns.get(i);
 
 				if (c.isCalculate()) {
