@@ -822,6 +822,8 @@ public class WebForm extends Application {
 		output.append("<div class='modal-body'>\n");
 		output.append("<p class='alert alert-danger'></p>\n");
 		output.append("<p class='msg'></p>\n");
+		output.append("<span id=\"recname\"></span><span>: </span>");
+		output.append("<input type=\"text\" name=\"record-name\">\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
