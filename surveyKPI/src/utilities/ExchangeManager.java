@@ -25,7 +25,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.Date;
@@ -42,12 +41,10 @@ import java.text.SimpleDateFormat;
 //import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -211,7 +208,7 @@ public class ExchangeManager {
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
 							true,		// Include other meta data
-							true,		// Incude preloads
+							true,		// Include preloads
 							true,		// instancename
 							false,		// Survey duration
 							superUser,
@@ -269,23 +266,36 @@ public class ExchangeManager {
 					
 					createHeader(cols, sheet, styles);
 					
-					getData(sd, 
-							connectionResults, 
-							formList, 
-							f, 
-							selMultChoiceNames,
-							cols,
-							sheet,
-							styles,
-							sId,
-							null, 
-							null, 
-							dateName,
-							dateForm,
-							basePath,
-							dirPath,
-							files,
-							incMedia);
+					try {
+						getData(sd, 
+								connectionResults, 
+								formList, 
+								f, 
+								selMultChoiceNames,
+								cols,
+								sheet,
+								styles,
+								sId,
+								null, 
+								null, 
+								dateName,
+								dateForm,
+								basePath,
+								dirPath,
+								files,
+								incMedia);
+					} catch(Exception e) {
+						// Ignore errors if the only problem is that the tables have not been created yet
+						if(e.getMessage() != null) {
+							if(e.getMessage().contains("ERROR: relation") && e.getMessage().contains("does not exist")) {
+								// all good
+							} else {
+								throw e;
+							}
+						} else {
+							throw e;
+						}
+					}
 					
 				}
  
@@ -1014,12 +1024,8 @@ public class ExchangeManager {
 			}
 			
 		} finally {
-			try{
-				if(resultSet != null) {resultSet.close();};
-				if(pstmt != null) {pstmt.close();};
-			} catch (Exception ex) {
-				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
-			}
+			if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 		
 	}
