@@ -124,7 +124,6 @@ public class AllAssignments extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
 
-		System.out.println("Emails: " + as.emails + " Email question: " + as.assign_data);
 		String userName = request.getRemoteUser();
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
@@ -619,7 +618,6 @@ public class AllAssignments extends Application {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
 
-		System.out.println("Emails: " + as.emails + " Email question: " + as.assign_data);
 		String userName = request.getRemoteUser();
 		int sId = as.source_survey_id;								// Source survey id (optional)
 
@@ -890,7 +888,6 @@ public class AllAssignments extends Application {
 
 				if(item.isFormField()) {
 					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
-					System.out.println(item.getFieldName() + " : " + item.getString());
 					if(item.getFieldName().equals("survey")) {
 						sId = Integer.parseInt(item.getString());
 						
