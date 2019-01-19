@@ -358,6 +358,8 @@ public class CsvTableManager {
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches, fileName);	
+				} else {
+					log.info("CSV file not found: " + fileName);
 				}
 				
 			}
