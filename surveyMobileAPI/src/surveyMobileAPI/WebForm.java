@@ -718,7 +718,7 @@ public class WebForm extends Application {
 		output.append(getDialogs());
 
 		// Webforms script
-		output.append("<script src='/build/js/webform-bundle.js'></script>\n");
+		output.append("<script src='/build/js/webform-bundle.min.js'></script>\n");
 
 		output.append("</body>");
 

@@ -960,7 +960,11 @@ public class GetHtml {
 					Element inputElement = outputDoc.createElement("input");
 					labelElement.appendChild(inputElement);
 					inputElement.setAttribute("type", getInputType(q));
-					inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
+					if(!q.type.equals("rank")) {
+						inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
+					} else {
+						inputElement.setAttribute("class", "ignore");
+					}
 					inputElement.setAttribute("value", o.value);
 					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
 					if(q.constraint != null && q.constraint.length() > 0) {
@@ -990,7 +994,7 @@ public class GetHtml {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				bodyElement.setTextContent(label);
-
+				
 				addMedia(parent, o.labels.get(idx), lang, o.text_id);
 
 				idx++;
@@ -1464,6 +1468,8 @@ public class GetHtml {
 			return false;
 		} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
 			return false;	// External choices won't use a nodeset
+		} else if(q.type.equals("rank")) {
+			return false;
 		} else {
 			return true;
 		}
