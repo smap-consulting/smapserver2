@@ -675,7 +675,7 @@ public class GetHtml {
 			textElement = outputDoc.createElement("input");
 			textElement.setAttribute("type", "text");
 			textElement.setAttribute("data-name", paths.get(getRefName(q.name, form)));
-			textElement.setAttribute("list", cleanList(q.list_name));
+			textElement.setAttribute("list", getListName(q.list_name));
 		}
 		parent.appendChild(textElement);
 		textElement.setAttribute("name", paths.get(getRefName(q.name, form)));
@@ -690,7 +690,7 @@ public class GetHtml {
 		if (q.type.equals("select1")) {
 			Element dlElement = outputDoc.createElement("datalist");
 			textElement.appendChild(dlElement);
-			dlElement.setAttribute("id", cleanList(q.list_name));
+			dlElement.setAttribute("id", getListName(q.list_name));
 			addDataList(dlElement, q, form);
 		} else {
 			addDataList(textElement, q, form);
@@ -705,14 +705,6 @@ public class GetHtml {
 
 	}
 	
-	/*
-	 * Clean a list name to make it acceptable to enketo
-	 */
-	private String cleanList(String in) {
-		String out;
-		out = in.replaceAll("\\\\.", "x");
-		return out;
-	}
 	/*
 	 * Add the contents of a select that has nodesets - minimal 
 	 */
@@ -792,6 +784,7 @@ public class GetHtml {
 	 */
 	private String getListName(String in) {
 		String out = in.replaceAll("[/_]", ""); 
+		out = out.replaceAll("\\.", "x");
 		return out;
 	}
 	/*
