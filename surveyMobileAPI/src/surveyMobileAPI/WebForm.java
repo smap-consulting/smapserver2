@@ -114,6 +114,7 @@ public class WebForm extends Application {
 	boolean isTemporaryUser = false;
 	HashMap<String, Integer> gRecordCounts = null;
 	private WebformOptions options;
+	String debug = "no";
 
 	/*
 	 * Get instance data Respond with JSON
@@ -224,6 +225,7 @@ public class WebForm extends Application {
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("viewOnly") boolean vo,
+			@QueryParam("debug") String d,
 			@QueryParam("callback") String callback) throws IOException {
 
 		mimeType = "html";
@@ -232,6 +234,7 @@ public class WebForm extends Application {
 			mimeType = "json";
 		}
 		viewOnly = vo;
+		debug = d;
 
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
@@ -255,6 +258,7 @@ public class WebForm extends Application {
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
 			@QueryParam("viewOnly") boolean vo,
+			@QueryParam("debug") String d,
 			@QueryParam("callback") String callback) throws IOException {
 
 		mimeType = "html";
@@ -263,6 +267,7 @@ public class WebForm extends Application {
 			mimeType = "json";
 		}
 		viewOnly = vo;
+		debug = d;
 		
 		userIdent = tempUser;
 		isTemporaryUser = true;
@@ -280,6 +285,7 @@ public class WebForm extends Application {
 	@Produces(MediaType.TEXT_HTML)
 	public Response getFormHTMLTemporaryUser(
 			@Context HttpServletRequest request, 
+			@QueryParam("debug") String d,
 			@PathParam("ident") String ident) throws Exception {
 
 		Response response = null;
@@ -287,6 +293,7 @@ public class WebForm extends Application {
 		userIdent = ident;
 		mimeType = "html";
 		String requester = "surveyMobileAPI-webform task";
+		debug = d;
 		
 		Connection sd = SDDataSource.getConnection(requester);
 
@@ -415,7 +422,7 @@ public class WebForm extends Application {
 				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);
 				serverData = sm.getServer(sd, localisation);
 				
-				// Get the organisaiton specific options
+				// Get the organisation specific options
 				OrganisationManager om = new OrganisationManager(localisation);
 				options = om.getWebform(sd, request.getRemoteUser());
 				
@@ -718,7 +725,11 @@ public class WebForm extends Application {
 		output.append(getDialogs());
 
 		// Webforms script
-		output.append("<script src='/build/js/webform-bundle.min.js'></script>\n");
+		if(debug != null && debug.equals("yes")) {
+			output.append("<script src='/build/js/webform-bundle.js'></script>\n");
+		} else {
+			output.append("<script src='/build/js/webform-bundle.min.js'></script>\n");
+		}
 
 		output.append("</body>");
 
@@ -775,7 +786,6 @@ public class WebForm extends Application {
 			}
 		}
 
-		//System.out.println("HTML: " + html);
 		output.append(html);
 
 		if (!minimal) {
