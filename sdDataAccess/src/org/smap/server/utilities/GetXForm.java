@@ -1992,6 +1992,11 @@ public class GetXForm {
 					String value = null;
 					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
 						value = resultSet.getString(index);
+						if(isWebForms && value != null && q.getType().equals("dateTime")) {
+							// Add the T separator for webforms
+							value = value.replace(' ',  'T');
+							value = GeneralUtilityMethods.workAroundJava8bug00(value);
+						}
 					}
 
 					if (value != null && qType.equals("geopoint")) {
