@@ -1169,7 +1169,7 @@ public class TaskManager {
 				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error') "
 				+ "and id in (";
 		
-		String assignSql = "update assignments set assignee = ?, assigned_date = now() "
+		String assignSql = "update assignments set assignee = ?, assigned_date = now(), assignee_name = (select name from users where id = ?) "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
 				+ "and id in (";
 		String sqlGetUnassigned = "select id from tasks "
@@ -1303,7 +1303,8 @@ public class TaskManager {
 					if(action.userId >= 0) {
 						pstmt = sd.prepareStatement(assignSql + whereAssignmentsSql);
 						pstmt.setInt(1,action.userId);
-						pstmt.setInt(2, pId);				
+						pstmt.setInt(2,action.userId);
+						pstmt.setInt(3, pId);				
 						log.info("Update Assignments: " + pstmt.toString());
 						pstmt.executeUpdate();
 					} else {
