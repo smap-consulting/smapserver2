@@ -145,16 +145,6 @@ public class OrganisationList extends Application {
 					+ "can_use_api, "
 					+ "can_submit, "
 					+ "email_task, "
-					+ "ft_delete,"
-					+ "ft_send_location,"
-					+ "ft_sync_incomplete,"
-					+ "ft_odk_style_menus,"
-					+ "ft_specify_instancename,"
-					+ "ft_admin_menu,"
-					+ "ft_review_final,"
-					+ "ft_send,"
-					+ "ft_number_tasks,"
-					+ "ft_image_size,"
 					+ "changed_by, "
 					+ "changed_ts," 
 					+ "admin_email, "
@@ -193,16 +183,6 @@ public class OrganisationList extends Application {
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.email_task = resultSet.getBoolean("email_task");
-				org.ft_delete = resultSet.getString("ft_delete");
-				org.ft_send_location = resultSet.getString("ft_send_location");
-				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
-				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
-				org.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
-				org.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
-				org.ft_review_final = resultSet.getBoolean("ft_review_final");
-				org.ft_send = resultSet.getString("ft_send");
-				org.ft_number_tasks = resultSet.getInt("ft_number_tasks");
-				org.ft_image_size = resultSet.getString("ft_image_size");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
@@ -427,7 +407,7 @@ public class OrganisationList extends Application {
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
 				+ "ft_specify_instancename, ft_admin_menu,"
-				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size "
+				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -452,6 +432,7 @@ public class OrganisationList extends Application {
 				d.ft_send = rs.getString(7);
 				d.ft_number_tasks = rs.getInt(8);
 				d.ft_image_size = rs.getString(9);
+				d.ft_backward_navigation = rs.getString(10);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -575,6 +556,7 @@ public class OrganisationList extends Application {
 				" ft_send = ?, " +
 				" ft_number_tasks = ?, " +
 				" ft_image_size = ?, " +
+				" ft_backward_navigation = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -594,8 +576,9 @@ public class OrganisationList extends Application {
 			pstmt.setString(7, d.ft_send);
 			pstmt.setInt(8, d.ft_number_tasks);
 			pstmt.setString(9, d.ft_image_size);
-			pstmt.setString(10, request.getRemoteUser());
+			pstmt.setString(10, d.ft_backward_navigation);
 			pstmt.setString(11, request.getRemoteUser());
+			pstmt.setString(12, request.getRemoteUser());
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

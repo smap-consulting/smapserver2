@@ -28,4 +28,5 @@ public class DeviceSettings {
 	public String ft_send;
 	public int ft_number_tasks;
 	public String ft_image_size;
+	public String ft_backward_navigation;
 }

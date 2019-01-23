@@ -14,4 +14,5 @@ public class FieldTaskSettings {
 	public boolean ft_send_wifi_cell;	// deprecated
 	public String ft_send;
 	public String ft_image_size;
+	public String ft_backward_navigation;
 }

@@ -410,7 +410,8 @@ public class MyAssignments extends Application {
 					+ "o.ft_admin_menu, "
 					+ "o.ft_review_final, "
 					+ "o.ft_send,"
-					+ "o.ft_image_size "
+					+ "o.ft_image_size,"
+					+ "o.ft_backward_navigation "
 					+ "from organisation o, users u "
 					+ "where u.o_id = o.id "
 					+ "and u.ident = ?");
@@ -422,7 +423,7 @@ public class MyAssignments extends Application {
 
 			if(resultSet.next()) {
 				tr.settings.ft_delete = resultSet.getString(1);
-				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete);
+				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete);		// deprecated
 				tr.settings.ft_send_location = resultSet.getString(2);
 				if(tr.settings.ft_send_location == null) {
 					tr.settings.ft_send_location = "off";
@@ -436,6 +437,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
 				tr.settings.ft_image_size = resultSet.getString(9);
+				tr.settings.ft_backward_navigation = resultSet.getString(10);
 				tr.settings.ft_location_trigger = true;
 			}
 
