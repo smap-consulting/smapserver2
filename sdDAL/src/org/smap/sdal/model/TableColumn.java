@@ -16,6 +16,8 @@ public class TableColumn {
 	public int qId;
 	public String question_name;
 	public String option_name;
+	public String humanName;		// Legacy usage but included in reports saved to database - Do not use
+	public String name;			// Legacy usage but included in reports saved to database - Do not use
 	public String displayName;
 	public boolean include;		// Include in the table
 	public boolean hide;		// Only show on expand

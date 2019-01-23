@@ -58,13 +58,9 @@ public class XLSCustomReportsManager {
 	
 	private class Column {
 		String name;
-		String human_name;
-		int colNumber;
 		
 		public Column(ResourceBundle localisation, int col, String n) {
-			colNumber = col;
 			name = n;
-			human_name = n;
 		}
 		
 		// Return the width of this column

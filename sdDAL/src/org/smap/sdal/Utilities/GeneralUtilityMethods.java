@@ -7410,13 +7410,7 @@ public class GeneralUtilityMethods {
 			 * work around java 8 bug
 			 * https://stackoverflow.com/questions/39033525/error-java-time-format-datetimeparseexception-could-not-be-parsed-unparsed-tex
 			 */
-			if ( timeString.indexOf ( "+" ) == ( timeString.length () - 3 ) ) {
-			    // If third character from end is a PLUS SIGN, append ':00'.
-			    timeString += ":00";
-			} else if ( timeString.lastIndexOf ( "-" ) == ( timeString.length () - 3 ) ) {
-			    // If third character from end is a PLUS SIGN, append ':00'.
-			    timeString += ":00";
-			}
+			timeString = workAroundJava8bug00(timeString);
 			
 			log.info("timestring to test: " + timeString);
 
@@ -7430,6 +7424,18 @@ public class GeneralUtilityMethods {
 			}
 		}
 		return t;
+	}
+	
+	public static String workAroundJava8bug00(String timeString) {
+		if ( timeString.indexOf ( "+" ) == ( timeString.length () - 3 ) ) {
+		    // If third character from end is a PLUS SIGN, append ':00'.
+		    timeString += ":00";
+		} else if ( timeString.lastIndexOf ( "-" ) == ( timeString.length () - 3 ) ) {
+		    // If third character from end is a PLUS SIGN, append ':00'.
+		    timeString += ":00";
+		}
+		
+		return timeString;
 	}
 
 }

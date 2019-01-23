@@ -182,7 +182,7 @@ public class SurveyViewManager {
 				if(keepThis(c.column_name)) {
 					TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
 					if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
-						tc.hide = hideDefault(c.question_name);
+						tc.hide = hideDefault(c.displayName);
 					}
 					tc.filter = c.filter;
 					tc.type = c.type;
@@ -418,7 +418,7 @@ public class SurveyViewManager {
 			// remove columns from the data form that are in the configuration form
 			for(int j = 0; j < svd.columns.size(); j++) {
 				TableColumn fc = svd.columns.get(j);
-				if(fc.column_name.equals(tc.column_name)) {
+				if(fc.column_name != null && fc.column_name.equals(tc.column_name)) {
 					svd.columns.remove(j);
 					break;
 				}

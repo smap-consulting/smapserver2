@@ -140,7 +140,9 @@ public class TableReports extends Application {
 			
 			// Get columns
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
-			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, 0, sId, managedId, request.getRemoteUser(), oId, superUser);
+			// Get the default view	
+			int viewId = svm.getDefaultView(sd, uId, sId, managedId, 0);
+			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, viewId, sId, managedId, request.getRemoteUser(), oId, superUser);
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;
@@ -245,12 +247,6 @@ public class TableReports extends Application {
 			}
 			
 		
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-			throw new Exception("Exception: " + e.getMessage());			
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			SDDataSource.closeConnection("surveyKPI-tables", sd);
 			ResultsDataSource.closeConnection("surveyKPI-tables", cResults);

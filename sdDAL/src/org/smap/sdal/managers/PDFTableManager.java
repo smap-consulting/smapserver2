@@ -100,14 +100,14 @@ public class PDFTableManager {
 	}
 	
 	private class PdfColumn {
-		String human_name;
+		String displayName;
 		int dataIndex;
 		boolean barcode = false;
 		String type;
 		
 		public PdfColumn(ResourceBundle localisation, int dataIndex, String n, boolean barcode, String type) {
 			this.dataIndex = dataIndex;
-			this.human_name = n;		
+			this.displayName = n;		
 			this.barcode = barcode;	
 			this.type = type;
 		}
@@ -188,7 +188,7 @@ public class PDFTableManager {
 			ArrayList<PdfColumn> cols = getPdfColumnList(mfc, dArray, localisation);
 			ArrayList<String> tableHeader = new ArrayList<String> ();
 			for(PdfColumn col : cols) {
-				tableHeader.add(col.human_name);
+				tableHeader.add(col.displayName);
 			}
 			/*
 			 * Create a PDF without the stationary
@@ -544,7 +544,7 @@ public class PDFTableManager {
 			if(type != null && type.equals("image")) {
 				Image img = Image.getInstance(kv.v);
 				valueCell.addElement(img);
-			} else if(barcode) {
+			} else if(barcode && kv.v.trim().length() > 0) {
 				BarcodeQRCode qrcode = new BarcodeQRCode(kv.v.trim(), 1, 1, null);
 		         Image qrcodeImage = qrcode.getImage();
 		         qrcodeImage.setAbsolutePosition(10,500);
