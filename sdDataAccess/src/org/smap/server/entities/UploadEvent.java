@@ -100,6 +100,8 @@ public class UploadEvent implements Serializable {
 	
 	private String instanceName;
 	
+	private Timestamp scheduledStart;
+	
 	/*
 	 * Constructor
 	 */
@@ -221,6 +223,10 @@ public class UploadEvent implements Serializable {
 		return instanceName;
 	}
 	
+	public Timestamp getScheduledStart() {		
+		return scheduledStart;
+	}
+	
 	/*
 	 * Setters
 	 */
@@ -339,5 +345,9 @@ public class UploadEvent implements Serializable {
 	
 	public void setInstanceName(String value) {
 		this.instanceName = value;
+	}
+	
+	public void setScheduledStart(Timestamp value) {
+		this.scheduledStart = value;
 	}
 }

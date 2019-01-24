@@ -62,10 +62,11 @@ public class JdbcUploadEventManager {
 			+ "audit_file_path,"
 			+ "start_time,"
 			+ "end_time,"
-			+ "instance_name) "
+			+ "instance_name,"
+			+ "scheduled_start) "
 			+ "values (nextval('ue_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-			+ ", ?, ?, ?, ?, ?);";
+			+ ", ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtUnprocessed = null;
 	String sqlGet = "select "
@@ -147,6 +148,7 @@ public class JdbcUploadEventManager {
 		pstmt.setTimestamp(24, ue.getStart());
 		pstmt.setTimestamp(25, ue.getEnd());
 		pstmt.setString(26, ue.getInstanceName());
+		pstmt.setTimestamp(27, ue.getScheduledStart());
 	
 		pstmt.executeUpdate();
 	}

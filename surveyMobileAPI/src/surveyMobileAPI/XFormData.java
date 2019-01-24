@@ -322,6 +322,7 @@ public class XFormData {
 			ue.setSurveyNotes(surveyNotes);
 			ue.setStart(thisStart);
 			ue.setEnd(thisEnd);
+			ue.setScheduledStart(GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
 			ue.setInstanceName(thisInstanceName);
 
 			JdbcUploadEventManager uem = null;

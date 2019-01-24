@@ -762,6 +762,7 @@ public class Items extends Application {
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit,
 			@QueryParam("startDate") Date startDate,
+			@QueryParam("dateId") int dateId,
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("filter") String sFilter,
 			@QueryParam("tz") String tz) { 
@@ -829,13 +830,26 @@ public class Items extends Application {
 					sqlPage.append(" and ue_id < ").append(start_key);
 				}
 				
-				// Add start and end dates
-				String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, "upload_time");
-				if(sqlRestrictToDateRange.trim().length() > 0) {
-					if(sqlFilter.length() > 0) {
-						sqlFilter.append(" and ");
+				if(dateId > 0 && dateId < 5) {
+					String dateName = null;
+					if(dateId == 1) {
+						dateName = "upload_time";
+					} else if(dateId == 2) {
+						dateName = "start_time";
+					} else if(dateId == 3) {
+						dateName = "end_time";
+					} else if(dateId == 4) {
+						dateName = "scheduled_start";
 					}
-					sqlFilter.append(sqlRestrictToDateRange);
+					
+					// Add start and end dates
+					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
+					if(sqlRestrictToDateRange.trim().length() > 0) {
+						if(sqlFilter.length() > 0) {
+							sqlFilter.append(" and ");
+						}
+						sqlFilter.append(sqlRestrictToDateRange);
+					}
 				}
 				
 				jTotals.put("rec_limit", rec_limit);
@@ -859,7 +873,9 @@ public class Items extends Application {
 						+ "ue.instance_name, "
 						+ "to_char(timezone(?, ue.start_time), 'YYYY-MM-DD HH24:MI:SS') as start_time,"
 						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time,"
-						+ "ue.imei ");
+						+ "ue.imei,"
+						+ "to_char(timezone(?, ue.scheduled_start), 'YYYY-MM-DD HH24:MI:SS') as scheduled_start"
+						+ " ");
 				sql2.append("from upload_event ue ");
 				sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 				sql2.append("left outer join project p on ue.p_id = p.id ");
@@ -893,11 +909,13 @@ public class Items extends Application {
 					pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 						
 					// dates
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					if(dateId > 0 && dateId < 5) {
+						if(startDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+						}
+						if(endDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+						}
 					}
 
 					log.info("Get the number of filtered records: " + pstmt.toString());
@@ -923,16 +941,19 @@ public class Items extends Application {
 				pstmt.setString(attribIdx++, tz);	// upload time
 				pstmt.setString(attribIdx++, tz);	// start time
 				pstmt.setString(attribIdx++, tz);	// end time
+				pstmt.setString(attribIdx++, tz);	// scheduled start
 				pstmt.setString(attribIdx++, user);
 				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 				
 				
 				// dates
-				if(startDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-				}
-				if(endDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				if(dateId > 0 && dateId < 5) {
+					if(startDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					}
+					if(endDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					}
 				}
 				
 				// Request the data
@@ -964,6 +985,7 @@ public class Items extends Application {
 					jp.put(localisation.getString("a_in"), resultSet.getString("instance_name"));
 					jp.put(localisation.getString("a_st"), resultSet.getString("start_time"));
 					jp.put(localisation.getString("a_et"), resultSet.getString("end_time"));
+					jp.put(localisation.getString("a_sched"), resultSet.getString("scheduled_start"));
 					String location = resultSet.getString("location");
 
 					if(location != null) {							// For map
@@ -1002,6 +1024,7 @@ public class Items extends Application {
 				columns.put(localisation.getString("a_in"));
 				columns.put(localisation.getString("a_st"));
 				columns.put(localisation.getString("a_et"));
+				columns.put(localisation.getString("a_sched"));
 					
 				types.put("integer");
 				types.put("string");
@@ -1011,6 +1034,7 @@ public class Items extends Application {
 				types.put("string");	
 				types.put("string");	
 				types.put("string");	
+				types.put("dateTime");
 				types.put("dateTime");
 				types.put("dateTime");
 				
@@ -1033,11 +1057,13 @@ public class Items extends Application {
 				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 			
 				// dates
-				if(startDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-				}
-				if(endDate != null) {
-					pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				if(dateId > 0 && dateId < 5) {
+					if(startDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					}
+					if(endDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					}
 				}
 				
 				log.info("Check for more records: " + pstmt.toString());

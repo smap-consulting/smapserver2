@@ -7411,6 +7411,7 @@ public class GeneralUtilityMethods {
 			 * https://stackoverflow.com/questions/39033525/error-java-time-format-datetimeparseexception-could-not-be-parsed-unparsed-tex
 			 */
 			timeString = workAroundJava8bug00(timeString);
+			timeString = timeString.trim().replace(' ', 'T');
 			
 			log.info("timestring to test: " + timeString);
 
@@ -7436,6 +7437,37 @@ public class GeneralUtilityMethods {
 		}
 		
 		return timeString;
+	}
+	
+	/*
+	 * Apply any changes to assignment status
+	 */
+	public static Timestamp getScheduledStart(Connection sd, int assignmentId) {
+
+		PreparedStatement pstmt = null;
+		
+		String sql = "select schedule_at from tasks where id = (select task_id from assignments where id = ?) ";
+		Timestamp scheduledDate = null;
+		
+		try {
+
+			if(assignmentId > 0) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, assignmentId);
+				log.info("Get scheduled date: " + pstmt.toString());
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					scheduledDate = rs.getTimestamp(1);
+				}
+			}
+
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		return scheduledDate;
 	}
 
 }

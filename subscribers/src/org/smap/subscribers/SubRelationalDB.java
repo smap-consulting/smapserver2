@@ -268,37 +268,6 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private Timestamp getScheduledStart(Connection sd, int assignmentId) {
-
-		PreparedStatement pstmt = null;
-		
-		String sql = "select schedule_at from tasks where id = (select task_id from assignments where id = ?) ";
-		Timestamp scheduledDate = null;
-		
-		try {
-
-			if(assignmentId > 0) {
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, assignmentId);
-				log.info("Get scheduled date: " + pstmt.toString());
-				ResultSet rs = pstmt.executeQuery();
-				if(rs.next()) {
-					scheduledDate = rs.getTimestamp(1);
-				}
-			}
-
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-		}
-		return scheduledDate;
-	}
-	
-	/*
-	 * Apply any changes to assignment status
-	 */
 	private int getAssignmentId(Connection sd, int ue_id) {
 
 		int assignmentId = 0;
@@ -879,7 +848,7 @@ public class SubRelationalDB extends Subscriber {
 							if(assignmentId == 0) {
 								pstmt.setTimestamp(stmtIndex++, null);
 							} else {
-								pstmt.setTimestamp(stmtIndex++, getScheduledStart(sd, assignmentId));
+								pstmt.setTimestamp(stmtIndex++, GeneralUtilityMethods.getScheduledStart(sd, assignmentId));
 							}
 						}
 						if (isBad) {
