@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
@@ -1770,6 +1771,12 @@ public class QuestionManager {
 		}
 		
 		try {
+			if(fId == 0) {
+				// USe the top level form
+				Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+				fId = f.id;
+			}
+			
 			if(getHrk && parentform == 0) {
 				if(hrk != null && hrk.trim().length() > 0
 						&& GeneralUtilityMethods.columnType(cResults, tableName, "_hrk") != null) {
