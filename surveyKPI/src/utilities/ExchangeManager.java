@@ -223,28 +223,28 @@ public class ExchangeManager {
 						c = f.columnList.get(j);
 						//String name = c.column_name;
 						String qType = c.type;
-						String humanName;
+						String questionName;
 						String optionName = null;
 						
 						// Hack for meta values use the column name as the question name may have been translated
 						if(c.isMeta) {
-							humanName = c.column_name;
+							questionName = c.column_name;
 						} else {
-							humanName = c.question_name;
+							questionName = c.question_name;
 						} 
 						
 						if(qType.equals("select")) {
 							optionName = c.option_name;
 
 							selMultChoiceNames.put(c.column_name, optionName);		// Add the name of sql column to a look up table for the get data stage
-							String n = selectMultipleColumnNames.get(humanName);
+							String n = selectMultipleColumnNames.get(questionName);
 							if(n == null) {
 								// New Select multiple
-								selectMultipleColumnNames.put(humanName, humanName);		// Record that we have this select multiple
-								addToHeader(sd, cols, "none", humanName, c.column_name, qType, sId, f,true);
+								selectMultipleColumnNames.put(questionName, questionName);		// Record that we have this select multiple
+								addToHeader(sd, cols, "none", questionName, c.column_name, qType, sId, f,true);
 							}
 						} else {
-							addToHeader(sd, cols, "none", humanName, c.column_name, qType, sId, f,true);
+							addToHeader(sd, cols, "none", questionName, c.column_name, qType, sId, f,true);
 						}
 						
 						// Set the sql selection text for this column
@@ -386,7 +386,8 @@ public class ExchangeManager {
 			ResourceBundle localisation,
 			ArrayList<MetaItem> preloads,
 			String importSource,
-			Timestamp importTime
+			Timestamp importTime,
+			String serverName
 			) throws Exception {
 		
 		CSVReader reader = null;
@@ -395,9 +396,7 @@ public class ExchangeManager {
 		boolean hasGeopoint = false;
 		int lonIndex = -1;			// Column containing longitude
 		int latIndex = -1;			// Column containing latitude
-		SimpleDateFormat dateFormatDT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-		SimpleDateFormat dateTimeFormatDTGS = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
-		SimpleDateFormat dateFormatDTGS = new SimpleDateFormat("MM/dd/yyyy");
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		int recordsWritten = 0;
 		int instanceIdColumn = -1;
 		
@@ -417,7 +416,7 @@ public class ExchangeManager {
 			} else {
 				fis = new FileInputStream(file);
 				xlsReader = new XlsReader(fis, form.name);
-				line = xlsReader.readNext();
+				line = xlsReader.readNext(true);
 			}
 			
 			ArrayList<Column> columns = new ArrayList<Column> ();
@@ -553,7 +552,7 @@ public class ExchangeManager {
 						if(isCSV) {
 							line = reader.readNext();
 						} else {
-							line = xlsReader.readNext();
+							line = xlsReader.readNext(false);
 						}
 						if(line == null) {
 							break;
@@ -626,9 +625,19 @@ public class ExchangeManager {
 								File srcPathFile = null;
 								String srcUrl = null;
 								if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
-									// Get the attachment from the link
-									srcUrl = value;
-									value = UUID.randomUUID().toString();	// Create a random name for the initial download
+									
+									// If the link is to a file on the same server do not duplicate the media
+									value = value.trim();
+									String serverHttpsUrl = "https://" + serverName + "/";
+									String serverHttpUrl = "http://" + serverName + "/";
+									if(value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
+										int idx = value.indexOf(serverName) + serverName.length();
+										value = value.substring(idx);
+									} else {
+										// Get the attachment from the link so it can be loaded
+										srcUrl = value;
+										value = UUID.randomUUID().toString();	// Create a random name for the initial download
+									}
 								} else {
 									// Attachment should have been loaded with the zip file
 									srcPathFile = mediaFiles.get(value);
@@ -673,7 +682,7 @@ public class ExchangeManager {
 										
 									} catch (Exception e) {
 										try {
-											java.util.Date uDate = dateFormatDTGS.parse(value);		// Try US date format
+											java.util.Date uDate = sdf.parse(value);		
 											dateVal = new Date(uDate.getTime());
 										} catch (Exception ex) {
 											log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
@@ -685,11 +694,11 @@ public class ExchangeManager {
 								Timestamp tsVal = null;
 								if(notEmpty(value)) {
 									try {
-										java.util.Date uDate = dateFormatDT.parse(value);
+										java.util.Date uDate = sdf.parse(value);
 										tsVal = new Timestamp(uDate.getTime());
 									} catch (Exception e) {
 										try {
-											java.util.Date uDate = dateTimeFormatDTGS.parse(value);		// Try US date format
+											java.util.Date uDate = sdf.parse(value);		
 											tsVal = new Timestamp(uDate.getTime());
 										} catch (Exception ex) {
 											log.info("Error parsing datetime: " + value + " : " + e.getMessage());

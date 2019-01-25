@@ -1117,7 +1117,8 @@ public class AllAssignments extends Application {
 							localisation,
 							preloads,
 							uploadedFileName,
-							importTime);
+							importTime,
+							request.getServerName());
 
 					if(formIdx == 0) {
 						recordsWritten = count;
