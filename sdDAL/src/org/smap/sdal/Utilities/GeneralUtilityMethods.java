@@ -5566,7 +5566,12 @@ public class GeneralUtilityMethods {
 
 		Form f = new Form();
 
-		String sql = "select  " + "f_id," + "table_name " + "from form " + "where s_id = ? " + "and parentform = 0;";
+		String sql = "select  " 
+				+ "f_id," 
+				+ "table_name "
+				+ "from form "
+				+ "where s_id = ? "
+				+ "and parentform = 0;";
 		PreparedStatement pstmt = null;
 
 		try {

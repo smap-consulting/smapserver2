@@ -20,8 +20,6 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
-import org.smap.sdal.model.Survey;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -54,83 +52,6 @@ public class QuestionManager {
 	public QuestionManager(ResourceBundle l) {
 		localisation = l;
 	}
-	/*
-	 * These functions are used when adding CSV files. 
-	 * They will add the choices from the CSV files to the survey definition
-	 *
-	public ArrayList<Question> getByCSV(Connection sd, 
-			int sId,
-			String csvFileName			
-			)  {
-
-		ArrayList<Question> questions = new ArrayList<Question>();	// Results of request
-
-
-		Survey survey = new Survey();
-		survey.setId(sId);
-
-		int idx = csvFileName.lastIndexOf('.');
-		String csvRoot = csvFileName;
-		if(idx > 0) {
-			csvRoot = csvFileName.substring(0, idx);
-		}
-
-		// Escape csvRoot
-		csvRoot = csvRoot.replace("\'", "\'\'");
-
-		ResultSet resultSet = null;
-		String sql = "select q.q_id, q.qname, q.qtype, q.appearance, q.l_id "
-				+ "from question q, form f, survey s "
-				+ " where f.f_id = q.f_id "
-				+ "and s.s_id = f.s_id "
-				+ "and s.deleted = 'false' "
-				+ "and q.appearance like '%search(''" + csvRoot + "''%' "
-				+ "and q.qtype like 'select%' "
-				+ "and q.soft_deleted = 'false' "
-				+ "and f.s_id = ?";
-
-		String sqlOption = "select o.o_id, o.seq, o.label_id, o.ovalue " +
-				" from option o, question q" +
-				" where q.q_id = ? " +
-				" and o.l_id = 1.l_id" +
-				" and externalfile = 'true';";
-
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmtOption = null;
-
-		try {
-			pstmtOption = sd.prepareStatement(sqlOption);
-
-			survey.languages = GeneralUtilityMethods.getLanguages(sd, sId);
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-
-			log.info("Get questions for CSV: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-
-			while (resultSet.next()) {								
-
-				Question q = new Question();
-				q.id = resultSet.getInt(1);
-				q.name = resultSet.getString(2);
-				q.type = resultSet.getString(3);
-				q.appearance = resultSet.getString(4);
-				q.l_id = resultSet.getInt(5);
-
-				questions.add(q);
-			} 
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error", e);
-		} finally {
-			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
-			if(pstmtOption != null) try{pstmtOption.close();}catch(Exception e){}
-		}
-
-		return questions;
-
-	}
-	*/
 
 	/*
 	 * Save a new question
@@ -1285,47 +1206,6 @@ public class QuestionManager {
 
 	}
 
-	/*
-	 * Get a changeset with option updates for a question from a CSV file
-	 *
-	public ChangeSet getCSVChangeSetForQuestion(
-			Connection sd, 
-			ResourceBundle localisation,
-			String user,
-			int sId,
-			File csvFile,
-			File oldCsvFile,
-			String csvFileName,
-			org.smap.sdal.model.Question q) throws Exception {
-
-		ChangeSet cs = new ChangeSet();
-
-		cs.changeType = "option";
-		cs.source = "file";
-		cs.items = new ArrayList<ChangeItem> ();
-
-		try {
-			GeneralUtilityMethods.getOptionsFromFile(
-					sd,
-					localisation,
-					user,
-					sId,
-					cs.items,
-					csvFile,
-					oldCsvFile,
-					csvFileName,
-					q.name,
-					q.l_id,
-					q.id,
-					q.type,
-					q.appearance);
-		} catch (ApplicationWarning w) {
-			// ignore warnings
-		}
-
-		return cs;
-	}
-	*/
 	/*
 	 * Duplicate a form
 	 */
