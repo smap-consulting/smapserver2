@@ -20,6 +20,8 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.Survey;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -1697,6 +1699,209 @@ public class QuestionManager {
 			if(pstmtUpdateListId != null) try {pstmtUpdateListId.close();} catch(Exception e){};
 		}
 
+	}
+	
+	public ArrayList<Question> getQuestionsInForm(
+			Connection sd, 
+			Connection cResults,
+			int sId,
+			int fId, 
+			boolean getSoftDeleted, 
+			boolean getPropertyTypeQuestions,
+			boolean getHrk,
+			int parentform,
+			String hrk,
+			int numberLanguages,
+			String tableName,
+			String basePath,
+			int oId,
+			Survey s) throws Exception {
+		
+		ArrayList<Question> questions = new ArrayList<Question> ();
+		
+		// SQL to get the sub forms in this survey
+		ResultSet rsGetRepeatValue = null;
+		String sqlGetRepeatValue = "select repeats "
+				+ "from form "
+				+ "where s_id = ? "
+				+ "and parentquestion = ?;";
+		PreparedStatement pstmtGetRepeatValue = sd.prepareStatement(sqlGetRepeatValue);
+		
+		// SQL to get the questions belonging to a form
+		ResultSet rsGetQuestions = null;
+		String sqlGetQuestions = "select q.q_id, q.qname, q.qtype, q.qtext_id, l.name, q.infotext_id, "
+				+ "q.source, " 
+				+ "q.calculate, "
+				+ "q.seq, " 
+				+ "q.defaultanswer, "
+				+ "q.appearance, "
+				+ "q.parameters, "
+				+ "q.qconstraint, "
+				+ "q.constraint_msg, "
+				+ "q.required_msg, "
+				+ "q.nodeset, "
+				+ "q.relevant, "
+				+ "q.visible, "
+				+ "q.readonly, "
+				+ "q.mandatory, "
+				+ "q.published, "
+				+ "q.column_name, "
+				+ "q.source_param, "
+				+ "q.soft_deleted, "
+				+ "q.autoplay,"
+				+ "q.accuracy,"
+				+ "q.linked_target,"
+				+ "q.display_name,"
+				+ "q.f_id,"
+				+ "q.compressed,"
+				+ "q.external_choices,"
+				+ "q.external_table,"
+				+ "q.l_id "
+				+ "from question q "
+				+ "left outer join listname l on q.l_id = l.l_id "
+				+ "where q.f_id = ? ";
+		String sqlGetQuestions2 = "and q.soft_deleted = 'false' ";
+		String sqlGetQuestions3 =  "order by q.seq asc;";
+		PreparedStatement pstmtGetQuestions = null;
+		if(getSoftDeleted) {
+			pstmtGetQuestions = sd.prepareStatement(sqlGetQuestions + sqlGetQuestions3);
+		} else {
+			pstmtGetQuestions = sd.prepareStatement(sqlGetQuestions + sqlGetQuestions2 + sqlGetQuestions3);
+		}
+		
+		try {
+			if(getHrk && parentform == 0) {
+				if(hrk != null && hrk.trim().length() > 0
+						&& GeneralUtilityMethods.columnType(cResults, tableName, "_hrk") != null) {
+					Question q = new Question();
+					q.name = "_hrk";
+					q.published = true;
+					q.columnName = "_hrk";
+					q.source = "user";
+					q.type = "";
+
+					q.labels = new ArrayList<Label> ();
+					for(int i = 0; i < numberLanguages; i++ ) {
+						Label l = new Label();
+						l.text = "Key";
+						q.labels.add(l);
+					}
+					questions.add(q);
+				}
+			}
+			
+			/*
+			 * Get the questions for this form
+			 */
+			pstmtGetQuestions.setInt(1, fId);
+			log.info("Get questions for form: " + pstmtGetQuestions.toString());
+			rsGetQuestions = pstmtGetQuestions.executeQuery();
+			
+			boolean inMeta = false;				// Set true if the question is in the meta group
+			while (rsGetQuestions.next()) {
+				Question q = new Question();
+
+				q.id = rsGetQuestions.getInt(1);
+				q.name = rsGetQuestions.getString(2);
+				q.type = rsGetQuestions.getString(3);
+				q.text_id = rsGetQuestions.getString(4);
+				q.list_name = rsGetQuestions.getString(5);
+				q.hint_id = rsGetQuestions.getString(6);
+				q.source = rsGetQuestions.getString(7);
+				q.calculation = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(8), true);
+				q.seq = rsGetQuestions.getInt(9);
+				q.defaultanswer = rsGetQuestions.getString(10);
+				q.appearance = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(11), true);
+				q.paramArray = GeneralUtilityMethods.convertParametersToArray(rsGetQuestions.getString(12));
+				q.parameters = rsGetQuestions.getString(12);		// For online editor - deprecate
+				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(13), true);
+				q.constraint_msg = rsGetQuestions.getString(14);
+				q.required_msg = rsGetQuestions.getString(15);
+				q.nodeset = rsGetQuestions.getString(16);	// Used when writing to HTML
+				q.choice_filter = GeneralUtilityMethods.getChoiceFilterFromNodeset(q.nodeset, true);
+
+				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(17), true);
+				q.visible = rsGetQuestions.getBoolean(18);
+				q.readonly = rsGetQuestions.getBoolean(19);
+				q.required = rsGetQuestions.getBoolean(20);
+				q.published = rsGetQuestions.getBoolean(21);
+				q.columnName = rsGetQuestions.getString(22);
+				q.source_param = rsGetQuestions.getString(23);
+				q.soft_deleted = rsGetQuestions.getBoolean(24);
+				q.autoplay = rsGetQuestions.getString(25);
+				q.accuracy = rsGetQuestions.getString(26);
+				q.linked_target = rsGetQuestions.getString(27);
+				q.display_name = rsGetQuestions.getString(28);
+				q.fId = rsGetQuestions.getInt(29);
+				q.compressed = rsGetQuestions.getBoolean(30);				
+				//String exChoices = rsGetQuestions.getString(31);
+				//String exTable = rsGetQuestions.getString(32);
+				q.l_id = rsGetQuestions.getInt(33);
+				
+
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
+					GeneralUtilityMethods.setExternalFileValues(sd, q);
+				} else {
+					q.external_choices = false;
+				}
+
+				if(q.autoplay == null) {
+					q.autoplay = "none";
+				}
+
+				// Set an indicator if this is a property type question (_device etc)
+				q.propertyType = GeneralUtilityMethods.isPropertyType(q.source_param, q.name);
+
+				// Discard property type questions if they have not been asked for
+				if(q.propertyType && !getPropertyTypeQuestions) {
+					continue;
+				}
+
+				// If this is a begin repeat set the calculation from its form
+				if(q.type.equals("begin repeat") || q.type.equals("geopolygon") || q.type.equals("geolinestring")) {
+					pstmtGetRepeatValue.setInt(1, sId);
+					pstmtGetRepeatValue.setInt(2, q.id);
+
+					log.info("Get repeat from form: " + pstmtGetRepeatValue.toString());
+					rsGetRepeatValue = pstmtGetRepeatValue.executeQuery();
+					if(rsGetRepeatValue.next()) {
+						q.calculation = GeneralUtilityMethods.convertAllXpathNames(rsGetRepeatValue.getString(1), true);
+					}
+
+				} 
+
+				// Translate type name to "note" if it is a read only string -- Deprecate
+				q.type = GeneralUtilityMethods.translateTypeFromDB(q.type, q.readonly, q.visible);
+
+				// Track if this question is in the meta group
+				if(q.name.equals("meta")) {
+					inMeta = true;
+				} else if(q.name.equals("meta_groupEnd")) {
+					inMeta = false;
+				}
+				q.inMeta = inMeta;
+
+				// If the survey was loaded from xls it will not have a list name
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
+					if(q.list_name == null || q.list_name.trim().length() == 0) {
+						q.list_name = q.name;
+					}
+				}
+
+				// Get the language labels
+				if(s != null) {
+					UtilityMethodsEmail.getLabels(sd, s, q.text_id, q.hint_id, q.labels, basePath, oId);
+				}
+
+				questions.add(q);
+			}
+			
+		} finally {
+			if(pstmtGetQuestions != null) try {pstmtGetQuestions.close();} catch (Exception e) {}
+			if (pstmtGetRepeatValue != null) try {pstmtGetRepeatValue.close();} catch (Exception e) {}
+		}
+		
+		return questions;
 	}
 
 }

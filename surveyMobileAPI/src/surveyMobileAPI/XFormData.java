@@ -25,6 +25,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +50,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Form;
@@ -160,6 +162,16 @@ public class XFormData {
 					/*
 					 * Get meta values from the instance
 					 */
+					
+					boolean debug = false;		// debug
+					if(survey.id == 3850) {		// debug
+						debug = true;			// debug
+					}							// debug
+					log.info("----------------------------- " + survey.displayName + " : " + debug);		// debug
+					
+					if(debug) {
+						log.info("       meta size: " + survey.meta.size());
+					}
 					String topFormPath = "/main/";
 					if(survey.meta.size() > 0) {
 						// New meta items stored with survey
@@ -178,20 +190,42 @@ public class XFormData {
 						}
 					} else {
 						// Old style meta items which were questions
-						Form f = survey.getFirstForm();
-						if(f != null) {
-							for(Question q : f.questions) {
-								if(q.isPreload()) {
-									if(q.source_param != null && q.source_param.equals("start")) {
-										thisStart = si.getValue(topFormPath + q.name);
-									} else if(q.source_param != null && q.source_param.equals("end")) {
-										thisStart = si.getValue(topFormPath + q.name);
-									} else if(q.name.toLowerCase().equals("instancename")) {
-										thisInstanceName = si.getValue(topFormPath + "meta/" + q.name);
-									}
+						QuestionManager qm = new QuestionManager(localisation);
+						ArrayList<Question> questions = qm.getQuestionsInForm(sd, 
+								null, 		// Not checking for HRK so no need for results database
+								survey.id, 
+								0,			// Get the top level form (pass zero) 
+								false,		// Don't get deleted questions 
+								true,		// Get property questions 
+								false,		// Don't get HRK 
+								0,			// parent form 
+								null,		// HRK 
+								0,			// Number of languages only required for HRK 
+								null, 		// Table name only required for HRK
+								basePath, 
+								0,			// Organisation Id - only required to get labels 
+								null);		// Survey - only required to get labels 
+						
+						for(Question q : questions) {
+							if(q.isPreload()) {	
+								if(debug) {			// debug
+									log.info("       preload: " + q.name + " : " + q.source_param);
+								}
+								if(q.source_param != null && q.source_param.equals("start")) {
+									thisStart = si.getValue(topFormPath + q.name);
+								} else if(q.source_param != null && q.source_param.equals("end")) {
+									thisEnd = si.getValue(topFormPath + q.name);
+								} else if(q.name.toLowerCase().equals("instancename")) {
+									thisInstanceName = si.getValue(topFormPath + "meta/" + q.name);
+								}
+								if(debug) {			// debug
+									log.info("       end: " + thisEnd);
+									log.info("       start: " + thisStart);
+									log.info("       instance: " + thisInstanceName);
 								}
 							}
 						}
+						
 					}
 
 					break; // There is only one XML submission file
