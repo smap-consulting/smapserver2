@@ -435,6 +435,7 @@ public class ExchangeManager {
 							instanceIdColumn = i;
 						}
 						// If this column is in the survey then add it to the list of columns to be processed
+						// Do this test for a load from excel
 						Column col = getColumn(results, form.table_name, pstmtGetCol, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
 						if(col != null) {
 							col.index = i;
@@ -449,6 +450,7 @@ public class ExchangeManager {
 								columns.add(col);
 							}
 						} else {
+							// Perform test for a load from a google sheets export
 							col = getColumn(results, form.table_name, pstmtGetColGS, pstmtGetChoices, colName, columns, responseMsg, localisation, preloads);
 							if(col != null) {
 								col.index = i;
@@ -500,7 +502,7 @@ public class ExchangeManager {
 						Column col = columns.get(i);						
 						if(col.write) {
 							sqlInsert.append(",").append(col.columnName);
-						}
+						} 
 					}
 					
 					// Add the geopoint column if latitude and longitude were provided in the data file
@@ -578,13 +580,20 @@ public class ExchangeManager {
 							
 							// ignore empty columns at end of line
 							if(col.index >= line.length) {
-								String v;
-								if(col.index == lonIndex || col.index == latIndex) {
-									v = "0.0";
+								
+								if(col.type.equals("int")) {
+									pstmtInsert.setInt(index++, 0);
+								} else if(col.type.equals("decimal")) {
+									pstmtInsert.setDouble(index++, 0.0);
+								} else if(col.type.equals("date")) {
+									pstmtInsert.setDate(index++, null);
+								} else if(col.type.equals("dateTime")) {
+									pstmtInsert.setTimestamp(index++, null);
+								} else if(col.type.equals("time")) {
+									pstmtInsert.setTime(index++, null);
 								} else {
-									v = null;
+									pstmtInsert.setString(index++, null);
 								}
-								pstmtInsert.setString(index++, v);
 								continue;
 							}
 							
