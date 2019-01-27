@@ -626,11 +626,11 @@ public class ExchangeManager {
 								String srcUrl = null;
 								if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
 									
-									// If the link is to a file on the same server do not duplicate the media
+									// If the link is to a file on the same server (or this is localhost) do not duplicate the media
 									value = value.trim();
 									String serverHttpsUrl = "https://" + serverName + "/";
 									String serverHttpUrl = "http://" + serverName + "/";
-									if(value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
+									if(serverName.equals("localhost") || value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
 										int idx = value.indexOf(serverName) + serverName.length();
 										value = value.substring(idx);
 									} else {

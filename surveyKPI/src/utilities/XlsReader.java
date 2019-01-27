@@ -11,6 +11,7 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -45,7 +46,7 @@ public class XlsReader {
 	public String [] readNext(boolean header) {
 		ArrayList<String> values = null;
 		
-		String value;
+		String value = null;
 		Cell cell = null;
 		boolean isNullRow = true;
 		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
@@ -62,10 +63,20 @@ public class XlsReader {
 	            cell = row.getCell(i);
 	            
 	            if(cell != null) {
+	            		boolean ignore = false;
+	            		try {
+	            			value = df.formatCellValue(cell);	// Default
+	            		} catch (Exception e) {
+	            			String msg = e.getMessage();
+	            			if(msg != null && msg.contains("Specified named range 'Inf")) {  // Divide by zero in a calculate
+	            				value = "";
+	            				ignore = true;	// Don't try an get a formatted value for this one
+	            			} else {
+	            				throw e;
+	            			}
+	            		}
 	            		
-	            		value = df.formatCellValue(cell);	// Default
-	            		
-	            		if(!header) {
+	            		if(!header && !ignore) {
 		            		switch (cell.getCellType()) {
 		            		case XSSFCell.CELL_TYPE_NUMERIC:
 		            			if(DateUtil.isCellDateFormatted(cell)) {
