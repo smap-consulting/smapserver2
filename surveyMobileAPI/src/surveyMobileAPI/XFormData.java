@@ -207,6 +207,9 @@ public class XFormData {
 								null);		// Survey - only required to get labels 
 						
 						for(Question q : questions) {
+							if(debug) {			// debug
+								log.info("xxxxxx question: " + q.name + " : " + q.source_param);
+							}
 							if(q.isPreload()) {	
 								if(debug) {			// debug
 									log.info("       preload: " + q.name + " : " + q.source_param);
@@ -221,9 +224,11 @@ public class XFormData {
 							}
 						}
 						if(debug) {			// debug
+							log.info("       ------------------");
 							log.info("       end: " + thisEnd);
 							log.info("       start: " + thisStart);
 							log.info("       instance: " + thisInstanceName);
+							log.info("       ------------------");
 						}
 						
 					}
