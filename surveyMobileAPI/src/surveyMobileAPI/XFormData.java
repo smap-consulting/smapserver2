@@ -218,12 +218,12 @@ public class XFormData {
 								} else if(q.name.toLowerCase().equals("instancename")) {
 									thisInstanceName = si.getValue(topFormPath + "meta/" + q.name);
 								}
-								if(debug) {			// debug
-									log.info("       end: " + thisEnd);
-									log.info("       start: " + thisStart);
-									log.info("       instance: " + thisInstanceName);
-								}
 							}
+						}
+						if(debug) {			// debug
+							log.info("       end: " + thisEnd);
+							log.info("       start: " + thisStart);
+							log.info("       instance: " + thisInstanceName);
 						}
 						
 					}

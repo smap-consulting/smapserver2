@@ -3740,6 +3740,7 @@ public class GeneralUtilityMethods {
 	public static boolean isPropertyType(String source_param, String name) {
 
 		boolean isProperty;
+		name = name.toLowerCase();
 
 		if (source_param != null && (source_param.equals("deviceid") || source_param.equals("phonenumber")
 				|| source_param.equals("simserial") || source_param.equals("subscriberid")
@@ -3747,7 +3748,8 @@ public class GeneralUtilityMethods {
 
 			isProperty = true;
 
-		} else if (name != null && (name.equals("_instanceid") || name.equals("meta") || name.equals("instanceID")
+		} else if (name != null && 
+				(name.equals("_instanceid") || name.equals("meta") || name.equals("instanceID")
 				|| name.equals("instanceName") || name.equals("meta_groupEnd") || name.equals("_task_key"))) {
 
 			isProperty = true;
