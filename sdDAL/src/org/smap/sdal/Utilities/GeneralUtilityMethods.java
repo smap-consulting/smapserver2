@@ -3751,8 +3751,8 @@ public class GeneralUtilityMethods {
 			isProperty = true;
 
 		} else if (name != null && 
-				(name.equals("_instanceid") || name.equals("meta") || name.equals("instanceID")
-				|| name.equals("instanceName") || name.equals("meta_groupEnd") || name.equals("_task_key"))) {
+				(name.equals("_instanceid") || name.equals("meta") || name.equals("instanceid")
+				|| name.equals("instancename") || name.equals("meta_groupend") || name.equals("_task_key"))) {
 
 			isProperty = true;
 
