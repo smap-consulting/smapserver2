@@ -235,6 +235,8 @@ public class XLSTemplateUploadManager {
 					survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum, null);
 					survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
 					survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
+					survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum));
+					survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum);
 					survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
 					String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
 					if(pdRepeats != null) {
@@ -759,15 +761,38 @@ public class XLSTemplateUploadManager {
 					lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null);
 				}
 				
-				lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, header, lastCellNum, null);
+				// image - try various combination of headers
+				lab.image = XLSUtilities.getTextColumn(row, "media::image::" + lang, header, lastCellNum, null);
+				if(lab.image == null) {
+					lab.image = XLSUtilities.getTextColumn(row, "image::" + lang, header, lastCellNum, null);
+				}
+				if(lab.image == null) {
+					lab.image = XLSUtilities.getTextColumn(row, "media::image", header, lastCellNum, null);
+				}
 				if(lab.image == null) {
 					lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
 				}
-				lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, header, lastCellNum, null);
+				
+				// video - try various combination of headers
+				lab.video = XLSUtilities.getTextColumn(row, "media::video::" + lang, header, lastCellNum, null);
+				if(lab.video == null) {
+					lab.video = XLSUtilities.getTextColumn(row, "video::" + lang, header, lastCellNum, null);
+				}
+				if(lab.video == null) {
+					lab.video = XLSUtilities.getTextColumn(row, "media::video", header, lastCellNum, null);
+				}
 				if(lab.video == null) {
 					lab.video = XLSUtilities.getTextColumn(row, "video", header, lastCellNum, null);
 				}
-				lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, header, lastCellNum, null);
+				
+				// video - try various combination of headers
+				lab.audio = XLSUtilities.getTextColumn(row, "media::audio::" + lang, header, lastCellNum, null);
+				if(lab.audio == null) {
+					lab.audio = XLSUtilities.getTextColumn(row, "audio::" + lang, header, lastCellNum, null);
+				}
+				if(lab.audio == null) {
+					lab.audio = XLSUtilities.getTextColumn(row, "media::audio", header, lastCellNum, null);
+				}
 				if(lab.audio == null) {
 					lab.audio = XLSUtilities.getTextColumn(row, "audio", header, lastCellNum, null);
 				}

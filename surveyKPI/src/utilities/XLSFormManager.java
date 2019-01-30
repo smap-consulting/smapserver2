@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
@@ -45,8 +47,13 @@ import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.Survey;
 
+import surveyKPI.UploadFiles;
+
 public class XLSFormManager {
 
+	private static Logger log =
+			Logger.getLogger(UploadFiles.class.getName());
+	
 	private class Column {
 		// Survey sheet columns
 		public static final int COL_TYPE = 0;
@@ -88,6 +95,8 @@ public class XLSFormManager {
 		public static final int COL_ROLE_ROW = 205;
 		public static final int COL_ALLOW_IMPORT = 206;
 		public static final int COL_PULLDATA_REPEAT = 207;
+		public static final int COL_HIDE_ON_DEVICE = 208;
+		public static final int COL_TIMING_DATA = 209;
 
 		String name;
 		private int type;
@@ -341,8 +350,14 @@ public class XLSFormManager {
 					value = pdSB.toString();
 				}
 
+			} else if(type == COL_HIDE_ON_DEVICE) {				
+				value = survey.getHideOnDevice() ? "yes" : "no";
+
+			} else if(type == COL_TIMING_DATA) {				
+				value = survey.timing_data ? "yes" : "no";
+
 			} else {
-				System.out.println("Unknown option type: " + type);
+				log.info("Unknown settings type: " + type);
 			}
 
 			return value;
@@ -674,9 +689,9 @@ public class XLSFormManager {
 		// TODO only do this if there are media associated with choices
 		labelIndex = 0;
 		for(Language language : survey.languages) {
-			cols.add(new Column(colNumber++, "image::" + language.name, Column.COL_IMAGE, 0, "image"));
-			cols.add(new Column(colNumber++, "video::" + language.name, Column.COL_VIDEO, 0, "video"));
-			cols.add(new Column(colNumber++, "audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
+			cols.add(new Column(colNumber++, "media::image::" + language.name, Column.COL_IMAGE, 0, "image"));
+			cols.add(new Column(colNumber++, "media::video::" + language.name, Column.COL_VIDEO, 0, "video"));
+			cols.add(new Column(colNumber++, "media::audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
 			labelIndex++;
 		}
 		return cols;
@@ -703,9 +718,9 @@ public class XLSFormManager {
 
 		// Add media
 		for(Language language : survey.languages) {
-			cols.add(new Column(colNumber++, "image::" + language.name, Column.COL_IMAGE, 0, "image"));
-			cols.add(new Column(colNumber++, "video::" + language.name, Column.COL_VIDEO, 0, "video"));
-			cols.add(new Column(colNumber++, "audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
+			cols.add(new Column(colNumber++, "media::image::" + language.name, Column.COL_IMAGE, 0, "image"));
+			cols.add(new Column(colNumber++, "media::video::" + language.name, Column.COL_VIDEO, 0, "video"));
+			cols.add(new Column(colNumber++, "media::audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
 		}
 
 		return cols;
@@ -726,6 +741,8 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "key", Column.COL_KEY, 0, "key"));
 		cols.add(new Column(colNumber++, "key_policy", Column.COL_KEY_POLICY, 0, "key_policy"));
 		cols.add(new Column(colNumber++, "allow_import", Column.COL_ALLOW_IMPORT, 0, "allow_import"));
+		cols.add(new Column(colNumber++, "hide_on_device", Column.COL_HIDE_ON_DEVICE, 0, "hide_on_device"));
+		cols.add(new Column(colNumber++, "timing_data", Column.COL_TIMING_DATA, 0, "timing_data"));
 		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
 
 		// Add role columns

@@ -260,8 +260,10 @@ public class Survey {
 				+ "key_policy,"
 				+ "created,"
 				+ "public_link,"
-				+ "pulldata) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?);";		
+				+ "pulldata,"
+				+ "hide_on_device,"
+				+ "timing_data) "
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -292,6 +294,8 @@ public class Survey {
 				pd = gson.toJson(pulldata);
 			}
 			pstmt.setString(16, pd);
+			pstmt.setBoolean(17, hideOnDevice);
+			pstmt.setBoolean(18, timing_data);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
