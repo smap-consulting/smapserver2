@@ -68,7 +68,8 @@ public class Survey {
 	public String autoUpdates;
 	public String projectName;
 	public int pId;
-	public boolean projectTasksOnly;
+	private boolean projectTasksOnly;		// deprecated
+	private boolean hideOnDevice;		// Replaces projectTasksOnly
 	public int groupSurveyId;
 	public String groupSurveyDetails;
 	public String publicLink;
@@ -82,6 +83,9 @@ public class Survey {
 	public boolean getDeleted() { return deleted;};
 	public boolean getBlocked() { return blocked;};
 	public boolean hasManifest() { return hasManifest;};
+	public boolean getHideOnDevice() { 
+		return hideOnDevice || projectTasksOnly;
+	};
 	
 	public Form getFirstForm() {
 		Form form = null;
@@ -186,7 +190,8 @@ public class Survey {
 	public void setLoadedFromXLS(boolean v) { loadedFromXLS = v;};
 	public void setProjectName(String v) { projectName = v;};
 	public void setProjectId(int v) { pId = v;};
-	public void setProjectTasksOnly(boolean v) { projectTasksOnly = v;};
+	public void setProjectTasksOnly(boolean v) { projectTasksOnly = v;};		// Deprecated
+	public void setHideOnDevice(boolean v) { hideOnDevice = v;};
 	
 	/*
 	 * Write a survey to the database

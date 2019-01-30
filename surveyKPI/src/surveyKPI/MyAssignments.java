@@ -340,7 +340,7 @@ public class MyAssignments extends Application {
 
 			tr.forms = new ArrayList<FormLocator> ();
 			
-			for (org.smap.sdal.model.Survey survey : surveys) {
+			for (Survey survey : surveys) {
 				
 				boolean hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
 
@@ -384,7 +384,7 @@ public class MyAssignments extends Application {
 				fl.name = survey.displayName;
 				fl.project = survey.projectName;
 				fl.pid = survey.pId;
-				fl.tasks_only = survey.projectTasksOnly;
+				fl.tasks_only = survey.getHideOnDevice();
 				fl.hasManifest = hasManifest;
 
 				// If a new manifest then mark the form dirty so it will be checked to see if it needs to be downloaded

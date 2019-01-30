@@ -111,7 +111,7 @@ public class SurveyManager {
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, p.name, p.id, p.tasks_only,"
-				+ "s.group_survey_id, s.public_link, o.can_submit "
+				+ "s.group_survey_id, s.public_link, o.can_submit, s.hide_on_device "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -178,7 +178,8 @@ public class SurveyManager {
 				s.setProjectTasksOnly(resultSet.getBoolean(12));
 				s.groupSurveyId = resultSet.getInt(13);
 				s.publicLink = resultSet.getString(14);
-	
+				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
+				
 				if(getGroupDetails && s.groupSurveyId > 0) {
 					pstmtGetGroupDetails.setInt(1, s.groupSurveyId);
 					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
@@ -350,7 +351,8 @@ public class SurveyManager {
 				+ "s.meta,"
 				+ "s.group_survey_id,"
 				+ "s.public_link, "
-				+ "o.e_id "
+				+ "o.e_id,"
+				+ "s.hide_on_device "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -414,6 +416,7 @@ public class SurveyManager {
 				s.groupSurveyId = resultSet.getInt(24);
 				s.publicLink = resultSet.getString(25);
 				s.e_id = resultSet.getInt(26);
+				s.setHideOnDevice(resultSet.getBoolean(27));
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {

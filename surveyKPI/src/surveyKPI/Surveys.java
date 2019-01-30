@@ -668,7 +668,8 @@ public class Surveys extends Application {
 					+ "class = ?,"
 					+ "hrk = ?,"
 					+ "key_policy = ?, "
-					+ "exclude_empty = ? "
+					+ "exclude_empty = ?, "
+					+ "hide_on_device = ? "
 					+ "where s_id = ?;";		
 		
 			if(survey.surveyClass != null && survey.surveyClass.equals("none")) {
@@ -687,7 +688,8 @@ public class Surveys extends Application {
 			pstmt.setString(10, survey.hrk);
 			pstmt.setString(11, survey.key_policy);
 			pstmt.setBoolean(12, survey.exclude_empty);
-			pstmt.setInt(13, sId);
+			pstmt.setBoolean(13, survey.getHideOnDevice());
+			pstmt.setInt(14, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();

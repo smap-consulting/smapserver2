@@ -64,6 +64,8 @@ public class Survey implements Serializable {
 	
 	private boolean timingData;
 	
+	private boolean hideOnDevice;
+	
 	private String surveyClass;
 	
 	private boolean loaded_from_xls = false;
@@ -131,6 +133,10 @@ public class Survey implements Serializable {
 	
 	public boolean getTimingData() {
 		return timingData;
+	}
+	
+	public boolean getHideOnDevice() {
+		return hideOnDevice;
 	}
 	
 	// Get the display name with any HTML reserved characters escaped
@@ -204,6 +210,10 @@ public class Survey implements Serializable {
 	
 	public void setTimingData(boolean v) {
 		timingData = v;
+	}
+	
+	public void setHideOnDevice(boolean v) {
+		hideOnDevice = v;
 	}
 	
 	public void setHrk(String v) {
