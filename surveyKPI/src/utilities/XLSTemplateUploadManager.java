@@ -1232,6 +1232,10 @@ public class XLSTemplateUploadManager {
 			out = "acknowledge";
 		} else if (type.equals("chart")) {
 			out = "chart";
+		} else if (type.equals("parent_form")) {
+			out = "parent_form";
+		} else if (type.equals("child_form")) {
+			out = "child_form";
 		} else if (type.equals("range")) {
 			out = "range";
 		} else if (type.equals("begin repeat") || type.equals("begin_repeat")) {
