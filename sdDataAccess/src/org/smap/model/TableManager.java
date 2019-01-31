@@ -589,6 +589,10 @@ public class TableManager {
 			colType = "text";
 		} else if(colType.equals("chart")) {
 			colType = "text";
+		} else if(colType.equals("parent_form")) {
+			colType = "text";
+		} else if(colType.equals("child_form")) {
+			colType = "text";
 		} else if(colType.equals("acknowledge") || colType.equals("trigger")) {
 			colType = "text";
 		} else if(colType.equals("range")) {

@@ -186,7 +186,7 @@ public class Question {
 	}
 
 	public String getType() {
-		if(qType.equals("chart")) {
+		if(qType.equals("chart") || qType.equals("child_form") || qType.equals("parent_form")) {
 			return "string";
 		} else {
 			return qType;
@@ -342,7 +342,11 @@ public class Question {
 	}
 	
 	public ArrayList<KeyValueSimp> getParameters() {
-		return GeneralUtilityMethods.convertParametersToArray(parameters);
+		ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
+		if(qType.equals("parent_form") || qType.equals("child_form")) {
+			params.add(new KeyValueSimp("launch_form", qType));
+		}
+		return params;
 	}
 	
 	public String getPath() {

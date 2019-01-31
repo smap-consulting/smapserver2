@@ -16,6 +16,8 @@ public class SmapQuestionTypes {
 	public static final String END_REPEAT = "end repeat";
 	public static final String TRIGGER = "trigger";
 	public static final String CHART = "chart";
+	public static final String CHILD_FORM = "child_form";
+	public static final String PARENT_FORM = "parent_form";
 	public static final String CALCULATE = "calculate";
 	public static final String SELECT1 = "select1";
 	public static final String BEGIN_REPEAT = "begin repeat";
