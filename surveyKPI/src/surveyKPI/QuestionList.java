@@ -219,6 +219,7 @@ public class QuestionList extends Application {
 	
 	/*
 	 * Return a list of all questions in the survey
+	 * Deprecate this service and move to using survey ident only See QuestionListByIdent
 	 */
 	@GET
 	@Path("/new")
@@ -264,9 +265,7 @@ public class QuestionList extends Application {
 						q.is_ssc = false;
 						
 						questions.add(q);
-					}
-					
-					
+					}	
 				}
 			}
 			

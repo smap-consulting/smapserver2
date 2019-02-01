@@ -68,7 +68,8 @@ public class ForeignKeyManager {
 	 */
 	public void apply(Connection sd, Connection cResults) throws SQLException {
 		
-		String sql = "select id, s_id, qname, instanceid, prikey, table_name from apply_foreign_keys where not applied";
+		String sql = "select id, s_id, qname, instanceid, prikey, table_name "
+				+ "from apply_foreign_keys where not applied";
 		PreparedStatement pstmt = null;
 		
 		String sqlForeign = "select parameters from question "
