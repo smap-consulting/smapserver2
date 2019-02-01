@@ -4733,8 +4733,11 @@ public class GeneralUtilityMethods {
 		ArrayList<String> params = null;
 
 		PreparedStatement pstmt = null;
-		String sql = "SELECT o.ovalue, t.value " + "from option o, translation t, question q "
-				+ "where o.label_id = t.text_id " + "and o.l_id = q.l_id " + "and q.q_id = ? "
+		String sql = "SELECT o.ovalue, t.value " 
+				+ "from option o, translation t, question q "
+				+ "where o.label_id = t.text_id " 
+				+ "and o.l_id = q.l_id " 
+				+ "and q.q_id = ? "
 				+ "and externalfile ='false';";
 
 		try {
