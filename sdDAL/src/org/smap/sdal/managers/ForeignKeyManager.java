@@ -40,8 +40,8 @@ public class ForeignKeyManager {
 	public void saveKeys(Connection sd, String updateId, ArrayList<ForeignKey> keys, int sId) throws SQLException {
 		
 		String sql = "insert into apply_foreign_keys (id, update_id, s_id, qname, instanceid, "
-				+ "prikey, table_name, ts_created) "
-				+ "values (nextval('apply_foreign_keys_seq'), ?, ?, ?, ?, ?, ?, now())";
+				+ "prikey, table_name, instanceIdLaunchingForm, ts_created) "
+				+ "values (nextval('apply_foreign_keys_seq'), ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -52,6 +52,7 @@ public class ForeignKeyManager {
 				pstmt.setString(4, fk.instanceId);
 				pstmt.setInt(5,  fk.primaryKey);
 				pstmt.setString(6, fk.tableName);
+				pstmt.setString(7, fk.instanceIdLaunchingForm);
 				log.info("Add pending foreign key: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
@@ -68,11 +69,11 @@ public class ForeignKeyManager {
 	 */
 	public void apply(Connection sd, Connection cResults) throws SQLException {
 		
-		String sql = "select id, s_id, qname, instanceid, prikey, table_name "
+		String sql = "select id, s_id, qname, instanceid, prikey, table_name, instanceIdLaunchingForm "
 				+ "from apply_foreign_keys where not applied";
 		PreparedStatement pstmt = null;
 		
-		String sqlForeign = "select parameters from question "
+		String sqlForeign = "select parameters, qType from question "
 				+ "where f_id in (select f_id from form where s_id = ?) "
 				+ "and qname = ?";
 		PreparedStatement pstmtForeign = null;
@@ -105,11 +106,12 @@ public class ForeignKeyManager {
 				int id = rs.getInt(1);
 				int sId = rs.getInt(2);
 				String qname = rs.getString(3);
-				String instanceid = rs.getString(4);
-				int prikey = rs.getInt(5);
-				String tableName = rs.getString(6);
+				String instanceidLaunchedForm = rs.getString(4);
+				//int prikeyLaunchingForm = rs.getInt(5);
+				//String tableName = rs.getString(6);
+				String instanceIdLaunchingForm = rs.getString(7);
 				
-				log.info("Found foreign key to apply: " + sId + " : " + qname + " : " + instanceid);
+				log.info("Found foreign key to apply: " + sId + " : " + qname + " : " + instanceidLaunchedForm);
 				// 1. Get the details on the foreign form and the question that will hold the foreign key
 				pstmtForeign.setInt(1, sId);
 				pstmtForeign.setString(2, qname);
@@ -117,6 +119,7 @@ public class ForeignKeyManager {
 				ResultSet rsForeign = pstmtForeign.executeQuery();
 				if(rsForeign.next()) {
 					String parameters = rsForeign.getString(1);
+					String qType = rsForeign.getString(2);
 					if(parameters != null) {
 						ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
 						String sIdent = null;
@@ -137,7 +140,23 @@ public class ForeignKeyManager {
 							pstmtResult.setInt(2, id);
 							pstmtResult.executeUpdate();
 						} else {
-							int foreignSiD = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+							// If child form use launch form as the location of the foreign key
+							int foreignSiD;
+							int surveyIdContainingKeyQuestion;
+							String instanceOfHrk;
+							String instanceOfKeyQuestion;
+							if(qType.equals("child_form")) {
+								foreignSiD = sId;
+								surveyIdContainingKeyQuestion = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+								instanceOfHrk = instanceIdLaunchingForm;
+								instanceOfKeyQuestion = instanceidLaunchedForm;
+								
+							} else {
+								foreignSiD = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+								surveyIdContainingKeyQuestion = sId;
+								instanceOfHrk = instanceidLaunchedForm;
+								instanceOfKeyQuestion = instanceIdLaunchingForm;
+							}
 							pstmtGetFkTable.setInt(1, foreignSiD);
 							log.info("Get foreign key table: " + pstmtGetFkTable.toString());
 							ResultSet rsGetFkTable = pstmtGetFkTable.executeQuery();
@@ -153,28 +172,36 @@ public class ForeignKeyManager {
 								} else {
 									pstmtGetHrk = cResults.prepareStatement(sqlGetHrk1);
 								}
-								pstmtGetHrk.setString(1, instanceid);
+								pstmtGetHrk.setString(1, instanceOfHrk);
 								log.info("Get HRK: " + pstmtGetHrk.toString());
 								ResultSet rsGetHrk = pstmtGetHrk.executeQuery();
 								if(rsGetHrk.next()) {
 									String key = rsGetHrk.getString(1);
 									if(hasHrk) {
-										key = rsGetHrk.getString(2);
+										String hrkKey = rsGetHrk.getString(2);
+										if(hrkKey != null) {
+											key = hrkKey;
+										}
 									}
 									log.info("------------ got foreign key details: " + key);
 									
 									/*
 									 * Update the key question that contains the foreign key value
-									 */										
-									String keyColumnName = GeneralUtilityMethods.getColumnName(sd, sId, keyQuestion);
+									 */	
+									// Use the sId of the launched form to get key column name
+									String keyColumnName = GeneralUtilityMethods.getColumnName(sd, 
+											surveyIdContainingKeyQuestion, keyQuestion);
+									
+									String keyQuestionTable = GeneralUtilityMethods.getTableForQuestion(sd, 
+											surveyIdContainingKeyQuestion, keyColumnName);
 									
 									if(keyColumnName != null) {
 									
-									String sqlInsertKey = "update " + tableName + " set " + keyColumnName +
-											" = ? where prikey = ?";
+										String sqlInsertKey = "update " + keyQuestionTable + " set " + keyColumnName +
+											" = ? where instanceid = ?";
 										pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);
 										pstmtInsertKey.setString(1, key);
-										pstmtInsertKey.setInt(2, prikey);
+										pstmtInsertKey.setString(2, instanceOfKeyQuestion);
 										log.info("Inserting key: " + pstmtInsertKey.toString());
 										int count = pstmtInsertKey.executeUpdate();
 										if(count == 0) {

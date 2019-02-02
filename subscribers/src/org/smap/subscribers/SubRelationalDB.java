@@ -880,10 +880,11 @@ public class SubRelationalDB extends Subscriber {
 						parent_key = rs.getInt(1);
 						keys.newKey = parent_key;
 					}
-					// Add primary key and table name to the foreign keys for this table
+					// Add primary key, instanceId and table name to the foreign keys for this table
 					for(ForeignKey fk : thisTableKeys) {
 						fk.primaryKey = parent_key;
 						fk.tableName = tableName;
+						fk.instanceIdLaunchingForm  = uuid;
 					}
 					foreignKeys.addAll(thisTableKeys);
 				}
