@@ -450,11 +450,10 @@ public class Survey {
 				String cleanName = null;
 				if(f.reference) {
 					formName = f.referenceName;
-					cleanName = GeneralUtilityMethods.cleanName(f.referenceName, true, false, false);
 				} else {
-					formName = f.name;
-					cleanName = GeneralUtilityMethods.cleanName(f.name, true, false, false);
-				}			
+					formName = f.name;				
+				}	
+				cleanName = GeneralUtilityMethods.cleanName(formName, true, false, false);
 				
 				String tableName = null;
 				if(groupForms != null) {

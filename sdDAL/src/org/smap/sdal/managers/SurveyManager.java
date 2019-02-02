@@ -509,10 +509,6 @@ public class SurveyManager {
 		String sqlCreateForm = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
 				" values (nextval('f_seq'), ?, 'main', ?, 0, null, '/main');";
 		PreparedStatement pstmtCreateForm = null;
-		
-		//String sqlCreateQuestion = "insert into question (q_id, f_id, qtype, qname, path, column_name, seq, visible, source, source_param, calculate) "
-		//		+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, 'false', ?, ?, ?);";
-
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta from survey s, form f "
 				+ "where s.s_id = f.s_id "
@@ -2070,7 +2066,7 @@ public class SurveyManager {
 						}
 						
 						/*
-						 * If the is is a parameter change on a begin repeat then update the form
+						 * If this is a parameter change on a begin repeat then update the form
 						 */
 						if(ci.property.qType != null && 
 								ci.property.qType.equals("begin repeat") &&
@@ -2081,9 +2077,11 @@ public class SurveyManager {
 							boolean ref= false;
 							boolean merge = false;
 							boolean replace = false;
+							String refForm = null;
 							for(KeyValueSimp k : props) {
 								if(k.k.equals("ref")) {
 									ref = true;
+									refForm = k.v;
 								} else if(k.k.equals("merge") && k.v.equals("yes")) {
 									merge = true;		// Deprecate legacy setting
 								} else if(k.k.equals("key_policy")) {
@@ -2111,7 +2109,40 @@ public class SurveyManager {
 							pstmtUpdateForm.setInt(5, ci.property.qId);
 	
 							log.info("Updating form properties: " + pstmtUpdateForm.toString());
-							pstmtUpdateForm.executeUpdate();			
+							pstmtUpdateForm.executeUpdate();	
+							
+							// If the reference was set then set the table name to the name of the reference form
+							if(ref) {
+								String columnName = GeneralUtilityMethods.cleanName(refForm, true, true, true);
+								String tableName = "s" + sId + "_" + columnName;
+								
+								String sqlUpdateForm2 = "update form set table_name = ? "
+										+ "where s_id = ? "
+										+ "and parentquestion = ?";
+								try {if (pstmtUpdateForm != null) {pstmtUpdateForm.close();}} catch (SQLException e) {}
+								pstmtUpdateForm = sd.prepareStatement(sqlUpdateForm2);
+								pstmtUpdateForm.setString(1,  tableName);
+								pstmtUpdateForm.setInt(2,  sId);
+								pstmtUpdateForm.setInt(3, ci.property.qId);
+								
+								log.info("Updating form properties2: " + pstmtUpdateForm.toString());
+								pstmtUpdateForm.executeUpdate();	
+							} else {
+								// Set the table name to the default non reference name
+								
+								String sqlUpdateForm2 = "update form set table_name = 's' || s_id || '_' || name "
+										+ "where s_id = ? "
+										+ "and parentquestion = ?";
+								try {if (pstmtUpdateForm != null) {pstmtUpdateForm.close();}} catch (SQLException e) {}
+								pstmtUpdateForm = sd.prepareStatement(sqlUpdateForm2);
+								pstmtUpdateForm.setInt(1,  sId);
+								pstmtUpdateForm.setInt(2, ci.property.qId);
+								
+								log.info("Updating form properties2: " + pstmtUpdateForm.toString());
+								pstmtUpdateForm.executeUpdate();	
+							}
+							
+							
 						}
 						log.info("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
 
