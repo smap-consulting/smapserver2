@@ -870,6 +870,14 @@ public class GetHtml {
 		if (q.type.equals("note") || q.readonly) {
 			bodyElement.setAttribute("readonly", "readonly");
 		}
+		
+		// range specific
+		if (q.type.equals("range")) {
+			bodyElement.setAttribute("min", GeneralUtilityMethods.getSurveyParameter("start", q.paramArray));
+			bodyElement.setAttribute("max", GeneralUtilityMethods.getSurveyParameter("end", q.paramArray));
+			bodyElement.setAttribute("step", GeneralUtilityMethods.getSurveyParameter("step", q.paramArray));
+			bodyElement.setAttribute("class", "hide");
+		}
 
 		// Required - note allow required on read only questions to support form level
 		// validation trick
@@ -1244,6 +1252,8 @@ public class GetHtml {
 		String type = null;
 		if (q.type.equals("int")) {
 			type = "number";
+		} else if (q.type.equals("range")) {
+			type = "number";
 		} else if (q.type.equals("string")) {
 			if(q.appearance.contains("numbers")) {
 				type = "tel";
@@ -1289,6 +1299,25 @@ public class GetHtml {
 			type = "binary";
 		} else if (q.type.equals("note")) {
 			type = "string";
+		} else if (q.type.equals("range")) {
+			String p;
+			p = GeneralUtilityMethods.getSurveyParameter("step", q.paramArray);
+			if(p != null && p.contains(".")) {
+				type = "decimal";
+			} else {
+				p = GeneralUtilityMethods.getSurveyParameter("start", q.paramArray);
+				if(p != null && p.contains(".")) {
+					type = "decimal";
+				} else {
+					p = GeneralUtilityMethods.getSurveyParameter("end", q.paramArray);
+					if(p != null && p.contains(".")) {
+						type = "decimal";
+					} else {
+						type = "int";
+					}
+				}
+			}
+			
 		} else if (q.type.equals("trigger") || q.type.equals("acknowledge") ) {
 			type = "trigger";
 		} else {
