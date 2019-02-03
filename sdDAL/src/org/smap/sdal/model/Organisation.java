@@ -33,16 +33,6 @@ public class Organisation {
 	public boolean can_use_api = true;
 	public boolean can_submit = true;
 	public boolean email_task = false;
-	public String ft_delete;
-	public String ft_send_location;
-	public boolean ft_sync_incomplete;
-	public boolean ft_odk_style_menus;
-	public boolean ft_specify_instancename;
-	public boolean ft_admin_menu;
-	public boolean ft_review_final;
-	public String ft_send;
-	public int ft_number_tasks;
-	public String ft_image_size;
 	public String changed_by;
 	public String changed_ts;
 	public String admin_email;

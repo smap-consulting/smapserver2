@@ -894,16 +894,6 @@ public class GeneralUtilityMethods {
 				+ "can_use_api, "
 				+ "can_submit, "
 				+ "email_task, "
-				+ "ft_delete,"
-				+ "ft_send_location,"
-				+ "ft_sync_incomplete,"
-				+ "ft_odk_style_menus,"
-				+ "ft_specify_instancename,"
-				+ "ft_admin_menu,"
-				+ "ft_review_final,"
-				+ "ft_send,"
-				+ "ft_number_tasks,"
-				+ "ft_image_size,"
 				+ "changed_by, "
 				+ "changed_ts," 
 				+ "admin_email, "
@@ -943,16 +933,6 @@ public class GeneralUtilityMethods {
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.email_task = resultSet.getBoolean("email_task");
-				org.ft_delete = resultSet.getString("ft_delete");
-				org.ft_send_location = resultSet.getString("ft_send_location");
-				org.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
-				org.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
-				org.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
-				org.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
-				org.ft_review_final = resultSet.getBoolean("ft_review_final");
-				org.ft_send = resultSet.getString("ft_send");
-				org.ft_number_tasks = resultSet.getInt("ft_number_tasks");
-				org.ft_image_size = resultSet.getString("ft_image_size");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
 				org.admin_email = resultSet.getString("admin_email");
