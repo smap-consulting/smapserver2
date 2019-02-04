@@ -20,6 +20,8 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.ActionManager.Update;
+import org.smap.sdal.model.CsvTable;
+import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
@@ -55,14 +57,6 @@ public class CsvTableManager {
 
 	private static Logger log = Logger.getLogger(CsvTableManager.class.getName());
 
-	private class CsvHeader {
-		String fName;			// Name in file
-		String tName;			// Name in table
-		public CsvHeader(String f, String t) {
-			fName = f;
-			tName = t;
-		}
-	}
 	
 	Connection sd = null;
 	ResourceBundle localisation = null;
@@ -85,6 +79,8 @@ public class CsvTableManager {
 	private final int UPDATE_ENTRY = 2;
 	private final int DELETE_ENTRY = 3;
 	
+	private String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
 	 */
@@ -101,7 +97,6 @@ public class CsvTableManager {
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		
-		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
 		PreparedStatement pstmtGetCsvTable = null;
 		
 		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, headers, ts_initialised) "
@@ -156,6 +151,42 @@ public class CsvTableManager {
 		
 	}
 	
+	/*
+	 * Get a list of the CSV tables
+	 */
+	public ArrayList<CsvTable> getTables(int oId, int sId) throws Exception{
+		ArrayList<CsvTable> tables = new ArrayList<> ();
+		String sqlSelect = "select id, filename, headers from csvtable where o_id = ?";
+		String sqlsId = " and s_id = ?";
+		String sqlNosId = " and not survey";
+		String sqlOrder = " order by filename asc";
+		
+		String sql = sqlSelect + (sId > 0 ? sqlsId : sqlNosId) + sqlOrder;
+		PreparedStatement pstmt = null;;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  oId);
+			if(sId > 0) {
+				pstmt.setInt(2, sId);
+			}
+			
+			Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
+			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+			
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				CsvTable t = new CsvTable();
+				t.id = rs.getInt(1);
+				t.filename = rs.getString(2);
+				t.headers = gson.fromJson(rs.getString(3), headersType);
+				tables.add(t);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return tables;
+	}
 	/*
 	 * Update the table with data from the file
 	 */
@@ -341,7 +372,6 @@ public class CsvTableManager {
 		
 		ArrayList<Option> choices = null;
 		
-		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
 		PreparedStatement pstmtGetCsvTable = null;	
 		try {
 			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
@@ -382,7 +412,6 @@ public class CsvTableManager {
 		
 		HashMap<String, String> record = null;
 		
-		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
 		PreparedStatement pstmtGetCsvTable = null;	
 		try {
 			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
@@ -419,8 +448,7 @@ public class CsvTableManager {
 			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
 		
 		ArrayList<SelectChoice> choices = null;
-		
-		String sqlGetCsvTable = "select id, headers from csvtable where o_id = ? and s_id = ? and filename = ?";
+
 		PreparedStatement pstmtGetCsvTable = null;	
 		try {
 			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
