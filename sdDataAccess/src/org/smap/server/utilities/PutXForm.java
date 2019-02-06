@@ -365,7 +365,6 @@ public class PutXForm {
 		}
     }
     
-
     /*
      * Method to create:
      *  A dummy question to represent the start of a group
@@ -693,26 +692,31 @@ public class PutXForm {
     private void processBodyQuestionChild(String questionRef, Node n, boolean question, 
     		boolean option, String formRef, String cascadeInstanceId) { 	 
     	
-    	// Get the question to be updated
-    	Question q = template.getQuestion(questionRef);    	
+    		// Get the question to be updated
+    		Question q = template.getQuestion(questionRef);    	
     	    	
-    	if(q != null && question && n.getNodeName().equals("label")) {
-    		Content c = getContent(n, questionRef, "label");
-    		if(c.ref != null) {
-    			q.setQTextId(c.ref);
-    		} else {
-        		q.setQuestion(c.direct);
+    		// Ignore tags for OSM widgets - TODO add suppot
+    		if(q != null && question && n.getNodeName().equals("tag")) {
+    			return;
     		}
+    		
+    		if(q != null && question && n.getNodeName().equals("label")) {
+    			Content c = getContent(n, questionRef, "label");
+    			if(c.ref != null) {
+    				q.setQTextId(c.ref);
+    			} else {
+    				q.setQuestion(c.direct);
+    			}
 
-    	} else if(q!= null && question && n.getNodeName().equals("hint")) {
-    		Content c = getContent(n, questionRef, "hint");
-    		if(c.ref != null) {
-        		q.setInfoTextId(c.ref);
-    		} else {
-    			q.setInfo(c.direct);
-    		}
+    		} else if(q!= null && question && n.getNodeName().equals("hint")) {
+    			Content c = getContent(n, questionRef, "hint");
+    			if(c.ref != null) {
+    				q.setInfoTextId(c.ref);
+    			} else {
+    				q.setInfo(c.direct);
+    			}
 		
-    	} else if(q != null && question && n.getNodeName().equals("itemset")) {
+    		} else if(q != null && question && n.getNodeName().equals("itemset")) {
 			question = false; // from now all labels will be for the itemset
 			option = false;
 			
@@ -727,47 +731,47 @@ public class PutXForm {
 				q.setNodeset(nodeset);
 			}
     		
-    	} else if(question && n.getNodeName().equals("item")) {
+    		} else if(question && n.getNodeName().equals("item")) {
 			question = false; // from now all labels will be for options
 			option = true;
 			
 			// Create a new option
-    		int seq = template.getNextOptionSeq();
+    			int seq = template.getNextOptionSeq();
 			String optionRef = questionRef + "/" + seq;
 			template.createOption(optionRef, questionRef);    		
-    		template.getOption(optionRef).setSeq(seq);
-    		template.setNextOptionSeq(seq + 1);
+    			template.getOption(optionRef).setSeq(seq);
+    			template.setNextOptionSeq(seq + 1);
 			
-    	} else if(!question && option && n.getNodeName().equals("label")) {
+    		} else if(!question && option && n.getNodeName().equals("label")) {
     		
-    		// Get the last option created
-    		int seq = template.getNextOptionSeq() - 1;
-    		String optionRef = questionRef + "/" + seq;
+    			// Get the last option created
+    			int seq = template.getNextOptionSeq() - 1;
+    			String optionRef = questionRef + "/" + seq;
     		
-    		Option o = template.getOption(optionRef);
-    		if(o != null) {
-    			Content c = getContent(n, optionRef, "label");
-    			if(c.ref != null) {
-        			o.setLabelId(c.ref);
-    			} else {
-        			o.setLabel(c.direct);
-    			}
+    			Option o = template.getOption(optionRef);
+    			if(o != null) {
+    				Content c = getContent(n, optionRef, "label");
+    				if(c.ref != null) {
+    					o.setLabelId(c.ref);
+    				} else {
+    					o.setLabel(c.direct);
+    				}
 
     		}
     		
-    	} else if(!question && option && n.getNodeName().equals("value")) {
+    		} else if(!question && option && n.getNodeName().equals("value")) {
     		
-    		// Get the last option created
-    		int seq = template.getNextOptionSeq() - 1;
-    		String optionRef = questionRef + "/" + seq;
+    			// Get the last option created
+    			int seq = template.getNextOptionSeq() - 1;
+    			String optionRef = questionRef + "/" + seq;
     		
-    		Option o = template.getOption(optionRef);
-    		if(o != null) {
-    			Content c = getContent(n, optionRef, "value");
-    			o.setValue(c.direct);
-    		}
+    			Option o = template.getOption(optionRef);
+    			if(o != null) {
+    				Content c = getContent(n, optionRef, "value");
+    				o.setValue(c.direct);
+    			}
     		
-    	} else if(!question && !option && n.getNodeName().equals("value")) {
+    		} else if(!question && !option && n.getNodeName().equals("value")) {
 			
 			NamedNodeMap nm = n.getAttributes(); 
 			Node refNode = nm.getNamedItem("ref");
@@ -776,18 +780,18 @@ public class PutXForm {
 				template.setCascadeValue(questionRef, refNode.getNodeValue());
 			}
     		
-    	} else if(!question && !option && n.getNodeName().equals("label")) {
+    		} else if(!question && !option && n.getNodeName().equals("label")) {
 			
-    		NamedNodeMap nm = n.getAttributes(); 
+    			NamedNodeMap nm = n.getAttributes(); 
 			Node refNode = nm.getNamedItem("ref");
 			if(refNode != null) {
 				q.setNodesetLabel(refNode.getNodeValue());
 				template.setCascadeLabel(questionRef, refNode.getNodeValue());
 			}	
-    	}
+    			}
     	
-    	// Process the children's children
-    	NodeList eList = n.getChildNodes();
+    		// Process the children's children
+    		NodeList eList = n.getChildNodes();
 		if (eList != null) {
 			for(int i = 0; i < eList.getLength(); i++) {
 				processBodyQuestionChild(questionRef, eList.item(i), question, option, 

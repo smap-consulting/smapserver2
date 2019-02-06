@@ -40,6 +40,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
+import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.Authorise;
@@ -60,10 +61,13 @@ import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
+import org.smap.server.utilities.PutXForm;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -471,6 +475,7 @@ public class UploadFiles extends Application {
 		int surveyId = -1;
 		String fileName = null;
 		String type = null;			// xls or xlsx or xml
+		boolean isExcel;
 		FileItem fileItem = null;
 		String user = request.getRemoteUser();
 		String action = null;
@@ -561,10 +566,13 @@ public class UploadFiles extends Application {
 				throw new ApplicationException(localisation.getString("tu_nfs"));
 			} else if(fileName.endsWith(".xlsx")) {
 				type = "xlsx";
+				isExcel = true;
 			} else if(fileName.endsWith(".xls")) {
 				type = "xls";
+				isExcel = true;
 			} else if(fileName.endsWith(".xml")) {
-				throw new ApplicationException("XML files not supported yet");
+				type = "xml";
+				isExcel = false;
 			} else {
 				throw new ApplicationException(localisation.getString("tu_uft"));
 			}
@@ -603,9 +611,13 @@ public class UploadFiles extends Application {
 				String msg = localisation.getString("tu_ae");
 				msg = msg.replaceAll("%s1", displayName);
 				throw new ApplicationException(msg);
-			} else if(type.equals("xls") || type.equals("xlsx")) {
+			}
+			
+			Survey s = null;					// Used for XLS uploads (The new way)
+			SurveyTemplate model = null;		// Used for XML uploads (This old way), Convert to Survey after loading
+			if(isExcel) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(localisation, warnings);
-				Survey s = tum.getSurvey(sd, 
+				s = tum.getSurvey(sd, 
 						oId, 
 						type, 
 						fileItem.getInputStream(), 
@@ -615,148 +627,187 @@ public class UploadFiles extends Application {
 						optionNames,
 						merge,
 						existingVersion);
-				
-				/*
-				 * Get information on a survey group if this survey is to be added to one
-				 */
-				if(surveyId > 0) {
-					if(!action.equals("replace")) {
-						s.groupSurveyId = surveyId;
-					} else {
-						// Set the group survey id to the same value as the original survey
-						s.groupSurveyId = existingSurvey.groupSurveyId;
-						s.publicLink = existingSurvey.publicLink;
-					}
-				}
-				
-				/*
-				 * Save the survey to the database
-				 */
-				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
-				
-				/*
-				 * Validate the survey:
-				 * 	 using the JavaRosa API
-				 * 		Ignore invalid function errors for extended functions
-				 *    		lookup
-				 *    		lookup_image_labels
-				 *    Ensure that it fits within the limit of 1,600 columns
-				 */
-				boolean valid = true;
-				String errMsg = null;
-				try {
-					XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
-				} catch (Exception e) {
-									
-					String msg = e.getMessage();
-					if(msg != null && !msg.contains("cannot handle function 'lookup'") &&
-							!msg.contains("cannot handle function 'lookup_image_labels'")) {
-						// Error! Delete the survey we just created
-						log.log(Level.SEVERE, e.getMessage(), e);
-						valid = false;
-						errMsg = e.getMessage();
-								
-					} else if(msg == null) {
-						log.log(Level.SEVERE, e.getMessage(), e);
-					}
-				}
-				if(valid) {
-					ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.id);
-					for(FormLength fl : formLength) {
-						if(fl.isTooLong()) {
-							valid = false;
-							errMsg = localisation.getString("tu_tmq");
-							errMsg = errMsg.replaceAll("%s1", String.valueOf(fl.questionCount));
-							errMsg = errMsg.replaceAll("%s2", fl.name);
-							errMsg = errMsg.replaceAll("%s3", String.valueOf(FormLength.MAX_FORM_LENGTH));
-							errMsg = errMsg.replaceAll("%s4", fl.lastQuestionName);
-							break;	// Only show one form that is too long - This error should very rarely be encountered!
-						}
-					}
-				}
-				
-				if(!valid) {
-					sm.delete(sd, 
-							cResults, 
-							s.id, 
-							true,		// hard
-							false,		// Do not delete the data 
-							user, 
-							basePath,
-							"no",		// Do not delete the tables
-							0);		// New Survey Id for replacement 
-					throw new ApplicationException(errMsg);	// report the error
-				}
-						
-				if(action.equals("replace")) {
-					/*
-					 * Soft delete the old survey
-					 * Set task groups to use the new survey
-					 */
-					sm.delete(sd, 
-							cResults, 
-							surveyId, 
-							false,		// set soft 
-							false,		// Do not delete the data 
-							user, 
-							basePath,
-							"no",		// Do not delete the tables
-							s.id		   // New Survey Id for replacement 
-						);	
-					
-				}
-				
-				/*
-				 * Save the file to disk
-				 */
-				String fileFolder = basePath + "/templates/" + projectId +"/"; 
-				String targetName = GeneralUtilityMethods.getSafeTemplateName(displayName);
-				String filePath = fileFolder + targetName + "." + type;
-				
-				// 1. Create the project folder if it does not exist
-				File folder = new File(fileFolder);
-				FileUtils.forceMkdir(folder);
+			} else if(type.equals("xml")) {
 
-				// 2. Save the file
-				File savedFile = new File(filePath);
-				fileItem.write(savedFile);	
+				// Parse the form into an object model
+				PutXForm loader = new PutXForm(localisation);
+				model = loader.put(fileItem.getInputStream(), 
+						request.getRemoteUser(),
+						basePath);	// Load the XForm into the model
 				
-				/*
-				 * Update the change history for the survey
-				 */
-				int newVersion = existingVersion;
-				if(action.equals("replace")) {
-					newVersion++;
-					String sqlUpdateChangeLog = "insert into survey_change "
-							+ "(s_id, version, changes, user_id, apply_results, visible, updated_time) "
-							+ "select "
-							+ s.id
-							+ ",version, changes, user_id, apply_results, visible, updated_time "
-							+ "from survey_change where s_id = ? "
-							+ "order by version asc";
-					pstmtUpdateChangeLog = sd.prepareStatement(sqlUpdateChangeLog);
-					pstmtUpdateChangeLog.setInt(1, existingSurveyId);
-					pstmtUpdateChangeLog.execute();
+				// Set the survey name to the one entered by the user 
+				if(displayName != null && displayName.length() != 0) {
+					model.getSurvey().setDisplayName(displayName);
+				} else {
+					throw new Exception("No Suvey name");
 				}
+
+				// Set the project id to the one entered by the user 
+				if(projectId != -1) {
+					model.getSurvey().setProjectId(projectId);
+				} 
+				
+			} else {
+				throw new ApplicationException("Unsupported file type");
+			}
+				
+			/*
+			 * Get information on a survey group if this survey is to be added to one
+			 * TODO make XML uploads work with this
+			 */
+			if(surveyId > 0) {
+				if(!action.equals("replace")) {
+					s.groupSurveyId = surveyId;
+				} else {
+					// Set the group survey id to the same value as the original survey
+					s.groupSurveyId = existingSurvey.groupSurveyId;
+					s.publicLink = existingSurvey.publicLink;
+				}
+			}
+			
+			/*
+			 * Save the survey to the database
+			 */
+			if(isExcel) {
+				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
+			} else {
+				int sId = model.writeDatabase();
+				s = sm.getById(sd, cResults, user, sId, true, basePath, 
+						null,					// instance id 
+						false, 					// get results
+						false, 					// generate dummy values
+						true, 					// get property questions
+						false, 					// get soft deleted
+						false, 					// get HRK
+						"internal", 					// Get External options
+						false, 					// get change history
+						true, 					// get roles
+						superUser, 
+						null						// geom format
+						);
+			}
+			
+			/*
+			 * Validate the survey:
+			 * 	 using the JavaRosa API
+			 * 		Ignore invalid function errors for extended functions
+			 *    		lookup
+			 *    		lookup_image_labels
+			 *    Ensure that it fits within the limit of 1,600 columns
+			 */
+			boolean valid = true;
+			String errMsg = null;
+			try {
+				XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
+			} catch (Exception e) {
+								
+				String msg = e.getMessage();
+				if(msg != null && !msg.contains("cannot handle function 'lookup'") &&
+						!msg.contains("cannot handle function 'lookup_image_labels'")) {
+					// Error! Delete the survey we just created
+					log.log(Level.SEVERE, e.getMessage(), e);
+					valid = false;
+					errMsg = e.getMessage();
+							
+				} else if(msg == null) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+			}
+			if(valid) {
+				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.id);
+				for(FormLength fl : formLength) {
+					if(fl.isTooLong()) {
+						valid = false;
+						errMsg = localisation.getString("tu_tmq");
+						errMsg = errMsg.replaceAll("%s1", String.valueOf(fl.questionCount));
+						errMsg = errMsg.replaceAll("%s2", fl.name);
+						errMsg = errMsg.replaceAll("%s3", String.valueOf(FormLength.MAX_FORM_LENGTH));
+						errMsg = errMsg.replaceAll("%s4", fl.lastQuestionName);
+						break;	// Only show one form that is too long - This error should very rarely be encountered!
+					}
+				}
+			}
+			
+			if(!valid) {
+				sm.delete(sd, 
+						cResults, 
+						s.id, 
+						true,		// hard
+						false,		// Do not delete the data 
+						user, 
+						basePath,
+						"no",		// Do not delete the tables
+						0);		// New Survey Id for replacement 
+				throw new ApplicationException(errMsg);	// report the error
+			}
+					
+			if(action.equals("replace")) {
 				/*
-				 * Add a new entry to the change history
+				 * Soft delete the old survey
+				 * Set task groups to use the new survey
 				 */
-				String sqlChangeLog = "insert into survey_change " +
-						"(s_id, version, changes, user_id, apply_results, visible, updated_time) " +
-						"values(?, ?, ?, ?, 'true', ?, ?)";
-				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-				ChangeItem ci = new ChangeItem();
-				ci.fileName = fileItem.getName();
-				ci.origSId = s.id;
-				pstmtChangeLog.setInt(1, s.id);
-				pstmtChangeLog.setInt(2, newVersion);
-				pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "upload_template")));
-				pstmtChangeLog.setInt(4, GeneralUtilityMethods.getUserId(sd, user));	
-				pstmtChangeLog.setBoolean(5,true);	
-				pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
-				pstmtChangeLog.execute();
+				sm.delete(sd, 
+						cResults, 
+						surveyId, 
+						false,		// set soft 
+						false,		// Do not delete the data 
+						user, 
+						basePath,
+						"no",		// Do not delete the tables
+						s.id		   // New Survey Id for replacement 
+					);	
 				
 			}
+			
+			/*
+			 * Save the file to disk
+			 */
+			String fileFolder = basePath + "/templates/" + projectId +"/"; 
+			String targetName = GeneralUtilityMethods.getSafeTemplateName(displayName);
+			String filePath = fileFolder + targetName + "." + type;
+			
+			// 1. Create the project folder if it does not exist
+			File folder = new File(fileFolder);
+			FileUtils.forceMkdir(folder);
+
+			// 2. Save the file
+			File savedFile = new File(filePath);
+			fileItem.write(savedFile);	
+			
+			/*
+			 * Update the change history for the survey
+			 */
+			int newVersion = existingVersion;
+			if(action.equals("replace")) {
+				newVersion++;
+				String sqlUpdateChangeLog = "insert into survey_change "
+						+ "(s_id, version, changes, user_id, apply_results, visible, updated_time) "
+						+ "select "
+						+ s.id
+						+ ",version, changes, user_id, apply_results, visible, updated_time "
+						+ "from survey_change where s_id = ? "
+						+ "order by version asc";
+				pstmtUpdateChangeLog = sd.prepareStatement(sqlUpdateChangeLog);
+				pstmtUpdateChangeLog.setInt(1, existingSurveyId);
+				pstmtUpdateChangeLog.execute();
+			}
+			/*
+			 * Add a new entry to the change history
+			 */
+			String sqlChangeLog = "insert into survey_change " +
+					"(s_id, version, changes, user_id, apply_results, visible, updated_time) " +
+					"values(?, ?, ?, ?, 'true', ?, ?)";
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			ChangeItem ci = new ChangeItem();
+			ci.fileName = fileItem.getName();
+			ci.origSId = s.id;
+			pstmtChangeLog.setInt(1, s.id);
+			pstmtChangeLog.setInt(2, newVersion);
+			pstmtChangeLog.setString(3, gson.toJson(new ChangeElement(ci, "upload_template")));
+			pstmtChangeLog.setInt(4, GeneralUtilityMethods.getUserId(sd, user));	
+			pstmtChangeLog.setBoolean(5,true);	
+			pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
+			pstmtChangeLog.execute();
 			
 			if(warnings.size() == 0) {
 				response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();

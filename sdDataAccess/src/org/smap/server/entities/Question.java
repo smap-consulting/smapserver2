@@ -414,7 +414,7 @@ public class Question {
 		if(this.l_id == 0) {		// No list has been set for this question
 			
 			// Create a list name if the question is a select type
-			if(this.qType.startsWith("select")) {
+			if(this.qType.startsWith("select") || this.qType.equals("rank")) {
 				
 				String sqlCheck = "select l_id from listname where s_id = ? and name = ?;";
 				PreparedStatement pstmtCheck = null;

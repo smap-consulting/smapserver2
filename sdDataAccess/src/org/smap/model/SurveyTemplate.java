@@ -603,7 +603,7 @@ public class SurveyTemplate {
 	/*
 	 * Method to count total questions per form and  table columns per form
 	 * Geometry questions are limited to 1 per form
-	 * Total table colimns are limited by Postgres to 1,600
+	 * Total table columns are limited by Postgres to 1,600
 	 */
 	private class FormDesc {
 		int geoms = 0;
@@ -824,7 +824,7 @@ public class SurveyTemplate {
 	/*
 	 * Method to write the model to the database
 	 */
-	public void writeDatabase() throws Exception {
+	public int writeDatabase() throws Exception {
 		
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Write Database");
 		log.info("Set autocommit false");
@@ -1030,6 +1030,11 @@ public class SurveyTemplate {
 					q.setFormId(f.getId());
 					q.setSeq(f.qSeq++);
 					q.setListId(sd, survey.getId());
+					if(q.getName().equals("the_geom")) {		// OK lets allow more than one geom - since this is an XML file otherwise how can it be fixed?
+						if(f.geomCount++ > 0) {
+							q.setName(q.getName() + f.geomCount);
+						}
+					}
 					if(!q.isRepeatCount()) {
 						qm.write(q, getXFormFormName());
 					}
@@ -1132,6 +1137,8 @@ public class SurveyTemplate {
 			
 			org.smap.sdal.Utilities.SDDataSource.closeConnection("SurveyTemplate-Write Database", sd);
 		}
+		
+		return survey.getId();
 
 	}
 
