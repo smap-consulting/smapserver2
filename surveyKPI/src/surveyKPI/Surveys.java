@@ -483,7 +483,6 @@ public class Surveys extends Application {
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
 		
 		// Authorise the changes
-		boolean updateExternalChoices = false;
 		for(ChangeSet cs : changes) {
 			for (ChangeItem ci : cs.items) {
 				// Check that property changes are being applied to questions in the specified survey
@@ -492,14 +491,8 @@ public class Surveys extends Application {
 							&& !ci.property.type.equals("optionlist")) {
 						log.info("Validating question for type: " + ci.property.type);
 						aUpdate.isValidQuestion(sd, request.getRemoteUser(), sId, ci.property.qId);
-						
-						if(ci.property.type.equals("appearance")) {
-							updateExternalChoices = true;
-						}
 					}
-				} else if(ci.question != null && ci.question.appearance != null) {
-					updateExternalChoices = true;
-				}
+				} 
 			}
 		}
 		// End Authorisation

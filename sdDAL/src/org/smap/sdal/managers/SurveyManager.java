@@ -30,7 +30,9 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -87,6 +89,19 @@ public class SurveyManager {
 		}
 		this.tz = tz;
 	}
+	
+	private String sqlGetOptions = "select o.o_id as o_id, "
+			+ "o.ovalue as value, "
+			+ "o.label_id, "
+			+ "o.externalfile, "
+			+ "o.cascade_filters, "
+			+ "o.column_name, "
+			+ "o.display_name, "
+			+ "o.published,"
+			+ "o.seq as seq "
+			+ "from option o "
+			+ "where o.l_id = ? "
+			+ "order by o.seq";
 	
 	public ArrayList<Survey> getSurveys(Connection sd, PreparedStatement pstmt,
 			String user, 
@@ -738,17 +753,6 @@ public class SurveyManager {
 
 		// SQL to get the options belonging to a choice list		
 		ResultSet rsGetOptions = null;
-		String sqlGetOptions = "select o.o_id, "
-				+ "o.ovalue as value, "
-				+ "o.label_id, "
-				+ "o.externalfile, "
-				+ "o.cascade_filters, "
-				+ "o.column_name, "
-				+ "o.display_name, "
-				+ "o.published "
-				+ "from option o "
-				+ "where o.l_id = ? "
-				+ "order by o.seq";
 		PreparedStatement pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
 
 		// Get the server side calculations
@@ -1507,7 +1511,7 @@ public class SurveyManager {
 		boolean setReadonly = false;
 		boolean onlyIfNotPublished = false;
 
-		//PreparedStatement pstmtProperty1 = null;
+		PreparedStatement pstmt = null;
 		PreparedStatement pstmtProperty2 = null;
 		PreparedStatement pstmtProperty3 = null;
 		PreparedStatement pstmtDependent = null;
@@ -1536,7 +1540,6 @@ public class SurveyManager {
 				+ "parentform, parentquestion, repeats, path, form_index) " +
 				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
-		PreparedStatement pstmt = null;
 		String sql = "delete from question q where f_id = ? and qname = ? and q.q_id in " +
 				" (select q_id from question q, form f where q.f_id = f.f_id and f.s_id = ?);";	// Ensure user is authorised to access this question
 
@@ -1654,7 +1657,110 @@ public class SurveyManager {
 						property = "nodeset";
 					} 
 					
-					if((propertyType = GeneralUtilityMethods.columnType(sd, "question", property)) != null) {
+					/*
+					 * If the property is app_choices then the values are not stored in q property column in the database
+					 *  instead they are stored in the choices list
+					 * otherwise check to ensure that the properties column exists for this property
+					 */
+					if(property.equals("app_choices")) {
+						int listId = -1;
+						Option o = new Option();
+						o.labels = new ArrayList<Label> ();
+						
+						String pVal = ci.property.newVal;
+						if(pVal != null && pVal.trim().length() > 0) {
+							String [] vArray = pVal.split("\\s+");
+							ArrayList<String> elems = new ArrayList<String>();
+							Collections.addAll(elems, vArray);
+							for(String e : elems) {
+								String [] eArray = e.split("::");
+								if(eArray.length > 1) {
+									if(eArray[0].equals("_sv")) {
+										o.value = eArray[1];
+									} else if(eArray.length > 2) {
+										if(eArray[0].equals("_sl")) {
+											Label l = new Label();
+											l.text = eArray[2];
+											o.labels.add(l);
+										}
+									}
+								}
+							}
+						}
+						
+						if(o.value != null) {
+							
+							/*
+							 * Get the list id
+							 */
+							String sqlListId = "select l_id from question where q_id = ?";
+							try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+							pstmt = sd.prepareStatement(sqlListId);
+							pstmt.setInt(1,  ci.property.qId);
+							ResultSet rs = pstmt.executeQuery();
+							if(rs.next()) {
+								listId = rs.getInt(1);
+		
+								/*
+								 * Get the existing choices for this list
+								 * All those choices that have a non numeric value will need to be deleted
+								 */
+								try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+								pstmt = sd.prepareStatement(sqlGetOptions);
+								pstmt.setInt(1, listId);
+								ResultSet rsGetOptions = pstmt.executeQuery();
+								ArrayList<Option> optionsToDelete = new ArrayList<Option> ();
+								int sequenceNumber = -1;
+								while(rsGetOptions.next()) {
+								
+									int id = rsGetOptions.getInt("o_id");
+									String exVal = rsGetOptions.getString("value");
+									int seq = rsGetOptions.getInt("seq");
+									
+									boolean isInteger = false;
+									try {
+										int x = Integer.parseInt(exVal);
+									} catch (Exception e) {
+										
+									}
+									if(isInteger) {
+										continue;		// Ignore numeric options
+									} else {
+										if(sequenceNumber == -1) {
+											sequenceNumber = seq;		// Remember this as the sequence number to use
+										}
+										// Delete non numeric values
+										Option oToDelete = new Option();
+										oToDelete.id = id;
+										oToDelete.value = exVal;
+										optionsToDelete.add(o);
+									}
+								}
+								
+								QuestionManager qm = new QuestionManager(localisation);	
+								
+								/*
+								 * Delete the existing text choices
+								 */
+								qm.deleteOptions(sd, sId, optionsToDelete, true, listId);							
+								
+								/*
+								 * Insert the new choice
+								 */
+								if(sequenceNumber == -1) {
+									sequenceNumber = 0;
+								}
+								o.seq = sequenceNumber;								
+								ArrayList<Option> options = new ArrayList<Option> ();
+								options.add(o);
+								qm.saveOptions(sd, sId, options, true, listId);
+							}
+							
+						} else {
+							throw new Exception("Error: value in search appearance choice was null: ");
+						}
+						
+					} else if((propertyType = GeneralUtilityMethods.columnType(sd, "question", property)) != null) {
 
 						// One for the case where the property has not been set before
 						String sqlProperty2 = "update question set " + property + " = ? " +
@@ -1919,6 +2025,7 @@ public class SurveyManager {
 							String endGroupName = ci.property.name + "_groupEnd";
 
 							// Delete the end group
+							try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 							pstmt = sd.prepareStatement(sql);
 							pstmt.setInt(1, ci.property.fId);
 							pstmt.setString(2, endGroupName);
@@ -2193,8 +2300,8 @@ public class SurveyManager {
 			try {if (pstmtAddNodeset != null) {pstmtAddNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtClearNodeset != null) {pstmtClearNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtForm != null) {pstmtForm.close();}} catch (SQLException e) {}
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtSource != null) {pstmtSource.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
 		}
 
@@ -2382,9 +2489,9 @@ public class SurveyManager {
 			} 
 
 			if(action.equals("add")) {
-				qm.saveOptions(connectionSD, sId, options, true);
+				qm.saveOptions(connectionSD, sId, options, true, -1);
 			} else if(action.equals("delete")) {
-				qm.deleteOptions(connectionSD, sId, options, true);
+				qm.deleteOptions(connectionSD, sId, options, true, -1);
 			} else if(action.equals("update")) {
 				qm.updateOptions(connectionSD, sId, properties);
 			} else if(action.equals("move")) {
