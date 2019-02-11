@@ -865,7 +865,7 @@ public class QuestionManager {
 	 * Called by editor
 	 * Add new options
 	 */
-	public void saveOptions(Connection sd, int sId, ArrayList<Option> options, boolean updateLabels) throws SQLException {
+	public void saveOptions(Connection sd, int sId, ArrayList<Option> options, boolean updateLabels, int l_id) throws SQLException {
 
 		PreparedStatement pstmtInsertOption = null;
 		String sql = "insert into option (o_id, l_id, seq, label_id, ovalue, column_name, cascade_filters, display_name, externalfile) " +
@@ -888,7 +888,12 @@ public class QuestionManager {
 			for(Option o : options) {
 
 				// Get the list id for this option
-				int listId = GeneralUtilityMethods.getListId(sd, sId, o.optionList);
+				int listId = -1;
+				if(l_id >= 0) {
+					listId = l_id;
+				} else {
+					listId = GeneralUtilityMethods.getListId(sd, sId, o.optionList);
+				}
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 
@@ -933,7 +938,7 @@ public class QuestionManager {
 	/*
 	 * Delete options
 	 */
-	public void deleteOptions(Connection sd, int sId, ArrayList<Option> options, boolean updateLabels) throws SQLException {
+	public void deleteOptions(Connection sd, int sId, ArrayList<Option> options, boolean updateLabels, int l_id) throws SQLException {
 
 		PreparedStatement pstmtDelLabels = null;
 		String sqlDelLabels = "delete from translation t where t.s_id = ? and " +
@@ -955,7 +960,12 @@ public class QuestionManager {
 			for(Option o : options) {
 
 				// Get the list id for this option
-				int listId = GeneralUtilityMethods.getListId(sd, sId, o.optionList);
+				int listId = -1;
+				if(l_id >= 0) {
+					listId = l_id;
+				} else {
+					listId = GeneralUtilityMethods.getListId(sd, sId, o.optionList);
+				}
 
 				// Delete the option labels
 				if(updateLabels) {

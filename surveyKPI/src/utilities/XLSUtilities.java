@@ -598,9 +598,6 @@ public class XLSUtilities {
             }
 
         }
-    	
-    	
-    		String result = null;
 		
 		new XFormsModule().registerModule();
 		

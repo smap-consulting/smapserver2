@@ -431,7 +431,6 @@ public class PDFTableManager {
 	 */
 	void setColor(String aValue, DisplayItem di, boolean isLabel) {
 		
-		di.labelbg = null;
 		BaseColor color = null;
 		
 		String [] parts = aValue.split("_");

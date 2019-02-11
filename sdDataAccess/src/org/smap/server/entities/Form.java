@@ -68,6 +68,8 @@ public class Form implements Serializable {
 	private boolean reference = false;
 	
 	public int qSeq = 0;		// Used to store current sequence while saving a forms questions
+	
+	public int geomCount = 0;		// Used to count the geoms in a form
 	/*
 	 * Constructor
 	 */
