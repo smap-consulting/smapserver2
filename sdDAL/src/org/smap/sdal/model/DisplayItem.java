@@ -1,7 +1,5 @@
 package org.smap.sdal.model;
 
-import java.util.ArrayList;
-
 import com.itextpdf.text.BaseColor;
 
 

@@ -866,6 +866,8 @@ public class PDFSurveyManager {
 							// or the previous row was at a different depth
 							if(firstQuestion) {
 								newTable.setSpacingBefore(5);
+							} else {
+								newTable.setSpacingBefore(row.spaceBefore());
 							}
 							firstQuestion = false;
 	
