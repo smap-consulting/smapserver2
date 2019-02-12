@@ -110,7 +110,8 @@ public class Tasks extends Application {
 	@Produces("application/json")
 	public Response getTasks(@Context HttpServletRequest request,
 			@QueryParam("limit") int limit,
-			@QueryParam("user") int userId) { 
+			@QueryParam("user") int userId,
+			@QueryParam("geojson") String geojson) { 
 		
 		Response response = null;
 		
@@ -127,8 +128,8 @@ public class Tasks extends Application {
 			}
 			
 			if(orgId > 0) {
-				TasksManager sm = new TasksManager(orgId);
-				response = sm.getTasks(sd, orgId, userId, limit);
+				TasksManager tm = new TasksManager(orgId);
+				response = tm.getTasks(sd, orgId, userId, limit);
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
