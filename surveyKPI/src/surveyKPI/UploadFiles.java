@@ -614,7 +614,7 @@ public class UploadFiles extends Application {
 			}
 			
 			Survey s = null;					// Used for XLS uploads (The new way)
-			SurveyTemplate model = null;		// Used for XML uploads (This old way), Convert to Survey after loading
+			SurveyTemplate model = null;		// Used for XML uploads (The old way), Convert to Survey after loading
 			if(isExcel) {
 				XLSTemplateUploadManager tum = new XLSTemplateUploadManager(localisation, warnings);
 				s = tum.getSurvey(sd, 

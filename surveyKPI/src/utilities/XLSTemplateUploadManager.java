@@ -205,6 +205,7 @@ public class XLSTemplateUploadManager {
 			 * 2. Process the survey sheet
 			 */
 			getForm("main", -1, -1, null);
+			// Validate the top level form
 			if(survey.forms.get(0).questions.size() == 0) {
 				throw new ApplicationException(localisation.getString("tu_nq"));
 			}
@@ -467,7 +468,7 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Process the question rows to create a form
 	 */
-	private void getForm(String name, int parentFormIndex, int parentQuestionIndex, ArrayList<KeyValueSimp>  parameters) throws Exception {
+	private Form getForm(String name, int parentFormIndex, int parentQuestionIndex, ArrayList<KeyValueSimp>  parameters) throws Exception {
 
 		Form f = new Form(name, parentFormIndex, parentQuestionIndex);
 		setFormReference(parameters, f);
@@ -493,7 +494,7 @@ public class XLSTemplateUploadManager {
 							if(parentFormIndex < 0) {
 								throw XLSUtilities.getApplicationException(localisation, "tu_eer", rowNumSurvey, "survey", null, null, null);
 							}
-							return; 
+							return f; 
 						}
 							
 						// Update the survey manifest if csv files are referenced from the appearance and/or the calculation
@@ -505,13 +506,17 @@ public class XLSTemplateUploadManager {
 						f.questions.add(q);
 						
 						if(q.type.equals("begin repeat")) {
-							getForm(q.name, thisFormIndex, f.questions.size() - 1, q.paramArray);
+							int repeatRowNumber = rowNumSurvey;
+							Form subForm = getForm(q.name, thisFormIndex, f.questions.size() - 1, q.paramArray);
+							validateSubForm(q, repeatRowNumber, subForm);
 						}
 					}
 				}
 						
 			}
+			
 		}
+		return f;
 
 	}
 
@@ -861,6 +866,26 @@ public class XLSTemplateUploadManager {
 		return visible;
 	}
 
+	private void validateSubForm(Question q, int rowNumber, Form f) throws Exception {
+		
+		if(f.questions.size() == 0) {
+			// Form must have at least one question
+			throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+		} else {
+			// Questions must be visible
+			boolean hasVisibleQuestion = false;
+			for(Question qx : f.questions) {
+				if(!qx.type.equals("calculate")) {
+					hasVisibleQuestion = true;
+					break;
+				}
+			}
+			if(!hasVisibleQuestion) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+			}
+		}
+	}
+	
 	private void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {
 
 		/*
@@ -983,6 +1008,20 @@ public class XLSTemplateUploadManager {
 			}
 			q.paramArray = noDups;
 			
+		}
+		
+		// Check that parent and child forms have the form_identifier parameter
+		if(q.type.equals("parent_form") || q.type.equals("child_form")) {
+			boolean hasFormIdentifier = false;
+			for(KeyValueSimp kv : q.paramArray) {
+				if(kv.k.equals("form_identifier")) {
+					hasFormIdentifier = true;
+					break;
+				}
+			}
+			if(!hasFormIdentifier) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_form_launch", rowNumber, "survey", null, null, null);
+			}
 		}
 		
 	}
