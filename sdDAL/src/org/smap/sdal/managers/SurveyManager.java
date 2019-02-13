@@ -1663,104 +1663,7 @@ public class SurveyManager {
 					 * otherwise check to ensure that the properties column exists for this property
 					 */
 					if(property.equals("app_choices")) {
-						int listId = -1;
-						Option o = new Option();
-						o.labels = new ArrayList<Label> ();
-						
-						String pVal = ci.property.newVal;
-						if(pVal.length() > 0) {
-							if(pVal != null && pVal.trim().length() > 0) {
-								String [] vArray = pVal.split("\\s+");
-								ArrayList<String> elems = new ArrayList<String>();
-								Collections.addAll(elems, vArray);
-								for(String e : elems) {
-									String [] eArray = e.split("::");
-									if(eArray.length > 1) {
-										if(eArray[0].equals("_sv")) {
-											o.value = eArray[1];
-										} else if(eArray.length > 2) {
-											if(eArray[0].equals("_sl")) {
-												Label l = new Label();
-												l.text = eArray[2];
-												o.labels.add(l);
-											}
-										}
-									}
-								}
-							}
-							
-							if(o.value != null) {
-								
-								/*
-								 * Get the list id
-								 */
-								String sqlListId = "select l_id from question where q_id = ?";
-								try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-								pstmt = sd.prepareStatement(sqlListId);
-								pstmt.setInt(1,  ci.property.qId);
-								ResultSet rs = pstmt.executeQuery();
-								if(rs.next()) {
-									listId = rs.getInt(1);
-			
-									/*
-									 * Get the existing choices for this list
-									 * All those choices that have a non numeric value will need to be deleted
-									 */
-									try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-									pstmt = sd.prepareStatement(sqlGetOptions);
-									pstmt.setInt(1, listId);
-									ResultSet rsGetOptions = pstmt.executeQuery();
-									ArrayList<Option> optionsToDelete = new ArrayList<Option> ();
-									int sequenceNumber = -1;
-									while(rsGetOptions.next()) {
-									
-										int id = rsGetOptions.getInt("o_id");
-										String exVal = rsGetOptions.getString("value");
-										int seq = rsGetOptions.getInt("seq");
-										
-										boolean isInteger = false;
-										try {
-											int x = Integer.parseInt(exVal);
-										} catch (Exception e) {
-											
-										}
-										if(isInteger) {
-											continue;		// Ignore numeric options
-										} else {
-											if(sequenceNumber == -1) {
-												sequenceNumber = seq;		// Remember this as the sequence number to use
-											}
-											// Delete non numeric values
-											Option oToDelete = new Option();
-											oToDelete.id = id;
-											oToDelete.value = exVal;
-											optionsToDelete.add(o);
-										}
-									}
-									
-									QuestionManager qm = new QuestionManager(localisation);	
-									
-									/*
-									 * Delete the existing text choices
-									 */
-									qm.deleteOptions(sd, sId, optionsToDelete, true, listId);							
-									
-									/*
-									 * Insert the new choice
-									 */
-									if(sequenceNumber == -1) {
-										sequenceNumber = 0;
-									}
-									o.seq = sequenceNumber;								
-									ArrayList<Option> options = new ArrayList<Option> ();
-									options.add(o);
-									qm.saveOptions(sd, sId, options, true, listId);
-								}
-								
-							} else {
-								throw new Exception("Error: value in search appearance choice was null: ");
-							}
-						}
+						updateSearchChoices(sd, pstmt, ci.property.newVal, sId, ci.property.qId);
 						
 					} else if((propertyType = GeneralUtilityMethods.columnType(sd, "question", property)) != null) {
 
@@ -3808,6 +3711,106 @@ public class SurveyManager {
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+	}
+	
+	public void updateSearchChoices(Connection sd, PreparedStatement pstmt, String pVal, int sId, int qId) throws Exception {
+		int listId = -1;
+		Option o = new Option();
+		o.labels = new ArrayList<Label> ();
+		
+		if(pVal.length() > 0) {
+			if(pVal != null && pVal.trim().length() > 0) {
+				String [] vArray = pVal.split("\\s+");
+				ArrayList<String> elems = new ArrayList<String>();
+				Collections.addAll(elems, vArray);
+				for(String e : elems) {
+					String [] eArray = e.split("::");
+					if(eArray.length > 1) {
+						if(eArray[0].equals("_sv")) {
+							o.value = eArray[1];
+						} else if(eArray.length > 2) {
+							if(eArray[0].equals("_sl")) {
+								Label l = new Label();
+								l.text = eArray[2];
+								o.labels.add(l);
+							}
+						}
+					}
+				}
+			}
+			
+			if(o.value != null) {
+				
+				/*
+				 * Get the list id
+				 */
+				String sqlListId = "select l_id from question where q_id = ?";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sqlListId);
+				pstmt.setInt(1,  qId);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					listId = rs.getInt(1);
+
+					/*
+					 * Get the existing choices for this list
+					 * All those choices that have a non numeric value will need to be deleted
+					 */
+					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sqlGetOptions);
+					pstmt.setInt(1, listId);
+					ResultSet rsGetOptions = pstmt.executeQuery();
+					ArrayList<Option> optionsToDelete = new ArrayList<Option> ();
+					int sequenceNumber = -1;
+					while(rsGetOptions.next()) {
+					
+						int id = rsGetOptions.getInt("o_id");
+						String exVal = rsGetOptions.getString("value");
+						int seq = rsGetOptions.getInt("seq");
+						
+						boolean isInteger = false;
+						try {
+							int x = Integer.parseInt(exVal);
+						} catch (Exception e) {
+							
+						}
+						if(isInteger) {
+							continue;		// Ignore numeric options
+						} else {
+							if(sequenceNumber == -1) {
+								sequenceNumber = seq;		// Remember this as the sequence number to use
+							}
+							// Delete non numeric values
+							Option oToDelete = new Option();
+							oToDelete.id = id;
+							oToDelete.value = exVal;
+							optionsToDelete.add(o);
+						}
+					}
+					
+					QuestionManager qm = new QuestionManager(localisation);	
+					
+					/*
+					 * Delete the existing text choices
+					 */
+					qm.deleteOptions(sd, sId, optionsToDelete, true, listId);							
+					
+					/*
+					 * Insert the new choice
+					 */
+					if(sequenceNumber == -1) {
+						sequenceNumber = 0;
+					}
+					o.seq = sequenceNumber;								
+					ArrayList<Option> options = new ArrayList<Option> ();
+					options.add(o);
+					qm.saveOptions(sd, sId, options, true, listId);
+				}
+				
+			} else {
+				throw new Exception("Error: value in search appearance choice was null: ");
+			}
 		}
 	}
 }
