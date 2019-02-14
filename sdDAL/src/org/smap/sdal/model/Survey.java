@@ -39,6 +39,7 @@ public class Survey {
 	public String def_lang;
 	public boolean task_file;		// Set true if this data from a file can be pre-loaded into this survey
 	public boolean timing_data;		// Set true if timing data is to be collected for this survey
+	public boolean audit_location_data;		// Set true if location is to be recorded for each question
 	public String surveyClass;
 	public boolean deleted;
 	public boolean blocked;
@@ -262,8 +263,9 @@ public class Survey {
 				+ "public_link,"
 				+ "pulldata,"
 				+ "hide_on_device,"
-				+ "timing_data) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?, ?, ?);";		
+				+ "timing_data,"
+				+ "audit_location_data) "
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -296,6 +298,7 @@ public class Survey {
 			pstmt.setString(16, pd);
 			pstmt.setBoolean(17, hideOnDevice);
 			pstmt.setBoolean(18, timing_data);
+			pstmt.setBoolean(18, audit_location_data);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id

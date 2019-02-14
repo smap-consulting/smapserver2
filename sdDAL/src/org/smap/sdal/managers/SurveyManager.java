@@ -367,7 +367,8 @@ public class SurveyManager {
 				+ "s.group_survey_id,"
 				+ "s.public_link, "
 				+ "o.e_id,"
-				+ "s.hide_on_device "
+				+ "s.hide_on_device, "
+				+ "s.audit_location_data "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -432,6 +433,7 @@ public class SurveyManager {
 				s.publicLink = resultSet.getString(25);
 				s.e_id = resultSet.getInt(26);
 				s.setHideOnDevice(resultSet.getBoolean(27));
+				s.audit_location_data = resultSet.getBoolean(28);
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {

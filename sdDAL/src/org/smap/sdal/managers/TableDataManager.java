@@ -12,6 +12,7 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SqlFrag;
@@ -362,6 +363,7 @@ public class TableDataManager {
 				TableColumn c = columns.get(i);
 				String name = null;
 				String value = null;
+				JSONObject jsonAudit = null;
 
 				if (c.isGeometry()) {
 					// Add Geometry (assume one geometry type per table)
@@ -439,6 +441,10 @@ public class TableDataManager {
 							value = rs.getString(i + 1); // Assume text
 						}
 
+					} else if(c.type.equals(SmapQuestionTypes.AUDIT)) {
+						value = "{\"" + name + "\":" + rs.getString(i + 1) + "}";
+						System.out.println("Audit: " + value);
+						jsonAudit = new JSONObject(value);
 					} else {
 						value = rs.getString(i + 1);
 					}
@@ -454,7 +460,11 @@ public class TableDataManager {
 						if(isGeoJson && name.equals("prikey")) {
 							id = value;
 						} else {
-							jf.put(name, value);
+							if(c.type.equals(SmapQuestionTypes.AUDIT)) {
+								jf.put(name, jsonAudit.get(name));
+							} else {
+								jf.put(name, value);
+							}
 						}
 					}
 				}
