@@ -204,11 +204,12 @@ public class XLSTemplateUploadManager {
 			/*
 			 * 2. Process the survey sheet
 			 */
-			getForm("main", -1, -1, null);
+			Form f = getForm("main", -1, -1, null);
 			// Validate the top level form
 			if(survey.forms.get(0).questions.size() == 0) {
 				throw new ApplicationException(localisation.getString("tu_nq"));
 			}
+			validateForm(1, f);
 			
 			/*
 			 * 3, Process the settings sheet
@@ -508,8 +509,9 @@ public class XLSTemplateUploadManager {
 						if(q.type.equals("begin repeat")) {
 							int repeatRowNumber = rowNumSurvey;
 							Form subForm = getForm(q.name, thisFormIndex, f.questions.size() - 1, q.paramArray);
-							validateSubForm(q, repeatRowNumber, subForm);
+							validateForm(repeatRowNumber, subForm);
 						}
+						
 					}
 				}
 						
@@ -866,7 +868,7 @@ public class XLSTemplateUploadManager {
 		return visible;
 	}
 
-	private void validateSubForm(Question q, int rowNumber, Form f) throws Exception {
+	private void validateForm(int rowNumber, Form f) throws Exception {
 		
 		if(f.questions.size() == 0) {
 			// Form must have at least one question
@@ -884,6 +886,41 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
 			}
 		}
+		
+		/*
+		 * Validate groups
+		 */
+		for(int i = 0; i < f.questions.size(); i++) {
+			Question q = f.questions.get(i);
+			if(q.type.equals("begin group")) {
+				validateGroup(f.questions, q, i);
+			}
+		}
+	}
+	
+	private int validateGroup(ArrayList<Question> questions, Question groupQuestion, int start) throws ApplicationException {
+		
+		Question q;
+		String name = groupQuestion.name;
+		int i;
+		boolean hasVisibleQuestion = false;
+		for(i = start + 1; i < questions.size(); i++) {
+			q = questions.get(i);
+			if(q.type.equals("begin group")) {
+				hasVisibleQuestion = true;		// Count another group as a visible question, as long as this embedded group has a visible question then all is good
+				validateGroup(questions, q, i);	// recursive validation
+			} else if(q.type.equals("end group")) {
+				break;
+			} else if(!q.type.equals("calculate")) {
+				hasVisibleQuestion = true;
+			}
+		}
+		
+		if(!hasVisibleQuestion) {
+			Integer rowNumber = qNameMap.get(name.toLowerCase());
+			throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+		}
+		return i + 1;
 	}
 	
 	private void validateQuestion(Question q, int rowNumber, int formIndex) throws Exception {
