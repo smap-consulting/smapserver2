@@ -90,6 +90,9 @@ public class ChoiceManager {
 						foundStatic = true;
 					} 
 				}
+				/*
+				 * This needs to be reviewed - at the least it needs to filter on match for external choices from another file
+				 *
 				if(external_choices && !foundStatic) {
 					// 2. Search choices which are stored in an external table
 					ArrayList<String> miniMatch = new ArrayList<> ();
@@ -119,6 +122,7 @@ public class ChoiceManager {
 						}
 					}			
 				}
+				*/
 			}
 			
 		}
