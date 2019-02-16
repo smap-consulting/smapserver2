@@ -2533,6 +2533,7 @@ public class SurveyManager {
 				}
 				// Do not include records marked as bad - in particular some child records may have been marked as bad and these should be excluded from pdf reports
 				sql.append(" and not _bad");
+				sql.append(" order by prikey asc");
 				
 				pstmt = cResults.prepareStatement(sql.toString());	 
 				if(instanceId != null) {
