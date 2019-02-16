@@ -466,6 +466,12 @@ public class GetXForm {
 				// Add a timing element if we have entered the meta group and timing is enabled
 				if (template.getSurvey().getTimingData()) {
 					Element audit = outputDoc.createElement("audit");
+					// Add parameters to control auditing of location if this is requested
+					if (template.getSurvey().getAuditLocationData()) {
+						audit.setAttribute("odk:location-priority", "balanced");
+						audit.setAttribute("odk:location-min-interval", "10");
+						audit.setAttribute("odk:location-max-age", "60");
+					}
 					metaGroup.appendChild(audit);
 				}
 

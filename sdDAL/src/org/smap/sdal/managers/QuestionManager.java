@@ -114,6 +114,8 @@ public class QuestionManager {
 		String sqlSetLabels = "insert into translation (s_id, language, text_id, type, value, external) " +
 				"values (?, ?, ?, ?, ?, ?)";
 		
+		PreparedStatement pstmt = null;
+		
 		try {
 			pstmtUpdateSeq = sd.prepareStatement(sqlUpdateSeq);
 			pstmtInsertQuestion = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -314,6 +316,14 @@ public class QuestionManager {
 					pstmtForm.executeUpdate();
 
 				}
+				
+				// Potentially update choices if this is a sleect question that uses search()
+				if(q.type.startsWith("select") || q.type.equals("rank")) {
+					if(q.app_choices !=null && q.app_choices.length() > 0) {
+						sm.updateSearchChoices(sd, pstmt, q.app_choices, sId, qId);
+					}
+					
+				}
 
 			}
 
@@ -328,6 +338,7 @@ public class QuestionManager {
 			try {if (pstmtGetFormId != null) {pstmtGetFormId.close();}} catch (SQLException e) {}
 			try {if (pstmtGetOldQuestions != null) {pstmtGetOldQuestions.close();}} catch (SQLException e) {}
 			try {if (pstmtSetLabels != null) {pstmtSetLabels.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 	}

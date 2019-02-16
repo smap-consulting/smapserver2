@@ -4363,7 +4363,10 @@ public class GeneralUtilityMethods {
 			Connection cResults,
 			ResourceBundle localisation, 
 			String remoteUser,
-			int oId, int sId, int qId, ArrayList<String> matches,
+			int oId, 
+			int sId, 
+			int qId, 
+			ArrayList<String> matches,
 			String surveyIdent,
 			String tz) throws Exception {
 
@@ -4420,9 +4423,19 @@ public class GeneralUtilityMethods {
 								if(filename.equals("linked_self")) {
 									filename = "linked_" + surveyIdent;
 								}
+								
+								ArrayList<String> matchCols = null; 
+								String selection = null;
+								if(matches != null && matches.size() == 1) {
+									// Match on ovalue
+									matchCols = new ArrayList<> ();
+									matchCols.add(ovalue);
+									
+									selection = ovalue + " = ?";
+								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "all", null, null, null, null, null, tz);
+								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz);
 								
 								Option o = null;
 								while((o = stm.getLineAsOption(ovalue, languageItems)) != null) {

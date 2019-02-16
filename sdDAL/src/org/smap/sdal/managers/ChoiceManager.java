@@ -50,6 +50,7 @@ public class ChoiceManager {
 	
 	public String getLabel(Connection sd, Connection cResults, String user, 
 			int oId, int sId, int qId, int l_id, boolean external_choices, String external_table, String languageName,
+			int languageIdx,
 			ArrayList<String> matches,
 			String surveyIdent) throws Exception {
 		
@@ -67,7 +68,6 @@ public class ChoiceManager {
 			 * 1. Search choices which are stored in the survey meta definition
 			 * If the choices are external then only numeric values are checked
 			 */			 
-			int idx = 0;
 			for(String match : matches) {
 				
 				boolean foundStatic = false;
@@ -90,26 +90,18 @@ public class ChoiceManager {
 						foundStatic = true;
 					} 
 				}
+				/*
+				 * Get external choices
+				 */
 				if(external_choices && !foundStatic) {
 					// 2. Search choices which are stored in an external table
 					ArrayList<String> miniMatch = new ArrayList<> ();
 					miniMatch.add(match);
 					ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, 
 							localisation, user, oId, sId, qId, miniMatch, surveyIdent, tz);
-					idx = 0;
-					int languageIdx = 0;
+
 					if(choices != null && choices.size() > 0) {
 						for(Option choice : choices) {
-							if(idx++ == 0) {
-								// Get the language index
-								for(LanguageItem item : choice.externalLabel) {
-									if(languageName == null || languageName.equals("none") || languageName.equals(item.language)) {
-										break;
-									} else {
-										languageIdx++;
-									}
-								}
-							}
 							if(choice.labels != null && choice.labels.size() > languageIdx) {
 								if(labels.length() > 0) {
 									labels.append(", ");

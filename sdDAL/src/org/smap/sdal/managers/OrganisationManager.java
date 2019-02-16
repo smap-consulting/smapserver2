@@ -269,9 +269,13 @@ public class OrganisationManager {
 				+ "allow_email, allow_facebook, allow_twitter, can_edit, email_task, "
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
-				+ "can_notify, can_use_api, can_submit, e_id, changed_ts) "
-				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,"
-				+ "?, ?, ?, ?, now());";
+				+ "can_notify, can_use_api, can_submit, e_id, ft_backward_navigation, ft_image_size, ft_send, ft_delete, "
+				+ "ft_send_location, changed_ts) "
+				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
+				+ "?, ?, ?, ?, ?, ?, "
+				+ "?, ?, ?, ?, ?,"
+				+ "?, ?, ?, ?, ?, ?, ?, ?, "
+				+ "?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -325,6 +329,11 @@ public class OrganisationManager {
 			pstmt.setBoolean(23, o.can_use_api);
 			pstmt.setBoolean(24, o.can_submit);
 			pstmt.setInt(25, o.e_id);			// TODO set from current organisation enterprise id
+			pstmt.setString(26, "not set");		// backward navigation
+			pstmt.setString(27, "not set");		// image size
+			pstmt.setString(28, "not set");			// send automatically
+			pstmt.setString(29, "not set");		// FT delete after sending
+			pstmt.setString(30, "not set");		// Send location
 			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
