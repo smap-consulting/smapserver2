@@ -298,7 +298,7 @@ public class Survey {
 			pstmt.setString(16, pd);
 			pstmt.setBoolean(17, hideOnDevice);
 			pstmt.setBoolean(18, timing_data);
-			pstmt.setBoolean(18, audit_location_data);
+			pstmt.setBoolean(19, audit_location_data);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
