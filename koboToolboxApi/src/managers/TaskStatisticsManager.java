@@ -40,14 +40,14 @@ import org.smap.sdal.model.Survey;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-public class TasksManager {
+public class TaskStatisticsManager {
 	
 	private static Logger log =
 			 Logger.getLogger(Data_CSV.class.getName());
 
 	private int orgId;							// Organisation id
 	
-	public TasksManager(int orgId) {
+	public TaskStatisticsManager(int orgId) {
 		this.orgId = orgId;
 	}
 	

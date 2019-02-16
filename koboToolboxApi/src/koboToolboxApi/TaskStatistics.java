@@ -18,7 +18,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import managers.TasksManager;
+import managers.TaskStatisticsManager;
 import model.TasksEndPoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -41,17 +41,18 @@ import org.smap.sdal.Utilities.SDDataSource;
 /*
  * Returns overview data such as the number of submissions
  * This is a Smap specific extension to the KoboToolbox API
+ * TODO review utility
  */
-@Path("/v1/tasks")
+@Path("/v1/taskstatistics")
 @Produces("application/json")
-public class Tasks extends Application {
+public class TaskStatistics extends Application {
 	
 	Authorise a = null;
 	
 	private static Logger log =
-			 Logger.getLogger(Tasks.class.getName());
+			 Logger.getLogger(TaskStatistics.class.getName());
 	
-	public Tasks() {
+	public TaskStatistics() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
@@ -128,7 +129,7 @@ public class Tasks extends Application {
 			}
 			
 			if(orgId > 0) {
-				TasksManager tm = new TasksManager(orgId);
+				TaskStatisticsManager tm = new TaskStatisticsManager(orgId);
 				response = tm.getTasks(sd, orgId, userId, limit);
 			}
 		} catch (Exception e) {
@@ -166,7 +167,7 @@ public class Tasks extends Application {
 			int orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			
 			if(orgId > 0) {
-				TasksManager sm = new TasksManager(orgId);
+				TaskStatisticsManager sm = new TaskStatisticsManager(orgId);
 				response = sm.getTaskStats(sd, orgId, group, x, period, userId);
 			}
 		} catch (Exception e) {
