@@ -882,8 +882,10 @@ public class XLSTemplateUploadManager {
 					break;
 				}
 			}
+			
 			if(!hasVisibleQuestion) {
-				throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+				ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+				warnings.add(new ApplicationWarning(e.getMessage()));
 			}
 		}
 		
@@ -918,7 +920,8 @@ public class XLSTemplateUploadManager {
 		
 		if(!hasVisibleQuestion) {
 			Integer rowNumber = qNameMap.get(name.toLowerCase());
-			throw XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
+			warnings.add(new ApplicationWarning(e.getMessage()));
 		}
 		return i + 1;
 	}
@@ -1220,8 +1223,6 @@ public class XLSTemplateUploadManager {
 			// Check for a duplicate value
 			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);
 			warnings.add(new ApplicationWarning(e.getMessage()));
-			//throw XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);
-
 		}
 
 		listMap.put(o.value, rowNumber);
