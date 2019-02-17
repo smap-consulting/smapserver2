@@ -257,16 +257,17 @@ public class TaskManager {
 	}
 
 	/*
-	 * Get the tasks for the specified task group
+	 * Get tasks
 	 */
 	public TaskListGeoJson getTasks(Connection sd, 
-			int taskGroupId, 
+			int oId,			// only required if tgId is not set
+			int tgId, 		// Presumably this has been security checked as being in correct organisation
 			boolean completed,
 			int userId,
 			String incStatus,
 			String period) throws Exception {
 
-		String sql1 = "select t.id as t_id, "
+		StringBuffer sql = new StringBuffer("select t.id as t_id, "
 				+ "t.title as name,"
 				+ "t.schedule_at as schedule_at,"
 				+ "t.schedule_finish as schedule_finish,"
@@ -300,59 +301,78 @@ public class TaskManager {
 				+ "left outer join assignments a "
 				+ "on a.task_id = t.id " 
 				+ "left outer join users u "
-				+ "on a.assignee = u.id "
-				+ "where t.tg_id = ? ";
+				+ "on a.assignee = u.id");
 		
-		if(period == null) {
-			period = "all";
+		// Restrict by taskGroupId
+		if(tgId > 0) {
+			sql.append(" where t.tg_id = ?");
+		} else {
+			sql.append( " where t.p_id in (select id from project where o_id = ?)");
 		}
-		String sql2 = null;
-		if(period.equals("all")) {
-			sql2 = "";
-		} else if(period.equals("week")) {
-			sql2 = " and t.schedule_at > now() - interval '7 days' ";
-		} else if(period.equals("month")) {
-			sql2 = " and t.schedule_at > now() - interval '30 days' ";
+		
+		// Restrict by period
+		if(period != null) {	
+			if(period.equals("week")) {
+				sql.append(" and t.schedule_at > now() - interval '7 days' ");
+			} else if(period.equals("month")) {
+				sql.append(" and t.schedule_at > now() - interval '30 days' ");
+			}
 		}
-		String sql3 =  null;
-		String sqlOrder = " order by t.schedule_at desc, t.id, a.id desc;";
-		PreparedStatement pstmt = null;
-
-		TaskListGeoJson tl = new TaskListGeoJson();
+		
+		// Filter by status values
 
 		// Create the list of status values to return
+		//if(incStatus == null) {
+		//	for(String status : fullStatusList) {
+		//		statusList.add(status);
+		//	}
+		//	sqlStatus = "and (a.status is null or a.status = any (?)) ";
+		//} else {
+		
 		ArrayList<String> statusList = new ArrayList<String> ();
-		if(incStatus == null) {
-			for(String status : fullStatusList) {
-				statusList.add(status);
-			}
-			sql3 = "and (a.status is null or a.status = any (?)) ";
-		} else {
+		String sqlStatus = "and a.status = any (?) ";		// No need to include unassigned tasks
+		if(incStatus != null) {
 			String [] incStatusArray = incStatus.split(",");
 			for(String status : incStatusArray) {
 				for(String statusRef : fullStatusList) {
 					if(status.trim().equals(statusRef)) {
 						statusList.add(statusRef);
 						if(statusRef.equals("new")) {
-							sql3 = "and (a.status is null or a.status = any (?)) ";
+							sqlStatus = "and (a.status is null or a.status = any (?)) ";
 						}
 						break;
 					}
 				}
 			}
 		}
-		if(sql3 == null) {
-			sql3 = "and a.status = any (?) ";		// No need to include unassigned tasks
+		if(statusList.size() > 0) {	
+			sql.append(sqlStatus);
 		}
 		
+		// Add order by
+		sql.append(" order by t.schedule_at desc, t.id, a.id desc");
+		
+		PreparedStatement pstmt = null;
+		TaskListGeoJson tl = new TaskListGeoJson();
+	
 		try {
 
-			pstmt = sd.prepareStatement(sql1 + sql2 + sql3 + sqlOrder);	
-			pstmt.setInt(1, taskGroupId);
-			pstmt.setArray(2, sd.createArrayOf("text", statusList.toArray(new String[statusList.size()])));		
+			pstmt = sd.prepareStatement(sql.toString());	
+			
+			// Set parameters
+			int paramIdx = 1;
+			if(tgId > 0) {
+				pstmt.setInt(paramIdx++, tgId);
+			} else {
+				pstmt.setInt(paramIdx++, oId);
+			}
+			if(statusList.size() > 0) {	
+				pstmt.setArray(paramIdx++, sd.createArrayOf("text", statusList.toArray(new String[statusList.size()])));
+			}
+			
+			// Get the data
 			log.info("Get tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
-
 			JsonParser parser = new JsonParser();
 			while (rs.next()) {
 
