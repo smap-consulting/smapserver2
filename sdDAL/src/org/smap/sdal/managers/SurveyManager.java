@@ -479,9 +479,8 @@ public class SurveyManager {
 
 				}
 			}
-		} catch (SQLException e) {
-			throw e;
 		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			throw e;
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e){};
