@@ -29,7 +29,7 @@ import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.hssf.usermodel.HSSFHyperlink;
+import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.ChartColumn;
@@ -290,15 +290,20 @@ public class XLSReportsManager {
 
 				if(value != null && (value.startsWith("https://") || value.startsWith("http://"))) {
 					cell.setCellStyle(styles.get("link"));
+					Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
+					url.setAddress(value);
+					cell.setHyperlink(url);
+					/*
 					if(isXLSX) {
-						XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
+						XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(HyperlinkType.URL);
 						url.setAddress(value);
 						cell.setHyperlink(url);
 					} else {
-						HSSFHyperlink url = new HSSFHyperlink(HSSFHyperlink.LINK_URL);
+						HSSFHyperlink url = new HSSFHyperlink(HyperlinkType.URL);
 						url.setAddress(value);
 						cell.setHyperlink(url);
 					}
+					*/
 
 				}
 

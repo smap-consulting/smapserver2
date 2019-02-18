@@ -14,27 +14,26 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
-import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFDataFormat;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
-import org.apache.poi.hssf.usermodel.HSSFHyperlink;
-import org.apache.poi.hssf.util.HSSFColor;
 import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.BorderStyle;
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.ClientAnchor;
-import org.apache.poi.ss.usermodel.Color;
 import org.apache.poi.ss.usermodel.CreationHelper;
 import org.apache.poi.ss.usermodel.DataFormat;
 import org.apache.poi.ss.usermodel.Drawing;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
+import org.apache.poi.ss.usermodel.HorizontalAlignment;
 import org.apache.poi.ss.usermodel.Hyperlink;
 import org.apache.poi.ss.usermodel.IndexedColors;
 import org.apache.poi.ss.usermodel.Picture;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFHyperlink;
 import org.javarosa.core.model.condition.IFunctionHandler;
 import org.javarosa.core.model.data.IAnswerData;
 import org.javarosa.core.model.instance.InstanceInitializationFactory;
@@ -64,11 +63,11 @@ public class XLSUtilities {
 		 * Create fonts
 		 */
 		Font largeFont = wb.createFont();
-		largeFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		largeFont.setBold(true);
 		largeFont.setFontHeightInPoints((short) 14);
 
 		Font boldFont = wb.createFont();
-		boldFont.setBoldweight(Font.BOLDWEIGHT_BOLD);
+		boldFont.setBold(true);
 
 		Font linkFont = wb.createFont();
 		linkFont.setUnderline(Font.U_SINGLE);
@@ -90,21 +89,21 @@ public class XLSUtilities {
 		
 		style = wb.createCellStyle();
 		style.setFont(boldFont);
-		style.setFillForegroundColor(HSSFColor.LIGHT_GREEN.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("wide", style);
 
 		style = wb.createCellStyle();
 		style.setFont(boldFont);
 		style.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("header2", style);
 		styles.put("header_tasks", style);
 		
 		style = wb.createCellStyle();
 		style.setFont(boldFont);
 		style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("header_assignments", style);
 
 		style = wb.createCellStyle();
@@ -112,13 +111,13 @@ public class XLSUtilities {
 		styles.put("errorStyle", style);
 		
 		style = wb.createCellStyle();
-		style.setFillForegroundColor(HSSFColor.LIGHT_GREEN.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("good", style);
 		
 		style = wb.createCellStyle();
-		style.setFillForegroundColor(HSSFColor.ROSE.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillForegroundColor(IndexedColors.ROSE.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("bad", style);
 		
 		style = wb.createCellStyle();
@@ -127,23 +126,23 @@ public class XLSUtilities {
 
 		style = wb.createCellStyle();
 		style.setFillForegroundColor(IndexedColors.CORNFLOWER_BLUE.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("begin repeat", style);
 
 		style = wb.createCellStyle();
 		style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("begin group", style);
 		styles.put("header_assignments", style);
 
 		style = wb.createCellStyle();
 		style.setFillForegroundColor(IndexedColors.LIGHT_GREEN.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("is_required", style);
 
 		style = wb.createCellStyle();
 		style.setFillForegroundColor(IndexedColors.CORAL.getIndex());
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("not_required", style);
 
 
@@ -156,8 +155,8 @@ public class XLSUtilities {
 		
 		style = wb.createCellStyle();
 		style.setWrapText(true);
-		style.setFillForegroundColor(HSSFColor.GREY_25_PERCENT.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		styles.put("default_grey", style);
 
 		style = wb.createCellStyle();
@@ -181,40 +180,40 @@ public class XLSUtilities {
 		 */
 		style = wb.createCellStyle();
 		style.setFont(largeFont);
-		style.setAlignment(CellStyle.ALIGN_LEFT);
+		style.setAlignment(HorizontalAlignment.LEFT);
 		styles.put("title", style);
 
 		style = wb.createCellStyle();	
 		style.setWrapText(true);
-		style.setAlignment(CellStyle.ALIGN_LEFT);
+		style.setAlignment(HorizontalAlignment.LEFT);
 		styles.put("no_border", style);
 
 		// Remaining styles are all derived from a common base style
 		style = getBaseStyle(wb);
 		style = wb.createCellStyle();
-		style.setFillForegroundColor(HSSFColor.GREY_25_PERCENT.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
+		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.index);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 		style.setFont(boldFont);
 		styles.put("group", style);
 
 		style = getBaseStyle(wb);
-		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		styles.put("data", style);
 
 		style = getBaseStyle(wb);
-		style.setFillForegroundColor(HSSFColor.LIGHT_YELLOW.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
-		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setFillForegroundColor(IndexedColors.LIGHT_YELLOW.index);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		styles.put("source", style);
 
 		style = getBaseStyle(wb);
-		style.setFillForegroundColor(HSSFColor.LAVENDER.index);
-		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
-		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setFillForegroundColor(IndexedColors.LAVENDER.index);
+		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		styles.put("raw_source", style);
 
 		style = getBaseStyle(wb);
-		style.setAlignment(CellStyle.ALIGN_CENTER);
+		style.setAlignment(HorizontalAlignment.CENTER);
 		style.setFont(boldFont);  
 		styles.put("data_header", style);
 		
@@ -230,11 +229,11 @@ public class XLSUtilities {
 		CellStyle style = wb.createCellStyle();
 
 		style.setWrapText(true);
-		style.setAlignment(CellStyle.ALIGN_LEFT);
-		style.setBorderBottom(HSSFCellStyle.BORDER_THIN);
-		style.setBorderTop(HSSFCellStyle.BORDER_THIN);
-		style.setBorderRight(HSSFCellStyle.BORDER_THIN);
-		style.setBorderLeft(HSSFCellStyle.BORDER_THIN);
+		style.setAlignment(HorizontalAlignment.LEFT);
+		style.setBorderBottom(BorderStyle.THIN);
+		style.setBorderTop(BorderStyle.THIN);
+		style.setBorderRight(BorderStyle.THIN);
+		style.setBorderLeft(BorderStyle.THIN);
 
 		return style;
 	}
@@ -365,7 +364,7 @@ public class XLSUtilities {
 		boolean bValue = false;
 		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
 
-		if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+		if(c.getCellType() == CellType.NUMERIC) {
 			if (HSSFDateUtil.isCellDateFormatted(c)) {
 				dateValue = c.getDateCellValue();
 				value = dateFormat.format(dateValue);
@@ -376,12 +375,12 @@ public class XLSUtilities {
 					value = value.substring(0, value.lastIndexOf('.'));
 				}
 			}
-		} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
+		} else if(c.getCellType() == CellType.STRING) {
 			value = c.getStringCellValue();
-		} else if(c.getCellType() == Cell.CELL_TYPE_BOOLEAN) {
+		} else if(c.getCellType() == CellType.BOOLEAN) {
 			bValue = c.getBooleanCellValue();
 			value = String.valueOf(bValue);
-		} else if(c.getCellType() == Cell.CELL_TYPE_BLANK) {
+		} else if(c.getCellType() == CellType.BLANK) {
 			value = c.getStringCellValue();	// !! Not sure what this is about
 		} else {
 			throw(new ApplicationException("Error: Unknown cell type: " + c.getCellType() + 
@@ -454,6 +453,10 @@ public class XLSUtilities {
 						coords[0] +
 						"&zoom=14";
 				cell.setCellStyle(styles.get("link"));
+				Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
+				url.setAddress(value);
+				cell.setHyperlink(url);
+				/*
 				if(isXLSX) {
 					XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
 					url.setAddress(value);
@@ -463,6 +466,7 @@ public class XLSUtilities {
 					url.setAddress(value);
 					cell.setHyperlink(url);
 				}
+				*/
 			} 
 			cell.setCellValue(value);
 			
@@ -488,7 +492,7 @@ public class XLSUtilities {
 							anchor.setRow1(row - 1);
 							anchor.setCol2(col + 1);
 							anchor.setRow2(row);
-							anchor.setAnchorType(ClientAnchor.MOVE_AND_RESIZE); 
+							anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_AND_RESIZE); 
 							//sheet.setColumnWidth(i, 20 * 256);
 							Drawing drawing = sheet.createDrawingPatriarch();
 							Picture pict = drawing.createPicture(anchor, pictureureIdx);
@@ -501,6 +505,10 @@ public class XLSUtilities {
 			} 
 
 			cell.setCellStyle(styles.get("link"));
+			Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
+			url.setAddress(value);
+			cell.setHyperlink(url);
+			/*
 			if(isXLSX) {
 				XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
 				url.setAddress(value);
@@ -510,6 +518,7 @@ public class XLSUtilities {
 				url.setAddress(value);
 				cell.setHyperlink(url);
 			}
+			*/
 
 			cell.setCellValue(value);
 

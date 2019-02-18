@@ -85,7 +85,7 @@ public class DocumentXLSManager {
 			int namedCellIdx = wb.getNameIndex(kv.k);
 		    Name aNamedCell = wb.getNameAt(namedCellIdx);
 
-		    AreaReference aref = new AreaReference(aNamedCell.getRefersToFormula());
+		    AreaReference aref = new AreaReference(aNamedCell.getRefersToFormula(), null);
 		    CellReference[] crefs = aref.getAllReferencedCells();
 		  
 		    for (int i = 0; i < crefs.length; i++) {

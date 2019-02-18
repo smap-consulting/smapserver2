@@ -462,7 +462,7 @@ public class XLSTaskManager {
 			if(idx <= lastCellNum) {
 				Cell c = row.getCell(idx);
 				if(c != null) {
-					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC || c.getCellType() == Cell.CELL_TYPE_FORMULA) {
+					if(c.getCellType() == CellType.NUMERIC || c.getCellType() == CellType.FORMULA) {
 						if (HSSFDateUtil.isCellDateFormatted(c)) {
 							dateValue = c.getDateCellValue();
 							value = dateFormat.format(dateValue);
@@ -473,7 +473,7 @@ public class XLSTaskManager {
 								value = value.substring(0, value.lastIndexOf('.'));
 							}
 						}
-					} else if(c.getCellType() == Cell.CELL_TYPE_STRING) {
+					} else if(c.getCellType() == CellType.STRING) {
 						value = c.getStringCellValue();
 					} else {
 						value = null;
@@ -508,7 +508,7 @@ public class XLSTaskManager {
 				Cell c = row.getCell(idx);
 				if(c != null) {
 					log.info("Get date column: " + name);
-					if(c.getCellType() == Cell.CELL_TYPE_NUMERIC) {
+					if(c.getCellType() == CellType.NUMERIC) {
 						if (HSSFDateUtil.isCellDateFormatted(c)) {
 							tsValue = new Timestamp(c.getDateCellValue().getTime());
 						} 

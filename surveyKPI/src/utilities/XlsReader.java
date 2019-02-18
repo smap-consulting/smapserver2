@@ -1,7 +1,6 @@
 package utilities;
 
 import java.io.InputStream;
-import java.text.Format;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -11,8 +10,6 @@ import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.util.CellReference;
-import org.apache.poi.xssf.usermodel.XSSFCell;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.openxmlformats.schemas.spreadsheetml.x2006.main.CTSheet;
@@ -78,7 +75,7 @@ public class XlsReader {
 	            		
 	            		if(!header && !ignore) {
 		            		switch (cell.getCellType()) {
-		            		case XSSFCell.CELL_TYPE_NUMERIC:
+		            		case NUMERIC: 
 		            			if(DateUtil.isCellDateFormatted(cell)) {
 		            				try {
 			            				Date dv = cell.getDateCellValue();
