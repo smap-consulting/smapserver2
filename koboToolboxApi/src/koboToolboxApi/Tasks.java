@@ -99,24 +99,14 @@ public class Tasks extends Application {
 	@Produces("application/json")
 	public Response getTasks(@Context HttpServletRequest request,
 			@QueryParam("user") String userIdent,		// User to get tasks for
-			@QueryParam("user") String period,			// Period to get tasks for week || month
-			
-			@QueryParam("start") int start,				// Task id to start from
-			@QueryParam("limit") int limit,				// Number of records to return
-			@QueryParam("mgmt") boolean mgmt,
-			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
-			@QueryParam("sort") String sort,				// Column Human Name to sort on
-			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
-			@QueryParam("form") String formName,			// Form name (optional only specify for a child form)
-			@QueryParam("start_parkey") int start_parkey,// Parent key to start from
-			@QueryParam("parkey") int parkey,			// Parent key (optional, use to get records that correspond to a single parent record)
-			@QueryParam("hrk") String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
-			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
-			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
-			@QueryParam("audit") String audit_set,		// if yes return audit data
-			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
+			@QueryParam("period") String period,			// Period to get tasks for all || week || month
 			@QueryParam("tz") String tz,					// Timezone
-			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
+			@QueryParam("tg_id") int tg_id,				// Task group			
+			@QueryParam("start") int start,				// Task id to start from			
+			@QueryParam("limit") int limit,				// Number of records to return
+			@QueryParam("sort") String sort,				// Column to sort on
+			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
+			
 			) throws ApplicationException, Exception { 
 		
 		// Authorisation - Access
@@ -130,14 +120,41 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			int userId = 0;
-			if(userIdent != null) {
-				userId = GeneralUtilityMethods.getUserId(sd, userIdent);
+			int oId = 0;
+			int tgId = 0;
+			if(tg_id != 0) {
+				tgId = tg_id;
+			} else {
+				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
 			}
+			
+			// Parameters
+			int userId = 0;								// All Users
+			if(userIdent != null) {
+				if(userIdent.equals("_unassigned")) {
+					userId = -1;							// Only unassigned
+				} else {
+					userId = GeneralUtilityMethods.getUserId(sd, userIdent);
+				}
+			}
+			
+			if(period == null) {
+				period = "week";		// As per default in UI
+			}
+			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, oId, 0, true, userId, null, period);		
+			TaskListGeoJson t = tm.getTasks(sd, 
+					oId, 
+					tgId, 
+					true, 
+					userId, 
+					null, 
+					period, 
+					start, 
+					limit,
+					sort,
+					dirn);		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

@@ -43,7 +43,7 @@ import org.smap.sdal.Utilities.SDDataSource;
  * This is a Smap specific extension to the KoboToolbox API
  * TODO review utility
  */
-@Path("/v1/taskstatistics")
+@Path("/v1/statistics")
 @Produces("application/json")
 public class TaskStatistics extends Application {
 	
@@ -106,7 +106,7 @@ public class TaskStatistics extends Application {
 	
 	/*
 	 * KoboToolBox API version 1 - get a list of tasks /data (Smap extension)
-	 */
+	 *
 	@GET
 	@Produces("application/json")
 	public Response getTasks(@Context HttpServletRequest request,
@@ -142,13 +142,13 @@ public class TaskStatistics extends Application {
 	
 		return response;
 	}
-	
+	*/
 	/*
 	 * KoboToolBox API version 1 for statistics on tasks /data (Smap extension)
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/stats")
+	@Path("/tasks")
 	public Response getTaskStatistics(@Context HttpServletRequest request,
 			@QueryParam("group") String group,
 			@QueryParam("x") String x,

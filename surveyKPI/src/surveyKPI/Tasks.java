@@ -167,7 +167,8 @@ public class Tasks extends Application {
 			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, 0, tgId, true, userId, null, period);		
+			TaskListGeoJson t = tm.getTasks(sd, 0, tgId, true, userId, null, period, 0, 0,
+					"scheduled", "desc");		
 			
 			// Return groups to calling program
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -448,7 +449,8 @@ public class Tasks extends Application {
 			TaskManager tm = new TaskManager(localisation, tz);
 			
 			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
-			TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, true, 0, incStatus, "all");	// Get the task list
+			TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, true, 0, incStatus, "all", 0, 0,
+					"scheduled", "desc");	// Get the task list
 			GeneralUtilityMethods.setFilenameInResponse(tg.name + "." + filetype, response); // Set file name
 			
 			// Create XLSTasks File
@@ -583,7 +585,8 @@ public class Tasks extends Application {
 				 *  from latitude and longitude
 				 *  Also we may not want to return complete tasks
 				 */
-				TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, true, userId, null, "all");	// TODO set "complete" flag from passed in parameter
+				TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, true, userId, null, "all", 0, 0,
+						"scheduled", "desc");	// TODO set "complete" flag from passed in parameter
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
 				

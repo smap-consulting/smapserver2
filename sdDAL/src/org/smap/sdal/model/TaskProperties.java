@@ -3,8 +3,9 @@ package org.smap.sdal.model;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
-public class TaskProperties {
+public class TaskProperties {	
 	public int id;
+	public int tg_id;
 	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
 	public String name;
 	public String pid;				// Project id

@@ -265,13 +265,18 @@ public class TaskManager {
 			boolean completed,
 			int userId,
 			String incStatus,
-			String period) throws Exception {
+			String period,
+			int start,		// First task id to return
+			int limit,		// Maximum number of tasks to return
+			String sort,		// Data to sort on
+			String dirn		// Direction of sort asc || desc
+			) throws Exception {
 
 		StringBuffer sql = new StringBuffer("select t.id as t_id, "
 				+ "t.title as name,"
-				+ "t.schedule_at as schedule_at,"
-				+ "t.schedule_finish as schedule_finish,"
-				+ "t.schedule_at + interval '1 hour' as default_finish,"
+				+ "timezone(?, t.schedule_at) as schedule_at,"
+				+ "timezone(?, t.schedule_finish) as schedule_finish,"
+				+ "timezone(?, t.schedule_at) + interval '1 hour' as default_finish,"
 				+ "t.location_trigger as location_trigger,"
 				+ "t.update_id as update_id,"
 				+ "t.initial_data as initial_data,"
@@ -284,6 +289,7 @@ public class TaskManager {
 				+ "t.survey_name as form_name,"
 				+ "t.deleted,"
 				+ "t.complete_all,"
+				+ "t.tg_id,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
 				+ "a.id as assignment_id,"
@@ -310,6 +316,11 @@ public class TaskManager {
 			sql.append( " where t.p_id in (select id from project where o_id = ?)");
 		}
 		
+		// Restrict by start task id
+		if(start > 0) {
+			sql.append(" and t.id >= ?");
+		}
+		
 		// Restrict by period
 		if(period != null) {	
 			if(period.equals("week")) {
@@ -318,16 +329,6 @@ public class TaskManager {
 				sql.append(" and t.schedule_at > now() - interval '30 days' ");
 			}
 		}
-		
-		// Filter by status values
-
-		// Create the list of status values to return
-		//if(incStatus == null) {
-		//	for(String status : fullStatusList) {
-		//		statusList.add(status);
-		//	}
-		//	sqlStatus = "and (a.status is null or a.status = any (?)) ";
-		//} else {
 		
 		ArrayList<String> statusList = new ArrayList<String> ();
 		String sqlStatus = "and a.status = any (?) ";		// No need to include unassigned tasks
@@ -350,7 +351,22 @@ public class TaskManager {
 		}
 		
 		// Add order by
-		sql.append(" order by t.schedule_at desc, t.id, a.id desc");
+		if(dirn == null || !dirn.equals("desc")) {
+			dirn = "asc";
+		} else {
+			dirn = "desc";
+		}
+		sql.append(" order by");
+		if(sort != null) {
+			if(sort.equals("scheduled")) {
+				sql.append(" t.schedule_at ").append(dirn).append(", t.id ");
+			} else {
+				sql.append(" t.id ").append(dirn);
+			}
+		} else {
+			sql.append(" t.id ").append(dirn);
+		}
+		sql.append(", a.id ");
 		
 		PreparedStatement pstmt = null;
 		TaskListGeoJson tl = new TaskListGeoJson();
@@ -359,14 +375,25 @@ public class TaskManager {
 
 			pstmt = sd.prepareStatement(sql.toString());	
 			
-			// Set parameters
+			/*
+			 * Set the parameters
+			 */
 			int paramIdx = 1;
-			if(tgId > 0) {
+			pstmt.setString(paramIdx++, tz);		// Timezones
+			pstmt.setString(paramIdx++, tz);
+			pstmt.setString(paramIdx++, tz);
+			
+			if(tgId > 0) {						// Task group or organisation
 				pstmt.setInt(paramIdx++, tgId);
 			} else {
 				pstmt.setInt(paramIdx++, oId);
 			}
-			if(statusList.size() > 0) {	
+			
+			if(start > 0) {						// Starting task
+				pstmt.setInt(paramIdx++, start);
+			}
+			
+			if(statusList.size() > 0) {			// Task Status
 				pstmt.setArray(paramIdx++, sd.createArrayOf("text", statusList.toArray(new String[statusList.size()])));
 			}
 			
@@ -374,6 +401,7 @@ public class TaskManager {
 			log.info("Get tasks: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			JsonParser parser = new JsonParser();
+			int index = 0;
 			while (rs.next()) {
 
 				String status = rs.getString("status");
@@ -428,8 +456,14 @@ public class TaskManager {
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
 				tf.properties.complete_all = rs.getBoolean("complete_all");
+				tf.properties.tg_id = rs.getInt("tg_id");
 
 				tl.features.add(tf);
+				
+				index++;
+				if (limit > 0 && index >= limit) {
+					break;
+				}
 			}
 
 
