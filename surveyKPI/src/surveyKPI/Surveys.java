@@ -50,6 +50,7 @@ import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -787,6 +788,51 @@ public class Surveys extends Application {
 			
 			SDDataSource.closeConnection("surveyKPI-Survey", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Survey", cResults);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Add a meta item
+	 */
+	@Path("/add_meta/{sIdent}")
+	@POST
+	public Response saveMetaItem(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,
+			@FormParam("item") String metaString) { 
+		
+		Response response = null;
+		
+		String connectionString = "SurveyKPI=Survey-AddMeta";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);	// Validate that the user can access this survey
+		// End Authorisation
+		
+		MetaItem item  = new Gson().fromJson(metaString, MetaItem.class);
+				
+		PreparedStatement pstmt = null;
+		
+		try {
+	
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception loading settings", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			
+			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
