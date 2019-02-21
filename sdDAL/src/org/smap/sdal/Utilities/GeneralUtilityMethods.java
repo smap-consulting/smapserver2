@@ -4304,7 +4304,7 @@ public class GeneralUtilityMethods {
 				} else if(id == SmapServerMeta.SCHEDULED_START_ID) {
 					qName = SmapServerMeta.SCHEDULED_START_NAME;
 				} else {
-					ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+					ArrayList<MetaItem> preloads = getPreloads(sd, sId);
 					for(MetaItem mi : preloads) {
 						if(mi.id == id) {
 							qName = mi.name;
@@ -6754,6 +6754,32 @@ public class GeneralUtilityMethods {
 		return colname;
 	}
 
+	/*
+	 * Get preloads in a survey
+	 */
+	public static void setPreloads(Connection sd, int sId, ArrayList<MetaItem> preloads) throws SQLException {
+
+		String sql = "update survey "
+				+ "set meta = ? "
+				+ "where s_id = ?";
+		PreparedStatement pstmt = null;
+
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		String metaString = gson.toJson(preloads);
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, metaString);
+			pstmt.setInt(2, sId);
+			log.info("Update meta item data: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+
+		return;
+	}
+	
 	/*
 	 * Get preloads in a survey
 	 */

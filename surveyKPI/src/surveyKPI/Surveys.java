@@ -801,7 +801,8 @@ public class Surveys extends Application {
 	@POST
 	public Response saveMetaItem(@Context HttpServletRequest request,
 			@PathParam("sIdent") String sIdent,
-			@FormParam("item") String metaString) { 
+			@FormParam("item") String metaString,
+			@FormParam("appearances") String appearances) { 
 		
 		Response response = null;
 		
@@ -818,11 +819,33 @@ public class Surveys extends Application {
 		// End Authorisation
 		
 		MetaItem item  = new Gson().fromJson(metaString, MetaItem.class);
-				
+		item.isPreload = true;
+		
+		System.out.println("Appearances: " + appearances);
+		
 		PreparedStatement pstmt = null;
 		
 		try {
-	
+			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+			
+			/*
+			 * Loop though the existing meta items and update or replace
+			 */
+			boolean replace = false;
+			for(MetaItem mi : preloads) {
+				if(mi.isPreload && mi.sourceParam.equals(item.sourceParam)) {
+					mi.name = item.name;
+					mi.display_name = item.display_name;
+					replace = true;
+					break;
+				}
+			}
+			if(!replace) {
+				preloads.add(item);
+			}
+			GeneralUtilityMethods.setPreloads(sd, sId, preloads);
+			
 			response = Response.ok().build();
 			
 		} catch (Exception e) {

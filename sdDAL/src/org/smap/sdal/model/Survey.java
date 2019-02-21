@@ -529,7 +529,6 @@ public class Survey {
 	 * Update the forms with
 	 *  parent form
 	 *  parent question
-	 *  repeats TODO
 	 */
 	private void updateForms(Connection sd) throws SQLException {
 		
