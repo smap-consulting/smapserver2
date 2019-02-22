@@ -179,7 +179,7 @@ public class SurveyTableManager {
 			String tz
 			) throws Exception {
 		
-		if(sqlDef != null && sqlDef.colNames.size() > 0) {
+		if(sqlDef != null && sqlDef.qnames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
 			// Add filter
@@ -195,18 +195,18 @@ public class SurveyTableManager {
 					sql.append(filter);
 				}
 			} else if (type.equals("choices")) {
-				// Check the where columns
+				// Check the where questions
 				if(whereColumns != null) {
 					for(String col : whereColumns) {
 						boolean foundCol = false;
-						for(String h : sqlDef.colNames) {
+						for(String h : sqlDef.qnames) {
 							if(h.equals(col)) {
 								foundCol = true;
 								break;
 							}
 						}
 						if(!foundCol) {
-							throw new ApplicationException("Column " + col + " not found in table ");
+							throw new ApplicationException("Question " + col + " not found in table ");
 						}
 					}
 				}

@@ -4374,7 +4374,11 @@ public class GeneralUtilityMethods {
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
-		String sqlChoices = "select ovalue, label_id from option where l_id = ? and not externalfile and ovalue !~ '^[0-9]+$'";
+		String sqlChoices = "select ovalue, label_id, column_name "
+				+ "from option "
+				+ "where l_id = ? "
+				+ "and not externalfile "
+				+ "and ovalue !~ '^[0-9]+$'";
 		PreparedStatement pstmtChoices = null;
 			
 		String sqlLabels = "select t.value, t.language " 
@@ -4405,6 +4409,7 @@ public class GeneralUtilityMethods {
 					if(rsChoices.next()) {
 						String ovalue = rsChoices.getString(1);
 						String oLabelId = rsChoices.getString(2);
+						String oColumn = rsChoices.getString(3);
 						
 						pstmtLabels = sd.prepareCall(sqlLabels);
 						pstmtLabels.setString(1, oLabelId);
@@ -4431,7 +4436,7 @@ public class GeneralUtilityMethods {
 									matchCols = new ArrayList<> ();
 									matchCols.add(ovalue);
 									
-									selection = ovalue + " = ?";
+									selection = oColumn + " = ?";
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
