@@ -12,6 +12,7 @@ public class MetaItem {
 	public boolean isPreload;
 	public String display_name;
 	public boolean published = false;
+	public String settings;
 	
 	public MetaItem(
 			int id,
@@ -21,7 +22,8 @@ public class MetaItem {
 			String columnName, 
 			String dataType, 		// jr:preload - timestamp, property, null
 			boolean isPreload,
-			String display_name
+			String display_name,
+			String settings
 			) throws Exception {
 		if(id > -1000) {
 			throw new Exception("Invalid Meta Item ID");
@@ -34,5 +36,6 @@ public class MetaItem {
 		this.dataType = dataType;
 		this.isPreload = isPreload;
 		this.display_name = display_name;
+		this.settings = settings;
 	}
 }
