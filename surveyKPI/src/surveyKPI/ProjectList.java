@@ -301,7 +301,7 @@ public class ProjectList extends Application {
 				for(int i = 0; i < pArray.size(); i++) {
 					Project p = pArray.get(i);
 					
-					a.isValidProject(sd, request.getRemoteUser(), p.id);		// Authorise deletion of this project
+					a.projectInUsersOrganisation(sd, request.getRemoteUser(), p.id);		// Authorise deletion of this project
 					
 					/*
 					 * Ensure that there are no undeleted surveys in this project
