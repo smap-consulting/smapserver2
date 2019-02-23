@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -801,8 +802,7 @@ public class Surveys extends Application {
 	@POST
 	public Response saveMetaItem(@Context HttpServletRequest request,
 			@PathParam("sIdent") String sIdent,
-			@FormParam("item") String metaString,
-			@FormParam("appearances") String appearances) { 
+			@FormParam("item") String metaString) { 
 		
 		Response response = null;
 		
@@ -821,8 +821,6 @@ public class Surveys extends Application {
 		MetaItem item  = new Gson().fromJson(metaString, MetaItem.class);
 		item.isPreload = true;
 		
-		System.out.println("Appearances: " + appearances);
-		
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -837,14 +835,80 @@ public class Surveys extends Application {
 				if(mi.isPreload && mi.sourceParam.equals(item.sourceParam)) {
 					mi.name = item.name;
 					mi.display_name = item.display_name;
+					mi.settings = item.settings;
 					replace = true;
 					break;
 				}
 			}
 			if(!replace) {
 				preloads.add(item);
+				if(item.type == null) {
+					if(item.sourceParam.equals("start") || item.sourceParam.equals("end")) {
+						item.type = "timestamp";
+					} else if(item.sourceParam.equals("today")) {
+						item.type = "date";
+					} else {
+						item.type = "property";
+					}
+				}
 			}
 			GeneralUtilityMethods.setPreloads(sd, sId, preloads);
+			
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Exception loading settings", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			
+			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Add a meta item
+	 */
+	@Path("/meta/{sIdent}/{ident}")
+	@DELETE
+	public Response deleteMetaItem(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("ident") String ident) { 
+		
+		Response response = null;
+		
+		String connectionString = "SurveyKPI=Survey-AddMeta";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);	// Validate that the user can access this survey
+		// End Authorisation
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
+			
+			ArrayList<MetaItem> newPreloads = new ArrayList<> ();
+			for(MetaItem mi : preloads) {
+				if(mi.isPreload && mi.sourceParam != null && !mi.sourceParam.equals(ident)) {
+					newPreloads.add(mi);
+				} else if(!mi.isPreload && !mi.name.equals(ident)) {
+					newPreloads.add(mi);
+				}
+			}
+			
+			GeneralUtilityMethods.setPreloads(sd, sId, newPreloads);
 			
 			response = Response.ok().build();
 			
