@@ -6863,6 +6863,7 @@ public class GeneralUtilityMethods {
 			q.type = item.dataType;
 			q.display_name = item.display_name;
 			q.name = item.name;
+			q.appearance = item.settings;
 		}
 		
 		return q;
