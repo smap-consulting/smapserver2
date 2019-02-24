@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import managers.AuditManager;
 import managers.DataManager;
 import model.DataEndPoint;
 
@@ -61,27 +62,27 @@ import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 
 /*
- * Provides access to collected data
+ * Provides access to audit views on the surveys
  */
-@Path("/v1/data")
-public class Data extends Application {
+@Path("/v1/audit")
+public class Audit extends Application {
 
 	Authorise a = null;
 	Authorise aSuper = null;
 
 	private static Logger log =
-			Logger.getLogger(Data.class.getName());
+			Logger.getLogger(Audit.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
 	// Tell class loader about the root classes.  (needed as tomcat6 does not support servlet 3)
 	public Set<Class<?>> getClasses() {
 		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Data.class);
+		s.add(Audit.class);
 		return s;
 	}
 
-	public Data() {
+	public Audit() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
@@ -103,10 +104,10 @@ public class Data extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	public Response getData(@Context HttpServletRequest request) { 
+	public Response getAudit(@Context HttpServletRequest request) { 
 
 		Response response = null;
-		String connectionString = "koboToolBoxAPI-getData";
+		String connectionString = "API - getAudit";
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -118,9 +119,9 @@ public class Data extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			DataManager dm = new DataManager(localisation);
+			AuditManager am = new AuditManager(localisation);
 			
-			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, false);
+			ArrayList<DataEndPoint> data = am.getDataEndPoints(sd, request, false);
 
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(data);
@@ -136,9 +137,8 @@ public class Data extends Application {
 	}
 
 	/*
-	 * KoboToolBox API version 1 /data
-	 * Get records for an individual survey in JSON format
-	 * Survey and form identifiers are strings
+	 * API version 1 /audity
+	 * Get audit records for an individual survey in GeoJSON format
 	 */
 	@GET
 	@Produces("application/json")
@@ -168,10 +168,6 @@ public class Data extends Application {
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz);
 	}
 	
-	/*
-	 * KoboToolBox API version 1 /data
-	 * Get records for an individual survey in JSON format
-	 */
 	private void getDataRecords(HttpServletRequest request,
 			HttpServletResponse response,
 			String sIdent,
@@ -205,15 +201,8 @@ public class Data extends Application {
 		int sId = 0;
 		int fId = 0;
 		try {
-			/*
-			 * Hack - some older clients still pass the survey id rather than the ident
-			 * Until these are fixed handle either
-			 */
-			if(sIdent.startsWith("s")) {
-				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
-			} else {
-				sId = Integer.parseInt(sIdent);							// Id the old way
-			}
+			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
+			
 			if(formName != null) {
 				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
 			}
@@ -472,357 +461,6 @@ public class Data extends Application {
 		//return response;
 
 	}
-
-	/*
-	 * Get similar records for an individual survey in JSON format
-	 */
-	@GET
-	@Produces("application/json")
-	@Path("/similar/{sId}/{select}")
-	public Response getSimilarDataRecords(@Context HttpServletRequest request,
-			@PathParam("sId") int sId,
-			@PathParam("select") String select,			// comma separated list of qname::function
-			//  where function is none || lower
-			@QueryParam("start") int start,
-			@QueryParam("limit") int limit,
-			@QueryParam("mgmt") boolean mgmt,
-			@QueryParam("form") int fId,				// Form id (optional only specify for a child form)
-			@QueryParam("format") String format			// dt for datatables otherwise assume kobo
-			) { 
-
-		Response response = null;
-
-		String connectionString = "koboToolboxApi - get similar data records";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		aSuper.isAuthorised(sd, request.getRemoteUser());
-		aSuper.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation
-
-		String language = "none";
-		Connection cResults = ResultsDataSource.getConnection(connectionString);
-
-		String sqlGetMainForm = "select f_id, table_name from form where s_id = ? and parentform = 0;";
-		PreparedStatement pstmtGetMainForm = null;
-
-		String sqlGetForm = "select parentform, table_name from form where s_id = ? and f_id = ?;";
-		PreparedStatement pstmtGetForm = null;
-
-		String sqlGetManagedId = "select managed_id from survey where s_id = ?";
-		PreparedStatement pstmtGetManagedId = null;
-
-		PreparedStatement pstmtGetSimilar = null;
-		PreparedStatement pstmtGetData = null;
-
-		String tz = "UTC";
-
-		StringBuffer columnSelect = new StringBuffer();
-		StringBuffer similarWhere = new StringBuffer();
-		ArrayList<String> groupTypes = new ArrayList<String> ();
-		int groupColumns = 0;
-		String table_name = null;
-		int parentform = 0;
-		int managedId = 0;
-		ResultSet rs = null;
-		JSONArray ja = new JSONArray();
-
-		boolean isDt = false;
-		if(format != null && format.equals("dt")) {
-			isDt = true;
-		}
-
-		try {
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
-				throw new ApplicationException(localisation.getString("susp_api"));
-			}
-			
-			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-
-			// Get the managed Id
-			if(mgmt) {
-				pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
-				pstmtGetManagedId.setInt(1, sId);
-				rs = pstmtGetManagedId.executeQuery();
-				if(rs.next()) {
-					managedId = rs.getInt(1);
-				}
-				rs.close();
-			}
-
-			if(fId == 0) {
-				pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
-				pstmtGetMainForm.setInt(1,sId);
-
-				log.info("Getting main form: " + pstmtGetMainForm.toString() );
-				rs = pstmtGetMainForm.executeQuery();
-				if(rs.next()) {
-					fId = rs.getInt(1);
-					table_name = rs.getString(2);
-				}
-				rs.close();
-			} else {
-				pstmtGetForm = sd.prepareStatement(sqlGetForm);
-				pstmtGetForm.setInt(1,sId);
-				pstmtGetForm.setInt(2,fId);
-
-				log.info("Getting specific form: " + pstmtGetForm.toString() );
-				rs = pstmtGetForm.executeQuery();
-				if(rs.next()) {
-					parentform = rs.getInt(1);
-					table_name = rs.getString(2);
-				}
-				rs.close();
-			}
-
-			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-					sd,
-					cResults,
-					localisation,
-					language,
-					sId,
-					surveyIdent,
-					request.getRemoteUser(),
-					parentform,
-					fId,
-					table_name,
-					true,		// Read Only
-					false,		// Don't include parent key
-					false,		// Don't include "bad" columns
-					true,		// include instance id
-					true,		// Include other meta data
-					true,		// Include preloads
-					true,		// Include instance name
-					false,		// Include survey duration
-					superUser,
-					false,		// Only include HXL with CSV and Excel output
-					false,
-					tz
-					);
-
-			if(mgmt) {
-				CustomReportsManager crm = new CustomReportsManager ();
-				ReportConfig config = crm.get(sd, managedId, -1);
-				columns.addAll(config.columns);
-			}
-
-			if(GeneralUtilityMethods.tableExists(cResults, table_name)) {
-
-				/*
-				 * 1. Prepare the data query minus the where clause that is created to select similar rows
-				 */
-				for(int i = 0; i < columns.size(); i++) {
-					TableColumn c = columns.get(i);
-					if(i > 0) {
-						columnSelect.append(",");
-					}
-					columnSelect.append(c.getSqlSelect(urlprefix, tz));
-				}
-
-
-				String sqlGetData = "select " + columnSelect.toString() + " from " + table_name
-						+ " where prikey >= ? "
-						+ "and _bad = 'false' ";
-				String sqlSelect = "";
-
-				String sqlGetDataOrder = null;
-
-				// Set default sort order
-				if(mgmt) {
-					sqlGetDataOrder = " order by prikey desc limit 10000";
-				} else {
-					sqlGetDataOrder = " order by prikey asc;";
-				}
-
-				/*
-				 * 1. Find the groups of similar records
-				 */
-				columnSelect = new StringBuffer();
-				String [] selectPairs = select.split(",");
-				for(int i = 0; i < selectPairs.length; i++) {
-					String [] aSelect = selectPairs[i].split("::");
-					if(aSelect.length > 1) {
-						for(int j = 0; j < columns.size(); j++) {
-							if(columns.get(j).column_name.equals(aSelect[0])) {
-								TableColumn c = columns.get(j);
-								boolean stringFnApplies = false;
-
-								if(c.type.equals("string") || c.type.equals("select1")
-										|| c.type.equals("barcode")) {
-									stringFnApplies = true;
-								}
-
-								if( groupColumns > 0) {
-									columnSelect.append(",");
-								}
-								similarWhere.append(" and ");
-
-								if(stringFnApplies 
-										&& (aSelect[1].equals("lower") 
-												|| aSelect[1].equals("soundex"))) {
-									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix, tz) + ")";
-									columnSelect.append(s);
-									similarWhere.append(s + " = ?");
-								} else {
-									String s = c.getSqlSelect(urlprefix, tz);
-									columnSelect.append(s);
-									similarWhere.append(s + " = ?");
-								}
-								groupColumns++;
-								groupTypes.add(c.type);
-								break;
-							}
-						}
-					}
-				}
-
-				if(columnSelect.length() == 0) {
-					throw new Exception("No Matching Columns");
-				}
-
-				String sqlGetSimilar = "select count(*), " + columnSelect.toString()
-				+ " from " + table_name
-				+ " where prikey >= ? "
-				+ "and _bad = 'false'";
-				String sqlGroup = " group by " + columnSelect.toString();
-				String sqlHaving = " having count(*) > 1 ";
-
-
-				pstmtGetSimilar = cResults.prepareStatement(sqlGetSimilar + sqlGroup + sqlHaving);
-				pstmtGetSimilar.setInt(1, start);
-				rs = pstmtGetSimilar.executeQuery();
-
-				/*
-				 * For each grouping of similar records get the individual records
-				 */
-				while(rs.next()) {
-
-
-					/*
-					 * 3. Get the data that make up these similar records
-					 */
-					String groupKey = "";
-					pstmtGetData = cResults.prepareStatement(sqlGetData + sqlSelect + similarWhere.toString() 
-					+ sqlGetDataOrder);
-					int paramCount = 1;
-					pstmtGetData.setInt(paramCount++, start);
-					for(int i = 0; i < groupColumns; i++) {
-						String gType = groupTypes.get(i);
-						log.info("Adding group type: " + gType);
-						if(gType.equals("int")) {
-							pstmtGetData.setInt(paramCount++, rs.getInt(i + 2));	
-						} else { 
-							pstmtGetData.setString(paramCount++, rs.getString(i + 2));
-						}
-						if(i > 0) {
-							groupKey += "::";
-						}
-						groupKey += rs.getString(i + 2);
-					}
-					log.info("Get data: " + pstmtGetData.toString());
-					ResultSet rsD = pstmtGetData.executeQuery();
-
-					int index = 0;
-					while (rsD.next()) {
-
-						if(limit > 0 && index >= limit) {
-							break;
-						}
-						index++;
-
-						JSONObject jr = new JSONObject();
-						jr.put("_group", groupKey);
-						for(int i = 0; i < columns.size(); i++) {	
-
-							TableColumn c = columns.get(i);
-							String name = null;
-							String value = null;
-
-							if(c.isGeometry()) {							
-								// Add Geometry (assume one geometry type per table)
-								String geomValue = rsD.getString(i + 1);	
-								
-								name = "_geolocation";
-								JSONArray coords = null;
-								if(geomValue != null) {
-									JSONObject jg = new JSONObject(geomValue);									
-									coords = jg.getJSONArray("coordinates");
-								} else {
-									coords = new JSONArray();
-								}
-								jr.put(name, coords);
-
-							} else {
-
-								name = c.column_name;
-								value = rsD.getString(i + 1);	
-
-								if(value == null) {
-									value = "";
-								} else if(c.type.equals("dateTime")) {
-									value = value.replaceAll("\\.[0-9]{3}", "");
-								}
-
-								if(name != null ) {
-									if(!isDt) {
-										name = GeneralUtilityMethods.translateToKobo(name);
-									}
-									jr.put(name, value);
-								}
-							}
-
-
-						}
-
-						ja.put(jr);
-					}
-					rsD.close();
-				}
-
-				rs.close();
-			}
-
-
-			if(isDt) {
-				JSONObject dt  = new JSONObject();
-				dt.put("data", ja);
-				response = Response.ok(dt.toString()).build();
-			} else {
-				response = Response.ok(ja.toString()).build();
-			}
-
-
-
-
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().build();
-		} finally {
-
-			try {if (pstmtGetMainForm != null) {pstmtGetMainForm.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGetData != null) {pstmtGetData.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGetSimilar != null) {pstmtGetSimilar.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
-
-			ResultsDataSource.closeConnection(connectionString, cResults);			
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-
-		return response;
-
-	}
-
 
 }
 
