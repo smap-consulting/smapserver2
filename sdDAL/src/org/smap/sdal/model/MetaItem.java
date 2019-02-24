@@ -1,7 +1,8 @@
 package org.smap.sdal.model;
 
-// MetaItem ids start from -1000 and go down
+// Device MetaItem ids start from -1000 and go down
 // Prikey id is set to -1
+// Server user is set to -2
 public class MetaItem {
 	public int id;	// An integer id for preloads so they can be used in lists with questions that are identified by their id
 	public String type;

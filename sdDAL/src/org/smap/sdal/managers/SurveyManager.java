@@ -2557,11 +2557,11 @@ public class SurveyManager {
 
 					String priKey = resultSet.getString(1);
 					int newParentKey = resultSet.getInt(1);   		
-					record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null));
+					record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null));     // SERVERMETA
 
 					if(isTopLevel) {
 						String user = resultSet.getString(2);
-						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));
+						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));		// SERVERMETA
 						
 						for(MetaItem mi : preloads) {
 							if(mi.isPreload && mi.published) {			
