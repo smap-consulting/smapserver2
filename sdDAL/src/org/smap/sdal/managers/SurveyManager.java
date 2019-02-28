@@ -3524,28 +3524,28 @@ public class SurveyManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, sId);
-				log.info("Update task groups: " + pstmt.toString());
+				log.info("Update task groups 1: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} else {
 				
 				sql = "update task_group "
-						+ "set source_s_id = ?"
+						+ "set source_s_id = ? "
 						+ "where source_s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
-				log.info("Update task groups: " + pstmt.toString());
+				log.info("Update task groups 2: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 				sql = "update task_group "
-						+ "set target_s_id = ?"
+						+ "set target_s_id = ? "
 						+ "where target_s_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, newSurveyId);
 				pstmt.setInt(2, sId);
-				log.info("Update task groups: " + pstmt.toString());
+				log.info("Update task groups 3: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}
 			
@@ -3564,7 +3564,7 @@ public class SurveyManager {
 			} else {
 				
 				sql = "update survey "
-						+ "set group_survey_id = ?"
+						+ "set group_survey_id = ? "
 						+ "where group_survey_id = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
