@@ -204,7 +204,7 @@ public class GetFile extends Application {
 		} catch (Exception e) {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
 		// End Authorisation 
 		
 		try {
