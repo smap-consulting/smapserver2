@@ -1801,6 +1801,8 @@ public class GeneralUtilityMethods {
 					column_name = "_hrk";
 				} else if(qName.equals("prikey")) {
 					column_name = "prikey";
+				} else if(qName.equals("_user")) {
+					column_name = "_user";
 				} else {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, sId);
