@@ -137,7 +137,7 @@ public class Audit extends Application {
 	}
 
 	/*
-	 * API version 1 /audity
+	 * API version 1 /audit
 	 * Get audit records for an individual survey in GeoJSON format
 	 */
 	@GET
@@ -156,16 +156,13 @@ public class Audit extends Application {
 			@QueryParam("start_parkey") int start_parkey,// Parent key to start from
 			@QueryParam("parkey") int parkey,			// Parent key (optional, use to get records that correspond to a single parent record)
 			@QueryParam("hrk") String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
-			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
-			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
-			@QueryParam("tz") String tz,					// Timezone
-			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
+			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
 		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz);
+				parkey, hrk, include_bad, merge, tz);
 	}
 	
 	private void getDataRecords(HttpServletRequest request,
@@ -181,11 +178,8 @@ public class Audit extends Application {
 			int start_parkey,		// Parent key to start from
 			int parkey,				// Parent key (optional, use to get records that correspond to a single parent record)
 			String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
-			String format,			// dt for datatables otherwise assume kobo
 			String include_bad,		// yes | only | none Include records marked as bad
-			String audit_set,		// if yes return audit data
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
-			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String tz				// Timezone
 			) throws ApplicationException, Exception { 
 
@@ -238,16 +232,6 @@ public class Audit extends Application {
 			dirn = "asc";
 		}
 		
-		boolean audit=false;
-		if(audit_set != null && audit_set.equals("yes")) {
-			audit = true;
-		}
-		
-		boolean isGeoJson=false;
-		if(geojson != null && geojson.equals("yes")) {
-			isGeoJson = true;
-		}
-		
 		boolean mergeSelectMultiple = false;
 		if(merge != null && merge.equals("yes")) {
 			mergeSelectMultiple = true;
@@ -255,11 +239,6 @@ public class Audit extends Application {
 
 		if(include_bad == null) {
 			include_bad = "none";
-		}
-
-		boolean isDt = false;
-		if(format != null && format.equals("dt")) {
-			isDt = true;
 		}
 		
 		tz = (tz == null) ? "UTC" : tz;
@@ -341,7 +320,7 @@ public class Audit extends Application {
 					true,		// include survey duration
 					superUser,
 					false,		// TODO include HXL
-					audit,
+					true,
 					tz
 					);
 
@@ -367,7 +346,7 @@ public class Audit extends Application {
 					dirn,
 					mgmt,
 					group,
-					isDt,
+					false,
 					start,
 					limit,
 					getParkey,
@@ -381,14 +360,8 @@ public class Audit extends Application {
 					);
 			
 			// Write array start
-			if(isDt) {
-				outWriter.print("{\"data\":");
-			}
-			if(isGeoJson) {
-				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
-																		// TODO metadata
-				outWriter.print("\"features\":");						// Features
-			}
+			outWriter.print("{\"type\":\"FeatureCollection\",");		// type
+			outWriter.print("\"features\":");						// Features
 			
 			// Add feature data
 			outWriter.print("[");
@@ -400,28 +373,32 @@ public class Audit extends Application {
 				 */
 				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				rs = pstmt.executeQuery();
-				JSONObject jo = new JSONObject();
+				ArrayList<JSONObject> auditRecords = new ArrayList<JSONObject>();
 				int index = 0;
-				while(jo != null) {
+				boolean recordWritten = false;
+				while(auditRecords != null) {
 					
-					jo =  tdm.getNextRecord(
+					auditRecords =  tdm.getNextAuditRecords(
 							rs,
 							columns,
 							urlprefix,
 							group,
-							isDt,
+							false,		// data tables
 							limit,
 							mergeSelectMultiple,
-							isGeoJson
+							false		// geojson
 							);
-					if(jo != null) {
-						if(index > 0) {
-							outWriter.print(",");
+					if(auditRecords != null) {
+						for(JSONObject jo : auditRecords) {
+							if(recordWritten) {
+								outWriter.print(",");
+							}
+							outWriter.print(jo.toString());
+							recordWritten = true;
 						}
-						outWriter.print(jo.toString());
 					}
 					
-					index++;
+					index++;		//Index assumed to refer to a submission index
 					if (limit > 0 && index >= limit) {
 						break;
 					}
@@ -431,14 +408,7 @@ public class Audit extends Application {
 			}
 			
 			outWriter.print("]");
-			if(isDt) {
-				outWriter.print("}");
-			}
-			
-			if(isGeoJson) {
-										// TODO bbox
-				outWriter.print("}");	// close
-			}
+			outWriter.print("}");	// close
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);

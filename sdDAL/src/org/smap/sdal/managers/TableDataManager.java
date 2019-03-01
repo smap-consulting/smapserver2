@@ -1,10 +1,12 @@
 package org.smap.sdal.managers;
 
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -13,10 +15,16 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.model.AuditItem;
+import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 
@@ -479,6 +487,83 @@ public class TableDataManager {
 			jr.put("id", id);
 		}
 		return jr;
+
+	}
+	
+	/*
+	 * Return the audit records for this submission record
+	 */
+	public ArrayList<JSONObject> getNextAuditRecords(
+			ResultSet rs,
+			ArrayList<TableColumn> columns, 
+			String urlprefix, 
+			boolean group, 
+			boolean isDt, 
+			int limit,
+			boolean mergeSelectMultiple,
+			boolean isGeoJson)
+			throws SQLException, Exception {
+
+		HashMap<String, AuditItem> auditData = null;
+		Type auditItemType = new TypeToken<HashMap<String, AuditItem>>() {}.getType();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		ArrayList<JSONObject> auditRecords = null;
+		JSONObject jr = null;
+		JSONObject jp = null;
+		JSONObject jf = null;
+		JSONObject jGeom = null;
+		String id = null;
+		
+		if (rs.next()) {
+
+			auditData = gson.fromJson(rs.getString("_audit"), auditItemType);
+			
+			if(auditData != null) {
+				auditRecords = new ArrayList<JSONObject> ();
+				for(String question : auditData.keySet()) {
+					
+					jr = new JSONObject();
+					jr.put("type", "Feature");
+					jp = new JSONObject();
+					
+					String value = rs.getString(question);		// TODO need to get column name					
+					AuditItem ai = auditData.get(question);
+					
+					// Set geometry
+					GeoPoint gp = ai.location;
+					StringBuffer geomValue = new StringBuffer("");
+					if(gp == null) {
+						geomValue.append("{}");
+					} else {
+						geomValue.append("{")
+								.append("\"type\": \"Point\",")
+								.append("\"coordinates\":[")
+								.append(gp.lon)
+								.append(", ")
+								.append(gp.lat)
+								.append("]")
+								.append("}");
+					}
+					jGeom = new JSONObject(geomValue.toString());
+					
+					// Add properties
+					jp.put("question", question);
+					jp.put("value", value);
+					jp.put("time_spent", ai.time);
+					jp.put("prikey", rs.getInt("prikey"));
+					
+					jr.put("properties", jp);
+					jr.put("geometry", jGeom);
+					
+					auditRecords.add(jr);
+				}
+				
+			}	
+
+		}
+		
+		return auditRecords;
 
 	}
 
