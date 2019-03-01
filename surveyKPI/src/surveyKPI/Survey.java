@@ -107,10 +107,17 @@ public class Survey extends Application {
 
 		ResponseBuilder builder = Response.ok();
 		Response response = null;
+		String connectionString = "surveyKPI-Survey-getSurveyDownload";
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey-getSurveyDownload");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidDelSurvey(sd, request.getRemoteUser(), sId, superUser);
 		// End Authorisation
 
 		if(type == null) {
@@ -121,7 +128,7 @@ public class Survey extends Application {
 		try {
 			
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tz = "UTC";	// Set default for timezone
@@ -144,7 +151,7 @@ public class Survey extends Application {
 					"FROM survey s " + 
 					"where s.s_id = ?;";
 
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			log.info("Get survey details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -271,7 +278,7 @@ public class Survey extends Application {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-Survey-getSurveyDownload", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 
 		}
 
