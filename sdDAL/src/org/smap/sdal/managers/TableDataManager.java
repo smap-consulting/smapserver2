@@ -443,7 +443,6 @@ public class TableDataManager {
 
 					} else if(c.type.equals(SmapQuestionTypes.AUDIT)) {
 						value = "{\"" + name + "\":" + rs.getString(i + 1) + "}";
-						System.out.println("Audit: " + value);
 						jsonAudit = new JSONObject(value);
 					} else {
 						value = rs.getString(i + 1);
