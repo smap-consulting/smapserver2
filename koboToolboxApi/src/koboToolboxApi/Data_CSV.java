@@ -46,7 +46,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
-import org.codehaus.jettison.json.JSONArray;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -55,8 +54,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
-import org.smap.sdal.model.Audit;
-import org.smap.sdal.model.GeoPoint;
+import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
@@ -413,7 +411,8 @@ public class Data_CSV extends Application {
 						tz);
 
 				log.info("Get CSV data: " + pstmt.toString());
-				Audit auditData = null;
+				HashMap<String, AuditItem> auditData = null;
+				Type auditItemType = new TypeToken<HashMap<String, AuditItem>>() {}.getType();
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 				rs = pstmt.executeQuery();
@@ -474,38 +473,30 @@ public class Data_CSV extends Application {
 								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
 							}
 						} else {
-							auditData = gson.fromJson(val, Audit.class);
+							auditData = gson.fromJson(val, auditItemType);
 						}
 					}
 
 					// Add the audit data
 					if (audit && auditData != null) {
-						if(auditData.time != null) {
-							for (TableColumn c : columns) {
-								if (includeInAudit(c.column_name)) {
-									record.append(",");
-									if(auditData.time.get(c.column_name) != null) {
-										record.append(auditData.time.get(c.column_name));
-									}
-								}
-							}
-						} else {
-							for (TableColumn c : columns) {
-								if (includeInAudit(c.column_name)) {
-									record.append(",");
+						for (TableColumn c : columns) {
+							if (includeInAudit(c.column_name)) {
+								record.append(",");
+								AuditItem item = auditData.get(c.column_name);
+								if(item != null) {
+									record.append(item.time);
 								}
 							}
 						}
-						if(auditData.location != null) {
-							for (TableColumn c : columns) {
-								if (includeInAudit(c.column_name)) {
+						
+						for (TableColumn c : columns) {
+							if (includeInAudit(c.column_name)) {
+								record.append(",");
+								AuditItem item = auditData.get(c.column_name);
+								if(item != null && item.location != null) {
+									record.append(item.location.lat);
 									record.append(",");
-									GeoPoint g = auditData.location.get(c.column_name);
-									if(g != null) {
-										record.append(g.lat);
-										record.append(",");
-										record.append(g.lon);
-									}
+									record.append(item.location.lon);
 								}
 							}
 						}

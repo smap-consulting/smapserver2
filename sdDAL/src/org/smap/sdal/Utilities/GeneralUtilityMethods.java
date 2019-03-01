@@ -47,6 +47,7 @@ import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
+import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChoiceList;
 import org.smap.sdal.model.ColDesc;
@@ -2412,12 +2413,11 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert and audit file into a Hashmap
 	 */
-	public static  void getAudit(File csvFile, ArrayList<String> columns, String auditPath,
-			HashMap<String, Integer> timeReport, HashMap<String, GeoPoint> locationReport, ResourceBundle localisation) {
+	public static  HashMap<String, AuditItem> getAudit(File csvFile, ArrayList<String> columns, String auditPath, ResourceBundle localisation) {
 
 		BufferedReader br = null;
-		HashMap<String, Integer> initTimeAudit = new HashMap<>();
-		HashMap<String, GeoPoint> initLocationAudit = new HashMap<>();
+		HashMap<String, AuditItem> firstPassAudit = new HashMap<>();
+		HashMap<String, AuditItem> audit = new HashMap<>();				// Final set of audit values restricted to current columns
 
 		try {
 			FileReader reader = new FileReader(csvFile);
@@ -2438,6 +2438,7 @@ public class GeneralUtilityMethods {
 						if (id.startsWith(auditPath)) {
 							String name = id.substring(auditPath.length() + 1);
 							if (name.indexOf('/') < 0) {
+								AuditItem item = new AuditItem();
 								try {
 									BigInteger from = new BigInteger(auditCols[2]);
 									BigInteger to = new BigInteger(auditCols[3]);
@@ -2445,19 +2446,19 @@ public class GeneralUtilityMethods {
 									time = diff.intValue();
 									
 									// Timer audit value based on total time in the question
-									int t = 0;
-									Integer currentTime = initTimeAudit.get(name);
-									if(currentTime != null) {
-										t = currentTime.intValue();
-									}
-									initTimeAudit.put(name, t + time);
+									AuditItem currentItem = firstPassAudit.get(name);
+									if(currentItem == null) {
+										currentItem = new AuditItem();
+									}	
+									currentItem.time += time;
 									
 									// Location audit value based on location of last entry into the question
 									if(auditCols.length >= 6) {
 										Double lat = new Double(auditCols[4]);
 										Double lon = new Double(auditCols[5]);
-										initLocationAudit.put(name, new GeoPoint(lat, lon));
+										currentItem.location = new GeoPoint(lat, lon);
 									}
+									firstPassAudit .put(name, currentItem);
 									
 								} catch (Exception e) {
 									log.info("Error: invalid audit line: " + e.getMessage() + " : " + line);
@@ -2476,30 +2477,24 @@ public class GeneralUtilityMethods {
 			 */
 			for (String col : columns) {
 				if (!col.startsWith("_") && !col.equals("meta")) {
-					int t = 0;
-					try {
-						t = initTimeAudit.get(col);
-					} catch (Exception e) {
-						// ignore errors time will be set to 0
-					}
-					timeReport.put(col, t);
 					
-					GeoPoint g = initLocationAudit.get(col);
-					if(g != null) {
-						locationReport.put(col,  g);
+					
+					AuditItem ai = firstPassAudit.get(col);
+					if(ai == null) {
+						ai = new AuditItem();
 					}
+					audit.put(col, ai);
+					
 				}
 			}
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 		} finally {
-			try {
-				br.close();
-			} catch (Exception e) {
-			}
-			;
+			try {br.close();} catch (Exception e) {};
 		}
+		
+		return audit;
 
 	}
 

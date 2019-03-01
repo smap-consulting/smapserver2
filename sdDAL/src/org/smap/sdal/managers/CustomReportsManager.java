@@ -184,8 +184,7 @@ public class CustomReportsManager {
 
 				Type type = null;
 				if (reportType.equals("oversight")) { // Legacy report structure containing only columns
-					type = new TypeToken<ArrayList<TableColumn>>() {
-					}.getType();
+					type = new TypeToken<ArrayList<TableColumn>>() {}.getType();
 					config = new ReportConfig();
 					config.columns = gson.fromJson(configString, type);
 					

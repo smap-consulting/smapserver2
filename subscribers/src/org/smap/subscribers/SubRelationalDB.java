@@ -55,7 +55,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.model.Audit;
+import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
@@ -861,10 +861,8 @@ public class SubRelationalDB extends Subscriber {
 						String auditString = null;
 						if (gAuditFilePath != null) {
 							File auditFile = new File(gAuditFilePath);
-							Audit audit = new Audit();
-							GeneralUtilityMethods.getAudit(auditFile,
-									getColNames(columns), auditPath, audit.time, audit.location,
-									localisation);
+							HashMap<String, AuditItem> audit = GeneralUtilityMethods.getAudit(auditFile,
+									getColNames(columns), auditPath, localisation);
 
 							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 							auditString = gson.toJson(audit);
