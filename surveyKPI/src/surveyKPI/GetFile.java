@@ -186,9 +186,11 @@ public class GetFile extends Application {
 	@Produces("application/x-download")
 	public Response getPdfTemplateFile (
 			@Context HttpServletRequest request, 
-			@Context HttpServletResponse response,
-			
-			@PathParam("sId") int sId) throws Exception {
+			@Context HttpServletResponse response,			
+			@PathParam("filename") String filename,
+			@PathParam("sId") int sId,
+			@QueryParam("archive") boolean archive,
+			@QueryParam("recovery") boolean recovery) throws Exception {
 		
 		log.info("Get PDF Template File:  for survey: " + sId);
 		
@@ -208,17 +210,23 @@ public class GetFile extends Application {
 		try {
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			
-			// Ignore the provided filename, the the filename from the survey details
-			String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
-			String fileName = GeneralUtilityMethods.getSafeTemplateName(displayName);
-			fileName = fileName + "_template.pdf";
+			if(!archive) {
+				// Ignore the provided filename, get the filename from the survey details
+				String displayName = GeneralUtilityMethods.getSurveyName(sd, sId);
+				filename = GeneralUtilityMethods.getSafeTemplateName(displayName);
+				if(recovery) {
+					filename += "__prev___template.pdf";
+				} else {
+					filename += "_template.pdf";
+				}
+			}
 			
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
 			String folderPath = basepath + "/templates/" + pId ;						
-			String filepath = folderPath + "/" + fileName;
+			String filepath = folderPath + "/" + filename;
 			
 			FileManager fm = new FileManager();
-			fm.getFile(response, filepath, fileName);
+			fm.getFile(response, filepath, filename);
 			
 			r = Response.ok("").build();
 			

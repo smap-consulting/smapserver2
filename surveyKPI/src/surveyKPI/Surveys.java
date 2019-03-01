@@ -60,11 +60,15 @@ import com.google.gson.reflect.TypeToken;
 import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.*;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -650,6 +654,33 @@ public class Surveys extends Application {
 				}
 			}
 			
+			/*
+			 * PDF Template
+			 */
+			String templateName = null;
+			String archivedTemplateName = null;
+			if(fileName != null) {  // Save the file
+				
+				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
+				copyPdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id);
+				
+				archivedTemplateName = writePdf(request, survey.displayName, pdfItem, true, survey.p_id);		// TODO Save the change log version of the file		
+	            templateName = writePdf(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
+			
+			} else if(pdfSet.equals("no")) {
+				
+				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
+				copyPdf(request, survey.displayName, survey.displayName + "_previous", survey.p_id);
+				
+				// Try to delete the template file if it exists
+				delPdf(request, survey.displayName, survey.p_id);
+			} else {
+				// If the survey name has been changed then change the name of the template
+				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
+					templateName = renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
+				}
+			}
+			
 			String sqlChangeLog = "insert into survey_change " +
 					"(s_id, version, changes, user_id, apply_results, updated_time) " +
 					"values(?, ?, ?, ?, 'true', ?)";
@@ -700,6 +731,8 @@ public class Surveys extends Application {
 				
 				ChangeElement change = new ChangeElement();
 				change.action = "settings_update";
+				change.fileName = archivedTemplateName;
+				change.origSId = sId;
 				change.msg = "Name: " + survey.displayName + ", Default Language: " + survey.def_lang 
 						+ ", Instance Name: "+ survey.instanceNameDefn
 						+ ", HRK: " + survey.hrk 
@@ -732,23 +765,6 @@ public class Surveys extends Application {
 			
 			sd.commit();
 			sd.setAutoCommit(true);
-			
-			/*
-			 * PDF Template
-			 */
-			String templateName = null;
-			if(fileName != null) {  // Save the file				
-	            templateName = writePdf(request, survey.displayName, pdfItem, survey.p_id);				
-			} else if(pdfSet.equals("no")) {
-				// Try to delete the template file if it exists
-				delPdf(request, survey.displayName, survey.p_id);
-			} else {
-				// If the survey name has been changed then change the name of the template
-				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
-					templateName = renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
-				}
-			}
-			// If the survey has been renamed then rename the survey template
 			
 			// If the project id has changed update the project in the upload events so that the monitor will still show all events
 			if(originalProjectId != survey.p_id) {
@@ -1061,16 +1077,25 @@ public class Surveys extends Application {
 	
 	/*
 	 * Write the PDF to disk
+	 * Return the name
 	 */
 	private String writePdf(HttpServletRequest request, 
 			String fileName, 
 			FileItem pdfItem,
+			boolean archiveVersion,		// If set then add date time to file so it can be recovered
 			int pId) {
 	
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		fileName = GeneralUtilityMethods.getSafeTemplateName(fileName);
-		fileName = fileName + "_template.pdf";
+		if(archiveVersion) {
+			// Add date and time to the display name
+			DateFormat dateFormat = new SimpleDateFormat("yyyy_MM_dd_HHmmss");
+			dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+			Calendar cal = Calendar.getInstance(TimeZone.getTimeZone("UTC"));		// Store all dates in UTC
+			fileName += dateFormat.format(cal.getTime());
+		}
+		fileName += "_template.pdf";
 		
 		String folderPath = basePath + "/templates/" + pId ;						
 		String filePath = folderPath + "/" + fileName;
@@ -1135,6 +1160,35 @@ public class Surveys extends Application {
 	   
 	    try {
 			renFile.renameTo(newFile);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	 
+	    return newName;
+	}
+	
+	/*
+	 * copy the pdf template
+	 */
+	private String copyPdf(HttpServletRequest request, 
+			String originalName,
+			String newName, 
+			int pId) {
+	
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		newName = GeneralUtilityMethods.getSafeTemplateName(newName) + "_template.pdf";
+		originalName = GeneralUtilityMethods.getSafeTemplateName(originalName) + "_template.pdf";
+		
+		String folderPath = basePath + "/templates/" + pId ;						
+		String newFilePath = folderPath + "/" + newName;
+		String originalFilePath = folderPath + "/" + originalName;
+	    
+		File newFile = new File(newFilePath);
+		File oldFile = new File(originalFilePath);
+	   
+	    try {
+	    		FileUtils.copyFile(oldFile, newFile);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

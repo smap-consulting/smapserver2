@@ -392,7 +392,6 @@ public class Results extends Application {
 				sql.append(" order by ").append(aQ.getTableName()).append(".prikey asc");
 			}
 				
-			log.info("Get results select: " + sql.toString());
 			pstmt = cResults.prepareStatement(sql.toString());
 			int attribIdx = 1;
 			if(dateId != 0) {
@@ -411,6 +410,7 @@ public class Results extends Application {
 			if(hasRbacRowFilter) {
 				attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, attribIdx, tz);
 			}
+			log.info("Get results select: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
 
 			/*
