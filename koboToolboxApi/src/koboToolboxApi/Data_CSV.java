@@ -219,7 +219,7 @@ public class Data_CSV extends Application {
 
 		PreparedStatement pstmt = null;
 
-		StringBuffer columnSelect = new StringBuffer();
+		//StringBuffer columnSelect = new StringBuffer();
 		StringBuffer columnHeadings = new StringBuffer();
 		StringBuffer record = null;
 		PrintWriter outWriter = null;
@@ -335,11 +335,6 @@ public class Data_CSV extends Application {
 			boolean colHeadingAdded = false;
 			for (int i = 0; i < columns.size(); i++) {
 				TableColumn c = columns.get(i);
-
-				if (i > 0) {
-					columnSelect.append(",");
-				}
-				columnSelect.append(c.getSqlSelect(urlprefix, tz));
 				
 				if (!c.column_name.equals("_audit")) {
 					if (colHeadingAdded) {

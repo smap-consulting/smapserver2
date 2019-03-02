@@ -20,6 +20,7 @@ import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
 import com.google.gson.Gson;
@@ -95,6 +96,7 @@ public class TableDataManager {
 		StringBuffer columnSelect = new StringBuffer();
 		boolean hasRbacFilter = false;
 		ArrayList<SqlFrag> columnSqlFrags = new ArrayList<SqlFrag>();
+		ArrayList<SqlParam> params = new ArrayList<> ();
 
 		PreparedStatement pstmt = null;
 
@@ -103,7 +105,7 @@ public class TableDataManager {
 			if (i > 0) {
 				columnSelect.append(",");
 			}
-			columnSelect.append(c.getSqlSelect(urlprefix, tz));
+			columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
 			if (c.calculation != null && c.calculation.params != null) {
 				columnSqlFrags.add(c.calculation);
 			}
@@ -194,6 +196,9 @@ public class TableDataManager {
 			// Set parameters
 			int paramCount = 1;
 
+			// Parameters in select clause
+			paramCount = GeneralUtilityMethods.addSqlParams(pstmt, paramCount, params);
+			
 			// Add parameters in table column selections
 			if (columnSqlFrags.size() > 0) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, paramCount, tz);
@@ -494,11 +499,11 @@ public class TableDataManager {
 	 * Return the audit records for this submission record
 	 */
 	public ArrayList<JSONObject> getNextAuditRecords(
+			Connection sd,
+			int sId,
 			ResultSet rs,
 			ArrayList<TableColumn> columns, 
 			String urlprefix, 
-			boolean group, 
-			boolean isDt, 
 			int limit,
 			boolean mergeSelectMultiple,
 			boolean isGeoJson)
@@ -527,15 +532,20 @@ public class TableDataManager {
 					jr.put("type", "Feature");
 					jp = new JSONObject();
 					
-					String value = rs.getString(question);		// TODO need to get column name					
-					AuditItem ai = auditData.get(question);
+					String columnName = GeneralUtilityMethods.getColumnName(sd, sId, question);	
+					String value = "";
+					if(columnName != null) {
+						value = rs.getString(columnName);		// TODO need to get column name	
+
 					
-					// Set geometry
-					GeoPoint gp = ai.location;
-					StringBuffer geomValue = new StringBuffer("");
-					if(gp == null) {
-						geomValue.append("{}");
-					} else {
+						AuditItem ai = auditData.get(question);
+						
+						// Set geometry
+						GeoPoint gp = ai.location;
+						StringBuffer geomValue = new StringBuffer("");
+						if(gp == null) {
+							gp = new GeoPoint(0.0, 0.0);
+						} 
 						geomValue.append("{")
 								.append("\"type\": \"Point\",")
 								.append("\"coordinates\":[")
@@ -544,19 +554,24 @@ public class TableDataManager {
 								.append(gp.lat)
 								.append("]")
 								.append("}");
+	
+						jGeom = new JSONObject(geomValue.toString());
+						
+						// Add properties
+						jp.put("question", question);
+						jp.put("value", value);
+						jp.put("time_spent", ai.time);
+						jp.put("prikey", rs.getInt("prikey"));
+						jp.put("user", rs.getString("_user"));
+						jp.put("start", rs.getString("_start"));
+						jp.put("end", rs.getString("_end"));
+						jp.put("device", rs.getString("_device"));
+						
+						jr.put("properties", jp);
+						jr.put("geometry", jGeom);
+						
+						auditRecords.add(jr);
 					}
-					jGeom = new JSONObject(geomValue.toString());
-					
-					// Add properties
-					jp.put("question", question);
-					jp.put("value", value);
-					jp.put("time_spent", ai.time);
-					jp.put("prikey", rs.getInt("prikey"));
-					
-					jr.put("properties", jp);
-					jr.put("geometry", jGeom);
-					
-					auditRecords.add(jr);
 				}
 				
 			}	

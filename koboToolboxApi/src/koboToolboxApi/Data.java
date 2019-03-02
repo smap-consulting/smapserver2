@@ -58,6 +58,7 @@ import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
 
 /*
@@ -616,6 +617,8 @@ public class Data extends Application {
 				columns.addAll(config.columns);
 			}
 
+			ArrayList<SqlParam> params = new ArrayList<> ();
+			
 			if(GeneralUtilityMethods.tableExists(cResults, table_name)) {
 
 				/*
@@ -626,7 +629,7 @@ public class Data extends Application {
 					if(i > 0) {
 						columnSelect.append(",");
 					}
-					columnSelect.append(c.getSqlSelect(urlprefix, tz));
+					columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
 				}
 
 
@@ -670,11 +673,11 @@ public class Data extends Application {
 								if(stringFnApplies 
 										&& (aSelect[1].equals("lower") 
 												|| aSelect[1].equals("soundex"))) {
-									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix, tz) + ")";
+									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix, tz, params) + ")";
 									columnSelect.append(s);
 									similarWhere.append(s + " = ?");
 								} else {
-									String s = c.getSqlSelect(urlprefix, tz);
+									String s = c.getSqlSelect(urlprefix, tz, params);
 									columnSelect.append(s);
 									similarWhere.append(s + " = ?");
 								}
@@ -699,7 +702,11 @@ public class Data extends Application {
 
 
 				pstmtGetSimilar = cResults.prepareStatement(sqlGetSimilar + sqlGroup + sqlHaving);
-				pstmtGetSimilar.setInt(1, start);
+				
+				// Set parameters
+				int paramCount = 1;			
+				pstmtGetSimilar.setInt(paramCount++, start);
+				
 				rs = pstmtGetSimilar.executeQuery();
 
 				/*
@@ -712,9 +719,11 @@ public class Data extends Application {
 					 * 3. Get the data that make up these similar records
 					 */
 					String groupKey = "";
-					pstmtGetData = cResults.prepareStatement(sqlGetData + sqlSelect + similarWhere.toString() 
-					+ sqlGetDataOrder);
-					int paramCount = 1;
+					pstmtGetData = cResults.prepareStatement(sqlGetData + sqlSelect + similarWhere.toString() + sqlGetDataOrder);
+					
+					paramCount = 1;
+					paramCount = GeneralUtilityMethods.addSqlParams(pstmtGetSimilar, paramCount, params);	// Parameters in select clause
+					
 					pstmtGetData.setInt(paramCount++, start);
 					for(int i = 0; i < groupColumns; i++) {
 						String gType = groupTypes.get(i);

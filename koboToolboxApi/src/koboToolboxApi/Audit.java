@@ -367,7 +367,7 @@ public class Audit extends Application {
 			outWriter.print("[");
 			
 			if(pstmt != null) {
-				log.info("KoboAPI data: " + pstmt.toString());
+				log.info("AuditAPI data: " + pstmt.toString());
 				/*
 				 * Get the data record by record so it can be streamed
 				 */
@@ -379,11 +379,11 @@ public class Audit extends Application {
 				while(auditRecords != null) {
 					
 					auditRecords =  tdm.getNextAuditRecords(
+							sd,
+							sId,
 							rs,
 							columns,
 							urlprefix,
-							group,
-							false,		// data tables
 							limit,
 							mergeSelectMultiple,
 							false		// geojson

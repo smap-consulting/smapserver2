@@ -97,7 +97,7 @@ public class TableColumn {
 	/*
 	 * Get the sql to select this column from the database
 	 */
-	public String getSqlSelect(String urlprefix, String tz) {
+	public String getSqlSelect(String urlprefix, String tz, ArrayList<SqlParam> params) {
 		String selName = null;
 		
 		if(isAttachment()) {
@@ -114,8 +114,15 @@ public class TableColumn {
 			if(startName != null && endName != null) {
 				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
 			}
-		} else if(!tz.equals("UTC") && type.equals("dateTime")) {
-			selName = column_name + " at time zone '" + tz + "'";
+		} else if(!tz.equals("UTC") && (type.equals("dateTime") || type.equals("date"))) {
+			selName = "to_char(timezone(?, " + column_name;
+			params.add(new SqlParam("string", tz));
+			if(type.equals("date")) {
+				selName += "), 'YYYY-MM-DD') as ";
+			} else if(type.equals("dateTime")) {
+				selName += "), 'YYYY-MM-DD HH24:MI:SS') as ";
+			} 
+			selName += column_name;
 		} else {
 			selName = column_name;
 		}
