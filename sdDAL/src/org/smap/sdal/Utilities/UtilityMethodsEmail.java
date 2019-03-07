@@ -51,10 +51,19 @@ public class UtilityMethodsEmail {
 			boolean isChild,
 			String user,
 			boolean updateChildren,
-			String tz) throws Exception {
+			String tz,
+			boolean overideModifiedFlag		// Set if this is a manual request
+			) throws Exception {
 
-		String sql = "update " + tName + " set _bad = ?, _bad_reason = ?, _modified = ? " + 
-				" where prikey = ? and _modified = 'false';";
+		String sql = "update " 
+				+ tName 
+				+ " set _bad = ?, _bad_reason = ?, _modified = ? " 
+				+ " where prikey = ?";
+		
+		if(!overideModifiedFlag) {
+			 sql += " and _modified = 'false'";
+		}
+		
 		String sqlChild = "update " + tName + " set _bad = ?, _bad_reason = ? " + 
 				" where prikey = ?;";
 		String sqlGetInstanceId = "select instanceid from " + tName + " where prikey = ?";
@@ -137,7 +146,7 @@ public class UtilityMethodsEmail {
 					while(childRecs.next()) {
 						int childKey = childRecs.getInt(1);
 						markRecord(cRel, sd, localisation, childTable, value, reason, childKey, 
-								sId, childFormId, modified, true, user, updateChildren, tz);
+								sId, childFormId, modified, true, user, updateChildren, tz, overideModifiedFlag);
 					}
 				}
 			}

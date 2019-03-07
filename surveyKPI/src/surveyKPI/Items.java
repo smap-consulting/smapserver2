@@ -1149,7 +1149,7 @@ public class Items extends Application {
 			cRel = ResultsDataSource.getConnection("surveyKPI-Items");
 			
 			// Get the table name
-			String sql = "SELECT DISTINCT table_name, parentform FROM form f " +
+			String sql = "select distinct table_name, parentform FROM form f " +
 					" where f.s_id = ?" + 
 					" and f.f_id = ?;";
 			pstmt = sd.prepareStatement(sql);
@@ -1163,7 +1163,7 @@ public class Items extends Application {
 				int pId = tableSet.getInt(2);
 				boolean isChild = pId > 0;
 				UtilityMethodsEmail.markRecord(cRel, sd, localisation, tName, value, 
-						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz);
+						reason, key, sId, fId, false, isChild, request.getRemoteUser(), true, tz, true);
 			} else {
 				throw new Exception("Could not get form id");
 			}

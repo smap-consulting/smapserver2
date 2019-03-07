@@ -1138,7 +1138,7 @@ public class SubRelationalDB extends Subscriber {
 
 			if(sourceKey > 0) {
 				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
-						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true, tz);
+						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true, tz, false);
 			}
 
 		} finally {
@@ -1340,7 +1340,7 @@ public class SubRelationalDB extends Subscriber {
 					
 					// Mark the record being replaced as bad
 					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz);
+							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz, false);
 					
 					// Set the hrk of the new record to the hrk of the old record
 					// This can only be done for one old record, possibly there is never more than 1
@@ -1367,7 +1367,7 @@ public class SubRelationalDB extends Subscriber {
 					if(!replacedRecordsAreGood) {
 						bad_reason = localisation.getString("t_rep_bad") + previousKeys;
 						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true, tz);
+								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true, tz, false);
 					}
 				}		
 			
