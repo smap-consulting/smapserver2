@@ -112,6 +112,7 @@ public class BillingManager {
 				pstmtDisk.setInt(1, oId);
 				ResultSet rsDisk = pstmtDisk.executeQuery();				
 				if(rsDisk.next()) {
+					log.info("Disk usage for organisation: " + oId + " = " + rsDisk.getDouble("organisation"));
 					int diskUsage = (int) (rsDisk.getDouble("organisation") / 1000.0);
 					bill.line.add(new BillLineItem("disk", diskUsage, 0, 0, 0));
 				}
