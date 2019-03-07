@@ -523,9 +523,10 @@ public class TableDataManager {
 		if (rs.next()) {
 
 			auditData = gson.fromJson(rs.getString("_audit"), auditItemType);
+			auditRecords = new ArrayList<JSONObject> ();		// Always return non null if there is a recod
 			
 			if(auditData != null) {
-				auditRecords = new ArrayList<JSONObject> ();
+				
 				for(String question : auditData.keySet()) {
 					
 					jr = new JSONObject();
@@ -574,7 +575,7 @@ public class TableDataManager {
 					}
 				}
 				
-			}	
+			} 
 
 		}
 		
