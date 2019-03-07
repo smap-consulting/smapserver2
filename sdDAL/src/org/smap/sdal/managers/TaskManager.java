@@ -638,7 +638,12 @@ public class TaskManager {
 					// Get the forms - this is required by the test filter
 					survey = sm.getById(sd, cResults, remoteUser, source_s_id, true, "", 
 							instanceId, false, false, true, false, true, "real", 
-							false, false, true, "geojson");	// Set super user true so that roles are ignored
+							false, 
+							false, 
+							true, 		// Set super user true so that roles are ignored
+							"geojson",
+							false		// Do not test in child surveys (at least not yet)
+							);	
 				}
 
 				int tgId = rs.getInt(1);
@@ -2164,7 +2169,9 @@ public class TaskManager {
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
-				false, false, true, "geojson");
+				false, false, true, "geojson",
+				false		// Do not include child surveys (at least not yet)
+				);
 		
 		try {
 			

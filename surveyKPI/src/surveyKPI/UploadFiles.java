@@ -599,7 +599,7 @@ public class UploadFiles extends Application {
 			} else if(action.equals("replace")) {
 				existingSurvey = sm.getById(sd, cResults, user, surveyId, 
 						false, basePath, null, false, false, false, 
-						false, false, null, false, false, superUser, null);
+						false, false, null, false, false, superUser, null, false);
 				displayName = existingSurvey.displayName;
 				existingVersion = existingSurvey.version;
 				existingSurveyId = existingSurvey.id;
@@ -683,7 +683,8 @@ public class UploadFiles extends Application {
 						false, 					// get change history
 						true, 					// get roles
 						superUser, 
-						null						// geom format
+						null	,					// geom format
+						false					// Include child surveys
 						);
 			}
 			

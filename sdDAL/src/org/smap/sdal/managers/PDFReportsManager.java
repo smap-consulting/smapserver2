@@ -178,7 +178,9 @@ public class PDFReportsManager {
 				// Write the pdf to a temporary file
 	 			Survey survey = sm.getById(sd, cResults, username, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
-						false, false, true, "geojson");				
+						false, false, true, "geojson",
+						true			// For a PDF follow links to child surveys
+						);				
 				PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, username, tz);
 				
 				String tempFilePath = filePath + "/" + name;

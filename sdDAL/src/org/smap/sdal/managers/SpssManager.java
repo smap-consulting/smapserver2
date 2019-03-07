@@ -80,7 +80,9 @@ public class SpssManager {
 			 */
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, remoteUser);
 			survey = sm.getById(connectionSD, null, remoteUser, sId, true, null, null, 
-					false, false, true, false, false, "real", false, false, superUser, null);
+					false, false, true, false, false, "real", false, false, superUser, null,
+					false		// Do not follow links to child surveys yet
+					);
 			int languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			
 			/*

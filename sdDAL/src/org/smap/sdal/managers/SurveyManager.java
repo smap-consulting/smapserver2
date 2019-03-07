@@ -338,11 +338,11 @@ public class SurveyManager {
 			Connection cResults,
 			String user,
 			int sId,
-			boolean full,		// Get the full details of the survey
+			boolean full,						// Get the full details of the survey
 			String basePath,
-			String instanceId,	// If set get the results for this instance
-			boolean getResults,	// Set to true to get results, if set and instanceId is null then blank data will be added
-			boolean generateDummyValues,		// Set to true when getting results to fill a form with dummy values if there are no results
+			String instanceId,					// If set get the results for this instance
+			boolean getResults,					// Set to true to get results, if set and instanceId is null then blank data will be added
+			boolean generateDummyValues,			// Set to true when getting results to fill a form with dummy values if there are no results
 			boolean getPropertyTypeQuestions,	// Set to true to get property questions such as _device
 			boolean getSoftDeleted,				// Set to true to get soft deleted questions
 			boolean getHrk,						// Set to true to return HRK as a question if it exists in the survey
@@ -350,7 +350,8 @@ public class SurveyManager {
 			boolean getChangeHistory,	
 			boolean getRoles,					// Only applies if "full" has been specified
 			boolean superUser,
-			String geomFormat
+			String geomFormat,
+			boolean childSurveys					// follow links to child surveys
 			) throws SQLException, Exception {
 
 		Survey s = null;	// Survey to return

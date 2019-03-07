@@ -82,7 +82,8 @@ public class CreatePDF extends Application {
 			@QueryParam("language") String language,
 			@QueryParam("landscape") boolean landscape,
 			@QueryParam("filename") String filename,
-			@QueryParam("utcOffset") int utcOffset		// Offset in minutes
+			@QueryParam("utcOffset") int utcOffset,		// Offset in minutes
+			@QueryParam("child_surveys") boolean childSurveys		// Follow links to child surveys
 			) throws Exception {
 		
 		log.info("Create PDF from survey:" + sIdent + " for record: " + instanceId);
@@ -126,9 +127,25 @@ public class CreatePDF extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
-			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
-					instanceId, true, generateBlank, true, false, true, "real", false, false, 
-					superUser, "geojson");
+			survey = sm.getById(
+					sd, 
+					cResults, 
+					request.getRemoteUser(), 
+					sId, 
+					true, 
+					basePath, 
+					instanceId, 
+					true, 			// get results
+					generateBlank, 
+					true, 
+					false, 
+					true, 
+					"real", 
+					false, 
+					false, 
+					superUser, 
+					"geojson",
+					childSurveys);
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";
