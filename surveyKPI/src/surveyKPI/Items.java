@@ -1149,7 +1149,7 @@ public class Items extends Application {
 			cRel = ResultsDataSource.getConnection("surveyKPI-Items");
 			
 			// Get the table name
-			String sql = "select distinct table_name, parentform FROM form f " +
+			String sql = "select distinct table_name, parentform from form f " +
 					" where f.s_id = ?" + 
 					" and f.f_id = ?;";
 			pstmt = sd.prepareStatement(sql);
