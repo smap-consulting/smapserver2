@@ -743,8 +743,6 @@ public class SurveyManager {
 				+ "from form f where f.s_id = ?;";
 		PreparedStatement pstmtGetForms = sd.prepareStatement(sqlGetForms);	
 
-
-
 		// SQL to get the choice lists in this survey
 		ResultSet rsGetLists = null;
 		String sqlGetLists = "select l_id, "
@@ -780,6 +778,7 @@ public class SurveyManager {
 				+ "order by c_id desc; ";
 		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
 
+		/*
 		// Get the surveys that can be linked to
 		ResultSet rsGetLinkable = null;
 		String sqlGetLinkable = "select s.s_id, s.display_name "
@@ -792,7 +791,8 @@ public class SurveyManager {
 				+ "and u.ident = ? "
 				+ "order by s.display_name asc; ";
 		PreparedStatement pstmtGetLinkable = sd.prepareStatement(sqlGetLinkable);
-
+		*/
+		
 		// Get the available languages
 		s.languages = GeneralUtilityMethods.getLanguages(sd, s.id);
 
@@ -1002,6 +1002,7 @@ public class SurveyManager {
 		}
 
 		// Add the linkable surveys
+		/*
 		pstmtGetLinkable.setInt(1, oId);
 		pstmtGetLinkable.setString(2, user);
 		log.info("Get linkable surveys: " + pstmtGetLinkable.toString());
@@ -1015,6 +1016,7 @@ public class SurveyManager {
 				s.linkedSurveys.add(ls);
 			}
 		}
+		*/
 		
 		// Get the roles
 		if(getRoles) {
@@ -1036,7 +1038,7 @@ public class SurveyManager {
 		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
 		try { if (pstmtGetSSC != null) {pstmtGetSSC.close();}} catch (SQLException e) {}
 		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
-		try { if (pstmtGetLinkable != null) {pstmtGetLinkable.close();}} catch (SQLException e) {}
+		//try { if (pstmtGetLinkable != null) {pstmtGetLinkable.close();}} catch (SQLException e) {}
 	}
 
 

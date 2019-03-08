@@ -21,7 +21,7 @@ public class Form {
 	public boolean merge;			// True if this forms results should be merged with existing repeats
 	public boolean replace;			// True if old records should be replaced
 	public ArrayList<Question> questions = new ArrayList<Question> ();
-
+	
 	// Basic constructor
 	public Form() {
 		

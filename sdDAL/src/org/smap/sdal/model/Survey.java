@@ -37,8 +37,8 @@ public class Survey {
 	public String displayName;
 	public String instanceNameDefn;
 	public String def_lang;
-	public boolean task_file;		// Set true if this data from a file can be pre-loaded into this survey
-	public boolean timing_data;		// Set true if timing data is to be collected for this survey
+	public boolean task_file;				// Set true if this data from a file can be pre-loaded into this survey
+	public boolean timing_data;				// Set true if timing data is to be collected for this survey
 	public boolean audit_location_data;		// Set true if location is to be recorded for each question
 	public String surveyClass;
 	public boolean deleted;
@@ -62,7 +62,7 @@ public class Survey {
 	public ArrayList<Pulldata> pulldata;
 	public String hrk;
 	public String key_policy;
-	public ArrayList<LinkedSurvey> linkedSurveys = new ArrayList<LinkedSurvey> ();
+	//public ArrayList<LinkedSurvey> linkedSurveys = new ArrayList<LinkedSurvey> ();
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;
