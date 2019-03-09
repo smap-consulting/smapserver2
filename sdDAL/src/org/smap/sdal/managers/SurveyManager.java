@@ -2464,7 +2464,7 @@ public class SurveyManager {
 			String geomFormat,
 			int oId,
 			boolean isTopLevel,				// Set true fist time this recursive function is called
-			boolean childSurveys				// Set to get child surveys
+			boolean referencedSurveys				// Set to get child surveys
 			) throws Exception{
 
 		ArrayList<ArrayList<Result>> output = new ArrayList<ArrayList<Result>> ();
@@ -2630,7 +2630,7 @@ public class SurveyManager {
 							generateDummyValues,
 							geomFormat,
 							oId,
-							childSurveys,
+							referencedSurveys,
 							index);
 
 					output.add(record);
@@ -2670,7 +2670,7 @@ public class SurveyManager {
 						generateDummyValues,
 						geomFormat,
 						oId,
-						childSurveys,
+						referencedSurveys,
 						index);
 
 				output.add(record);
@@ -2713,7 +2713,7 @@ public class SurveyManager {
 			boolean generateDummyValues,
 			String geomFormat,
 			int oId,
-			boolean childSurveys,
+			boolean referencedSurveys,
 			int index) throws Exception {
 		
 		/*
@@ -2757,7 +2757,7 @@ public class SurveyManager {
 							geomFormat,
 							oId,
 							false,
-							childSurveys);
+							referencedSurveys);
 
 					record.add(nr);
 				}
@@ -2766,7 +2766,7 @@ public class SurveyManager {
 					index--;		// Decrement the index as the begin repeat was not in the SQL query
 				}
 
-			} else if(childSurveys && qType.equals(SmapQuestionTypes.CHILD_FORM)) {		// Child survey
+			} else if(referencedSurveys && qType.equals(SmapQuestionTypes.CHILD_FORM)) {		// Child survey
 				
 				String ref = getReferenceSurveyIdentifier(q);
 				
@@ -2790,7 +2790,7 @@ public class SurveyManager {
 						false,						// Don't get roles
 						superUser,
 						geomFormat,
-						childSurveys					// follow links to child surveys
+						referencedSurveys					// follow links to child surveys
 					);
 				
 				
@@ -2802,8 +2802,12 @@ public class SurveyManager {
 					Form mainSubForm = refSurvey.getFirstForm();					
 					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);		// Result entry for this question
 
-					String keyQuestionName = getKeyQuestionName(q);		// The question in the child form that will hold the key value
-					String keyQuestionValue = getKeyQuestionValue();		// Either the primary key or hrk of this surveys submission
+					String keyQuestionName = null;
+					String keyQuestionValue = null;
+					if(!generateDummyValues) {
+						keyQuestionName = getKeyQuestionName(q);		// The question in the child form that will hold the key value
+						keyQuestionValue = getKeyQuestionValue();		// Either the primary key or hrk of this surveys submission
+					}
 					
 					nr.subForm = getResults(
 							mainSubForm, 
@@ -2826,7 +2830,7 @@ public class SurveyManager {
 							geomFormat,
 							oId,
 							false,
-							childSurveys
+							referencedSurveys
 							);
 
 					record.add(nr);
