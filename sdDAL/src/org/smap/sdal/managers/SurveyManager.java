@@ -42,6 +42,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
@@ -81,6 +82,8 @@ public class SurveyManager {
 	String tz;
 
 	private ResourceBundle localisation;
+	private String gPrimaryKey;			// Set to primary key of top form in top level survey when getting results
+	private String gHRK;					// Set to the HRK of the top level survey when getting results
 	
 	public SurveyManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -451,22 +454,34 @@ public class SurveyManager {
 						getHrk,
 						getChangeHistory,
 						getRoles);			// Add forms, questions, options
-
+				
+				
 				if(getResults) {								// Add results
 
 					Form ff = s.getFirstForm();
-					s.instance.results = getResults(ff, 
+					s.instance.results = getResults(
+							ff, 
 							s.getFormIdx(ff.id), 
-							-1, 
 							0,	
 							sd,
 							cResults, 
-							instanceId, 
-							0, 
+							user,							
+							basePath,
+							getPropertyTypeQuestions,	
+							getHrk,		
+							getExternalOptions,
+							superUser,
+							instanceId, 		// top form
+							0, 				// parent key (child forms)
+							null,			// key question name (child surveys)
+							null,			// key question value (child surveys)
 							s, 
 							generateDummyValues,
 							geomFormat,
-							s.o_id);
+							s.o_id,
+							true,
+							childSurveys		// Whether or not to get child surveys
+							);
 					if(s.instance.results.size() > 0) {
 						ArrayList<Result> topForm = s.instance.results.get(0);
 						// Get the user ident that submitted the survey
@@ -2428,16 +2443,29 @@ public class SurveyManager {
 	ArrayList<ArrayList<Result>> getResults(
 			Form form,
 			int fIdx,
-			int id, 
 			int parentId, 
 			Connection sd,
 			Connection cResults,
+			
+			// The following parameters are used when getting date from referenced surveys
+			String remoteUser,							// The user making the request
+			String basePath,
+			boolean getPropertyTypeQuestions,	
+			boolean getHrk,		
+			String getExternalOptions,
+			boolean superUser,
+
 			String instanceId,
 			int parentKey,
+			String keyQuestionName,			// Used with child forms
+			String keyQuestionValue,			// Used with child forms
 			Survey s,
 			boolean generateDummyValues,
 			String geomFormat,
-			int oId) throws SQLException{
+			int oId,
+			boolean isTopLevel,				// Set true fist time this recursive function is called
+			boolean childSurveys				// Set to get child surveys
+			) throws Exception{
 
 		ArrayList<ArrayList<Result>> output = new ArrayList<ArrayList<Result>> ();
 
@@ -2445,13 +2473,12 @@ public class SurveyManager {
 		 * Retrieve the results record from the database (excluding select questions)
 		 */
 		StringBuffer sql = new StringBuffer("");
-		boolean isTopLevel = false;
-		if(parentKey == 0) {
+		if(isTopLevel) {
 			sql.append("select prikey, _user ");		// Get user if this is a top level form
-			isTopLevel = true;
 		} else {
 			sql.append("select prikey ");
 		}
+		
 		ArrayList<Question> questions = form.questions;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSelect = null;
@@ -2484,7 +2511,7 @@ public class SurveyManager {
 			 * this request is for a child form and real data is required
 			 */
 			ArrayList<MetaItem> preloads = null;
-			if(instanceId != null || parentKey > 0) {
+			if(instanceId != null || parentKey > 0 || keyQuestionName != null) {
 				
 				for(Question q : questions) {
 					String col = null;
@@ -2512,7 +2539,7 @@ public class SurveyManager {
 				/*
 				 * Add questions from meta
 				 */
-				if(form.parentform == 0) {
+				if(isTopLevel) {
 					
 					preloads = GeneralUtilityMethods.getPreloads(sd, s.id);
 					for(MetaItem mi : preloads) {
@@ -2528,10 +2555,13 @@ public class SurveyManager {
 				}
 				
 				sql.append(" from ").append(form.tableName);
-				if(parentId == 0) {
+				if(instanceId != null) {
 					sql.append(" where instanceId = ?");
-				} else {
+				} else if(parentKey > 0) {
 					sql.append(" where parkey = ?");
+				} else if(keyQuestionName != null) {
+					keyQuestionName = keyQuestionName.replace("'", "''");	// Escape apostrophes
+					sql.append(" where ").append(keyQuestionName).append(" = ?");
 				}
 				// Do not include records marked as bad - in particular some child records may have been marked as bad and these should be excluded from pdf reports
 				sql.append(" and not _bad");
@@ -2539,9 +2569,11 @@ public class SurveyManager {
 				
 				pstmt = cResults.prepareStatement(sql.toString());	 
 				if(instanceId != null) {
-					pstmt.setString(1, instanceId);;
-				} else {
+					pstmt.setString(1, instanceId);
+				} else if(parentKey > 0) {
 					pstmt.setInt(1, parentKey);
+				} else if(keyQuestionName != null) {
+					pstmt.setString(1, keyQuestionValue);
 				}
 
 				log.info("Get results: " + pstmt.toString());
@@ -2552,20 +2584,21 @@ public class SurveyManager {
 				}
 			}
 
+			int index = 1;
 			if (resultSet != null) {
 				// For each record returned from the database add the data values to the instance
 				while(resultSet.next()) {
 					
 					ArrayList<Result> record = new ArrayList<Result> ();
 
-					String priKey = resultSet.getString(1);
-					int newParentKey = resultSet.getInt(1);   		
+					String priKey = resultSet.getString(index);
+					int newParentKey = resultSet.getInt(index++);   		
 					record.add(new Result("prikey", "key", priKey, false, fIdx, -1, 0, null, null));     // SERVERMETA
 
 					if(isTopLevel) {
-						String user = resultSet.getString(2);
+						String user = resultSet.getString(index++);
 						record.add(new Result("user", "user", user, false, fIdx, -1, 0, null, null));		// SERVERMETA
-						
+						gPrimaryKey = priKey;		// The primary key of the top level form
 						for(MetaItem mi : preloads) {
 							if(mi.isPreload && mi.published) {			
 								record.add(new Result(mi.name, mi.dataType, resultSet.getString(mi.columnName), false, fIdx, mi.id, 0, null, null));
@@ -2579,6 +2612,12 @@ public class SurveyManager {
 							sd,
 							cResults,
 							resultSet, 
+							remoteUser,							// The user making the request
+							basePath,
+							getPropertyTypeQuestions,	
+							getHrk,		
+							getExternalOptions,
+							superUser,
 							record, 
 							priKey,
 							newParentKey, 
@@ -2586,12 +2625,13 @@ public class SurveyManager {
 							form, 
 							questions, 
 							fIdx, 
-							id,
 							pstmtSelect,
 							isTopLevel,
 							generateDummyValues,
 							geomFormat,
-							oId);
+							oId,
+							childSurveys,
+							index);
 
 					output.add(record);
 				}
@@ -2611,7 +2651,13 @@ public class SurveyManager {
 				addDataForQuestions(
 						sd,
 						cResults,
-						resultSet, 
+						resultSet, 					
+						remoteUser,							// The user making the request
+						basePath,
+						getPropertyTypeQuestions,	
+						getHrk,		
+						getExternalOptions,
+						superUser,
 						record, 
 						priKey,
 						newParentKey, 
@@ -2619,12 +2665,13 @@ public class SurveyManager {
 						form, 
 						questions, 
 						fIdx, 
-						id,
 						pstmtSelect,
 						isTopLevel,
 						generateDummyValues,
 						geomFormat,
-						oId);
+						oId,
+						childSurveys,
+						index);
 
 				output.add(record);
 			}
@@ -2646,6 +2693,14 @@ public class SurveyManager {
 			Connection sd,
 			Connection cResults,
 			ResultSet resultSet, 
+												// The following parameters are used when getting date from referenced surveys
+			String remoteUser,							// The user making the request
+			String basePath,
+			boolean getPropertyTypeQuestions,	
+			boolean getHrk,		
+			String getExternalOptions,
+			boolean superUser,
+			
 			ArrayList<Result> record, 
 			String priKey,
 			int newParentKey,
@@ -2653,19 +2708,17 @@ public class SurveyManager {
 			Form form,
 			ArrayList<Question> questions,
 			int fIdx,
-			int id,
 			PreparedStatement pstmtSelect,
 			boolean isTopLevel,
 			boolean generateDummyValues,
 			String geomFormat,
-			int oId) throws SQLException {
+			int oId,
+			boolean childSurveys,
+			int index) throws Exception {
+		
 		/*
 		 * Add data for the remaining questions (prikey and user have already been extracted)
 		 */
-		int index = 2;
-		if(isTopLevel) {
-			index = 3;
-		}
 
 		int qIdx = -1;					// Index into question array for this form
 		for(Question q : questions) {
@@ -2678,24 +2731,33 @@ public class SurveyManager {
 			String appearance = q.appearance;
 			boolean compressed = q.compressed;
 			
-			if(qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {	
+			if(qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 				Form subForm = s.getSubForm(form, q);
 
 				if(subForm != null) {	
-					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);
+					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);		// Result entry for this question
 
 					nr.subForm = getResults(subForm, 
 							s.getFormIdx(subForm.id),
 							subForm.id, 
-							id, 
 							sd,
-							cResults,
+							cResults,						
+							remoteUser,							
+							basePath,
+							getPropertyTypeQuestions,	
+							getHrk,		
+							getExternalOptions,
+							superUser,
 							null,
 							newParentKey,
+							null,
+							null,
 							s,
 							generateDummyValues,
 							geomFormat,
-							oId);
+							oId,
+							false,
+							childSurveys);
 
 					record.add(nr);
 				}
@@ -2704,12 +2766,82 @@ public class SurveyManager {
 					index--;		// Decrement the index as the begin repeat was not in the SQL query
 				}
 
-			} else if(qType.equals("begin group")) { 
+			} else if(childSurveys && qType.equals(SmapQuestionTypes.CHILD_FORM)) {		// Child survey
+				
+				String ref = getReferenceSurveyIdentifier(q);
+				
+				// Lets try and get this survey definition
+				int refId = GeneralUtilityMethods.getSurveyId(sd, ref);
+				Survey refSurvey = getById(
+						sd, 
+						cResults,
+						remoteUser,
+						refId,
+						true,						// Get the full details of the survey
+						basePath,
+						null,						// Instance Id - not needed as we are not getting results
+						false,						// Don't get results yet(See below)
+						generateDummyValues,			// Set to true when getting results to fill a form with dummy values if there are no results
+						getPropertyTypeQuestions,	// Set to true to get property questions such as _device
+						false,						// Set to true to get soft deleted questions
+						getHrk,						// Set to true to return HRK as a question if it exists in the survey
+						getExternalOptions,			// external || internal || real (get external if they exist else get internal)
+						false,						// Don't want change history for this sub survey	
+						false,						// Don't get roles
+						superUser,
+						geomFormat,
+						childSurveys					// follow links to child surveys
+					);
+				
+				
+				if(refSurvey != null) {
+
+					// Get the forms for this Survey and add them to the list of forms for the main survey
+					s.forms.addAll(refSurvey.forms);
+					
+					Form mainSubForm = refSurvey.getFirstForm();					
+					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);		// Result entry for this question
+
+					String keyQuestionName = getKeyQuestionName(q);		// The question in the child form that will hold the key value
+					String keyQuestionValue = getKeyQuestionValue();		// Either the primary key or hrk of this surveys submission
+					
+					nr.subForm = getResults(
+							mainSubForm, 
+							s.getFormIdx(mainSubForm.id),
+							mainSubForm.id, 
+							sd,
+							cResults,
+							remoteUser,							
+							basePath,
+							getPropertyTypeQuestions,	
+							getHrk,		
+							getExternalOptions,
+							superUser,
+							null,
+							0,
+							keyQuestionName,
+							keyQuestionValue,
+							s,
+							generateDummyValues,
+							geomFormat,
+							oId,
+							false,
+							childSurveys
+							);
+
+					record.add(nr);
+				}
+
+				if(qType.equals("begin repeat")) {
+					index--;		// Decrement the index as the begin repeat was not in the SQL query
+				}
+
+			} else if(qType.equals("begin group")) {
 
 				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance));
 				index--;		// Decrement the index as the begin group was not in the SQL query
 
-			} else if(qType.equals("end group")) { 
+			} else if(qType.equals("end group")) {
 
 				record.add(new Result(qName, qType, null, false, fIdx, qIdx, 0, null, appearance));
 				index--;		// Decrement the index as the end group was not in the SQL query
@@ -2780,6 +2912,10 @@ public class SurveyManager {
 					value = resultSet.getString(index);
 				}
 
+				if(isTopLevel && qName.equals("_hrk")) {		// Save the HRK for use linking child surveys
+					gHRK = value;
+				}
+				
 				/*
 				 * Leave the geometry in geoJson unless the geometry format needs to be comaptible with an xForm
 				 */
@@ -3816,6 +3952,33 @@ public class SurveyManager {
 			} else {
 				throw new Exception("Error: value in search appearance choice was null: ");
 			}
+		}
+	}
+	
+	/*
+	 * Get the key question name from the question parameters
+	 */
+	String getKeyQuestionName(Question q) {		
+		return GeneralUtilityMethods.getSurveyParameter("key_question", q.paramArray);
+	}
+	
+	/*
+	 * Get the reference survey identifier from the question parameters
+	 */
+	public String getReferenceSurveyIdentifier(Question q) {
+		return GeneralUtilityMethods.getSurveyParameter("form_identifier", q.paramArray);	
+	}
+	
+	/*
+	 * Get the key question value
+	 * When this function has been called the key question value should already have been set either as
+	 * the primary key of the parent survey or its HRK
+	 */
+	String getKeyQuestionValue() {
+		if(gHRK != null) {
+			return gHRK;
+		} else {
+			return gPrimaryKey;
 		}
 	}
 }

@@ -32,6 +32,7 @@ import java.util.Vector;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.server.utilities.UtilityMethods;
 
@@ -186,7 +187,7 @@ public class Question {
 	}
 
 	public String getType() {
-		if(qType.equals("chart") || qType.equals("child_form") || qType.equals("parent_form")) {
+		if(qType.equals("chart") || qType.equals(SmapQuestionTypes.CHILD_FORM) || qType.equals("parent_form")) {
 			return "string";
 		} else {
 			return qType;
@@ -343,7 +344,7 @@ public class Question {
 	
 	public ArrayList<KeyValueSimp> getParameters() {
 		ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
-		if(qType.equals("parent_form") || qType.equals("child_form")) {
+		if(qType.equals("parent_form") || qType.equals(SmapQuestionTypes.CHILD_FORM)) {
 			params.add(new KeyValueSimp("launch_form", qType));
 		}
 		return params;

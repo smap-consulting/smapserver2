@@ -33,6 +33,7 @@ import org.javarosa.xpath.XPathParseTool;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
@@ -1051,7 +1052,7 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// Check that parent and child forms have the form_identifier parameter
-		if(q.type.equals("parent_form") || q.type.equals("child_form")) {
+		if(q.type.equals("parent_form") || q.type.equals(SmapQuestionTypes.CHILD_FORM)) {
 			boolean hasFormIdentifier = false;
 			for(KeyValueSimp kv : q.paramArray) {
 				if(kv.k.equals("form_identifier")) {
@@ -1311,8 +1312,8 @@ public class XLSTemplateUploadManager {
 			out = "chart";
 		} else if (type.equals("parent_form")) {
 			out = "parent_form";
-		} else if (type.equals("child_form")) {
-			out = "child_form";
+		} else if (type.equals(SmapQuestionTypes.CHILD_FORM)) {
+			out = SmapQuestionTypes.CHILD_FORM;
 		} else if (type.equals("range")) {
 			out = "range";
 		} else if (type.equals("begin repeat") || type.equals("begin_repeat")) {

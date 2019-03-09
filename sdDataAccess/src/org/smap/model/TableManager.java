@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.SurveyViewManager;
@@ -591,7 +592,7 @@ public class TableManager {
 			colType = "text";
 		} else if(colType.equals("parent_form")) {
 			colType = "text";
-		} else if(colType.equals("child_form")) {
+		} else if(colType.equals(SmapQuestionTypes.CHILD_FORM)) {
 			colType = "text";
 		} else if(colType.equals("acknowledge") || colType.equals("trigger")) {
 			colType = "text";
