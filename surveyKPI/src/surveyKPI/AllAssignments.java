@@ -166,7 +166,9 @@ public class AllAssignments extends Application {
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
-					null, false, false, false, false, false, "real", false, false, superUser, "geojson");	
+					null, false, false, false, false, false, "real", false, false, superUser, "geojson",
+					false		// child surveys
+					);	
 			
 			sd.setAutoCommit(false);
 			

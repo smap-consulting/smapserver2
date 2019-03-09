@@ -436,7 +436,11 @@ public class NotificationManager {
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
-						false, false, true, "geojson");	// pretend to be super user
+						false, false, 
+						true, 			// pretend to be super user
+						"geojson",
+						false			// Do not follow links to child surveys
+						);	
 				
 				/*
 				 * Test the filter
@@ -546,7 +550,9 @@ public class NotificationManager {
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
-				false, false, true, "geojson");
+				false, false, true, "geojson",
+				true		// For PDFs follow links to child survey
+				);
 		
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, user, organisation.timeZone);
 		

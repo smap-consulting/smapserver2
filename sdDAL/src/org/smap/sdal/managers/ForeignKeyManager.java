@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.KeyValueSimp;
 
@@ -145,7 +146,7 @@ public class ForeignKeyManager {
 							int surveyIdContainingKeyQuestion;
 							String instanceOfHrk;
 							String instanceOfKeyQuestion;
-							if(qType.equals("child_form")) {
+							if(qType.equals(SmapQuestionTypes.CHILD_FORM)) {
 								foreignSiD = sId;
 								surveyIdContainingKeyQuestion = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 								instanceOfHrk = instanceIdLaunchingForm;
