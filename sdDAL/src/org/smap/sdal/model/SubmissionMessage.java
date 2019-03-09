@@ -15,6 +15,7 @@ public class SubmissionMessage {
 	public String subject;
 	public String content;
 	public String attach;
+	public boolean include_references;	// Follow links to referenced surveys
 	private int emailQuestion;			// Legacy question identifier
 	private String emailQuestionName;	// New question identifier
 	public String emailMeta;
@@ -35,6 +36,7 @@ public class SubmissionMessage {
 			String subject, 
 			String content, 
 			String attach, 
+			boolean include_references,
 			int emailQuestion,
 			String emailQuestionName,
 			String emailMeta,

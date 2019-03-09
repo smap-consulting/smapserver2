@@ -479,6 +479,7 @@ public class NotificationManager {
 							nd.subject, 
 							nd.content,
 							nd.attach,
+							nd.include_references,
 							nd.emailQuestion,
 							nd.emailQuestionName,
 							nd.emailMeta,
@@ -551,7 +552,7 @@ public class NotificationManager {
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
-				true		// For PDFs follow links to child survey
+				msg.include_references	// For PDFs follow links to referenced surveys
 				);
 		
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, user, organisation.timeZone);
