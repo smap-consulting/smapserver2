@@ -303,6 +303,8 @@ public class SurveyResults extends Application {
 				ExternalFileManager efm = new ExternalFileManager(localisation);
 				connectionRel.setAutoCommit(false);
 				for(GroupDetails gd : surveys) {
+					// restore backed up files from s3
+					GeneralUtilityMethods.restoreUploadedFiles(gd.surveyIdent);
 					pstmtRestore.setString(1, gd.surveyIdent);			// Initiate restore
 					log.info("Restoring survey " + gd.surveyIdent + ": " + pstmtRestore.toString());
 					pstmtRestore.executeUpdate();
