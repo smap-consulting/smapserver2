@@ -2584,10 +2584,11 @@ public class SurveyManager {
 				}
 			}
 
-			int index = 1;
+			int index;
 			if (resultSet != null) {
 				// For each record returned from the database add the data values to the instance
 				while(resultSet.next()) {
+					index = 1;
 					
 					ArrayList<Result> record = new ArrayList<Result> ();
 
@@ -2637,7 +2638,8 @@ public class SurveyManager {
 				}
 			} else if(generateDummyValues){
 				// Add dummy values for a blank form
-
+				index = 1;
+				
 				ArrayList<Result> record = new ArrayList<Result> ();
 
 				String priKey = "";
