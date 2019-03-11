@@ -58,6 +58,18 @@ public class Login extends Application {
 		public String key;
 	};
 	
+	/*
+	 * Basic login request 
+	 * Returns success if the request gets this far
+	 */
+	@GET
+	public Response login(@Context HttpServletRequest request) {
+		return Response.ok("").build();
+	}
+	
+	/*
+	 * Login and get a key for future authentication
+	 */
 	@GET
 	@Path("/key")
 	@Produces("application/json")
