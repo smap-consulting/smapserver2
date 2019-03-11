@@ -411,6 +411,10 @@ public class Data extends Application {
 				 * Get the data record by record so it can be streamed
 				 */
 				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				
+				sd.setAutoCommit(false);		// page the results to reduce memory usage
+				pstmt.setFetchSize(100);	
+				
 				rs = pstmt.executeQuery();
 				JSONObject jo = new JSONObject();
 				int index = 0;
@@ -440,6 +444,8 @@ public class Data extends Application {
 
 				}
 				
+				sd.setAutoCommit(true);		// page the results to reduce memory
+				
 			}
 			
 			outWriter.print("]");
@@ -453,9 +459,9 @@ public class Data extends Application {
 			}
 
 		} catch (Exception e) {
+			try {sd.setAutoCommit(true);} catch(Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);
 			outWriter.print(e.getMessage());
-			//response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 
 			outWriter.flush(); 
