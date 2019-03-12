@@ -410,6 +410,9 @@ public class Data_CSV extends Application {
 				Type auditItemType = new TypeToken<HashMap<String, AuditItem>>() {}.getType();
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
+				sd.setAutoCommit(false);		// page the results to reduce memory usage
+				pstmt.setFetchSize(100);	
+				
 				rs = pstmt.executeQuery();
 
 				int index = 0;
@@ -501,10 +504,13 @@ public class Data_CSV extends Application {
 					outWriter.print(record.toString());
 
 				}
+				
+				sd.setAutoCommit(true);		// page the results to reduce memory
 
 			}
 
 			} catch (Exception e) {
+				try {sd.setAutoCommit(true);} catch(Exception ex) {};
 				log.log(Level.SEVERE, "Exception", e);
 				outWriter.print(e.getMessage());
 				
