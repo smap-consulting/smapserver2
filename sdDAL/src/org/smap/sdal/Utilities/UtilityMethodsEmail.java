@@ -899,7 +899,7 @@ public class UtilityMethodsEmail {
 			// Update guidance
 			if(l.guidance_hint != null) {
 				pstmt.setString(3, textId + ":hint");
-				pstmt.setString(4, "guide");
+				pstmt.setString(4, "guidance");
 				pstmt.setString(5, l.guidance_hint);
 				pstmt.executeUpdate();
 			}
