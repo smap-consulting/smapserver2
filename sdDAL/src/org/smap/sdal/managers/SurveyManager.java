@@ -3088,7 +3088,8 @@ public class SurveyManager {
 				+ "q.soft_deleted, "
 				+ "q.autoplay,"
 				+ "q.accuracy,"
-				+ "q.l_id "
+				+ "q.l_id,"
+				+ "q.intent "
 				+ "from question q,form f "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = ? "
@@ -3136,6 +3137,7 @@ public class SurveyManager {
 				q.autoplay = rsGetQuestions.getString(24);
 				q.accuracy = rsGetQuestions.getString(25);
 				q.l_id = rsGetQuestions.getInt(26);
+				q.intent = rsGetQuestions.getString(27);
 				if(q.autoplay == null) {
 					q.autoplay = "none";
 				}

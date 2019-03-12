@@ -941,6 +941,14 @@ public class GetXForm {
 				questionElement.setAttribute("accuracyThreshold", accuracy);
 			}
 		}
+		
+		// Add the body intent
+		if (questionElement != null) {
+			String intent = q.getIntent();
+			if (intent != null) {
+				questionElement.setAttribute("intent", intent);
+			}
+		}
 
 		// Add the label
 		if (questionElement != null) {

@@ -627,6 +627,9 @@ public class XLSTemplateUploadManager {
 			q.compressed = true;
 		} 
 		
+		// 19. body::intent
+		q.intent = XLSUtilities.getTextColumn(row, "body::intent", surveyHeader, lastCellNum, null);
+		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
 			for(String h : columnRoleHeader.keySet()) {
@@ -1003,6 +1006,19 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_jr", rowNumber, "survey", "choice_filter", e.getMessage(), null);
 			}
 			testXExprFunctions(q.choice_filter, localisation, true, rowNumber, "choice_filter");
+		}
+		
+		// Check intent
+		if(q.intent != null ) {
+			boolean valid = false;
+			if(q.type.equals("begin group")) {
+				if(q.appearance != null && q.appearance.contains("field-list")) {
+					valid = true;
+				}
+			}
+			if(!valid) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_int", rowNumber, "survey", null, null, null);
+			}
 		}
 		
 		// invalid question in field-list

@@ -75,11 +75,12 @@ public class JdbcQuestionManager {
 			+ "autoplay,"
 			+ "accuracy,"
 			+ "dataType,"
-			+ "compressed"
+			+ "compressed,"
+			+ "intent"
 			+ ") "
 			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtGetBySurveyId;
 	PreparedStatement pstmtGetByFormId;
@@ -115,7 +116,8 @@ public class JdbcQuestionManager {
 			+ "autoplay,"
 			+ "accuracy,"
 			+ "dataType,"
-			+ "compressed "
+			+ "compressed,"
+			+ "intent "
 			+ "from question where soft_deleted = 'false' and ";
 	String sqlGetBySurveyId = "f_id in (select f_id from form where s_id = ?)"
 			+ " order by f_id, seq";
@@ -201,6 +203,7 @@ public class JdbcQuestionManager {
 		} else {
 			pstmt.setBoolean(31, false);
 		}
+		pstmt.setString(32, q.getIntent());
 		
 		pstmt.executeUpdate();
 		
@@ -278,6 +281,7 @@ public class JdbcQuestionManager {
 			q.setAccuracy(rs.getString(30));
 			q.setDataType(rs.getString(31));
 			q.setCompressed(rs.getBoolean(32));
+			q.setIntent(rs.getString(33));
 		
 			/*
 			 * If the list id exists then set the list name

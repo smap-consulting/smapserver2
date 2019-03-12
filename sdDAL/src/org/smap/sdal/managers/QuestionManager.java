@@ -92,9 +92,10 @@ public class QuestionManager {
 				+ "nodeset_value,"
 				+ "nodeset_label,"
 				+ "display_name,"
-				+ "compressed"
+				+ "compressed,"
+				+ "intent"
 				+ ") " 
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -253,6 +254,7 @@ public class QuestionManager {
 				} else {
 					pstmtInsertQuestion.setBoolean(27, false);
 				}
+				pstmtInsertQuestion.setString(28, q.intent);
 
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
@@ -1778,7 +1780,8 @@ public class QuestionManager {
 				+ "q.compressed,"
 				+ "q.external_choices,"
 				+ "q.external_table,"
-				+ "q.l_id "
+				+ "q.l_id,"
+				+ "q.intent "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "where q.f_id = ? ";
@@ -1865,6 +1868,7 @@ public class QuestionManager {
 				//String exChoices = rsGetQuestions.getString(31);
 				//String exTable = rsGetQuestions.getString(32);
 				q.l_id = rsGetQuestions.getInt(33);
+				q.intent = rsGetQuestions.getString(34);
 				
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {

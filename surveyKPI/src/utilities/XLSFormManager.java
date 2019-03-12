@@ -78,6 +78,7 @@ public class XLSFormManager {
 		public static final int COL_PARAMETERS = 19;
 		public static final int COL_ROLE = 20;
 		public static final int COL_DISPLAY_NAME = 21;
+		public static final int COL_INTENT = 22;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -237,6 +238,9 @@ public class XLSFormManager {
 
 			} else if(type == COL_ACCURACY) {				
 				value = q.accuracy;		
+
+			} else if(type == COL_INTENT) {				
+				value = q.intent;		
 
 			} else if(type == COL_REQUIRED) {				
 				value = q.required ? "yes" : "";		
@@ -676,6 +680,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "parameters", Column.COL_PARAMETERS, 0, "parameters"));
 		cols.add(new Column(colNumber++, "autoplay", Column.COL_AUTOPLAY, 0, "autoplay"));
 		cols.add(new Column(colNumber++, "body::accuracyThreshold", Column.COL_ACCURACY, 0, "accuracy"));
+		cols.add(new Column(colNumber++, "body::intent", Column.COL_INTENT, 0, "intent"));
 		cols.add(new Column(colNumber++, "required", Column.COL_REQUIRED, 0, "required"));
 		cols.add(new Column(colNumber++,"required_message", Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));

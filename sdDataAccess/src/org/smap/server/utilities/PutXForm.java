@@ -621,6 +621,14 @@ public class PutXForm {
 	    		accuracy = gpsThresholdNode.getNodeValue();
 	    		q.setAccuracy(accuracy);
 	    	}
+	    	
+	    // Set the group intent
+	    	Node intentNode = nm.getNamedItem("intent");	
+	    	String intent = null;
+	    	if(intentNode != null) {
+	    		intent = intentNode.getNodeValue();
+	    		q.setIntent(intent);
+	    	}
 	
 	    	if(eName.equals("group")) {
 	    		setGroupLabel(questionRef, n);	// Get the label for this group
