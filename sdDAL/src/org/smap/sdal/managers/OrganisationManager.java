@@ -270,12 +270,12 @@ public class OrganisationManager {
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, e_id, ft_backward_navigation, ft_image_size, ft_send, ft_delete, "
-				+ "ft_send_location, changed_ts) "
+				+ "ft_send_location, ft_pw_policy, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?,"
 				+ "?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, now());";
+				+ "?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -334,6 +334,7 @@ public class OrganisationManager {
 			pstmt.setString(28, "not set");			// send automatically
 			pstmt.setString(29, "not set");		// FT delete after sending
 			pstmt.setString(30, "not set");		// Send location
+			pstmt.setInt(31, -1);				// Never require re-entry of FT password
 			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();

@@ -407,7 +407,8 @@ public class OrganisationList extends Application {
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
 				+ "ft_specify_instancename, ft_admin_menu,"
-				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation "
+				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation,"
+				+ "ft_pw_policy "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -433,6 +434,7 @@ public class OrganisationList extends Application {
 				d.ft_number_tasks = rs.getInt(8);
 				d.ft_image_size = rs.getString(9);
 				d.ft_backward_navigation = rs.getString(10);
+				d.ft_pw_policy = rs.getInt(11);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -556,7 +558,8 @@ public class OrganisationList extends Application {
 				" ft_send = ?, " +
 				" ft_number_tasks = ?, " +
 				" ft_image_size = ?, " +
-				" ft_backward_navigation = ?, " +
+				" ft_backward_navigation = ?, "
+				+ "ft_pw_policy = ?, " +
 				" changed_by = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
@@ -577,8 +580,9 @@ public class OrganisationList extends Application {
 			pstmt.setInt(8, d.ft_number_tasks);
 			pstmt.setString(9, d.ft_image_size);
 			pstmt.setString(10, d.ft_backward_navigation);
-			pstmt.setString(11, request.getRemoteUser());
+			pstmt.setInt(11, d.ft_pw_policy);
 			pstmt.setString(12, request.getRemoteUser());
+			pstmt.setString(13, request.getRemoteUser());
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

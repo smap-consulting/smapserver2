@@ -75,7 +75,7 @@ public class Question {
 	
 	private String defaultAnswer;
 
-	private String info;
+	private String info;			// hint
 	
 	private String infotext_id;
 
