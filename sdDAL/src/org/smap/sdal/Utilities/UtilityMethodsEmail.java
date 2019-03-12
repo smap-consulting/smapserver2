@@ -768,12 +768,14 @@ public class UtilityMethodsEmail {
 					//log.info("Get hint: " + pstmt.toString());
 					resultSet = pstmt.executeQuery();
 
-					if(resultSet.next()) {
+					while(resultSet.next()) {
 						String t = resultSet.getString(1).trim();
 						String v = resultSet.getString(2);
 
 						if(t.equals("none")) {
 							l.hint = v;
+						} else if(t.equals("guidance")) {
+							l.guidance_hint = v;
 						} else {
 							log.info("Error: Invalid type for hint: " + t);
 						}
@@ -891,6 +893,14 @@ public class UtilityMethodsEmail {
 				pstmt.setString(3, textId + ":hint");
 				pstmt.setString(4, "none");
 				pstmt.setString(5, l.hint);
+				pstmt.executeUpdate();
+			}
+			
+			// Update guidance
+			if(l.guidance_hint != null) {
+				pstmt.setString(3, textId + ":hint");
+				pstmt.setString(4, "guidance");
+				pstmt.setString(5, l.guidance_hint);
 				pstmt.executeUpdate();
 			}
 

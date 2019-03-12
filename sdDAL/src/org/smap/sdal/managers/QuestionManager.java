@@ -196,7 +196,7 @@ public class QuestionManager {
 				// Assume that every question has a label, however hints are optional (to reduce size of form)
 				String infotextId = null;
 				for(Label l : q.labels) {
-					if(l.hint != null && l.hint.trim().length() > 0) {
+					if(l.hint != null && !l.hint.isEmpty() || l.guidance_hint != null && !l.guidance_hint.isEmpty()) {
 						infotextId = q.fId + "_question_" + columnName + ":hint";
 					}
 				}
