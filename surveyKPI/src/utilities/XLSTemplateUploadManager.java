@@ -725,6 +725,7 @@ public class XLSTemplateUploadManager {
 			Label lab = new Label();
 			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum, defaultLabel);
 			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
+			lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint", header, lastCellNum, null);
 			
 			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
 			if(lab.image == null) {
@@ -743,13 +744,17 @@ public class XLSTemplateUploadManager {
 			labels.add(lab);
 		} else {
 			
-			// Find out if any language has a hint or hint.  If so make sure every language does
+			// Find out if any language has a hint or label.  If so make sure every language does
 			boolean hintSet = false;
+			boolean guidanceHintSet = false;
 			boolean labelSet = false;
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
 				if(XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null) != null) {
 					hintSet = true;
+				}
+				if(XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null) != null) {
+					guidanceHintSet = true;
 				}
 				if(XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, null) != null) {
 					labelSet = true;
@@ -770,6 +775,12 @@ public class XLSTemplateUploadManager {
 					lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, "-");
 				} else {
 					lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null);
+				}
+				
+				if(guidanceHintSet) {
+					lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, "-");
+				} else {
+					lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null);
 				}
 				
 				// image - try various combination of headers
