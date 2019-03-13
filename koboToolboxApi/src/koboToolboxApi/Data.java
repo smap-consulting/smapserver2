@@ -412,7 +412,9 @@ public class Data extends Application {
 				 */
 				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				
-				cResults.setAutoCommit(false);		// page the results to reduce memory usage
+				// page the results to reduce memory usage
+				log.info("---------------------- paging results to postgres");
+				cResults.setAutoCommit(false);		
 				pstmt.setFetchSize(100);	
 				
 				rs = pstmt.executeQuery();
