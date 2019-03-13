@@ -412,7 +412,9 @@ public class Data extends Application {
 				 */
 				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				
-				sd.setAutoCommit(false);		// page the results to reduce memory usage
+				// page the results to reduce memory usage
+				log.info("---------------------- paging results to postgres");
+				cResults.setAutoCommit(false);		
 				pstmt.setFetchSize(100);	
 				
 				rs = pstmt.executeQuery();
@@ -444,7 +446,7 @@ public class Data extends Application {
 
 				}
 				
-				sd.setAutoCommit(true);		// page the results to reduce memory
+				cResults.setAutoCommit(true);		// page the results to reduce memory
 				
 			}
 			
@@ -459,7 +461,7 @@ public class Data extends Application {
 			}
 
 		} catch (Exception e) {
-			try {sd.setAutoCommit(true);} catch(Exception ex) {};
+			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);
 			outWriter.print(e.getMessage());
 		} finally {

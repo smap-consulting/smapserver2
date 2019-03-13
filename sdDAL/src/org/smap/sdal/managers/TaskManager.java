@@ -300,7 +300,9 @@ public class TaskManager {
 				+ "a.action_link,"
 				+ "u.ident as assignee_ident, "				// Get current user ident for notification
 				+ "ST_AsGeoJSON(t.geo_point) as geom, "
-				+ "ST_AsText(t.geo_point) as wkt "
+				+ "ST_AsText(t.geo_point) as wkt, "
+				+ "ST_x(t.geo_point) as lon,"
+				+ "ST_Y(t.geo_point) as lat "
 				+ "from tasks t "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
@@ -458,6 +460,9 @@ public class TaskManager {
 				tf.properties.complete_all = rs.getBoolean("complete_all");
 				tf.properties.tg_id = rs.getInt("tg_id");
 
+				tf.properties.lat = rs.getDouble("lat");
+				tf.properties.lon = rs.getDouble("lon");
+				
 				tl.features.add(tf);
 				
 				index++;
