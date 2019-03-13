@@ -1,4 +1,4 @@
-package surveyKPI;
+package surveyMobileAPI;
 
 
 /*
@@ -39,6 +39,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 
@@ -50,58 +51,20 @@ import com.google.gson.GsonBuilder;
  */
 @Path("/login")
 public class Login extends Application {
-	
-	private static Logger log =
-			 Logger.getLogger(Login.class.getName());
 
-	private class Key {
-		public String key;
-	};
+	Authorise a = new Authorise(null, Authorise.ENUM);
 	
 	/*
-	 * Login and get a key for future authentication
+	 * Basic login request for enumerator access
 	 */
 	@GET
-	@Path("/key")
-	@Produces("application/json")
-	public Response getKey(@Context HttpServletRequest request,
-			@QueryParam("form") String formIdent) {
-		
-		Response response = null;
-		 		
-		// No authorisation is required - the key is returned to the authenticated user
-		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-login-key");
-		
-		
-		String user = request.getRemoteUser();
-		
-		Key accessToken = new Key();
-		try {
-			String scope = "user";	// General key for access not just for forms
-			if(formIdent != null) {
-				scope = formIdent;		
-			}
-			accessToken.key = GeneralUtilityMethods.getNewAccessKey(connectionSD, user, scope);
-			log.info("userevent: " + user + " : requested access key : " + accessToken.key);
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Failed to get access key", e);
-			response = Response.serverError().build();
-		} finally {
-			SDDataSource.closeConnection("surveyKPI-login-key", connectionSD);
-		}
-		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		String resp = gson.toJson(accessToken);
-		response = Response.ok(resp).build();
-		
-		return response;
-
+	public Response login(@Context HttpServletRequest request) {
+		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormList");
+	    a.isAuthorised(connectionSD, request.getRemoteUser());	//Authorisation - Access 
+	    SDDataSource.closeConnection("surveyMobileAPI-FormList", connectionSD);
+		return Response.ok("").build();
 	}
-
 	
-
-
 
 }
 
