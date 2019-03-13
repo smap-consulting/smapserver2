@@ -411,7 +411,8 @@ public class MyAssignments extends Application {
 					+ "o.ft_review_final, "
 					+ "o.ft_send,"
 					+ "o.ft_image_size,"
-					+ "o.ft_backward_navigation "
+					+ "o.ft_backward_navigation,"
+					+ "o.ft_pw_policy "
 					+ "from organisation o, users u "
 					+ "where u.o_id = o.id "
 					+ "and u.ident = ?");
@@ -438,6 +439,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
 				tr.settings.ft_image_size = resultSet.getString(9);
 				tr.settings.ft_backward_navigation = resultSet.getString(10);
+				tr.settings.ft_pw_policy = resultSet.getInt(11);
 				tr.settings.ft_location_trigger = true;
 			}
 
