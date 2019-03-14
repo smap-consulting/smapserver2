@@ -392,7 +392,11 @@ public class XLSXReportsManager {
 				String previousKey = null;													// transforms
 				HashMap<String, HashMap<String, String>> transformData = null;				// transforms
 				
+				
 				pstmt = cResults.prepareStatement(sqlDesc.sql);
+				cResults.setAutoCommit(false);	// page the results to reduce memory usage	
+				pstmt.setFetchSize(100);	
+				
 				log.info("Get results: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				ArrayList<ReadData> dataItems = null;
@@ -568,6 +572,7 @@ public class XLSXReportsManager {
 					}
 
 				}
+				cResults.setAutoCommit(true);
 				
 				// Write the last row
 				dataRow = dataSheet.createRow(rowNumber++);	
@@ -576,6 +581,7 @@ public class XLSXReportsManager {
 			
 
 			}  catch (Exception e) {
+				try {cResults.setAutoCommit(true);} catch (Exception ex) {}
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
 				lm.writeLog(sd, sId, username, "error", e.getMessage());
