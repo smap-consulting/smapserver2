@@ -179,7 +179,8 @@ public class PDFReportsManager {
 	 			Survey survey = sm.getById(sd, cResults, username, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
 						false, false, true, "geojson",
-						true			// For a PDF follow links to child surveys
+						false,			// Don't get child surveys
+						false			// launched only
 						);				
 				PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, username, tz);
 				

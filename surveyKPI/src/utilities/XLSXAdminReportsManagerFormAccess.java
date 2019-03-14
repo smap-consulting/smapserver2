@@ -138,7 +138,8 @@ public class XLSXAdminReportsManagerFormAccess {
 					true, 		// get roles
 					true, 		// Pretend to be super user
 					null	,		// geom format
-					false		// Child surveys
+					false,		// Child surveys
+					false		// launched only
 					);
 			/*
 			 * Write the form overview

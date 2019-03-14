@@ -82,7 +82,8 @@ public class GetHtml {
 
 			survey = sm.getById(sd, cResults, userIdent, sId, true, basePath, null, false, false, true, false,
 					false, "real", false, false, superUser, null,
-					false		// Do not include child surveys - presumably never required for a web form
+					false,		// Do not include child surveys - presumably never required for a web form
+					false		// launched only
 					);
 
 			if(survey == null) {

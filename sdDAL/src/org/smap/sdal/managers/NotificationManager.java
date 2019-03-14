@@ -439,7 +439,8 @@ public class NotificationManager {
 						false, false, 
 						true, 			// pretend to be super user
 						"geojson",
-						false			// Do not follow links to child surveys
+						false,			// Do not follow links to child surveys
+						false	// launched only
 						);	
 				
 				/*
@@ -480,6 +481,7 @@ public class NotificationManager {
 							nd.content,
 							nd.attach,
 							nd.include_references,
+							nd.launched_only,
 							nd.emailQuestion,
 							nd.emailQuestionName,
 							nd.emailMeta,
@@ -552,7 +554,8 @@ public class NotificationManager {
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
-				msg.include_references	// For PDFs follow links to referenced surveys
+				msg.include_references,	// For PDFs follow links to referenced surveys
+				msg.launchedOnly			// launched only
 				);
 		
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, user, organisation.timeZone);

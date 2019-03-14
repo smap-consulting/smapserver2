@@ -83,7 +83,8 @@ public class CreatePDF extends Application {
 			@QueryParam("landscape") boolean landscape,
 			@QueryParam("filename") String filename,
 			@QueryParam("utcOffset") int utcOffset,		// Offset in minutes
-			@QueryParam("reference_surveys") boolean referenceSurveys		// Follow links to child surveys
+			@QueryParam("reference_surveys") boolean referenceSurveys,	// Follow links to child surveys,
+			@QueryParam("launched_only") boolean onlyGetLaunched			// Only get launched reference surveys
 			) throws Exception {
 		
 		log.info("Create PDF from survey:" + sIdent + " for record: " + instanceId);
@@ -145,7 +146,8 @@ public class CreatePDF extends Application {
 					false, 
 					superUser, 
 					"geojson",
-					referenceSurveys);
+					referenceSurveys,
+					onlyGetLaunched);
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";

@@ -16,6 +16,7 @@ public class SubmissionMessage {
 	public String content;
 	public String attach;
 	public boolean include_references;	// Follow links to referenced surveys
+	public boolean launchedOnly;
 	private int emailQuestion;			// Legacy question identifier
 	private String emailQuestionName;	// New question identifier
 	public String emailMeta;
@@ -37,6 +38,7 @@ public class SubmissionMessage {
 			String content, 
 			String attach, 
 			boolean include_references,
+			boolean launchedOnly,
 			int emailQuestion,
 			String emailQuestionName,
 			String emailMeta,
@@ -56,6 +58,8 @@ public class SubmissionMessage {
 		this.subject = subject;
 		this.content = content;
 		this.attach = attach;
+		this.include_references = include_references;
+		this.launchedOnly = launchedOnly;
 		this.emailQuestion = emailQuestion;
 		this.emailQuestionName = emailQuestionName;
 		this.emailMeta = emailMeta;

@@ -100,9 +100,20 @@ public class CreateXLSForm extends Application {
 			
 			// Get the survey details
 			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), 
-					sId, true, basePath, null, false, false, true, 
-					false, false, "internal", false, true, superUser, null,
-					false		// Do not include child surveys yet
+					sId, true, basePath, 
+					null, 		// instanceId
+					false, 		// get results
+					false, 		// Generate dummy data
+					true, 		// get property questions
+					false, 		// get soft deleted
+					false, 		// get hrk
+					"internal", // source of choices
+					false, 		// get change history
+					true, 		// get roles
+					superUser, 
+					null,		// Geometry format
+					false,		// include child surveys
+					false		// only get launched
 					);
 			
 			// Set file name

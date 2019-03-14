@@ -167,7 +167,8 @@ public class AllAssignments extends Application {
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
 					null, false, false, false, false, false, "real", false, false, superUser, "geojson",
-					false		// child surveys
+					false,		// child surveys
+					false		// onlyGetLaunched
 					);	
 			
 			sd.setAutoCommit(false);

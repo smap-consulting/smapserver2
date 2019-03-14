@@ -647,7 +647,8 @@ public class TaskManager {
 							false, 
 							true, 		// Set super user true so that roles are ignored
 							"geojson",
-							false		// Do not test in child surveys (at least not yet)
+							false,		// Do not test in child surveys (at least not yet)
+							false		// launched only
 							);	
 				}
 
@@ -2175,7 +2176,8 @@ public class TaskManager {
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
-				false		// Do not include child surveys (at least not yet)
+				false,		// Do not include child surveys (at least not yet)
+				false		// launched only
 				);
 		
 		try {

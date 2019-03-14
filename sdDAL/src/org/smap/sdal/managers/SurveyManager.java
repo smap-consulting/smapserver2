@@ -354,7 +354,8 @@ public class SurveyManager {
 			boolean getRoles,					// Only applies if "full" has been specified
 			boolean superUser,
 			String geomFormat,
-			boolean childSurveys					// follow links to child surveys
+			boolean referenceSurveys,					// follow links to child surveys
+			boolean onlyGetLaunched		// Use with referenceSuveys to restrict results to those created by launching another form
 			) throws SQLException, Exception {
 
 		Survey s = null;	// Survey to return
@@ -480,7 +481,8 @@ public class SurveyManager {
 							geomFormat,
 							s.o_id,
 							true,
-							childSurveys		// Whether or not to get child surveys
+							referenceSurveys	,	// Whether or not to get referenced surveys
+							onlyGetLaunched		// Use with referenceSuveys to restrict results to those created by launching another form
 							);
 					if(s.instance.results.size() > 0) {
 						ArrayList<Result> topForm = s.instance.results.get(0);
@@ -2464,7 +2466,8 @@ public class SurveyManager {
 			String geomFormat,
 			int oId,
 			boolean isTopLevel,				// Set true fist time this recursive function is called
-			boolean referencedSurveys				// Set to get child surveys
+			boolean referencedSurveys,		// Set to get reference surveys
+			boolean onlyGetLaunched			// If referenceSurveys is also set only data creating by launching a form will be retrieved
 			) throws Exception{
 
 		ArrayList<ArrayList<Result>> output = new ArrayList<ArrayList<Result>> ();
@@ -2632,6 +2635,7 @@ public class SurveyManager {
 							geomFormat,
 							oId,
 							referencedSurveys,
+							onlyGetLaunched,
 							index);
 
 					output.add(record);
@@ -2673,6 +2677,7 @@ public class SurveyManager {
 						geomFormat,
 						oId,
 						referencedSurveys,
+						onlyGetLaunched,
 						index);
 
 				output.add(record);
@@ -2716,6 +2721,7 @@ public class SurveyManager {
 			String geomFormat,
 			int oId,
 			boolean referencedSurveys,
+			boolean onlyGetLaunched,
 			int index) throws Exception {
 		
 		/*
@@ -2759,7 +2765,8 @@ public class SurveyManager {
 							geomFormat,
 							oId,
 							false,
-							referencedSurveys);
+							referencedSurveys,
+							onlyGetLaunched);
 
 					record.add(nr);
 				}
@@ -2792,7 +2799,8 @@ public class SurveyManager {
 						false,						// Don't get roles
 						superUser,
 						geomFormat,
-						referencedSurveys					// follow links to child surveys
+						referencedSurveys,					// follow links to child surveys
+						onlyGetLaunched		// Use with referenceSuveys to restrict results to those created by launching another form
 					);
 				
 				
@@ -2803,12 +2811,22 @@ public class SurveyManager {
 					
 					Form mainSubForm = refSurvey.getFirstForm();					
 					Result nr = new Result(qName, "form", null, false, fIdx, qIdx, 0, null, appearance);		// Result entry for this question
-
+					
+					String instanceId = null;
 					String keyQuestionName = null;
 					String keyQuestionValue = null;
 					if(!generateDummyValues) {
-						keyQuestionName = getKeyQuestionName(q);		// The question in the child form that will hold the key value
-						keyQuestionValue = getKeyQuestionValue();		// Either the primary key or hrk of this surveys submission
+						if(onlyGetLaunched) {
+							String value = resultSet.getString(index);
+							if(value != null && value.length() > 5) {
+								instanceId = value.substring(5);
+							} else {
+								instanceId = "";
+							}
+						} else {
+							keyQuestionName = getKeyQuestionName(q);		// The question in the child form that will hold the key value
+							keyQuestionValue = getKeyQuestionValue();		// Either the primary key or hrk of this surveys submission
+						}
 					}
 					
 					nr.subForm = getResults(
@@ -2823,8 +2841,8 @@ public class SurveyManager {
 							getHrk,		
 							getExternalOptions,
 							superUser,
-							null,
-							0,
+							instanceId,
+							0,								// parent key
 							keyQuestionName,
 							keyQuestionValue,
 							s,
@@ -2832,7 +2850,8 @@ public class SurveyManager {
 							geomFormat,
 							oId,
 							false,
-							referencedSurveys
+							referencedSurveys,
+							onlyGetLaunched
 							);
 
 					record.add(nr);
