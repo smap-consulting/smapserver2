@@ -506,19 +506,12 @@ public class XLSUtilities {
 
 			cell.setCellStyle(styles.get("link"));
 			Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
-			url.setAddress(value);
-			cell.setHyperlink(url);
-			/*
-			if(isXLSX) {
-				XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
+			try {
 				url.setAddress(value);
-				cell.setHyperlink(url);
-			} else {
-				HSSFHyperlink url = new HSSFHyperlink(HSSFHyperlink.LINK_URL);
-				url.setAddress(value);
-				cell.setHyperlink(url);
+			} catch (Exception e) {
+				log.info("Error: " + e.getMessage() + " setting hypperlink address " + value);
 			}
-			*/
+			cell.setHyperlink(url);
 
 			cell.setCellValue(value);
 
