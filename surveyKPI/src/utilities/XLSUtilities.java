@@ -508,11 +508,11 @@ public class XLSUtilities {
 			Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
 			try {
 				url.setAddress(value);
+				cell.setHyperlink(url);
 			} catch (Exception e) {
 				log.info("Error: " + e.getMessage() + " setting hypperlink address " + value);
 			}
-			cell.setHyperlink(url);
-
+			
 			cell.setCellValue(value);
 
 		} else {
