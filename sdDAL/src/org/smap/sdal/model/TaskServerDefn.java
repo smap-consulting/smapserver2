@@ -11,6 +11,7 @@ public class TaskServerDefn {
 	public int id;
 	public String name;
 	public int form_id;
+	public String tg_name;
 	public String form_name;
 	public Timestamp from;
 	public Timestamp to;

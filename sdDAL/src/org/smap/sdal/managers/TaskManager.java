@@ -290,6 +290,7 @@ public class TaskManager {
 				+ "t.deleted,"
 				+ "t.complete_all,"
 				+ "t.tg_id,"
+				+ "tg.name as tg_name,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
 				+ "a.id as assignment_id,"
@@ -306,6 +307,8 @@ public class TaskManager {
 				+ "from tasks t "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
+				+ "join task_group tg "
+				+ "on t.tg_id = tg.tg_id "
 				+ "left outer join assignments a "
 				+ "on a.task_id = t.id " 
 				+ "left outer join users u "
@@ -459,6 +462,7 @@ public class TaskManager {
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
 				tf.properties.complete_all = rs.getBoolean("complete_all");
 				tf.properties.tg_id = rs.getInt("tg_id");
+				tf.properties.tg_name = rs.getString("tg_name");
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");

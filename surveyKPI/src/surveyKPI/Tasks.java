@@ -417,13 +417,16 @@ public class Tasks extends Application {
 			@PathParam("tgId") int tgId,
 			@QueryParam("tz") String tz,
 			@QueryParam("filetype") String filetype,
-			@QueryParam("inc_status") String incStatus) throws Exception {
+			@QueryParam("inc_status") String incStatus,
+			@QueryParam("period") String period) throws Exception {
 
 		Connection sd = SDDataSource.getConnection("createXLSTasks");	
 		// Authorisation - Access
 
 		a.isAuthorised(sd, request.getRemoteUser());		
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		if(tgId > 0) {
+			a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		}
 		// End Authorisation 
 		
 		String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -448,10 +451,21 @@ public class Tasks extends Application {
 			
 			TaskManager tm = new TaskManager(localisation, tz);
 			
-			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
-			TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, true, 0, incStatus, "all", 0, 0,
+			String filename = null;
+			if(tgId > 0) {
+				TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);		// Get the task group name
+				filename = tg.name + "." + filetype;
+			} else {
+				filename = organisation.name + " - " + localisation.getString("c_tasks") + "." + filetype;
+			}
+			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
+			
+			if(period == null) {
+				period = "week";
+			}
+			
+			TaskListGeoJson tl = tm.getTasks(sd, organisation.id, tgId, true, 0, incStatus, period, 0, 0,
 					"scheduled", "desc");	// Get the task list
-			GeneralUtilityMethods.setFilenameInResponse(tg.name + "." + filetype, response); // Set file name
 			
 			// Create XLSTasks File
 			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());

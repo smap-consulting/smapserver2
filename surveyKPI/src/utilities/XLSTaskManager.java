@@ -85,7 +85,9 @@ public class XLSTaskManager {
 		public String getValue(TaskProperties props) {
 			String value = null;
 			
-			if(name.equals("form")) {
+			if(name.equals("tg_name")) {
+				value = props.tg_name;
+			} else if(name.equals("form")) {
 				value = props.form_name;
 			} else if(name.equals("name")) {
 				value = props.name;
@@ -93,6 +95,8 @@ public class XLSTaskManager {
 				value = props.assignee_ident;
 			} else if(name.equals("assignee_name")) {
 				value = props.assignee_name;
+			} else if(name.equals("status")) {
+				value = props.status;
 			} else if(name.equals("email")) {
 				value = props.emails;
 			} else if(name.equals("url")) {
@@ -227,6 +231,7 @@ public class XLSTaskManager {
 						header = getHeader(row, lastCellNum);
 						needHeader = false;
 					} else {
+						String tg_name = getColumn(row, "tg_name", header, lastCellNum, null);
 						String form_name = getColumn(row, "form", header, lastCellNum, null);
 						String assignee_ident = getColumn(row, "assignee_ident", header, lastCellNum, null);
 						String email = getColumn(row, "email", header, lastCellNum, null);
@@ -234,6 +239,7 @@ public class XLSTaskManager {
 						if(form_name != null && form_name.trim().length() > 0) {
 
 							currentTask = new TaskServerDefn();
+							currentTask.tg_name = tg_name;
 							currentTask.form_name = form_name;
 							currentTask.name = getColumn(row, "name", header, lastCellNum, "");
 							currentTask.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
@@ -256,6 +262,7 @@ public class XLSTaskManager {
 							currentAssignment.assignee_ident = assignee_ident;
 							currentAssignment.email = email;
 							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
+							currentAssignment.status = getColumn(row, "status", header, lastCellNum, null);
 							
 							currentTask.assignments.add(currentAssignment);
 
@@ -267,6 +274,7 @@ public class XLSTaskManager {
 							currentAssignment.assignee_ident = assignee_ident;
 							currentAssignment.email = email;
 							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
+							currentAssignment.status = getColumn(row, "status", header, lastCellNum, null);
 							if(currentTask == null) {
 								String msg = localisation.getString("t_no_task");
 								msg = msg.replaceAll("%s1", String.valueOf(j));
@@ -531,10 +539,12 @@ public class XLSTaskManager {
 		
 		int colNumber = 0;
 	
+		cols.add(new Column(localisation, colNumber++, "tg_name", false));
 		cols.add(new Column(localisation, colNumber++, "form", false));
 		cols.add(new Column(localisation, colNumber++, "name", false));
 		cols.add(new Column(localisation, colNumber++, "assignee_ident", true));		// Assignment
 		cols.add(new Column(localisation, colNumber++, "assignee_name", true));		// Assignment
+		cols.add(new Column(localisation, colNumber++, "status", true));				// Assignment
 		cols.add(new Column(localisation, colNumber++, "email", true));				// Assignment
 		cols.add(new Column(localisation, colNumber++, "url", true));					// Assignment
 		cols.add(new Column(localisation, colNumber++, "location_trigger", false));
@@ -545,8 +555,7 @@ public class XLSTaskManager {
 		cols.add(new Column(localisation, colNumber++, "complete_all", false));
 		cols.add(new Column(localisation, colNumber++, "address", false));
 		cols.add(new Column(localisation, colNumber++, "lon", false));
-		cols.add(new Column(localisation, colNumber++, "lat", false));
-		
+		cols.add(new Column(localisation, colNumber++, "lat", false));	
 		
 		return cols;
 	}
