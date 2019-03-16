@@ -79,6 +79,7 @@ public class XLSFormManager {
 		public static final int COL_ROLE = 20;
 		public static final int COL_DISPLAY_NAME = 21;
 		public static final int COL_INTENT = 22;
+		public static final int COL_GUIDANCE_HINT = 23;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -189,6 +190,13 @@ public class XLSFormManager {
 					value = "";
 				} else {
 					value = q.labels.get(labelIndex).hint;
+				}
+
+			} else if(type == COL_GUIDANCE_HINT) {	
+				if(q.type.equals("calculate")) {	
+					value = "";
+				} else {
+					value = q.labels.get(labelIndex).guidance_hint;
 				}
 
 			} else if(type == COL_CHOICE_FILTER) {				
@@ -661,6 +669,7 @@ public class XLSFormManager {
 		for(Language language : survey.languages) {
 			cols.add(new Column(colNumber++,"label::" + language.name, Column.COL_LABEL, labelIndex, "label"));
 			cols.add(new Column(colNumber++,"hint::" + language.name, Column.COL_HINT, labelIndex, "label"));
+			cols.add(new Column(colNumber++,"guidance_hint::" + language.name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));
 			labelIndex++;
 		}
 
@@ -761,7 +770,6 @@ public class XLSFormManager {
 	/*
 	 * write out the settings values
 	 */
-
 	private void processSurveyForXLS(Sheet settingsSheet, 
 			Map<String, CellStyle> styles, 
 			ArrayList<Column>  colsSettings) {
