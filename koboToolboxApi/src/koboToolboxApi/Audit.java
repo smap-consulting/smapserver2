@@ -99,7 +99,6 @@ public class Audit extends Application {
 	}
 
 	/*
-	 * KoboToolBox API version 1 /data
 	 * Returns a list of data end points
 	 */
 	@GET
@@ -149,7 +148,6 @@ public class Audit extends Application {
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("mgmt") boolean mgmt,
-			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			@QueryParam("sort") String sort,				// Column Human Name to sort on
 			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
 			@QueryParam("form") String formName,			// Form name (optional only specify for a child form)
@@ -161,7 +159,7 @@ public class Audit extends Application {
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
-		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
+		getDataRecords(request, response, sIdent, start, limit, mgmt, sort, dirn, formName, start_parkey,
 				parkey, hrk, include_bad, merge, tz);
 	}
 	
@@ -171,7 +169,6 @@ public class Audit extends Application {
 			int start,				// Primary key to start from
 			int limit,				// Number of records to return
 			boolean mgmt,
-			boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			String sort,				// Column Human Name to sort on
 			String dirn,				// Sort direction, asc || desc
 			String formName,			
@@ -345,7 +342,7 @@ public class Audit extends Application {
 					sort,
 					dirn,
 					mgmt,
-					group,
+					false,			// group
 					false,
 					start,
 					limit,
