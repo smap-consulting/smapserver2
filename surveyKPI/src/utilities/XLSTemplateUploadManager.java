@@ -414,12 +414,12 @@ public class XLSTemplateUploadManager {
 								|| h.startsWith("label::") 
 								|| h.equals("image")
 								|| h.startsWith("image::")  		// deprecate?
-								|| h.equals("media::image") 
+								|| h.startsWith("media::image") 
 								|| h.equals("audio")
 								|| h.startsWith("audio::") 		// deprecate?
-								|| h.equals("media::audio") 
+								|| h.startsWith("media::audio") 
 								|| h.equals("video") 
-								|| h.equals("media::video")
+								|| h.startsWith("media::video")
 								|| h.startsWith("video::")) { 	// deprecate?
 							continue;
 						}

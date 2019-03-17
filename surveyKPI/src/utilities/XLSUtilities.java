@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.commons.io.IOUtils;
@@ -609,38 +610,44 @@ public class XLSUtilities {
 
 		String xmlForm = xForm.get(template, false, true, false, user);
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
-		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
-		FormEntryModel fem = new FormEntryModel(fd);
-		
-		// make sure properties get loaded
-        fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));
+		try {
+			org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
+			FormEntryModel fem = new FormEntryModel(fd);
+			
+			// make sure properties get loaded
+	        fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));
 
-        // update evaluation context for function handlers
-        fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
+	        // update evaluation context for function handlers
+	        fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
 
-            public String getName() {
-                return "pulldata";
-            }
+	            public String getName() {
+	                return "pulldata";
+	            }
 
-            public List<Class[]> getPrototypes() {
-                return new ArrayList<Class[]>();
-            }
+	            public List<Class[]> getPrototypes() {
+	                return new ArrayList<Class[]>();
+	            }
 
-            public boolean rawArgs() {
-                return true;
-            }
+	            public boolean rawArgs() {
+	                return true;
+	            }
 
-            public boolean realTime() {
-                return false;
-            }
+	            public boolean realTime() {
+	                return false;
+	            }
 
-			@Override
-			public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
-				// TODO Auto-generated method stub
-				return arg0[0];
-			}});
-        
-		fd.initialize(true, new InstanceInitializationFactory());
+				@Override
+				public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
+					// TODO Auto-generated method stub
+					return arg0[0];
+				}});
+	        
+			fd.initialize(true, new InstanceInitializationFactory());
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			log.info(xmlForm);
+			throw e;
+		}
 
 	}
     
