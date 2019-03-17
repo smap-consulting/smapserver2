@@ -385,8 +385,8 @@ public class XLSUtilities {
 		} else {
 			throw(new ApplicationException("Error: Unknown cell type: " + c.getCellType() + 
 					" in sheet "  + c.getSheet().getSheetName() +
-					" in row " + c.getRowIndex() + 
-					", column " + c.getColumnIndex()));
+					" in row " + (c.getRowIndex() + 1) + 
+					", column " + (c.getColumnIndex() + 1)));
 		}
 
 		return value;
