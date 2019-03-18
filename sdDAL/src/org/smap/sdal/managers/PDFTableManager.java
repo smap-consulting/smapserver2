@@ -499,33 +499,6 @@ public class PDFTableManager {
 	}
 	
 	/*
-	 * Convert the results  and survey definition arrays to display items
-	 */
-	ArrayList<DisplayItem> convertChoiceListToDisplayItems(
-			org.smap.sdal.model.Survey survey, 
-			org.smap.sdal.model.Question question,
-			ArrayList<Result> choiceResults,
-			int languageIdx) {
-		
-		ArrayList<DisplayItem> diList = null;
-		if(choiceResults != null) {
-			diList = new ArrayList<DisplayItem>();
-			for(Result r : choiceResults) {
-
-				Option option = survey.optionLists.get(r.listName).options.get(r.cIdx);
-				Label label = option.labels.get(languageIdx);
-				DisplayItem di = new DisplayItem();
-				di.text = label.text == null ? "" : label.text;
-				di.name = r.name;
-				di.type = "choice";
-				di.isSet = r.isSet;
-				diList.add(di);
-			}
-		}
-		return diList;
-	}
-	
-	/*
 	 * Add the question label, hint, and any media
 	 */
 	private PdfPCell addDisplayItem(Parser parser, 

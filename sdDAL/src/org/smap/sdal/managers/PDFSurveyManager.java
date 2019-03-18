@@ -1380,36 +1380,6 @@ public class PDFSurveyManager {
 	}
 
 	/*
-	 * Convert the results  and survey definition arrays to display items
-	 */
-	ArrayList<DisplayItem> convertChoiceListToDisplayItems(
-			org.smap.sdal.model.Survey survey, 
-			org.smap.sdal.model.Question question,
-			//ArrayList<Result> choiceResults,
-			ArrayList<Result> record,
-			ArrayList<ArrayList<Result>> parentRecords) {
-
-		ArrayList<Result> choiceResults = new ArrayList<Result> ();		// Probably this needs to generate a set of all choices selected and not for a blank template
-		ArrayList<DisplayItem> diList = null;
-		if(choiceResults != null) {
-			diList = new ArrayList<DisplayItem>();
-			for(Result r : choiceResults) {
-
-				Option option = survey.optionLists.get(r.listName).options.get(r.cIdx);
-				Label label = option.labels.get(languageIdx);
-				DisplayItem di = new DisplayItem();
-				di.text = label.text == null ? "" : label.text;
-				di.text = lookupReferenceValue(di.text, record, parentRecords);
-				di.name = r.name;
-				di.type = "choice";
-				di.isSet = r.isSet;
-				diList.add(di);
-			}
-		}
-		return diList;
-	}
-
-	/*
 	 * Add the question label, hint, and any media
 	 */
 	private PdfPTable addDisplayItem(
@@ -1473,24 +1443,26 @@ public class PDFSurveyManager {
 		parser.elements.clear();
 		try {
 			parser.xmlParser.parse(new StringReader(html.toString()));
+			
+			for(Element element : parser.elements) {
+				if(textValue != null && textValue.length() > 0) {
+					if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
+						labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+					}
+				} else if(di.hint != null && di.hint.length() > 0) {
+					if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
+						labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+					}
+				}
+				labelCell.addElement(element);
+			}
 		} catch (Exception e) {
 			log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
 			lm.writeLog(sd, survey.getId(), remoteUser, "error", e.getMessage() + " for: " + html.toString());
-			throw e;
+			labelCell.addElement(getPara(html.toString(), di, gv, null, null));
 		}
 
-		for(Element element : parser.elements) {
-			if(textValue != null && textValue.length() > 0) {
-				if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
-					labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-				}
-			} else if(di.hint != null && di.hint.length() > 0) {
-				if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
-					labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-				}
-			}
-			labelCell.addElement(element);
-		}
+
 
 		// Set the content of the value cell
 		try {
@@ -1841,7 +1813,7 @@ public class PDFSurveyManager {
 				} catch (Exception e) {
 					log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
 					lm.writeLog(sd, survey.getId(), remoteUser, "error", e.getMessage() + " for: " + html.toString());
-					throw e;
+					cell.addElement(getPara(html.toString(), di, gv, null, null));
 				}
 				for(Element element : parser.elements) {					
 					cell.addElement(element);
