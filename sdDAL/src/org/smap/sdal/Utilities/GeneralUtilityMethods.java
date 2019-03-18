@@ -5820,43 +5820,6 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return true if the question column name is in the survey
-	 */
-	public static boolean surveyHasColumn(Connection sd, int sId, String columnName) throws SQLException {
-
-		boolean hasQuestion = false;
-
-		String sql = "select count(*) from question q " + "where q.f_id in (select f_id from form where s_id = ?) "
-				+ "and q.column_name = ? ";
-
-		PreparedStatement pstmt = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			pstmt.setString(2, columnName);
-
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				hasQuestion = (rs.getInt(1) > 0);
-			}
-
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
-		}
-
-		return hasQuestion;
-	}
-
-	/*
 	 * Translate a question name to the version used in Kobo
 	 */
 	public static String translateToKobo(String in) {

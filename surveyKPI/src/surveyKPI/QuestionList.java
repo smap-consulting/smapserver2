@@ -263,6 +263,7 @@ public class QuestionList extends Application {
 						q.f_id = tf.id;
 						q.type = mi.type;
 						q.is_ssc = false;
+						q.toplevel = true;
 						
 						questions.add(q);
 					}	
