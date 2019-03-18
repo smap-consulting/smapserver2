@@ -278,7 +278,9 @@ public class Billing extends Application {
 	@Produces("application/json")
 	public String getRates(@Context HttpServletRequest request,
 			@QueryParam("org") int oId,
-			@QueryParam("ent") int eId) throws Exception { 
+			@QueryParam("ent") int eId,
+			@QueryParam("tz") String tz					// Timezone
+			) throws Exception { 
 		
 		String connectionString = "surveyKPI-Billing-getRates";
 		
@@ -303,6 +305,7 @@ public class Billing extends Application {
 		// End Authorisation
 		
 		ArrayList<RateDetail> rates = null;
+		tz = (tz == null) ? "UTC" : tz;
 		
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -312,7 +315,7 @@ public class Billing extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			BillingManager bm = new BillingManager(localisation);		
-			rates = bm.getRatesList(sd, eId, oId);
+			rates = bm.getRatesList(sd, tz, eId, oId);
 
 			
 		} catch (Exception e) {

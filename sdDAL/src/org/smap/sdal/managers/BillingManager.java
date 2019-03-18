@@ -4,9 +4,11 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
@@ -245,12 +247,15 @@ public class BillingManager {
 	 */
 	public ArrayList<RateDetail> getRatesList(
 			Connection sd, 
+			String tz,
 			int eId,
 			int oId) throws SQLException {
 		
 		ArrayList<RateDetail> rates = new ArrayList<RateDetail> ();
 		
-		String sql = "select rates, currency from bill_rates "
+		String sql = "select rates, currency, timezone(?, ts_applies_from), created_by,"
+				+ "timezone(?, ts_created) "
+				+ "from bill_rates "
 				+ "where o_id = ? "
 				+ "and e_id = ? "
 				+ "order by ts_applies_from desc ";
@@ -259,14 +264,15 @@ public class BillingManager {
 		/*
 		 * Get the last set of rates that was created prior to the end of the requested month
 		 * Set the month to the next month and get the latest rates less than that
-		 */
-	
+		 */	
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setInt(2, eId);
+			pstmt.setString(1, tz);		// Applies from
+			pstmt.setString(2, tz);		// Created time
+			pstmt.setInt(3, oId);
+			pstmt.setInt(4, eId);
 			log.info("Get rates list: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -275,11 +281,17 @@ public class BillingManager {
 				if(rString != null) {					
 					rd.line = gson.fromJson(rString, new TypeToken<ArrayList<BillLineItem>>() {}.getType());
 				}
+				
 				rd.oId = oId;
 				rd.eId = eId;
 				rd.currency = rs.getString(2);
+				rd.appliesFrom = rs.getObject(3, LocalDate.class);
+				rd.modifiedBy = rs.getString(4);
+				rd.modified = rs.getObject(5, LocalDateTime.class);
 				rates.add(rd);
 			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
 		}

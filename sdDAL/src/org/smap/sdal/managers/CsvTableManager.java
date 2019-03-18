@@ -218,7 +218,9 @@ public class CsvTableManager {
 			String cols[] = parser.parseLine(newLine);
 			headers = new ArrayList<CsvHeader> ();
 			for(String n : cols) {
-				headers.add(new CsvHeader(n, GeneralUtilityMethods.cleanNameNoRand(n)));
+				if(n != null && !n.isEmpty()) {
+					headers.add(new CsvHeader(n, GeneralUtilityMethods.cleanNameNoRand(n)));
+				}
 			}
 			
 			/*
@@ -259,6 +261,7 @@ public class CsvTableManager {
 						String sqlAddColumn = "alter table " + fullTableName + " add column " + c.tName + " text";
 						if(pstmtAlterColumn != null) {try{pstmtAlterColumn.close();} catch(Exception e) {}}
 						pstmtAlterColumn = sd.prepareStatement(sqlAddColumn);
+						log.info("alter: " + pstmtAlterColumn.toString());
 						pstmtAlterColumn.executeUpdate();
 					}
 				}
@@ -320,10 +323,10 @@ public class CsvTableManager {
 			delta = false;			// XXXX temporarily disable delta's they are not used yet and there is a risk that they could go wrong
 			if(delta) {
 				remove(listDel);
-				insert(listAdd);
+				insert(listAdd, headers.size());
 			} else {
 				truncate();
-				insert(listNew);
+				insert(listNew, headers.size());
 				updateInitialisationTimetamp();
 			}		
 			
@@ -886,7 +889,7 @@ public class CsvTableManager {
 	/*
 	 * Insert a csv record into the table
 	 */
-	private void insert(ArrayList<String> records) throws SQLException, IOException {
+	private void insert(ArrayList<String> records, int headerSize) throws SQLException, IOException {
 		
 		if(records.size() == 0) {
 			return;
@@ -917,7 +920,7 @@ public class CsvTableManager {
 			pstmt = sd.prepareStatement(sql.toString());
 			for(String r : records) {
 				String[] data = parser.parseLine(r);
-				for(int i = 0; i < data.length; i++) {
+				for(int i = 0; i < data.length && i < headerSize; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
 				pstmt.executeUpdate();
