@@ -739,9 +739,9 @@ public class TaskManager {
 		
 		String title = null;
 		if(tid.instanceName == null || tid.instanceName.trim().length() == 0) {
-			title = as.project_name + " : " + as.survey_name;
+			title = tgName + " : " + as.project_name + " : " + as.survey_name;
 		} else {
-			title = tid.instanceName;
+			title = tgName + " : " + tid.instanceName;
 		}
 
 		String location = tid.location;
