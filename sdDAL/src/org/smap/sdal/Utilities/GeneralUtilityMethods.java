@@ -3718,8 +3718,8 @@ public class GeneralUtilityMethods {
 	 */
 	public static boolean isPropertyType(String source_param, String name) {
 
-		boolean isProperty;
-		name = name.toLowerCase();
+		boolean isProperty = false;
+		
 
 		if (source_param != null && (source_param.equals("deviceid") || source_param.equals("phonenumber")
 				|| source_param.equals("simserial") || source_param.equals("subscriberid")
@@ -3727,15 +3727,15 @@ public class GeneralUtilityMethods {
 
 			isProperty = true;
 
-		} else if (name != null && 
-				(name.equals("_instanceid") || name.equals("meta") || name.equals("instanceid")
-				|| name.equals("instancename") || name.equals("meta_groupend") || name.equals("_task_key"))) {
+		} else if (name != null) {
+			name = name.toLowerCase();
+			if(name.equals("_instanceid") || name.equals("meta") || name.equals("instanceid")
+					|| name.equals("instancename") || name.equals("meta_groupend") || name.equals("_task_key")) {
 
-			isProperty = true;
+				isProperty = true;
+			}
 
-		} else {
-			isProperty = false;
-		}
+		} 
 
 		return isProperty;
 	}
