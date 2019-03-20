@@ -320,8 +320,14 @@ public class Results extends Application {
 						if(rf.columns.size() > 0) {
 							for(int i = 0; i < rf.columns.size(); i++) {
 								int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
-								QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
-								tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+								if(rqId > 0) {
+									QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
+									tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+								} else {
+									// Assume meta and get top level table
+									Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+									tables.add(tlf.tableName, tlf.id, tlf.parentform);
+								}
 							}
 							if(rfString.length() > 0) {
 								rfString.append(" or");

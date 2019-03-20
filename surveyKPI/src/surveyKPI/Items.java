@@ -448,8 +448,14 @@ public class Items extends Application {
 							if(rf.columns.size() > 0) {
 								for(int i = 0; i < rf.columns.size(); i++) {
 									int rqId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, rf.humanNames.get(i));
-									QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
-									tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+									if(rqId > 0) {
+										QuestionInfo fRbac = new QuestionInfo(sId, rqId, sd);
+										tables.add(fRbac.getTableName(), fRbac.getFId(), fRbac.getParentFId());
+									} else {
+										// Assume meta and get top level table
+										Form tlf = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+										tables.add(tlf.tableName, tlf.id, tlf.parentform);
+									}
 								}
 								if(rfString.length() > 0) {
 									rfString += " or";
@@ -918,7 +924,7 @@ public class Items extends Application {
 						}
 					}
 
-					log.info("Get the number of filtered records: " + pstmt.toString());
+					log.info("Get the number of filtered records for user activity: " + pstmt.toString());
 					resultSet = pstmt.executeQuery();
 					if(resultSet.next()) {
 						jTotals.put("filtered_count", resultSet.getInt(1));
