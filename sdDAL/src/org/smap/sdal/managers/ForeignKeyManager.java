@@ -193,11 +193,11 @@ public class ForeignKeyManager {
 									String keyColumnName = GeneralUtilityMethods.getColumnName(sd, 
 											surveyIdContainingKeyQuestion, keyQuestion);
 									
-									String keyQuestionTable = GeneralUtilityMethods.getTableForQuestion(sd, 
-											surveyIdContainingKeyQuestion, keyColumnName);
-									
 									if(keyColumnName != null) {
 									
+										String keyQuestionTable = GeneralUtilityMethods.getTableForQuestion(sd, 
+												surveyIdContainingKeyQuestion, keyColumnName);
+										
 										String sqlInsertKey = "update " + keyQuestionTable + " set " + keyColumnName +
 											" = ? where instanceid = ?";
 										pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);

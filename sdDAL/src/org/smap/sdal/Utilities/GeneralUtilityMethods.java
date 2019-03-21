@@ -3719,7 +3719,6 @@ public class GeneralUtilityMethods {
 	public static boolean isPropertyType(String source_param, String name) {
 
 		boolean isProperty = false;
-		
 
 		if (source_param != null && (source_param.equals("deviceid") || source_param.equals("phonenumber")
 				|| source_param.equals("simserial") || source_param.equals("subscriberid")
