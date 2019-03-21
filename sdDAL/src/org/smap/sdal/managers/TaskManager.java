@@ -262,6 +262,7 @@ public class TaskManager {
 	public TaskListGeoJson getTasks(Connection sd, 
 			int oId,			// only required if tgId is not set
 			int tgId, 		// Presumably this has been security checked as being in correct organisation
+			int taskId,
 			boolean completed,
 			int userId,
 			String incStatus,
@@ -314,8 +315,9 @@ public class TaskManager {
 				+ "left outer join users u "
 				+ "on a.assignee = u.id");
 		
-		// Restrict by taskGroupId
-		if(tgId > 0) {
+		if(taskId > 0) {				// Restrict by taskId
+			sql.append(" where t.id = ?");
+		} else if(tgId > 0) {		// Restrict by taskGroupId
 			sql.append(" where t.tg_id = ?");
 		} else {
 			sql.append( " where t.p_id in (select id from project where o_id = ?)");
@@ -388,7 +390,9 @@ public class TaskManager {
 			pstmt.setString(paramIdx++, tz);
 			pstmt.setString(paramIdx++, tz);
 			
-			if(tgId > 0) {						// Task group or organisation
+			if(taskId > 0) {
+				pstmt.setInt(paramIdx++, taskId);
+			} else if(tgId > 0) {						// Task group or organisation
 				pstmt.setInt(paramIdx++, tgId);
 			} else {
 				pstmt.setInt(paramIdx++, oId);
