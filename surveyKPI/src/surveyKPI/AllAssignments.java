@@ -633,7 +633,7 @@ public class AllAssignments extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		if(sId > 0) {
 			a.isValidSurvey(sd, userName, sId, false, superUser);	// Validate that the user can access this survey
 		}
@@ -1455,7 +1455,7 @@ public class AllAssignments extends Application {
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidTaskGroup(connectionSD, request.getRemoteUser(), tg_id, false);
+		a.isValidTaskGroup(connectionSD, request.getRemoteUser(), tg_id);
 		// End Authorisation
 
 		PreparedStatement pstmtDelete = null;
