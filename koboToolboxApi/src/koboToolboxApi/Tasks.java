@@ -129,9 +129,12 @@ public class Tasks extends Application {
 				period = "week";		// As per default in UI
 			}
 			
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation, tz);
 			TaskListGeoJson t = tm.getTasks(sd, 
+					urlprefix,
 					oId, 
 					tg_id, 
 					0,			// task id
@@ -184,10 +187,13 @@ public class Tasks extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			
 			// Get assignments
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, 
+			TaskListGeoJson t = tm.getTasks(
+					sd, 
+					urlprefix,
 					0,		// Organisation id 
 					0, 		// task group id
 					taskId,

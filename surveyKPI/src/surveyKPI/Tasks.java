@@ -165,9 +165,15 @@ public class Tasks extends Application {
 			
 			String tz = "UTC";	// Set default for timezone
 			
+			
 			// Get assignments
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, 0, tgId,
+			TaskListGeoJson t = tm.getTasks(
+					sd, 
+					urlprefix,
+					0, 
+					tgId,
 					0,		// task id
 					true, userId, null, period, 0, 0,
 					"scheduled", "desc");		
@@ -466,7 +472,12 @@ public class Tasks extends Application {
 				period = "week";
 			}
 			
-			TaskListGeoJson tl = tm.getTasks(sd, organisation.id, tgId, 
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			
+			TaskListGeoJson tl = tm.getTasks(
+					sd, 
+					urlprefix,
+					organisation.id, tgId, 
 					0,		// task id
 					true, 0, incStatus, period, 0, 0,
 					"scheduled", "desc");	// Get the task list
@@ -603,7 +614,12 @@ public class Tasks extends Application {
 				 *  from latitude and longitude
 				 *  Also we may not want to return complete tasks
 				 */
-				TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, 
+				String urlprefix = request.getScheme() + "://" + request.getServerName();
+				TaskListGeoJson tl = tm.getTasks(
+						sd, 
+						urlprefix,
+						0, 
+						tgId, 
 						0,	// task id 
 						true, userId, null, "all", 0, 0,
 						"scheduled", "desc");	// TODO set "complete" flag from passed in parameter
@@ -827,6 +843,7 @@ public class Tasks extends Application {
 					sd,
 					response.getOutputStream(),
 					basePath, 
+					request,
 					response,
 					tgId);
 			

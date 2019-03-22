@@ -259,7 +259,9 @@ public class TaskManager {
 	/*
 	 * Get tasks
 	 */
-	public TaskListGeoJson getTasks(Connection sd, 
+	public TaskListGeoJson getTasks(
+			Connection sd, 
+			String urlprefix,
 			int oId,			// only required if tgId is not set
 			int tgId, 		// Presumably this has been security checked as being in correct organisation
 			int taskId,
@@ -272,7 +274,7 @@ public class TaskManager {
 			String sort,		// Data to sort on
 			String dirn		// Direction of sort asc || desc
 			) throws Exception {
-
+		
 		StringBuffer sql = new StringBuffer("select t.id as t_id, "
 				+ "t.title as name,"
 				+ "timezone(?, t.schedule_at) as schedule_at,"
@@ -458,7 +460,6 @@ public class TaskManager {
 				tf.properties.assignee_ident = rs.getString("assignee_ident");
 				tf.properties.location_trigger = rs.getString("location_trigger");
 				tf.properties.update_id = rs.getString("update_id");
-				tf.properties.initial_data = rs.getString("initial_data");
 				tf.properties.address = rs.getString("address");
 				tf.properties.guidance = rs.getString("guidance");
 				tf.properties.repeat = rs.getBoolean("repeat");
@@ -470,6 +471,34 @@ public class TaskManager {
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");
+				
+				/*
+				 * Add the task data
+				 * Embed the data if the request is for a single task
+				 * Otherwise set a link
+				 */			
+				if(tf.properties.initial_data_source != null) {
+					if(tf.properties.initial_data_source.equals("survey")) {
+						
+						if(taskId == 0) {
+							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
+									"/" + tf.properties.update_id;
+						} else {
+							tf.properties.initial_data = "{}";		// Convert initial data to structure
+						}
+						
+						
+					} else if(tf.properties.initial_data_source.equals("task")) {
+						if(taskId == 0) {
+							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
+									"/task/" + tf.properties.update_id;
+						} else {
+							tf.properties.initial_data = "{}";		// Convert initial data to structure
+						}
+					} else {
+						tf.properties.initial_data = null;
+					}
+				}
 				
 				tl.features.add(tf);
 				
@@ -754,15 +783,12 @@ public class TaskManager {
 
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
-			String initial_data_url = null;
 			String targetInstanceId = null;
 
 			/*
 			 * Set data to be updated
 			 */
 			if(as.update_results) {
-				initial_data_url = "http://" + hostname + "/instanceXML/" + 
-						targetSurveyIdent + "/0?key=prikey&keyval=" + tid.prikey;					// deprecated
 				targetInstanceId = instanceId;													// New way to identify existing records to be updated
 			}
 
@@ -797,7 +823,6 @@ public class TaskManager {
 					title,
 					target_s_id,
 					formUrl,
-					initial_data_url,
 					location,
 					targetInstanceId,
 					tid.address,
@@ -1112,7 +1137,6 @@ public class TaskManager {
 						tsd.name,
 						tsd.form_id,
 						webformUrl,
-						tsd.initial_data,
 						location,
 						tsd.update_id,
 						tsd.address,
@@ -1672,7 +1696,6 @@ public class TaskManager {
 				+ "form_id, "
 				+ "survey_name, "
 				+ "url, "
-				+ "initial_data,"
 				+ "geo_point,"
 				+ "update_id,"
 				+ "address,"
@@ -1691,7 +1714,6 @@ public class TaskManager {
 				+ "?, "		// form_id
 				+ "(select display_name from survey where s_id = ?), "		// Survey name
 				+ "?, "		// url
-				+ "?, "		// initial_data	
 				+ "ST_GeomFromText(?, 4326), "	// geo_point
 				+ "?, "		// update_id
 				+ "?, "		// address
@@ -1716,7 +1738,6 @@ public class TaskManager {
 			String title,
 			int target_s_id,
 			String formUrl,
-			String initial_data_url,
 			String location,
 			String targetInstanceId,
 			String address,
@@ -1735,16 +1756,15 @@ public class TaskManager {
 		pstmt.setInt(6, target_s_id);			// form id
 		pstmt.setInt(7, target_s_id);			// For survey name
 		pstmt.setString(8, formUrl);				
-		pstmt.setString(9, initial_data_url);	// initial_data
-		pstmt.setString(10, location);			// geopoint
-		pstmt.setString(11, targetInstanceId);	// update id
-		pstmt.setString(12, address);
-		pstmt.setTimestamp(13, taskStart);
-		pstmt.setTimestamp(14, taskFinish);
-		pstmt.setString(15, locationTrigger);
-		pstmt.setBoolean(16, repeat);	
-		pstmt.setString(17, guidance);	
-		pstmt.setString(18, instanceId);
+		pstmt.setString(9, location);			// geopoint
+		pstmt.setString(10, targetInstanceId);	// update id
+		pstmt.setString(11, address);
+		pstmt.setTimestamp(12, taskStart);
+		pstmt.setTimestamp(13, taskFinish);
+		pstmt.setString(14, locationTrigger);
+		pstmt.setBoolean(15, repeat);	
+		pstmt.setString(16, guidance);	
+		pstmt.setString(17, instanceId);
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());

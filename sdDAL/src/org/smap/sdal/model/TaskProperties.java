@@ -22,7 +22,9 @@ public class TaskProperties {
 	public String assignee_ident;
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
-	public String initial_data;
+	public String initial_data_source;		// none || survey || task
+	public String initial_data;				// The actual data in json format
+	public String initial_data_url;			// A link to the data
 	public String update_id;					// Unique identifier of record to be updated
 	public String instance_id;				// Unique identifier of source record
 	public Timestamp from;
