@@ -22,8 +22,7 @@ public class TaskProperties {
 	public String assignee_ident;
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
-	public String initial_data_source;		// none || survey || task
-	public String initial_data;				// The actual data in json format
+	public String initial_data_source;		// none || survey || task			
 	public String initial_data_url;			// A link to the data
 	public String update_id;					// Unique identifier of record to be updated
 	public Timestamp from;
@@ -36,7 +35,9 @@ public class TaskProperties {
 	public String emails;
 	public double lon;				// Duplicates geometry information, used when updating the location
 	public double lat;
-	public boolean complete_all;		// When set true all the assignments associated to a task need to be completed
+	public boolean complete_all;			// When set true all the assignments associated to a task need to be completed
+	
+	public Instance initial_data;	// The actual data in json format
 	
 	public String status;
 }

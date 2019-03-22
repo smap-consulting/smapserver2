@@ -29,6 +29,7 @@ import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
@@ -283,6 +284,7 @@ public class TaskManager {
 				+ "t.location_trigger as location_trigger,"
 				+ "t.update_id as update_id,"
 				+ "t.initial_data as initial_data,"
+				+ "t.initial_data_source as initial_data_source,"
 				+ "t.address as address,"
 				+ "t.guidance as guidance,"
 				+ "t.repeat as repeat,"
@@ -468,6 +470,7 @@ public class TaskManager {
 				tf.properties.complete_all = rs.getBoolean("complete_all");
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
+				tf.properties.initial_data_source = rs.getString("initial_data_source");
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");
@@ -484,7 +487,7 @@ public class TaskManager {
 							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
 									"/" + tf.properties.update_id;
 						} else {
-							tf.properties.initial_data = "{}";		// Convert initial data to structure
+							tf.properties.initial_data = null;		// Get instance data from survey record
 						}
 						
 						
@@ -493,7 +496,13 @@ public class TaskManager {
 							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
 									"/task/" + tf.properties.update_id;
 						} else {
-							tf.properties.initial_data = "{}";		// Convert initial data to structure
+							tf.properties.initial_data = null;		// Get instance data from database
+							// debug
+							tf.properties.initial_data = new Instance();
+							tf.properties.initial_data.values = new HashMap<String, String>();
+							tf.properties.initial_data.values.put("question1", "foo");
+							tf.properties.initial_data.values.put("question2", "bar");
+							// end debug
 						}
 					} else {
 						tf.properties.initial_data = null;

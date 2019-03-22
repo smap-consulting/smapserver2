@@ -54,7 +54,7 @@ public class Survey {
 	public ArrayList<ChangeLog> changes  = new ArrayList<ChangeLog> ();
 	public ArrayList<MetaItem> meta = new ArrayList<> ();
 	public HashMap<String, Role> roles = new HashMap<> ();
-	public Instance instance = new Instance();	// Data from an instance (a submitted survey)
+	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
 	public int managed_id;
 	public int version;			// Default to 1

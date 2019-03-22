@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -234,14 +235,19 @@ public class Tasks extends Application {
 	@Path("/new")
 	@Produces("application/json")
 	public Response getTask(@Context HttpServletRequest request,
-			@QueryParam("tz") String tz					// Timezone
+			@QueryParam("tz") String tz,					// Timezone
+			@FormParam("task") String task
 			) throws ApplicationException, Exception { 
 		
-		String connectionString = "surveyKPI - Tasks - new task";
+		String connectionString = "surveyKPI - Tasks - add new task";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
+		System.out.println(tf.toString());
 		// End authorisation
 
 		Response response = null;
@@ -249,7 +255,6 @@ public class Tasks extends Application {
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
 			
 		
 
