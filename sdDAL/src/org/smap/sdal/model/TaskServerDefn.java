@@ -23,7 +23,6 @@ public class TaskServerDefn {
 	public Double lon;				// Longitude
 	public String initial_data;
 	public String update_id;
-	public String instance_id;
 	
 	public ArrayList<AssignmentServerDefn> assignments = new ArrayList<AssignmentServerDefn> ();
 }

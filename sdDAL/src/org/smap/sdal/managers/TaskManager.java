@@ -758,7 +758,7 @@ public class TaskManager {
 			int source_s_id,
 			int target_s_id,
 			TaskInstanceData tid,			// data from submission
-			String instanceId,
+			String updateId,
 			boolean autosendEmails,
 			String remoteUser
 			) throws Exception {
@@ -789,7 +789,7 @@ public class TaskManager {
 			 * Set data to be updated
 			 */
 			if(as.update_results) {
-				targetInstanceId = instanceId;													// New way to identify existing records to be updated
+				targetInstanceId = updateId;													// New way to identify existing records to be updated
 			}
 
 			/*
@@ -830,8 +830,7 @@ public class TaskManager {
 					taskFinish,
 					tid.locationTrigger,
 					false,
-					null,
-					instanceId);
+					null);
 
 			/*
 			 * Assign the user to the new task
@@ -882,8 +881,7 @@ public class TaskManager {
 						targetSurveyIdent,
 						targetInstanceId,
 						autosendEmails,
-						remoteUser,
-						instanceId);
+						remoteUser);
 			}
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
@@ -1144,8 +1142,7 @@ public class TaskManager {
 						tsd.to,
 						tsd.location_trigger,
 						tsd.repeat,
-						tsd.guidance,
-						tsd.instance_id);
+						tsd.guidance);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					taskId = rsKeys.getInt(1);
@@ -1173,8 +1170,7 @@ public class TaskManager {
 							pId,
 							targetSurveyIdent,
 							autosendEmails,
-							remoteUser,
-							tsd.instance_id);
+							remoteUser);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1194,8 +1190,7 @@ public class TaskManager {
 							targetSurveyIdent,
 							null,
 							autosendEmails,
-							remoteUser,
-							tsd.instance_id);
+							remoteUser);
 				}
 				
 				if(asd.assignee > 0) {
@@ -1721,8 +1716,7 @@ public class TaskManager {
 				+ "?,"		// schedule_finish
 				+ "?,"		// location_trigger
 				+ "?,"		// repeat
-				+ "?,"		// guidance
-				+ "?)";		// instanceId
+				+ "?)";		// guidance
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1745,8 +1739,7 @@ public class TaskManager {
 			Timestamp taskFinish,
 			String locationTrigger,
 			boolean repeat,
-			String guidance,
-			String instanceId) throws SQLException {
+			String guidance) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1764,7 +1757,6 @@ public class TaskManager {
 		pstmt.setString(14, locationTrigger);
 		pstmt.setBoolean(15, repeat);	
 		pstmt.setString(16, guidance);	
-		pstmt.setString(17, instanceId);
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1933,8 +1925,7 @@ public class TaskManager {
 			int pId,
 			String targetSurveyIdent,
 			boolean autosendEmails,
-			String remoteUser,
-			String instanceId) throws Exception {
+			String remoteUser) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -1978,8 +1969,7 @@ public class TaskManager {
 						targetSurveyIdent,
 						null,
 						autosendEmails,
-						remoteUser,
-						instanceId);
+						remoteUser);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -2018,8 +2008,7 @@ public class TaskManager {
 			String sIdent,
 			String targetInstanceId,
 			boolean autosendEmails,
-			String remoteUser,			// For autosend of emails
-			String instanceId			// For autosend of emails
+			String remoteUser			// For autosend of emails
 			) throws Exception {
 
 		String status = "accepted";
@@ -2105,7 +2094,7 @@ public class TaskManager {
 								sId,
 								pId,
 								aId,
-								instanceId,			
+								targetInstanceId,			
 								ted.from,
 								ted.subject, 
 								ted.content,
@@ -2449,7 +2438,6 @@ public class TaskManager {
 		tsd.to = tf.properties.to;
 		tsd.guidance = tf.properties.guidance;
 		tsd.initial_data = tf.properties.initial_data;
-		tsd.instance_id = tf.properties.instance_id;
 		tsd.repeat = tf.properties.repeat;
 		tsd.update_id = tf.properties.update_id;
 		tsd.lon = tf.properties.lon;

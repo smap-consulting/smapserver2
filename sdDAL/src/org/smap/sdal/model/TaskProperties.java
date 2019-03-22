@@ -26,7 +26,6 @@ public class TaskProperties {
 	public String initial_data;				// The actual data in json format
 	public String initial_data_url;			// A link to the data
 	public String update_id;					// Unique identifier of record to be updated
-	public String instance_id;				// Unique identifier of source record
 	public Timestamp from;
 	public Timestamp to;
 	public String location_trigger;
