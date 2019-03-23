@@ -30,4 +30,5 @@ public class DeviceSettings {
 	public String ft_image_size;
 	public int ft_pw_policy;
 	public String ft_backward_navigation;
+	public String ft_navigation;
 }
