@@ -22,6 +22,7 @@ public class TaskServerDefn {
 	public Double lat;				// Latitude
 	public Double lon;				// Longitude
 	public Instance initial_data;
+	public String initial_data_source;
 	public String update_id;
 	
 	public ArrayList<AssignmentServerDefn> assignments = new ArrayList<AssignmentServerDefn> ();

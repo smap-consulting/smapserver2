@@ -790,13 +790,15 @@ public class TaskManager {
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
 			String targetInstanceId = null;
+			String initialDataSource = "none";
 
 			/*
 			 * Set data to be updated
 			 */
 			if(as.update_results) {
-				targetInstanceId = updateId;													// New way to identify existing records to be updated
-			}
+				targetInstanceId = updateId;	
+				initialDataSource = "survey";
+			} 
 
 			/*
 			 * Location
@@ -837,6 +839,7 @@ public class TaskManager {
 					tid.locationTrigger,
 					false,
 					null,
+					initialDataSource,
 					null);
 
 			/*
@@ -1138,6 +1141,7 @@ public class TaskManager {
 						tsd.location_trigger,
 						tsd.repeat,
 						tsd.guidance,
+						tsd.initial_data_source,
 						initial_data);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
@@ -1158,6 +1162,7 @@ public class TaskManager {
 						tsd.location_trigger,
 						tsd.repeat,
 						tsd.guidance,
+						tsd.initial_data_source,
 						initial_data);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
@@ -1715,6 +1720,7 @@ public class TaskManager {
 				+ "location_trigger,"
 				+ "repeat,"
 				+ "guidance,"
+				+ "initial_data_source,"
 				+ "initial_data) "
 				+ "values ("
 				+ "?, "		// p_id
@@ -1733,6 +1739,7 @@ public class TaskManager {
 				+ "?,"		// location_trigger
 				+ "?,"		// repeat
 				+ "?,"		// guidance
+				+ "?,"		// initial_data_source
 				+ "?)";		// initial_data	
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -1757,6 +1764,7 @@ public class TaskManager {
 			String locationTrigger,
 			boolean repeat,
 			String guidance,
+			String initial_data_source,
 			String initial_data) throws SQLException {
 		
 		pstmt.setInt(1, pId);
@@ -1775,7 +1783,8 @@ public class TaskManager {
 		pstmt.setString(14, locationTrigger);
 		pstmt.setBoolean(15, repeat);	
 		pstmt.setString(16, guidance);	
-		pstmt.setString(17, initial_data);	
+		pstmt.setString(17, initial_data_source);
+		pstmt.setString(18, initial_data);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1798,6 +1807,7 @@ public class TaskManager {
 				+ "location_trigger = ?,"
 				+ "repeat = ?,"
 				+ "guidance = ?,"
+				+ "initial_data_source = ?,"
 				+ "initial_data = ? "
 				+ "where id = ? "
 				+ "and tg_id = ?";		// authorisation
@@ -1821,6 +1831,7 @@ public class TaskManager {
 			String locationTrigger,
 			boolean repeat,
 			String guidance,
+			String initial_data_source,
 			String initial_data) throws SQLException {
 		
 		pstmt.setString(1, title);
@@ -1836,7 +1847,8 @@ public class TaskManager {
 		pstmt.setString(11, guidance);
 		pstmt.setInt(12, tId);
 		pstmt.setInt(13, tgId);
-		pstmt.setString(14, initial_data);
+		pstmt.setString(14, initial_data_source);
+		pstmt.setString(15, initial_data);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -2460,6 +2472,7 @@ public class TaskManager {
 		tsd.to = tf.properties.to;
 		tsd.guidance = tf.properties.guidance;
 		tsd.initial_data = tf.properties.initial_data;
+		tsd.initial_data_source = tf.properties.initial_data_source;
 		tsd.repeat = tf.properties.repeat;
 		tsd.update_id = tf.properties.update_id;
 		tsd.lon = tf.properties.lon;
