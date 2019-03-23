@@ -604,7 +604,7 @@ public class Tasks extends Application {
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
-				tm.writeTaskList(sd, cResults, tArray, pId, pName, tgId, tgName, 
+				tm.writeTaskList(sd, cResults, tArray, tgId, 
 						request.getScheme() + "://" + request.getServerName(), 
 						true, oId, false, request.getRemoteUser());
 				
@@ -653,7 +653,7 @@ public class Tasks extends Application {
 	
 	/*
 	 * Modify a task or create a new task
-	 */
+	 * Replaced by web service call in api/v1/tasks
 	@POST
 	@Path("/task/{pId}/{tgId}")
 	@Consumes("application/json")
@@ -709,6 +709,7 @@ public class Tasks extends Application {
 		
 		return response;
 	}
+	*/
 	
 	/*
 	 * Update start date and time of a task

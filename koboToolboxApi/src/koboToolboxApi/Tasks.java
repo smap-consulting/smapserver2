@@ -43,11 +43,13 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskServerDefn;
 
 /*
  * Provides access to collected data
@@ -239,31 +241,43 @@ public class Tasks extends Application {
 			@FormParam("task") String task
 			) throws ApplicationException, Exception { 
 		
+		Response response = null;
 		String connectionString = "surveyKPI - Tasks - add new task";
 		
+		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
+		
 		// Authorisation - Access
+		Connection cResults = null;
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
-		System.out.println(tf.toString());
-		// End authorisation
-
-		Response response = null;
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tf.properties.tg_id);
+		// End Authorisation
 		
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-		
-
+			if(tz == null) {
+				tz = "UTC";	// Set default for timezone
+			}
 			
-		} catch(Exception ex) {
-			log.log(Level.SEVERE,ex.getMessage(), ex);
-			response = Response.serverError().entity(ex.getMessage()).build();
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			TaskManager tm = new TaskManager(localisation, tz);
+			TaskServerDefn tsd = tm.convertTaskFeature(tf);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			tm.writeTask(sd, cResults, tf.properties.tg_id, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
+			response = Response.ok().build();
+		
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
+	
 			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+			
 		}
 		
 		return response;

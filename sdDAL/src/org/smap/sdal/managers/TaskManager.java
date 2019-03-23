@@ -535,10 +535,7 @@ public class TaskManager {
 			Connection sd, 
 			Connection cResults,
 			ArrayList<TaskServerDefn> tl,
-			int pId,
-			String pName,
 			int tgId,
-			String tgName,
 			String urlPrefix,
 			boolean updateResources,
 			int oId,
@@ -548,7 +545,7 @@ public class TaskManager {
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
-			writeTask(sd, cResults, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
+			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
 			for(AssignmentServerDefn asd : tsd.assignments)
 			if(asd.assignee_ident != null) {
 				userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -824,7 +821,7 @@ public class TaskManager {
 			 */
 			pstmt = getInsertTaskStatement(sd);
 			insertTask(
-					pstmt,
+					pstmt,	
 					pId,
 					pName,
 					tgId,
@@ -839,6 +836,7 @@ public class TaskManager {
 					taskFinish,
 					tid.locationTrigger,
 					false,
+					null,
 					null);
 
 			/*
@@ -1014,10 +1012,7 @@ public class TaskManager {
 	public void writeTask(
 			Connection sd, 
 			Connection cResults,
-			int pId, 
-			String pName,
 			int tgId,
-			String tgName,
 			TaskServerDefn tsd,
 			String urlPrefix,
 			boolean updateResources,
@@ -1046,6 +1041,11 @@ public class TaskManager {
 		PreparedStatement pstmtUpdateLocationTrigger = null;
 
 		try {
+			
+			// Get the project for this task group
+			int pId = GeneralUtilityMethods.getProjectIdFromTaskGroup(sd, tgId);
+			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
+			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 
 			// 1. Update the existing task if it is being updated
 			if(tsd.id > 0) {
@@ -1117,6 +1117,11 @@ public class TaskManager {
 			}
 			
 			int taskId = tsd.id;
+			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String initial_data = null;
+			if(tsd.initial_data != null) {
+				initial_data = gson.toJson(tsd.initial_data);	
+			}
 			if(tsd.id > 0) {
 				pstmt = getUpdateTaskStatement(sd);
 				updateTask(
@@ -1132,7 +1137,8 @@ public class TaskManager {
 						tsd.to,
 						tsd.location_trigger,
 						tsd.repeat,
-						tsd.guidance);
+						tsd.guidance,
+						initial_data);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -1151,7 +1157,8 @@ public class TaskManager {
 						tsd.to,
 						tsd.location_trigger,
 						tsd.repeat,
-						tsd.guidance);
+						tsd.guidance,
+						initial_data);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					taskId = rsKeys.getInt(1);
@@ -1708,7 +1715,7 @@ public class TaskManager {
 				+ "location_trigger,"
 				+ "repeat,"
 				+ "guidance,"
-				+ "instance_id) "
+				+ "initial_data) "
 				+ "values ("
 				+ "?, "		// p_id
 				+ "?, "		// p_name
@@ -1725,7 +1732,8 @@ public class TaskManager {
 				+ "?,"		// schedule_finish
 				+ "?,"		// location_trigger
 				+ "?,"		// repeat
-				+ "?)";		// guidance
+				+ "?,"		// guidance
+				+ "?)";		// initial_data	
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1748,7 +1756,8 @@ public class TaskManager {
 			Timestamp taskFinish,
 			String locationTrigger,
 			boolean repeat,
-			String guidance) throws SQLException {
+			String guidance,
+			String initial_data) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1766,6 +1775,7 @@ public class TaskManager {
 		pstmt.setString(14, locationTrigger);
 		pstmt.setBoolean(15, repeat);	
 		pstmt.setString(16, guidance);	
+		pstmt.setString(17, initial_data);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1787,14 +1797,15 @@ public class TaskManager {
 				+ "schedule_finish = ?,"
 				+ "location_trigger = ?,"
 				+ "repeat = ?,"
-				+ "guidance = ? "
+				+ "guidance = ?,"
+				+ "initial_data = ? "
 				+ "where id = ? "
 				+ "and tg_id = ?";		// authorisation
 		
 		return sd.prepareStatement(sql);
 	}
 	/*
-	 * Insert a task
+	 * Update a task
 	 */
 	public int updateTask(
 			PreparedStatement pstmt,	
@@ -1809,7 +1820,8 @@ public class TaskManager {
 			Timestamp taskFinish,
 			String locationTrigger,
 			boolean repeat,
-			String guidance) throws SQLException {
+			String guidance,
+			String initial_data) throws SQLException {
 		
 		pstmt.setString(1, title);
 		pstmt.setInt(2,  target_s_id);
@@ -1824,6 +1836,7 @@ public class TaskManager {
 		pstmt.setString(11, guidance);
 		pstmt.setInt(12, tId);
 		pstmt.setInt(13, tgId);
+		pstmt.setString(14, initial_data);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());

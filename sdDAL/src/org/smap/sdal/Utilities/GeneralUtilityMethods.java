@@ -1670,14 +1670,45 @@ public class GeneralUtilityMethods {
 
 		int p_id = 0;
 
-		String sqlGetSurveyIdent = "select p_id " + " from survey " + " where s_id = ?;";
+		String sql = "select p_id "
+				+ " from survey " 
+				+ " where s_id = ?";
 
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetSurveyIdent);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				p_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return p_id;
+	}
+	
+	/*
+	 * Get the survey project id from the task group id
+	 */
+	static public int getProjectIdFromTaskGroup(Connection sd, int tgId) throws SQLException {
+
+		int p_id = 0;
+
+		String sql = "select p_id " 
+				+ " from task_group " 
+				+ " where tg_id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, tgId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				p_id = rs.getInt(1);
