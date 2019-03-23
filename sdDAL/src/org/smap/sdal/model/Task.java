@@ -13,6 +13,7 @@ public class Task {
 	public String form_id;
 	public String form_version;
 	public String update_id;
+	public String initial_data_source;	// none || survey || task
 	public Timestamp scheduled_at;
 	public String location_trigger;
 	public boolean repeat;

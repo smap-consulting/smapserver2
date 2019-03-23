@@ -225,6 +225,7 @@ public class MyAssignments extends Application {
 					+ "s.version as form_version,"
 					+ "s.p_id as pid,"
 					+ "t.update_id,"
+					+ "t.initial_data_source,"
 					+ "t.schedule_at,"
 					+ "t.location_trigger,"
 					+ "t.repeat,"
@@ -279,6 +280,7 @@ public class MyAssignments extends Application {
 				ta.task.form_id = resultSet.getString("form_ident");		// Form id is survey ident
 				ta.task.form_version = resultSet.getString("form_version");
 				ta.task.update_id = resultSet.getString("update_id");
+				ta.task.initial_data_source = resultSet.getString("initial_data_source");
 				ta.task.scheduled_at = resultSet.getTimestamp("schedule_at");
 				ta.task.location_trigger = resultSet.getString("location_trigger");
 				if(ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
