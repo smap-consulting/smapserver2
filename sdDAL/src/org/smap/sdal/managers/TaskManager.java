@@ -1845,10 +1845,10 @@ public class TaskManager {
 		pstmt.setString(9, locationTrigger);
 		pstmt.setBoolean(10, repeat);	
 		pstmt.setString(11, guidance);
-		pstmt.setInt(12, tId);
-		pstmt.setInt(13, tgId);
-		pstmt.setString(14, initial_data_source);
-		pstmt.setString(15, initial_data);
+		pstmt.setString(12, initial_data_source);
+		pstmt.setString(13, initial_data);
+		pstmt.setInt(14, tId);
+		pstmt.setInt(15, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
