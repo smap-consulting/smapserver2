@@ -1670,8 +1670,14 @@ public class GetXForm {
 			String qName = q.getName();
 			String qType = q.getType();
 
+			// Set the value from the instance data
 			String value = "";
-			// TODO set value from instance
+			if(instance != null) {
+				String qValue = instance.values.get(qName); 
+				if(qValue != null) {
+					value = qValue;
+				}
+			}
 
 			if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
 
@@ -1704,8 +1710,14 @@ public class GetXForm {
 			item = record.get(j);
 
 			if (item.subForm != null) {
-				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, survey_ident, instance);		// TODO pass sub instance
-			} else if (item.begin_group) {
+				Instance iSub = null;
+				if(instance != null) {
+					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
+					if(subInstanceList.size() > j) {
+						iSub = subInstanceList.get(j);
+					}
+				}
+				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, survey_ident, iSub);		
 
 				Element childElement = null;
 				childElement = outputDoc.createElement(item.name);
