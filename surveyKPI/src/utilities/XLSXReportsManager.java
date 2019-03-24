@@ -628,26 +628,29 @@ public class XLSXReportsManager {
 			int rowNumber) {
 		
 		int colNumber = 0;
-		for(ReadData item : dataItems) {
-			if(item.isTransform) {
-				int tdIndex = getTransformIndex(transform, item.name);	
-				HashMap<String, String> itemTransform = transformData.get(item.name);
-				for(String tc : transform.transforms.get(tdIndex).wideColumns) {
-					for(String tv : transform.transforms.get(tdIndex).values) {
+		if(dataItems != null) {
+			for(ReadData item : dataItems) {
+				if(item.isTransform) {
+					int tdIndex = getTransformIndex(transform, item.name);	
+					HashMap<String, String> itemTransform = transformData.get(item.name);
+					for(String tc : transform.transforms.get(tdIndex).wideColumns) {
+						for(String tv : transform.transforms.get(tdIndex).values) {
+							Cell cell = dataRow.createCell(colNumber++);
+							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, itemTransform.get(tc + " - " + tv), 
+									item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
+						}
+					}
+				} else {
+					for(String v : item.values) {
 						Cell cell = dataRow.createCell(colNumber++);
-						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, itemTransform.get(tc + " - " + tv), 
+						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
 								item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 					}
-				}
-			} else {
-				for(String v : item.values) {
-					Cell cell = dataRow.createCell(colNumber++);
-					XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-							item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
 				}
 			}
 		}
 	}
+	
 	private boolean isWideColumn(Transform transform, String name) {
 		boolean val = false;
 		
