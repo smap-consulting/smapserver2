@@ -14,7 +14,9 @@ public class AssignFromSurvey {
 	public int fixed_role_id;
 	public String assign_data;		// Rule used to identify the person or the role that the task should be assigned to using the base data
 	public int task_group_id;
-	public boolean update_results;
+	public boolean blank;			// initial data - only one of these can be true
+	public boolean prepopulate;		// initial data - only one of these can be true
+	public boolean update_results;	// initial data - only one of these can be true
 	public boolean add_future;
 	public boolean add_current;
 	public NewTasks new_tasks;			// Set if tasks created on the client are to be set
