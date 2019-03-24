@@ -417,6 +417,10 @@ public class WebForm extends Application {
 			}
 			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access																			
 			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
+			if(taskKey > 0) {
+				a.isValidTask(sd, request.getRemoteUser(), taskKey);
+			}
+			
 			// End Authorisation
 			
 			// Get the organisation id and an access key to upload the results of this form
@@ -1066,6 +1070,9 @@ public class WebForm extends Application {
 																				// survey
 			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
 
+			if(taskKey > 0) {
+				a.isValidTask(sd, request.getRemoteUser(), taskKey);
+			}
 		} else {
 			throw new AuthorisationException();
 		}
