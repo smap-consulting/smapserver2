@@ -41,7 +41,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
@@ -1305,8 +1307,8 @@ public class GetXForm {
 	/*
 	 * Get the instance data for an XForm
 	 */
-	public String getInstance(int sId, String templateName, SurveyTemplate template, String key, String keyval,
-			int priKey, boolean simplifyMedia, boolean isWebForms) 
+	public String getInstanceXml(int sId, String templateName, SurveyTemplate template, String key, String keyval,
+			int priKey, boolean simplifyMedia, boolean isWebForms, int taskKey) 
 			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
 
 		this.isWebForms = isWebForms;
@@ -1369,6 +1371,12 @@ public class GetXForm {
 				// Create a blank form containing only the key values
 				hasData = true;
 				populateBlankForm(outputXML, firstForm, sd, template, null, sId, key, keyval, templateName, false);
+			} else if(taskKey > 0) {
+				// Create a form containing only the initial task data
+				hasData = true;
+				TaskManager tm = new TaskManager(localisation, tz);
+				Instance instance = tm.getInstance(sd, taskKey);
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance);
 			}
 
 			// Write the survey to a string and return it to the calling program
@@ -1637,6 +1645,93 @@ public class GetXForm {
 			if (isTemplate) {
 				currentParent.setAttribute("jr:template", "");
 			}
+			parentElement.appendChild(currentParent);
+		} else {
+			currentParent.setAttribute("id", survey_ident);
+			outputDoc.appendChild(currentParent);
+		}
+
+	}
+	
+	/*
+	 * Create a form poplulated with the initial data supplied in a task
+	 * 
+	 * @param outputDoc
+	 */
+	public void populateTaskDataForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
+			Element parentElement, int sId, String survey_ident, Instance instance)
+					throws SQLException {
+
+		List<Results> record = new ArrayList<Results>();
+
+		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		for (Question q : questions) {
+
+			String qName = q.getName();
+			String qType = q.getType();
+
+			String value = "";
+			// TODO set value from instance
+
+			if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
+
+				Form subForm = template.getSubForm(form, q);
+
+				if (subForm != null) {
+					record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters(), false));
+				}
+
+			} else if (qType.equals("begin group")) {
+
+				record.add(new Results(qName, null, null, true, false, false, null, q.getParameters(), false));
+
+			} else if (qType.equals("end group")) {
+
+				record.add(new Results(qName, null, null, false, true, false, null, q.getParameters(), false));
+
+			} else {
+
+				record.add(new Results(qName, null, value, false, false, false, null, null, false));
+			}
+		}
+
+		Element currentParent = outputDoc.createElement(form.getName()); // Create a form element
+
+		Results item = null;
+		Stack<Element> elementStack = new Stack<Element>(); // Store the elements for non repeat groups
+		for (int j = 0; j < record.size(); j++) {
+
+			item = record.get(j);
+
+			if (item.subForm != null) {
+				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, survey_ident, instance);		// TODO pass sub instance
+			} else if (item.begin_group) {
+
+				Element childElement = null;
+				childElement = outputDoc.createElement(item.name);
+				currentParent.appendChild(childElement);
+
+				elementStack.push(currentParent);
+				currentParent = childElement;
+
+			} else if (item.end_group) {
+
+				currentParent = elementStack.pop();
+
+			} else { // Question
+
+				// Create the question element
+				Element childElement = null;
+				childElement = outputDoc.createElement(item.name);
+				childElement.setTextContent(item.value);
+				currentParent.appendChild(childElement);
+			}
+
+		}
+
+		// Append this new form to its parent (if the parent is null append to output
+		// doc)
+		if (parentElement != null) {
 			parentElement.appendChild(currentParent);
 		} else {
 			currentParent.setAttribute("id", survey_ident);

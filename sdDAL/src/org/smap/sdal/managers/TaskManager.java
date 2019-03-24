@@ -21,6 +21,7 @@ import java.util.logging.Logger;
 import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
@@ -2565,6 +2566,38 @@ public class TaskManager {
 		emails = emails.replaceAll("[,]+", ",");
 		return emails;
 		
+	}
+	
+	/*
+	 * return an instance containing the instance data attached to the task
+	 * Note this is not the same as TaskInstanceData which is meta data for a task
+	 * This is form data that needs to initialise a task
+	 */
+	public Instance getInstance(Connection sd, int taskId) throws SQLException {
+
+		String sql = "select initial_data " 
+				+ "from tasks "
+				+ "where id = ? ";
+
+		Instance instance = new Instance();
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, taskId);
+			ResultSet resultSet = pstmt.executeQuery();
+
+			if (resultSet.next()) {
+				String iString = resultSet.getString(1);
+				if(iString != null) {
+					Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+					instance = gson.fromJson(iString, Instance.class);
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return instance;
 	}
 }
 

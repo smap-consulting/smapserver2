@@ -134,7 +134,7 @@ public class WebForm extends Application {
 
 		try {
 			userIdent = GeneralUtilityMethods.getDynamicUser(sd, authorisationKey);
-			resp = getInstanceData(sd, request, formIdent, updateid, userIdent, false);
+			resp = getInstanceData(sd, request, formIdent, updateid, 0, userIdent, false);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -168,7 +168,7 @@ public class WebForm extends Application {
 		try {
 			userIdent = request.getRemoteUser();
 			log.info("Requesting instance as: " + userIdent);
-			resp = getInstanceData(sd, request, formIdent, updateid, userIdent, true);
+			resp = getInstanceData(sd, request, formIdent, updateid, 0, userIdent, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -191,6 +191,7 @@ public class WebForm extends Application {
 			@QueryParam("datakey") String datakey, // Optional keys to instance data
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
+			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("callback") String callback) throws IOException {
 
 		log.info("Requesting json");
@@ -213,7 +214,7 @@ public class WebForm extends Application {
 
 		mimeType = "json";
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback, false, false);
+		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, taskKey, callback, false, false);
 	}
 
 	// Respond with HTML
@@ -224,6 +225,7 @@ public class WebForm extends Application {
 			@QueryParam("datakey") String datakey, // Optional keys to instance data
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
+			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
 			@QueryParam("callback") String callback) throws IOException {
@@ -238,7 +240,8 @@ public class WebForm extends Application {
 
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback,
+		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+				taskKey, callback,
 				false, true);
 	}
 
@@ -257,6 +260,7 @@ public class WebForm extends Application {
 			@QueryParam("datakey") String datakey, // Optional keys to instance data
 			@QueryParam("datakeyvalue") String datakeyvalue, 
 			@QueryParam("assignment_id") int assignmentId,
+			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
 			@QueryParam("callback") String callback) throws IOException {
@@ -271,7 +275,8 @@ public class WebForm extends Application {
 		
 		userIdent = tempUser;
 		isTemporaryUser = true;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, callback, false,
+		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+				taskKey, callback, false,
 				true);
 	}
 
@@ -336,7 +341,7 @@ public class WebForm extends Application {
 				// 3. Get webform
 				userIdent = ident;
 				isTemporaryUser = true;
-				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, null, false,true);
+				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, 0, null, false,true);
 			}
 		
 		} catch (Exception e) {
@@ -353,13 +358,14 @@ public class WebForm extends Application {
 	 * Get the response as either HTML or JSON
 	 */
 	private Response getWebform(HttpServletRequest request, String formIdent, String datakey,
-			String datakeyvalue, int assignmentId, String callback, boolean simplifyMedia,
+			String datakeyvalue, int assignmentId, 
+			int taskKey, String callback, boolean simplifyMedia,
 			boolean isWebForm) {
 
 		Response response = null;
 
 		log.info("webForm:" + formIdent + " datakey:" + datakey + " datakeyvalue:" + datakeyvalue + "assignmentId:"
-				+ assignmentId);
+				+ assignmentId + " taskKey: " + taskKey);
 
 		Survey survey = null;
 		int orgId = 0;
@@ -446,14 +452,15 @@ public class WebForm extends Application {
 			// If required get the instance data
 			String instanceXML = null;
 			String instanceStrToEditId = null;
-			log.info("About to add instance:" + datakey + " : " + datakeyvalue);
-			if (datakey != null && datakeyvalue != null) {
+			
+			if ((datakey != null && datakeyvalue != null) || taskKey > 0) {
+				log.info("Adding initial data");
 				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
-				instanceXML = xForm.getInstance(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
-						isWebForm);
+				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
+						isWebForm, taskKey);
 				instanceStrToEditId = xForm.getInstanceId();
 				gRecordCounts = xForm.getRecordCounts();
-			}
+			} 
 
 			if (mimeType.equals("json")) {
 				jr = new JsonResponse();
@@ -1032,7 +1039,7 @@ public class WebForm extends Application {
 	 * Get instance data as JSON
 	 */
 	private Response getInstanceData(Connection sd, HttpServletRequest request, String formIdent,
-			String updateid, String user, boolean simplifyMedia) {
+			String updateid, int taskKey, String user, boolean simplifyMedia) {
 
 		Response response = null;
 
@@ -1080,7 +1087,7 @@ public class WebForm extends Application {
 			String dataKey = "instanceid";
 
 			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
-			instanceXML = xForm.getInstance(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false);
+			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false, taskKey);
 
 			SurveyData surveyData = new SurveyData();
 			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
