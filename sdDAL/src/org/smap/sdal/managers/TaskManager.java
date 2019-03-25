@@ -85,6 +85,10 @@ public class TaskManager {
 	private ResourceBundle localisation = null;
 	private String tz;
 	
+	public static String SURVEY_DATA_SOURCE = "survey";
+	public static String TASK_DATA_SOURCE = "task";
+	public static String NO_DATA_SOURCE = "none";
+	
 	private String fullStatusList[] = {
 			"new", 
 			"accepted", 
@@ -736,7 +740,30 @@ public class TaskManager {
 								" task survey: " + target_s_id);
 						TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 								source_s_id, instanceId, as, address); // Get data from new submission
-						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, source_s_id, 
+						
+						Survey sourceSurvey = null;
+						if(as.prepopulate) {
+							// Get the source survey definition so we can get the source data
+							sourceSurvey = sm.getById(
+									sd, cResults, remoteUser, source_s_id, 
+									true, 		// full
+									null, 		// basepath
+									null, 		// instance id
+									false, 		// get results
+									false, 		// generate dummy values
+									true, 		// get property questions
+									false, 		// get soft deleted
+									true, 		// get HRK
+									null, 		// get external options
+									false, 		// get change history
+									false, 		// get roles
+									true,		// superuser 
+									null, 		// geomformat
+									false, 		// reference surveys
+									false		// only get launched
+									);
+						}
+						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
 								target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
 					}
 				}
@@ -762,7 +789,7 @@ public class TaskManager {
 			String tgName,
 			int pId,
 			String pName,
-			int source_s_id,
+			Survey sourceSurvey,				// Set if we need to get the instance data from the survey
 			int target_s_id,
 			TaskInstanceData tid,			// data from submission
 			String updateId,
@@ -791,15 +818,29 @@ public class TaskManager {
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
 			String targetInstanceId = null;
-			String initialDataSource = "none";
 
 			/*
 			 * Set data to be updated
 			 */
+			String initialDataSource = null;
+			String initialData = null;
 			if(as.update_results) {
 				targetInstanceId = updateId;	
-				initialDataSource = "survey";
-			} 
+				initialDataSource = TaskManager.SURVEY_DATA_SOURCE;
+			} else if(as.prepopulate) {
+				initialDataSource = TaskManager.TASK_DATA_SOURCE;
+				SurveyManager sm = new SurveyManager(localisation, tz);
+				
+				
+				
+				Instance instance = sm.getInstance(
+						sd,
+						cResults,
+						sourceSurvey,
+						sourceSurvey.getFirstForm());
+			} else {
+				initialDataSource = TaskManager.NO_DATA_SOURCE;
+			}
 
 			/*
 			 * Location
@@ -841,7 +882,7 @@ public class TaskManager {
 					false,
 					null,
 					initialDataSource,
-					null);
+					initialData);
 
 			/*
 			 * Assign the user to the new task

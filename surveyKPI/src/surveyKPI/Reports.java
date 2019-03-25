@@ -21,7 +21,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -38,7 +37,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.ActionLink;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Role;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -80,26 +78,7 @@ public class Reports extends Application {
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@FormParam("report") String report,
-			//@QueryParam("name") String name,	// done
-			//@QueryParam("reportType") String type,
-			//@QueryParam("roles") String roles,
-			//@QueryParam("filename") String filename,		// done
-			//@QueryParam("split_locn") boolean split_locn,
-			//@QueryParam("odata2") boolean odata2,
-			//@QueryParam("merge_select_multiple") boolean merge_select_multiple,
-			//@QueryParam("language") String language,
 			@QueryParam("tz") String tz,			// Keep this one to set up action manager
-			//@QueryParam("exp_ro") boolean exp_ro,
-			//@QueryParam("embedimages") boolean embedImages,
-			//@QueryParam("excludeparents") boolean excludeParents,
-			//@QueryParam("hxl") boolean hxl,
-			// @QueryParam("form") int form,  // done
-			//@QueryParam("from") Date startDate,
-			//@QueryParam("to") Date endDate,
-			//@QueryParam("dateId") int dateId,
-			//@QueryParam("filter") String filter,
-			//@QueryParam("meta") boolean meta,
-			//@QueryParam("landscape") boolean landscape,
 			@QueryParam("ident") String ident		// Used when updating a link - keep this
 			) { 
 		

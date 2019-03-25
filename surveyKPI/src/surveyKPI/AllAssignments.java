@@ -165,7 +165,9 @@ public class AllAssignments extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
+			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, 
+					true, 		// full
+					basePath, 
 					null, false, false, false, false, false, "real", false, false, superUser, "geojson",
 					false,		// child surveys
 					false		// onlyGetLaunched
@@ -550,7 +552,7 @@ public class AllAssignments extends Application {
 										as.task_group_name, 
 										projectId, 
 										projectName, 
-										as.source_survey_id, 
+										survey, 
 										as.target_survey_id, 
 										tid, 
 										instanceId,

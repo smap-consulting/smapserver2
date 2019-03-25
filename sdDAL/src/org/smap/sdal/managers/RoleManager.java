@@ -571,5 +571,56 @@ public class RoleManager {
 		
 		return cfArray;
 	}
+	
+	/*
+	 * Get the sql for a survey role column filter for an array of roles and a survey
+	 * This is used for immediate anonymous requests such as prepopulating a survey where there is no user
+	 *  but there is a set of roles
+	 */
+	public ArrayList<RoleColumnFilter> getSurveyColumnFilterRoleList(Connection sd, int sId, ArrayList<Role> roles) throws SQLException {
+		
+		ArrayList<RoleColumnFilter> cfArray = new ArrayList<RoleColumnFilter> ();
+		ArrayList<Integer> roleids = new ArrayList<> ();
+		
+		if(roles.size() > 0) {
+			PreparedStatement pstmt = null;
+			
+			for(Role r : roles) {
+				roleids.add(r.id);
+			}
+			
+			try {
+				String sql = null;
+				ResultSet resultSet = null;
+				
+				sql = "SELECT sr.column_filter "
+						+ "from survey_role sr "
+						+ "where sr.s_id = ? "
+						+ "and sr.enabled = true "
+						+ "and sr.r_id = any(?) ";
+								
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				pstmt.setArray(2, sd.createArrayOf("text", roleids.toArray(new Integer[roleids.size()])));
+				log.info("Get surveyColumnFilter From Role List: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+								
+				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				Type cfArrayType = new TypeToken<ArrayList<RoleColumnFilter>>(){}.getType();
+				
+				while(resultSet.next()) {		
+					String sqlFragString = resultSet.getString("column_filter");
+					if(sqlFragString != null) {
+						ArrayList<RoleColumnFilter> cols = gson.fromJson(sqlFragString, cfArrayType);
+						cfArray.addAll(cols);
+					}		
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			}
+		}
+		
+		return cfArray;
+	}
 
 }

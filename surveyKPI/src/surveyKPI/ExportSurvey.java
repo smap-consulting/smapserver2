@@ -408,6 +408,7 @@ public class ExportSurvey extends Application {
 							sId,
 							surveyIdent,
 							request.getRemoteUser(),
+							null,		// Roles to apply
 							parentId,
 							Integer.parseInt(f.f_id),
 							f.table_name,

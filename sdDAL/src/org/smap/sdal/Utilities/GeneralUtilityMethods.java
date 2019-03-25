@@ -68,6 +68,7 @@ import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
@@ -3176,6 +3177,7 @@ public class GeneralUtilityMethods {
 			int sId, 
 			String surveyIdent,
 			String user,
+			ArrayList<Role> roles,
 			int formParent, 
 			int f_id, 
 			String table_name, 
@@ -3209,7 +3211,14 @@ public class GeneralUtilityMethods {
 		if (!superUser) {
 			if (sId > 0) {
 				RoleManager rm = new RoleManager(localisation);
-				ArrayList<RoleColumnFilter> rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
+				
+				ArrayList<RoleColumnFilter> rcfArray = new ArrayList<> ();
+				if(user != null) {
+					rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
+				} else if(roles != null) {
+					rcfArray = rm.getSurveyColumnFilterRoleList(sd, sId, roles);
+				}
+				
 				if (rcfArray.size() > 0) {
 					colList.append(" and q_id in (");
 					for (int i = 0; i < rcfArray.size(); i++) {

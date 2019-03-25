@@ -260,6 +260,7 @@ public class ExportSurveyOSM extends Application {
 							sId,
 							surveyIdent,
 							request.getRemoteUser(),
+							null,		// Roles to apply
 							f.parent,
 							f.f_id,
 							f.table_name,

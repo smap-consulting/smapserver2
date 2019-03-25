@@ -463,6 +463,7 @@ public class SubscriberBatch {
 											sId,
 											surveyIdent,
 											null,		// No need for user - we are super user
+											null,		// Roles to apply
 											topForm.parentform,
 											topForm.id,
 											topForm.tableName,

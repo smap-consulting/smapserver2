@@ -335,6 +335,7 @@ public class ManagedForms extends Application {
 						sId,
 						surveyIdent,
 						user,
+						null,	// Roles to apply
 						0,
 						f.id, 
 						f.tableName, 

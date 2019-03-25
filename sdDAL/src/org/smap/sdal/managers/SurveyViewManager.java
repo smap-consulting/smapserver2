@@ -154,6 +154,7 @@ public class SurveyViewManager {
 					sId,
 					surveyIdent,
 					uIdent,
+					null,	// roles to apply
 					0,
 					f.id,
 					f.tableName,

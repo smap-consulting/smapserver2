@@ -30,7 +30,6 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,11 +50,11 @@ import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.GroupDetails;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.InstanceMeta;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
-import org.smap.sdal.model.LinkedSurvey;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
@@ -67,6 +66,7 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -4007,5 +4007,54 @@ public class SurveyManager {
 		} else {
 			return gPrimaryKey;
 		}
+	}
+	
+	/*
+	 * Get the instance data for a record in a survey
+	 */
+	public Instance getInstance(Connection sd, Connection cResults, Survey s, Form form) throws Exception {
+		Instance instance = null;
+		
+		StringBuffer sql = new StringBuffer("");
+		sql.append("select prikey ");
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtSelect = null;
+		ResultSet resultSet = null;
+
+		try {
+			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
+					sd,
+					cResults,
+					localisation,
+					"none",
+					s.id,
+					s.ident,
+					null,
+					null,		// roles TODO add suppot
+					0,			// parent form id
+					form.id,
+					form.tableName,
+					true,		// Read Only
+					false,		// Parent key
+					false,
+					true,		// include instance id
+					true,		// include other meta data
+					true,		// include preloads
+					true,		// include instancename
+					true,		// include survey duration
+					false,
+					false,		// TODO include HXL
+					false,
+					tz
+					);
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
+		}
+
+		
+		
+		return instance;
 	}
 }
