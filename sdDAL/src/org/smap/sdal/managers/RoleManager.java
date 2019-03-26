@@ -505,6 +505,58 @@ public class RoleManager {
 	}
 	
 	/*
+	 * Get the sql for a survey role filter for a specific user and survey
+	 * A user can have multiple roles as can a survey hence an array of roles is returned
+	 */
+	public ArrayList<SqlFrag> getSurveyRowFilterRoleList(Connection sd, int sId, ArrayList<Role> roles) throws Exception {
+		
+		PreparedStatement pstmt = null;
+		ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
+		ArrayList<Integer> roleids = new ArrayList<> ();
+		
+		if(roles != null && roles.size() > 0) {
+			for(Role r : roles) {
+				roleids.add(r.id);
+			}
+			
+			try {
+				String sql = null;
+				ResultSet resultSet = null;
+				
+				sql = "SELECT sr.row_filter "
+						+ "from survey_role sr, user_role ur, users u "
+						+ "where sr.s_id = ? "
+						+ "and sr.enabled = true "
+						+ "and sr.r_id = any(?) ";
+								
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, sId);
+				pstmt.setArray(2, sd.createArrayOf("text", roleids.toArray(new Integer[roleids.size()])));
+				log.info("Get surveyRowFilter: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+								
+				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				while(resultSet.next()) {		
+					String sqlFragString = resultSet.getString("row_filter");
+					if(sqlFragString != null) {
+						if(sqlFragString.trim().startsWith("{")) {
+							rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
+						} else {
+							SqlFrag sf = new SqlFrag();									// New only the string is stored
+							sf.addSqlFragment(sqlFragString, false, localisation);
+							rfArray.add(sf);
+						}
+					}		
+				}
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			}
+		}
+		
+		return rfArray;
+	}
+	
+	/*
 	 * Convert an array of sql fragments into raw SQL
 	 */
 	public String convertSqlFragsToSql(ArrayList<SqlFrag> rfArray) {

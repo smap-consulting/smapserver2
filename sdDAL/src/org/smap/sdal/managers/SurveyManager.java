@@ -4012,8 +4012,17 @@ public class SurveyManager {
 	/*
 	 * Get the instance data for a record in a survey
 	 */
-	public Instance getInstance(Connection sd, Connection cResults, Survey s, Form form) throws Exception {
-		Instance instance = null;
+	public Instance getInstance(
+			Connection sd,
+			Connection cResults, 
+			Survey s, 
+			Form form, 
+			int parkey,
+			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
+			String instanceId
+			) throws Exception {
+
+		Instance instance = new Instance();
 		
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select prikey ");
@@ -4023,31 +4032,71 @@ public class SurveyManager {
 		ResultSet resultSet = null;
 
 		try {
-			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-					sd,
-					cResults,
-					localisation,
-					"none",
-					s.id,
-					s.ident,
-					null,
-					null,		// roles TODO add suppot
-					0,			// parent form id
-					form.id,
-					form.tableName,
-					true,		// Read Only
-					false,		// Parent key
-					false,
-					true,		// include instance id
-					true,		// include other meta data
-					true,		// include preloads
-					true,		// include instancename
-					true,		// include survey duration
-					false,
-					false,		// TODO include HXL
-					false,
-					tz
-					);
+			
+			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+			String urlprefix = "https://" + serverName + "/";	
+			
+			if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
+				ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
+						sd,
+						cResults,
+						localisation,
+						"none",
+						s.id,
+						s.ident,
+						null,
+						null,		// roles for column filtering TODO add support
+						0,			// parent form id
+						form.id,
+						form.tableName,
+						true,		// Read Only
+						false,		// Parent key
+						false,
+						true,		// include instance id
+						true,		// include other meta data
+						true,		// include preloads
+						true,		// include instancename
+						true,		// include survey duration
+						false,
+						false,		// TODO include HXL
+						false,
+						tz
+						);
+				System.out.println("Columns: " + columns.size());
+				
+				TableDataManager tdm = new TableDataManager(localisation, tz);
+
+				pstmt = tdm.getPreparedStatement(
+						sd, 
+						cResults,
+						columns,
+						urlprefix,
+						s.id,
+						form.tableName,
+						parkey,
+						hrk,
+						null,
+						null,		// roles for row filtering TODO add support
+						null,		// sort
+						null,		// sort direction
+						false,		// mgmt
+						false,		// group
+						false,		// prepare for data tables
+						0,			// start
+						false,		// get parkey
+						0,			// start parkey
+						false,		// super user
+						false,		// Return records greater than or equal to primary key
+						"none",		// include bad
+						null	,		// no custom filter
+						null,		// key filter
+						tz,
+						instanceId
+						);
+			}
+			
+			
+			
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};

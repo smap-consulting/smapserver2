@@ -829,15 +829,16 @@ public class TaskManager {
 				initialDataSource = TaskManager.SURVEY_DATA_SOURCE;
 			} else if(as.prepopulate) {
 				initialDataSource = TaskManager.TASK_DATA_SOURCE;
-				SurveyManager sm = new SurveyManager(localisation, tz);
-				
-				
+				SurveyManager sm = new SurveyManager(localisation, tz);	
 				
 				Instance instance = sm.getInstance(
 						sd,
 						cResults,
 						sourceSurvey,
-						sourceSurvey.getFirstForm());
+						sourceSurvey.getFirstForm(),
+						0,
+						null,
+						updateId);
 			} else {
 				initialDataSource = TaskManager.NO_DATA_SOURCE;
 			}

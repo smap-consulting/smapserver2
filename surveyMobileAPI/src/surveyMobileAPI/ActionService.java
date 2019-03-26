@@ -423,12 +423,14 @@ public class ActionService extends Application {
 			pstmt = tdm.getPreparedStatement(sd, cResults, mfc.columns, urlprefix, sId, tableName, 
 					0, 					// parkey
 					null, 				// HRK
-					uIdent, null, 		// Sort
+					uIdent, 
+					null,				// roles
+					null, 				// Sort
 					null, 				// Sort direction
 					true, 				// Management
 					false, 				// group
 					false, 				// isDt
-					prikey, 1, 			// Number of records to return
+					prikey, 
 					false, 				// get parkey
 					0, 					// start parkey
 					superUser, 
@@ -436,7 +438,8 @@ public class ActionService extends Application {
 					"none", 				// include bad
 					null	,				// no custom filter
 					null,				// no key filter
-					tz
+					tz,
+					null
 			);
 
 			if (pstmt != null) {

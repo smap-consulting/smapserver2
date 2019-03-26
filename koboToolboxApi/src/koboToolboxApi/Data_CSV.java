@@ -399,12 +399,19 @@ public class Data_CSV extends Application {
 				TableDataManager tdm = new TableDataManager(localisation, tz);
 
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
-						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,
-						superUser, false, // Return records greater than or equal to primary key
+						request.getRemoteUser(), 
+						null,		// roles (for anonymous calls)
+						sort, dirn, mgmt, group, isDt, start, 
+						getParkey, 
+						start_parkey,
+						superUser, 
+						false, 		// Return records greater than or equal to primary key
 						include_bad,
 						null,
 						null	,	// key filter
-						tz);
+						tz,
+						null		// instance id
+						);
 
 				log.info("Get CSV data: " + pstmt.toString());
 				HashMap<String, AuditItem> auditData = null;

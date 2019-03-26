@@ -19,6 +19,8 @@ import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
+import org.smap.sdal.model.Role;
+import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
@@ -76,13 +78,13 @@ public class TableDataManager {
 			int parkey, 
 			String hrk, 
 			String uIdent, 
+			ArrayList<Role> roles,
 			String sort,
 			String dirn, 
 			boolean mgmt, 
 			boolean group, 
 			boolean isDt, 
 			int start, 
-			int limit, 
 			boolean getParkey,
 			int start_parkey, 
 			boolean superUser, 
@@ -90,7 +92,8 @@ public class TableDataManager {
 			String include_bad,
 			String customFilter,
 			ArrayList<KeyFilter> keyFilters,
-			String tz)
+			String tz,
+			String instanceId)
 			throws SQLException, Exception {
 
 		StringBuffer columnSelect = new StringBuffer();
@@ -140,12 +143,21 @@ public class TableDataManager {
 			if (hrk != null) {
 				sqlSelect.append(" and _hrk = ?");
 			}
+			if (instanceId != null) {
+				sqlSelect.append(" and instanceid = ?");
+			}
 
 			// RBAC filter
 			RoleManager rm = new RoleManager(localisation);
-			ArrayList<SqlFrag> rfArray = null;
-			if (!superUser) {
-				rfArray = rm.getSurveyRowFilter(sd, sId, uIdent);
+			ArrayList<SqlFrag> rfArray = new ArrayList<SqlFrag> ();
+			if (!superUser) {			
+				
+				if(uIdent != null) {
+					rfArray = rm.getSurveyRowFilter(sd, sId, uIdent);
+				} else if(roles != null) {
+					rfArray = rm.getSurveyRowFilterRoleList(sd, sId, roles);
+				}
+				
 				if (rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if (rFilter.length() > 0) {
@@ -212,6 +224,9 @@ public class TableDataManager {
 			}
 			if (hrk != null) {
 				pstmt.setString(paramCount++, hrk);
+			}
+			if (instanceId != null) {
+				pstmt.setString(paramCount++, instanceId);
 			}
 			if (hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);

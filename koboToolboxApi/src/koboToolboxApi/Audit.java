@@ -340,13 +340,13 @@ public class Audit extends Application {
 					parkey,
 					hrk,
 					request.getRemoteUser(),
+					null,			// roles
 					sort,
 					dirn,
 					mgmt,
 					false,			// group
 					false,
 					start,
-					limit,
 					getParkey,
 					start_parkey,
 					superUser,
@@ -354,7 +354,8 @@ public class Audit extends Application {
 					include_bad,
 					null	,			// no custom filter
 					null,			// key filter
-					tz
+					tz,
+					null				// instance id
 					);
 			
 			// Write array start

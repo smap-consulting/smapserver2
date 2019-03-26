@@ -497,13 +497,13 @@ public class SubscriberBatch {
 											0,				// parkey ??
 											null,			// Not searching on HRK
 											null,			// No user ident, we are super user
+											null,			// No list of roles
 											null,			// No specific sort column
 											null,			// No specific sort direction
 											mgmt,
 											false,			// No grouping
 											false,			// Not data tables
 											0,				// Start from zero
-											0,				// No limit
 											getParkey,
 											0,	// Start from the beginning of the parent key
 											true,			// Super User
@@ -511,7 +511,9 @@ public class SubscriberBatch {
 											"none",			// Do not return bad records
 											prikeyFilter,
 											null	,			// key filter
-											tz);
+											tz,
+											null				// instance id
+											);
 	
 									// Set parameters for custom filter
 	

@@ -376,13 +376,13 @@ public class Data extends Application {
 					parkey,
 					hrk,
 					request.getRemoteUser(),
+					null,	// roles
 					sort,
 					dirn,
 					mgmt,
 					group,
 					isDt,
 					start,
-					limit,
 					getParkey,
 					start_parkey,
 					superUser,
@@ -390,7 +390,8 @@ public class Data extends Application {
 					include_bad,
 					null	,			// no custom filter
 					null,			// key filter
-					tz
+					tz,
+					null
 					);
 			
 			// Write array start
