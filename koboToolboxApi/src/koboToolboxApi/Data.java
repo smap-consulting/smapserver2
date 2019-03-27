@@ -348,6 +348,7 @@ public class Data extends Application {
 					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")),
 					true,		// include instance id
+					true,		// Include prikey
 					true,		// include other meta data
 					true,		// include preloads
 					true,		// include instancename
@@ -612,6 +613,7 @@ public class Data extends Application {
 					false,		// Don't include parent key
 					false,		// Don't include "bad" columns
 					true,		// include instance id
+					true,		// Include prikey
 					true,		// Include other meta data
 					true,		// Include preloads
 					true,		// Include instance name

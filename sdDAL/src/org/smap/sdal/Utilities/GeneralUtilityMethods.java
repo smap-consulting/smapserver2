@@ -3185,6 +3185,7 @@ public class GeneralUtilityMethods {
 			boolean includeParentKey,
 			boolean includeBad, 
 			boolean includeInstanceId, 
+			boolean includePrikey,
 			boolean includeOtherMeta, 
 			boolean includePreloads,
 			boolean includeInstanceName, 
@@ -3236,11 +3237,12 @@ public class GeneralUtilityMethods {
 		// SQL to get the questions
 		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
 				+ "source_param, appearance, display_name, l_id, compressed " 
-				+ "from question where f_id = ? "
+				+ "from question "
+				+ "where f_id = ? "
 				+ "and source is not null "
 				+ "and published = 'true' "
 				+ "and soft_deleted = 'false' ";
-
+		
 		String sqlQuestion2 = colList.toString();
 		String sqlQuestion3 = "order by seq";
 		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 + sqlQuestion2 + sqlQuestion3);
@@ -3271,7 +3273,7 @@ public class GeneralUtilityMethods {
 		c.displayName = "prikey";
 		c.type = SmapQuestionTypes.INT;
 		c.question_name = c.column_name;
-		if (includeOtherMeta) {
+		if (includePrikey) {
 			columnList.add(c);
 		}
 

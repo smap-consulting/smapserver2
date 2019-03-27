@@ -208,6 +208,7 @@ public class ExchangeManager {
 							true,		// Include parent key
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
+							true,		// Include prikey
 							true,		// Include other meta data
 							true,		// Include preloads
 							true,		// instancename

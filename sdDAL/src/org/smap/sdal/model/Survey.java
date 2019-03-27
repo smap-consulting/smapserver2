@@ -114,6 +114,19 @@ public class Survey {
 		return subForm;
 	}
 	
+	public Form getSubFormQId(Form form, int qId) {
+		Form subForm = null;
+
+		for(int i = 0; i < forms.size(); i++) {
+			Form f = forms.get(i);
+			if(f.parentform == form.id && f.parentQuestion == qId) {
+				subForm = f;
+				break;
+			}
+		}
+		return subForm;
+	}
+	
 	public int getFormIdx(int formId) {
 		int idx = -1;
 		for(int i = 0; i < forms.size(); i++) {

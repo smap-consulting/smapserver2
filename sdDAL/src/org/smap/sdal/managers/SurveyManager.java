@@ -4059,6 +4059,7 @@ public class SurveyManager {
 						false,		// Parent key
 						false,
 						true,		// include instance id
+						true,		// include prikey
 						false,		// include other meta data
 						false,		// include preloads
 						true,		// include instancename
@@ -4102,34 +4103,21 @@ public class SurveyManager {
 			System.out.println("XXXXX: " + pstmt.toString());
 			JsonParser parser = new JsonParser();
 			ResultSet rs = pstmt.executeQuery();
+			
 			if(rs.next()) {
-				instance = new Instance();				
+				instance = new Instance();
+				int prikey = 0;
 				for (int i = 0; i < columns.size(); i++) {
 					TableColumn c = columns.get(i);
 					String name = null;
 					String value = null;
 					
 					name = c.displayName;
-					if (c.isGeometry()) {
+					if(name.equals("prikey")) {
+						prikey = rs.getInt(i + 1);
+					} else if (c.isGeometry()) {
 						// Add Geometry (assume one geometry type per table)
 						instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();			
-					} else if (c.type.equals("begin repeat")) {
-						if(instance.repeats == null) {
-							instance.repeats = new HashMap<String, ArrayList<Instance>> ();
-						}
-						if(instance.repeats.get(c.displayName) == null) {
-							instance.repeats.put(c.displayName, new ArrayList<Instance> ());
-						}
-						ArrayList<Instance> repeats = instance.repeats.get(c.displayName);
-						repeats.add(sm.getInstance(
-								sd,
-								cResults,
-								s,
-								null,	// sourceSurvey.getFirstForm(),
-								0,
-								null,
-								null,
-								sm));
 					} else if (c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
 						value = rs.getString(i + 1);
@@ -4167,10 +4155,45 @@ public class SurveyManager {
 						value = rs.getString(i + 1);
 					}
 						
-					instance.values.put(name, value);
+					if(!name.equals("prikey") && !c.type.equals("begin repeat")) {
+						instance.values.put(name, value);
+					}
 	
 							
 				}
+				
+				/*
+				 * Check for repeats
+				 */
+				for(Form f : s.forms) {
+					if(f.parentform == form.id) {
+						if(instance.repeats == null) {
+							instance.repeats = new HashMap<String, ArrayList<Instance>> ();
+						}
+						int parentQuestion = f.parentQuestionIndex;
+						Question q = form.questions.get(parentQuestion);
+						String qName = q.name;
+						if(q.display_name != null) {
+							qName = q.display_name;
+						}
+						if(instance.repeats.get(qName) == null) {
+							instance.repeats.put(qName, new ArrayList<Instance> ());
+						}
+						
+						ArrayList<Instance> repeats = instance.repeats.get(qName);
+						repeats.add(sm.getInstance(
+								sd,
+								cResults,
+								s,
+								s.getSubFormQId(form, q.id),
+								prikey,
+								null,
+								null,
+								sm));
+					}
+				}
+					
+
 			}
 			
 			

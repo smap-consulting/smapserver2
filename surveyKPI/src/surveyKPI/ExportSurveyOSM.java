@@ -268,6 +268,7 @@ public class ExportSurveyOSM extends Application {
 							false,		// Don't include parent key
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
+							true,		// Include prikey
 							true,		// Include other meta data
 							true,		// Include preloads
 							true,		// Include instancename

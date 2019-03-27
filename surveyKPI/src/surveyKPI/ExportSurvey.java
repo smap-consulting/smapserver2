@@ -416,6 +416,7 @@ public class ExportSurvey extends Application {
 							false,		// Don't include parent key
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
+							true,		// Include prikey
 							true,		// Include other meta data
 							true,		// Incude preloads
 							true,		// instancename
