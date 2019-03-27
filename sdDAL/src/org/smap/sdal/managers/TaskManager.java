@@ -812,12 +812,12 @@ public class TaskManager {
 		}
 
 		String location = tid.location;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 		try {
 
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
-			String targetInstanceId = null;
 
 			/*
 			 * Set data to be updated
@@ -825,7 +825,6 @@ public class TaskManager {
 			String initialDataSource = null;
 			String initialData = null;
 			if(as.update_results) {
-				targetInstanceId = updateId;	
 				initialDataSource = TaskManager.SURVEY_DATA_SOURCE;
 			} else if(as.prepopulate) {
 				initialDataSource = TaskManager.TASK_DATA_SOURCE;
@@ -838,7 +837,10 @@ public class TaskManager {
 						sourceSurvey.getFirstForm(),
 						0,
 						null,
-						updateId);
+						updateId,
+						sm);
+				
+				System.out.println("Instance: " + gson.toJson(instance, Instance.class));
 			} else {
 				initialDataSource = TaskManager.NO_DATA_SOURCE;
 			}
@@ -875,7 +877,7 @@ public class TaskManager {
 					target_s_id,
 					formUrl,
 					location,
-					targetInstanceId,
+					updateId,
 					tid.address,
 					taskStart,
 					taskFinish,
@@ -932,7 +934,7 @@ public class TaskManager {
 						oId,
 						pId,
 						targetSurveyIdent,
-						targetInstanceId,
+						updateId,
 						autosendEmails,
 						remoteUser);
 			}

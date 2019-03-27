@@ -39,6 +39,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -53,6 +54,7 @@ import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.InstanceMeta;
+import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.ManifestInfo;
@@ -71,6 +73,7 @@ import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 public class SurveyManager {
@@ -4019,9 +4022,11 @@ public class SurveyManager {
 			Form form, 
 			int parkey,
 			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
-			String instanceId
+			String instanceId,
+			SurveyManager sm
 			) throws Exception {
 
+		ArrayList<TableColumn> columns = null;
 		Instance instance = new Instance();
 		
 		StringBuffer sql = new StringBuffer("");
@@ -4029,15 +4034,16 @@ public class SurveyManager {
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSelect = null;
-		ResultSet resultSet = null;
 
 		try {
+			
+			TableDataManager tdm = new TableDataManager(localisation, tz);
 			
 			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
 			String urlprefix = "https://" + serverName + "/";	
 			
 			if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
-				ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
+				columns = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						cResults,
 						localisation,
@@ -4053,18 +4059,16 @@ public class SurveyManager {
 						false,		// Parent key
 						false,
 						true,		// include instance id
-						true,		// include other meta data
-						true,		// include preloads
+						false,		// include other meta data
+						false,		// include preloads
 						true,		// include instancename
-						true,		// include survey duration
+						false,		// include survey duration
 						false,
-						false,		// TODO include HXL
+						false,		// include HXL
 						false,
 						tz
 						);
 				System.out.println("Columns: " + columns.size());
-				
-				TableDataManager tdm = new TableDataManager(localisation, tz);
 
 				pstmt = tdm.getPreparedStatement(
 						sd, 
@@ -4095,6 +4099,79 @@ public class SurveyManager {
 						);
 			}
 			
+			System.out.println("XXXXX: " + pstmt.toString());
+			JsonParser parser = new JsonParser();
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				instance = new Instance();				
+				for (int i = 0; i < columns.size(); i++) {
+					TableColumn c = columns.get(i);
+					String name = null;
+					String value = null;
+					
+					name = c.displayName;
+					if (c.isGeometry()) {
+						// Add Geometry (assume one geometry type per table)
+						instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();			
+					} else if (c.type.equals("begin repeat")) {
+						if(instance.repeats == null) {
+							instance.repeats = new HashMap<String, ArrayList<Instance>> ();
+						}
+						if(instance.repeats.get(c.displayName) == null) {
+							instance.repeats.put(c.displayName, new ArrayList<Instance> ());
+						}
+						ArrayList<Instance> repeats = instance.repeats.get(c.displayName);
+						repeats.add(sm.getInstance(
+								sd,
+								cResults,
+								s,
+								null,	// sourceSurvey.getFirstForm(),
+								0,
+								null,
+								null,
+								sm));
+					} else if (c.type.equals("select1") && c.selectDisplayNames) {
+						// Convert value to display name
+						value = rs.getString(i + 1);
+						for(KeyValue kv: c.choices) {
+							if(kv.k.equals(value)) {
+								value = kv.v;
+								break;
+							}
+						}
+					} else if (c.type.equals("decimal")) {
+						Double dValue = rs.getDouble(i + 1);
+						dValue = Math.round(dValue * 10000.0) / 10000.0;
+						value = String.valueOf(dValue);
+					} else if (c.type.equals("dateTime")) {
+						value = rs.getString(i + 1);
+						if (value != null) {
+							value = value.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
+						}
+					} else if (c.type.equals("calculate")) {
+						// This calculation may be a decimal - give it a go
+						String v = rs.getString(i + 1);
+						if (v != null && v.indexOf('.') > -1) {
+							try {
+								Double dValue = rs.getDouble(i + 1);
+								dValue = Math.round(dValue * 10000.0) / 10000.0;
+								value = String.valueOf(dValue);
+							} catch (Exception e) {
+								value = rs.getString(i + 1); // Assume text
+							}
+						} else {
+							value = rs.getString(i + 1); // Assume text
+						}
+
+					} else {
+						value = rs.getString(i + 1);
+					}
+						
+					instance.values.put(name, value);
+	
+							
+				}
+			}
 			
 			
 		} finally {
@@ -4102,8 +4179,6 @@ public class SurveyManager {
 			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
 		}
 
-		
-		
 		return instance;
 	}
 }

@@ -6,7 +6,7 @@ import java.util.HashMap;
 import com.google.gson.JsonElement;
 
 public class Instance {
-	public HashMap<String, String> values;
-	public JsonElement the_geom; 
+	public HashMap<String, String> values = new HashMap<>();
+	public JsonElement geometry; 
 	public HashMap<String, ArrayList<Instance>> repeats;	
 }

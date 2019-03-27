@@ -487,7 +487,7 @@ public class AllAssignments extends Application {
 								}
 								
 								// instanceId (writeTask)
-								if(as.update_results) {
+								if(as.update_results || as.prepopulate) {
 									instanceId = resultSet.getString("instanceid");
 								}
 
