@@ -50,6 +50,7 @@ import org.smap.sdal.model.ChangeLog;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Geometry;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Label;
@@ -61,6 +62,8 @@ import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
@@ -4034,6 +4037,7 @@ public class SurveyManager {
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSelect = null;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 
 		try {
 			
@@ -4069,7 +4073,6 @@ public class SurveyManager {
 						false,
 						tz
 						);
-				System.out.println("Columns: " + columns.size());
 
 				pstmt = tdm.getPreparedStatement(
 						sd, 
@@ -4100,7 +4103,6 @@ public class SurveyManager {
 						);
 			}
 			
-			System.out.println("XXXXX: " + pstmt.toString());
 			JsonParser parser = new JsonParser();
 			ResultSet rs = pstmt.executeQuery();
 			
@@ -4115,9 +4117,16 @@ public class SurveyManager {
 					name = c.displayName;
 					if(name.equals("prikey")) {
 						prikey = rs.getInt(i + 1);
-					} else if (c.isGeometry()) {
+					} else if (c.type.equals("geopoint")) {
 						// Add Geometry (assume one geometry type per table)
-						instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();			
+						//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
+						System.out.println(rs.getString(i + 1));
+						instance.point_geometry = gson.fromJson(rs.getString(i + 1), Point.class);
+					} else if (c.type.equals("geoshape")) {
+						// Add Geometry (assume one geometry type per table)
+						//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
+						System.out.println(rs.getString(i + 1));
+						instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
 					} else if (c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
 						value = rs.getString(i + 1);

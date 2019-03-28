@@ -21,7 +21,6 @@ import java.util.logging.Logger;
 import javax.mail.internet.InternetAddress;
 import javax.servlet.http.HttpServletRequest;
 
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
@@ -35,6 +34,8 @@ import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
@@ -840,7 +841,7 @@ public class TaskManager {
 						updateId,
 						sm);
 				
-				System.out.println("Instance: " + gson.toJson(instance, Instance.class));
+				initialData = gson.toJson(instance, Instance.class);
 			} else {
 				initialDataSource = TaskManager.NO_DATA_SOURCE;
 			}
@@ -848,14 +849,48 @@ public class TaskManager {
 			/*
 			 * Location
 			 */
-			if(location == null) {
-				location = "POINT(0 0)";
-			} else if(location.startsWith("LINESTRING")) {
-				log.info("Starts with linestring: " + tid.location.split(" ").length);
-				if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
-					location = location.replaceFirst("LINESTRING", "POINT");
+			System.out.println("Location:" + location);
+			// Default is 0,0
+			Point defPoint = new Point(0.0, 0.0);
+			String taskPoint = defPoint.getAsText();
+			
+			if(location != null) {		
+				if(location.toLowerCase().contains("point")) {
+					Point p = gson.fromJson(location, Point.class);
+					taskPoint = p.getAsText();
+				} else if(location.toLowerCase().contains("linestring")) {
+					log.info("Starts with linestring: " + tid.location.split(" ").length);
+					if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
+						location = location.replaceFirst("LINESTRING", "POINT");
+					}
+				
+				} else if(location.toLowerCase().contains("polygon")) {
+					Polygon p = gson.fromJson(location, Polygon.class);
+					// Get the centroid of the first shape
+					if(p.coordinates != null && p.coordinates.size() > 0) {
+						ArrayList<ArrayList<Double>> shape = p.coordinates.get(0);
+						if(shape.size() > 0) {
+							int pointCount = 0;
+							Double lon = 0.0;
+							Double lat = 0.0;
+							for(int i = 0; i < shape.size(); i++) {
+								ArrayList<Double> points = shape.get(i);
+								if(points.size() > 1) {
+									lon += points.get(0);
+									lat += points.get(1);
+									pointCount++;
+								}
+							}
+							if(pointCount > 0) {
+								lon = lon / pointCount;
+								lat = lat / pointCount;
+							}
+							Point newPoint = new Point(lon, lat);
+							taskPoint = newPoint.getAsText();
+						}
+					}
 				}
-			}	 
+			}
 			
 			/*
 			 * Start and finish time
@@ -876,7 +911,7 @@ public class TaskManager {
 					title,
 					target_s_id,
 					formUrl,
-					location,
+					taskPoint,
 					updateId,
 					tid.address,
 					taskStart,
@@ -976,7 +1011,7 @@ public class TaskManager {
 			
 			boolean hasGeom = GeneralUtilityMethods.hasColumn(cResults, topForm.tableName, "the_geom");
 			if(hasGeom) {
-				sql.append(", ST_AsText(the_geom)");
+				sql.append(", ST_AsGeoJson(the_geom)");
 			}
 			if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 				SqlFrag frag = new SqlFrag();
@@ -1123,7 +1158,7 @@ public class TaskManager {
 			}
 
 			/*
-			 *   Get the assignee id, if only the assignee ident is specified
+			 *   Get the assignee id, only if the assignee ident is specified
 			 */
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.assignee <= 0 && asd.assignee_ident != null && asd.assignee_ident.trim().length() > 0) {

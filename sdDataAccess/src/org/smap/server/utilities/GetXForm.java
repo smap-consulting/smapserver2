@@ -47,6 +47,7 @@ import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Point;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -1673,9 +1674,43 @@ public class GetXForm {
 			// Set the value from the instance data
 			String value = "";
 			if(instance != null) {
-				String qValue = instance.values.get(qName); 
-				if(qValue != null) {
-					value = qValue;
+				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace")) {
+
+					if(qType.equals("geopoint") && instance.point_geometry != null) {					
+						ArrayList<Double> coords = instance.point_geometry.coordinates;
+						if(coords.size() > 1) {
+							value = String.valueOf(coords.get(1)) + " " + String.valueOf(coords.get(0));
+						}
+						if(coords.size() > 2) {		// Altitude
+							value += String.valueOf(coords.get(2));
+						}
+						if(coords.size() > 3) {		// Accuracy
+							value += String.valueOf(coords.get(3));
+						}
+					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
+						StringBuffer coordsString = new StringBuffer("");
+						ArrayList<ArrayList<Double>> coords = instance.polygon_geometry.coordinates.get(0);
+						if(coords != null && coords.size() > 0) {
+
+							for(int i = 0; i < coords.size(); i++) {
+								ArrayList<Double> points = coords.get(i);
+								if(points.size() > 1) {
+									if(i > 0) {
+										coordsString.append(";");
+									}
+									coordsString.append(points.get(1)).append(" ").append(points.get(0));
+								}
+							}	
+						}
+						value = coordsString.toString();
+					}
+
+					
+				} else {
+					String qValue = instance.values.get(qName); 
+					if(qValue != null) {
+						value = qValue;
+					}
 				}
 			}
 
@@ -1741,8 +1776,7 @@ public class GetXForm {
 
 		}
 
-		// Append this new form to its parent (if the parent is null append to output
-		// doc)
+		// Append this new form to its parent (if the parent is null append to output doc)
 		if (parentElement != null) {
 			parentElement.appendChild(currentParent);
 		} else {

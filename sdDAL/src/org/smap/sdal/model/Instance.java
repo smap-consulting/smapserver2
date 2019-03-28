@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 
 public class Instance {
 	public HashMap<String, String> values = new HashMap<>();
-	public JsonElement geometry; 
+	public Point point_geometry; 
+	public Polygon polygon_geometry; 
 	public HashMap<String, ArrayList<Instance>> repeats;	
 }

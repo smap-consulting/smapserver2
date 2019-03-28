@@ -357,7 +357,7 @@ public class AllAssignments extends Application {
 							if(hasGeom) {
 								log.info("Has geometry");
 								getTaskSql.append("select ").append(tableName)
-										.append(".prikey, ST_AsText(").append(tableName).append(".the_geom) as the_geom,")
+										.append(".prikey, ST_AsGeoJson(").append(tableName).append(".the_geom) as the_geom,")
 										.append(tableName).append(".instanceid");
 								
 								if(hasInstanceName) {
@@ -495,14 +495,6 @@ public class AllAssignments extends Application {
 								if(hasGeom) {
 									tid.location = resultSet.getString("the_geom");
 								} 
-								if(tid.location == null) {
-									tid.location = "POINT(0 0)";
-								} else if(tid.location.startsWith("LINESTRING")) {
-									log.info("Starts with linestring: " + tid.location.split(" ").length);
-									if(tid.location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
-										tid.location = tid.location.replaceFirst("LINESTRING", "POINT");
-									}
-								}	 
 
 								// instanceName (tid)
 								if(hasInstanceName) {

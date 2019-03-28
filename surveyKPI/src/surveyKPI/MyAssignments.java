@@ -38,7 +38,7 @@ import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Assignment;
-import org.smap.sdal.model.Geometry;
+import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
@@ -297,7 +297,7 @@ public class MyAssignments extends Application {
 					int startIdx = geoString.lastIndexOf('(');
 					int endIdx = geoString.indexOf(')');
 					if(startIdx > 0 && endIdx > 0) {
-						ta.location.geometry = new Geometry();
+						ta.location.geometry = new GeometryString();
 						String geoString2 = geoString.substring(startIdx + 1, endIdx);
 						ta.location.geometry.type = "POINT";
 						ta.location.geometry.coordinates = geoString2.split(",");
