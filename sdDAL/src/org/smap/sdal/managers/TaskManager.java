@@ -31,6 +31,7 @@ import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueTask;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Organisation;
@@ -888,6 +889,28 @@ public class TaskManager {
 							Point newPoint = new Point(lon, lat);
 							taskPoint = newPoint.getAsText();
 						}
+					}
+				} else if(location.toLowerCase().contains("linestring")) {
+					Line l = gson.fromJson(location, Line.class);
+					// Get the centroid of the line
+					if(l.coordinates != null && l.coordinates.size() > 0) {
+						int pointCount = 0;
+						Double lon = 0.0;
+						Double lat = 0.0;
+						for(int i = 0; i < l.coordinates.size(); i++) {
+							ArrayList<Double> points = l.coordinates.get(i);
+							if(points.size() > 1) {
+								lon += points.get(0);
+								lat += points.get(1);
+								pointCount++;
+							}
+						}
+						if(pointCount > 0) {
+							lon = lon / pointCount;
+							lat = lat / pointCount;
+						}
+						Point newPoint = new Point(lon, lat);
+						taskPoint = newPoint.getAsText();
 					}
 				}
 			}

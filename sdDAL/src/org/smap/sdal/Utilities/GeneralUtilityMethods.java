@@ -7091,7 +7091,19 @@ public class GeneralUtilityMethods {
 	
 	public static String getOdkLine(Line l) {
 		StringBuffer coordsString = new StringBuffer("");
-		
+		ArrayList<ArrayList<Double>> coords = l.coordinates;
+		if(coords != null && coords.size() > 0) {
+
+			for(int i = 0; i < coords.size(); i++) {
+				ArrayList<Double> points = coords.get(i);
+				if(points.size() > 1) {
+					if(i > 0) {
+						coordsString.append(";");
+					}
+					coordsString.append(points.get(1)).append(" ").append(points.get(0));
+				}
+			}	
+		}
 		return coordsString.toString();
 	}
 
