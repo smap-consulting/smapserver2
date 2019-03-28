@@ -45,9 +45,11 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -57,6 +59,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*
  * Return an XForm built from a survey defined in the database
@@ -1676,33 +1681,12 @@ public class GetXForm {
 			if(instance != null) {
 				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace")) {
 
-					if(qType.equals("geopoint") && instance.point_geometry != null) {					
-						ArrayList<Double> coords = instance.point_geometry.coordinates;
-						if(coords.size() > 1) {
-							value = String.valueOf(coords.get(1)) + " " + String.valueOf(coords.get(0));
-						}
-						if(coords.size() > 2) {		// Altitude
-							value += String.valueOf(coords.get(2));
-						}
-						if(coords.size() > 3) {		// Accuracy
-							value += String.valueOf(coords.get(3));
-						}
+					if(qType.equals("geopoint") && instance.point_geometry != null) {		
+						value = GeneralUtilityMethods.getOdkPoint(instance.point_geometry);
 					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
-						StringBuffer coordsString = new StringBuffer("");
-						ArrayList<ArrayList<Double>> coords = instance.polygon_geometry.coordinates.get(0);
-						if(coords != null && coords.size() > 0) {
-
-							for(int i = 0; i < coords.size(); i++) {
-								ArrayList<Double> points = coords.get(i);
-								if(points.size() > 1) {
-									if(i > 0) {
-										coordsString.append(";");
-									}
-									coordsString.append(points.get(1)).append(" ").append(points.get(0));
-								}
-							}	
-						}
-						value = coordsString.toString();
+						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
+					} else if(qType.equals("geotrace") && instance.line_geometry != null) {
+						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
 					}
 
 					
@@ -1910,6 +1894,7 @@ public class GetXForm {
 
 		Form processForm = null;		
 		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		/*
 		 * If this is a reference form then get the form that has the data
@@ -1967,8 +1952,8 @@ public class GetXForm {
 					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 
 						String qType = q.getType();
-						if (qType.equals("geopoint")) {
-							col = "ST_AsText(" + q.getColumnName(isReference) + ")";
+						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace")) {
+							col = "ST_AsGeoJson(" + q.getColumnName(isReference) + ")";
 						} else if (qType.equals("select") && !q.isCompressed()) {
 							continue; 
 						} else {
@@ -2116,12 +2101,9 @@ public class GetXForm {
 						}
 					}
 
-					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, optValue,
-					// false, false, false, null));
 					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters(), false));
 
-				} else if (GeneralUtilityMethods.isAttachmentType(qType)) { // Get the file
-					// name
+				} else if (GeneralUtilityMethods.isAttachmentType(qType)) { // Get the file name
 
 					String value = null;
 					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
@@ -2141,8 +2123,7 @@ public class GetXForm {
 					if (simplifyMedia) {
 						value = filename;
 					}
-					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
-					// false, false, false, filename));
+
 					record.add(new Results(qName, null, value, false, false, false, filename, q.getParameters(), false));
 
 					if (q.isPublished() || isReference) {
@@ -2162,28 +2143,23 @@ public class GetXForm {
 					}
 
 					if (value != null && qType.equals("geopoint")) {
-						int idx1 = value.indexOf('(');
-						int idx2 = value.indexOf(')');
-						if (idx1 > 0 && (idx2 > idx1)) {
-							value = value.substring(idx1 + 1, idx2);
-							// These values are in the order longitude latitude. This needs to be reversed for the XForm
-							String[] coords = value.split(" ");
-							if (coords.length > 1) {
-								value = coords[1] + " " + coords[0] + " 0 0";
-							}
-						} else {
-							log.severe("Invalid value for geopoint");
-							value = null;
-						}
+						Point p = gson.fromJson(value, Point.class);
+						value = GeneralUtilityMethods.getOdkPoint(p);		
+						
+					} else if (value != null && qType.equals("geoshape")) {
+						Polygon p = gson.fromJson(value, Polygon.class);
+						value = GeneralUtilityMethods.getOdkPolygon(p);
+					} else if (value != null && qType.equals("geotrace")) {
+						Line l = gson.fromJson(value, Line.class);
+						value = GeneralUtilityMethods.getOdkLine(l);
 					}
+					
 
 					// Ignore data not provided by user
 					if (!qSource.equals("user")) {
 						value = "";
 					}
 
-					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
-					// false, false, false, null));
 					record.add(new Results(qName, null, value, false, false, false, null, q.getParameters(), false));
 
 					if (q.isPublished() || isReference) {

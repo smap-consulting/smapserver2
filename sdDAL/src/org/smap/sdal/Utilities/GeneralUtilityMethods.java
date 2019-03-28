@@ -60,12 +60,15 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
@@ -7050,6 +7053,46 @@ public class GeneralUtilityMethods {
 			coords = lonLat.split(" ");
 		}
 		return coords;
+	}
+	
+	public static String getOdkPoint(Point p) {
+		String value = "";
+		if(p.coordinates != null && p.coordinates.size() > 1) {
+			value = p.coordinates.get(1) + " " + p.coordinates.get(0);
+			if(p.coordinates.size() > 2) {
+				value += p.coordinates.get(2);
+			}
+			if(p.coordinates.size() > 3) {
+				value += p.coordinates.get(3);
+			}
+		} else {
+			log.severe("Invalid value for geopoint");
+		}	
+		return value;
+	}
+	
+	public static String getOdkPolygon(Polygon p) {
+		StringBuffer coordsString = new StringBuffer("");
+		ArrayList<ArrayList<Double>> coords = p.coordinates.get(0);
+		if(coords != null && coords.size() > 0) {
+
+			for(int i = 0; i < coords.size(); i++) {
+				ArrayList<Double> points = coords.get(i);
+				if(points.size() > 1) {
+					if(i > 0) {
+						coordsString.append(";");
+					}
+					coordsString.append(points.get(1)).append(" ").append(points.get(0));
+				}
+			}	
+		}
+		return coordsString.toString();
+	}
+	
+	public static String getOdkLine(Line l) {
+		StringBuffer coordsString = new StringBuffer("");
+		
+		return coordsString.toString();
 	}
 
 	/*
