@@ -1314,7 +1314,9 @@ public class GetXForm {
 	 * Get the instance data for an XForm
 	 */
 	public String getInstanceXml(int sId, String templateName, SurveyTemplate template, String key, String keyval,
-			int priKey, boolean simplifyMedia, boolean isWebForms, int taskKey) 
+			int priKey, boolean simplifyMedia, 
+			boolean isWebForms, int taskKey,
+			String urlprefix) 
 			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
 
 		this.isWebForms = isWebForms;
@@ -1382,7 +1384,7 @@ public class GetXForm {
 				hasData = true;
 				TaskManager tm = new TaskManager(localisation, tz);
 				Instance instance = tm.getInstance(sd, taskKey);
-				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance);
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix);
 			}
 
 			// Write the survey to a string and return it to the calling program
@@ -1665,8 +1667,10 @@ public class GetXForm {
 	 * @param outputDoc
 	 */
 	public void populateTaskDataForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
-			Element parentElement, int sId, String survey_ident, Instance instance)
-					throws SQLException {
+				Element parentElement, int sId, String survey_ident, 
+				Instance instance,
+				String urlprefix)
+			throws SQLException {
 
 		List<Results> record = new ArrayList<Results>();
 
@@ -1688,12 +1692,23 @@ public class GetXForm {
 					} else if(qType.equals("geotrace") && instance.line_geometry != null) {
 						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
 					}
-
 					
 				} else {
 					String qValue = instance.values.get(qName); 
 					if(qValue != null) {
-						value = qValue;
+						if(qType.equals("image")  || qType.equals("audio") || qType.equals("video")) {
+							// Hack for special situaltion on localhost
+							if(urlprefix.equals("http://localhost/")) {
+								urlprefix = "https://localhost/";
+							}
+							if(qValue.startsWith(urlprefix)) {
+								value = qValue.substring(urlprefix.length());	// Local image remove prefix
+							} else {
+								value = qValue;
+							}
+						} else {
+							value = qValue;
+						}
 					}
 				}
 			}
@@ -1736,7 +1751,8 @@ public class GetXForm {
 						iSub = subInstanceList.get(j);
 					}
 				}
-				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, survey_ident, iSub);		
+				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
+						survey_ident, iSub, urlprefix);		
 
 				Element childElement = null;
 				childElement = outputDoc.createElement(item.name);

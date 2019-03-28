@@ -459,9 +459,10 @@ public class WebForm extends Application {
 			
 			if ((datakey != null && datakeyvalue != null) || taskKey > 0) {
 				log.info("Adding initial data");
+				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
-						isWebForm, taskKey);
+						isWebForm, taskKey, urlprefix);
 				instanceStrToEditId = xForm.getInstanceId();
 				gRecordCounts = xForm.getRecordCounts();
 			} 
@@ -1092,9 +1093,11 @@ public class WebForm extends Application {
 			// If required get the instance data
 			String instanceXML = null;
 			String dataKey = "instanceid";
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
-			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, false, taskKey);
+			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
+					false, taskKey, urlprefix);
 
 			SurveyData surveyData = new SurveyData();
 			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
