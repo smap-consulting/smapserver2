@@ -271,20 +271,7 @@ public class GeneralUtilityMethods {
 				&& !host.equals("dev.smap.com.au")) {
 			businessServer = false;
 		}
-		/*
-		if (!host.endsWith("zarkman.com") 
-				&& !host.equals("localhost") 
-				&& !host.startsWith("10.0")
-				&& !host.endsWith(".kontrolid.com")
-				&& !host.contains("ezpilot")
-				&& !host.endsWith("reachnettechnologies.com")
-				&& !host.endsWith("datacollect.icanreach.com") 
-				&& !host.endsWith("encontactone.com")
-				&& !host.equals("sg.smap.com.au")
-				&& !host.equals("dev.smap.com.au")) {
-			businessServer = false;
-		}
-		*/
+		
 		return businessServer;
 	}
 
@@ -7570,6 +7557,57 @@ public class GeneralUtilityMethods {
 
 		if(code != 0) {
 			log.info("Error:  Failed to restore files from s3 for ident " + ident + " error code: " + code);
+		}
+
+	}
+	
+	/*
+	 * Log a refresh
+	 */
+	static public void recordRefresh(Connection sd, int oId, String user, String lat, String lon) throws SQLException {
+
+
+		String sql = "update last_refresh "
+				+ "set refresh_time = now(), "
+				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326) "
+				+ "where o_id = ? "
+				+ "and user_ident = ?";
+
+		String sqlInsert = "insert into last_refresh "
+				+ "(o_id, user_ident, refresh_time, geo_point) "
+				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
+		
+		PreparedStatement pstmt = null;
+
+		if(user != null) {
+			try {
+	
+				if(lat == null) {
+					lat = "0.0";
+				}
+				if(lon == null) {
+					lon = "0.0";
+				}
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, lon);
+				pstmt.setString(2, lat);
+				pstmt.setInt(3, oId);
+				pstmt.setString(4,  user);
+				int count = pstmt.executeUpdate();
+				if (count == 0) {
+					try {pstmt.close();} catch (Exception e) {};
+					pstmt = sd.prepareStatement(sqlInsert);
+					pstmt.setInt(1, oId);
+					pstmt.setString(2, user);
+					pstmt.setString(3, lon);
+					pstmt.setString(4, lat);
+					pstmt.executeUpdate();
+				}
+	
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			}
 		}
 
 	}

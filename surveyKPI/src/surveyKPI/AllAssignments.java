@@ -211,8 +211,9 @@ public class AllAssignments extends Application {
 						+ "address_params,"
 						+ "rule,"
 						+ "source_s_id,"
-						+ "target_s_id) "
-						+ "values (?, ?, ?, ?, ?, ?);";
+						+ "target_s_id,"
+						+ "dl_dist) "
+						+ "values (?, ?, ?, ?, ?, ?, ?);";
 
 				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
 				pstmtTaskGroup.setString(1, as.task_group_name);
@@ -221,6 +222,7 @@ public class AllAssignments extends Application {
 				pstmtTaskGroup.setString(4, settings);
 				pstmtTaskGroup.setInt(5, as.source_survey_id);
 				pstmtTaskGroup.setInt(6, as.target_survey_id);
+				pstmtTaskGroup.setInt(7, as.dl_dist);
 				log.info("Insert into task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 
@@ -656,7 +658,8 @@ public class AllAssignments extends Application {
 						+ "address_params = ?,"
 						+ "rule = ?,"
 						+ "source_s_id = ?,"
-						+ "target_s_id = ? "
+						+ "target_s_id = ?,"
+						+ "dl_dist = ? "
 						+ "where tg_id = ?";
 
 				pstmtTaskGroup = sd.prepareStatement(tgSql);
@@ -666,7 +669,8 @@ public class AllAssignments extends Application {
 				pstmtTaskGroup.setString(4, settings);
 				pstmtTaskGroup.setInt(5, as.source_survey_id);
 				pstmtTaskGroup.setInt(6, as.target_survey_id);
-				pstmtTaskGroup.setInt(7,  tgId);
+				pstmtTaskGroup.setInt(7, as.dl_dist);
+				pstmtTaskGroup.setInt(8,  tgId);
 				log.info("Update task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 

@@ -128,7 +128,8 @@ public class TaskManager {
 	 */
 	public ArrayList<TaskGroup> getTaskGroups(Connection sd, int projectId) throws Exception {
 
-		String sql = "select tg_id, name, address_params, p_id, rule, source_s_id, target_s_id, email_details "
+		String sql = "select tg_id, name, address_params, p_id, rule, "
+				+ "source_s_id, target_s_id, email_details, dl_dist "
 				+ "from task_group where p_id = ? order by tg_id asc;";
 		PreparedStatement pstmt = null;
 
@@ -187,6 +188,7 @@ public class TaskManager {
 				tg.source_s_id = rs.getInt(6);
 				tg.target_s_id = rs.getInt(7);
 				tg.emaildetails = new Gson().fromJson(rs.getString(8), TaskEmailDetails.class);
+				tg.dl_dist = rs.getInt(9);
 				
 
 				if(rsTotal.next()) {

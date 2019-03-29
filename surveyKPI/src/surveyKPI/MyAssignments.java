@@ -181,6 +181,10 @@ public class MyAssignments extends Application {
 		a.isAuthorised(sd, userName);
 		// End Authorisation
 
+		// Get the coordinates from which this request was made
+		String lat = request.getHeader("lat");
+		String lon = request.getHeader("lat");
+		
 		PreparedStatement pstmtGetSettings = null;
 		PreparedStatement pstmtGetProjects = null;
 		PreparedStatement pstmtGeo = null;
@@ -472,6 +476,11 @@ public class MyAssignments extends Application {
 				tr.projects.add(p);
 			}
 
+			/*
+			 * Log the request
+			 */
+			GeneralUtilityMethods.recordRefresh(sd, oId, userName, lat, lon);
+			
 			/*
 			 * Return the response
 			 */
