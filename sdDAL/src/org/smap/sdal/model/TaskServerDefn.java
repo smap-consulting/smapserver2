@@ -21,9 +21,9 @@ public class TaskServerDefn {
 	public String guidance;			// Key value pairs representing an unstructured address
 	public Double lat;				// Latitude
 	public Double lon;				// Longitude
-	public String initial_data;
+	public Instance initial_data;
+	public String initial_data_source;
 	public String update_id;
-	public String instance_id;
 	
 	public ArrayList<AssignmentServerDefn> assignments = new ArrayList<AssignmentServerDefn> ();
 }

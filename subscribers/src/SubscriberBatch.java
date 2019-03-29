@@ -463,6 +463,7 @@ public class SubscriberBatch {
 											sId,
 											surveyIdent,
 											null,		// No need for user - we are super user
+											null,		// Roles to apply
 											topForm.parentform,
 											topForm.id,
 											topForm.tableName,
@@ -470,6 +471,7 @@ public class SubscriberBatch {
 											getParkey,	// Include parent key if the form is not the top level form (fId is 0)
 											false,		// Don't include bad columns
 											true,		// include instance id
+											true,		// Include prikey
 											true,		// include other meta data
 											true,		// include preloads
 											true,		// include instancename
@@ -496,13 +498,13 @@ public class SubscriberBatch {
 											0,				// parkey ??
 											null,			// Not searching on HRK
 											null,			// No user ident, we are super user
+											null,			// No list of roles
 											null,			// No specific sort column
 											null,			// No specific sort direction
 											mgmt,
 											false,			// No grouping
 											false,			// Not data tables
 											0,				// Start from zero
-											0,				// No limit
 											getParkey,
 											0,	// Start from the beginning of the parent key
 											true,			// Super User
@@ -510,7 +512,9 @@ public class SubscriberBatch {
 											"none",			// Do not return bad records
 											prikeyFilter,
 											null	,			// key filter
-											tz);
+											tz,
+											null				// instance id
+											);
 	
 									// Set parameters for custom filter
 	

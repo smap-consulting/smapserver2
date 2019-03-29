@@ -304,6 +304,7 @@ public class Audit extends Application {
 					sId,
 					sIdent,
 					request.getRemoteUser(),
+					null,
 					parentform,
 					fId,
 					table_name,
@@ -311,6 +312,7 @@ public class Audit extends Application {
 					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")),
 					true,		// include instance id
+					true,		// Include prikey
 					true,		// include other meta data
 					true,		// include preloads
 					true,		// include instancename
@@ -339,13 +341,13 @@ public class Audit extends Application {
 					parkey,
 					hrk,
 					request.getRemoteUser(),
+					null,			// roles
 					sort,
 					dirn,
 					mgmt,
 					false,			// group
 					false,
 					start,
-					limit,
 					getParkey,
 					start_parkey,
 					superUser,
@@ -353,7 +355,8 @@ public class Audit extends Application {
 					include_bad,
 					null	,			// no custom filter
 					null,			// key filter
-					tz
+					tz,
+					null				// instance id
 					);
 			
 			// Write array start

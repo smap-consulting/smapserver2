@@ -340,6 +340,7 @@ public class Data extends Application {
 					sId,
 					sIdent,
 					request.getRemoteUser(),
+					null,
 					parentform,
 					fId,
 					table_name,
@@ -347,6 +348,7 @@ public class Data extends Application {
 					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")),
 					true,		// include instance id
+					true,		// Include prikey
 					true,		// include other meta data
 					true,		// include preloads
 					true,		// include instancename
@@ -375,13 +377,13 @@ public class Data extends Application {
 					parkey,
 					hrk,
 					request.getRemoteUser(),
+					null,	// roles
 					sort,
 					dirn,
 					mgmt,
 					group,
 					isDt,
 					start,
-					limit,
 					getParkey,
 					start_parkey,
 					superUser,
@@ -389,7 +391,8 @@ public class Data extends Application {
 					include_bad,
 					null	,			// no custom filter
 					null,			// key filter
-					tz
+					tz,
+					null
 					);
 			
 			// Write array start
@@ -602,6 +605,7 @@ public class Data extends Application {
 					sId,
 					surveyIdent,
 					request.getRemoteUser(),
+					null,
 					parentform,
 					fId,
 					table_name,
@@ -609,6 +613,7 @@ public class Data extends Application {
 					false,		// Don't include parent key
 					false,		// Don't include "bad" columns
 					true,		// include instance id
+					true,		// Include prikey
 					true,		// Include other meta data
 					true,		// Include preloads
 					true,		// Include instance name

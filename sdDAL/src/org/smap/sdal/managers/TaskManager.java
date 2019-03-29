@@ -29,10 +29,14 @@ import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueTask;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.Survey;
@@ -82,6 +86,10 @@ public class TaskManager {
 
 	private ResourceBundle localisation = null;
 	private String tz;
+	
+	public static String SURVEY_DATA_SOURCE = "survey";
+	public static String TASK_DATA_SOURCE = "task";
+	public static String NO_DATA_SOURCE = "none";
 	
 	private String fullStatusList[] = {
 			"new", 
@@ -259,9 +267,12 @@ public class TaskManager {
 	/*
 	 * Get tasks
 	 */
-	public TaskListGeoJson getTasks(Connection sd, 
+	public TaskListGeoJson getTasks(
+			Connection sd, 
+			String urlprefix,
 			int oId,			// only required if tgId is not set
 			int tgId, 		// Presumably this has been security checked as being in correct organisation
+			int taskId,
 			boolean completed,
 			int userId,
 			String incStatus,
@@ -271,7 +282,7 @@ public class TaskManager {
 			String sort,		// Data to sort on
 			String dirn		// Direction of sort asc || desc
 			) throws Exception {
-
+		
 		StringBuffer sql = new StringBuffer("select t.id as t_id, "
 				+ "t.title as name,"
 				+ "timezone(?, t.schedule_at) as schedule_at,"
@@ -280,6 +291,7 @@ public class TaskManager {
 				+ "t.location_trigger as location_trigger,"
 				+ "t.update_id as update_id,"
 				+ "t.initial_data as initial_data,"
+				+ "t.initial_data_source as initial_data_source,"
 				+ "t.address as address,"
 				+ "t.guidance as guidance,"
 				+ "t.repeat as repeat,"
@@ -314,8 +326,9 @@ public class TaskManager {
 				+ "left outer join users u "
 				+ "on a.assignee = u.id");
 		
-		// Restrict by taskGroupId
-		if(tgId > 0) {
+		if(taskId > 0) {				// Restrict by taskId
+			sql.append(" where t.id = ?");
+		} else if(tgId > 0) {		// Restrict by taskGroupId
 			sql.append(" where t.tg_id = ?");
 		} else {
 			sql.append( " where t.p_id in (select id from project where o_id = ?)");
@@ -388,7 +401,9 @@ public class TaskManager {
 			pstmt.setString(paramIdx++, tz);
 			pstmt.setString(paramIdx++, tz);
 			
-			if(tgId > 0) {						// Task group or organisation
+			if(taskId > 0) {
+				pstmt.setInt(paramIdx++, taskId);
+			} else if(tgId > 0) {						// Task group or organisation
 				pstmt.setInt(paramIdx++, tgId);
 			} else {
 				pstmt.setInt(paramIdx++, oId);
@@ -454,7 +469,6 @@ public class TaskManager {
 				tf.properties.assignee_ident = rs.getString("assignee_ident");
 				tf.properties.location_trigger = rs.getString("location_trigger");
 				tf.properties.update_id = rs.getString("update_id");
-				tf.properties.initial_data = rs.getString("initial_data");
 				tf.properties.address = rs.getString("address");
 				tf.properties.guidance = rs.getString("guidance");
 				tf.properties.repeat = rs.getBoolean("repeat");
@@ -463,9 +477,44 @@ public class TaskManager {
 				tf.properties.complete_all = rs.getBoolean("complete_all");
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
+				tf.properties.initial_data_source = rs.getString("initial_data_source");
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");
+				
+				/*
+				 * Add the task data
+				 * Embed the data if the request is for a single task
+				 * Otherwise set a link
+				 */			
+				if(tf.properties.initial_data_source != null) {
+					if(tf.properties.initial_data_source.equals("survey")) {
+						
+						if(taskId == 0) {
+							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
+									"/" + tf.properties.update_id;
+						} else {
+							tf.properties.initial_data = null;		// Get instance data from survey record
+						}
+						
+						
+					} else if(tf.properties.initial_data_source.equals("task")) {
+						if(taskId == 0) {
+							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
+									"/task/" + tf.properties.update_id;
+						} else {
+							tf.properties.initial_data = null;		// Get instance data from database
+							// debug
+							tf.properties.initial_data = new Instance();
+							tf.properties.initial_data.values = new HashMap<String, String>();
+							tf.properties.initial_data.values.put("question1", "foo");
+							tf.properties.initial_data.values.put("question2", "bar");
+							// end debug
+						}
+					} else {
+						tf.properties.initial_data = null;
+					}
+				}
 				
 				tl.features.add(tf);
 				
@@ -493,10 +542,7 @@ public class TaskManager {
 			Connection sd, 
 			Connection cResults,
 			ArrayList<TaskServerDefn> tl,
-			int pId,
-			String pName,
 			int tgId,
-			String tgName,
 			String urlPrefix,
 			boolean updateResources,
 			int oId,
@@ -506,7 +552,7 @@ public class TaskManager {
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
-			writeTask(sd, cResults, pId, pName, tgId, tgName, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
+			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
 			for(AssignmentServerDefn asd : tsd.assignments)
 			if(asd.assignee_ident != null) {
 				userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -696,7 +742,30 @@ public class TaskManager {
 								" task survey: " + target_s_id);
 						TaskInstanceData tid = getTaskInstanceData(sd, cResults, 
 								source_s_id, instanceId, as, address); // Get data from new submission
-						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, source_s_id, 
+						
+						Survey sourceSurvey = null;
+						if(as.prepopulate) {
+							// Get the source survey definition so we can get the source data
+							sourceSurvey = sm.getById(
+									sd, cResults, remoteUser, source_s_id, 
+									true, 		// full
+									null, 		// basepath
+									null, 		// instance id
+									false, 		// get results
+									false, 		// generate dummy values
+									true, 		// get property questions
+									false, 		// get soft deleted
+									true, 		// get HRK
+									null, 		// get external options
+									false, 		// get change history
+									false, 		// get roles
+									true,		// superuser 
+									null, 		// geomformat
+									false, 		// reference surveys
+									false		// only get launched
+									);
+						}
+						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
 								target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
 					}
 				}
@@ -722,10 +791,10 @@ public class TaskManager {
 			String tgName,
 			int pId,
 			String pName,
-			int source_s_id,
+			Survey sourceSurvey,				// Set if we need to get the instance data from the survey
 			int target_s_id,
 			TaskInstanceData tid,			// data from submission
-			String instanceId,
+			String updateId,
 			boolean autosendEmails,
 			String remoteUser
 			) throws Exception {
@@ -745,34 +814,106 @@ public class TaskManager {
 		}
 
 		String location = tid.location;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 		try {
 
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
-			String initial_data_url = null;
-			String targetInstanceId = null;
 
 			/*
 			 * Set data to be updated
 			 */
+			String initialDataSource = null;
+			String initialData = null;
 			if(as.update_results) {
-				initial_data_url = "http://" + hostname + "/instanceXML/" + 
-						targetSurveyIdent + "/0?key=prikey&keyval=" + tid.prikey;					// deprecated
-				targetInstanceId = instanceId;													// New way to identify existing records to be updated
+				initialDataSource = TaskManager.SURVEY_DATA_SOURCE;
+			} else if(as.prepopulate) {
+				initialDataSource = TaskManager.TASK_DATA_SOURCE;
+				SurveyManager sm = new SurveyManager(localisation, tz);	
+				
+				Instance instance = sm.getInstance(
+						sd,
+						cResults,
+						sourceSurvey,
+						sourceSurvey.getFirstForm(),
+						0,
+						null,
+						updateId,
+						sm);
+				
+				initialData = gson.toJson(instance, Instance.class);
+			} else {
+				initialDataSource = TaskManager.NO_DATA_SOURCE;
 			}
 
 			/*
 			 * Location
 			 */
-			if(location == null) {
-				location = "POINT(0 0)";
-			} else if(location.startsWith("LINESTRING")) {
-				log.info("Starts with linestring: " + tid.location.split(" ").length);
-				if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
-					location = location.replaceFirst("LINESTRING", "POINT");
+			System.out.println("Location:" + location);
+			// Default is 0,0
+			Point defPoint = new Point(0.0, 0.0);
+			String taskPoint = defPoint.getAsText();
+			
+			if(location != null) {		
+				if(location.toLowerCase().contains("point")) {
+					Point p = gson.fromJson(location, Point.class);
+					taskPoint = p.getAsText();
+				} else if(location.toLowerCase().contains("linestring")) {
+					log.info("Starts with linestring: " + tid.location.split(" ").length);
+					if(location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
+						location = location.replaceFirst("LINESTRING", "POINT");
+					}
+				
+				} else if(location.toLowerCase().contains("polygon")) {
+					Polygon p = gson.fromJson(location, Polygon.class);
+					// Get the centroid of the first shape
+					if(p.coordinates != null && p.coordinates.size() > 0) {
+						ArrayList<ArrayList<Double>> shape = p.coordinates.get(0);
+						if(shape.size() > 0) {
+							int pointCount = 0;
+							Double lon = 0.0;
+							Double lat = 0.0;
+							for(int i = 0; i < shape.size(); i++) {
+								ArrayList<Double> points = shape.get(i);
+								if(points.size() > 1) {
+									lon += points.get(0);
+									lat += points.get(1);
+									pointCount++;
+								}
+							}
+							if(pointCount > 0) {
+								lon = lon / pointCount;
+								lat = lat / pointCount;
+							}
+							Point newPoint = new Point(lon, lat);
+							taskPoint = newPoint.getAsText();
+						}
+					}
+				} else if(location.toLowerCase().contains("linestring")) {
+					Line l = gson.fromJson(location, Line.class);
+					// Get the centroid of the line
+					if(l.coordinates != null && l.coordinates.size() > 0) {
+						int pointCount = 0;
+						Double lon = 0.0;
+						Double lat = 0.0;
+						for(int i = 0; i < l.coordinates.size(); i++) {
+							ArrayList<Double> points = l.coordinates.get(i);
+							if(points.size() > 1) {
+								lon += points.get(0);
+								lat += points.get(1);
+								pointCount++;
+							}
+						}
+						if(pointCount > 0) {
+							lon = lon / pointCount;
+							lat = lat / pointCount;
+						}
+						Point newPoint = new Point(lon, lat);
+						taskPoint = newPoint.getAsText();
+					}
 				}
-			}	 
+			}
 			
 			/*
 			 * Start and finish time
@@ -785,7 +926,7 @@ public class TaskManager {
 			 */
 			pstmt = getInsertTaskStatement(sd);
 			insertTask(
-					pstmt,
+					pstmt,	
 					pId,
 					pName,
 					tgId,
@@ -793,16 +934,16 @@ public class TaskManager {
 					title,
 					target_s_id,
 					formUrl,
-					initial_data_url,
-					location,
-					targetInstanceId,
+					taskPoint,
+					updateId,
 					tid.address,
 					taskStart,
 					taskFinish,
 					tid.locationTrigger,
 					false,
 					null,
-					instanceId);
+					initialDataSource,
+					initialData);
 
 			/*
 			 * Assign the user to the new task
@@ -851,10 +992,9 @@ public class TaskManager {
 						oId,
 						pId,
 						targetSurveyIdent,
-						targetInstanceId,
+						updateId,
 						autosendEmails,
-						remoteUser,
-						instanceId);
+						remoteUser);
 			}
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
@@ -894,7 +1034,7 @@ public class TaskManager {
 			
 			boolean hasGeom = GeneralUtilityMethods.hasColumn(cResults, topForm.tableName, "the_geom");
 			if(hasGeom) {
-				sql.append(", ST_AsText(the_geom)");
+				sql.append(", ST_AsGeoJson(the_geom)");
 			}
 			if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 				SqlFrag frag = new SqlFrag();
@@ -978,10 +1118,7 @@ public class TaskManager {
 	public void writeTask(
 			Connection sd, 
 			Connection cResults,
-			int pId, 
-			String pName,
 			int tgId,
-			String tgName,
 			TaskServerDefn tsd,
 			String urlPrefix,
 			boolean updateResources,
@@ -1010,6 +1147,11 @@ public class TaskManager {
 		PreparedStatement pstmtUpdateLocationTrigger = null;
 
 		try {
+			
+			// Get the project for this task group
+			int pId = GeneralUtilityMethods.getProjectIdFromTaskGroup(sd, tgId);
+			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
+			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 
 			// 1. Update the existing task if it is being updated
 			if(tsd.id > 0) {
@@ -1039,7 +1181,7 @@ public class TaskManager {
 			}
 
 			/*
-			 *   Get the assignee id, if only the assignee ident is specified
+			 *   Get the assignee id, only if the assignee ident is specified
 			 */
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.assignee <= 0 && asd.assignee_ident != null && asd.assignee_ident.trim().length() > 0) {
@@ -1081,6 +1223,11 @@ public class TaskManager {
 			}
 			
 			int taskId = tsd.id;
+			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String initial_data = null;
+			if(tsd.initial_data != null) {
+				initial_data = gson.toJson(tsd.initial_data);	
+			}
 			if(tsd.id > 0) {
 				pstmt = getUpdateTaskStatement(sd);
 				updateTask(
@@ -1096,7 +1243,9 @@ public class TaskManager {
 						tsd.to,
 						tsd.location_trigger,
 						tsd.repeat,
-						tsd.guidance);
+						tsd.guidance,
+						tsd.initial_data_source,
+						initial_data);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -1108,7 +1257,6 @@ public class TaskManager {
 						tsd.name,
 						tsd.form_id,
 						webformUrl,
-						tsd.initial_data,
 						location,
 						tsd.update_id,
 						tsd.address,
@@ -1117,7 +1265,8 @@ public class TaskManager {
 						tsd.location_trigger,
 						tsd.repeat,
 						tsd.guidance,
-						tsd.instance_id);
+						tsd.initial_data_source,
+						initial_data);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					taskId = rsKeys.getInt(1);
@@ -1145,8 +1294,7 @@ public class TaskManager {
 							pId,
 							targetSurveyIdent,
 							autosendEmails,
-							remoteUser,
-							tsd.instance_id);
+							remoteUser);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1166,8 +1314,7 @@ public class TaskManager {
 							targetSurveyIdent,
 							null,
 							autosendEmails,
-							remoteUser,
-							tsd.instance_id);
+							remoteUser);
 				}
 				
 				if(asd.assignee > 0) {
@@ -1668,7 +1815,6 @@ public class TaskManager {
 				+ "form_id, "
 				+ "survey_name, "
 				+ "url, "
-				+ "initial_data,"
 				+ "geo_point,"
 				+ "update_id,"
 				+ "address,"
@@ -1677,7 +1823,8 @@ public class TaskManager {
 				+ "location_trigger,"
 				+ "repeat,"
 				+ "guidance,"
-				+ "instance_id) "
+				+ "initial_data_source,"
+				+ "initial_data) "
 				+ "values ("
 				+ "?, "		// p_id
 				+ "?, "		// p_name
@@ -1687,7 +1834,6 @@ public class TaskManager {
 				+ "?, "		// form_id
 				+ "(select display_name from survey where s_id = ?), "		// Survey name
 				+ "?, "		// url
-				+ "?, "		// initial_data	
 				+ "ST_GeomFromText(?, 4326), "	// geo_point
 				+ "?, "		// update_id
 				+ "?, "		// address
@@ -1696,7 +1842,8 @@ public class TaskManager {
 				+ "?,"		// location_trigger
 				+ "?,"		// repeat
 				+ "?,"		// guidance
-				+ "?)";		// instanceId
+				+ "?,"		// initial_data_source
+				+ "?)";		// initial_data	
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1712,7 +1859,6 @@ public class TaskManager {
 			String title,
 			int target_s_id,
 			String formUrl,
-			String initial_data_url,
 			String location,
 			String targetInstanceId,
 			String address,
@@ -1721,7 +1867,8 @@ public class TaskManager {
 			String locationTrigger,
 			boolean repeat,
 			String guidance,
-			String instanceId) throws SQLException {
+			String initial_data_source,
+			String initial_data) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1731,16 +1878,16 @@ public class TaskManager {
 		pstmt.setInt(6, target_s_id);			// form id
 		pstmt.setInt(7, target_s_id);			// For survey name
 		pstmt.setString(8, formUrl);				
-		pstmt.setString(9, initial_data_url);	// initial_data
-		pstmt.setString(10, location);			// geopoint
-		pstmt.setString(11, targetInstanceId);	// update id
-		pstmt.setString(12, address);
-		pstmt.setTimestamp(13, taskStart);
-		pstmt.setTimestamp(14, taskFinish);
-		pstmt.setString(15, locationTrigger);
-		pstmt.setBoolean(16, repeat);	
-		pstmt.setString(17, guidance);	
-		pstmt.setString(18, instanceId);
+		pstmt.setString(9, location);			// geopoint
+		pstmt.setString(10, targetInstanceId);	// update id
+		pstmt.setString(11, address);
+		pstmt.setTimestamp(12, taskStart);
+		pstmt.setTimestamp(13, taskFinish);
+		pstmt.setString(14, locationTrigger);
+		pstmt.setBoolean(15, repeat);	
+		pstmt.setString(16, guidance);	
+		pstmt.setString(17, initial_data_source);
+		pstmt.setString(18, initial_data);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1762,14 +1909,16 @@ public class TaskManager {
 				+ "schedule_finish = ?,"
 				+ "location_trigger = ?,"
 				+ "repeat = ?,"
-				+ "guidance = ? "
+				+ "guidance = ?,"
+				+ "initial_data_source = ?,"
+				+ "initial_data = ? "
 				+ "where id = ? "
 				+ "and tg_id = ?";		// authorisation
 		
 		return sd.prepareStatement(sql);
 	}
 	/*
-	 * Insert a task
+	 * Update a task
 	 */
 	public int updateTask(
 			PreparedStatement pstmt,	
@@ -1784,7 +1933,9 @@ public class TaskManager {
 			Timestamp taskFinish,
 			String locationTrigger,
 			boolean repeat,
-			String guidance) throws SQLException {
+			String guidance,
+			String initial_data_source,
+			String initial_data) throws SQLException {
 		
 		pstmt.setString(1, title);
 		pstmt.setInt(2,  target_s_id);
@@ -1797,8 +1948,10 @@ public class TaskManager {
 		pstmt.setString(9, locationTrigger);
 		pstmt.setBoolean(10, repeat);	
 		pstmt.setString(11, guidance);
-		pstmt.setInt(12, tId);
-		pstmt.setInt(13, tgId);
+		pstmt.setString(12, initial_data_source);
+		pstmt.setString(13, initial_data);
+		pstmt.setInt(14, tId);
+		pstmt.setInt(15, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1909,8 +2062,7 @@ public class TaskManager {
 			int pId,
 			String targetSurveyIdent,
 			boolean autosendEmails,
-			String remoteUser,
-			String instanceId) throws Exception {
+			String remoteUser) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -1954,8 +2106,7 @@ public class TaskManager {
 						targetSurveyIdent,
 						null,
 						autosendEmails,
-						remoteUser,
-						instanceId);
+						remoteUser);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -1994,8 +2145,7 @@ public class TaskManager {
 			String sIdent,
 			String targetInstanceId,
 			boolean autosendEmails,
-			String remoteUser,			// For autosend of emails
-			String instanceId			// For autosend of emails
+			String remoteUser			// For autosend of emails
 			) throws Exception {
 
 		String status = "accepted";
@@ -2081,7 +2231,7 @@ public class TaskManager {
 								sId,
 								pId,
 								aId,
-								instanceId,			
+								targetInstanceId,			
 								ted.from,
 								ted.subject, 
 								ted.content,
@@ -2425,7 +2575,7 @@ public class TaskManager {
 		tsd.to = tf.properties.to;
 		tsd.guidance = tf.properties.guidance;
 		tsd.initial_data = tf.properties.initial_data;
-		tsd.instance_id = tf.properties.instance_id;
+		tsd.initial_data_source = tf.properties.initial_data_source;
 		tsd.repeat = tf.properties.repeat;
 		tsd.update_id = tf.properties.update_id;
 		tsd.lon = tf.properties.lon;
@@ -2518,6 +2668,38 @@ public class TaskManager {
 		emails = emails.replaceAll("[,]+", ",");
 		return emails;
 		
+	}
+	
+	/*
+	 * return an instance containing the instance data attached to the task
+	 * Note this is not the same as TaskInstanceData which is meta data for a task
+	 * This is form data that needs to initialise a task
+	 */
+	public Instance getInstance(Connection sd, int taskId) throws SQLException {
+
+		String sql = "select initial_data " 
+				+ "from tasks "
+				+ "where id = ? ";
+
+		Instance instance = new Instance();
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, taskId);
+			ResultSet resultSet = pstmt.executeQuery();
+
+			if (resultSet.next()) {
+				String iString = resultSet.getString(1);
+				if(iString != null) {
+					Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+					instance = gson.fromJson(iString, Instance.class);
+				}
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return instance;
 	}
 }
 

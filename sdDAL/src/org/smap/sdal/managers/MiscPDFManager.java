@@ -14,6 +14,7 @@ import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.smap.sdal.model.TaskFeature;
@@ -326,6 +327,7 @@ public class MiscPDFManager {
 			Connection sd,
 			OutputStream outputStream,
 			String basePath, 
+			HttpServletRequest request,
 			HttpServletResponse response,
 			int tgId) {
 		
@@ -355,8 +357,9 @@ public class MiscPDFManager {
 			/*
 			 * Get the tasks for this task group
 			 */
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, 0, tgId, false, 0, null, "all", 0, 0, "scheduled", "desc");	
+			TaskListGeoJson t = tm.getTasks(sd, urlprefix, 0, tgId, 0, false, 0, null, "all", 0, 0, "scheduled", "desc");	
 			PdfWriter writer = null;			
 				
 

@@ -408,6 +408,7 @@ public class ExportSurvey extends Application {
 							sId,
 							surveyIdent,
 							request.getRemoteUser(),
+							null,		// Roles to apply
 							parentId,
 							Integer.parseInt(f.f_id),
 							f.table_name,
@@ -415,6 +416,7 @@ public class ExportSurvey extends Application {
 							false,		// Don't include parent key
 							false,		// Don't include "bad" columns
 							false,		// Don't include instance id
+							true,		// Include prikey
 							true,		// Include other meta data
 							true,		// Incude preloads
 							true,		// instancename

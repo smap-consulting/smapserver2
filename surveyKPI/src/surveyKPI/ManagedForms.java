@@ -335,6 +335,7 @@ public class ManagedForms extends Application {
 						sId,
 						surveyIdent,
 						user,
+						null,	// Roles to apply
 						0,
 						f.id, 
 						f.tableName, 
@@ -342,6 +343,7 @@ public class ManagedForms extends Application {
 						false, 
 						false, 
 						true, 	// include instance id
+						true,	// Include prikey
 						true,	// Include other meta data
 						true,	// Include preloads
 						true,	// Include instancename

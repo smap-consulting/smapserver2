@@ -30,7 +30,6 @@ import java.sql.Statement;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,6 +39,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -50,16 +50,21 @@ import org.smap.sdal.model.ChangeLog;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Geometry;
 import org.smap.sdal.model.GroupDetails;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.InstanceMeta;
+import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
-import org.smap.sdal.model.LinkedSurvey;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
@@ -67,10 +72,12 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 public class SurveyManager {
@@ -4007,5 +4014,205 @@ public class SurveyManager {
 		} else {
 			return gPrimaryKey;
 		}
+	}
+	
+	/*
+	 * Get the instance data for a record in a survey
+	 */
+	public Instance getInstance(
+			Connection sd,
+			Connection cResults, 
+			Survey s, 
+			Form form, 
+			int parkey,
+			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
+			String instanceId,
+			SurveyManager sm
+			) throws Exception {
+
+		ArrayList<TableColumn> columns = null;
+		Instance instance = new Instance();
+		
+		StringBuffer sql = new StringBuffer("");
+		sql.append("select prikey ");
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtSelect = null;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
+		try {
+			
+			TableDataManager tdm = new TableDataManager(localisation, tz);
+			
+			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+			String urlprefix = "https://" + serverName + "/";	
+			
+			if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
+				columns = GeneralUtilityMethods.getColumnsInForm(
+						sd,
+						cResults,
+						localisation,
+						"none",
+						s.id,
+						s.ident,
+						null,
+						null,		// roles for column filtering TODO add support
+						0,			// parent form id
+						form.id,
+						form.tableName,
+						true,		// Read Only
+						false,		// Parent key
+						false,
+						true,		// include instance id
+						true,		// include prikey
+						false,		// include other meta data
+						false,		// include preloads
+						true,		// include instancename
+						false,		// include survey duration
+						false,
+						false,		// include HXL
+						false,
+						tz
+						);
+
+				pstmt = tdm.getPreparedStatement(
+						sd, 
+						cResults,
+						columns,
+						urlprefix,
+						s.id,
+						form.tableName,
+						parkey,
+						hrk,
+						null,
+						null,		// roles for row filtering TODO add support
+						null,		// sort
+						null,		// sort direction
+						false,		// mgmt
+						false,		// group
+						false,		// prepare for data tables
+						0,			// start
+						false,		// get parkey
+						0,			// start parkey
+						false,		// super user
+						false,		// Return records greater than or equal to primary key
+						"none",		// include bad
+						null	,		// no custom filter
+						null,		// key filter
+						tz,
+						instanceId
+						);
+			}
+			
+			JsonParser parser = new JsonParser();
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				instance = new Instance();
+				int prikey = 0;
+				for (int i = 0; i < columns.size(); i++) {
+					TableColumn c = columns.get(i);
+					String name = null;
+					String value = null;
+					
+					name = c.displayName;
+					if(name.equals("prikey")) {
+						prikey = rs.getInt(i + 1);
+					} else if (c.type.equals("geopoint")) {
+						// Add Geometry (assume one geometry type per table)
+						//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
+						System.out.println(rs.getString(i + 1));
+						instance.point_geometry = gson.fromJson(rs.getString(i + 1), Point.class);
+					} else if (c.type.equals("geoshape")) {
+						System.out.println(rs.getString(i + 1));
+						instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
+					} else if (c.type.equals("geotrace")) {
+						System.out.println(rs.getString(i + 1));
+						instance.line_geometry = gson.fromJson(rs.getString(i + 1), Line.class);
+					} else if (c.type.equals("select1") && c.selectDisplayNames) {
+						// Convert value to display name
+						value = rs.getString(i + 1);
+						for(KeyValue kv: c.choices) {
+							if(kv.k.equals(value)) {
+								value = kv.v;
+								break;
+							}
+						}
+					} else if (c.type.equals("decimal")) {
+						Double dValue = rs.getDouble(i + 1);
+						dValue = Math.round(dValue * 10000.0) / 10000.0;
+						value = String.valueOf(dValue);
+					} else if (c.type.equals("dateTime")) {
+						value = rs.getString(i + 1);
+						if (value != null) {
+							value = value.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
+						}
+					} else if (c.type.equals("calculate")) {
+						// This calculation may be a decimal - give it a go
+						String v = rs.getString(i + 1);
+						if (v != null && v.indexOf('.') > -1) {
+							try {
+								Double dValue = rs.getDouble(i + 1);
+								dValue = Math.round(dValue * 10000.0) / 10000.0;
+								value = String.valueOf(dValue);
+							} catch (Exception e) {
+								value = rs.getString(i + 1); // Assume text
+							}
+						} else {
+							value = rs.getString(i + 1); // Assume text
+						}
+
+					} else {
+						value = rs.getString(i + 1);
+					}
+						
+					if(!name.equals("prikey") && !c.type.equals("begin repeat")) {
+						instance.values.put(name, value);
+					}
+	
+							
+				}
+				
+				/*
+				 * Check for repeats
+				 */
+				for(Form f : s.forms) {
+					if(f.parentform == form.id) {
+						if(instance.repeats == null) {
+							instance.repeats = new HashMap<String, ArrayList<Instance>> ();
+						}
+						int parentQuestion = f.parentQuestionIndex;
+						Question q = form.questions.get(parentQuestion);
+						String qName = q.name;
+						if(q.display_name != null) {
+							qName = q.display_name;
+						}
+						if(instance.repeats.get(qName) == null) {
+							instance.repeats.put(qName, new ArrayList<Instance> ());
+						}
+						
+						ArrayList<Instance> repeats = instance.repeats.get(qName);
+						repeats.add(sm.getInstance(
+								sd,
+								cResults,
+								s,
+								s.getSubFormQId(form, q.id),
+								prikey,
+								null,
+								null,
+								sm));
+					}
+				}
+					
+
+			}
+			
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
+		}
+
+		return instance;
 	}
 }

@@ -41,10 +41,15 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -54,6 +59,9 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*
  * Return an XForm built from a survey defined in the database
@@ -1305,8 +1313,10 @@ public class GetXForm {
 	/*
 	 * Get the instance data for an XForm
 	 */
-	public String getInstance(int sId, String templateName, SurveyTemplate template, String key, String keyval,
-			int priKey, boolean simplifyMedia, boolean isWebForms) 
+	public String getInstanceXml(int sId, String templateName, SurveyTemplate template, String key, String keyval,
+			int priKey, boolean simplifyMedia, 
+			boolean isWebForms, int taskKey,
+			String urlprefix) 
 			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
 
 		this.isWebForms = isWebForms;
@@ -1369,6 +1379,12 @@ public class GetXForm {
 				// Create a blank form containing only the key values
 				hasData = true;
 				populateBlankForm(outputXML, firstForm, sd, template, null, sId, key, keyval, templateName, false);
+			} else if(taskKey > 0) {
+				// Create a form containing only the initial task data
+				hasData = true;
+				TaskManager tm = new TaskManager(localisation, tz);
+				Instance instance = tm.getInstance(sd, taskKey);
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix);
 			}
 
 			// Write the survey to a string and return it to the calling program
@@ -1644,6 +1660,131 @@ public class GetXForm {
 		}
 
 	}
+	
+	/*
+	 * Create a form poplulated with the initial data supplied in a task
+	 * 
+	 * @param outputDoc
+	 */
+	public void populateTaskDataForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
+				Element parentElement, int sId, String survey_ident, 
+				Instance instance,
+				String urlprefix)
+			throws SQLException {
+
+		List<Results> record = new ArrayList<Results>();
+
+		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		for (Question q : questions) {
+
+			String qName = q.getName();
+			String qType = q.getType();
+
+			// Set the value from the instance data
+			String value = "";
+			if(instance != null) {
+				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace")) {
+
+					if(qType.equals("geopoint") && instance.point_geometry != null) {		
+						value = GeneralUtilityMethods.getOdkPoint(instance.point_geometry);
+					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
+						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
+					} else if(qType.equals("geotrace") && instance.line_geometry != null) {
+						value = GeneralUtilityMethods.getOdkLine(instance.line_geometry);
+					}
+					
+				} else {
+					String qValue = instance.values.get(qName); 
+					if(qValue != null) {
+						if(qType.equals("image")  || qType.equals("audio") || qType.equals("video")) {
+							// Hack for special situaltion on localhost
+							if(urlprefix.equals("http://localhost/")) {
+								urlprefix = "https://localhost/";
+							}
+							if(qValue.startsWith(urlprefix)) {
+								value = qValue.substring(urlprefix.length());	// Local image remove prefix
+							} else {
+								value = qValue;
+							}
+						} else {
+							value = qValue;
+						}
+					}
+				}
+			}
+
+			if (qType.equals("begin repeat") || qType.equals("geolinestring") || qType.equals("geopolygon")) {
+
+				Form subForm = template.getSubForm(form, q);
+
+				if (subForm != null) {
+					record.add(new Results(qName, subForm, null, false, false, false, null, q.getParameters(), false));
+				}
+
+			} else if (qType.equals("begin group")) {
+
+				record.add(new Results(qName, null, null, true, false, false, null, q.getParameters(), false));
+
+			} else if (qType.equals("end group")) {
+
+				record.add(new Results(qName, null, null, false, true, false, null, q.getParameters(), false));
+
+			} else {
+
+				record.add(new Results(qName, null, value, false, false, false, null, null, false));
+			}
+		}
+
+		Element currentParent = outputDoc.createElement(form.getName()); // Create a form element
+
+		Results item = null;
+		Stack<Element> elementStack = new Stack<Element>(); // Store the elements for non repeat groups
+		for (int j = 0; j < record.size(); j++) {
+
+			item = record.get(j);
+
+			if (item.subForm != null) {
+				Instance iSub = null;
+				if(instance != null) {
+					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
+					if(subInstanceList.size() > j) {
+						iSub = subInstanceList.get(j);
+					}
+				}
+				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
+						survey_ident, iSub, urlprefix);		
+
+				Element childElement = null;
+				childElement = outputDoc.createElement(item.name);
+				currentParent.appendChild(childElement);
+
+				elementStack.push(currentParent);
+				currentParent = childElement;
+
+			} else if (item.end_group) {
+
+				currentParent = elementStack.pop();
+
+			} else { // Question
+
+				// Create the question element
+				Element childElement = null;
+				childElement = outputDoc.createElement(item.name);
+				childElement.setTextContent(item.value);
+				currentParent.appendChild(childElement);
+			}
+
+		}
+
+		// Append this new form to its parent (if the parent is null append to output doc)
+		if (parentElement != null) {
+			parentElement.appendChild(currentParent);
+		} else {
+			currentParent.setAttribute("id", survey_ident);
+			outputDoc.appendChild(currentParent);
+		}
+
+	}
 
 	/*
 	 * Add the data for this form
@@ -1769,6 +1910,7 @@ public class GetXForm {
 
 		Form processForm = null;		
 		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		/*
 		 * If this is a reference form then get the form that has the data
@@ -1826,8 +1968,8 @@ public class GetXForm {
 					if (q.getSource() != null) { // Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 
 						String qType = q.getType();
-						if (qType.equals("geopoint")) {
-							col = "ST_AsText(" + q.getColumnName(isReference) + ")";
+						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace")) {
+							col = "ST_AsGeoJson(" + q.getColumnName(isReference) + ")";
 						} else if (qType.equals("select") && !q.isCompressed()) {
 							continue; 
 						} else {
@@ -1975,12 +2117,9 @@ public class GetXForm {
 						}
 					}
 
-					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, optValue,
-					// false, false, false, null));
 					record.add(new Results(qName, null, optValue, false, false, false, null, q.getParameters(), false));
 
-				} else if (GeneralUtilityMethods.isAttachmentType(qType)) { // Get the file
-					// name
+				} else if (GeneralUtilityMethods.isAttachmentType(qType)) { // Get the file name
 
 					String value = null;
 					if (q.isPublished() || isReference) { // Get the data from the table if this question has been published
@@ -2000,8 +2139,7 @@ public class GetXForm {
 					if (simplifyMedia) {
 						value = filename;
 					}
-					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
-					// false, false, false, filename));
+
 					record.add(new Results(qName, null, value, false, false, false, filename, q.getParameters(), false));
 
 					if (q.isPublished() || isReference) {
@@ -2021,28 +2159,23 @@ public class GetXForm {
 					}
 
 					if (value != null && qType.equals("geopoint")) {
-						int idx1 = value.indexOf('(');
-						int idx2 = value.indexOf(')');
-						if (idx1 > 0 && (idx2 > idx1)) {
-							value = value.substring(idx1 + 1, idx2);
-							// These values are in the order longitude latitude. This needs to be reversed for the XForm
-							String[] coords = value.split(" ");
-							if (coords.length > 1) {
-								value = coords[1] + " " + coords[0] + " 0 0";
-							}
-						} else {
-							log.severe("Invalid value for geopoint");
-							value = null;
-						}
+						Point p = gson.fromJson(value, Point.class);
+						value = GeneralUtilityMethods.getOdkPoint(p);		
+						
+					} else if (value != null && qType.equals("geoshape")) {
+						Polygon p = gson.fromJson(value, Polygon.class);
+						value = GeneralUtilityMethods.getOdkPolygon(p);
+					} else if (value != null && qType.equals("geotrace")) {
+						Line l = gson.fromJson(value, Line.class);
+						value = GeneralUtilityMethods.getOdkLine(l);
 					}
+					
 
 					// Ignore data not provided by user
 					if (!qSource.equals("user")) {
 						value = "";
 					}
 
-					// record.add(new Results(UtilityMethods.getLastFromPath(qPath), null, value,
-					// false, false, false, null));
 					record.add(new Results(qName, null, value, false, false, false, null, q.getParameters(), false));
 
 					if (q.isPublished() || isReference) {

@@ -234,6 +234,7 @@ public class Items extends Application {
 						sId,
 						surveyIdent,
 						request.getRemoteUser(),
+						null,	// Roles to apply
 						parent,
 						fId,
 						tName,
@@ -241,6 +242,7 @@ public class Items extends Application {
 						true,	// Include parent key
 						true,	// Include "bad"
 						true,	// Include instanceId
+						true,	// Include prikey
 						true,	// Include other meta data
 						true,	// Include preloads
 						true,	// Include instance names

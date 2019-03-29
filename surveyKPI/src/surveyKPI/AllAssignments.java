@@ -165,7 +165,9 @@ public class AllAssignments extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, true, basePath, 
+			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, 
+					true, 		// full
+					basePath, 
 					null, false, false, false, false, false, "real", false, false, superUser, "geojson",
 					false,		// child surveys
 					false		// onlyGetLaunched
@@ -355,7 +357,7 @@ public class AllAssignments extends Application {
 							if(hasGeom) {
 								log.info("Has geometry");
 								getTaskSql.append("select ").append(tableName)
-										.append(".prikey, ST_AsText(").append(tableName).append(".the_geom) as the_geom,")
+										.append(".prikey, ST_AsGeoJson(").append(tableName).append(".the_geom) as the_geom,")
 										.append(tableName).append(".instanceid");
 								
 								if(hasInstanceName) {
@@ -485,7 +487,7 @@ public class AllAssignments extends Application {
 								}
 								
 								// instanceId (writeTask)
-								if(as.update_results) {
+								if(as.update_results || as.prepopulate) {
 									instanceId = resultSet.getString("instanceid");
 								}
 
@@ -493,14 +495,6 @@ public class AllAssignments extends Application {
 								if(hasGeom) {
 									tid.location = resultSet.getString("the_geom");
 								} 
-								if(tid.location == null) {
-									tid.location = "POINT(0 0)";
-								} else if(tid.location.startsWith("LINESTRING")) {
-									log.info("Starts with linestring: " + tid.location.split(" ").length);
-									if(tid.location.split(" ").length < 3) {	// Convert to point if there is only one location in the line
-										tid.location = tid.location.replaceFirst("LINESTRING", "POINT");
-									}
-								}	 
 
 								// instanceName (tid)
 								if(hasInstanceName) {
@@ -550,7 +544,7 @@ public class AllAssignments extends Application {
 										as.task_group_name, 
 										projectId, 
 										projectName, 
-										as.source_survey_id, 
+										survey, 
 										as.target_survey_id, 
 										tid, 
 										instanceId,
@@ -633,7 +627,7 @@ public class AllAssignments extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		if(sId > 0) {
 			a.isValidSurvey(sd, userName, sId, false, superUser);	// Validate that the user can access this survey
 		}
@@ -1455,7 +1449,7 @@ public class AllAssignments extends Application {
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
 		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidTaskGroup(connectionSD, request.getRemoteUser(), tg_id, false);
+		a.isValidTaskGroup(connectionSD, request.getRemoteUser(), tg_id);
 		// End Authorisation
 
 		PreparedStatement pstmtDelete = null;

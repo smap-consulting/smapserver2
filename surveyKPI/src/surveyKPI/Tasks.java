@@ -156,7 +156,7 @@ public class Tasks extends Application {
 		// Authorisation - Access
 		sd = SDDataSource.getConnection("surveyKPI - Tasks - getTasks");
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End authorisation
 	
 		try {
@@ -165,9 +165,17 @@ public class Tasks extends Application {
 			
 			String tz = "UTC";	// Set default for timezone
 			
+			
 			// Get assignments
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, 0, tgId, true, userId, null, period, 0, 0,
+			TaskListGeoJson t = tm.getTasks(
+					sd, 
+					urlprefix,
+					0, 
+					tgId,
+					0,		// task id
+					true, userId, null, period, 0, 0,
 					"scheduled", "desc");		
 			
 			// Return groups to calling program
@@ -425,7 +433,7 @@ public class Tasks extends Application {
 
 		a.isAuthorised(sd, request.getRemoteUser());		
 		if(tgId > 0) {
-			a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+			a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		}
 		// End Authorisation 
 		
@@ -464,7 +472,14 @@ public class Tasks extends Application {
 				period = "week";
 			}
 			
-			TaskListGeoJson tl = tm.getTasks(sd, organisation.id, tgId, true, 0, incStatus, period, 0, 0,
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			
+			TaskListGeoJson tl = tm.getTasks(
+					sd, 
+					urlprefix,
+					organisation.id, tgId, 
+					0,		// task id
+					true, 0, incStatus, period, 0, 0,
 					"scheduled", "desc");	// Get the task list
 			
 			// Create XLSTasks File
@@ -572,7 +587,7 @@ public class Tasks extends Application {
 				// Authorisation - Access
 				a.isAuthorised(sd, request.getRemoteUser());
 				a.isValidProject(sd, request.getRemoteUser(), pId);
-				a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+				a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 				// End authorisation
 
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
@@ -589,7 +604,7 @@ public class Tasks extends Application {
 				if(tgClear) {
 					tm.deleteTasksInTaskGroup(sd, tgId);
 				}
-				tm.writeTaskList(sd, cResults, tArray, pId, pName, tgId, tgName, 
+				tm.writeTaskList(sd, cResults, tArray, tgId, 
 						request.getScheme() + "://" + request.getServerName(), 
 						true, oId, false, request.getRemoteUser());
 				
@@ -599,7 +614,14 @@ public class Tasks extends Application {
 				 *  from latitude and longitude
 				 *  Also we may not want to return complete tasks
 				 */
-				TaskListGeoJson tl = tm.getTasks(sd, 0, tgId, true, userId, null, "all", 0, 0,
+				String urlprefix = request.getScheme() + "://" + request.getServerName();
+				TaskListGeoJson tl = tm.getTasks(
+						sd, 
+						urlprefix,
+						0, 
+						tgId, 
+						0,	// task id 
+						true, userId, null, "all", 0, 0,
 						"scheduled", "desc");	// TODO set "complete" flag from passed in parameter
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				String resp = gson.toJson(tl);
@@ -631,7 +653,7 @@ public class Tasks extends Application {
 	
 	/*
 	 * Modify a task or create a new task
-	 */
+	 * Replaced by web service call in api/v1/tasks
 	@POST
 	@Path("/task/{pId}/{tgId}")
 	@Consumes("application/json")
@@ -653,7 +675,7 @@ public class Tasks extends Application {
 		Connection sd = SDDataSource.getConnection(requester);
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End Authorisation
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -687,6 +709,7 @@ public class Tasks extends Application {
 		
 		return response;
 	}
+	*/
 	
 	/*
 	 * Update start date and time of a task
@@ -803,7 +826,7 @@ public class Tasks extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("createPDF");	
 		a.isAuthorised(sd, request.getRemoteUser());		
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End Authorisation 
 		
 		// Get the base path
@@ -821,6 +844,7 @@ public class Tasks extends Application {
 					sd,
 					response.getOutputStream(),
 					basePath, 
+					request,
 					response,
 					tgId);
 			
@@ -856,7 +880,7 @@ public class Tasks extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId, false);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End Authorisation
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

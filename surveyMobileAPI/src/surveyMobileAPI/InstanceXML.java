@@ -78,6 +78,7 @@ public class InstanceXML extends Application{
 	public Response getInstance(@Context HttpServletRequest request,
 			@PathParam("sName") String templateName,
 			@PathParam("priKey") int priKey,
+			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("key") String key,		// Optional
 			@QueryParam("keyval") String keyval	// Optional
 			) throws IOException {
@@ -126,7 +127,7 @@ public class InstanceXML extends Application{
 			template.readDatabase(survey.id, false);
 			
 			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
-			String instanceXML = xForm.getInstance(survey.id, templateName, template, key, keyval, priKey, false, false);	
+			String instanceXML = xForm.getInstanceXml(survey.id, templateName, template, key, keyval, priKey, false, false, taskKey);	
 			
 			response = Response.ok(instanceXML).build();
 		

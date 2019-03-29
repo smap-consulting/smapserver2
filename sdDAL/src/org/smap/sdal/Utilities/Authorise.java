@@ -874,7 +874,7 @@ public class Authorise {
 	/*
 	 * Verify that the user is entitled to access this particular task group
 	 */
-	public boolean isValidTaskGroup(Connection conn, String user, int tgId, boolean isDeleted)
+	public boolean isValidTaskGroup(Connection conn, String user, int tgId)
 			throws ServerException, AuthorisationException, NotFoundException {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;

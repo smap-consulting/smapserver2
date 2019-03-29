@@ -38,7 +38,7 @@ import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Assignment;
-import org.smap.sdal.model.Geometry;
+import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
@@ -224,8 +224,8 @@ public class MyAssignments extends Application {
 					+ "s.ident as form_ident,"
 					+ "s.version as form_version,"
 					+ "s.p_id as pid,"
-					+ "t.initial_data,"
 					+ "t.update_id,"
+					+ "t.initial_data_source,"
 					+ "t.schedule_at,"
 					+ "t.location_trigger,"
 					+ "t.repeat,"
@@ -279,8 +279,8 @@ public class MyAssignments extends Application {
 				ta.task.url = resultSet.getString("url");
 				ta.task.form_id = resultSet.getString("form_ident");		// Form id is survey ident
 				ta.task.form_version = resultSet.getString("form_version");
-				ta.task.initial_data = resultSet.getString("initial_data");
 				ta.task.update_id = resultSet.getString("update_id");
+				ta.task.initial_data_source = resultSet.getString("initial_data_source");
 				ta.task.scheduled_at = resultSet.getTimestamp("schedule_at");
 				ta.task.location_trigger = resultSet.getString("location_trigger");
 				if(ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
@@ -297,7 +297,7 @@ public class MyAssignments extends Application {
 					int startIdx = geoString.lastIndexOf('(');
 					int endIdx = geoString.indexOf(')');
 					if(startIdx > 0 && endIdx > 0) {
-						ta.location.geometry = new Geometry();
+						ta.location.geometry = new GeometryString();
 						String geoString2 = geoString.substring(startIdx + 1, endIdx);
 						ta.location.geometry.type = "POINT";
 						ta.location.geometry.coordinates = geoString2.split(",");

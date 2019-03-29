@@ -60,14 +60,18 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.LanguageItem;
+import org.smap.sdal.model.Line;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Point;
+import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
@@ -1670,14 +1674,45 @@ public class GeneralUtilityMethods {
 
 		int p_id = 0;
 
-		String sqlGetSurveyIdent = "select p_id " + " from survey " + " where s_id = ?;";
+		String sql = "select p_id "
+				+ " from survey " 
+				+ " where s_id = ?";
 
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetSurveyIdent);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				p_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return p_id;
+	}
+	
+	/*
+	 * Get the survey project id from the task group id
+	 */
+	static public int getProjectIdFromTaskGroup(Connection sd, int tgId) throws SQLException {
+
+		int p_id = 0;
+
+		String sql = "select p_id " 
+				+ " from task_group " 
+				+ " where tg_id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, tgId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				p_id = rs.getInt(1);
@@ -3145,6 +3180,7 @@ public class GeneralUtilityMethods {
 			int sId, 
 			String surveyIdent,
 			String user,
+			ArrayList<Role> roles,
 			int formParent, 
 			int f_id, 
 			String table_name, 
@@ -3152,6 +3188,7 @@ public class GeneralUtilityMethods {
 			boolean includeParentKey,
 			boolean includeBad, 
 			boolean includeInstanceId, 
+			boolean includePrikey,
 			boolean includeOtherMeta, 
 			boolean includePreloads,
 			boolean includeInstanceName, 
@@ -3178,7 +3215,14 @@ public class GeneralUtilityMethods {
 		if (!superUser) {
 			if (sId > 0) {
 				RoleManager rm = new RoleManager(localisation);
-				ArrayList<RoleColumnFilter> rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
+				
+				ArrayList<RoleColumnFilter> rcfArray = new ArrayList<> ();
+				if(user != null) {
+					rcfArray = rm.getSurveyColumnFilter(sd, sId, user);
+				} else if(roles != null) {
+					rcfArray = rm.getSurveyColumnFilterRoleList(sd, sId, roles);
+				}
+				
 				if (rcfArray.size() > 0) {
 					colList.append(" and q_id in (");
 					for (int i = 0; i < rcfArray.size(); i++) {
@@ -3196,11 +3240,12 @@ public class GeneralUtilityMethods {
 		// SQL to get the questions
 		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
 				+ "source_param, appearance, display_name, l_id, compressed " 
-				+ "from question where f_id = ? "
+				+ "from question "
+				+ "where f_id = ? "
 				+ "and source is not null "
 				+ "and published = 'true' "
 				+ "and soft_deleted = 'false' ";
-
+		
 		String sqlQuestion2 = colList.toString();
 		String sqlQuestion3 = "order by seq";
 		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 + sqlQuestion2 + sqlQuestion3);
@@ -3231,7 +3276,7 @@ public class GeneralUtilityMethods {
 		c.displayName = "prikey";
 		c.type = SmapQuestionTypes.INT;
 		c.question_name = c.column_name;
-		if (includeOtherMeta) {
+		if (includePrikey) {
 			columnList.add(c);
 		}
 
@@ -7008,6 +7053,58 @@ public class GeneralUtilityMethods {
 			coords = lonLat.split(" ");
 		}
 		return coords;
+	}
+	
+	public static String getOdkPoint(Point p) {
+		String value = "";
+		if(p.coordinates != null && p.coordinates.size() > 1) {
+			value = p.coordinates.get(1) + " " + p.coordinates.get(0);
+			if(p.coordinates.size() > 2) {
+				value += p.coordinates.get(2);
+			}
+			if(p.coordinates.size() > 3) {
+				value += p.coordinates.get(3);
+			}
+		} else {
+			log.severe("Invalid value for geopoint");
+		}	
+		return value;
+	}
+	
+	public static String getOdkPolygon(Polygon p) {
+		StringBuffer coordsString = new StringBuffer("");
+		ArrayList<ArrayList<Double>> coords = p.coordinates.get(0);
+		if(coords != null && coords.size() > 0) {
+
+			for(int i = 0; i < coords.size(); i++) {
+				ArrayList<Double> points = coords.get(i);
+				if(points.size() > 1) {
+					if(i > 0) {
+						coordsString.append(";");
+					}
+					coordsString.append(points.get(1)).append(" ").append(points.get(0));
+				}
+			}	
+		}
+		return coordsString.toString();
+	}
+	
+	public static String getOdkLine(Line l) {
+		StringBuffer coordsString = new StringBuffer("");
+		ArrayList<ArrayList<Double>> coords = l.coordinates;
+		if(coords != null && coords.size() > 0) {
+
+			for(int i = 0; i < coords.size(); i++) {
+				ArrayList<Double> points = coords.get(i);
+				if(points.size() > 1) {
+					if(i > 0) {
+						coordsString.append(";");
+					}
+					coordsString.append(points.get(1)).append(" ").append(points.get(0));
+				}
+			}	
+		}
+		return coordsString.toString();
 	}
 
 	/*

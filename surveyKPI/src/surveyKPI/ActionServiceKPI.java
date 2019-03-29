@@ -77,7 +77,7 @@ public class ActionServiceKPI extends Application {
 	SurveyViewDefn mfc = null;
 
 	/*
-	 * Get instance data Respond with JSON
+	 * Get data identified in an action
 	 */
 	@GET
 	@Path("/{ident}")
@@ -162,23 +162,6 @@ public class ActionServiceKPI extends Application {
 					landscape = Boolean.parseBoolean(p.v);
 				} 
 			}
-			
-			/*
-			 * UNIT TEST DATA - DO NOT PUT IN PRODUCTION
-			 *
-			System.out.println("******************************************   UNIT TEST");
-			t = new Transform();
-			t.key_questions.add("key1");
-			t.key_questions.add("key2");
-			TransformDetail td = new TransformDetail();
-			t.transforms.add(td);
-			td.splitterQuestion = "splitter";
-			td.values.add("x");
-			td.values.add("y");
-			td.columns.add("split_col1");
-			td.columns.add("split_col2");
-			System.out.println("******************************************   END UNIT TEST");	
-			*/
 			
 			// Default to the top level form
 			if(fId == 0) {

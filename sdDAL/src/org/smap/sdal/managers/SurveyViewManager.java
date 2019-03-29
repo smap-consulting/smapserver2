@@ -154,6 +154,7 @@ public class SurveyViewManager {
 					sId,
 					surveyIdent,
 					uIdent,
+					null,	// roles to apply
 					0,
 					f.id,
 					f.tableName,
@@ -161,6 +162,7 @@ public class SurveyViewManager {
 					true,	// Include parent key
 					true,	// Include "bad"
 					true,	// Include instanceId
+					true,	// include prikey
 					true,	// Include other meta data
 					true,		// include preloads
 					true,		// include instancename

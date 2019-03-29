@@ -450,6 +450,7 @@ public class QueryGenerator {
 				sId,
 				surveyIdent,
 				user,
+				null,				// roles to apply
 				form.parent,
 				form.form,
 				form.table,
@@ -457,6 +458,7 @@ public class QueryGenerator {
 				false,				// Don't include parent key
 				false,				// Don't include "bad" columns
 				false,				// Don't include instance id
+				first && meta,		// Include prikey if meta set
 				first && meta,		// Include other meta data if meta set
 				first && meta,		// Include preloads if meta set
 				first && meta,		// Include Instance Name in first form if meta set

@@ -311,12 +311,14 @@ public class Data_CSV extends Application {
 					sId,
 					sIdent,
 					request.getRemoteUser(), 
+					null,
 					parentform, 
 					fId, 
 					table_name, 
 					true,				// Read Only 
 					getParkey, 			// Include parent key if the form is not the top level form (fId is 0)
 					(include_bad.equals("yes") || include_bad.equals("only")), true, // include instance id
+					true,				// Include prikey
 					true, 				// include other meta data
 					true, 				// include preloads
 					true, 				// include instancename
@@ -398,12 +400,19 @@ public class Data_CSV extends Application {
 				TableDataManager tdm = new TableDataManager(localisation, tz);
 
 				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
-						request.getRemoteUser(), sort, dirn, mgmt, group, isDt, start, limit, getParkey, start_parkey,
-						superUser, false, // Return records greater than or equal to primary key
+						request.getRemoteUser(), 
+						null,		// roles (for anonymous calls)
+						sort, dirn, mgmt, group, isDt, start, 
+						getParkey, 
+						start_parkey,
+						superUser, 
+						false, 		// Return records greater than or equal to primary key
 						include_bad,
 						null,
 						null	,	// key filter
-						tz);
+						tz,
+						null		// instance id
+						);
 
 				log.info("Get CSV data: " + pstmt.toString());
 				HashMap<String, AuditItem> auditData = null;
