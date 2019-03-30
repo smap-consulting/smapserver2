@@ -37,6 +37,7 @@ public class TaskProperties {
 	public boolean complete_all;			// When set true all the assignments associated to a task need to be completed
 	
 	public Instance initial_data;	// The actual data in json format
+	public int dl_dist;				// The distance at which the task will be downloaded
 	
 	public String status;
 }

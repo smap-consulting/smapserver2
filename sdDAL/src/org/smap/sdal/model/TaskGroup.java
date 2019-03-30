@@ -8,7 +8,6 @@ public class TaskGroup {
 	public String rule;
 	public int source_s_id;
 	public int target_s_id;
-	public int dl_dist;
 	
 	public int totalTasks;
 	public int completeTasks;

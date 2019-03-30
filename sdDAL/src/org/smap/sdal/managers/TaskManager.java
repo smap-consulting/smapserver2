@@ -129,7 +129,7 @@ public class TaskManager {
 	public ArrayList<TaskGroup> getTaskGroups(Connection sd, int projectId) throws Exception {
 
 		String sql = "select tg_id, name, address_params, p_id, rule, "
-				+ "source_s_id, target_s_id, email_details, dl_dist "
+				+ "source_s_id, target_s_id, email_details "
 				+ "from task_group where p_id = ? order by tg_id asc;";
 		PreparedStatement pstmt = null;
 
@@ -188,7 +188,6 @@ public class TaskManager {
 				tg.source_s_id = rs.getInt(6);
 				tg.target_s_id = rs.getInt(7);
 				tg.emaildetails = new Gson().fromJson(rs.getString(8), TaskEmailDetails.class);
-				tg.dl_dist = rs.getInt(9);
 				
 
 				if(rsTotal.next()) {
@@ -317,7 +316,8 @@ public class TaskManager {
 				+ "ST_AsGeoJSON(t.geo_point) as geom, "
 				+ "ST_AsText(t.geo_point) as wkt, "
 				+ "ST_x(t.geo_point) as lon,"
-				+ "ST_Y(t.geo_point) as lat "
+				+ "ST_Y(t.geo_point) as lat,"
+				+ "dl_dist "
 				+ "from tasks t "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
@@ -480,6 +480,7 @@ public class TaskManager {
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
 				tf.properties.initial_data_source = rs.getString("initial_data_source");
+				tf.properties.dl_dist = rs.getInt("dl_dist");
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");
@@ -945,7 +946,8 @@ public class TaskManager {
 					false,
 					null,
 					initialDataSource,
-					initialData);
+					initialData,
+					as.dl_dist);
 
 			/*
 			 * Assign the user to the new task
@@ -1247,7 +1249,8 @@ public class TaskManager {
 						tsd.repeat,
 						tsd.guidance,
 						tsd.initial_data_source,
-						initial_data);
+						initial_data,
+						tsd.dl_dist);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -1268,7 +1271,8 @@ public class TaskManager {
 						tsd.repeat,
 						tsd.guidance,
 						tsd.initial_data_source,
-						initial_data);
+						initial_data,
+						tsd.dl_dist);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					taskId = rsKeys.getInt(1);
@@ -1386,6 +1390,10 @@ public class TaskManager {
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
 				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error') "
 				+ "and id in (";
+		String acceptedAssignmentsSql = "update assignments set status = 'accepted', cancelled_date = null "
+				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "and (status = 'cancelled' or status = 'rejected') "
+				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now(), assignee_name = (select name from users where id = ?) "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
@@ -1502,6 +1510,17 @@ public class TaskManager {
 				pstmt.setInt(1, pId);
 				log.info("Delete unassigned and singly assigned tasks: " + pstmt.toString());
 				pstmt.executeUpdate();
+
+			} else if(action.action.equals("status")) {
+
+				if(hasAssignments) {
+					
+					// Set assignments to accepted
+					pstmt = sd.prepareStatement(acceptedAssignmentsSql + whereAssignmentsSql);
+					pstmt.setInt(1, pId);
+					log.info("Set assgignments accepted: " + pstmt.toString());
+					pstmt.executeUpdate();
+				}
 
 			} else if(action.action.equals("assign")) {
 
@@ -1826,7 +1845,8 @@ public class TaskManager {
 				+ "repeat,"
 				+ "guidance,"
 				+ "initial_data_source,"
-				+ "initial_data) "
+				+ "initial_data,"
+				+ "dl_dist) "
 				+ "values ("
 				+ "?, "		// p_id
 				+ "?, "		// p_name
@@ -1845,7 +1865,8 @@ public class TaskManager {
 				+ "?,"		// repeat
 				+ "?,"		// guidance
 				+ "?,"		// initial_data_source
-				+ "?)";		// initial_data	
+				+ "?,"		// initial_data	
+				+ "?)";		// dl_dist
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1870,7 +1891,8 @@ public class TaskManager {
 			boolean repeat,
 			String guidance,
 			String initial_data_source,
-			String initial_data) throws SQLException {
+			String initial_data,
+			int dl_dist) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1890,6 +1912,7 @@ public class TaskManager {
 		pstmt.setString(16, guidance);	
 		pstmt.setString(17, initial_data_source);
 		pstmt.setString(18, initial_data);	
+		pstmt.setInt(19, dl_dist);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1913,7 +1936,8 @@ public class TaskManager {
 				+ "repeat = ?,"
 				+ "guidance = ?,"
 				+ "initial_data_source = ?,"
-				+ "initial_data = ? "
+				+ "initial_data = ?, "
+				+ "dl_dist = ? "
 				+ "where id = ? "
 				+ "and tg_id = ?";		// authorisation
 		
@@ -1937,7 +1961,8 @@ public class TaskManager {
 			boolean repeat,
 			String guidance,
 			String initial_data_source,
-			String initial_data) throws SQLException {
+			String initial_data,
+			int dl_dist) throws SQLException {
 		
 		pstmt.setString(1, title);
 		pstmt.setInt(2,  target_s_id);
@@ -1952,8 +1977,9 @@ public class TaskManager {
 		pstmt.setString(11, guidance);
 		pstmt.setString(12, initial_data_source);
 		pstmt.setString(13, initial_data);
-		pstmt.setInt(14, tId);
-		pstmt.setInt(15, tgId);
+		pstmt.setInt(14, dl_dist);
+		pstmt.setInt(15, tId);
+		pstmt.setInt(16, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -2577,6 +2603,7 @@ public class TaskManager {
 		tsd.to = tf.properties.to;
 		tsd.guidance = tf.properties.guidance;
 		tsd.initial_data = tf.properties.initial_data;
+		tsd.dl_dist = tf.properties.dl_dist;
 		tsd.initial_data_source = tf.properties.initial_data_source;
 		tsd.repeat = tf.properties.repeat;
 		tsd.update_id = tf.properties.update_id;

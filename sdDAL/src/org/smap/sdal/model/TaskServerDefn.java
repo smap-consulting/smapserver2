@@ -22,6 +22,7 @@ public class TaskServerDefn {
 	public Double lat;				// Latitude
 	public Double lon;				// Longitude
 	public Instance initial_data;
+	public int dl_dist;				// Download distance in meters
 	public String initial_data_source;
 	public String update_id;
 	

@@ -175,7 +175,12 @@ public class Tasks extends Application {
 					0, 
 					tgId,
 					0,		// task id
-					true, userId, null, period, 0, 0,
+					true, 
+					userId, 
+					null, 
+					period, 
+					0, 
+					0,
 					"scheduled", "desc");		
 			
 			// Return groups to calling program
