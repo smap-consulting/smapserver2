@@ -7564,7 +7564,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Log a refresh
 	 */
-	static public void recordRefresh(Connection sd, int oId, String user, String lat, String lon) throws SQLException {
+	static public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon) throws SQLException {
 
 
 		String sql = "update last_refresh "
@@ -7581,17 +7581,10 @@ public class GeneralUtilityMethods {
 
 		if(user != null) {
 			try {
-	
-				if(lat == null) {
-					lat = "0.0";
-				}
-				if(lon == null) {
-					lon = "0.0";
-				}
 				
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, lon);
-				pstmt.setString(2, lat);
+				pstmt.setDouble(1, lon);
+				pstmt.setDouble(2, lat);
 				pstmt.setInt(3, oId);
 				pstmt.setString(4,  user);
 				int count = pstmt.executeUpdate();
@@ -7600,8 +7593,8 @@ public class GeneralUtilityMethods {
 					pstmt = sd.prepareStatement(sqlInsert);
 					pstmt.setInt(1, oId);
 					pstmt.setString(2, user);
-					pstmt.setString(3, lon);
-					pstmt.setString(4, lat);
+					pstmt.setDouble(3, lon);
+					pstmt.setDouble(4, lat);
 					pstmt.executeUpdate();
 				}
 	

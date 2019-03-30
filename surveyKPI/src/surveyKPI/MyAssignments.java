@@ -182,8 +182,26 @@ public class MyAssignments extends Application {
 		// End Authorisation
 
 		// Get the coordinates from which this request was made
-		String lat = request.getHeader("lat");
-		String lon = request.getHeader("lat");
+		String latString = request.getHeader("lat");
+		String lonString = request.getHeader("lon");
+		Double lat = 0.0;
+		Double lon = 0.0;
+		
+		if(latString != null) {
+			try {
+				lat = Double.parseDouble(latString);
+			} catch (Exception e) {
+				log.info("Invalid latitude: " + latString);
+			}
+		}
+		if(lonString != null) {
+			try {
+				lon = Double.parseDouble(lonString);
+			} catch (Exception e) {
+				log.info("Invalid longitude: " + lonString);
+			}
+		}
+		
 		
 		PreparedStatement pstmtGetSettings = null;
 		PreparedStatement pstmtGetProjects = null;
@@ -214,14 +232,13 @@ public class MyAssignments extends Application {
 				ft_number_tasks = rs.getInt(1);
 			}
 			
-			StringBuffer sql = null;
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 
 			cRel = ResultsDataSource.getConnection("surveyKPI-MyAssignments");
 			sd.setAutoCommit(true);
 
 			// Get the assignments
-			sql = new StringBuffer("select "
+			StringBuffer sql1 = new StringBuffer("select "
 					+ "t.id as task_id,"
 					+ "t.title,"
 					+ "t.url,"
@@ -249,12 +266,25 @@ public class MyAssignments extends Application {
 					+ "and a.assignee = u.id "
 					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
 					+ "and u.ident = ? "
-					+ "and p.o_id = ? "
-					+ "order by t.schedule_at asc");
-
+					+ "and p.o_id = ? ");
+			StringBuffer sqlOrder = new StringBuffer("order by t.schedule_at asc");
+			
+			StringBuffer distanceFilter = new StringBuffer("");
+			if(lat != 0.0 || lon != 0.0) {
+				distanceFilter.append(" and (t.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, t.dl_dist)) ");
+			}
+			
+			StringBuffer sql = new StringBuffer("");
+			sql.append(sql1).append(distanceFilter).append(sqlOrder);
+	
 			pstmt = sd.prepareStatement(sql.toString());	
-			pstmt.setString(1, userName);
-			pstmt.setInt(2, oId);
+			int paramIndex = 1;
+			pstmt.setString(paramIndex++, userName);
+			pstmt.setInt(paramIndex++, oId);
+			if(lat != 0.0 || lon != 0.0) {
+				pstmt.setDouble(paramIndex++, lon);
+				pstmt.setDouble(paramIndex++, lat);
+			}
 
 			log.info("Getting assignments: " + pstmt.toString());
 			ResultSet resultSet = pstmt.executeQuery();
