@@ -48,6 +48,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.TaskFeature;
+import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.TaskServerDefn;
@@ -246,13 +247,13 @@ public class Tasks extends Application {
 		String connectionString = "surveyKPI - Tasks - add new task";
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
+		TaskProperties tp = gson.fromJson(task, TaskProperties.class);	
 		
 		// Authorisation - Access
 		Connection cResults = null;
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tf.properties.tg_id);
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
 		// End Authorisation
 		
 		try {
@@ -266,9 +267,12 @@ public class Tasks extends Application {
 			cResults = ResultsDataSource.getConnection(connectionString);
 			
 			TaskManager tm = new TaskManager(localisation, tz);
+			TaskFeature tf = new TaskFeature();
+			tf.properties = tp;
+			
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			tm.writeTask(sd, cResults, tf.properties.tg_id, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
+			tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
 			response = Response.ok().build();
 		
 		} catch (Exception e) {
@@ -284,6 +288,49 @@ public class Tasks extends Application {
 		return response;
 	}
 
+	/*
+	 * Returns a list of task groups
+	 */
+	@GET
+	@Path("/groups/{projectId}")
+	@Produces("application/json")
+	public Response getTaskGroups(@Context HttpServletRequest request,
+			@PathParam("projectId") int pId,				// Project Id
+			@QueryParam("tz") String tz					// Timezone
+			) throws ApplicationException, Exception { 
+		
+		String connectionString = "surveyKPI - Tasks - getTasks";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), pId);
+		// End authorisation
+
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			// Get groups
+			TaskManager tm = new TaskManager(localisation, tz);
+			ArrayList<TaskGroup> tgList = tm.getTaskGroups(sd, pId);	
+			
+			// Return groups to calling program
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String resp = gson.toJson(tgList);	
+			response = Response.ok(resp).build();	
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
 
 }
 

@@ -665,7 +665,6 @@ public class TaskManager {
 
 	}
 
-
 	/*
 	 * Check the task group rules and add any new tasks based on this submission
 	 */
