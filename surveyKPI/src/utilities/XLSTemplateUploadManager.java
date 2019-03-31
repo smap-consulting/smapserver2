@@ -411,6 +411,7 @@ public class XLSTemplateUploadManager {
 						if(h.equals("list name")
 								|| h.equals("name")
 								|| h.equals("label")
+								|| h.equals("display_name")
 								|| h.startsWith("label::") 
 								|| h.equals("image")
 								|| h.startsWith("image::")  		// deprecate?

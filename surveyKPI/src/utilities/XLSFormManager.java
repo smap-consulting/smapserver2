@@ -587,6 +587,10 @@ public class XLSFormManager {
 				for(String k : keyList) {
 					String v = o.cascade_filters.get(k);
 
+					if(v.equals("display_name")) {	// Hack to minimise impact of wrongly including display_name as a filter
+						continue;
+					}
+					
 					Integer colIndex = filterIndexes.get(k);
 					if(colIndex == null) {
 						colIndex = new Integer(cols.size() + filterIndexes.size());
