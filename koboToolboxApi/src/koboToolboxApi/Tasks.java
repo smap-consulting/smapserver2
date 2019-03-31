@@ -49,6 +49,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.TaskServerDefn;
 
 /*
@@ -210,11 +211,11 @@ public class Tasks extends Application {
 					null);	// sort direction	
 			
 			if(t != null && t.features.size() > 0) {
-				TaskFeature tf = t.features.get(0);
+				TaskProperties tp = t.features.get(0).properties;
 				
 				// Return groups to calling program
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-				String resp = gson.toJson(tf);	
+				String resp = gson.toJson(tp);	
 				response = Response.ok(resp).build();	
 			} else {
 				response = Response.serverError().entity(localisation.getString("mf_nf")).build();

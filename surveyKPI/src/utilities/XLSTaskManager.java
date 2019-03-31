@@ -103,7 +103,7 @@ public class XLSTaskManager {
 				if(props.action_link != null && props.action_link.trim().length() > 0) {
 					value = scheme + "://" + serverName + "/webForm" + props.action_link;
 				} else {
-					value = scheme + "://" + serverName + props.url;
+					value = scheme + "://" + serverName + "/webForm/" + props.form_ident + "?assignment_id=" + props.a_id;
 				}
 			} else if(name.equals("location_trigger")) {
 				value = props.location_trigger;

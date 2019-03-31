@@ -9,7 +9,7 @@ public class TaskProperties {
 	public String tg_name;
 	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
 	public String name;
-	public String url;
+	//public String url;
 	public int form_id;
 	public String action_link;
 	public String form_ident;

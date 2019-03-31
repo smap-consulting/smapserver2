@@ -656,7 +656,7 @@ public class AllAssignments extends Application {
 						+ "address_params = ?,"
 						+ "rule = ?,"
 						+ "source_s_id = ?,"
-						+ "target_s_id = ?,"
+						+ "target_s_id = ? "
 						+ "where tg_id = ?";
 
 				pstmtTaskGroup = sd.prepareStatement(tgSql);

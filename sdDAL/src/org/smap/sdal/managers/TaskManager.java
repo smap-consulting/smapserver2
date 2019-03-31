@@ -297,7 +297,6 @@ public class TaskManager {
 				+ "t.guidance as guidance,"
 				+ "t.repeat as repeat,"
 				+ "t.repeat_count as repeat_count,"
-				+ "t.url as url,"
 				+ "t.form_id,"
 				+ "t.survey_name as form_name,"
 				+ "t.deleted,"
@@ -462,7 +461,6 @@ public class TaskManager {
 				tf.properties.form_id = rs.getInt("form_id");
 				tf.properties.form_ident = rs.getString("form_ident");
 				tf.properties.form_name = rs.getString("form_name");
-				tf.properties.url = rs.getString("url");
 				tf.properties.action_link = rs.getString("action_link");
 				tf.properties.blocked = rs.getBoolean("blocked");
 				tf.properties.assignee = rs.getInt("assignee");
@@ -518,6 +516,11 @@ public class TaskManager {
 						tf.properties.initial_data = null;
 					}
 				}
+				
+				// Add links
+				tf.links = new HashMap<String, String> ();
+				tf.links.put("detail", urlprefix + "/api/v1/tasks/" + tf.properties.id);
+				tf.links.put("webform", urlprefix + "/webForm/" + tf.properties.form_ident + "?assignment_id=" + tf.properties.a_id);
 				
 				tl.features.add(tf);
 				
@@ -822,7 +825,6 @@ public class TaskManager {
 		try {
 
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
-			String formUrl = "http://" + hostname + "/formXML?key=" + targetSurveyIdent;
 
 			/*
 			 * Set data to be updated
@@ -936,7 +938,6 @@ public class TaskManager {
 					tgName,
 					title,
 					target_s_id,
-					formUrl,
 					taskPoint,
 					updateId,
 					tid.address,
@@ -1203,7 +1204,6 @@ public class TaskManager {
 			}
 
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tsd.form_id);
-			String webformUrl = urlPrefix + "/webForm/" + targetSurveyIdent;
 
 			/*
 			 * 4. Location
@@ -1240,7 +1240,6 @@ public class TaskManager {
 						tgId,
 						tsd.name,
 						tsd.form_id,
-						webformUrl,
 						location,
 						tsd.address,
 						tsd.from,
@@ -1261,7 +1260,6 @@ public class TaskManager {
 						tgName,
 						tsd.name,
 						tsd.form_id,
-						webformUrl,
 						location,
 						tsd.update_id,
 						tsd.address,
@@ -1835,7 +1833,6 @@ public class TaskManager {
 				+ "title, "
 				+ "form_id, "
 				+ "survey_name, "
-				+ "url, "
 				+ "geo_point,"
 				+ "update_id,"
 				+ "address,"
@@ -1855,7 +1852,6 @@ public class TaskManager {
 				+ "?, "		// title
 				+ "?, "		// form_id
 				+ "(select display_name from survey where s_id = ?), "		// Survey name
-				+ "?, "		// url
 				+ "ST_GeomFromText(?, 4326), "	// geo_point
 				+ "?, "		// update_id
 				+ "?, "		// address
@@ -1881,7 +1877,6 @@ public class TaskManager {
 			String tgName,
 			String title,
 			int target_s_id,
-			String formUrl,
 			String location,
 			String targetInstanceId,
 			String address,
@@ -1900,19 +1895,18 @@ public class TaskManager {
 		pstmt.setString(4,  tgName);
 		pstmt.setString(5,  title);
 		pstmt.setInt(6, target_s_id);			// form id
-		pstmt.setInt(7, target_s_id);			// For survey name
-		pstmt.setString(8, formUrl);				
-		pstmt.setString(9, location);			// geopoint
-		pstmt.setString(10, targetInstanceId);	// update id
-		pstmt.setString(11, address);
-		pstmt.setTimestamp(12, taskStart);
-		pstmt.setTimestamp(13, taskFinish);
-		pstmt.setString(14, locationTrigger);
-		pstmt.setBoolean(15, repeat);	
-		pstmt.setString(16, guidance);	
-		pstmt.setString(17, initial_data_source);
-		pstmt.setString(18, initial_data);	
-		pstmt.setInt(19, dl_dist);	
+		pstmt.setInt(7, target_s_id);			// For survey name			
+		pstmt.setString(8, location);			// geopoint
+		pstmt.setString(9, targetInstanceId);	// update id
+		pstmt.setString(10, address);
+		pstmt.setTimestamp(11, taskStart);
+		pstmt.setTimestamp(12, taskFinish);
+		pstmt.setString(13, locationTrigger);
+		pstmt.setBoolean(14, repeat);	
+		pstmt.setString(15, guidance);	
+		pstmt.setString(16, initial_data_source);
+		pstmt.setString(17, initial_data);	
+		pstmt.setInt(18, dl_dist);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1927,7 +1921,6 @@ public class TaskManager {
 				+ "title = ?, "
 				+ "form_id = ?, "
 				+ "survey_name = (select display_name from survey where s_id = ?), "
-				+ "url = ?, "
 				+ "geo_point = ST_GeomFromText(?, 4326),"
 				+ "address = ?,"
 				+ "schedule_at = ?,"
@@ -1952,7 +1945,6 @@ public class TaskManager {
 			int tgId,
 			String title,
 			int target_s_id,
-			String formUrl,
 			String location,
 			String address,
 			Timestamp taskStart,
@@ -1966,20 +1958,19 @@ public class TaskManager {
 		
 		pstmt.setString(1, title);
 		pstmt.setInt(2,  target_s_id);
-		pstmt.setInt(3,  target_s_id);			// To set survey name
-		pstmt.setString(4, formUrl);					
-		pstmt.setString(5, location);			// geopoint
-		pstmt.setString(6, address);
-		pstmt.setTimestamp(7, taskStart);
-		pstmt.setTimestamp(8, taskFinish);
-		pstmt.setString(9, locationTrigger);
-		pstmt.setBoolean(10, repeat);	
-		pstmt.setString(11, guidance);
-		pstmt.setString(12, initial_data_source);
-		pstmt.setString(13, initial_data);
-		pstmt.setInt(14, dl_dist);
-		pstmt.setInt(15, tId);
-		pstmt.setInt(16, tgId);
+		pstmt.setInt(3,  target_s_id);			// To set survey name				
+		pstmt.setString(4, location);			// geopoint
+		pstmt.setString(5, address);
+		pstmt.setTimestamp(6, taskStart);
+		pstmt.setTimestamp(7, taskFinish);
+		pstmt.setString(8, locationTrigger);
+		pstmt.setBoolean(9, repeat);	
+		pstmt.setString(10, guidance);
+		pstmt.setString(11, initial_data_source);
+		pstmt.setString(12, initial_data);
+		pstmt.setInt(13, dl_dist);
+		pstmt.setInt(14, tId);
+		pstmt.setInt(15, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
