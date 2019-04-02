@@ -4121,13 +4121,10 @@ public class SurveyManager {
 					} else if (c.type.equals("geopoint")) {
 						// Add Geometry (assume one geometry type per table)
 						//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
-						System.out.println(rs.getString(i + 1));
 						instance.point_geometry = gson.fromJson(rs.getString(i + 1), Point.class);
 					} else if (c.type.equals("geoshape")) {
-						System.out.println(rs.getString(i + 1));
 						instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
 					} else if (c.type.equals("geotrace")) {
-						System.out.println(rs.getString(i + 1));
 						instance.line_geometry = gson.fromJson(rs.getString(i + 1), Line.class);
 					} else if (c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name

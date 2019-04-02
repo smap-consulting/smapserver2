@@ -1686,7 +1686,7 @@ public class GetXForm {
 				if(qType.equals("geopoint")  || qType.equals("geoshape") || qType.equals("geotrace")) {
 
 					if(qType.equals("geopoint") && instance.point_geometry != null) {		
-						value = GeneralUtilityMethods.getOdkPoint(instance.point_geometry);
+						value = instance.point_geometry.getAsOdk();
 					} else if(qType.equals("geoshape") && instance.polygon_geometry != null) {
 						value = GeneralUtilityMethods.getOdkPolygon(instance.polygon_geometry);
 					} else if(qType.equals("geotrace") && instance.line_geometry != null) {
@@ -1954,6 +1954,8 @@ public class GetXForm {
 		/*
 		 * Get the data
 		 */
+		boolean hasPoint = false;
+		boolean hasPointAltitude = false;
 		for (Question q : questions) {
 			String col = null;
 
@@ -1970,6 +1972,9 @@ public class GetXForm {
 						String qType = q.getType();
 						if (qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace")) {
 							col = "ST_AsGeoJson(" + q.getColumnName(isReference) + ")";
+							if(qType.equals("geopoint")) {
+								hasPoint = true;
+							}
 						} else if (qType.equals("select") && !q.isCompressed()) {
 							continue; 
 						} else {
@@ -1995,6 +2000,16 @@ public class GetXForm {
 			}
 
 		}
+		/*
+		 * Get geometry altitude and accuracy of they are available
+		 */
+		if(hasPoint) {
+			if(GeneralUtilityMethods.hasColumn(cResults, processForm.getTableName(), "the_geom_alt")) {
+				sql.append(",the_geom_alt, the_geom_acc");
+				hasPointAltitude = true;
+			}
+		}
+		
 		sql.append(" from ").append(processForm.getTableName());
 		if (id != -1) {
 			sql.append(" where prikey=").append(id);
@@ -2160,7 +2175,11 @@ public class GetXForm {
 
 					if (value != null && qType.equals("geopoint")) {
 						Point p = gson.fromJson(value, Point.class);
-						value = GeneralUtilityMethods.getOdkPoint(p);		
+						if(hasPointAltitude) {
+							p.altitude = resultSet.getDouble("the_geom_alt");
+							p.accuracy = resultSet.getDouble("the_geom_alt");
+						}
+						value = p.getAsOdk();		
 						
 					} else if (value != null && qType.equals("geoshape")) {
 						Polygon p = gson.fromJson(value, Polygon.class);

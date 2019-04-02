@@ -1585,7 +1585,6 @@ public class SubRelationalDB extends Subscriber {
 					// To store as a Point in the db this order needs to be reversed
 					String params[] = value.split(" ");
 					if(params.length > 1) {
-						//value = "ST_GeomFromText('POINT(" + params[1] + " " + params[0] + ")', 4326)";
 						value = "ST_SetSRID(ST_MakePoint(" 
 								+ String.valueOf(Double.parseDouble(params[1])) + ","
 								+ String.valueOf(Double.parseDouble(params[0]))

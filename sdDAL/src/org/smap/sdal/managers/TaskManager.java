@@ -804,8 +804,6 @@ public class TaskManager {
 			String remoteUser
 			) throws Exception {
 
-
-
 		PreparedStatement pstmtAssign = null;
 		PreparedStatement pstmtRoles = null;
 		PreparedStatement pstmtRoles2 = null;
@@ -854,7 +852,6 @@ public class TaskManager {
 			/*
 			 * Location
 			 */
-			System.out.println("Location:" + location);
 			// Default is 0,0
 			Point defPoint = new Point(0.0, 0.0);
 			String taskPoint = defPoint.getAsText();

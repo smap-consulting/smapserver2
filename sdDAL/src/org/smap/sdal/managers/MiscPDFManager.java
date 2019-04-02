@@ -405,7 +405,6 @@ public class MiscPDFManager {
 			}
 			
 
-			
 			document.add(table);
 			document.close();
 				

@@ -7042,22 +7042,6 @@ public class GeneralUtilityMethods {
 		return coords;
 	}
 	
-	public static String getOdkPoint(Point p) {
-		String value = "";
-		if(p.coordinates != null && p.coordinates.size() > 1) {
-			value = p.coordinates.get(1) + " " + p.coordinates.get(0);
-			if(p.coordinates.size() > 2) {
-				value += p.coordinates.get(2);
-			}
-			if(p.coordinates.size() > 3) {
-				value += p.coordinates.get(3);
-			}
-		} else {
-			log.severe("Invalid value for geopoint");
-		}	
-		return value;
-	}
-	
 	public static String getOdkPolygon(Polygon p) {
 		StringBuffer coordsString = new StringBuffer("");
 		ArrayList<ArrayList<Double>> coords = p.coordinates.get(0);
