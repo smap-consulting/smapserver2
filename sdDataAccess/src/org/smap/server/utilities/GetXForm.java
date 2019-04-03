@@ -2176,10 +2176,13 @@ public class GetXForm {
 					if (value != null && qType.equals("geopoint")) {
 						Point p = gson.fromJson(value, Point.class);
 						if(hasPointAltitude) {
+							log.info("Altitude: " + resultSet.getDouble("the_geom_alt"));
+							log.info("Accuracy: " + resultSet.getDouble("the_geom_acc"));
 							p.altitude = resultSet.getDouble("the_geom_alt");
-							p.accuracy = resultSet.getDouble("the_geom_alt");
+							p.accuracy = resultSet.getDouble("the_geom_acc");
 						}
-						value = p.getAsOdk();		
+						value = p.getAsOdk();
+						log.info("Point value: " + value);
 						
 					} else if (value != null && qType.equals("geoshape")) {
 						Polygon p = gson.fromJson(value, Polygon.class);
