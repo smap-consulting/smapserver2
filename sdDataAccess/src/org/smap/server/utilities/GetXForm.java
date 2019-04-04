@@ -236,6 +236,12 @@ public class GetXForm {
 		parent.appendChild(instanceElement);
 		populateInstance(sd, outputDoc, instanceElement);
 
+		// Add a last saved instance  <instance id="last-saved" src="jr://instance/last-saved"/>
+		Element lastSavedElement = outputDoc.createElement("instance");
+		lastSavedElement.setAttribute("id", "last-saved");
+		lastSavedElement.setAttribute("src", "jr://instance/last-saved");
+		parent.appendChild(lastSavedElement);
+		
 		if (template.hasCascade()) {
 
 			List<CascadeInstance> cis = template.getCascadeInstances();
