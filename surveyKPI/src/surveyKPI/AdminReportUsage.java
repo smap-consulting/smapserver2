@@ -65,6 +65,7 @@ public class AdminReportUsage extends Application {
 			@PathParam("month") int month,
 			@QueryParam("project") boolean byProject,
 			@QueryParam("survey") boolean bySurvey,
+			@QueryParam("device") boolean byDevice,
 			
 			@Context HttpServletResponse response) {
 
@@ -94,6 +95,8 @@ public class AdminReportUsage extends Application {
 				report = getAdminReportSurvey(sd, oId, month, year);
 			} else if(byProject) {
 				report = getAdminReportProject(sd, oId, month, year);
+			} else if(byDevice) {
+				report = getAdminReportDevice(sd, oId, month, year);
 			} else {
 				report = getAdminReport(sd, oId, month, year);
 			}
@@ -110,11 +113,14 @@ public class AdminReportUsage extends Application {
 				header.add(localisation.getString("ar_survey_id"));
 				header.add(localisation.getString("ar_survey"));
 			}
+			if(byDevice) {
+				header.add(localisation.getString("a_device"));
+			}
 			header.add(localisation.getString("ar_usage_month"));
 			header.add(localisation.getString("ar_usage_at"));
 			
 			XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
-			responseVal = rm.getNewReport(sd, request, response, header, report, filename, byProject, bySurvey, year, month);
+			responseVal = rm.getNewReport(sd, request, response, header, report, filename, byProject, bySurvey, byDevice, year, month);
 			
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -361,6 +367,97 @@ public class AdminReportUsage extends Application {
 					ar.project = rs.getString("project_name");
 					ar.s_id = rs.getInt("s_id");
 					ar.survey = rs.getString("survey_name");
+					ar.usageInPeriod = 0;
+					rows.add(ar);
+				}
+				ar.allTimeUsage = allTime;
+				
+			}
+			
+		} finally {
+			if(pstmtMonth != null) {try{pstmtMonth.close();}catch(Exception e) {}}
+			if(pstmtAllTime != null) {try{pstmtAllTime.close();}catch(Exception e) {}}
+		}
+		return rows;
+	}
+	
+	private ArrayList<AR> getAdminReportDevice(Connection sd, int oId, int month, int year) throws SQLException {
+		
+		ArrayList<AR> rows = new ArrayList<AR> ();
+		HashMap<String, AR> monthMap = new HashMap<> ();
+		
+		String sqlMonth = "select count(*) as month, "
+				+ "ue.user_name as ident, "
+				+ "users.name as name, "
+				+ "ue.imei as imei, "
+				+ "users.created as created "
+				+ "from users, subscriber_event se, upload_event ue "
+				+ "where ue.ue_id = se.ue_id "
+				+ "and se.status = 'success' "
+				+ "and se.subscriber = 'results_db' "
+				+ "and extract(month from upload_time) = ? "
+				+ "and extract(year from upload_time) = ? "
+				+ "and users.o_id = ? "
+				+ "and users.ident = ue.user_name "
+				+ "and not users.temporary "
+				+ "group by ue.user_name, users.name, ue.imei, users.created "
+				+ "order by ue.user_name, ue.imei";			
+		PreparedStatement pstmtMonth = null;
+		
+		String sqlAllTime = "select count(*) as year, "
+				+ "ue.user_name as ident, "
+				+ "users.name as name, "
+				+ "ue.imei as imei, "
+				+ "users.created as created "
+				+ "from users, subscriber_event se, upload_event ue "
+				+ "left outer join project on project.id = ue.p_id "
+				+ "left outer join survey on survey.s_id = ue.s_id "
+				+ "where ue.ue_id = se.ue_id "
+				+ "and se.status = 'success' "
+				+ "and se.subscriber = 'results_db' "
+				+ "and users.o_id = ? "
+				+ "and users.ident = ue.user_name "
+				+ "and not users.temporary "
+				+ "group by ue.user_name, users.name, ue.imei, users.created "
+				+ "order by ue.user_name, ue.imei";
+		
+		PreparedStatement pstmtAllTime = null;
+		try {
+			pstmtMonth = sd.prepareStatement(sqlMonth);
+			pstmtMonth.setInt(1, month);
+			pstmtMonth.setInt(2, year);
+			pstmtMonth.setInt(3, oId);
+			log.info("Monthly Admin report by device: " + pstmtMonth.toString());
+			ResultSet rs = pstmtMonth.executeQuery();
+			
+			while(rs.next()) {
+				AR ar = new AR();
+				ar.userIdent = rs.getString("ident");
+				ar.userName = rs.getString("name");
+				ar.created = rs.getDate("created");
+				ar.device = rs.getString("imei");
+				ar.usageInPeriod = rs.getInt("month");
+				rows.add(ar);
+				monthMap.put(ar.userIdent + "::::" + ar.device, ar);	// Save map so we can add all time values
+			}
+			
+			// Get the all time
+			pstmtAllTime = sd.prepareStatement(sqlAllTime);
+			pstmtAllTime.setInt(1, oId);
+			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+			rs = pstmtAllTime.executeQuery();
+			while(rs.next()) {
+						
+				String user = rs.getString("ident");
+				String device = rs.getString("imei");
+				int allTime = rs.getInt("year");
+				AR ar = monthMap.get(user + "::::" + device);
+				if(ar == null) {
+					ar = new AR();
+					ar.userIdent = rs.getString("ident");
+					ar.userName = rs.getString("name");
+					ar.created = rs.getDate("created");
+					ar.device = rs.getString("imei");
 					ar.usageInPeriod = 0;
 					rows.add(ar);
 				}

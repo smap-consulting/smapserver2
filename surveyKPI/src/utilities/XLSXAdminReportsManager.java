@@ -69,6 +69,7 @@ public class XLSXAdminReportsManager {
 			String filename,
 			boolean byProject,
 			boolean bySurvey,
+			boolean byDevice,
 			int year,
 			int month) {
 		
@@ -164,6 +165,12 @@ public class XLSXAdminReportsManager {
 							
 							cell = row.createCell(colNumber++);	
 							cell.setCellValue(ar.survey);
+						}
+						
+						if(byDevice) {
+							cell = row.createCell(colNumber++);	// Device
+							cell.setCellValue(ar.device);
+							
 						}
 						
 						monthlyCol = colNumber;
