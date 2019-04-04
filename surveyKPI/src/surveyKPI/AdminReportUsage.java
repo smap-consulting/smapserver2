@@ -203,7 +203,7 @@ public class AdminReportUsage extends Application {
 				+ "order by ue.user_name, ue.p_id;";			
 		PreparedStatement pstmtMonth = null;
 		
-		String sqlYear = "select count(*) as year, "
+		String sqlAllTime = "select count(*) as year, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
@@ -219,9 +219,8 @@ public class AdminReportUsage extends Application {
 				+ "and not users.temporary "
 				+ "group by ue.user_name, users.name, ue.p_id, project.name, users.created "
 				+ "order by ue.user_name, ue.p_id;";			
-		PreparedStatement pstmtYear = null;
-		
 		PreparedStatement pstmtAllTime = null;
+		
 		try {
 			pstmtMonth = sd.prepareStatement(sqlMonth);
 			pstmtMonth.setInt(1, month);
@@ -243,10 +242,10 @@ public class AdminReportUsage extends Application {
 			}
 			
 			// Get the all time
-			pstmtYear = sd.prepareStatement(sqlYear);
-			pstmtYear.setInt(1, oId);
-			log.info("All Time Admin report by project: " + pstmtYear.toString());
-			rs = pstmtYear.executeQuery();
+			pstmtAllTime = sd.prepareStatement(sqlAllTime);
+			pstmtAllTime.setInt(1, oId);
+			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+			rs = pstmtAllTime.executeQuery();
 			while(rs.next()) {
 						
 				String user = rs.getString("ident");
