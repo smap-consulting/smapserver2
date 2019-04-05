@@ -271,7 +271,7 @@ public class MyAssignments extends Application {
 			
 			StringBuffer distanceFilter = new StringBuffer("");
 			if(lat != 0.0 || lon != 0.0) {
-				distanceFilter.append(" and (t.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, t.dl_dist)) ");
+				distanceFilter.append(" and (t.show_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, t.dl_dist)) ");
 			}
 			
 			StringBuffer sql = new StringBuffer("");
