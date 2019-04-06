@@ -284,6 +284,8 @@ public class TaskManager {
 			String dirn		// Direction of sort asc || desc
 			) throws Exception {
 		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		StringBuffer sql = new StringBuffer("select t.id as t_id, "
 				+ "t.title as name,"
 				+ "timezone(?, t.schedule_at) as schedule_at,"
@@ -504,13 +506,10 @@ public class TaskManager {
 							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
 									"/task/" + tf.properties.update_id;
 						} else {
-							tf.properties.initial_data = null;		// Get instance data from database
-							// debug
-							tf.properties.initial_data = new Instance();
-							tf.properties.initial_data.values = new HashMap<String, String>();
-							tf.properties.initial_data.values.put("question1", "foo");
-							tf.properties.initial_data.values.put("question2", "bar");
-							// end debug
+							String initial_data = rs.getString("initial_data");
+							if(initial_data != null) {
+								tf.properties.initial_data = gson.fromJson(initial_data, Instance.class);
+							}
 						}
 					} else {
 						tf.properties.initial_data = null;
