@@ -284,6 +284,8 @@ public class TaskManager {
 			String dirn		// Direction of sort asc || desc
 			) throws Exception {
 		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		StringBuffer sql = new StringBuffer("select t.id as t_id, "
 				+ "t.title as name,"
 				+ "timezone(?, t.schedule_at) as schedule_at,"
@@ -316,7 +318,7 @@ public class TaskManager {
 				+ "ST_AsText(t.geo_point) as wkt, "
 				+ "ST_x(t.geo_point) as lon,"
 				+ "ST_Y(t.geo_point) as lat,"
-				+ "dl_dist "
+				+ "show_dist "
 				+ "from tasks t "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
@@ -478,7 +480,7 @@ public class TaskManager {
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
 				tf.properties.initial_data_source = rs.getString("initial_data_source");
-				tf.properties.dl_dist = rs.getInt("dl_dist");
+				tf.properties.show_dist = rs.getInt("show_dist");
 
 				tf.properties.lat = rs.getDouble("lat");
 				tf.properties.lon = rs.getDouble("lon");
@@ -504,13 +506,10 @@ public class TaskManager {
 							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
 									"/task/" + tf.properties.update_id;
 						} else {
-							tf.properties.initial_data = null;		// Get instance data from database
-							// debug
-							tf.properties.initial_data = new Instance();
-							tf.properties.initial_data.values = new HashMap<String, String>();
-							tf.properties.initial_data.values.put("question1", "foo");
-							tf.properties.initial_data.values.put("question2", "bar");
-							// end debug
+							String initial_data = rs.getString("initial_data");
+							if(initial_data != null) {
+								tf.properties.initial_data = gson.fromJson(initial_data, Instance.class);
+							}
 						}
 					} else {
 						tf.properties.initial_data = null;
@@ -944,7 +943,7 @@ public class TaskManager {
 					null,
 					initialDataSource,
 					initialData,
-					as.dl_dist);
+					as.show_dist);
 
 			/*
 			 * Assign the user to the new task
@@ -1245,7 +1244,7 @@ public class TaskManager {
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
-						tsd.dl_dist);
+						tsd.show_dist);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -1266,7 +1265,7 @@ public class TaskManager {
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
-						tsd.dl_dist);
+						tsd.show_dist);
 				ResultSet rsKeys = pstmt.getGeneratedKeys();
 				if(rsKeys.next()) {
 					taskId = rsKeys.getInt(1);
@@ -1839,7 +1838,7 @@ public class TaskManager {
 				+ "guidance,"
 				+ "initial_data_source,"
 				+ "initial_data,"
-				+ "dl_dist) "
+				+ "show_dist) "
 				+ "values ("
 				+ "?, "		// p_id
 				+ "?, "		// p_name
@@ -1858,7 +1857,7 @@ public class TaskManager {
 				+ "?,"		// guidance
 				+ "?,"		// initial_data_source
 				+ "?,"		// initial_data	
-				+ "?)";		// dl_dist
+				+ "?)";		// show_dist
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
@@ -1883,7 +1882,7 @@ public class TaskManager {
 			String guidance,
 			String initial_data_source,
 			String initial_data,
-			int dl_dist) throws SQLException {
+			int show_dist) throws SQLException {
 		
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
@@ -1902,7 +1901,7 @@ public class TaskManager {
 		pstmt.setString(15, guidance);	
 		pstmt.setString(16, initial_data_source);
 		pstmt.setString(17, initial_data);	
-		pstmt.setInt(18, dl_dist);	
+		pstmt.setInt(18, show_dist);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1926,7 +1925,7 @@ public class TaskManager {
 				+ "guidance = ?,"
 				+ "initial_data_source = ?,"
 				+ "initial_data = ?, "
-				+ "dl_dist = ? "
+				+ "show_dist = ? "
 				+ "where id = ? "
 				+ "and tg_id = ?";		// authorisation
 		
@@ -1950,7 +1949,7 @@ public class TaskManager {
 			String guidance,
 			String initial_data_source,
 			String initial_data,
-			int dl_dist) throws SQLException {
+			int show_dist) throws SQLException {
 		
 		pstmt.setString(1, title);
 		pstmt.setInt(2,  target_s_id);
@@ -1964,7 +1963,7 @@ public class TaskManager {
 		pstmt.setString(10, guidance);
 		pstmt.setString(11, initial_data_source);
 		pstmt.setString(12, initial_data);
-		pstmt.setInt(13, dl_dist);
+		pstmt.setInt(13, show_dist);
 		pstmt.setInt(14, tId);
 		pstmt.setInt(15, tgId);
 
@@ -2590,7 +2589,7 @@ public class TaskManager {
 		tsd.to = tf.properties.to;
 		tsd.guidance = tf.properties.guidance;
 		tsd.initial_data = tf.properties.initial_data;
-		tsd.dl_dist = tf.properties.dl_dist;
+		tsd.show_dist = tf.properties.show_dist;
 		tsd.initial_data_source = tf.properties.initial_data_source;
 		tsd.repeat = tf.properties.repeat;
 		tsd.update_id = tf.properties.update_id;

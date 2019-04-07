@@ -255,8 +255,9 @@ public class MyAssignments extends Application {
 					+ "t.address as address, "
 					+ "t.guidance as guidance, "
 					+ "ST_AsText(t.geo_point) as geo_point "
-					+ "from tasks t, assignments a, users u, survey s, user_project up, project p "
+					+ "from tasks t, assignments a, users u, survey s, user_project up, project p, task_group tg "
 					+ "where t.id = a.task_id "
+					+ "and t.tg_id = tg.tg_id "
 					+ "and t.form_id = s.s_id "
 					+ "and u.id = up.u_id "
 					+ "and s.p_id = up.p_id "
@@ -271,7 +272,7 @@ public class MyAssignments extends Application {
 			
 			StringBuffer distanceFilter = new StringBuffer("");
 			if(lat != 0.0 || lon != 0.0) {
-				distanceFilter.append(" and (t.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, t.dl_dist)) ");
+				distanceFilter.append(" and (tg.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, tg.dl_dist)) ");
 			}
 			
 			StringBuffer sql = new StringBuffer("");
