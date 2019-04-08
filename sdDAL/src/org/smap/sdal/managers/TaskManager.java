@@ -318,7 +318,7 @@ public class TaskManager {
 				+ "ST_AsText(t.geo_point) as wkt, "
 				+ "ST_x(t.geo_point) as lon,"
 				+ "ST_Y(t.geo_point) as lat,"
-				+ "show_dist "
+				+ "t.show_dist "
 				+ "from tasks t "
 				+ "join survey s "
 				+ "on t.form_id = s.s_id "
@@ -490,26 +490,13 @@ public class TaskManager {
 				 * Embed the data if the request is for a single task
 				 * Otherwise set a link
 				 */			
-				if(tf.properties.initial_data_source != null) {
+				if(taskId != 0  && tf.properties.initial_data_source != null) {
 					if(tf.properties.initial_data_source.equals("survey")) {
-						
-						if(taskId == 0) {
-							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
-									"/" + tf.properties.update_id;
-						} else {
-							tf.properties.initial_data = null;		// Get instance data from survey record
-						}
-						
-						
+						tf.properties.initial_data = null;		// TODO Get instance data from survey record					
 					} else if(tf.properties.initial_data_source.equals("task")) {
-						if(taskId == 0) {
-							tf.properties.initial_data_url = urlprefix + "/webForm/instance/" + tf.properties.form_ident + 
-									"/task/" + tf.properties.update_id;
-						} else {
-							String initial_data = rs.getString("initial_data");
-							if(initial_data != null) {
-								tf.properties.initial_data = gson.fromJson(initial_data, Instance.class);
-							}
+						String initial_data = rs.getString("initial_data");
+						if(initial_data != null) {
+							tf.properties.initial_data = gson.fromJson(initial_data, Instance.class);
 						}
 					} else {
 						tf.properties.initial_data = null;
@@ -519,7 +506,19 @@ public class TaskManager {
 				// Add links
 				tf.links = new HashMap<String, String> ();
 				tf.links.put("detail", urlprefix + "/api/v1/tasks/" + tf.properties.id);
-				tf.links.put("webform", urlprefix + "/webForm/" + tf.properties.form_ident + "?assignment_id=" + tf.properties.a_id);
+				tf.links.put("webform", GeneralUtilityMethods.getWebformLink(
+						urlprefix, 
+						tf.properties.form_ident, 
+						tf.properties.initial_data_source,
+						tf.properties.a_id,
+						tf.properties.id,
+						tf.properties.update_id));
+				tf.links.put("data", GeneralUtilityMethods.getInitialDataLink(
+						urlprefix, 
+						tf.properties.form_ident, 
+						tf.properties.initial_data_source,
+						tf.properties.id,
+						tf.properties.update_id));
 				
 				tl.features.add(tf);
 				

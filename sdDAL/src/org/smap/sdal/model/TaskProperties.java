@@ -22,7 +22,7 @@ public class TaskProperties {
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
 	public String initial_data_source;		// none || survey || task			
-	public String initial_data_url;			// A link to the data
+	//public String initial_data_url;			// A link to the data
 	public String update_id;					// Unique identifier of record to be updated
 	public Timestamp from;
 	public Timestamp to;

@@ -7588,6 +7588,51 @@ public class GeneralUtilityMethods {
 		}
 
 	}
+	
+	public static String getWebformLink(String urlprefix, 
+			String surveyIdent, 
+			String initial_data_source, 
+			int assignmentId,
+			int taskId,
+			String updateId) {
+		
+		boolean hasParam = false;
+		StringBuffer url = new StringBuffer(urlprefix);
+		
+		url.append("/webForm/").append(surveyIdent);
+		
+		if(initial_data_source != null && initial_data_source.equals("survey")) {
+			url.append(hasParam ? "&" : "?").append("datakey=instanceid&datakeyvalue=").append(updateId);
+			hasParam = true;
+		} else if(initial_data_source != null && initial_data_source.equals("task")) {
+			url.append(hasParam ? "&" : "?").append("taskkey=").append(taskId);
+			hasParam = true;
+		} else {
+			
+		}
+		url.append(hasParam ? "&" : "?").append("assignment_id=").append(assignmentId);
+		return url.toString();
+	}
+	
+	public static String getInitialDataLink(String urlprefix, 
+			String surveyIdent, 
+			String initial_data_source, 
+			int taskId,
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("/webForm/instance/").append(surveyIdent);
+		
+		if(initial_data_source != null && initial_data_source.equals("survey")) {
+			url.append("/").append(updateId); 
+		} else if(initial_data_source != null && initial_data_source.equals("task")) {
+			url.append("/task/").append(taskId);	
+		} else {
+			return null;
+		}
+		
+		return url.toString();
+	}
 
 }
 

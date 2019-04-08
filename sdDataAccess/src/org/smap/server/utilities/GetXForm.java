@@ -1728,12 +1728,20 @@ public class GetXForm {
 					String qValue = instance.values.get(qName); 
 					if(qValue != null) {
 						if(qType.equals("image")  || qType.equals("audio") || qType.equals("video")) {
-							// Hack for special situaltion on localhost
+							// Hack for special situation on localhost
 							if(urlprefix.equals("http://localhost/")) {
 								urlprefix = "https://localhost/";
 							}
 							if(qValue.startsWith(urlprefix)) {
-								value = qValue.substring(urlprefix.length());	// Local image remove prefix
+								int idx = qValue.lastIndexOf("/");
+								if(qValue.length() > idx) {
+									value = qValue.substring(idx + 1);
+									gFilenames.add(value);
+								} else {
+									value = qValue;
+								}
+								String path = qValue.substring(urlprefix.length());	// Local image remove prefix
+								gPaths.add(path);
 							} else {
 								value = qValue;
 							}
