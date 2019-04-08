@@ -150,12 +150,16 @@ public class WebForm extends Application {
 	}
 
 	/*
-	 * Get instance data User is authenticated by the web server Respond with JSON
+	 * Get instance data. Respond with JSON
+	 * The data is identified by the form and the unique updateid for the record
+	 * The json includes an instance XML as a string
 	 */
 	@GET
 	@Path("/instance/{ident}/{updateid}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response getInstanceJsonNoKey(@Context HttpServletRequest request, @PathParam("ident") String formIdent,
+	public Response getInstanceJsonNoKey(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String formIdent,
 			@PathParam("updateid") String updateid // Unique id of instance data
 	) throws IOException {
 
@@ -169,6 +173,39 @@ public class WebForm extends Application {
 			userIdent = request.getRemoteUser();
 			log.info("Requesting instance as: " + userIdent);
 			resp = getInstanceData(sd, request, formIdent, updateid, 0, userIdent, true);
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			SDDataSource.closeConnection(requester, sd);
+		}
+
+		return resp;
+	}
+	
+	/*
+	 * Get task data
+	 * The data is identified by the form and the unique updateid for the record
+	 * The json includes an instance XML as a string
+	 */
+	@GET
+	@Path("/instance/{ident}/task/{taskid}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getTaskDataJsonNoKey(
+			@Context HttpServletRequest request, 
+			@PathParam("ident") String formIdent,
+			@PathParam("taskid") int taskId
+	) throws IOException {
+
+		log.info("Requesting json instance no key");
+
+		Response resp = null;
+		String requester = "surveyMobileAPI-Webform";
+		Connection sd = SDDataSource.getConnection(requester);
+
+		try {
+			userIdent = request.getRemoteUser();
+			log.info("Requesting instance as: " + userIdent);
+			resp = getInstanceData(sd, request, formIdent, null, taskId, userIdent, true);
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
@@ -217,7 +254,9 @@ public class WebForm extends Application {
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, taskKey, callback, false, false);
 	}
 
-	// Respond with HTML
+	/*
+	 * 
+	 */
 	@GET
 	@Path("/{ident}")
 	@Produces(MediaType.TEXT_HTML)

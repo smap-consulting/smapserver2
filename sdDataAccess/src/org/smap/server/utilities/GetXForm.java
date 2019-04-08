@@ -1392,7 +1392,7 @@ public class GetXForm {
 				hasData = true;
 				TaskManager tm = new TaskManager(localisation, tz);
 				Instance instance = tm.getInstance(sd, taskKey);
-				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix);
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix, true);
 			}
 
 			// Write the survey to a string and return it to the calling program
@@ -1677,12 +1677,35 @@ public class GetXForm {
 	public void populateTaskDataForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
 				Element parentElement, int sId, String survey_ident, 
 				Instance instance,
-				String urlprefix)
+				String urlprefix,
+				boolean isTopLevel)
 			throws SQLException {
 
 		List<Results> record = new ArrayList<Results>();
 
 		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		if(isTopLevel) {		// Add meta group
+			Question q = new Question();
+			q.setType("begin group");
+			q.setName("meta");
+			questions.add(q);
+			
+			q = new Question();
+			q.setType("text");
+			q.setName("instanceID");
+			questions.add(q);
+			
+			q = new Question();
+			q.setType("text");
+			q.setName("instanceName");
+			questions.add(q);
+			
+			q = new Question();
+			q.setType("end group");
+			q.setName("meta");
+			questions.add(q);
+			
+		}
 		for (Question q : questions) {
 
 			String qName = q.getName();
@@ -1760,7 +1783,7 @@ public class GetXForm {
 					}
 				}
 				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
-						survey_ident, iSub, urlprefix);		
+						survey_ident, iSub, urlprefix, false);		
 
 				Element childElement = null;
 				childElement = outputDoc.createElement(item.name);
@@ -1768,10 +1791,6 @@ public class GetXForm {
 
 				elementStack.push(currentParent);
 				currentParent = childElement;
-
-			} else if (item.end_group) {
-
-				currentParent = elementStack.pop();
 
 			} else { // Question
 
