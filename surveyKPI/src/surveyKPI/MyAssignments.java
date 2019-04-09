@@ -253,7 +253,8 @@ public class MyAssignments extends Application {
 					+ "a.status as assignment_status,"
 					+ "a.id as assignment_id, "
 					+ "t.address as address, "
-					+ "t.guidance as guidance, "
+					+ "t.guidance as guidance,"
+					+ "t.show_dist, "
 					+ "ST_AsText(t.geo_point) as geo_point "
 					+ "from tasks t, assignments a, users u, survey s, user_project up, project p, task_group tg "
 					+ "where t.id = a.task_id "
@@ -324,6 +325,7 @@ public class MyAssignments extends Application {
 				ta.task.repeat = resultSet.getBoolean("repeat");
 				ta.task.address = resultSet.getString("address");
 				ta.task.address = addKeyValuePair(ta.task.address, "guidance", resultSet.getString("guidance"));	// Address stored as json key value pairs
+				ta.task.show_dist = resultSet.getInt("show_dist");
 				ta.assignment.assignment_id = resultSet.getInt("assignment_id");
 				ta.assignment.assignment_status = resultSet.getString("assignment_status");
 

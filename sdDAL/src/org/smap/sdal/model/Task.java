@@ -19,4 +19,5 @@ public class Task {
 	public boolean repeat;
 	public String address;			// Key value pairs representing an unstructured address
 	public String type;				// Retain so as not to break older versions of fieldTask
+	public int show_dist;			// Show distance in meters
 }
