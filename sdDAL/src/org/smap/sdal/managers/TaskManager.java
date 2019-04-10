@@ -380,7 +380,7 @@ public class TaskManager {
 		sql.append(" order by");
 		if(sort != null) {
 			if(sort.equals("scheduled")) {
-				sql.append(" t.schedule_at ").append(dirn).append(", t.id ");
+				sql.append(" t.schedule_at::timestamp(0) ").append(dirn).append(", t.id ");
 			} else {
 				sql.append(" t.id ").append(dirn);
 			}
