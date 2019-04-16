@@ -236,7 +236,6 @@ public class Tasks extends Application {
 	 * Creates a new task
 	 */
 	@POST
-	@Path("/new")
 	@Produces("application/json")
 	public Response getTask(@Context HttpServletRequest request,
 			@QueryParam("tz") String tz,					// Timezone
@@ -263,8 +262,22 @@ public class Tasks extends Application {
 		// Authorisation - Access
 		Connection cResults = null;
 		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
+		
+		tp.form_id = GeneralUtilityMethods.getSurveyId(sd, tp.form_ident);
+		a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
+		
+		if(tp.assignee_ident != null) {
+			tp.assignee = GeneralUtilityMethods.getUserId(sd, tp.assignee_ident);
+			a.isValidUser(sd, request.getRemoteUser(), tp.assignee);
+		}
+
 		// End Authorisation
 		
 		try {
@@ -279,7 +292,7 @@ public class Tasks extends Application {
 			
 			TaskManager tm = new TaskManager(localisation, tz);
 			TaskFeature tf = new TaskFeature();
-			tf.properties = tp;
+			tf.properties = (TaskProperties) tp;
 			
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
