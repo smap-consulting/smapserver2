@@ -245,9 +245,20 @@ public class Tasks extends Application {
 		
 		Response response = null;
 		String connectionString = "surveyKPI - Tasks - add new task";
+		log.info("New task: " + task);
+		
+		if(task == null) {
+			response = Response.serverError().entity("No task has been provided").build();
+			return response;
+		}
 		
 		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		TaskProperties tp = gson.fromJson(task, TaskProperties.class);	
+		
+		if(tp == null) {
+			response = Response.serverError().entity("Error reading task form data: " + task).build();
+			return response;
+		}
 		
 		// Authorisation - Access
 		Connection cResults = null;

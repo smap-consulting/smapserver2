@@ -191,8 +191,8 @@ public class AllAssignments extends Application {
 				 * This would be better implemented as a constraint on the database but existing customers probably have task
 				 *  groups with duplicate names
 				 */
-				String checkUniqeTg = "select count(*) from task_group where name = ? and p_id = ?;";
-				pstmtUniqueTg = sd.prepareStatement(checkUniqeTg);
+				String checkUniqueTg = "select count(*) from task_group where name = ? and p_id = ?;";
+				pstmtUniqueTg = sd.prepareStatement(checkUniqueTg);
 				pstmtUniqueTg.setString(1, as.task_group_name);
 				pstmtUniqueTg.setInt(2, projectId);
 				log.info("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());

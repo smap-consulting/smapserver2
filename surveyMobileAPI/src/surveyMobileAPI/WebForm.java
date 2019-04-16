@@ -380,7 +380,7 @@ public class WebForm extends Application {
 				// 3. Get webform
 				userIdent = ident;
 				isTemporaryUser = true;
-				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, 0, null, false,true);
+				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, null, false,true);
 			}
 		
 		} catch (Exception e) {

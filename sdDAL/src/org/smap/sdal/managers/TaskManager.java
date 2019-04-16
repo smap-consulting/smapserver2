@@ -993,7 +993,8 @@ public class TaskManager {
 						targetSurveyIdent,
 						updateId,
 						autosendEmails,
-						remoteUser);
+						remoteUser,
+						initialDataSource);
 			}
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
@@ -1292,7 +1293,8 @@ public class TaskManager {
 							pId,
 							targetSurveyIdent,
 							autosendEmails,
-							remoteUser);
+							remoteUser,
+							tsd.initial_data_source);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1312,7 +1314,8 @@ public class TaskManager {
 							targetSurveyIdent,
 							null,
 							autosendEmails,
-							remoteUser);
+							remoteUser,
+							tsd.initial_data_source);
 				}
 				
 				if(asd.assignee > 0) {
@@ -1859,6 +1862,7 @@ public class TaskManager {
 				+ "?)";		// show_dist
 		
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+		
 	}
 	/*
 	 * Insert a task
@@ -1904,6 +1908,7 @@ public class TaskManager {
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
+		
 	}
 	
 	/*
@@ -2075,7 +2080,8 @@ public class TaskManager {
 			int pId,
 			String targetSurveyIdent,
 			boolean autosendEmails,
-			String remoteUser) throws Exception {
+			String remoteUser,
+			String initialDataSource) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -2119,7 +2125,8 @@ public class TaskManager {
 						targetSurveyIdent,
 						null,
 						autosendEmails,
-						remoteUser);
+						remoteUser,
+						initialDataSource);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -2158,7 +2165,8 @@ public class TaskManager {
 			String sIdent,
 			String targetInstanceId,
 			boolean autosendEmails,
-			String remoteUser			// For autosend of emails
+			String remoteUser,			// For autosend of emails
+			String initialDataSource
 			) throws Exception {
 
 		String status = "accepted";
@@ -2217,9 +2225,20 @@ public class TaskManager {
 			Action action = new Action("task");
 			action.surveyIdent = sIdent;
 			action.pId = pId;
-			if(targetInstanceId != null && targetInstanceId.trim().length() > 0) {
-				action.datakey = "instanceid";
-				action.datakeyvalue = targetInstanceId;
+			if(initialDataSource != null) {
+				if(initialDataSource.equals("task")) {
+					action.taskKey = taskId;
+				} else if(initialDataSource.equals("survey")) {
+					if(targetInstanceId != null && targetInstanceId.trim().length() > 0) {
+						action.datakey = "instanceid";
+						action.datakeyvalue = targetInstanceId;
+					}
+				}
+			} else {
+				if(targetInstanceId != null && targetInstanceId.trim().length() > 0) {
+					action.datakey = "instanceid";
+					action.datakeyvalue = targetInstanceId;
+				}
 			}
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			for(String email : emailArray) {

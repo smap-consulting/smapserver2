@@ -9,7 +9,6 @@ public class TaskProperties {
 	public String tg_name;
 	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
 	public String name;
-	//public String url;
 	public int form_id;
 	public String action_link;
 	public String form_ident;
@@ -22,7 +21,6 @@ public class TaskProperties {
 	public boolean generate_user;			// Create a temporary user ident
 	public String assignee_name;
 	public String initial_data_source;		// none || survey || task			
-	//public String initial_data_url;			// A link to the data
 	public String update_id;					// Unique identifier of record to be updated
 	public Timestamp from;
 	public Timestamp to;

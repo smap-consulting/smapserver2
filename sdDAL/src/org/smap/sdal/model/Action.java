@@ -24,6 +24,7 @@ public class Action {
 	public int pId;
 	public int managedId;
 	public int prikey;
+	public int taskKey;
 	
 	// Attributes for tasks
 	public String datakey;
