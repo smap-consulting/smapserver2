@@ -456,7 +456,7 @@ public class WebForm extends Application {
 			}
 			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access																			
 			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
-			if(taskKey > 0) {
+			if(!isTemporaryUser && taskKey > 0) {
 				a.isValidTask(sd, request.getRemoteUser(), taskKey);
 			}
 			
