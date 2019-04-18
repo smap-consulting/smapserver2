@@ -7534,9 +7534,15 @@ public class GeneralUtilityMethods {
 		return scheduledDate;
 	}
 	
-	public static void restoreUploadedFiles(String ident) throws InterruptedException, IOException {
+	/*
+	 * Restore files from s3
+	 * type can be:
+	 *  attachments: restore attachments
+	 *  uploadedSurveys: restore the raw upload data
+	 */
+	public static void restoreUploadedFiles(String ident, String type) throws InterruptedException, IOException {
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
-				ident + 	" >> /var/log/tomcat7/survey.log 2>&1"});
+				ident + 	" " + type + " >> /var/log/tomcat7/survey.log 2>&1"});
 		int code = proc.waitFor();
 
 		if(code != 0) {

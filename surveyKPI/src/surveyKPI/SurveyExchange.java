@@ -98,6 +98,10 @@ public class SurveyExchange extends Application {
 			File folder = new File(filePath);
 			folder.mkdir();
 	
+			// restore the media files as probably they have been archived off to S3
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			GeneralUtilityMethods.restoreUploadedFiles(sIdent, "attachments");
+			
 			/*
 			 * Save the XLS export into the folder
 			 */
