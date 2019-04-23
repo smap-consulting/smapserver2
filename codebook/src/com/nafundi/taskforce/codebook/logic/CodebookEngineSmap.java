@@ -19,6 +19,8 @@ import org.javarosa.core.model.FormDef;
 import org.javarosa.core.model.QuestionDef;
 import org.javarosa.core.model.SelectChoice;
 import org.javarosa.core.model.condition.EvaluationContext;
+import org.javarosa.core.model.condition.IFunctionHandler;
+import org.javarosa.core.model.instance.InstanceInitializationFactory;
 import org.javarosa.core.model.instance.TreeElement;
 import org.javarosa.core.services.locale.Localizer;
 import org.javarosa.model.xform.XFormsModule;
@@ -32,6 +34,7 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Vector;
+import java.util.List;
 
 public class CodebookEngineSmap  {
 
@@ -43,7 +46,7 @@ public class CodebookEngineSmap  {
         this.language = language;
     }
 
-    public ArrayList<CodebookEntry> getEntry() {
+    public HashMap<String, ArrayList<CodebookEntry>>  getEntry() {
 
         new XFormsModule().registerModule();
         // needed to override rms property manager
@@ -76,8 +79,31 @@ public class CodebookEngineSmap  {
         }
         // new evaluation context for function handlers
         if (fd != null) {
-            fd.setEvaluationContext(new EvaluationContext(null));
-            fd.initialize(true);
+            // update evaluation context for function handlers
+            fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
+
+                public String getName() {
+                    return "pulldata";
+                }
+
+                public List<Class[]> getPrototypes() {
+                    return new ArrayList<Class[]>();
+                }
+
+                public boolean rawArgs() {
+                    return true;
+                }
+
+                public boolean realTime() {
+                    return false;
+                }
+
+                public Object eval(Object[] args, EvaluationContext ec) {
+                    // no actual implementation here -- just a stub to facilitate validation
+                    return args[0];
+                }});
+
+            fd.initialize(true, new InstanceInitializationFactory());
         } else {
         	System.out.println("FormDef is null");
             return null;
@@ -89,18 +115,26 @@ public class CodebookEngineSmap  {
             fd.setLocalizer(new Localizer());
         }
 
-        if(!language.toLowerCase().equals("default")) {
-        	try {
-        		fd.getLocalizer().setLocale(language);
-        	} catch (Exception e) {
-        		// ignore exceptions to language
-        		// Probably this is an old survey that had default language set to eng
-        	}
+        String[] languages = fd.getLocalizer().getAvailableLocales();
+        for (String language : languages) {
+            System.out.println("Processing " + language + " language...");
+
+            fd.getLocalizer().setLocale(language);
+            ArrayList<CodebookEntry> entry = new ArrayList<CodebookEntry>();
+            populateEntries(fd.getInstance().getRoot(), fd, entry);
+            entries.put(language, entry);
         }
-        ArrayList<CodebookEntry> entry = new ArrayList<CodebookEntry>();
-        populateEntries(fd.getInstance().getRoot(), fd, entry);
-          
-        return entry;
+
+        // if no languages are defined, do the default
+        if (languages.length == 0) {
+            String defaultLanguage = "Default";
+            System.out.println("Processing " + defaultLanguage + " language...");
+            ArrayList<CodebookEntry> entry = new ArrayList<CodebookEntry>();
+            populateEntries(fd.getInstance().getRoot(), fd, entry);
+            entries.put(defaultLanguage, entry);
+        }
+
+        return entries;
 
     }
 
@@ -129,7 +163,7 @@ public class CodebookEngineSmap  {
                 // populate questions and values appropriately
                 switch (qd.getControlType()) {
                     case Constants.CONTROL_INPUT:
-                        switch (t1.dataType) {
+                        switch (t1.getDataType()) {
                             case Constants.DATATYPE_DATE_TIME:
                                 values.append("User selected date and time");
                                 break;
@@ -167,16 +201,13 @@ public class CodebookEngineSmap  {
                         break;
                     case Constants.CONTROL_SELECT_ONE:
                     case Constants.CONTROL_SELECT_MULTI:
-                        Vector<SelectChoice> choices = qd.getChoices();
+                        List<SelectChoice> choices = qd.getChoices();
+                        questions.append("|");
                         if(choices != null) {
-                            questions.append("|");
-                            for (SelectChoice choice : choices) {
-                                values.append(getLocalizedLabel(choice.getTextID(), choice.getLabelInnerText(), localizer) + "\t" + choice.getValue() + "\n");
-                            }
-                        } else {
-                        	System.out.println("Choices is null");
+	                        for (SelectChoice choice : choices) {
+	                            values.append(getLocalizedLabel(choice.getTextID(), choice.getLabelInnerText(), localizer) + "\t" + choice.getValue() + "\n");
+	                        }
                         }
- 
                         break;
                     default:
                         break;
@@ -259,6 +290,9 @@ public class CodebookEngineSmap  {
         return returnText;
     }
 
+    private void publishError(String errorMessage) {
+        System.out.println("Error: Failed to process form because " + errorMessage +".");
+    }
 
 
 }

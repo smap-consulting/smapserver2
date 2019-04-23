@@ -19,6 +19,8 @@ import org.javarosa.core.model.FormDef;
 import org.javarosa.core.model.QuestionDef;
 import org.javarosa.core.model.SelectChoice;
 import org.javarosa.core.model.condition.EvaluationContext;
+import org.javarosa.core.model.condition.IFunctionHandler;
+import org.javarosa.core.model.instance.InstanceInitializationFactory;
 import org.javarosa.core.model.instance.TreeElement;
 import org.javarosa.core.services.locale.Localizer;
 import org.javarosa.model.xform.XFormsModule;
@@ -31,7 +33,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Vector;
+import java.util.List;
+
 
 public class CodebookEngine extends SwingWorker<HashMap<String, ArrayList<CodebookEntry>>, String> {
 
@@ -76,8 +79,31 @@ public class CodebookEngine extends SwingWorker<HashMap<String, ArrayList<Codebo
         }
         // new evaluation context for function handlers
         if (fd != null) {
-            fd.setEvaluationContext(new EvaluationContext(null));
-            fd.initialize(true);
+            // update evaluation context for function handlers
+            fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
+
+                public String getName() {
+                    return "pulldata";
+                }
+
+                public List<Class[]> getPrototypes() {
+                    return new ArrayList<Class[]>();
+                }
+
+                public boolean rawArgs() {
+                    return true;
+                }
+
+                public boolean realTime() {
+                    return false;
+                }
+
+                public Object eval(Object[] args, EvaluationContext ec) {
+                    // no actual implementation here -- just a stub to facilitate validation
+                    return args[0];
+                }});
+
+            fd.initialize(true, new InstanceInitializationFactory());
         } else {
             publishError("FormDef is null");
             return null;
@@ -138,7 +164,7 @@ public class CodebookEngine extends SwingWorker<HashMap<String, ArrayList<Codebo
                 // populate questions and values appropriately
                 switch (qd.getControlType()) {
                     case Constants.CONTROL_INPUT:
-                        switch (t1.dataType) {
+                        switch (t1.getDataType()) {
                             case Constants.DATATYPE_DATE_TIME:
                                 values.append("User selected date and time");
                                 break;
@@ -176,7 +202,7 @@ public class CodebookEngine extends SwingWorker<HashMap<String, ArrayList<Codebo
                         break;
                     case Constants.CONTROL_SELECT_ONE:
                     case Constants.CONTROL_SELECT_MULTI:
-                        Vector<SelectChoice> choices = qd.getChoices();
+                        List<SelectChoice> choices = qd.getChoices();
                         questions.append("|");
                         for (SelectChoice choice : choices) {
                             values.append(getLocalizedLabel(choice.getTextID(), choice.getLabelInnerText(), localizer) + "\t" + choice.getValue() + "\n");
@@ -269,4 +295,3 @@ public class CodebookEngine extends SwingWorker<HashMap<String, ArrayList<Codebo
 
 
 }
-

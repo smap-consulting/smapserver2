@@ -18,13 +18,14 @@ import org.javarosa.core.services.IPropertyManager;
 import org.javarosa.core.services.properties.IPropertyRules;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Vector;
 
 /**
  * Used to return device properties to JavaRosa
- * 
- * @author Yaw Anokwa (yanokwa@gmail.com)
+ *
+ * @author Yaw Anokwa (yanokwa@nafundi.com)
  */
 
 class PropertyManager implements IPropertyManager {
@@ -67,33 +68,31 @@ class PropertyManager implements IPropertyManager {
 
     }
 
-    @Override
+    //@Override
     public Vector<String> getProperty(String propertyName) {
         return null;
     }
 
-    @Override
+   // @Override
     public String getSingularProperty(String propertyName) {
         // for now, all property names are in english...
         return mProperties.get(propertyName.toLowerCase(Locale.ENGLISH));
     }
 
-    @Override
+    //@Override
     public void setProperty(String propertyName, String propertyValue) {
     }
 
-    @Override
-    public void setProperty(String propertyName, @SuppressWarnings("rawtypes")
-    Vector propertyValue) {
-
+    //@Override
+    public void setProperty(String propertyName, List<String> propertyValue) {
     }
 
-    @Override
+    //@Override
     public void addRules(IPropertyRules rules) {
 
     }
 
-    @Override
+    //@Override
     public Vector<IPropertyRules> getRules() {
         return null;
     }

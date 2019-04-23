@@ -14,21 +14,18 @@
 
 package com.nafundi.taskforce.codebook.batch;
 
-import com.nafundi.taskforce.codebook.logic.CodebookEngine;
 import com.nafundi.taskforce.codebook.logic.CodebookEngineSmap;
 import com.nafundi.taskforce.codebook.logic.CodebookEntry;
-import com.nafundi.taskforce.codebook.logic.CodebookMaker;
 import com.nafundi.taskforce.codebook.logic.CodebookMakerSmap;
 
 import javax.swing.*;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 
 public class Main {
 
-    private static final String APP_NAME = "Codebook v1.1 - Smap 0.1";
+    private static final String APP_NAME = "Codebook v1.1 - Smap 19.4";
     private JTextArea statusLog;
 
     private Main(String filePath, String language) {
@@ -65,7 +62,8 @@ public class Main {
         String outputFolderpath = inputFile.getParentFile().getAbsolutePath();
 
         CodebookEngineSmap ce = new CodebookEngineSmap(inputFile.getAbsolutePath(), language);
-        ArrayList<CodebookEntry> entry = ce.getEntry();
+        HashMap<String, ArrayList<CodebookEntry>> entries = ce.getEntry();
+        ArrayList<CodebookEntry> entry = entries.get(language);
 
         CodebookMakerSmap maker = new CodebookMakerSmap(entry, language,
                 inputFilename, outputFolderpath); 
