@@ -33,6 +33,8 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.openxml4j.opc.PackageAccess;
 import org.smap.model.FormDesc;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -60,6 +62,7 @@ import com.google.gson.reflect.TypeToken;
 import taskModel.TaskAddress;
 import utilities.ExchangeManager;
 import utilities.QuestionInfo;
+import utilities.XLSXEventParser;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -1104,7 +1107,9 @@ public class AllAssignments extends Application {
 						isCSV = true;
 					}
 
-					int count = xm.loadFormDataFromFile(results, 
+					int count = 0;
+					if(isCSV) {
+						count = xm.loadFormDataFromCsvFile(results, 
 							pstmtGetCol, 
 							pstmtGetColGS,
 							pstmtGetChoices, 
@@ -1112,7 +1117,6 @@ public class AllAssignments extends Application {
 							formDesc, 
 							sIdent,
 							mediaFiles,
-							isCSV,
 							responseMsg,
 							basePath,
 							localisation,
@@ -1120,6 +1124,19 @@ public class AllAssignments extends Application {
 							uploadedFileName,
 							importTime,
 							request.getServerName());
+					} else {
+						 try (OPCPackage p = OPCPackage.open(f.getPath(), PackageAccess.READ)) {
+					            XLSXEventParser ep = new XLSXEventParser(p, -1);
+					            count = ep.processSheet(results, 
+					            		pstmtGetCol,
+					            		pstmtGetChoices,
+					            		pstmtGetColGS,
+					            		responseMsg,
+					            		formDesc,
+					            		preloads,
+					            		xm);				           
+					        }
+					}
 
 					if(formIdx == 0) {
 						recordsWritten = count;
@@ -1572,12 +1589,14 @@ public class AllAssignments extends Application {
 					String formName = filename.substring(0, idx);
 					formFileMap.put(formName, file);
 				} else {
-					FileInputStream fis = new FileInputStream(file);
-					ArrayList<String> formNames = xm.getFormsFromXLSX(fis);
-					for(int j = 0; j < formNames.size(); j++) {
-						formFileMap.put(formNames.get(j), file);
-					}
-					fis.close();
+					// The package open is instantaneous, as it should be.
+			        try (OPCPackage p = OPCPackage.open(file.getPath(), PackageAccess.READ)) {
+			            XLSXEventParser ep = new XLSXEventParser(p, -1);
+			            ArrayList<String> formNames = ep.getSheetNames();
+			            for(int j = 0; j < formNames.size(); j++) {
+							formFileMap.put(formNames.get(j), file);
+						}
+			        }
 				}
 			}
 		}
