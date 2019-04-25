@@ -21,11 +21,14 @@ import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.util.CellAddress;
 import org.apache.poi.ss.util.CellReference;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -44,7 +47,7 @@ public class XLSXEventParser {
 	/**
 	 * Uses the XSSF Event SAX helpers to do most of the work
 	 *  of parsing the Sheet XML, and outputs the contents
-	 *  as a (basic) CSV.
+	 *  as records in the database
 	 */
 	private class ProcessSheetHandler implements SheetContentsHandler {
 
@@ -62,6 +65,13 @@ public class XLSXEventParser {
 		FormDesc form;
 		ArrayList<MetaItem> preloads;
 		ExchangeManager em;
+		String importSource;
+		Timestamp importTime;
+		String serverName;
+		String basePath;
+		String sIdent;
+		HashMap<String, File> mediaFiles;
+		SimpleDateFormat sdf;
 
 		ProcessSheetHandler(Connection results,
 				FormDesc form,
@@ -70,7 +80,14 @@ public class XLSXEventParser {
 				PreparedStatement pstmtGetColGS,
 				ArrayList<String> responseMsg,
 				ArrayList<MetaItem> preloads,
-				ExchangeManager em) {
+				ExchangeManager em,
+				String importSource,
+				Timestamp importTime,
+				String serverName,
+				String basePath,
+				String sIdent,
+				HashMap<String, File> mediaFiles,
+				SimpleDateFormat sdf) {
 
 			this.results = results;
 			this.pstmtGetCol = pstmtGetCol;
@@ -80,6 +97,13 @@ public class XLSXEventParser {
 			this.form = form;
 			this.preloads = preloads;
 			this.em = em;
+			this.importSource = importSource;
+			this.importTime = importTime;
+			this.serverName = serverName;
+			this.basePath = basePath;
+			this.sIdent = sIdent;
+			this.mediaFiles = mediaFiles;
+			this.sdf = sdf;
 		}
 
 		@Override
@@ -110,14 +134,26 @@ public class XLSXEventParser {
 					responseMsg.add(e.getMessage());
 					e.printStackTrace();
 				}
+			} else {
+				try {
+					recordsWritten += em.processRecord(eh, 
+							line, 
+							form, 
+							importSource, 
+							importTime, 
+							responseMsg,
+							serverName,
+							basePath,
+							sIdent,
+							mediaFiles,
+							sdf);
+				} catch (SQLException e) {
+					responseMsg.add(e.getMessage());
+					e.printStackTrace();
+				}
 			}
 
 			isHeader = false;
-			for(int i = 0; i < values.size(); i++) {
-				System.out.print(values.get(i));
-				System.out.print(", ");
-			}
-			System.out.println("");
 		}
 
 		@Override
@@ -166,6 +202,7 @@ public class XLSXEventParser {
 	 */
 	private final int minColumns;
 	private final OPCPackage xlsxPackage;
+	private int recordsWritten;
 
 	/**
 	 * Creates a new XLSX -> CSV examples
@@ -218,14 +255,21 @@ public class XLSXEventParser {
 			ArrayList<String> responseMsg,
 			FormDesc form,
 			ArrayList<MetaItem> preloads,
-			ExchangeManager em) throws IOException, OpenXML4JException, SAXException, SQLException {
+			ExchangeManager em,
+			String importSource,
+			Timestamp importTime,
+			String serverName,
+			String basePath,
+			String sIdent,
+			HashMap<String, File> mediaFiles,
+			SimpleDateFormat sdf) throws IOException, OpenXML4JException, SAXException, SQLException {
 
 		ReadOnlySharedStringsTable strings = new ReadOnlySharedStringsTable(this.xlsxPackage);
 		XSSFReader xssfReader = new XSSFReader(this.xlsxPackage);
 		StylesTable styles = xssfReader.getStylesTable();
 		XSSFReader.SheetIterator iter = (XSSFReader.SheetIterator) xssfReader.getSheetsData();
 
-		int count = 0;
+		recordsWritten = 0;
 
 		form.keyMap = new HashMap<String, String> ();
 		pstmtGetCol.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
@@ -243,7 +287,15 @@ public class XLSXEventParser {
 						ContentHandler handler = new XSSFSheetXMLHandler(
 								styles, null, strings, 
 								new ProcessSheetHandler(results, form,
-										pstmtGetCol, pstmtGetChoices, pstmtGetColGS, responseMsg, preloads, em), 
+										pstmtGetCol, pstmtGetChoices, pstmtGetColGS, responseMsg, 
+										preloads, em,
+										importSource,
+										importTime,
+										serverName,
+										basePath,
+										sIdent,
+										mediaFiles,
+										sdf), 
 								formatter, false);
 						sheetParser.setContentHandler(handler);
 						sheetParser.parse(sheetSource);
@@ -255,7 +307,7 @@ public class XLSXEventParser {
 
 		}
 
-		return count;
+		return recordsWritten;
 	}
 
 

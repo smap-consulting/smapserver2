@@ -70,6 +70,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
@@ -1095,6 +1096,7 @@ public class AllAssignments extends Application {
 			 *   Identify forms
 			 *   Identify columns in forms
 			 */
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 			for(int formIdx = 0; formIdx < formList.size(); formIdx++) {
 
 				FormDesc formDesc = formList.get(formIdx);
@@ -1123,7 +1125,8 @@ public class AllAssignments extends Application {
 							preloads,
 							uploadedFileName,
 							importTime,
-							request.getServerName());
+							request.getServerName(),
+							sdf);
 					} else {
 						 try (OPCPackage p = OPCPackage.open(f.getPath(), PackageAccess.READ)) {
 					            XLSXEventParser ep = new XLSXEventParser(p, -1);
@@ -1134,7 +1137,14 @@ public class AllAssignments extends Application {
 					            		responseMsg,
 					            		formDesc,
 					            		preloads,
-					            		xm);				           
+					            		xm,
+					            		importSource,
+					            		importTime,
+					            		request.getServerName(),
+					            		basePath,
+					            		sIdent,
+					            		mediaFiles,
+					            		sdf);				           
 					        }
 					}
 

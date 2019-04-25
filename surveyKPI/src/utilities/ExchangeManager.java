@@ -371,14 +371,14 @@ public class ExchangeManager {
 			ArrayList<MetaItem> preloads,
 			String importSource,
 			Timestamp importTime,
-			String serverName
+			String serverName,
+			SimpleDateFormat sdf
 			) throws Exception {
 		
 		CSVReader reader = null;
 		XlsReader xlsReader = null;
 		//FileInputStream fis = null;
 		
-		SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		int recordsWritten = 0;
 		
 		PreparedStatement pstmtDeleteExisting = null;
@@ -428,211 +428,18 @@ public class ExchangeManager {
 							break;
 						}
 						
-						int index = 1;
-						String prikey = null;
-						boolean writeRecord = true;
-						eh.pstmtInsert.setString(index++, importSource);
-						eh.pstmtInsert.setTimestamp(index++, importTime);
-						if(form.parent == 0) {
-							String instanceId = null;
-							if(eh.instanceIdColumn >= 0) {
-								instanceId = line[eh.instanceIdColumn].trim();
-							}
-							if(instanceId == null || instanceId.trim().length() == 0) {
-								instanceId = "uuid:" + String.valueOf(UUID.randomUUID());
-							}
-							eh.pstmtInsert.setString(index++, instanceId);
-						} 
-						
-						for(int i = 0; i < eh.columns.size(); i++) {
-							ExchangeColumn col = eh.columns.get(i);
-							
-							// ignore empty columns at end of line
-							if(col.index >= line.length) {
-								
-								if(col.type.equals("int")) {
-									eh.pstmtInsert.setInt(index++, 0);
-								} else if(col.type.equals("decimal")) {
-									eh.pstmtInsert.setDouble(index++, 0.0);
-								} else if(col.type.equals("date")) {
-									eh.pstmtInsert.setDate(index++, null);
-								} else if(col.type.equals("dateTime")) {
-									eh.pstmtInsert.setTimestamp(index++, null);
-								} else if(col.type.equals("time")) {
-									eh.pstmtInsert.setTime(index++, null);
-								} else {
-									eh.pstmtInsert.setString(index++, null);
-								}
-								continue;
-							}
-							
-							String value = line[col.index].trim();	
-	
-							if(col.name.equals("prikey") || col.name.equals("metainstanceid")) {
-								prikey = value;
-							} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
-								if(form.parent == 0) {
-									eh.pstmtInsert.setInt(index++, 0);
-								} else {
-									String parkey = value;
-									String newParKey = form.parentForm.keyMap.get(parkey);
-									int iParKey = -1;
-									try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
-									if(newParKey == null || iParKey == -1) {
-										responseMsg.add(
-												localisation.getString("pk_nf") +
-												" " + parkey + " " +
-												localisation.getString("pk_if") +
-												" " + form.name);
-										writeRecord = false;
-									} else {
-										eh.pstmtInsert.setInt(index++, iParKey);
-									}
-								}
-							} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
-								
-								// If the data references a media file then process the attachment
-								File srcPathFile = null;
-								String srcUrl = null;
-								if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
-									
-									// If the link is to a file on the same server (or this is localhost) do not duplicate the media
-									value = value.trim();
-									String serverHttpsUrl = "https://" + serverName + "/";
-									String serverHttpUrl = "http://" + serverName + "/";
-									if(serverName.equals("localhost") || value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
-										int idx = value.indexOf(serverName) + serverName.length();
-										value = value.substring(idx);
-									} else {
-										// Get the attachment from the link so it can be loaded
-										srcUrl = value;
-										value = UUID.randomUUID().toString();	// Create a random name for the initial download
-									}
-								} else {
-									// Attachment should have been loaded with the zip file
-									srcPathFile = mediaFiles.get(value);
-								}
-								
-								// Copy the attachments to the target location and get the new name
-								if(srcPathFile != null || srcUrl != null) {
-									value = GeneralUtilityMethods.createAttachments(
-										value, 
-										srcPathFile, 
-										basePath, 
-										sIdent,
-										srcUrl);
-								}
-								if(value != null && value.trim().length() == 0) {
-									value = null;
-								}
-								eh.pstmtInsert.setString(index++, value);
-							} else if(col.type.equals("int")) {
-								int iVal = 0;
-								if(notEmpty(value)) {
-									try { iVal = Integer.parseInt(value);} catch (Exception e) {}
-								}
-								eh.pstmtInsert.setInt(index++, iVal);
-							} else if(col.type.equals("decimal") || col.type.equals("range")) {
-								double dVal = 0.0;
-								if(notEmpty(value)) {
-									try { dVal = Double.parseDouble(value);} catch (Exception e) {}
-								}
-								eh.pstmtInsert.setDouble(index++, dVal);
-							} else if(col.type.equals("boolean")) {
-								boolean bVal = false;
-								if(notEmpty(value)) {
-									try { bVal = Boolean.parseBoolean(value);} catch (Exception e) {}
-								}
-								eh.pstmtInsert.setBoolean(index++, bVal);
-							} else if(col.type.equals("date")) {
-								Date dateVal = null;
-								if(notEmpty(value)) {
-									try {
-										dateVal = Date.valueOf(value); 
-										
-									} catch (Exception e) {
-										try {
-											java.util.Date uDate = sdf.parse(value);		
-											dateVal = new Date(uDate.getTime());
-										} catch (Exception ex) {
-											log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
-										}
-									}
-								}
-								eh.pstmtInsert.setDate(index++, dateVal);
-							} else if(col.type.equals("dateTime")) {
-								Timestamp tsVal = null;
-								if(notEmpty(value)) {
-									try {
-										java.util.Date uDate = sdf.parse(value);
-										tsVal = new Timestamp(uDate.getTime());
-									} catch (Exception e) {
-										try {
-											java.util.Date uDate = sdf.parse(value);		
-											tsVal = new Timestamp(uDate.getTime());
-										} catch (Exception ex) {
-											log.info("Error parsing datetime: " + value + " : " + e.getMessage());
-										}
-									}
-								}
-								
-								eh.pstmtInsert.setTimestamp(index++, tsVal);
-							} else if(col.type.equals("time")) {
-								
-								int hour = 0;
-								int minute = 0;
-								int second = 0;
-								if(notEmpty(value)) {
-									try {
-										String [] tVals = value.split(":");
-										if(tVals.length > 0) {
-											hour = Integer.parseInt(tVals[0]);
-										}
-										if(tVals.length > 1) {
-											minute = Integer.parseInt(tVals[1]);
-										}
-										if(tVals.length > 2) {
-											second = Integer.parseInt(tVals[2]);
-										}
-									} catch (Exception e) {
-										log.info("Error parsing datetime: " + value + " : " + e.getMessage());
-									}
-								}
-								
-								Time tVal = new Time(hour, minute, second);
-								eh.pstmtInsert.setTime(index++, tVal);
-							} else {
-								eh.pstmtInsert.setString(index++, value);
-							}
-							
-						}
-						
-						// Add the geopoint value if it exists
-						if(eh.hasGeopoint) {
-							String lon = line[eh.lonIndex];
-							String lat = line[eh.latIndex];
-							if(lon == null || lon.length() == 0) {
-								lon = "0.0";
-							}
-							if(lat == null || lat.length() == 0) {
-								lat = "0.0";
-							}
-							eh.pstmtInsert.setString(index++, lon);
-							eh.pstmtInsert.setString(index++, lat);
+						recordsWritten += processRecord(eh, 
+								line, 
+								form, 
+								importSource, 
+								importTime, 
+								responseMsg,
+								serverName,
+								basePath,
+								sIdent,
+								mediaFiles,
+								sdf);
 
-						}
-						
-						if(writeRecord) {
-							if(recordsWritten == 0) {
-								log.info("Inserting first record: " + eh.pstmtInsert.toString());
-							}
-							eh.pstmtInsert.executeUpdate();
-							ResultSet rs = eh.pstmtInsert.getGeneratedKeys();
-							if(rs.next()) {
-								form.keyMap.put(prikey, rs.getString(1));
-							}
-							recordsWritten++;
-						}
 												
 				    }
 					results.commit();
@@ -1314,4 +1121,225 @@ public class ExchangeManager {
 		}
 	}
 
+	public int processRecord(ExchangeHeader eh, 
+			String [] line, 
+			FormDesc form,
+			String importSource,
+			Timestamp importTime,
+			ArrayList<String> responseMsg,
+			String serverName,
+			String basePath,
+			String sIdent,
+			HashMap<String, File> mediaFiles,
+			SimpleDateFormat sdf) throws SQLException {
+		
+		int index = 1;
+		int recordsWritten = 0;
+		String prikey = null;
+		boolean writeRecord = true;
+		eh.pstmtInsert.setString(index++, importSource);
+		eh.pstmtInsert.setTimestamp(index++, importTime);
+		if(form.parent == 0) {
+			String instanceId = null;
+			if(eh.instanceIdColumn >= 0) {
+				instanceId = line[eh.instanceIdColumn].trim();
+			}
+			if(instanceId == null || instanceId.trim().length() == 0) {
+				instanceId = "uuid:" + String.valueOf(UUID.randomUUID());
+			}
+			eh.pstmtInsert.setString(index++, instanceId);
+		} 
+		
+		for(int i = 0; i < eh.columns.size(); i++) {
+			ExchangeColumn col = eh.columns.get(i);
+			
+			// ignore empty columns at end of line
+			if(col.index >= line.length) {
+				
+				if(col.type.equals("int")) {
+					eh.pstmtInsert.setInt(index++, 0);
+				} else if(col.type.equals("decimal")) {
+					eh.pstmtInsert.setDouble(index++, 0.0);
+				} else if(col.type.equals("date")) {
+					eh.pstmtInsert.setDate(index++, null);
+				} else if(col.type.equals("dateTime")) {
+					eh.pstmtInsert.setTimestamp(index++, null);
+				} else if(col.type.equals("time")) {
+					eh.pstmtInsert.setTime(index++, null);
+				} else {
+					eh.pstmtInsert.setString(index++, null);
+				}
+				continue;
+			}
+			
+			String value = line[col.index].trim();	
+
+			if(col.name.equals("prikey") || col.name.equals("metainstanceid")) {
+				prikey = value;
+			} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
+				if(form.parent == 0) {
+					eh.pstmtInsert.setInt(index++, 0);
+				} else {
+					String parkey = value;
+					String newParKey = form.parentForm.keyMap.get(parkey);
+					int iParKey = -1;
+					try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
+					if(newParKey == null || iParKey == -1) {
+						responseMsg.add(
+								localisation.getString("pk_nf") +
+								" " + parkey + " " +
+								localisation.getString("pk_if") +
+								" " + form.name);
+						writeRecord = false;
+					} else {
+						eh.pstmtInsert.setInt(index++, iParKey);
+					}
+				}
+			} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
+				
+				// If the data references a media file then process the attachment
+				File srcPathFile = null;
+				String srcUrl = null;
+				if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
+					
+					// If the link is to a file on the same server (or this is localhost) do not duplicate the media
+					value = value.trim();
+					String serverHttpsUrl = "https://" + serverName + "/";
+					String serverHttpUrl = "http://" + serverName + "/";
+					if(serverName.equals("localhost") || value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
+						int idx = value.indexOf(serverName) + serverName.length();
+						value = value.substring(idx);
+					} else {
+						// Get the attachment from the link so it can be loaded
+						srcUrl = value;
+						value = UUID.randomUUID().toString();	// Create a random name for the initial download
+					}
+				} else {
+					// Attachment should have been loaded with the zip file
+					srcPathFile = mediaFiles.get(value);
+				}
+				
+				// Copy the attachments to the target location and get the new name
+				if(srcPathFile != null || srcUrl != null) {
+					value = GeneralUtilityMethods.createAttachments(
+						value, 
+						srcPathFile, 
+						basePath, 
+						sIdent,
+						srcUrl);
+				}
+				if(value != null && value.trim().length() == 0) {
+					value = null;
+				}
+				eh.pstmtInsert.setString(index++, value);
+			} else if(col.type.equals("int")) {
+				int iVal = 0;
+				if(notEmpty(value)) {
+					try { iVal = Integer.parseInt(value);} catch (Exception e) {}
+				}
+				eh.pstmtInsert.setInt(index++, iVal);
+			} else if(col.type.equals("decimal") || col.type.equals("range")) {
+				double dVal = 0.0;
+				if(notEmpty(value)) {
+					try { dVal = Double.parseDouble(value);} catch (Exception e) {}
+				}
+				eh.pstmtInsert.setDouble(index++, dVal);
+			} else if(col.type.equals("boolean")) {
+				boolean bVal = false;
+				if(notEmpty(value)) {
+					try { bVal = Boolean.parseBoolean(value);} catch (Exception e) {}
+				}
+				eh.pstmtInsert.setBoolean(index++, bVal);
+			} else if(col.type.equals("date")) {
+				Date dateVal = null;
+				if(notEmpty(value)) {
+					try {
+						dateVal = Date.valueOf(value); 
+						
+					} catch (Exception e) {
+						try {
+							java.util.Date uDate = sdf.parse(value);		
+							dateVal = new Date(uDate.getTime());
+						} catch (Exception ex) {
+							log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+						}
+					}
+				}
+				eh.pstmtInsert.setDate(index++, dateVal);
+			} else if(col.type.equals("dateTime")) {
+				Timestamp tsVal = null;
+				if(notEmpty(value)) {
+					try {
+						java.util.Date uDate = sdf.parse(value);
+						tsVal = new Timestamp(uDate.getTime());
+					} catch (Exception e) {
+						try {
+							java.util.Date uDate = sdf.parse(value);		
+							tsVal = new Timestamp(uDate.getTime());
+						} catch (Exception ex) {
+							log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+						}
+					}
+				}
+				
+				eh.pstmtInsert.setTimestamp(index++, tsVal);
+			} else if(col.type.equals("time")) {
+				
+				int hour = 0;
+				int minute = 0;
+				int second = 0;
+				if(notEmpty(value)) {
+					try {
+						String [] tVals = value.split(":");
+						if(tVals.length > 0) {
+							hour = Integer.parseInt(tVals[0]);
+						}
+						if(tVals.length > 1) {
+							minute = Integer.parseInt(tVals[1]);
+						}
+						if(tVals.length > 2) {
+							second = Integer.parseInt(tVals[2]);
+						}
+					} catch (Exception e) {
+						log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+					}
+				}
+				
+				Time tVal = new Time(hour, minute, second);
+				eh.pstmtInsert.setTime(index++, tVal);
+			} else {
+				eh.pstmtInsert.setString(index++, value);
+			}
+			
+		}
+		
+		// Add the geopoint value if it exists
+		if(eh.hasGeopoint) {
+			String lon = line[eh.lonIndex];
+			String lat = line[eh.latIndex];
+			if(lon == null || lon.length() == 0) {
+				lon = "0.0";
+			}
+			if(lat == null || lat.length() == 0) {
+				lat = "0.0";
+			}
+			eh.pstmtInsert.setString(index++, lon);
+			eh.pstmtInsert.setString(index++, lat);
+
+		}
+		
+		if(writeRecord) {
+			if(recordsWritten == 0) {
+				log.info("Inserting first record: " + eh.pstmtInsert.toString());
+			}
+			eh.pstmtInsert.executeUpdate();
+			ResultSet rs = eh.pstmtInsert.getGeneratedKeys();
+			if(rs.next()) {
+				form.keyMap.put(prikey, rs.getString(1));
+			}
+			recordsWritten++;
+		}
+		
+		return recordsWritten;
+	}
 }
