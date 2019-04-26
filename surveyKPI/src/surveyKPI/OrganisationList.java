@@ -406,7 +406,7 @@ public class OrganisationList extends Application {
 		// End Authorisation
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
-				+ "ft_specify_instancename, ft_admin_menu,"
+				+ "ft_specify_instancename, ft_admin_menu, ft_exit_track_menu, "
 				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation,"
 				+ "ft_navigation,"
 				+ "ft_pw_policy "
@@ -430,13 +430,14 @@ public class OrganisationList extends Application {
 				d.ft_odk_style_menus = rs.getBoolean(3);
 				d.ft_specify_instancename = rs.getBoolean(4);
 				d.ft_admin_menu = rs.getBoolean(5);
-				d.ft_review_final = rs.getBoolean(6);
-				d.ft_send = rs.getString(7);
-				d.ft_number_tasks = rs.getInt(8);
-				d.ft_image_size = rs.getString(9);
-				d.ft_backward_navigation = rs.getString(10);
-				d.ft_navigation = rs.getString(11);
-				d.ft_pw_policy = rs.getInt(12);
+				d.ft_exit_track_menu = rs.getBoolean(6);
+				d.ft_review_final = rs.getBoolean(7);
+				d.ft_send = rs.getString(8);
+				d.ft_number_tasks = rs.getInt(9);
+				d.ft_image_size = rs.getString(10);
+				d.ft_backward_navigation = rs.getString(11);
+				d.ft_navigation = rs.getString(12);
+				d.ft_pw_policy = rs.getInt(13);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -558,6 +559,7 @@ public class OrganisationList extends Application {
 				+ " ft_odk_style_menus = ?, "
 				+ " ft_specify_instancename = ?, "
 				+ " ft_admin_menu = ?, "
+				+ " ft_exit_track_menu = ?, "
 				+ " ft_review_final = ?, "
 				+ " ft_send = ?, "
 				+ " ft_number_tasks = ?, "
@@ -580,15 +582,16 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
 			pstmt.setBoolean(4, d.ft_specify_instancename);
 			pstmt.setBoolean(5, d.ft_admin_menu);
-			pstmt.setBoolean(6, d.ft_review_final);
-			pstmt.setString(7, d.ft_send);
-			pstmt.setInt(8, d.ft_number_tasks);
-			pstmt.setString(9, d.ft_image_size);
-			pstmt.setString(10, d.ft_backward_navigation);
-			pstmt.setString(11, d.ft_navigation);
-			pstmt.setInt(12, d.ft_pw_policy);
-			pstmt.setString(13, request.getRemoteUser());
+			pstmt.setBoolean(6, d.ft_exit_track_menu);
+			pstmt.setBoolean(7, d.ft_review_final);
+			pstmt.setString(8, d.ft_send);
+			pstmt.setInt(9, d.ft_number_tasks);
+			pstmt.setString(10, d.ft_image_size);
+			pstmt.setString(11, d.ft_backward_navigation);
+			pstmt.setString(12, d.ft_navigation);
+			pstmt.setInt(13, d.ft_pw_policy);
 			pstmt.setString(14, request.getRemoteUser());
+			pstmt.setString(15, request.getRemoteUser());
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

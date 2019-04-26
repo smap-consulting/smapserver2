@@ -9,6 +9,7 @@ public class FieldTaskSettings {
 	public boolean ft_odk_style_menus;
 	public boolean ft_specify_instancename;
 	public boolean ft_admin_menu;
+	public boolean ft_exit_track_menu;
 	public boolean ft_review_final;
 	public boolean ft_send_wifi;			// deprecated
 	public boolean ft_send_wifi_cell;	// deprecated
