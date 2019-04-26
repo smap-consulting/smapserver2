@@ -1129,7 +1129,7 @@ public class AllAssignments extends Application {
 							sdf);
 					} else {
 						 try (OPCPackage p = OPCPackage.open(f.getPath(), PackageAccess.READ)) {
-					            XLSXEventParser ep = new XLSXEventParser(p, -1);
+					            XLSXEventParser ep = new XLSXEventParser(p);
 					            count = ep.processSheet(results, 
 					            		pstmtGetCol,
 					            		pstmtGetChoices,
@@ -1601,7 +1601,7 @@ public class AllAssignments extends Application {
 				} else {
 					// The package open is instantaneous, as it should be.
 			        try (OPCPackage p = OPCPackage.open(file.getPath(), PackageAccess.READ)) {
-			            XLSXEventParser ep = new XLSXEventParser(p, -1);
+			            XLSXEventParser ep = new XLSXEventParser(p);
 			            ArrayList<String> formNames = ep.getSheetNames();
 			            for(int j = 0; j < formNames.size(); j++) {
 							formFileMap.put(formNames.get(j), file);

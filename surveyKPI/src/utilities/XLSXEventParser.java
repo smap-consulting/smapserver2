@@ -2,8 +2,6 @@ package utilities;
 
 import org.apache.poi.xssf.eventusermodel.ReadOnlySharedStringsTable;
 import org.apache.poi.xssf.eventusermodel.XSSFReader;
-import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler;
-import org.apache.poi.xssf.eventusermodel.XSSFSheetXMLHandler.SheetContentsHandler;
 import org.apache.poi.ooxml.util.SAXHelper;
 import org.apache.poi.xssf.model.StylesTable;
 import org.apache.poi.xssf.usermodel.XSSFComment;
@@ -13,8 +11,9 @@ import org.xml.sax.ContentHandler;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
-
 import model.ExchangeHeader;
+import utilities.SmapSheetXMLHandler.SheetContentsHandler;
+import utilities.SmapSheetXMLHandler.xssfDataType;
 
 import org.apache.poi.ss.usermodel.DataFormatter;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -30,7 +29,6 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -56,6 +54,7 @@ public class XLSXEventParser {
 		private int currentCol = -1;
 		private ArrayList<String> values = null;
 		ExchangeHeader eh = new ExchangeHeader();
+		String cellType;
 
 		Connection results;
 		PreparedStatement pstmtGetCol;
@@ -119,51 +118,56 @@ public class XLSXEventParser {
 
 			String[] line = values.toArray(new String[values.size()]);
 
-			if(isHeader) {
-				try {
-					em.processHeader(results, 
-							pstmtGetCol, 
-							pstmtGetChoices,
-							pstmtGetColGS,
-							responseMsg,
-							preloads,
-							eh, 
-							line, 
-							form);
-				} catch (SQLException e) {
-					responseMsg.add(e.getMessage());
-					e.printStackTrace();
-				}
-			} else {
-				try {
-					recordsWritten += em.processRecord(eh, 
-							line, 
-							form, 
-							importSource, 
-							importTime, 
-							responseMsg,
-							serverName,
-							basePath,
-							sIdent,
-							mediaFiles,
-							sdf);
-				} catch (SQLException e) {
-					responseMsg.add(e.getMessage());
-					e.printStackTrace();
+			if(line.length > 0) {
+				if(isHeader) {
+					try {
+						em.processHeader(results, 
+								pstmtGetCol, 
+								pstmtGetChoices,
+								pstmtGetColGS,
+								responseMsg,
+								preloads,
+								eh, 
+								line, 
+								form);
+						isHeader = false;
+					} catch (SQLException e) {
+						responseMsg.add(e.getMessage());
+						e.printStackTrace();
+					}
+				} else {
+					try {
+						recordsWritten += em.processRecord(eh, 
+								line, 
+								form, 
+								importSource, 
+								importTime, 
+								responseMsg,
+								serverName,
+								basePath,
+								sIdent,
+								mediaFiles,
+								sdf);
+					} catch (SQLException e) {
+						responseMsg.add(e.getMessage());
+						e.printStackTrace();
+					}
 				}
 			}
 
-			isHeader = false;
 		}
 
 		@Override
-		public void cell(String cellReference, String value, XSSFComment comment) {
+		public void cell(String cellReference, String value, XSSFComment comment, 
+				xssfDataType nextDataType,
+				String formatString) {
 
 			// gracefully handle missing CellRef here in a similar way as XSSFCell does
 			if(cellReference == null) {
 				cellReference = new CellAddress(currentRow, currentCol).formatAsString();
 			}
 
+			System.out.println("-------------------- " + nextDataType.name() + " : " + value);
 
 			// Did we miss any cells?
 			int thisCol = (new CellReference(cellReference)).getCol();
@@ -171,27 +175,7 @@ public class XLSXEventParser {
 			for (int i = 0; i <missedCols; i++) {
 				values.add("");
 			}
-			currentCol = thisCol;
-
-			/*
-			 * TODO - Need to handle differently formatted dates
-            if(!isHeader) {
-            		switch (cellReference.getCellType()) {
-				case NUMERIC: 
-        				if(DateUtil.isCellDateFormatted(cell)) {
-        					try {
-            					Date dv = cell.getDateCellValue();
-							value = sdf.format(dv);
-						} catch (Exception e) {
-
-						}
-        				} 
-        				break;
-        			default:
-        				break;
-        			}
-            }
-			 */
+			currentCol = thisCol;			 
 			values.add(value);
 
 		}
@@ -200,7 +184,6 @@ public class XLSXEventParser {
 	/**
 	 * Number of columns to read starting with leftmost
 	 */
-	private final int minColumns;
 	private final OPCPackage xlsxPackage;
 	private int recordsWritten;
 
@@ -209,11 +192,9 @@ public class XLSXEventParser {
 	 *
 	 * @param pkg        The XLSX package to process
 	 * @param output     The PrintStream to output the CSV to
-	 * @param minColumns The minimum number of columns to output, or -1 for no minimum
 	 */
-	public XLSXEventParser(OPCPackage pkg, int minColumns) {
+	public XLSXEventParser(OPCPackage pkg) {
 		this.xlsxPackage = pkg;
-		this.minColumns = minColumns;
 	}
 
 	/**
@@ -284,9 +265,9 @@ public class XLSXEventParser {
 					InputSource sheetSource = new InputSource(stream);
 					try {
 						XMLReader sheetParser = SAXHelper.newXMLReader();
-						ContentHandler handler = new XSSFSheetXMLHandler(
+						ContentHandler handler = new SmapSheetXMLHandler(
 								styles, null, strings, 
-								new ProcessSheetHandler(results, form,
+								(SheetContentsHandler) new ProcessSheetHandler(results, form,
 										pstmtGetCol, pstmtGetChoices, pstmtGetColGS, responseMsg, 
 										preloads, em,
 										importSource,
@@ -296,7 +277,9 @@ public class XLSXEventParser {
 										sIdent,
 										mediaFiles,
 										sdf), 
-								formatter, false);
+								formatter, 
+								false,
+								sdf);
 						sheetParser.setContentHandler(handler);
 						sheetParser.parse(sheetSource);
 					} catch(ParserConfigurationException e) {
