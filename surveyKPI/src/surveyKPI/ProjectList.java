@@ -49,10 +49,8 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -74,54 +72,26 @@ public class ProjectList extends Application {
 	public Response getProjects(@Context HttpServletRequest request) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-ProjectList";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ProjectList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		/*
-		 * 
-		 */	
-		PreparedStatement pstmt = null;
-		ArrayList<Project> projects = new ArrayList<Project> ();
+		ArrayList<Project> projects = null;
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			ResultSet resultSet = null;
-			
-			if(o_id > 0) {	
+			ProjectManager pm = new ProjectManager();
+			projects = pm.getProjects(sd, request.getRemoteUser(), 
+					true	,	// always get all projects in organisation
+					false, 	// Don't get links
+					null		// Dn't need url prefix
+					);
 				
-				String sql = "select id, name, description, tasks_only, changed_by, changed_ts "
-						+ "from project "
-						+ "where o_id = ? "
-						+ "order by name ASC;";	
-					
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, o_id);
-				
-				log.info("Get project list: " + pstmt.toString());
-				resultSet = pstmt.executeQuery();
-				while(resultSet.next()) {
-					Project project = new Project();
-					project.id = resultSet.getInt("id");
-					project.name = resultSet.getString("name");
-					project.desc = resultSet.getString("description");
-					project.tasks_only = resultSet.getBoolean("tasks_only");
-					project.changed_by = resultSet.getString("changed_by");
-					project.changed_ts = resultSet.getString("changed_ts");
-					projects.add(project);
-			
-				}
-				
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-				String resp = gson.toJson(projects);
-				response = Response.ok(resp).build();
-						
-			} else {
-				log.log(Level.SEVERE,"Error: No organisation");
-			    response = Response.serverError().build();
-			}
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(projects);
+			response = Response.ok(resp).build();
 				
 		} catch (Exception e) {
 			
@@ -129,9 +99,8 @@ public class ProjectList extends Application {
 		    response = Response.serverError().build();
 		    
 		} finally {
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-ProjectList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;

@@ -20,14 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-public class Project {
-	public int id;
-	public String name;
-	public String desc;
-	public boolean tasks_only;
-	public String changed_by;
-	public String changed_ts;
-	public ArrayList<Integer> restrictUsers;
-	
-	public ProjectLinks links = null;
+public class ProjectLinks {
+	public String task_groups;
 }

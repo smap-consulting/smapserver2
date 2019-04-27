@@ -184,7 +184,7 @@ public class TaskManager {
 				tg.name = rs.getString(2);
 				tg.address_params = rs.getString(3);
 				tg.p_id = rs.getInt(4);
-				tg.rule = rs.getString(5);
+				tg.rule = new Gson().fromJson(rs.getString(5), AssignFromSurvey.class);
 				tg.source_s_id = rs.getInt(6);
 				tg.target_s_id = rs.getInt(7);
 				tg.emaildetails = new Gson().fromJson(rs.getString(8), TaskEmailDetails.class);
@@ -248,7 +248,7 @@ public class TaskManager {
 				tg.name = rs.getString(2);
 				tg.address_params = rs.getString(3);
 				tg.p_id = rs.getInt(4);
-				tg.rule = rs.getString(5);
+				tg.rule = new Gson().fromJson(rs.getString(5), AssignFromSurvey.class);
 				tg.source_s_id = rs.getInt(6);
 				tg.target_s_id = rs.getInt(7);
 
