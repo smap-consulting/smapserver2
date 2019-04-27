@@ -133,6 +133,7 @@ public class XLSXEventParser {
 						isHeader = false;
 					} catch (SQLException e) {
 						responseMsg.add(e.getMessage());
+						hasError = true;
 						e.printStackTrace();
 					}
 				} else {
