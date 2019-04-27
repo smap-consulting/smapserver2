@@ -438,7 +438,8 @@ public class ExchangeManager {
 								basePath,
 								sIdent,
 								mediaFiles,
-								sdf);
+								sdf,
+								recordsWritten);
 
 												
 				    }
@@ -1131,10 +1132,11 @@ public class ExchangeManager {
 			String basePath,
 			String sIdent,
 			HashMap<String, File> mediaFiles,
-			SimpleDateFormat sdf) throws SQLException {
+			SimpleDateFormat sdf,
+			int recordsWritten) throws SQLException {
 		
 		int index = 1;
-		int recordsWritten = 0;
+		int count = 0;
 		String prikey = null;
 		boolean writeRecord = true;
 		eh.pstmtInsert.setString(index++, importSource);
@@ -1337,9 +1339,9 @@ public class ExchangeManager {
 			if(rs.next()) {
 				form.keyMap.put(prikey, rs.getString(1));
 			}
-			recordsWritten++;
+			count++;
 		}
 		
-		return recordsWritten;
+		return count;
 	}
 }

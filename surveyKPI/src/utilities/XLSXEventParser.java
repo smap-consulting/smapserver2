@@ -54,7 +54,7 @@ public class XLSXEventParser {
 		private int currentCol = -1;
 		private ArrayList<String> values = null;
 		ExchangeHeader eh = new ExchangeHeader();
-		String cellType;
+		boolean hasError = false;;
 
 		Connection results;
 		PreparedStatement pstmtGetCol;
@@ -118,7 +118,7 @@ public class XLSXEventParser {
 
 			String[] line = values.toArray(new String[values.size()]);
 
-			if(line.length > 0) {
+			if(line.length > 0 && !hasError) {
 				if(isHeader) {
 					try {
 						em.processHeader(results, 
@@ -147,9 +147,11 @@ public class XLSXEventParser {
 								basePath,
 								sIdent,
 								mediaFiles,
-								sdf);
+								sdf,
+								recordsWritten);
 					} catch (SQLException e) {
 						responseMsg.add(e.getMessage());
+						hasError = true;
 						e.printStackTrace();
 					}
 				}
@@ -166,8 +168,6 @@ public class XLSXEventParser {
 			if(cellReference == null) {
 				cellReference = new CellAddress(currentRow, currentCol).formatAsString();
 			}
-
-			System.out.println("-------------------- " + nextDataType.name() + " : " + value);
 
 			// Did we miss any cells?
 			int thisCol = (new CellReference(cellReference)).getCol();
