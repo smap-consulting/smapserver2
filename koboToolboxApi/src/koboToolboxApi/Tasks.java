@@ -95,7 +95,8 @@ public class Tasks extends Application {
 			@QueryParam("start") int start,				// Task id to start from			
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("sort") String sort,				// Column to sort on
-			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
+			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
+			@QueryParam("status") String incStatus		// Comma separated list of status values
 			
 			) throws ApplicationException, Exception { 
 		
@@ -145,7 +146,7 @@ public class Tasks extends Application {
 					0,			// task id
 					true, 
 					userId, 
-					null, 
+					incStatus, 		// include status
 					period, 
 					start, 
 					limit,
