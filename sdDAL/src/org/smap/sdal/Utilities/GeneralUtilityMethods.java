@@ -7662,11 +7662,13 @@ public class GeneralUtilityMethods {
 	
 	public static String getPdfLink(String urlprefix, 
 			String surveyIdent, 
-			String updateId) {
+			String updateId,
+			String tz) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
 		url.append("/surveyKPI/pdf/").append(surveyIdent);
 		url.append("?instance=").append(updateId);
+		url.append("&tz=").append(tz);
 			
 		return url.toString();
 	}

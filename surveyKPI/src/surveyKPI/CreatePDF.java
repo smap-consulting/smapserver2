@@ -40,6 +40,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -74,7 +75,7 @@ public class CreatePDF extends Application {
 	}
 	
 	@GET
-	@Produces("application/x-download")
+	//@Produces("application/x-download")
 	public Response getPDFService (@Context HttpServletRequest request, 
 			@Context HttpServletResponse resp,
 			@PathParam("sIdent") String sIdent,
@@ -82,7 +83,7 @@ public class CreatePDF extends Application {
 			@QueryParam("language") String language,
 			@QueryParam("landscape") boolean landscape,
 			@QueryParam("filename") String filename,
-			@QueryParam("utcOffset") int utcOffset,		// Offset in minutes
+			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("reference_surveys") boolean referenceSurveys,	// Follow links to child surveys,
 			@QueryParam("launched_only") boolean onlyGetLaunched			// Only get launched reference surveys
 			) throws Exception {
@@ -124,8 +125,15 @@ public class CreatePDF extends Application {
 		
 		try {
 			
-			String tz = "UTC";	// Set the default timezone
-			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			// validate timezone
+			if(tz == null) {
+				tz = "UTC";
+			}
+			if(!GeneralUtilityMethods.isValidTimezone(sd, tz)) {
+				throw new ApplicationException("Invalid Timezone: " + tz);
+			}
+			
+			SurveyManager sm = new SurveyManager(localisation, tz);
 			org.smap.sdal.model.Survey survey = null;
 			boolean generateBlank =  (instanceId == null) ? true : false;	// If false only show selected options
 			survey = sm.getById(
@@ -160,8 +168,7 @@ public class CreatePDF extends Application {
 					generateBlank,
 					filename,
 					landscape,
-					resp,
-					utcOffset);
+					resp);
 			
 			response = Response.ok("").build();
 			

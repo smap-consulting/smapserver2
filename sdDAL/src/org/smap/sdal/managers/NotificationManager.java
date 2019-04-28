@@ -587,7 +587,6 @@ public class NotificationManager {
 							msg.basePath, 
 							msg.user,
 							survey,
-							utcOffset,
 							"none",
 							organisation.id);
 				msg.subject = text.get(0);
@@ -623,8 +622,7 @@ public class NotificationManager {
 								generateBlank,
 								null,
 								landscape,
-								null,
-								utcOffset);
+								null);
 						
 						logContent = filePath;
 						

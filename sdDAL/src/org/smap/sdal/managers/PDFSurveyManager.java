@@ -10,7 +10,6 @@ import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -128,7 +127,6 @@ public class PDFSurveyManager {
 	
 	// Other global values
 	int languageIdx = 0;
-	int utcOffset = 0;
 	
 	private class Parser {
 		XMLParser xmlParser = null;
@@ -180,8 +178,7 @@ public class PDFSurveyManager {
 			boolean generateBlank,
 			String filename,
 			boolean landscape,					// Set true if landscape
-			HttpServletResponse response,
-			int utcOffset) throws Exception {
+			HttpServletResponse response) throws Exception {
 
 		if(language != null) {
 			language = language.replace("'", "''");	// Escape apostrophes
@@ -190,7 +187,6 @@ public class PDFSurveyManager {
 		}
 
 		mExcludeEmpty = survey.exclude_empty;
-		this.utcOffset = utcOffset;
 		
 		User user = null;
 
@@ -529,17 +525,10 @@ public class PDFSurveyManager {
 						// Convert date to local time
 						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						Date date = df.parse(r.value);
-						String tzString = null;
-						
-						if(utcOffset != 0) { 
-							tzString = "GMT" + 
-									(utcOffset > 0 ? "+" : "") +
-									String.valueOf(utcOffset / 60);
-							df.setTimeZone(TimeZone.getTimeZone(tzString));
-						}
+						Date date = df.parse(r.value);					
+						df.setTimeZone(TimeZone.getTimeZone(tz));
 						value = df.format(date);
-						log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tzString);
+						log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
 					}
 
 
@@ -1592,16 +1581,9 @@ public class PDFSurveyManager {
 					DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					Date date = df.parse(di.value);
-					String tzString = null;
-					
-					if(utcOffset != 0) { 
-						tzString = "GMT" + 
-								(utcOffset > 0 ? "+" : "") +
-								String.valueOf(utcOffset / 60);
-						df.setTimeZone(TimeZone.getTimeZone(tzString));
-					}
+					df.setTimeZone(TimeZone.getTimeZone(tz));
 					value = df.format(date);
-					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tzString);
+					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tz);
 				} else {
 					value = di.value;
 				}

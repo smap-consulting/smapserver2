@@ -522,7 +522,8 @@ public class TableDataManager {
 				jl.put("pdf", GeneralUtilityMethods.getPdfLink(
 						urlprefix, 
 						sIdent, 
-						uuid));
+						uuid,
+						tz));
 				
 				jf.put("links", jl);
 			}

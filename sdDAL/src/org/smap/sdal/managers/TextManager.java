@@ -67,7 +67,6 @@ public class TextManager {
 			String basePath, 
 			String remoteUser,
 			org.smap.sdal.model.Survey survey,
-			int utcOffset,
 			String language,
 			int oId) {		
 

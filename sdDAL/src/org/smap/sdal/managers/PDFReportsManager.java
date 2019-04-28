@@ -59,7 +59,6 @@ public class PDFReportsManager {
 	
 	// Other global values
 	int languageIdx = 0;
-	int utcOffset = 0;
 
 	boolean mExcludeEmpty = false;
 	
@@ -195,8 +194,7 @@ public class PDFReportsManager {
 						false, 
 						filename, 
 						landscape, 
-						response, 
-						dateId);
+						response);
 				tempFileStream.close();
 				files.add(new FileDescription(name, tempFilePath));
 			}

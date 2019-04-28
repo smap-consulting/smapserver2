@@ -2398,7 +2398,6 @@ public class TaskManager {
 							basePath, 
 							msg.user,
 							survey,
-							utcOffset,
 							"none",
 							organisation.id);
 				msg.subject = text.get(0);
