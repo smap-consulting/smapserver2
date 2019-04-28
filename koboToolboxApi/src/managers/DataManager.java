@@ -51,7 +51,7 @@ public class DataManager {
 			dep.id_string = s.ident;
 			dep.title = s.displayName;
 			dep.description = s.displayName;
-			dep.url = urlprefix + dep.id_string;
+			dep.url = urlprefix + dep.id_string + "?links=true";
 			
 			if(s.forms != null && s.forms.size() > 0) {
 				dep.subforms = new HashMap<String, String> ();

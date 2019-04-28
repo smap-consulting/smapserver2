@@ -525,6 +525,12 @@ public class TableDataManager {
 						uuid,
 						tz));
 				
+				// Link to webform
+				jl.put("webform", GeneralUtilityMethods.getWebformLink(
+						urlprefix, 
+						sIdent, 
+						uuid));
+				
 				jf.put("links", jl);
 			}
 

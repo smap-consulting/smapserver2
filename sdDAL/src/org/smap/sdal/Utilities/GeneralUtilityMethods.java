@@ -7673,5 +7673,17 @@ public class GeneralUtilityMethods {
 		return url.toString();
 	}
 	
+	public static String getWebformLink(String urlprefix, 
+			String surveyIdent, 
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("/webForm/").append(surveyIdent);
+		url.append("?datakey=instanceid");
+		url.append("&datakeyvalue=").append(updateId);
+			
+		return url.toString();
+	}
+	
 }
 

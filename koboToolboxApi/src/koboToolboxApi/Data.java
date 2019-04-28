@@ -115,7 +115,6 @@ public class Data extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		aSuper.isAuthorised(sd, request.getRemoteUser());
-		
 
 		try {
 			// Get the users locale
