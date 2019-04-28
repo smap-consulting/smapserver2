@@ -363,14 +363,19 @@ public class TableDataManager {
 			boolean isDt, 
 			int limit,
 			boolean mergeSelectMultiple,
-			boolean isGeoJson)
+			boolean isGeoJson,
+			boolean links,
+			String sIdent)
 			throws SQLException, Exception {
 
 		JSONObject jr = null;
 		JSONObject jp = null;
 		JSONObject jf = null;
+		JSONObject jl = null;	// links
 		JSONObject jGeom = null;
 		String id = null;
+		
+		String uuid = null;
 		
 		if (rs.next()) {
 
@@ -483,6 +488,10 @@ public class TableDataManager {
 					if (name != null) {
 						if (!isDt) {
 							name = GeneralUtilityMethods.translateToKobo(name);
+							if(name.equals("uuid")) {
+								// remember this to generate links
+								uuid = value;
+							}
 						}
 						if(isGeoJson && name.equals("prikey")) {
 							id = value;
@@ -496,6 +505,26 @@ public class TableDataManager {
 					}
 				}
 
+			}
+			
+			if(links) {
+				jl = new JSONObject();
+				
+				// Link to data structure used by tasks
+				jl.put("data", GeneralUtilityMethods.getInitialDataLink(
+						urlprefix, 
+						sIdent, 
+						"survey",
+						0,		// task id - not needed for survey data
+						uuid));
+				
+				// Link to pdf
+				jl.put("pdf", GeneralUtilityMethods.getPdfLink(
+						urlprefix, 
+						sIdent, 
+						uuid));
+				
+				jf.put("links", jl);
 			}
 
 		}

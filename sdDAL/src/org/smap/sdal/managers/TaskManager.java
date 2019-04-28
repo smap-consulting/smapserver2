@@ -513,7 +513,7 @@ public class TaskManager {
 						tf.properties.a_id,
 						tf.properties.id,
 						tf.properties.update_id));
-				tf.links.put("data", GeneralUtilityMethods.getInitialDataLink(
+				tf.links.put("xml_data", GeneralUtilityMethods.getInitialXmlDataLink(
 						urlprefix, 
 						tf.properties.form_ident, 
 						tf.properties.initial_data_source,
@@ -832,7 +832,7 @@ public class TaskManager {
 				initialDataSource = TaskManager.TASK_DATA_SOURCE;
 				SurveyManager sm = new SurveyManager(localisation, tz);	
 				
-				Instance instance = sm.getInstance(
+				ArrayList<Instance> instances = sm.getInstances(
 						sd,
 						cResults,
 						sourceSurvey,
@@ -842,7 +842,8 @@ public class TaskManager {
 						updateId,
 						sm);
 				
-				initialData = gson.toJson(instance, Instance.class);
+				// There should only be one instance at the top level
+				initialData = gson.toJson(instances.get(0), Instance.class);
 			} else {
 				initialDataSource = TaskManager.NO_DATA_SOURCE;
 			}

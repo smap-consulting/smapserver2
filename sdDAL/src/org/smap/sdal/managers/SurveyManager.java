@@ -40,6 +40,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONObject;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -4019,7 +4020,7 @@ public class SurveyManager {
 	/*
 	 * Get the instance data for a record in a survey
 	 */
-	public Instance getInstance(
+	public ArrayList<Instance> getInstances(
 			Connection sd,
 			Connection cResults, 
 			Survey s, 
@@ -4031,7 +4032,7 @@ public class SurveyManager {
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
-		Instance instance = new Instance();
+		ArrayList<Instance> instances = new ArrayList<Instance> ();
 		
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select prikey ");
@@ -4047,68 +4048,69 @@ public class SurveyManager {
 			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
 			String urlprefix = "https://" + serverName + "/";	
 			
-			if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
-				columns = GeneralUtilityMethods.getColumnsInForm(
-						sd,
-						cResults,
-						localisation,
-						"none",
-						s.id,
-						s.ident,
-						null,
-						null,		// roles for column filtering TODO add support
-						0,			// parent form id
-						form.id,
-						form.tableName,
-						true,		// Read Only
-						false,		// Parent key
-						false,
-						true,		// include instance id
-						true,		// include prikey
-						false,		// include other meta data
-						false,		// include preloads
-						true,		// include instancename
-						false,		// include survey duration
-						false,
-						false,		// include HXL
-						false,
-						tz
-						);
-
-				pstmt = tdm.getPreparedStatement(
-						sd, 
-						cResults,
-						columns,
-						urlprefix,
-						s.id,
-						form.tableName,
-						parkey,
-						hrk,
-						null,
-						null,		// roles for row filtering TODO add support
-						null,		// sort
-						null,		// sort direction
-						false,		// mgmt
-						false,		// group
-						false,		// prepare for data tables
-						0,			// start
-						false,		// get parkey
-						0,			// start parkey
-						false,		// super user
-						false,		// Return records greater than or equal to primary key
-						"none",		// include bad
-						null	,		// no custom filter
-						null,		// key filter
-						tz,
-						instanceId
-						);
+			if(!GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
+				throw new ApplicationException(localisation.getString("imp_no_file"));
 			}
+			columns = GeneralUtilityMethods.getColumnsInForm(
+					sd,
+					cResults,
+					localisation,
+					"none",
+					s.id,
+					s.ident,
+					null,
+					null,		// roles for column filtering TODO add support
+					0,			// parent form id
+					form.id,
+					form.tableName,
+					true,		// Read Only
+					false,		// Parent key
+					false,
+					true,		// include instance id
+					true,		// include prikey
+					false,		// include other meta data
+					false,		// include preloads
+					true,		// include instancename
+					false,		// include survey duration
+					false,
+					false,		// include HXL
+					false,
+					tz
+					);
+
+			pstmt = tdm.getPreparedStatement(
+					sd, 
+					cResults,
+					columns,
+					urlprefix,
+					s.id,
+					form.tableName,
+					parkey,
+					hrk,
+					null,
+					null,		// roles for row filtering TODO add support
+					null,		// sort
+					null,		// sort direction
+					false,		// mgmt
+					false,		// group
+					false,		// prepare for data tables
+					0,			// start
+					false,		// get parkey
+					0,			// start parkey
+					false,		// super user
+					false,		// Return records greater than or equal to primary key
+					"none",		// include bad
+					null	,		// no custom filter
+					null,		// key filter
+					tz,
+					instanceId
+					);
 			
 			JsonParser parser = new JsonParser();
 			ResultSet rs = pstmt.executeQuery();
 			
-			if(rs.next()) {
-				instance = new Instance();
+			while(rs.next()) {
+				Instance instance = new Instance();
 				int prikey = 0;
 				for (int i = 0; i < columns.size(); i++) {
 					TableColumn c = columns.get(i);
@@ -4189,7 +4191,7 @@ public class SurveyManager {
 						}
 						
 						ArrayList<Instance> repeats = instance.repeats.get(qName);
-						repeats.add(sm.getInstance(
+						repeats.addAll(sm.getInstances(
 								sd,
 								cResults,
 								s,
@@ -4201,6 +4203,7 @@ public class SurveyManager {
 					}
 				}
 					
+				instances.add(instance);
 
 			}
 			
@@ -4210,6 +4213,6 @@ public class SurveyManager {
 			if(pstmtSelect != null) try {pstmtSelect.close();} catch(Exception e) {};
 		}
 
-		return instance;
+		return instances;
 	}
 }

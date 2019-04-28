@@ -7620,7 +7620,7 @@ public class GeneralUtilityMethods {
 		return url.toString();
 	}
 	
-	public static String getInitialDataLink(String urlprefix, 
+	public static String getInitialXmlDataLink(String urlprefix, 
 			String surveyIdent, 
 			String initial_data_source, 
 			int taskId,
@@ -7639,6 +7639,37 @@ public class GeneralUtilityMethods {
 		
 		return url.toString();
 	}
-
+	
+	public static String getInitialDataLink(String urlprefix, 
+			String surveyIdent, 
+			String initial_data_source, 
+			int taskId,
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("/api/v1/data/").append(surveyIdent);
+		
+		if(initial_data_source != null && initial_data_source.equals("survey")) {
+			url.append("/").append(updateId); 
+		} else if(initial_data_source != null && initial_data_source.equals("task")) {
+			url.append("/task/").append(taskId);	
+		} else {
+			return null;
+		}
+		
+		return url.toString();
+	}
+	
+	public static String getPdfLink(String urlprefix, 
+			String surveyIdent, 
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("/surveyKPI/pdf/").append(surveyIdent);
+		url.append("?instance=").append(updateId);
+			
+		return url.toString();
+	}
+	
 }
 

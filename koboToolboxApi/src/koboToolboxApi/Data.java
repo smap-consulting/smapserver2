@@ -56,9 +56,12 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 
 /*
@@ -144,7 +147,7 @@ public class Data extends Application {
 	@GET
 	@Produces("application/json")
 	@Path("/{sIdent}")
-	public void getDataRecordsNew(@Context HttpServletRequest request,
+	public void getDataRecordsService(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
 			@PathParam("sIdent") String sIdent,
 			@QueryParam("start") int start,				// Primary key to start from
@@ -162,11 +165,42 @@ public class Data extends Application {
 			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
+			@QueryParam("links") boolean links
+			) throws ApplicationException, Exception { 
+		
+		// Links can only be specified for the main form
+		if(formName != null) {
+			links = false;
+		}
+		
+		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, links);
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get a single data record in json format
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/{sIdent}/{uuid}")
+	public Response getSingleDataRecord(@Context HttpServletRequest request,
+			@Context HttpServletResponse response,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("uuid") String uuid,		
+			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
+			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
 			) throws ApplicationException, Exception { 
 		
-		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz);
+		return getSingleRecord(request,
+				sIdent,
+				uuid,
+				merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+				tz				// Timezone
+				);
+		
 	}
 	
 	/*
@@ -191,7 +225,8 @@ public class Data extends Application {
 			String audit_set,		// if yes return audit data
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
-			String tz				// Timezone
+			String tz,				// Timezone
+			boolean links
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -433,7 +468,9 @@ public class Data extends Application {
 							isDt,
 							limit,
 							mergeSelectMultiple,
-							isGeoJson
+							isGeoJson,
+							links,
+							sIdent
 							);
 					if(jo != null) {
 						if(index > 0) {
@@ -482,6 +519,104 @@ public class Data extends Application {
 		}
 
 		//return response;
+
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get records for an individual survey in JSON format
+	 */
+	private Response getSingleRecord(HttpServletRequest request,
+			String sIdent,
+			String uuid,
+			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+			String tz				// Timezone
+			) throws ApplicationException, Exception { 
+
+		Response response;
+		
+		String connectionString = "koboToolboxApi - get data records";
+		
+		Connection cResults = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
+		
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		tz = (tz == null) ? "UTC" : tz;
+
+		try {
+
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Managed Forms or the API. ");
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			
+			Survey s = sm.getById(
+					sd, 
+					cResults, 
+					request.getRemoteUser(),
+					sId, 
+					true, 		// full
+					null, 		// basepath
+					null, 		// instance id
+					false, 		// get results
+					false, 		// generate dummy values
+					true, 		// get property questions
+					false, 		// get soft deleted
+					true, 		// get HRK
+					"external", 		// get external options
+					false, 		// get change history
+					false, 		// get roles
+					true,		// superuser 
+					null, 		// geomformat
+					false, 		// reference surveys
+					false		// only get launched
+					);
+			
+			ArrayList<Instance> instances = sm.getInstances(
+					sd,
+					cResults,
+					s,
+					s.getFirstForm(),
+					0,
+					null,
+					uuid,
+					sm);
+		
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			// Just return the first instance - at the top level there should only ever be one
+			response = Response.ok(gson.toJson(instances.get(0))).build();
+
+		} catch (Exception e) {
+			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			ResultsDataSource.closeConnection(connectionString, cResults);			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
 
 	}
 
