@@ -113,9 +113,10 @@ public class PdfUtilities {
 					",\"properties\":{";
 			
 			// properties
-			if(markerColor != null) {
-				value += "\"marker-color\":\"#" + markerColor + "\"";		// Add marker color
+			if(markerColor == null) {
+				markerColor = "f00";
 			}
+			value += "\"marker-color\":\"#" + markerColor + "\"";		// Add marker color
 			
 			value += "}}]}";
 			// End add styling
