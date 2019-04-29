@@ -270,7 +270,7 @@ public class EmailManager {
 			// Add unsubscribe
 			if(emailKey != null) {
 				
-				txtMessage.append("\n\n");
+				txtMessage.append("\n\n\n\n");
 				txtMessage.append(localisation.getString("c_unsubscribe"));
 				txtMessage.append(": ");
 				txtMessage.append(scheme + "://");

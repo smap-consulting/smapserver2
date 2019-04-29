@@ -16,9 +16,9 @@ public class DisplayItem {
 	public String type;
 	public boolean isSet = false;
 	public boolean isNewPage = false;
-	//public ArrayList<DisplayItem> choices = null;
 	public BaseColor labelbg;
 	public BaseColor valuebg;
+	public String markerColor;
 	public boolean labelcaps = false;
 	public boolean labelbold = false;
 	public int fIdx = 0;

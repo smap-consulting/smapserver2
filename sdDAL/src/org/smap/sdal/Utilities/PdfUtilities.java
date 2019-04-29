@@ -90,7 +90,8 @@ public class PdfUtilities {
 			String zoom,
 			String mapbox_key,
 			int sId,
-			String user) throws BadElementException, MalformedURLException, IOException, SQLException {
+			String user,
+			String markerColor) throws BadElementException, MalformedURLException, IOException, SQLException {
 		
 		Image img = null;
 		
@@ -105,7 +106,20 @@ public class PdfUtilities {
 		url.append("/");
 		
 		if(value != null && value.trim().length() > 0) {
-			// GeoJson data
+			
+			// GeoJson data - add styling
+			value = "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"geometry\":" + 
+					value + 
+					",\"properties\":{";
+			
+			// properties
+			if(markerColor != null) {
+				value += "\"marker-color\":\"#" + markerColor + "\"";		// Add marker color
+			}
+			
+			value += "}}]}";
+			// End add styling
+			
 			url.append("geojson(");
 
 			String jsonValue = value;

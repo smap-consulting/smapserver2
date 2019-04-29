@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
@@ -556,7 +557,8 @@ public class PDFSurveyManager {
 						Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom
 								,gv.mapbox_key,
 								survey.id,
-								user);
+								user,
+								di.markerColor);
 						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
 					} else {
 						log.info("No field for image (Mapbox not called: " + fieldName);
@@ -1259,6 +1261,8 @@ public class PDFSurveyManager {
 						setColor(app, di, true);
 					} else if(app.startsWith("pdfvaluebg")) {
 						setColor(app, di, false);
+					} else if(app.startsWith("pdfmarkercolor")) {
+						di.markerColor = getRGBColor(app);
 					} else if(app.startsWith("pdflabelw")) {
 						setWidths(app, di);
 					} else if(app.startsWith("pdfheight")) {
@@ -1313,6 +1317,23 @@ public class PDFSurveyManager {
 		} else {
 			di.valuebg = color;
 		}
+
+	}
+	
+	/*
+	 * Get the color values for a single appearance value
+	 * Output is just the RGB value
+	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
+	 */
+	String getRGBColor(String aValue) {
+
+		String rgbValue = "";
+
+		String [] parts = aValue.split("_");
+		if(parts.length >= 4) {
+			rgbValue = parts[1] + parts[2] + parts[3];
+		}
+		return rgbValue;
 
 	}
 
@@ -1544,10 +1565,11 @@ public class PDFSurveyManager {
 			}
 
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
-
+		
 			Image img = PdfUtilities.getMapImage(sd, di.map, di.value, di.location, di.zoom, gv.mapbox_key,
 					survey.id,
-					user);
+					user,
+					di.markerColor);
 
 			if(img != null) {
 				valueCell.addElement(img);
