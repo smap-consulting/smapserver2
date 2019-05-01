@@ -165,16 +165,19 @@ public class Data extends Application {
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
-			@QueryParam("links") boolean links
+			@QueryParam("links") String links
 			) throws ApplicationException, Exception { 
-		
-		// Links can only be specified for the main form
+			
+		boolean incLinks = false;
+		if(links != null && (links.equals("true") || links.equals("yes"))) {
+			incLinks = true;
+		}
 		if(formName != null) {
-			links = false;
+			incLinks = false;		// Links can only be specified for the main form
 		}
 		
 		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, links);
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks);
 	}
 	
 	/*
@@ -225,8 +228,7 @@ public class Data extends Application {
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String tz,				// Timezone
-			boolean links
-			) throws ApplicationException, Exception { 
+			boolean incLinks	) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
 		
@@ -468,7 +470,7 @@ public class Data extends Application {
 							limit,
 							mergeSelectMultiple,
 							isGeoJson,
-							links,
+							incLinks	,
 							sIdent
 							);
 					if(jo != null) {
