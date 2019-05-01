@@ -45,6 +45,7 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.managers.SubmissionsManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
@@ -772,7 +773,6 @@ public class Items extends Application {
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("dateId") int dateId,
 			@QueryParam("endDate") Date endDate,
-			@QueryParam("filter") String sFilter,
 			@QueryParam("tz") String tz) { 
 		
 		String connectionString = "surveyKPI-Items-Users";
@@ -831,78 +831,15 @@ public class Items extends Application {
 					totalCount = resultSet.getInt(1);
 					jTotals.put("total_count", totalCount);
 				}
-				
-				StringBuffer sqlPage = new StringBuffer("");
-				StringBuffer sqlFilter = new StringBuffer("");
-				if(start_key > 0) {
-					sqlPage.append(" and ue_id < ").append(start_key);
-				}
-				
-				if(dateId > 0 && dateId < 5) {
-					String dateName = null;
-					if(dateId == 1) {
-						dateName = "upload_time";
-					} else if(dateId == 2) {
-						dateName = "start_time";
-					} else if(dateId == 3) {
-						dateName = "end_time";
-					} else if(dateId == 4) {
-						dateName = "scheduled_start";
-					}
-					
-					// Add start and end dates
-					String sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
-					if(sqlRestrictToDateRange.trim().length() > 0) {
-						if(sqlFilter.length() > 0) {
-							sqlFilter.append(" and ");
-						}
-						sqlFilter.append(sqlRestrictToDateRange);
-					}
-				}
-				
 				jTotals.put("rec_limit", rec_limit);
-				String sqlLimit = "";
-				if(rec_limit > 0) {
-					sqlLimit = "limit " + rec_limit;
-				}
 				
-				// Get columns for main select
-				StringBuffer sql2 = new StringBuffer("select ");	
-				sql2.append("ue.ue_id, "
-						+ "ue.survey_name, "
-						+ "ue.s_id, "
-						+ "s.ident, "
-						+ "s.original_ident, "
-						+ "ue.instanceid, "
-						+ "to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
-						+ "ue.location, "
-						+ "p.name as project_name, "
-						+ "ue.survey_notes,"
-						+ "ue.instance_name, "
-						+ "to_char(timezone(?, ue.start_time), 'YYYY-MM-DD HH24:MI:SS') as start_time,"
-						+ "to_char(timezone(?, ue.end_time), 'YYYY-MM-DD HH24:MI:SS') as end_time,"
-						+ "ue.imei,"
-						+ "to_char(timezone(?, ue.scheduled_start), 'YYYY-MM-DD HH24:MI:SS') as scheduled_start"
-						+ " ");
-				sql2.append("from upload_event ue ");
-				sql2.append("left outer join survey s on ue.s_id = s.s_id ");
-				sql2.append("left outer join project p on ue.p_id = p.id ");
-				
+
+				SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
+				String whereClause = subMgr.getWhereClause(true, dateId, startDate, endDate);			
+		
 				// Get count of available records
 				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
-				
-				StringBuffer whereClause = new StringBuffer("where user_name = ? ");
-				whereClause.append(GeneralUtilityMethods.getSurveyRBACUploadEvent());
-				if(sqlFilter.length() > 0) {
-					whereClause.append(" and ").append(sqlFilter);	
-				}
-				
-				sql2.append(whereClause);
-				if(sqlPage.length() > 0) {
-					sql2.append(sqlPage);
-				}
-				sqlFC.append(whereClause);
-				sql2.append(" order by ue_id desc ").append(sqlLimit);
+				sqlFC.append(whereClause);			
 				
 				// Get the number of filtered records			
 				if(sqlFC.length() > 0) {
@@ -937,32 +874,15 @@ public class Items extends Application {
 					jTotals.put("filtered_count", totalCount);
 				}
 
-				
+				// Get the prepared statement to retrieve data
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql2.toString());
-				
-				/*
-				 * Set prepared statement values
-				 */
-				int attribIdx = 1;
-				
-				pstmt.setString(attribIdx++, tz);	// upload time
-				pstmt.setString(attribIdx++, tz);	// start time
-				pstmt.setString(attribIdx++, tz);	// end time
-				pstmt.setString(attribIdx++, tz);	// scheduled start
-				pstmt.setString(attribIdx++, user);
-				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
-				
-				
-				// dates
-				if(dateId > 0 && dateId < 5) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
-					}
-				}
+				pstmt = subMgr.getSubmissionsStatement(sd, rec_limit, start_key, 
+						whereClause,
+						user,
+						request.getRemoteUser(),
+						dateId,
+						startDate,
+						endDate);
 				
 				// Request the data
 				log.info("Get Usage Data: " + pstmt.toString());
@@ -970,50 +890,9 @@ public class Items extends Application {
 	
 				JSONArray ja = new JSONArray();
 				while (resultSet.next()) {
-					JSONObject jr = new JSONObject();
-					JSONObject jp = new JSONObject();
 					
-					jr.put("type", "Feature");
-
-					jp.put("prikey", resultSet.getString("ue_id"));									// prikey
-					jp.put(localisation.getString("a_name"), resultSet.getString("survey_name"));		// survey name
-					jp.put("s_id", resultSet.getString("s_id"));										// survey id
-					
-					// Get the ident of the currently active survey version
-					String ident = resultSet.getString("original_ident");
-					if(ident == null || ident.trim().length() == 0) {
-						ident = resultSet.getString("ident");
-					}
-					jp.put("survey_ident", ident);								// survey ident
-					jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
-					jp.put(localisation.getString("a_device"), resultSet.getString("imei"));
-					jp.put(localisation.getString("a_ut"), resultSet.getString("upload_time"));
-					jp.put(localisation.getString("ar_project"), resultSet.getString("project_name"));
-					jp.put(localisation.getString("a_sn"), resultSet.getString("survey_notes"));
-					jp.put(localisation.getString("a_in"), resultSet.getString("instance_name"));
-					jp.put(localisation.getString("a_st"), resultSet.getString("start_time"));
-					jp.put(localisation.getString("a_et"), resultSet.getString("end_time"));
-					jp.put(localisation.getString("a_sched"), resultSet.getString("scheduled_start"));
-					String location = resultSet.getString("location");
-
-					if(location != null) {							// For map
-						JSONObject jg = null;
-						JSONArray jCoords = new JSONArray();
-						String[] coords = location.split(" ");
-						if(coords.length == 2) {
-							jCoords.put(Double.parseDouble(coords[0]));
-							jCoords.put(Double.parseDouble(coords[1]));
-							jg = new JSONObject();
-							jg.put("type", "Point");
-							jg.put("coordinates", jCoords);
-							jr.put("geometry", jg);
-						} 
-					}
-					jp.put(localisation.getString("a_l"), location);		// For table
-					
-					maxRec = resultSet.getInt("ue_id");				
-
-					jr.put("properties", jp);
+					JSONObject jr = subMgr.getRecord(resultSet, true, true);
+					maxRec = resultSet.getInt("ue_id");	
 					ja.put(jr);
 					recCount++;
 
@@ -1052,13 +931,14 @@ public class Items extends Application {
 				} else {
 					maxRecordWhere = whereClause + " and ue_id < " + maxRec;
 				}
+				
 				// Determine if there are more records to be returned
 				sql = "select count(*) from upload_event ue " + maxRecordWhere + ";";
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);	
 				
 				// Apply the parameters again
-				attribIdx = 1;
+				int attribIdx = 1;
 				
 				// Add user
 				pstmt.setString(attribIdx++, user);
