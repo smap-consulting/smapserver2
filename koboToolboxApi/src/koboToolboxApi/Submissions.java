@@ -194,7 +194,7 @@ public class Submissions extends Application {
 			int index = 0;
 			while(rs.next()) {
 				
-				JSONObject jo  =  subMgr.getRecord(rs, isGeoJson, false);
+				JSONObject jo  =  subMgr.getRecord(rs, isGeoJson, false, true);
 				if(jo != null) {
 					if(index > 0) {
 						outWriter.print(",");

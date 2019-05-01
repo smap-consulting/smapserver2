@@ -136,6 +136,7 @@ public class SubmissionsManager {
 				+ "ue.survey_name, "
 				+ "ue.s_id, "
 				+ "s.ident, "
+				+ "ue.user_name, "
 				+ "s.original_ident, "
 				+ "ue.instanceid, "
 				+ "to_char(timezone(?, upload_time), 'YYYY-MM-DD HH24:MI:SS') as upload_time,"
@@ -189,7 +190,10 @@ public class SubmissionsManager {
 		
 	}
 	
-	public JSONObject getRecord(ResultSet resultSet, boolean isGeoJson, boolean incMergedLocation) throws NumberFormatException, JSONException, SQLException {
+	public JSONObject getRecord(ResultSet resultSet, 
+			boolean isGeoJson, 
+			boolean incMergedLocation,
+			boolean getUser) throws NumberFormatException, JSONException, SQLException {
 		JSONObject jr = new JSONObject();
 		JSONObject jp = null;
 		
@@ -219,8 +223,12 @@ public class SubmissionsManager {
 		jp.put(localisation.getString("a_st"), resultSet.getString("start_time"));
 		jp.put(localisation.getString("a_et"), resultSet.getString("end_time"));
 		jp.put(localisation.getString("a_sched"), resultSet.getString("scheduled_start"));
+		jp.put(localisation.getString("a_sched"), resultSet.getString("scheduled_start"));
+		if(getUser) {
+			jp.put(localisation.getString("a_user"), resultSet.getString("user_name"));
+		}
+		
 		String location = resultSet.getString("location");
-
 		if(location != null) {							// For map
 			
 			String[] coords = location.split(" ");
