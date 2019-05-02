@@ -148,7 +148,7 @@ public class Submissions extends Application {
 		}
 		
 		tz = (tz == null) ? "UTC" : tz;
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+		
 		
 		int dateId = 1;			// Upload time
 
@@ -175,16 +175,20 @@ public class Submissions extends Application {
 			// Add feature data
 			outWriter.print("[");
 			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-			String whereClause = subMgr.getWhereClause((user != null), dateId, startDate, endDate);	
-
+			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate);	
 				
 			// page the results to reduce memory usage
 			log.info("---------------------- paging results to postgres");
 			sd.setAutoCommit(false);		
-			pstmt = subMgr.getSubmissionsStatement(sd, limit, start, 
+			pstmt = subMgr.getSubmissionsStatement(
+					sd, 
+					limit, 
+					start, 
 					whereClause,
 					user,		// user to filter on
+					oId,			// oId to filter on
 					request.getRemoteUser(),
 					dateId,
 					startDate,

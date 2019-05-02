@@ -803,6 +803,8 @@ public class Items extends Application {
 			 
 			try {
 				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				
 				/*
 				 * View data users can only see usage data on themselves
 				 */
@@ -835,7 +837,7 @@ public class Items extends Application {
 				
 
 				SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-				String whereClause = subMgr.getWhereClause(true, dateId, startDate, endDate);			
+				String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate);			
 		
 				// Get count of available records
 				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
@@ -849,8 +851,10 @@ public class Items extends Application {
 					
 					int attribIdx = 1;	
 					
-					// Add user
+					// Add user and organisation
+					pstmt.setInt(attribIdx++, oId);
 					pstmt.setString(attribIdx++, user);
+
 					pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 						
 					// dates
@@ -879,6 +883,7 @@ public class Items extends Application {
 				pstmt = subMgr.getSubmissionsStatement(sd, rec_limit, start_key, 
 						whereClause,
 						user,
+						oId,
 						request.getRemoteUser(),
 						dateId,
 						startDate,
@@ -940,7 +945,8 @@ public class Items extends Application {
 				// Apply the parameters again
 				int attribIdx = 1;
 				
-				// Add user
+				// Add user and organisation
+				pstmt.setInt(attribIdx++, oId);
 				pstmt.setString(attribIdx++, user);
 				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
 			

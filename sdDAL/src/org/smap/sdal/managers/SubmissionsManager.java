@@ -66,12 +66,17 @@ public class SubmissionsManager {
 		this.tz = tz;
 	}
 
-	public String getWhereClause(boolean user, int dateId, Date startDate, Date endDate) {
+	public String getWhereClause(String user, int oId, int dateId, Date startDate, Date endDate) {
 		
 		StringBuffer whereClause =  new StringBuffer("");
-		if(user) {
+		if(oId > 0) {
 			whereClause.append(getJoin(whereClause));
-			whereClause.append("user_name = ?");
+			whereClause.append("ue.o_id = ?");
+		}
+		
+		if(user != null) {
+			whereClause.append(getJoin(whereClause));
+			whereClause.append("ue.user_name = ?");
 		}
 		
 		// RBAC
@@ -115,6 +120,7 @@ public class SubmissionsManager {
 			int start_key, 
 			String whereClause,
 			String user,
+			int oId,
 			String requestingUser,
 			int dateId,
 			Date startDate,
@@ -170,6 +176,9 @@ public class SubmissionsManager {
 		pstmt.setString(attribIdx++, tz);	// start time
 		pstmt.setString(attribIdx++, tz);	// end time
 		pstmt.setString(attribIdx++, tz);	// scheduled start
+		if(oId > 0) {					// Filter on organisation id
+			pstmt.setInt(attribIdx++, oId);
+		}
 		if(user != null) {					// Filter on user ident
 			pstmt.setString(attribIdx++, user);
 		}
