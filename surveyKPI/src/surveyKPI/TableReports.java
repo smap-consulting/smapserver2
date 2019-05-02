@@ -132,7 +132,7 @@ public class TableReports extends Application {
 		try {
 			
 			// Localisation
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));

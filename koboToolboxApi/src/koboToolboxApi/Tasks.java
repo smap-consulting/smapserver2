@@ -118,7 +118,7 @@ public class Tasks extends Application {
 			
 			int oId = 0;
 			if(tg_id == 0) {
-				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			}
 			
 			// Parameters
@@ -298,7 +298,7 @@ public class Tasks extends Application {
 			tf.properties = (TaskProperties) tp;
 			
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
 			response = Response.ok().build();
 		

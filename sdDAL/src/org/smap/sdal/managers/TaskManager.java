@@ -952,7 +952,7 @@ public class TaskManager {
 			int roleId = as.role_id;
 			log.info("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
 			int fixedRoleId = as.fixed_role_id;
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, target_s_id);
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, target_s_id);
 			
 			// Assign to people dependent on data from a form
 			String emails = as.emails;
@@ -1553,7 +1553,7 @@ public class TaskManager {
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
 				mm.userChange(sd, userIdent);
 			} else if(emailAction) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				if(!GeneralUtilityMethods.emailTaskBlocked(sd, oId)) {				
 					
 					String urlprefix = "https://" + request.getServerName() + "/";					

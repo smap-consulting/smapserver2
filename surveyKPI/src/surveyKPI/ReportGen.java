@@ -163,7 +163,7 @@ public class ReportGen extends Application {
 			
 			DocumentXLSManager rxm = new DocumentXLSManager();
 			String basePath = GeneralUtilityMethods.getBasePath(request);			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			rxm.create(sd, request.getRemoteUser(), data, response.getOutputStream(), basePath, oId);
 			
 			responseVal = Response.ok("").build();

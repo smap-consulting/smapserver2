@@ -182,7 +182,7 @@ public class AllAssignments extends Application {
 			/*
 			 * Create the task group if an existing task group was not specified
 			 */
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName, sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 			
 			// get default timezone
 			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);

@@ -221,7 +221,7 @@ public class Authorise {
 		
 		try {
 			
-			int adminUserOrgId = GeneralUtilityMethods.getOrganisationId(sd, adminUser, 0);
+			int adminUserOrgId = GeneralUtilityMethods.getOrganisationId(sd, adminUser);
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, uId);
 			pstmt.setInt(2, adminUserOrgId);
@@ -1167,7 +1167,7 @@ public class Authorise {
 		
 		
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(conn, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(conn, user);
 			
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setInt(1, pId);

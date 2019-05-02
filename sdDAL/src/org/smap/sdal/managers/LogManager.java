@@ -85,7 +85,10 @@ public class LogManager {
 		
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, uIdent, sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, uIdent);
+			if(oId <= 0) {
+				 oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
+			}
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, oId);

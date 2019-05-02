@@ -102,7 +102,7 @@ public class Reports extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 					
 			ActionManager am = new ActionManager(localisation, tz);
 			Action action = gson.fromJson(report, Action.class);

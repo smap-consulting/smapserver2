@@ -465,7 +465,7 @@ public class WebForm extends Application {
 			// Get the organisation id and an access key to upload the results of this form
 			// (used from iPhones which do not do authentication on POSTs)
 			try {
-				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, formIdent);
 				
 				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);

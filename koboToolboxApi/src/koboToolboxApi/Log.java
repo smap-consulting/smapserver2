@@ -123,7 +123,7 @@ public class Log extends Application {
 		
 		try {
 	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
 			/*
 			 * Get total log entries

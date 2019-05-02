@@ -204,7 +204,8 @@ public class Results extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
 			/*
 			 * Check that mandatory parameters have been set
 			 */	

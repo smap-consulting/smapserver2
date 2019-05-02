@@ -91,6 +91,7 @@ public class Submissions extends Application {
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
+			@QueryParam("user") String user,
 			@QueryParam("links") String links
 			) throws ApplicationException, Exception { 
 		
@@ -98,6 +99,7 @@ public class Submissions extends Application {
 		getSubmissions(request, response, start, limit, include_bad, audit_set, tz, geojson, 
 				startDate,
 				endDate,
+				user,
 				links);
 	}
 	
@@ -117,6 +119,7 @@ public class Submissions extends Application {
 			String geoJson,
 			Date startDate,
 			Date endDate,
+			String user,
 			String links
 			) throws ApplicationException, Exception { 
 
@@ -124,12 +127,6 @@ public class Submissions extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -151,6 +148,7 @@ public class Submissions extends Application {
 		}
 		
 		tz = (tz == null) ? "UTC" : tz;
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 		
 		int dateId = 1;			// Upload time
 
@@ -178,7 +176,7 @@ public class Submissions extends Application {
 			outWriter.print("[");
 			
 			SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-			String whereClause = subMgr.getWhereClause(false, dateId, startDate, endDate);	
+			String whereClause = subMgr.getWhereClause((user != null), dateId, startDate, endDate);	
 
 				
 			// page the results to reduce memory usage
@@ -186,7 +184,7 @@ public class Submissions extends Application {
 			sd.setAutoCommit(false);		
 			pstmt = subMgr.getSubmissionsStatement(sd, limit, start, 
 					whereClause,
-					null,		// user to filter on
+					user,		// user to filter on
 					request.getRemoteUser(),
 					dateId,
 					startDate,

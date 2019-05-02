@@ -83,7 +83,7 @@ public class GetFileAnonymous extends Application {
 		a.isValidTemporaryUser(connectionSD, user);
 		a.isAuthorised(connectionSD, user);		
 		try {		
-			oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user, 0);
+			oId = GeneralUtilityMethods.getOrganisationId(connectionSD, user);
 		} catch(Exception e) {
 			// ignore error
 		}

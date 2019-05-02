@@ -86,7 +86,7 @@ public class AdminReportUsage extends Application {
 				throw new ApplicationException(localisation.getString("ar_month_gt_0"));
 			}
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			String filename = localisation.getString("ar_report_name") + "_" + year + "_" + month;
 			

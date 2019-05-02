@@ -274,7 +274,7 @@ public class GetXForm {
 					if(mv.filePath != null) {
 						populateCSVElements(outputDoc, rootElement, mv.filePath);
 					} else {
-						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser, mv.sId);
+						int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 						SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, mv.sId, mv.fileName, user);
 						populateCSVElementsFromSurvey(outputDoc, rootElement, stm);
 					}

@@ -93,7 +93,7 @@ public class SurveyResults extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
 
 				// Delete tables associated with this survey
@@ -243,7 +243,7 @@ public class SurveyResults extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
 				
 				// Mark columns as unpublished		

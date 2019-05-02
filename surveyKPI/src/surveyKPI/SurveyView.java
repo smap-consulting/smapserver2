@@ -139,7 +139,7 @@ public class SurveyView extends Application {
 			
 			String tz = "UTC";	// Set default for timezone
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			

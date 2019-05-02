@@ -60,7 +60,7 @@ public class MessagingManager {
 	public void userChange(Connection sd, String userIdent) throws SQLException {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		String data = gson.toJson(new UserMessage(userIdent));		
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);	
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);	
 		if(oId >= 0) {
 			createMessage(sd, oId, "user", null, data);
 		}

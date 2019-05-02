@@ -291,7 +291,7 @@ public class PDFSurveyManager {
 				}
 			}
 			gv.mapbox_key = serverData.mapbox_default;
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser, survey.id);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 
 			languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			if(templateFile.exists()) {

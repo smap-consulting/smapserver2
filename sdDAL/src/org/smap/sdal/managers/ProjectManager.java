@@ -71,7 +71,7 @@ public class ProjectManager {
 		ArrayList<Project> projects = new ArrayList<Project> ();
 		
 		try {
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, user);
 			ResultSet resultSet = null;
 			
 			if(o_id > 0) {

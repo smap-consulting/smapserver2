@@ -163,7 +163,7 @@ public class Dashboard extends Application {
 					+ "and d.ds_u_id in (select id from users where o_id = ?) "
 					+ "order by ds_seq asc;";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			// Add Survey panels
 			pstmt = sd.prepareStatement(sql);	

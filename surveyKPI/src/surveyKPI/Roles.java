@@ -105,7 +105,7 @@ public class Roles extends Application {
 			
 			RoleManager rm = new RoleManager(localisation);
 			
-			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			ArrayList<Role> roles = rm.getRoles(sd, o_id);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -146,7 +146,7 @@ public class Roles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			RoleManager rm = new RoleManager(localisation);
 			
@@ -204,7 +204,7 @@ public class Roles extends Application {
 			
 			RoleManager rm = new RoleManager(localisation);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			rm.deleteRoles(sd, rArray, o_id);
 			response = Response.ok().build();			
 		}  catch (Exception ex) {
@@ -252,7 +252,7 @@ public class Roles extends Application {
 	
 			RoleManager rm = new RoleManager(localisation);
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			ArrayList<Role> roles = rm.getSurveyRoles(sd, sId, oId, enabledOnly, request.getRemoteUser(), superUser);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(roles);
@@ -357,7 +357,7 @@ public class Roles extends Application {
 						
 			RoleManager rm = new RoleManager(localisation);
 						
-			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			ArrayList<RoleName> roles = rm.getRoleNames(sd, o_id);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();

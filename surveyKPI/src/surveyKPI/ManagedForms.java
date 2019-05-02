@@ -217,7 +217,7 @@ public class ManagedForms extends Application {
 		
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -485,7 +485,7 @@ public class ManagedForms extends Application {
 			
 			String tz = "UTC";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			int pId = 0;
 			
 			/*

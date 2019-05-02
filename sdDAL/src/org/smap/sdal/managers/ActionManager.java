@@ -370,7 +370,7 @@ public class ActionManager {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 			int pId = 0;
 			/*
 			 * Verify that the survey is managed by the management id

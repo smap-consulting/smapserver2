@@ -314,7 +314,7 @@ public class Survey extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			String tempUserId = GeneralUtilityMethods.createTempUser(
@@ -382,7 +382,7 @@ public class Survey extends Application {
 			/*
 			 * Delete the temporary user
 			 */
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			GeneralUtilityMethods.deleteTempUser(sd, localisation, oId, ident);
 			
 			// Delete the link from the survey

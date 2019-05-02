@@ -376,7 +376,7 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SensitiveData sensitiveData = new Gson().fromJson(sensitive, SensitiveData.class);	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);		
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());		
 			OrganisationManager om = new OrganisationManager(localisation);
 			om.updateSensitiveData(sd, oId, sensitiveData);		
 			

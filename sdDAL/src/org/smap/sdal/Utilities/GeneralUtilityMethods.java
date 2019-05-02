@@ -956,47 +956,29 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the current organisation id for the user If there is no organisation for that
-	 * user then use the survey id, this is used when getting the organisation for a
-	 * subscriber log
+	 * Get the current organisation id for the user 
 	 */
-	static public int getOrganisationId(Connection sd, String user, int sId) throws SQLException {
+	static public int getOrganisationId(Connection sd, String user) throws SQLException {
 
 		int o_id = -1;
 
 		String sql1 = "select o_id " 
 				+ " from users u " 
 				+ " where u.ident = ?;";
-		PreparedStatement pstmt1 = null;
-
-		String sql2 = "select p.o_id " 
-				+ "from survey s, project p " 
-				+ "where s.p_id = p.id " 
-				+ "and s.s_id = ?";
-		PreparedStatement pstmt2 = null;
+		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt1 = sd.prepareStatement(sql1);
-			pstmt1.setString(1, user);
+			pstmt = sd.prepareStatement(sql1);
+			pstmt.setString(1, user);
 
-			ResultSet rs = pstmt1.executeQuery();
+			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				o_id = rs.getInt(1);
-			} else if (sId > 0) {
-				pstmt2 = sd.prepareStatement(sql2);
-				pstmt2.setInt(1, sId);
-
-				ResultSet rs2 = pstmt2.executeQuery();
-
-				if (rs2.next()) {
-					o_id = rs2.getInt(1);
-				}
-			}
+			} 
 
 		} finally {
-			try {if (pstmt1 != null) {pstmt1.close();}} catch (Exception e) {	}
-			try {if (pstmt2 != null) {pstmt2.close();}} catch (Exception e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
 		}
 
 		return o_id;
@@ -1009,7 +991,10 @@ public class GeneralUtilityMethods {
 
 		int o_id = -1;
 
-		String sql = "select p.o_id " + " from survey s, project p " + "where s.p_id = p.id " + "and s.s_id = ?";
+		String sql = "select p.o_id " + 
+				" from survey s, project p " + 
+				"where s.p_id = p.id " + 
+				"and s.s_id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -3186,7 +3171,7 @@ public class GeneralUtilityMethods {
 			String tz)	// If set substitute display name for the question name if it is not null
 					throws Exception {
 
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property
 		// questions can be added first

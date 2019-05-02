@@ -226,7 +226,7 @@ public class Tasks extends Application {
 			String tz = "UTC";	// Set default for timezone
 			
 			// Get locations
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			TaskManager tm = new TaskManager(localisation, tz);
 			ArrayList<Location> locations = tm.getLocations(sd, oId);
 			
@@ -332,7 +332,7 @@ public class Tasks extends Application {
 				 */
 				if(locations.size() > 0) {
 					// Save locations to disk
-					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 					log.info("userevent: " + request.getRemoteUser() + " : upload locations from xls file: " + fileName + " for organisation: " + oId);
 					TaskManager tm = new TaskManager(localisation, tz);
 					tm.saveLocations(sd, locations, oId);
@@ -595,7 +595,7 @@ public class Tasks extends Application {
 				a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 				// End authorisation
 
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
 				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 				

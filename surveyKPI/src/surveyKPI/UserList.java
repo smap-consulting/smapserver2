@@ -124,7 +124,7 @@ public class UserList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 			
@@ -170,7 +170,7 @@ public class UserList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);	
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOnlyViewData = GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser());
 			UserManager um = new UserManager(localisation);
 			users = um.getUserListSimple(sd, oId, true, isOnlyViewData, request.getRemoteUser());		// Always sort by name
@@ -218,7 +218,7 @@ public class UserList extends Application {
 			
 			ActionManager am = new ActionManager(localisation, tz);
 			
-			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			ArrayList<User> users = am.getTemporaryUsers(sd, o_id, action, 0, pId);			

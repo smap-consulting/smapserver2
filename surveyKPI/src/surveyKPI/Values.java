@@ -104,7 +104,7 @@ public class Values extends Application {
 			
 			String tz = "UTC";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			/*
 			 * Get Survey meta data

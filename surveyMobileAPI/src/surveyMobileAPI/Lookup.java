@@ -134,7 +134,7 @@ public class Lookup extends Application{
 			String tz = "UTC";
 			
 			HashMap<String, String> results = null;
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
 					// Get data from a survey
@@ -255,7 +255,7 @@ public class Lookup extends Application{
 			}
 			
 			ArrayList<SelectChoice> results = null;
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			if(fileName != null) {
 				if(fileName.startsWith("linked_s")) {
 					// Get data from a survey

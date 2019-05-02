@@ -163,7 +163,7 @@ public class EventList extends Application {
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
 			// Record limiting
 			JSONObject jTotals = new JSONObject();
@@ -620,7 +620,7 @@ public class EventList extends Application {
 		JSONObject jo = new JSONObject();
 
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
 			if(!hideSuccess) {
 				addStatusTotals("success", sName, projectId, user, sd,	groupby, sList, is_forward, oId); 

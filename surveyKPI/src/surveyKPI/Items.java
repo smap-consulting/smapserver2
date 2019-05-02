@@ -177,7 +177,7 @@ public class Items extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), sId);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				// Connect to the results database
 				cResults = ResultsDataSource.getConnection(connectionString);	
 				

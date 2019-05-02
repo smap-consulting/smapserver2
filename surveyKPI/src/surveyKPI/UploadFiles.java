@@ -190,7 +190,7 @@ public class UploadFiles extends Application {
 						mediaInfo.setFolder(basePath, sId, null, sd);
 					} else {	
 						// Upload to organisations folder
-						oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+						oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 						mediaInfo.setFolder(basePath, user, oId, sd, false);				 
 					}
 					mediaInfo.setServer(request.getRequestURL().toString());
@@ -338,7 +338,7 @@ public class UploadFiles extends Application {
 
 			deleteFile(request, sd, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
 			if(filename.endsWith(".csv")) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 				  // Delete the organisation shared resources - not necessary
 			    CsvTableManager tm = new CsvTableManager(sd, localisation);
@@ -410,7 +410,7 @@ public class UploadFiles extends Application {
 
 		PreparedStatement pstmt = null;		
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
 			// Get the path to the media folder	
 			if(sId > 0) {
@@ -500,7 +500,7 @@ public class UploadFiles extends Application {
 			
 			String tz = "UTC";
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 			
 			/*
 			 * Parse the request
@@ -927,7 +927,7 @@ public class UploadFiles extends Application {
 
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 
 			if(fileName != null) {
 
@@ -1071,7 +1071,7 @@ public class UploadFiles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 
 			if(fileName != null) {
 
@@ -1143,7 +1143,7 @@ public class UploadFiles extends Application {
 		String basePath,
 		MediaInfo mediaInfo) throws Exception {
 		
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, user, 0);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		CsvTableManager csvMgr = new CsvTableManager(sd, localisation, oId, sId, csvFileName);
 		csvMgr.updateTable(csvFile, oldCsvFile);
 		

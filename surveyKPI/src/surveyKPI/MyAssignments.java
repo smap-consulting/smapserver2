@@ -212,7 +212,7 @@ public class MyAssignments extends Application {
 
 		Connection cRel = null;
 
-		int oId = GeneralUtilityMethods.getOrganisationId(sd, userName, 0);
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 
 		try {
 			// Get the users locale

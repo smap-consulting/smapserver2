@@ -224,7 +224,7 @@ public class ServerManager {
 
 
 				// Delete the survey  resources 
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, null, sId);
+				int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			    CsvTableManager tm = new CsvTableManager(sd, localisation);
 			    tm.delete(oId, sId, null);		
 			    
