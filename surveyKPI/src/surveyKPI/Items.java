@@ -891,7 +891,7 @@ public class Items extends Application {
 				JSONArray ja = new JSONArray();
 				while (resultSet.next()) {
 					
-					JSONObject jr = subMgr.getRecord(resultSet, true, true, false);
+					JSONObject jr = subMgr.getRecord(resultSet, true, true, false, false, null);
 					maxRec = resultSet.getInt("ue_id");	
 					ja.put(jr);
 					recCount++;

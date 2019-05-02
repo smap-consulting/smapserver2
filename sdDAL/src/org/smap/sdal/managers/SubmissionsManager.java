@@ -193,8 +193,11 @@ public class SubmissionsManager {
 	public JSONObject getRecord(ResultSet resultSet, 
 			boolean isGeoJson, 
 			boolean incMergedLocation,
-			boolean getUser) throws NumberFormatException, JSONException, SQLException {
+			boolean getUser,
+			boolean links,
+			String urlprefix) throws NumberFormatException, JSONException, SQLException {
 		JSONObject jr = new JSONObject();
+		JSONObject jl = null;	// links
 		JSONObject jp = null;
 		
 		if(isGeoJson) {
@@ -213,6 +216,10 @@ public class SubmissionsManager {
 		if(ident == null || ident.trim().length() == 0) {
 			ident = resultSet.getString("ident");
 		}
+		
+		// Get the instance id
+		String instanceId = resultSet.getString("instanceid");
+		
 		jp.put("survey_ident", ident);								// survey ident
 		jp.put("instanceid", resultSet.getString("instanceid"));							// instanceId
 		jp.put(localisation.getString("a_device"), resultSet.getString("imei"));
@@ -220,6 +227,7 @@ public class SubmissionsManager {
 		jp.put(localisation.getString("ar_project"), resultSet.getString("project_name"));
 		jp.put(localisation.getString("a_sn"), resultSet.getString("survey_notes"));
 		jp.put(localisation.getString("a_in"), resultSet.getString("instance_name"));
+		jp.put(localisation.getString("a_id"), instanceId);
 		jp.put(localisation.getString("a_st"), resultSet.getString("start_time"));
 		jp.put(localisation.getString("a_et"), resultSet.getString("end_time"));
 		jp.put(localisation.getString("a_sched"), resultSet.getString("scheduled_start"));
@@ -255,6 +263,34 @@ public class SubmissionsManager {
 		if(incMergedLocation) {
 			jp.put(localisation.getString("a_l"), location);		// For table	
 		}
+		
+		if(links) {
+			jl = new JSONObject();
+			
+			// Link to data structure used by tasks
+			jl.put("data", GeneralUtilityMethods.getInitialDataLink(
+					urlprefix, 
+					ident, 
+					"survey",
+					0,		// task id - not needed for survey data
+					instanceId));
+			
+			// Link to pdf
+			jl.put("pdf", GeneralUtilityMethods.getPdfLink(
+					urlprefix, 
+					ident, 
+					instanceId,
+					tz));
+			
+			// Link to webform
+			jl.put("webform", GeneralUtilityMethods.getWebformLink(
+					urlprefix, 
+					ident, 
+					instanceId));
+			
+			jp.put("links", jl);
+		}
+		
 		if(isGeoJson) {
 			jr.put("properties", jp);
 		}

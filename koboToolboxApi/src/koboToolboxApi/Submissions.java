@@ -91,7 +91,7 @@ public class Submissions extends Application {
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
-			@QueryParam("links") boolean links
+			@QueryParam("links") String links
 			) throws ApplicationException, Exception { 
 		
 		
@@ -117,7 +117,7 @@ public class Submissions extends Application {
 			String geoJson,
 			Date startDate,
 			Date endDate,
-			boolean links
+			String links
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -139,6 +139,11 @@ public class Submissions extends Application {
 		boolean isGeoJson = false;
 		if(geoJson != null && (geoJson.equals("yes") || geoJson.equals("true"))) {
 			isGeoJson = true;
+		}
+		
+		boolean incLinks = false;
+		if(links != null && (links.equals("yes") || links.equals("true"))) {
+			incLinks = true;
 		}
 
 		if(include_bad == null) {
@@ -192,9 +197,10 @@ public class Submissions extends Application {
 			rs = pstmt.executeQuery();
 			
 			int index = 0;
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			while(rs.next()) {
 				
-				JSONObject jo  =  subMgr.getRecord(rs, isGeoJson, false, true);
+				JSONObject jo  =  subMgr.getRecord(rs, isGeoJson, false, true, incLinks, urlprefix);
 				if(jo != null) {
 					if(index > 0) {
 						outWriter.print(",");
