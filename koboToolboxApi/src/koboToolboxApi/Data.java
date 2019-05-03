@@ -484,6 +484,8 @@ public class Data extends Application {
 					if (limit > 0 && index >= limit) {
 						break;
 					}
+					
+					log.info("-- " + table_name + ": " + index);
 
 				}
 				
