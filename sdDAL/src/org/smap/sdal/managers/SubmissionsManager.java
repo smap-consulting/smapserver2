@@ -66,7 +66,7 @@ public class SubmissionsManager {
 		this.tz = tz;
 	}
 
-	public String getWhereClause(String user, int oId, int dateId, Date startDate, Date endDate) {
+	public String getWhereClause(String user, int oId, int dateId, Date startDate, Date endDate, int stopat) {
 		
 		StringBuffer whereClause =  new StringBuffer("");
 		if(oId > 0) {
@@ -77,6 +77,11 @@ public class SubmissionsManager {
 		if(user != null) {
 			whereClause.append(getJoin(whereClause));
 			whereClause.append("ue.user_name = ?");
+		}
+		
+		if(stopat > 0) {
+			whereClause.append(getJoin(whereClause));
+			whereClause.append("ue.ue_id > ?");
 		}
 		
 		// RBAC
@@ -124,7 +129,8 @@ public class SubmissionsManager {
 			String requestingUser,
 			int dateId,
 			Date startDate,
-			Date endDate) throws SQLException {
+			Date endDate,
+			int stopat) throws SQLException {
 		
 		String sqlLimit = "";
 		if(rec_limit > 0) {
@@ -181,6 +187,9 @@ public class SubmissionsManager {
 		}
 		if(user != null) {					// Filter on user ident
 			pstmt.setString(attribIdx++, user);
+		}
+		if(stopat > 0) {					// To get changes
+			pstmt.setInt(attribIdx++, stopat);
 		}
 		pstmt.setString(attribIdx++, requestingUser);		// For RBAC
 		

@@ -91,6 +91,7 @@ public class Submissions extends Application {
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
+			@QueryParam("stopat") int stopat,
 			@QueryParam("user") String user,
 			@QueryParam("links") String links
 			) throws ApplicationException, Exception { 
@@ -100,7 +101,8 @@ public class Submissions extends Application {
 				startDate,
 				endDate,
 				user,
-				links);
+				links,
+				stopat);
 	}
 	
 
@@ -120,7 +122,8 @@ public class Submissions extends Application {
 			Date startDate,
 			Date endDate,
 			String user,
-			String links
+			String links,
+			int stopat
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -177,7 +180,7 @@ public class Submissions extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate);	
+			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, stopat);	
 				
 			// page the results to reduce memory usage
 			log.info("---------------------- paging results to postgres");
@@ -192,7 +195,8 @@ public class Submissions extends Application {
 					request.getRemoteUser(),
 					dateId,
 					startDate,
-					endDate);
+					endDate,
+					stopat);
 			pstmt.setFetchSize(100);	
 			
 			log.info("Get submissions: " + pstmt.toString());
