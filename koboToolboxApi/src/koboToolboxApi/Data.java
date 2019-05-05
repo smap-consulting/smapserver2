@@ -310,6 +310,10 @@ public class Data extends Application {
 			isDt = true;
 		}
 		
+		if(tz == null) {
+			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+					GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+		}
 		tz = (tz == null) ? "UTC" : tz;
 
 		PrintWriter outWriter = null;
