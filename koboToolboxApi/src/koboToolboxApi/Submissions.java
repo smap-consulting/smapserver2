@@ -85,8 +85,6 @@ public class Submissions extends Application {
 			@Context HttpServletResponse response,
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
-			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
-			@QueryParam("audit") String audit_set,		// if yes return audit data
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("startDate") Date startDate,
@@ -97,7 +95,7 @@ public class Submissions extends Application {
 			) throws ApplicationException, Exception { 
 		
 		
-		getSubmissions(request, response, start, limit, include_bad, audit_set, tz, geojson, 
+		getSubmissions(request, response, start, limit,  tz, geojson, 
 				startDate,
 				endDate,
 				user,
@@ -115,8 +113,6 @@ public class Submissions extends Application {
 			HttpServletResponse response,
 			int start,				// Primary key to start from
 			int limit,				// Number of records to return
-			String include_bad,		// yes | only | none Include records marked as bad
-			String audit_set,		// if yes return audit data
 			String tz,				// Timezone
 			String geoJson,
 			Date startDate,
@@ -144,10 +140,6 @@ public class Submissions extends Application {
 		boolean incLinks = false;
 		if(links != null && (links.equals("yes") || links.equals("true"))) {
 			incLinks = true;
-		}
-
-		if(include_bad == null) {
-			include_bad = "none";
 		}
 		
 		tz = (tz == null) ? "UTC" : tz;
