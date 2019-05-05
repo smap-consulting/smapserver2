@@ -69,6 +69,13 @@ public class SubmissionsManager {
 	public String getWhereClause(String user, int oId, int dateId, Date startDate, Date endDate, int stopat) {
 		
 		StringBuffer whereClause =  new StringBuffer("");
+		
+		whereClause.append(getJoin(whereClause));		// Only return submissions that made it to the results table
+		whereClause.append("results_db_applied");
+		
+		whereClause.append(getJoin(whereClause));		// Only return submissions that made it to the results table
+		whereClause.append("se.status = 'success'");
+		
 		if(oId > 0) {
 			whereClause.append(getJoin(whereClause));
 			whereClause.append("ue.o_id = ?");
@@ -119,6 +126,9 @@ public class SubmissionsManager {
 		return whereClause.toString();
 	}
 	
+	/*
+	 * Get the submissions statement
+	 */
 	public PreparedStatement getSubmissionsStatement(
 			Connection sd, 
 			int rec_limit, 
@@ -162,6 +172,7 @@ public class SubmissionsManager {
 				+ "to_char(timezone(?, ue.scheduled_start), 'YYYY-MM-DD HH24:MI:SS') as scheduled_start"
 				+ " ");
 		sql2.append("from upload_event ue ");
+		sql2.append("left outer join subscriber_event se on ue.ue_id = se.ue_id ");
 		sql2.append("left outer join survey s on ue.s_id = s.s_id ");
 		sql2.append("left outer join project p on ue.p_id = p.id ");
 		

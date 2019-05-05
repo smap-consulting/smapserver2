@@ -142,8 +142,11 @@ public class Submissions extends Application {
 			incLinks = true;
 		}
 		
+		if(tz == null) {
+			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+					GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+		}
 		tz = (tz == null) ? "UTC" : tz;
-		
 		
 		int dateId = 1;			// Upload time
 
