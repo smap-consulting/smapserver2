@@ -7632,7 +7632,7 @@ public class GeneralUtilityMethods {
 			String updateId) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("/api/v1/data/").append(surveyIdent);
+		url.append("api/v1/data/").append(surveyIdent);
 		
 		if(initial_data_source != null && initial_data_source.equals("survey")) {
 			url.append("/").append(updateId); 
@@ -7651,7 +7651,7 @@ public class GeneralUtilityMethods {
 			String tz) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("/surveyKPI/pdf/").append(surveyIdent);
+		url.append("surveyKPI/pdf/").append(surveyIdent);
 		url.append("?instance=").append(updateId);
 		url.append("&tz=").append(tz);
 			
@@ -7663,7 +7663,7 @@ public class GeneralUtilityMethods {
 			String updateId) {
 		
 		StringBuffer url = new StringBuffer(urlprefix);		
-		url.append("/webForm/").append(surveyIdent);
+		url.append("webForm/").append(surveyIdent);
 		url.append("?datakey=instanceid");
 		url.append("&datakeyvalue=").append(updateId);
 			
