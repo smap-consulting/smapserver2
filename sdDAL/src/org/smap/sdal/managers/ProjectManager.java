@@ -77,23 +77,23 @@ public class ProjectManager {
 			if(o_id > 0) {
 				
 				String cols = "select p.id, p.name, p.description, p.tasks_only, p.changed_by, p.changed_ts ";
+				String sql = null;
 				if(all) {
-					String sql = cols
+					sql = cols
 							+ "from project p "
 							+ "where p.o_id = ? "
 							+ "order by p.name asc;";		
-					pstmt = sd.prepareStatement(sql);
 				} else {
-					String sql = cols
+					sql = cols
 							+ "from project p, user_project up, users u "
 							+ "where p.o_id = ? "
 							+ "and p.id = up.p_id "
 							+ "and up.u_id = u.id "
 							+ "and u.ident = ? "
 							+ "order by p.name asc;";		
-					pstmt = sd.prepareStatement(sql);
+					
 				}
-				
+				pstmt = sd.prepareStatement(sql);			
 				pstmt.setInt(1, o_id);
 				if(!all) {
 					pstmt.setString(2, user);
