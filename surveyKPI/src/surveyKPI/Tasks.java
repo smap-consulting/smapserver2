@@ -269,6 +269,11 @@ public class Tasks extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		Connection sd = null; 
+		
+		// Authorisation - Access
+		sd = SDDataSource.getConnection("surveyKPI - Tasks - getLocations");
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End authorisation
 
 		try {
 			/*
@@ -317,10 +322,6 @@ public class Tasks extends Application {
 			}
 			
 			if(fileName != null) {
-				// Authorisation - Access
-				sd = SDDataSource.getConnection("Tasks-LocationUpload");
-				a.isAuthorised(sd, request.getRemoteUser());
-				// End authorisation
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
