@@ -419,6 +419,58 @@ public class Tasks extends Application {
 		return Response.ok("").build();
 	}
 	
+	/*
+	 * Download nfc identifiers into an XLS file
+	 */
+	@GET
+	@Path ("/nfc/download")
+	@Produces("application/x-download")
+	public Response getXLSNfcService (@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@QueryParam("filetype") String filetype) throws Exception {
+	
+		Connection sd = SDDataSource.getConnection("createXLSTasks");	
+		// Authorisation - Access
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End authorisation
+		
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		// Set file type to "xlsx" unless "xls" has been specified
+		if(filetype == null || !filetype.equals("xls")) {
+			filetype = "xlsx";
+		}
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());			
+			
+			String tz = "UTC";	// Set default for timezone
+			
+			TaskManager tm = new TaskManager(localisation, tz);
+			
+			// Get the current locations
+			ArrayList<Location> locations = tm.getLocations(sd, organisation.id);
+			
+			// Set file name
+			GeneralUtilityMethods.setFilenameInResponse("nfc." + filetype, response);
+			
+			// Create XLSTasks File
+			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
+			xf.createXLSLocationsFile(response.getOutputStream(), locations, localisation);
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection("createXLSTasks", sd);	
+			
+		}
+		return Response.ok("").build();
+	}
 	
 	/*
 	 * Export Tasks for a task group in an XLS file
