@@ -46,6 +46,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -246,17 +247,15 @@ public class Tasks extends Application {
 		return response;
 	}
 	
-
+	
 	/*
-	 * Upload locations used in task assignment from an XLS file
-	 * A location can be:
-	 *   An NFC tag
-	 *   A geofence
+	 * Upload locations and nfc tags used in task assignment from an XLS file
 	 */
 	@POST
 	@Produces("application/json")
-	@Path("/locations/upload")
+	@Path("/locations/upload/{type}")
 	public Response uploadLocations(
+			@PathParam ("type") String type,			// nfc || location
 			@Context HttpServletRequest request) {
 		
 		Response response = null;
@@ -276,6 +275,11 @@ public class Tasks extends Application {
 		// End authorisation
 
 		try {
+			// Validate
+			if(type == null || (!type.equals("nfc") && !type.equals("locations"))) {
+				throw new ApplicationException("Invalid upload type: " + type);
+			}
+			
 			/*
 			 * Parse the request
 			 */
@@ -336,7 +340,7 @@ public class Tasks extends Application {
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 					log.info("userevent: " + request.getRemoteUser() + " : upload locations from xls file: " + fileName + " for organisation: " + oId);
 					TaskManager tm = new TaskManager(localisation, tz);
-					tm.saveLocations(sd, locations, oId);
+					tm.saveLocations(sd, locations, oId, type);
 					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", locations.size() + " locations / NFC tags uploaded from file " + fileName);
 					// Return tags to calling program
 					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

@@ -616,10 +616,13 @@ public class TaskManager {
 	 */
 	public void saveLocations(Connection sd, 
 			ArrayList<Location> tags,
-			int oId) throws SQLException {
+			int oId,
+			String type) throws SQLException {
 
 
-		String sqlDelete = "delete from locations where o_id = ?;";
+		String sqlDelete = "delete from locations "
+				+ "where o_id = ?"
+				+ "and locn_type = ?";
 		PreparedStatement pstmtDelete = null;
 
 		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name) values (?, ?, ?, ?, ?);";
@@ -633,6 +636,7 @@ public class TaskManager {
 			// Remove existing data
 			pstmtDelete = sd.prepareStatement(sqlDelete);
 			pstmtDelete.setInt(1, oId);
+			pstmtDelete.setString(2, type);
 			pstmtDelete.executeUpdate();
 
 			// Add new data
@@ -643,7 +647,7 @@ public class TaskManager {
 				Location t = tags.get(i);
 
 				pstmt.setString(2, t.group);
-				pstmt.setString(3, t.type);
+				pstmt.setString(3, type);
 				pstmt.setString(4, t.uid);
 				pstmt.setString(5, t.name);
 
