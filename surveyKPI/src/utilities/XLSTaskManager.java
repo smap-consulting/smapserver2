@@ -368,21 +368,30 @@ public class XLSTaskManager {
                     	
                         int lastCellNum = row.getLastCellNum();
                         
-                    	if(needHeader) {
-                    		header = getHeader(row, lastCellNum);
-                    		needHeader = false;
-                    	} else {
-                    		Location t = new Location();
-                    		t.group = group;
-                    		t.type = "nfc";
-                    		try {
-                    			t.uid = getColumn(row, "uid", header, lastCellNum, null);
-                    			t.name = getColumn(row, "tagname", header, lastCellNum, null);
-                    			tags.add(t);
-                    		} catch (Exception e) {
-                    			log.info("Error getting nfc column" + e.getMessage());
-                    		}
-                    	}
+	                    	if(needHeader) {
+	                    		header = getHeader(row, lastCellNum);
+	                    		needHeader = false;
+	                    	} else {
+	                    		Location t = new Location();
+	                    		t.group = group;
+	                    		t.type = "nfc";
+	                    		try {
+	                    			t.uid = getColumn(row, "uid", header, lastCellNum, null);
+	                    			t.name = getColumn(row, "tagname", header, lastCellNum, null);
+	                    			
+	                    			String lat = getColumn(row, "lat", header, lastCellNum, "0.0");
+	                    			String lon = getColumn(row, "lon", header, lastCellNum, "0.0");
+	                    			try {
+		                    			t.lat = Double.parseDouble(lat);
+		                    			t.lon = Double.parseDouble(lon);
+	                    			} catch (Exception e) {
+	                    				
+	                    			}
+	                    			tags.add(t);
+	                    		} catch (Exception e) {
+	                    			log.info("Error getting nfc column" + e.getMessage());
+	                    		}
+	                    	}
                     	
                     }
                     
@@ -489,9 +498,7 @@ public class XLSTaskManager {
 
 				}
 			}
-		} else {
-			throw new Exception("Column " + name + " not found");
-		}
+		} 
 
 		if(value == null) {		// Set to default value if null
 			value = def;
