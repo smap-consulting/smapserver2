@@ -253,9 +253,8 @@ public class Tasks extends Application {
 	 */
 	@POST
 	@Produces("application/json")
-	@Path("/locations/upload/{type}")
+	@Path("/locations/upload")
 	public Response uploadLocations(
-			@PathParam ("type") String type,			// nfc || location
 			@Context HttpServletRequest request) {
 		
 		Response response = null;
@@ -275,10 +274,6 @@ public class Tasks extends Application {
 		// End authorisation
 
 		try {
-			// Validate
-			if(type == null || (!type.equals("nfc") && !type.equals("locations"))) {
-				throw new ApplicationException("Invalid upload type: " + type);
-			}
 			
 			/*
 			 * Parse the request
@@ -340,7 +335,7 @@ public class Tasks extends Application {
 					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 					log.info("userevent: " + request.getRemoteUser() + " : upload locations from xls file: " + fileName + " for organisation: " + oId);
 					TaskManager tm = new TaskManager(localisation, tz);
-					tm.saveLocations(sd, locations, oId, type);
+					tm.saveLocations(sd, locations, oId);
 					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", locations.size() + " locations / NFC tags uploaded from file " + fileName);
 					// Return tags to calling program
 					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -370,64 +365,12 @@ public class Tasks extends Application {
 		return response;
 	}
 	
-	/*
-	 * Download locations into an XLS file
-	 */
-	@GET
-	@Path ("/locations/download")
-	@Produces("application/x-download")
-	public Response getXLSLocationsService (@Context HttpServletRequest request, 
-			@Context HttpServletResponse response,
-			@QueryParam("filetype") String filetype) throws Exception {
-	
-		Connection sd = SDDataSource.getConnection("createXLSTasks");	
-		// Authorisation - Access
-		a.isAuthorised(sd, request.getRemoteUser());
-		// End authorisation
-		
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-		
-		// Set file type to "xlsx" unless "xls" has been specified
-		if(filetype == null || !filetype.equals("xls")) {
-			filetype = "xlsx";
-		}
-		
-		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());			
-			
-			String tz = "UTC";	// Set default for timezone
-			
-			TaskManager tm = new TaskManager(localisation, tz);
-			
-			// Get the current locations
-			ArrayList<Location> locations = tm.getLocations(sd, organisation.id);
-			
-			// Set file name
-			GeneralUtilityMethods.setFilenameInResponse("locations." + filetype, response);
-			
-			// Create XLSTasks File
-			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
-			xf.createXLSLocationsFile(response.getOutputStream(), locations, localisation);
-			
-		}  catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			throw new Exception("Exception: " + e.getMessage());
-		} finally {
-			
-			SDDataSource.closeConnection("createXLSTasks", sd);	
-			
-		}
-		return Response.ok("").build();
-	}
-	
+
 	/*
 	 * Download nfc identifiers into an XLS file
 	 */
 	@GET
-	@Path ("/nfc/download")
+	@Path ("/locations/download")
 	@Produces("application/x-download")
 	public Response getXLSNfcService (@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
@@ -459,7 +402,7 @@ public class Tasks extends Application {
 			ArrayList<Location> locations = tm.getLocations(sd, organisation.id);
 			
 			// Set file name
-			GeneralUtilityMethods.setFilenameInResponse("nfc." + filetype, response);
+			GeneralUtilityMethods.setFilenameInResponse(localisation.getString("res_locations") + "." + filetype, response);
 			
 			// Create XLSTasks File
 			XLSTaskManager xf = new XLSTaskManager(filetype, request.getScheme(), request.getServerName());
