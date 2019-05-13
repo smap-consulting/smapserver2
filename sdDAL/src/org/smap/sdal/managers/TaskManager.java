@@ -577,7 +577,12 @@ public class TaskManager {
 	public ArrayList<Location>  getLocations(Connection sd, 
 			int oId) throws SQLException {
 
-		String sql = "select id, locn_group, locn_type, uid, name from locations where o_id = ? order by id asc;";
+		String sql = "select id, locn_group, locn_type, uid, name, "
+				+ "ST_x(the_geom) as lon,"
+				+ "ST_Y(the_geom) as lat "
+				+ "from locations "
+				+ "where o_id = ? "
+				+ "order by id asc;";
 		PreparedStatement pstmt = null;
 		ArrayList<Location> locations = new ArrayList<Location> ();
 
@@ -591,18 +596,18 @@ public class TaskManager {
 			while (rs.next()) {
 				Location locn = new Location();
 
-				locn.id = rs.getInt(1);
-				locn.group = rs.getString(2);
-				locn.type = rs.getString(3);
-				locn.uid = rs.getString(4);
-				locn.name = rs.getString(5);
+				locn.id = rs.getInt("id");
+				locn.group = rs.getString("locn_group");
+				locn.type = rs.getString("locn_type");
+				locn.uid = rs.getString("uid");
+				locn.name = rs.getString("name");
+				locn.lon = rs.getDouble("lon"); 
+				locn.lat = rs.getDouble("lat"); 
 
 				locations.add(locn);
 			}
 
 
-		} catch(Exception e) {
-			throw(e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
@@ -623,9 +628,10 @@ public class TaskManager {
 				+ "where o_id = ?";
 		PreparedStatement pstmtDelete = null;
 
-		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name) values (?, ?, ?, ?, ?);";
+		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "
+				+ "values (?, ?, ?, ?, ?, ST_GeomFromText(?, 4326));";
 		PreparedStatement pstmt = null;
-
+		
 		try {
 
 			log.info("Set autocommit false");
@@ -648,6 +654,9 @@ public class TaskManager {
 				pstmt.setString(4, t.uid);
 				pstmt.setString(5, t.name);
 
+				Point newPoint = new Point(t.lon, t.lat);
+				pstmt.setString(6, newPoint.getAsText());
+				
 				pstmt.executeUpdate();
 			}
 			sd.commit();
