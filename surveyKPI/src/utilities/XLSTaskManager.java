@@ -377,7 +377,10 @@ public class XLSTaskManager {
 	                    		t.type = "nfc";
 	                    		try {
 	                    			t.uid = getColumn(row, "uid", header, lastCellNum, null);
-	                    			t.name = getColumn(row, "tagname", header, lastCellNum, null);
+	                    			t.name = getColumn(row, "name", header, lastCellNum, null);
+	                    			if(t.name == null) {
+	                    				t.name = getColumn(row, "tagname", header, lastCellNum, null);	// try legacy name
+	                    			}
 	                    			
 	                    			String lat = getColumn(row, "lat", header, lastCellNum, "0.0");
 	                    			String lon = getColumn(row, "lon", header, lastCellNum, "0.0");
@@ -577,7 +580,9 @@ public class XLSTaskManager {
 		int colNumber = 0;
 	
 		cols.add(new Column(localisation, colNumber++, "UID", false));
-		cols.add(new Column(localisation, colNumber++, "tagName", false));
+		cols.add(new Column(localisation, colNumber++, "name", false));
+		cols.add(new Column(localisation, colNumber++, "lat", false));
+		cols.add(new Column(localisation, colNumber++, "lon", false));
 		
 		return cols;
 	}
@@ -696,6 +701,16 @@ public class XLSTaskManager {
 		cell = row.createCell(1);
 		cell.setCellStyle(styles.get("default"));	
 		cell.setCellValue(l.name);
+		
+		if(l.lat != 0 || l.lon != 0) {
+			cell = row.createCell(2);
+			cell.setCellStyle(styles.get("default"));	
+			cell.setCellValue(l.lat);
+			
+			cell = row.createCell(3);
+			cell.setCellStyle(styles.get("default"));	
+			cell.setCellValue(l.lon);
+		}
 
 	
 	}
