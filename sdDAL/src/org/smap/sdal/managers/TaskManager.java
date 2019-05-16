@@ -949,6 +949,8 @@ public class TaskManager {
 					taskStart,
 					taskFinish,
 					tid.locationTrigger,
+					null,
+					null,
 					false,
 					null,
 					initialDataSource,
@@ -1251,6 +1253,8 @@ public class TaskManager {
 						tsd.from,
 						tsd.to,
 						tsd.location_trigger,
+						tsd.location_group,
+						tsd.location_name,
 						tsd.repeat,
 						tsd.guidance,
 						tsd.initial_data_source,
@@ -1272,6 +1276,8 @@ public class TaskManager {
 						tsd.from,
 						tsd.to,
 						tsd.location_trigger,
+						tsd.location_group,
+						tsd.location_name,
 						tsd.repeat,
 						tsd.guidance,
 						tsd.initial_data_source,
@@ -1847,6 +1853,8 @@ public class TaskManager {
 				+ "schedule_at,"
 				+ "schedule_finish,"
 				+ "location_trigger,"
+				+ "location_group,"
+				+ "location_name,"
 				+ "repeat,"
 				+ "guidance,"
 				+ "initial_data_source,"
@@ -1866,6 +1874,8 @@ public class TaskManager {
 				+ "?,"		// schedule_at
 				+ "?,"		// schedule_finish
 				+ "?,"		// location_trigger
+				+ "?,"		// location_group
+				+ "?,"		// location_name
 				+ "?,"		// repeat
 				+ "?,"		// guidance
 				+ "?,"		// initial_data_source
@@ -1892,6 +1902,8 @@ public class TaskManager {
 			Timestamp taskStart,
 			Timestamp taskFinish,
 			String locationTrigger,
+			String locationGroup,
+			String locationName,
 			boolean repeat,
 			String guidance,
 			String initial_data_source,
@@ -1911,11 +1923,13 @@ public class TaskManager {
 		pstmt.setTimestamp(11, taskStart);
 		pstmt.setTimestamp(12, taskFinish);
 		pstmt.setString(13, locationTrigger);
-		pstmt.setBoolean(14, repeat);	
-		pstmt.setString(15, guidance);	
-		pstmt.setString(16, initial_data_source);
-		pstmt.setString(17, initial_data);	
-		pstmt.setInt(18, show_dist);	
+		pstmt.setString(14, locationGroup);
+		pstmt.setString(15, locationName);
+		pstmt.setBoolean(16, repeat);	
+		pstmt.setString(17, guidance);	
+		pstmt.setString(18, initial_data_source);
+		pstmt.setString(19, initial_data);	
+		pstmt.setInt(20, show_dist);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -1936,6 +1950,8 @@ public class TaskManager {
 				+ "schedule_at = ?,"
 				+ "schedule_finish = ?,"
 				+ "location_trigger = ?,"
+				+ "location_group = ?,"
+				+ "location_name = ?,"
 				+ "repeat = ?,"
 				+ "guidance = ?,"
 				+ "initial_data_source = ?,"
@@ -1960,6 +1976,8 @@ public class TaskManager {
 			Timestamp taskStart,
 			Timestamp taskFinish,
 			String locationTrigger,
+			String locationGroup,
+			String locationName,
 			boolean repeat,
 			String guidance,
 			String initial_data_source,
@@ -1974,13 +1992,15 @@ public class TaskManager {
 		pstmt.setTimestamp(6, taskStart);
 		pstmt.setTimestamp(7, taskFinish);
 		pstmt.setString(8, locationTrigger);
-		pstmt.setBoolean(9, repeat);	
-		pstmt.setString(10, guidance);
-		pstmt.setString(11, initial_data_source);
-		pstmt.setString(12, initial_data);
-		pstmt.setInt(13, show_dist);
-		pstmt.setInt(14, tId);
-		pstmt.setInt(15, tgId);
+		pstmt.setString(9, locationGroup);
+		pstmt.setString(10, locationName);
+		pstmt.setBoolean(11, repeat);	
+		pstmt.setString(12, guidance);
+		pstmt.setString(13, initial_data_source);
+		pstmt.setString(14, initial_data);
+		pstmt.setInt(15, show_dist);
+		pstmt.setInt(16, tId);
+		pstmt.setInt(17, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -2624,6 +2644,8 @@ public class TaskManager {
 		tsd.lon = tf.properties.lon;
 		tsd.lat = tf.properties.lat;
 		tsd.location_trigger = tf.properties.location_trigger;
+		tsd.location_group = tf.properties.location_group;
+		tsd.location_name = tf.properties.location_name;
 		
 		if(tf.properties.emails != null && tf.properties.emails.trim().length() > 0) {
 			String [] emailArray = tf.properties.emails.split(",");

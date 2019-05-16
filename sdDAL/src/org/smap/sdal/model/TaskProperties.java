@@ -18,7 +18,9 @@ public class TaskProperties {
 	public String update_id;					// Unique identifier of record to be updated
 	public Timestamp from;
 	public Timestamp to;
-	public String location_trigger;
+	public String location_trigger;			// NFC UID
+	public String location_name;	
+	public String location_group;
 	public boolean repeat;
 	public int repeat_count;
 	public String address;			// Text address
