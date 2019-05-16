@@ -3088,16 +3088,9 @@ public class GeneralUtilityMethods {
 				}
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
 			try {
-				if (pstmtTable != null) {
-					pstmtTable.close();
-				}
-			} catch (SQLException e) {
-			}
+				if (pstmtTable != null) {pstmtTable.close();}} catch (SQLException e) {}
 		}
 
 		return tables;
@@ -7669,6 +7662,79 @@ public class GeneralUtilityMethods {
 			
 		return url.toString();
 	}
+	
+	/*
+	 * Starting from the past in question get all the tables up to the highest
+	 * parent that are part of this survey
+	 */
+	public static void createLocation(Connection sd, int oId, 
+			String group, String uid, String name, double lon, double lat) throws SQLException {
+
+		PreparedStatement pstmt = null;
+		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "
+				+ "values (?, ?, 'nfc', ?, ?, ST_GeomFromText(?, 4326))";
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+
+			pstmt.setInt(1, oId);
+			pstmt.setString(2,  group);
+			pstmt.setString(3,  uid);
+			pstmt.setString(4,  name);
+			
+			Point newPoint = new Point(lon, lat);
+			pstmt.setString(5, newPoint.getAsText());
+			
+			log.info("Create new location (" + name + "): " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} finally {
+			try {
+				if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+
+	}
+
+	/*
+	 * Starting from the past in question get all the tables up to the highest
+	 * parent that are part of this survey
+	 */
+	public static void updateLocation(Connection sd, 
+			int oId, 
+			String group, 
+			String uid, 
+			String name,
+			double lon,
+			double lat) throws SQLException {
+
+		PreparedStatement pstmt = null;
+		String sql = "update locations "
+				+ "set uid = ?,"
+				+ "the_geom = ST_GeomFromText(?, 4326) "
+				+ "where o_id = ?"
+				+ "and locn_group = ?"
+				+ "and name = ?";
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+
+			pstmt.setString(1, uid);
+			
+			Point newPoint = new Point(lon, lat);
+			pstmt.setString(2, newPoint.getAsText());
+			
+			pstmt.setInt(3,  oId);
+			pstmt.setString(4,  group);
+			pstmt.setString(5,  name);
+
+			pstmt.executeUpdate();
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+
+	}
+
 	
 }
 

@@ -1157,11 +1157,8 @@ public class TaskManager {
 				+ "and up.p_id = ?";
 		PreparedStatement pstmtGetAssigneeId = sd.prepareStatement(sqlGetAssigneeId);
 
-		String sqlHasLocationTrigger = "select count(*) from locations where o_id = ? and uid = ? and locn_type = 'nfc';";
+		String sqlHasLocationTrigger = "select count(*) from locations where o_id = ? and uid = ? and locn_type = 'nfc'";
 		PreparedStatement pstmtHasLocationTrigger = null;
-
-		String sqlUpdateLocationTrigger = "insert into locations (o_id, locn_group, locn_type, uid, name) values (?, 'tg', 'nfc', ?, ?);";
-		PreparedStatement pstmtUpdateLocationTrigger = null;
 
 		try {
 			
@@ -1294,6 +1291,16 @@ public class TaskManager {
 			}
 
 			/*
+			 * Update or create a location resource
+			 */
+			if(tsd.save_type != null) {
+				if(tsd.save_type.equals("nl")) {
+					GeneralUtilityMethods.createLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+				} else if(tsd.save_type.equals("ul")) {
+					GeneralUtilityMethods.updateLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+				}
+			}
+			/*
 			 * 6. Assign the user to the task
 			 */ 	
 			for(AssignmentServerDefn asd : tsd.assignments) {
@@ -1361,12 +1368,8 @@ public class TaskManager {
 					if(rs.next()) {
 						int count = rs.getInt(1);
 						if(count == 0) {
-							pstmtUpdateLocationTrigger = sd.prepareStatement(sqlUpdateLocationTrigger);
-							pstmtUpdateLocationTrigger.setInt(1, oId);
-							pstmtUpdateLocationTrigger.setString(2, tsd.location_trigger);
-							pstmtUpdateLocationTrigger.setString(3, tsd.name);
-							log.info("Adding NFC resource: " + pstmtUpdateLocationTrigger.toString());
-							pstmtUpdateLocationTrigger.executeUpdate();
+							GeneralUtilityMethods.createLocation(sd, oId, "tg", 
+									tsd.location_trigger, tsd.name, 0.0, 0.0);
 						}
 					}
 				}
@@ -1379,7 +1382,6 @@ public class TaskManager {
 			if(pstmtGetFormId != null) try {pstmtGetFormId.close(); } catch(SQLException e) {};
 			if(pstmtGetAssigneeId != null) try {pstmtGetAssigneeId.close(); } catch(SQLException e) {};
 			if(pstmtHasLocationTrigger != null) try {pstmtHasLocationTrigger.close(); } catch(SQLException e) {};
-			if(pstmtUpdateLocationTrigger != null) try {pstmtUpdateLocationTrigger.close(); } catch(SQLException e) {};
 		}
 
 	}
@@ -2650,6 +2652,7 @@ public class TaskManager {
 		tsd.location_trigger = tf.properties.location_trigger;
 		tsd.location_group = tf.properties.location_group;
 		tsd.location_name = tf.properties.location_name;
+		tsd.save_type = tf.properties.save_type;
 		
 		if(tf.properties.emails != null && tf.properties.emails.trim().length() > 0) {
 			String [] emailArray = tf.properties.emails.split(",");

@@ -18,6 +18,7 @@ public class TaskServerDefn {
 	public String location_trigger;
 	public String location_group;
 	public String location_name;
+	public String save_type;
 	public boolean repeat;
 	public String address;			// Text address
 	public String guidance;			// Key value pairs representing an unstructured address

@@ -19,8 +19,9 @@ public class TaskProperties {
 	public Timestamp from;
 	public Timestamp to;
 	public String location_trigger;			// NFC UID
-	public String location_name;	
 	public String location_group;
+	public String location_name;	
+	public String save_type;
 	public boolean repeat;
 	public int repeat_count;
 	public String address;			// Text address
