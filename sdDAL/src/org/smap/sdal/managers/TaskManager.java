@@ -292,6 +292,8 @@ public class TaskManager {
 				+ "timezone(?, t.schedule_finish) as schedule_finish,"
 				+ "timezone(?, t.schedule_at) + interval '1 hour' as default_finish,"
 				+ "t.location_trigger as location_trigger,"
+				+ "t.location_group as location_group,"
+				+ "t.location_name as location_name,"
 				+ "t.update_id as update_id,"
 				+ "t.initial_data as initial_data,"
 				+ "t.initial_data_source as initial_data_source,"
@@ -470,6 +472,8 @@ public class TaskManager {
 				tf.properties.emails = rs.getString("email");
 				tf.properties.assignee_ident = rs.getString("assignee_ident");
 				tf.properties.location_trigger = rs.getString("location_trigger");
+				tf.properties.location_group = rs.getString("location_group");
+				tf.properties.location_name = rs.getString("location_name");
 				tf.properties.update_id = rs.getString("update_id");
 				tf.properties.address = rs.getString("address");
 				tf.properties.guidance = rs.getString("guidance");
