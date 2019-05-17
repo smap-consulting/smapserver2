@@ -107,6 +107,10 @@ public class XLSTaskManager {
 				}
 			} else if(name.equals("location_trigger")) {
 				value = props.location_trigger;
+			} else if(name.equals("location_group")) {
+				value = props.location_group;
+			} else if(name.equals("location_name")) {
+				value = props.location_name;
 			} else if(name.equals("from")) {
 				if(props.from == null) {
 					value = null;
@@ -243,6 +247,8 @@ public class XLSTaskManager {
 							currentTask.form_name = form_name;
 							currentTask.name = getColumn(row, "name", header, lastCellNum, "");
 							currentTask.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
+							currentTask.location_group = getColumn(row, "location_group", header, lastCellNum, null);
+							currentTask.location_name = getColumn(row, "location_name", header, lastCellNum, null);
 							currentTask.lat = Double.valueOf(getColumn(row, "lat", header, lastCellNum, "0") );
 							currentTask.lon = Double.valueOf(getColumn(row, "lon", header, lastCellNum, "0") );
 							currentTask.guidance = getColumn(row, "guidance", header, lastCellNum, null);
@@ -557,6 +563,8 @@ public class XLSTaskManager {
 		cols.add(new Column(localisation, colNumber++, "status", true));				// Assignment
 		cols.add(new Column(localisation, colNumber++, "email", true));				// Assignment
 		cols.add(new Column(localisation, colNumber++, "url", true));					// Assignment
+		cols.add(new Column(localisation, colNumber++, "location_group", false));
+		cols.add(new Column(localisation, colNumber++, "location_name", false));
 		cols.add(new Column(localisation, colNumber++, "location_trigger", false));
 		cols.add(new Column(localisation, colNumber++, "from", false));
 		cols.add(new Column(localisation, colNumber++, "to", false));

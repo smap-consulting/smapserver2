@@ -578,8 +578,7 @@ public class TaskManager {
 	/*
 	 * Get the current locations available for an organisation
 	 */
-	public ArrayList<Location>  getLocations(Connection sd, 
-			int oId) throws SQLException {
+	public ArrayList<Location>  getLocations(Connection sd, int oId) throws SQLException {
 
 		String sql = "select id, locn_group, locn_type, uid, name, "
 				+ "ST_x(the_geom) as lon,"
@@ -617,6 +616,51 @@ public class TaskManager {
 		}
 
 		return locations;
+
+	}
+	
+	/*
+	 * Get the current locations available for an organisation
+	 */
+	public Location  getLocation(Connection sd, int oId, String group, String name) throws SQLException {
+
+		String sql = "select id, locn_group, locn_type, uid, name, "
+				+ "ST_x(the_geom) as lon,"
+				+ "ST_Y(the_geom) as lat "
+				+ "from locations "
+				+ "where o_id = ? "
+				+ "and locn_group = ? "
+				+ "and name = ?";
+		PreparedStatement pstmt = null;
+		Location locn = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, group);
+			pstmt.setString(3,  name);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				locn = new Location();
+
+				locn.id = rs.getInt("id");
+				locn.group = rs.getString("locn_group");
+				locn.type = rs.getString("locn_type");
+				locn.uid = rs.getString("uid");
+				locn.name = rs.getString("name");
+				locn.lon = rs.getDouble("lon"); 
+				locn.lat = rs.getDouble("lat"); 
+
+			}
+
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+
+		return locn;
 
 	}
 
@@ -1213,10 +1257,37 @@ public class TaskManager {
 			}
 
 			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tsd.form_id);
-
+			
 			/*
-			 * 4. Location
+			 * 4. Location and GPS 
+			 * if a location name is specified
+			 *      if location exists update it
+			 *      if location does not exist create it
+			 *      if location has UID and task does not then update task with UID
+			 *      if location has GPS and task does not then update task with GPS
 			 */
+			if(tsd.location_group != null && tsd.location_group.trim().length() > 0  &&
+					tsd.location_name != null && tsd.location_name.trim().length() > 0 ) {
+				
+				Location locn = getLocation(sd, oId, tsd.location_group, tsd.location_name);
+				if(locn == null) {
+					// Create location
+					GeneralUtilityMethods.createLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+				} else {
+					// Update Location
+					GeneralUtilityMethods.updateLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+					// If task does not have UID then use the locations
+					if(tsd.location_trigger == null || tsd.location_trigger.trim().length() == 0) {
+						tsd.location_trigger = locn.uid;
+					}
+					// If task does not have GPS coordinates then use the locations
+					if(tsd.lat == 0.0 && tsd.lon == 0.0) {
+						tsd.lat = locn.lat;
+						tsd.lon = locn.lon;
+					}
+				}
+			}
+			
 			String sLon = String.valueOf(tsd.lon);
 			String sLat = String.valueOf(tsd.lat);
 			if(sLon.equals("0.0")) {
@@ -1225,8 +1296,8 @@ public class TaskManager {
 			if(sLat.equals("0.0")) {
 				sLat = "0";
 			}
-			String location = "POINT(" + tsd.lon + " " + tsd.lat + ")";
-
+			String gpsCoords = "POINT(" + tsd.lon + " " + tsd.lat + ")";
+			
 			/*
 			 * 5. Write the task to the database
 			 */
@@ -1241,6 +1312,7 @@ public class TaskManager {
 			if(tsd.initial_data != null) {
 				initial_data = gson.toJson(tsd.initial_data);	
 			}
+			
 			if(tsd.id > 0) {
 				pstmt = getUpdateTaskStatement(sd);
 				updateTask(
@@ -1249,7 +1321,7 @@ public class TaskManager {
 						tgId,
 						tsd.name,
 						tsd.form_id,
-						location,
+						gpsCoords,
 						tsd.address,
 						tsd.from,
 						tsd.to,
@@ -1271,7 +1343,7 @@ public class TaskManager {
 						tgName,
 						tsd.name,
 						tsd.form_id,
-						location,
+						gpsCoords,
 						tsd.update_id,
 						tsd.address,
 						tsd.from,
@@ -1291,11 +1363,15 @@ public class TaskManager {
 			}
 
 			/*
+			 * if a location name is specified
+			 *      if location exists update it
+			 *      if location does not exist create it
+			 *      
 			 * Update or create a location resource
 			 */
 			if(tsd.save_type != null) {
 				if(tsd.save_type.equals("nl")) {
-					GeneralUtilityMethods.createLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
+					
 				} else if(tsd.save_type.equals("ul")) {
 					GeneralUtilityMethods.updateLocation(sd, oId, tsd.location_group, tsd.location_trigger, tsd.location_name, tsd.lon, tsd.lat);
 				}

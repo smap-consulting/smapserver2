@@ -596,8 +596,6 @@ public class Tasks extends Application {
 				// End authorisation
 
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
-				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 				
 				// Process xls file
 				XLSTaskManager xf = new XLSTaskManager();
@@ -611,7 +609,10 @@ public class Tasks extends Application {
 				}
 				tm.writeTaskList(sd, cResults, tArray, tgId, 
 						request.getScheme() + "://" + request.getServerName(), 
-						true, oId, false, request.getRemoteUser());
+						true, 		// update resources
+						oId, 
+						false, 
+						request.getRemoteUser());
 				
 				/*
 				 * Get the tasks out of the database
