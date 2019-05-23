@@ -910,11 +910,19 @@ public class GetHtml {
 
 	private void addOptions(Connection sd, Element parent, Question q, Form form, boolean tableList) throws Exception {
 
+		boolean isLikert = false;
+		if(q.appearance != null && q.appearance.contains("likert")) {
+			isLikert = true;
+		}
+		
 		// Itemset Template
 		if (hasNodeset(sd, q, form)) {
 			Element labelElement = outputDoc.createElement("label");
 			parent.appendChild(labelElement);
 			labelElement.setAttribute("class", "itemset-template");
+			if(isLikert) {
+				labelElement.setAttribute("style", "display:none;");
+			}
 			labelElement.setAttribute("data-items-path", getNodeset(q, form));
 
 			Element inputElement = outputDoc.createElement("input");
@@ -937,7 +945,7 @@ public class GetHtml {
 			if(q.constraint != null && q.constraint.length() > 0) {
 				inputElement.setAttribute("data-constraint", q.constraint);
 			}
-			
+
 			if(q.required) {
 				inputElement.setAttribute("data-required", "true()");
 			}
