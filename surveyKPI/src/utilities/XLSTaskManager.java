@@ -427,6 +427,16 @@ public class XLSTaskManager {
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 		
 		/*
+		 * If there are no locations create a dummy one so as to generate a template
+		 */
+		if(locations.isEmpty()) {
+			Location l = new Location();
+			l.group = localisation.getString("c_group");
+			l.name = "";
+			locations.add(l);
+		}
+		
+		/*
 		 * Create the worksheets
 		 */
 		for(int i = 0; i < locations.size(); i++) {

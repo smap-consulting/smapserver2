@@ -376,12 +376,11 @@ public class Tasks extends Application {
 			@Context HttpServletResponse response,
 			@QueryParam("filetype") String filetype) throws Exception {
 	
-		Connection sd = SDDataSource.getConnection("createXLSTasks");	
+		String connectionString = "Download Locations";
+		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End authorisation
-		
-		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		// Set file type to "xlsx" unless "xls" has been specified
 		if(filetype == null || !filetype.equals("xls")) {
@@ -413,7 +412,7 @@ public class Tasks extends Application {
 			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			
-			SDDataSource.closeConnection("createXLSTasks", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
 			
 		}
 		return Response.ok("").build();
@@ -433,7 +432,8 @@ public class Tasks extends Application {
 			@QueryParam("inc_status") String incStatus,
 			@QueryParam("period") String period) throws Exception {
 
-		Connection sd = SDDataSource.getConnection("createXLSTasks");	
+		String connectionString = "Download Tasks";
+		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
 
 		a.isAuthorised(sd, request.getRemoteUser());		
@@ -496,7 +496,7 @@ public class Tasks extends Application {
 			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			
-			SDDataSource.closeConnection("createXLSTasks", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
 			
 		}
 		return Response.ok("").build();
