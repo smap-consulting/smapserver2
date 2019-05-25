@@ -396,7 +396,9 @@ public class XLSTaskManager {
 	                    			} catch (Exception e) {
 	                    				
 	                    			}
-	                    			tags.add(t);
+	                    			if(t.name != null && t.name.trim().length() > 0) {
+	                    				tags.add(t);
+	                    			}
 	                    		} catch (Exception e) {
 	                    			log.info("Error getting nfc column" + e.getMessage());
 	                    		}
