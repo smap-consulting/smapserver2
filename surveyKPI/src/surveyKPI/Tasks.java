@@ -720,11 +720,11 @@ public class Tasks extends Application {
 			) { 
 		
 		Response response = null;
-
+		String connectionString = "surveyKPI-tasks-bulk";
 		String user = request.getRemoteUser();
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
 		// End Authorisation
@@ -750,7 +750,7 @@ public class Tasks extends Application {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			SDDataSource.closeConnection("surveyKPI-tasks", sd);			
+			SDDataSource.closeConnection(connectionString, sd);			
 		}
 		
 		return response;
@@ -769,8 +769,10 @@ public class Tasks extends Application {
 		
 		log.info("Create PDF for task group:" + tgId + " for task group: " + tgId);
 		
+		String connectionString = "surveyKPI-tasks-createPdf";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("createPDF");	
+		Connection sd = SDDataSource.getConnection(connectionString);	
 		a.isAuthorised(sd, request.getRemoteUser());		
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
 		// End Authorisation 
@@ -799,7 +801,7 @@ public class Tasks extends Application {
 			throw new Exception("Exception: " + e.getMessage());
 		} finally {
 			
-			SDDataSource.closeConnection("createPDF", sd);	
+			SDDataSource.closeConnection(connectionString, sd);	
 			
 		}
 		return Response.ok("").build();

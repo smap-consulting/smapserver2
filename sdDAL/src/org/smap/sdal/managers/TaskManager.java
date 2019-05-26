@@ -431,13 +431,16 @@ public class TaskManager {
 
 				String status = rs.getString("status");
 				boolean deleted = rs.getBoolean("deleted");
+				int assignee = rs.getInt("assignee"); 
+				
+				// Adjust status
 				if(deleted && status == null) {
 					status = "deleted";
 				} else if(status == null) {
 					status = "new";
+				} else if(assignee < 0) {
+					status = "new";
 				}
-
-				int assignee = rs.getInt("assignee"); 
 
 				// Ignore any tasks that are not required
 				if(!completed && (status.equals("submitted") || status.equals("complete"))) {
@@ -1495,8 +1498,8 @@ public class TaskManager {
 		String sqlGetUnassigned = "select id from tasks "
 				+ "where id not in (select task_id from assignments) "
 				+ "and id in (";
-		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date) "
-				+ "values(?, 'accepted', ?, now())";
+		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date, assignee_name) "
+				+ "values(?, 'accepted', ?, now(), (select name from users where id = ?))";
 
 		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.action_link, "
 				+ "t.form_id, t.update_id "
@@ -1626,6 +1629,7 @@ public class TaskManager {
 					// Create the first assignment for this task
 					pstmtCreateAssignments.setInt(1, action.userId);
 					pstmtCreateAssignments.setInt(2, rs.getInt(1));
+					pstmtCreateAssignments.setInt(3, action.userId);
 					log.info("Create assignment: " + pstmtCreateAssignments.toString());
 					pstmtCreateAssignments.executeUpdate();
 				}
