@@ -7711,8 +7711,8 @@ public class GeneralUtilityMethods {
 		String sql = "update locations "
 				+ "set uid = ?,"
 				+ "the_geom = ST_GeomFromText(?, 4326) "
-				+ "where o_id = ?"
-				+ "and locn_group = ?"
+				+ "where o_id = ? "
+				+ "and locn_group = ? "
 				+ "and name = ?";
 
 		try {
@@ -7727,6 +7727,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(4,  group);
 			pstmt.setString(5,  name);
 
+			log.info("Update location: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {

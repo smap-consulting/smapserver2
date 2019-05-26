@@ -658,66 +658,6 @@ public class Tasks extends Application {
 	}
 	
 	/*
-	 * Modify a task or create a new task
-	 * Replaced by web service call in api/v1/tasks
-	@POST
-	@Path("/task/{pId}/{tgId}")
-	@Consumes("application/json")
-	public Response updateTask(
-			@Context HttpServletRequest request,
-			@PathParam("pId") int pId,
-			@PathParam("tgId") int tgId,
-			@FormParam("task") String task
-			) { 
-		
-		Response response = null;
-		String requester = "surveyKPI-tasks";
-		
-		String user = request.getRemoteUser();
-		log.info("TaskFeature:" + task);
-		
-		// Authorisation - Access
-		Connection cResults = null;
-		Connection sd = SDDataSource.getConnection(requester);
-		a.isAuthorised(sd, user);
-		a.isValidProject(sd, user, pId);
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
-		// End Authorisation
-		
-		Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-		TaskFeature tf = gson.fromJson(task, TaskFeature.class);	
-		
-		try {
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			String tz = "UTC";	// Set default for timezone
-			
-			cResults = ResultsDataSource.getConnection(requester);
-			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tgId);
-			String pName = GeneralUtilityMethods.getProjectName(sd, pId);
-			
-			TaskManager tm = new TaskManager(localisation, tz);
-			TaskServerDefn tsd = tm.convertTaskFeature(tf);
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser(), 0);
-			tm.writeTask(sd, cResults, pId, pName, tgId, tgName, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
-			response = Response.ok().build();
-		
-		} catch (Exception e) {
-			log.log(Level.SEVERE,e.getMessage(), e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} finally {
-	
-			SDDataSource.closeConnection(requester, sd);
-			ResultsDataSource.closeConnection(requester, cResults);
-			
-		}
-		
-		return response;
-	}
-	*/
-	
-	/*
 	 * Update start date and time of a task
 	 */
 	@POST
