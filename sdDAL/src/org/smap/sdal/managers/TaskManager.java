@@ -1489,7 +1489,6 @@ public class TaskManager {
 				+ "and id in (";
 		String acceptedAssignmentsSql = "update assignments set status = 'accepted', cancelled_date = null "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
-				+ "and (status = 'cancelled' or status = 'rejected') "
 				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now(), assignee_name = (select name from users where id = ?) "
