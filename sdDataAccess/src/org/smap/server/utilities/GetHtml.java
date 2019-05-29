@@ -432,6 +432,10 @@ public class GetHtml {
 						input.setAttribute("data-relevant",
 								UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
 					}
+					// Dynamic Default
+					if (q.calculation != null && q.calculation.trim().length() > 0) {
+						bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+					}
 			
 					// option label
 					Element option_label = outputDoc.createElement("span");
@@ -679,6 +683,10 @@ public class GetHtml {
 			textElement.setAttribute("type", "text");
 			textElement.setAttribute("data-name", paths.get(getRefName(q.name, form)));
 			textElement.setAttribute("list", getListName(q.list_name));
+			if (q.calculation != null && q.calculation.trim().length() > 0) {
+				textElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+			}
+			
 		}
 		parent.appendChild(textElement);
 		textElement.setAttribute("name", paths.get(getRefName(q.name, form)));
@@ -738,6 +746,9 @@ public class GetHtml {
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			selectElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+		}
+		if (q.calculation != null && q.calculation.trim().length() > 0) {
+			selectElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
 		}
 		
 		// Itemset template option
@@ -811,6 +822,9 @@ public class GetHtml {
 			inputElement.setAttribute("type", "error");
 			inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 			inputElement.setAttribute("data-type-xml", "rank");
+			if (q.calculation != null && q.calculation.trim().length() > 0) {
+				bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+			}
 			parent.appendChild(inputElement);
 		}
 		// Option wrapper
@@ -857,6 +871,11 @@ public class GetHtml {
 		bodyElement.setAttribute("type", getInputType(q));
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
+		
+		// Add dynamic defaults
+		if(q.calculation != null && q.calculation.length() > 0) {
+			bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+		}
 
 		// media specific
 		if (q.type.equals("image")) {
@@ -952,6 +971,9 @@ public class GetHtml {
 			if (q.readonly) {
 				inputElement.setAttribute("readonly", "readonly");
 			}
+			if (q.calculation != null && q.calculation.trim().length() > 0) {
+				inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+			}
 
 			// Itemset labels
 			Element optionElement = outputDoc.createElement("span");
@@ -994,6 +1016,9 @@ public class GetHtml {
 					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
 					if(q.constraint != null && q.constraint.length() > 0) {
 						inputElement.setAttribute("data-constraint", q.constraint);
+					}
+					if (q.calculation != null && q.calculation.trim().length() > 0) {
+						inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
 					}
 				}
 
