@@ -925,6 +925,17 @@ public class GetHtml {
 		}
 
 		parent.appendChild(bodyElement);
+		if (q.type.equals("image")) {
+			parent.appendChild(createDynamicInput());	// Add a dummy value for dynamic defaults
+		}
+		
+	}
+	
+	private Element createDynamicInput() {
+		Element e = outputDoc.createElement("input");
+		e.setAttribute("class", "dynamic-input");
+		e.setAttribute("type", "text");
+		return e;
 	}
 
 	private void addOptions(Connection sd, Element parent, Question q, Form form, boolean tableList) throws Exception {
