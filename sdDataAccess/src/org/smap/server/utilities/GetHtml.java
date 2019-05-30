@@ -390,7 +390,7 @@ public class GetHtml {
 					bodyElement = outputDoc.createElement("fieldset");
 					currentParent.appendChild(bodyElement);
 					setQuestionClass(q, bodyElement);
-					//bodyElement.setAttribute("class", "question simple-select trigger");
+					bodyElement.setAttribute("class", "question");
 					
 					// inner fieldSet
 					Element fieldset = outputDoc.createElement("fieldset");
