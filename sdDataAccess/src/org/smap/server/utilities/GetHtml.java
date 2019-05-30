@@ -823,7 +823,10 @@ public class GetHtml {
 			inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 			inputElement.setAttribute("data-type-xml", "rank");
 			if (q.calculation != null && q.calculation.trim().length() > 0) {
-				bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+				inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
+			}
+			if (q.required) {
+				inputElement.setAttribute("data-required", "true()");
 			}
 			parent.appendChild(inputElement);
 		}
@@ -1027,9 +1030,6 @@ public class GetHtml {
 					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
 					if(q.constraint != null && q.constraint.length() > 0) {
 						inputElement.setAttribute("data-constraint", q.constraint);
-					}
-					if (q.calculation != null && q.calculation.trim().length() > 0) {
-						inputElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
 					}
 				}
 
