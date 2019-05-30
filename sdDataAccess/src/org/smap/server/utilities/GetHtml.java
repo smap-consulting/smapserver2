@@ -3,6 +3,7 @@ package org.smap.server.utilities;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -18,6 +19,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -65,7 +67,7 @@ public class GetHtml {
 	 * Get the Html as a string
 	 */
 	public String get(HttpServletRequest request, int sId, boolean superUser, String userIdent, 
-			HashMap<String, Integer> recordCounts) {
+			HashMap<String, Integer> recordCounts) throws SQLException, Exception {
 		
 		gRecordCounts = recordCounts;
 		
@@ -115,9 +117,6 @@ public class GetHtml {
 
 			response = outWriter.toString();
 
-		} catch (Exception e) {
-			response = e.getMessage();
-			e.printStackTrace();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
@@ -695,6 +694,9 @@ public class GetHtml {
 		if (q.readonly) {
 			textElement.setAttribute("readonly", "readonly");
 		}
+		if (q.required) {
+			textElement.setAttribute("data-required", "true()");
+		}
 		
 		
 		// Add data list
@@ -746,6 +748,9 @@ public class GetHtml {
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			selectElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+		}
+		if (q.required) {
+			selectElement.setAttribute("data-required", "true()");
 		}
 		if (q.calculation != null && q.calculation.trim().length() > 0) {
 			selectElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));

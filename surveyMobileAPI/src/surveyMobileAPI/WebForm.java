@@ -767,7 +767,7 @@ public class WebForm extends Application {
 	 */
 	private StringBuffer addBody(HttpServletRequest request, String dataToEditId, int orgId,
 			String surveyClass, boolean superUser)
-			throws UnsupportedEncodingException, TransformerFactoryConfigurationError, TransformerException {
+			throws TransformerFactoryConfigurationError, SQLException, Exception {
 		StringBuffer output = new StringBuffer();
 
 		output.append("<body class='clearfix edit'>");
@@ -792,7 +792,7 @@ public class WebForm extends Application {
 	 */
 	private StringBuffer addMain(HttpServletRequest request, String dataToEditId, int orgId,
 			boolean minimal, String surveyClass, boolean superUser)
-			throws UnsupportedEncodingException, TransformerFactoryConfigurationError, TransformerException {
+			throws TransformerFactoryConfigurationError, SQLException, Exception {
 
 		StringBuffer output = new StringBuffer();
 		output.append(openMain(orgId, minimal));

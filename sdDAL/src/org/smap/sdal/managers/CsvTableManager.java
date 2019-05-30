@@ -639,7 +639,7 @@ public class CsvTableManager {
 	}
 	
 	/*
-	 * Read the choices out of a file
+	 * Read the a data record from a csv table
 	 */
 	private HashMap<String, String> readRecordFromTable(int tableId, String sHeaders, String key_column, String key_value,
 			String filename) throws SQLException, ApplicationException {
@@ -686,7 +686,7 @@ public class CsvTableManager {
 			}	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
+			throw new ApplicationException("Error getting a record of data from a CSV file: " + filename + " " + e.getMessage());
 		} finally {
 			try {pstmt.close();} catch(Exception e) {}
 		}
@@ -694,7 +694,7 @@ public class CsvTableManager {
 	}
 	
 	/*
-	 * Read the choices out of a file
+	 * Do a lookup of choices - online dynamic request
 	 */
 	private ArrayList<SelectChoice> readChoicesFromTable(int tableId, String sHeaders, String value_column, 
 			String label_columns,
