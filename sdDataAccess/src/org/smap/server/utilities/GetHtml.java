@@ -941,7 +941,7 @@ public class GetHtml {
 	
 	private Element createDynamicInput() {
 		Element e = outputDoc.createElement("input");
-		e.setAttribute("class", "dynamic-input");
+		e.setAttribute("class", "dynamic-input ignore hide");
 		e.setAttribute("type", "text");
 		return e;
 	}
