@@ -3945,6 +3945,7 @@ public class SurveyManager {
 						boolean isInteger = false;
 						try {
 							int x = Integer.parseInt(exVal);
+							isInteger = true;
 						} catch (Exception e) {
 							
 						}
@@ -3958,7 +3959,7 @@ public class SurveyManager {
 							Option oToDelete = new Option();
 							oToDelete.id = id;
 							oToDelete.value = exVal;
-							optionsToDelete.add(o);
+							optionsToDelete.add(oToDelete);
 						}
 					}
 					
