@@ -32,6 +32,7 @@ public class Organisation {
 	public boolean can_notify = true;
 	public boolean can_use_api = true;
 	public boolean can_submit = true;
+	public boolean set_as_theme = true;
 	public boolean email_task = false;
 	public String changed_by;
 	public String changed_ts;

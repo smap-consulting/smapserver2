@@ -110,6 +110,7 @@ public class Register extends Application {
 			o.can_notify = true;
 			o.can_use_api = true;
 			o.can_submit = true;
+			o.set_as_theme = false;
 			o.email_task = false;
 			o.e_id = 1;				// Default organisation!
 			
