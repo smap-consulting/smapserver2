@@ -708,7 +708,8 @@ public class UploadFiles extends Application {
 								
 				String msg = e.getMessage();
 				if(msg != null && !msg.contains("cannot handle function 'lookup'") &&
-						!msg.contains("cannot handle function 'lookup_image_labels'")) {
+						!msg.contains("cannot handle function 'lookup_image_labels'") &&
+						!msg.contains("cannot handle function 'get_media'")) {
 					// Error! Delete the survey we just created
 					log.log(Level.SEVERE, e.getMessage(), e);
 					valid = false;
