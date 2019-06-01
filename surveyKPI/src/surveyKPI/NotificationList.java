@@ -224,7 +224,7 @@ public class NotificationList extends Application {
 			httpget.addHeader("accept", "text/xml");
 			httpget.addHeader("X-OpenRosa-Version", "1.1");
 			
-			System.out.println("Executing request " + httpget.getRequestLine() + " to target " + target);
+			log.info("Executing request " + httpget.getRequestLine() + " to target " + target);
           
 			XformsJavaRosa fList = null;
 			String resp = null;

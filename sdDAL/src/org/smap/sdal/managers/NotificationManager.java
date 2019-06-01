@@ -70,6 +70,7 @@ public class NotificationManager {
 	 */
 	public ArrayList<Notification> getEnabledNotifications(
 			Connection sd, 
+			String trigger,
 			String target) throws SQLException {
 		
 		ArrayList<Notification> forwards = new ArrayList<Notification>();	// Results of request
@@ -82,6 +83,7 @@ public class NotificationManager {
 				+ "f.remote_s_name, "
 				+ "f.remote_host, "
 				+ "f.remote_user, "
+				+ "f.trigger, "
 				+ "f.target, "
 				+ "s.display_name, "
 				+ "f.notify_details, "
@@ -90,7 +92,8 @@ public class NotificationManager {
 				+ "f.remote_password "
 				+ "from forward f, survey s "
 				+ "where f.s_id = s.s_id "
-				+ "and f.enabled = 'true' ";
+				+ "and f.enabled = 'true' "
+				+ "and f.trigger = ? ";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -103,8 +106,9 @@ public class NotificationManager {
 			}	
 			
 			pstmt = sd.prepareStatement(sql);	
-	
+			pstmt.setString(1, trigger);
 			resultSet = pstmt.executeQuery();
+			
 			addToList(sd, resultSet, forwards, true);
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
@@ -122,8 +126,10 @@ public class NotificationManager {
 					
 			String sql = "insert into forward(" +
 					" s_id, enabled, " +
-					" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, target, filter, name) " +
-					" values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
+					" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
+					+ "trigger, target, filter, name) " +
+					" values (?, ?, ?, ?, ?, ?, ?, ?"
+					+ ", ?, ?, ?, ?); ";
 	
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			
@@ -139,9 +145,10 @@ public class NotificationManager {
 			pstmt.setString(6, n.remote_user);
 			pstmt.setString(7, n.remote_password);
 			pstmt.setString(8, notifyDetails);
-			pstmt.setString(9, n.target);
-			pstmt.setString(10, n.filter);
-			pstmt.setString(11, n.name);
+			pstmt.setString(9, n.trigger);
+			pstmt.setString(10, n.target);
+			pstmt.setString(11, n.filter);
+			pstmt.setString(12, n.name);
 			pstmt.executeUpdate();
 	}
 	
@@ -161,6 +168,7 @@ public class NotificationManager {
 					" remote_host = ?, " +
 					" remote_user = ?, " +
 					" notify_details = ?, " +
+					" trigger = ?, " +
 					" target = ?, " +
 					" filter = ?, " +
 					" name = ?, " +
@@ -175,6 +183,7 @@ public class NotificationManager {
 					" remote_host = ?, " +
 					" remote_user = ?, " +
 					" notify_details = ?, " +
+					" trigger = ?, " +
 					" target = ?, " +
 					" filter = ?, " +
 					" name = ? " +
@@ -194,14 +203,15 @@ public class NotificationManager {
 		pstmt.setString(5, n.remote_host);
 		pstmt.setString(6, n.remote_user);
 		pstmt.setString(7, notifyDetails);
-		pstmt.setString(8, n.target);
-		pstmt.setString(9, n.filter);
-		pstmt.setString(10, n.name);
+		pstmt.setString(8, n.trigger);
+		pstmt.setString(9, n.target);
+		pstmt.setString(10, n.filter);
+		pstmt.setString(11, n.name);
 		if(n.update_password) {
-			pstmt.setString(11, n.remote_password);
-			pstmt.setInt(12, n.id);
+			pstmt.setString(12, n.remote_password);
+			pstmt.setInt(13, n.id);
 		} else {
-			pstmt.setInt(11, n.id);
+			pstmt.setInt(12, n.id);
 		}
 
 		log.info("Update Forward: " + pstmt.toString());
@@ -251,7 +261,7 @@ public class NotificationManager {
 		ResultSet resultSet = null;
 		String sql = "select f.id, f.s_id, f.enabled, " +
 				" f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user," +
-				" f.target, s.display_name, f.notify_details, f.filter, f.name " +
+				" f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name " +
 				" from forward f, survey s, users u, user_project up, project p " +
 				" where u.id = up.u_id" +
 				" and p.id = up.p_id" +
@@ -342,18 +352,19 @@ public class NotificationManager {
 			n.remote_s_name = resultSet.getString(5);
 			n.remote_host = resultSet.getString(6);
 			n.remote_user = resultSet.getString(7);
-			n.target = resultSet.getString(8);
-			n.s_name = resultSet.getString(9);
-			String notifyDetailsString = resultSet.getString(10);
+			n.trigger = resultSet.getString(8);
+			n.target = resultSet.getString(9);
+			n.s_name = resultSet.getString(10);
+			String notifyDetailsString = resultSet.getString(11);
 			n.notifyDetails = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 			// Temporary - set question name from question id if this is set
 			if(n.notifyDetails.emailQuestionName == null && n.notifyDetails.emailQuestion > 0) {
 				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
 			}
-			n.filter = resultSet.getString(11);
-			n.name = resultSet.getString(12);
+			n.filter = resultSet.getString(12);
+			n.name = resultSet.getString(13);
 			if(getPassword) {
-				n.remote_password = resultSet.getString(13);
+				n.remote_password = resultSet.getString(14);
 			}
 			
 			notifications.add(n);
@@ -407,7 +418,8 @@ public class NotificationManager {
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
-					+ "and n.enabled = 'true'";
+					+ "and n.enabled = 'true' "
+					+ "and n.trigger = 'submission'";
 			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications);
 			
 			String sqlUpdateUploadEvent = "update upload_event set notifications_applied = 'true' where ue_id = ?; ";
@@ -535,20 +547,6 @@ public class NotificationManager {
 		String sqlNotificationLog = "insert into notification_log " +
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
-		
-		// Time Zone
-		int utcOffset = 0;	
-		LocalDateTime dt = LocalDateTime.now();
-		if(organisation.timeZone != null) {
-			try {
-				ZoneId zone = ZoneId.of(organisation.timeZone);
-			    ZonedDateTime zdt = dt.atZone(zone);
-			    ZoneOffset offset = zdt.getOffset();
-			    utcOffset = offset.getTotalSeconds() / 60;
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
 		
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, msg.basePath, 

@@ -815,7 +815,7 @@ public class SubscriberBatch {
 		 * survey -> remote survey so create a subscriber object for each
 		 */
 		NotificationManager fm = new NotificationManager(localisation);
-		ArrayList<Notification> forwards = fm.getEnabledNotifications(connection, "forward");
+		ArrayList<Notification> forwards = fm.getEnabledNotifications(connection, "forward", "submission");
 		for(int i = 0; i < forwards.size(); i++) {
 			Notification f = forwards.get(i);
 			Subscriber sub = (Subscriber) new SmapForward();		
