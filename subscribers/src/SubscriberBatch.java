@@ -55,6 +55,7 @@ import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.Organisation;
@@ -386,7 +387,12 @@ public class SubscriberBatch {
 				System.out.print("#");
 			}
 
-			if(subscriberType.equals("forward")) {
+			/*
+			 * Apply any other subscriber type dependent processing
+			 */
+			if(subscriberType.equals("upload")) {
+				applyReminderNotifications(sd, cResults);
+			} else if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, localisation, basePath);
 
@@ -983,6 +989,49 @@ public class SubscriberBatch {
 		}
 
 		return success;
+	}
+	
+	/*
+	 * Apply Reminder notifications
+	 * Triggered by a time period
+	 */
+	private void applyReminderNotifications(Connection sd, Connection cResults) {
+
+		String sql = "select t.id from tasks t, assignments a, forward f "
+				+ "where t.tg_id = f.tg_id "
+				+ "and t.id = a.task_id "
+				+ "and f.enabled "
+				+ "and f.trigger = 'task_reminder' "
+				+ "and a.status = 'assigned' "
+				+ "and a.assigned_date < now() - cast(f.period as interval) ";
+		PreparedStatement pstmt= null;
+		
+		String server = "some server";
+		try {
+				
+			// Apply notifications
+			String urlprefix = "https://" + server + "/";
+			
+			pstmt = sd.prepareStatement(sql);
+			System.out.println("");
+			System.out.println(pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			int idx = 0;
+			while (rs.next()) {
+				if(idx++ == 0) {
+					System.out.println("\n-------------");
+				}
+				System.out.println("    " + rs.getInt(1));
+			}
+			
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+		}
 	}
 
 }

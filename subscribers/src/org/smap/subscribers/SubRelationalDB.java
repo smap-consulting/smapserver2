@@ -180,7 +180,7 @@ public class SubRelationalDB extends Subscriber {
 			ForeignKeyManager fkm = new ForeignKeyManager();
 			fkm.apply(sd, cResults);
 			
-			applyNotifications(sd, cResults, ue_id, remoteUser, server, survey.id, survey.exclude_empty);
+			applySubmissionNotifications(sd, cResults, ue_id, remoteUser, server, survey.id, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
 				applyAssignmentStatus(sd, assignmentId, ue_id, remoteUser);
@@ -302,9 +302,9 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	/*
-	 * Apply notifications
+	 * Apply notifications triggered by a submission
 	 */
-	private void applyNotifications(Connection sd, Connection cResults, int ueId, String remoteUser, 
+	private void applySubmissionNotifications(Connection sd, Connection cResults, int ueId, String remoteUser, 
 			String server, int sId, boolean excludeEmpty) {
 
 		PreparedStatement pstmtGetUploadEvent = null;

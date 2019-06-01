@@ -1368,103 +1368,6 @@ public class AllAssignments extends Application {
 
 		return response;
 	}
-
-
-
-	/*
-	 * Delete tasks
-	 *
-	@DELETE
-	public Response deleteTasks(@Context HttpServletRequest request,
-			@FormParam("settings") String settings) { 
-
-		Response response = null;
-
-		log.info("Assignment:" + settings);
-		Type type = new TypeToken<ArrayList<Assignment>>(){}.getType();		
-		ArrayList<Assignment> aArray = new Gson().fromJson(settings, type);
-
-		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		for(int i = 0; i < aArray.size(); i++) {
-
-			Assignment ass = aArray.get(i);		
-			a.isValidTask(connectionSD, request.getRemoteUser(), ass.task_id);
-
-		}
-		// End Authorisation
-
-		PreparedStatement pstmtCount = null;
-		PreparedStatement pstmtUpdate = null;
-		PreparedStatement pstmtDelete = null;
-		PreparedStatement pstmtDeleteEmptyGroup = null;
-
-		try {
-			//connectionSD.setAutoCommit(false);
-			//String countSQL = "select count(*) from tasks t, assignments a " +
-			//		"where t.id = a.task_id " +
-			//		"and t.id = ?";
-			//pstmtCount = connectionSD.prepareStatement(countSQL);
-
-			//String updateSQL = "update assignments set status = 'cancelled' where task_id = ? " +
-			//		"and (status = 'new' " +
-			//		"or status = 'accepted' " + 
-			//		"or status = 'pending'); "; 
-			//pstmtUpdate = connectionSD.prepareStatement(updateSQL);
-
-			String deleteSQL = "delete from tasks where id = ?; "; 
-			pstmtDelete = connectionSD.prepareStatement(deleteSQL);
-
-			//String deleteEmptyGroupSQL = "delete from task_group tg where not exists (select 1 from tasks t where t.tg_id = tg.tg_id);";
-			//pstmtDeleteEmptyGroup = connectionSD.prepareStatement(deleteEmptyGroupSQL);
-
-			for(int i = 0; i < aArray.size(); i++) {
-
-				Assignment a = aArray.get(i);
-
-				// Check to see if the task has any assignments
-				//pstmtCount.setInt(1, a.task_id);
-				//ResultSet rs = pstmtCount.executeQuery();
-				//int countAss = 0;
-				//if(rs.next()) {
-				//	countAss = rs.getInt(1);
-				//}
-
-				//if(countAss > 0) {
-				//	log.info(updateSQL + " : " + a.task_id);
-				//	pstmtUpdate.setInt(1, a.task_id);
-				//	pstmtUpdate.execute();
-				//} else {
-
-				pstmtDelete.setInt(1, a.task_id);
-				log.info("SQL: " + pstmtDelete.toString());
-				pstmtDelete.execute();
-				//}
-			}
-
-			// Delete any task groups that have no tasks
-			//pstmtDeleteEmptyGroup.execute();
-			//connectionSD.commit();
-
-		} catch (Exception e) {
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"", e);
-
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-
-		} finally {
-			if (pstmtCount != null) try {pstmtCount.close();} catch (SQLException e) {};
-			if (pstmtUpdate != null) try {pstmtUpdate.close();} catch (SQLException e) {};
-			if (pstmtDelete != null) try {pstmtDelete.close();} catch (SQLException e) {};
-			if (pstmtDeleteEmptyGroup != null) try {pstmtDeleteEmptyGroup.close();} catch (SQLException e) {};
-
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", connectionSD);
-		}
-
-		return response;
-	}
-	*/
 	
 	/*
 	 * Delete task group
@@ -1478,9 +1381,9 @@ public class AllAssignments extends Application {
 		Response response = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidTaskGroup(connectionSD, request.getRemoteUser(), tg_id);
+		Connection sd = SDDataSource.getConnection("surveyKPI-AllAssignments");
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tg_id);
 		// End Authorisation
 
 		PreparedStatement pstmtDelete = null;
@@ -1488,87 +1391,46 @@ public class AllAssignments extends Application {
 		try {
 			
 			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			String tz = "UTC";	// get default timezone
+			String tgName = GeneralUtilityMethods.getTaskGroupName(sd, tg_id);
+			
+			// Delete the tasks
 			TaskManager tm = new TaskManager(localisation, tz);
-			tm.deleteTasksInTaskGroup(connectionSD, tg_id);		// Note can't rely on cascading delete as temporary users need to be deleted
-			String deleteSQL = "delete from task_group where tg_id = ?; "; 
-			pstmtDelete = connectionSD.prepareStatement(deleteSQL);
+			tm.deleteTasksInTaskGroup(sd, tg_id);		// Note can't rely on cascading delete as temporary users need to be deleted
 
+			// Delete the task group
+			String deleteSQL = "delete from task_group where tg_id = ?"; 
+			pstmtDelete = sd.prepareStatement(deleteSQL);
 			pstmtDelete.setInt(1, tg_id);
 			log.info("SQL: " + pstmtDelete.toString());
 			pstmtDelete.execute();
-
-
-		} catch (Exception e) {
-			response = Response.serverError().build();
-			log.log(Level.SEVERE,"", e);
-
-			try { connectionSD.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
-
-		} finally {
-
-			if (pstmtDelete != null) try {pstmtDelete.close();} catch (SQLException e) {};
-
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", connectionSD);
-		}
-
-		return response;
-	}
-
-	/*
-	 * Mark cancelled tasks as deleted
-	 * This may be required if tasks are allocated to a user who never updates them
-	 *
-	@Path("/cancelled/{projectId}")
-	@DELETE
-	public Response forceRemoveCancelledTasks(@Context HttpServletRequest request,
-			@PathParam("projectId") int projectId
-			) { 
-
-		Response response = null;
-
-		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-AllAssignments");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
-		// End Authorisation
-
-		PreparedStatement pstmtDelete = null;
-
-		try {
-
-			String deleteSQL = "delete from tasks t " +
-					" where t.p_id = ? " +
-					" and t.id in (select task_id from assignments a " +
-					" where a.status = 'cancelled' or a.status = 'rejected'); "; 
-
-			pstmtDelete = connectionSD.prepareStatement(deleteSQL);
-
-			log.info(deleteSQL + " : " + projectId);
-			pstmtDelete.setInt(1, projectId);
+			
+			// Delete any reminder notifications
+			deleteSQL = "delete from forward where tg_id = ?"; 
+			if (pstmtDelete != null) try {pstmtDelete.close();}catch(Exception e) {}
+			pstmtDelete = sd.prepareStatement(deleteSQL);
+			pstmtDelete.setInt(1, tg_id);
+			log.info("SQL: " + pstmtDelete.toString());
 			pstmtDelete.execute();
-
+			
+			// Log the delete event
+			String logMessage = localisation.getString("lm_del_task_group");
+			logMessage = logMessage.replaceAll("%s1", tgName);
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.DELETE, logMessage);
 
 		} catch (Exception e) {
 			response = Response.serverError().build();
 			log.log(Level.SEVERE,"", e);
-			try {
-				connectionSD.rollback();
-			} catch (Exception ex) {
-
-			}
 		} finally {
 			if (pstmtDelete != null) try {pstmtDelete.close();} catch (SQLException e) {};
-
-			SDDataSource.closeConnection("surveyKPI-AllAssignments", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
 		}
 
 		return response;
 	}
-	*/
 
 	private HashMap<String, File> getFormFileMap(ExchangeManager xm, ArrayList<File> files, ArrayList<FormDesc> forms) throws Exception {
 		HashMap<String, File> formFileMap = new HashMap<String, File> ();
