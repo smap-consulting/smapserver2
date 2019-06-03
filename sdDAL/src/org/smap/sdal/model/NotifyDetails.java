@@ -15,4 +15,5 @@ public class NotifyDetails {
 	public String attach = null;
 	public boolean include_references;
 	public boolean launched_only;
+
 }

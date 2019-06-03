@@ -17,4 +17,8 @@ public class Notification {
 	public boolean update_password;
 	public NotifyDetails notifyDetails;
 	
+	// reminders
+	public int tgId;	
+	public String period;
+	
 }
