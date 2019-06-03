@@ -295,7 +295,8 @@ public class SubscriberBatch {
 												ue.getSurveyNotes(),
 												ue.getLocationTrigger(),
 												ue.getAuditFilePath(),
-												orgLocalisation, sdalSurvey);	// Call the subscriber	
+												orgLocalisation, 
+												sdalSurvey);	// Call the subscriber	
 
 									} else {
 
@@ -997,14 +998,17 @@ public class SubscriberBatch {
 	 */
 	private void applyReminderNotifications(Connection sd, Connection cResults) {
 
-		String sql = "select t.id from tasks t, assignments a, forward f "
+		String sql = "select t.id as t_id, f.id as f_id, a.id as a_id from tasks t, assignments a, forward f "
 				+ "where t.tg_id = f.tg_id "
 				+ "and t.id = a.task_id "
 				+ "and f.enabled "
 				+ "and f.trigger = 'task_reminder' "
-				+ "and a.status = 'assigned' "
+				+ "and a.status = 'accepted' "
 				+ "and a.assigned_date < now() - cast(f.period as interval) ";
-		PreparedStatement pstmt= null;
+		PreparedStatement pstmt = null;
+		
+		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
+		PreparedStatement pstmtSent = null;
 		
 		String server = "some server";
 		try {
@@ -1013,6 +1017,10 @@ public class SubscriberBatch {
 			String urlprefix = "https://" + server + "/";
 			
 			pstmt = sd.prepareStatement(sql);
+			pstmtSent = sd.prepareStatement(sqlSent);
+			
+			HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
+			
 			System.out.println("");
 			System.out.println(pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -1021,7 +1029,34 @@ public class SubscriberBatch {
 				if(idx++ == 0) {
 					System.out.println("\n-------------");
 				}
-				System.out.println("    " + rs.getInt(1));
+				int tId = rs.getInt(1);
+				int nId = rs.getInt(2);
+				int aId = rs.getInt(3);
+				
+				// record the sending of the notification
+				pstmtSent.setInt(1, nId);
+				pstmtSent.setInt(2, aId);
+				pstmtSent.executeUpdate();
+				
+				// Write to the log
+				ResourceBundle localisation = locMap.get(nId);
+				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+				}
+				
+				String logMessage = "Reminder sent for: " + nId;
+				if(localisation != null) {
+					logMessage = localisation.getString("lm_reminder");
+					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
+				}
+				lm.writeLogOrganisation(sd, oId, "", LogManager.REMINDER, logMessage);
+				
+				System.out.println("    " + tId);
+				
+				
 			}
 			
 
@@ -1030,6 +1065,7 @@ public class SubscriberBatch {
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
 			
 		}
 	}

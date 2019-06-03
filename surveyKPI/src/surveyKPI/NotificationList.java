@@ -466,7 +466,7 @@ public class NotificationList extends Application {
 				superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 				a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 				NotificationManager fm = new NotificationManager(localisation);
-				fm.deleteNotification(connectionSD, pstmt, request.getRemoteUser(), id);
+				fm.deleteNotification(connectionSD, request.getRemoteUser(), id);
 			}
 			
 			response = Response.ok().build();

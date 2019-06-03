@@ -427,7 +427,7 @@ public class SubRelationalDB extends Subscriber {
 							if(source.trim().startsWith("attachments")) {
 								if(item.type.equals("imagelabel")) {
 									String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
-									lm.writeLog(sd, sId, remoteUser, "Rekognition Request", "Batch: " + "/smap/" + source);
+									lm.writeLog(sd, sId, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
 									// 4. Write labels to database
 									pstmtUpdate.setString(1, labels);
 									pstmtUpdate.setInt(2, prikey);

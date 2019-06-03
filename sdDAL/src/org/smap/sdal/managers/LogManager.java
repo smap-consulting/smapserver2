@@ -59,6 +59,8 @@ public class LogManager {
 	public static String CREATE = "create";
 	public static String DELETE = "delete";
 	public static String ERASE = "erase";
+	public static String REKOGNITION = "Rekognition Request";
+	public static String REMINDER = "reminder";
 	public static String VIEW = "view";
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";

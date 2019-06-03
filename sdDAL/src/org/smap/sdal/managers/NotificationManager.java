@@ -335,18 +335,31 @@ public class NotificationManager {
 	/*
 	 * Delete the notification
 	 */
-	public void deleteNotification(Connection sd, PreparedStatement pstmt,
+	public void deleteNotification
+	(Connection sd,
 			String user,
 			int id) throws SQLException {
 		
-		String sql = "delete from forward where id = ?; ";
+		String nName = GeneralUtilityMethods.getNotificationName(sd, id);
 		
-		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
-		pstmt = sd.prepareStatement(sql);	 			
-
-		pstmt.setInt(1, id);
-		log.info("Delete: " + pstmt.toString());
-		pstmt.executeUpdate();
+		String sql = "delete from forward where id = ?; ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			// Delete
+			pstmt = sd.prepareStatement(sql);	 			
+			pstmt.setInt(1, id);
+			log.info("Delete: " + pstmt.toString());
+			pstmt.executeUpdate();
+		
+			// Log the delete event
+			String logMessage = localisation.getString("lm_del_notification");
+			logMessage = logMessage.replaceAll("%s1", nName);
+			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage);
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
 		
 	}
 

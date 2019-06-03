@@ -1023,7 +1023,9 @@ public class GeneralUtilityMethods {
 
 		int o_id = -1;
 
-		String sql = "select p.o_id " + " from project p " + "where p.id = ?";
+		String sql = "select p.o_id " 
+				+ " from project p " 
+				+ "where p.id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -1076,6 +1078,37 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the organisation id for the notification
+	 */
+	static public int getOrganisationIdForNotification(Connection sd, int id) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select p.o_id "
+				+ "from survey s, project p, forward f "
+				+ "where s.p_id = p.id "
+				+ "and s.s_id = f.s_id "
+				+ "and f.id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (Exception e) {}
+		}
+
+		return o_id;
+	}
+	
+	/*
 	 * Get the task group name
 	 */
 	static public String getTaskGroupName(Connection sd, int tgId) throws SQLException {
@@ -1103,9 +1136,38 @@ public class GeneralUtilityMethods {
 
 		return name;
 	}
+	
+	/*
+	 * Get the notification name
+	 */
+	static public String getNotificationName(Connection sd, int id) throws SQLException {
+
+		String name = null;
+
+		String sql = "select name " 
+				+ " from forward " 
+				+ "where id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return name;
+	}
 
 	/*
-	 * Get the task group name
+	 * Get the assignment status of a temporary user
 	 */
 	static public AssignmentDetails getAssignmentStatusForTempUser(Connection sd, String userIdent) throws SQLException {
 
