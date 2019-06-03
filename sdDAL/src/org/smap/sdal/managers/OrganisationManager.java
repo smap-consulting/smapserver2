@@ -222,7 +222,7 @@ public class OrganisationManager {
 										localisation,
 										originalOrg.server_description);
 							} catch(Exception e) {
-								lm.writeLogOrganisation(sd, o.id, userIdent, "organisation update", e.getMessage());
+								lm.writeLogOrganisation(sd, o.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage());
 							}
 						}
 					}

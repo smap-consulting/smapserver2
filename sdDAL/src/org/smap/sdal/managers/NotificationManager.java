@@ -494,7 +494,7 @@ public class NotificationManager {
 							msg = "";
 						}
 						log.log(Level.SEVERE, e.getMessage(), e);
-						lm.writeLog(sd, sId, "subscriber", "notification", 
+						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
 								.replace("%s2", msg));
@@ -502,7 +502,7 @@ public class NotificationManager {
 				}
 				
 				if(!proceed) {
-					lm.writeLog(sd, sId, "subscriber", "notification", 
+					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 							localisation.getString("filter_reject")
 							.replace("%s1", survey.displayName)
 							.replace("%s2", filter)
@@ -779,7 +779,7 @@ public class NotificationManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, msg.sId, "subscriber", "email", localisation.getString("email_nr"));
+							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
 							writeToMonitor = false;
 						}
 					} else {

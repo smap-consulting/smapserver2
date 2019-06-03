@@ -394,7 +394,7 @@ public class ExternalFileManager {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-			lm.writeLog(sd, sId, userName, "error", "Creating CSV file: " + e.getMessage());
+			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage());
 		} finally {
 			if (pstmtAppearance != null)	{try {pstmtAppearance.close();} catch (Exception e) {}}
 			if (pstmtCalculate != null) {try {pstmtCalculate.close();	} catch (Exception e) {}}

@@ -204,7 +204,7 @@ public class Data_CSV extends Application {
 		// End Authorisation
 
 		String language = "none";
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "API CSV view");
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "API CSV view");
 
 		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get data records csv");
 

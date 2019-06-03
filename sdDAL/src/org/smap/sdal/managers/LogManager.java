@@ -58,7 +58,11 @@ public class LogManager {
 	// Event types
 	public static String CREATE = "create";
 	public static String DELETE = "delete";
+	public static String EMAIL = "email";
 	public static String ERASE = "erase";
+	public static String ERROR = "error";
+	public static String NOTIFICATION = "notification";
+	public static String ORGANISATION_UPDATE = "organisation update";
 	public static String REKOGNITION = "Rekognition Request";
 	public static String REMINDER = "reminder";
 	public static String VIEW = "view";

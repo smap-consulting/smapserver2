@@ -1052,7 +1052,7 @@ public class SubscriberBatch {
 					logMessage = localisation.getString("lm_reminder");
 					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
 				}
-				lm.writeLogOrganisation(sd, oId, "", LogManager.REMINDER, logMessage);
+				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage);
 				
 				System.out.println("    " + tId);
 				

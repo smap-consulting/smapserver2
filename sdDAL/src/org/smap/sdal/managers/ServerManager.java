@@ -123,7 +123,7 @@ public class ServerManager {
 
 			if(delTables != null && delTables.equals("yes")) {
 
-				lm.writeLog(sd, sId, user, "erase", "Delete survey " + surveyDisplayName + " and its results");
+				lm.writeLog(sd, sId, user, LogManager.ERASE, "Delete survey " + surveyDisplayName + " and its results");
 				log.info("userevent: " + user + " : hard delete survey : " + surveyDisplayName);
 
 				// Get any tables that are shared with other surveys
@@ -145,7 +145,7 @@ public class ServerManager {
 					ArrayList<String> surveys = sharedTables.get(tableName);
 					if(surveys != null && surveys.size() > 0) {
 						log.info("Table " + tableName + " not erased as it is used by " + surveys.toString());
-						lm.writeLog(sd, sId, user, "erase", "Table " + tableName + " not erased as it is used by " + surveys.toString());
+						lm.writeLog(sd, sId, user, LogManager.ERASE, "Table " + tableName + " not erased as it is used by " + surveys.toString());
 					} else {				
 					
 						int rowCount = 0;
