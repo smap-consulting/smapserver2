@@ -506,7 +506,6 @@ public class NotificationManager {
 				} else {
 		
 					SubmissionMessage subMgr = new SubmissionMessage(
-							sId,
 							ident,
 							pId,
 							instanceId, 

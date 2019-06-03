@@ -165,6 +165,9 @@ public class AllAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			String source_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.source_survey_id);
+			String target_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.source_survey_id);
+			
 			projectName = GeneralUtilityMethods.getProjectName(sd, projectId);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
@@ -551,7 +554,7 @@ public class AllAssignments extends Application {
 										projectId, 
 										projectName, 
 										survey, 
-										as.target_survey_id, 
+										target_survey_ident, 
 										tid, 
 										instanceId,
 										false,

@@ -29,7 +29,6 @@ public class SubmissionMessage {
 	public String serverRoot;
 	
 	public SubmissionMessage(
-			int sId, 
 			String ident,
 			int pId, 
 			String instanceId, 
@@ -50,7 +49,6 @@ public class SubmissionMessage {
 			String basePath,
 			String serverRoot) {
 		
-		this.sId = sId;
 		this.ident = ident;
 		this.pId = pId;
 		this.instanceId = instanceId;

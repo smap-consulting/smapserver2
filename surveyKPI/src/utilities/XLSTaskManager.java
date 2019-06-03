@@ -88,7 +88,7 @@ public class XLSTaskManager {
 			if(name.equals("tg_name")) {
 				value = props.tg_name;
 			} else if(name.equals("form")) {
-				value = props.form_name;
+				value = props.survey_name;
 			} else if(name.equals("name")) {
 				value = props.name;
 			} else if(name.equals("assignee_ident")) {
@@ -244,7 +244,7 @@ public class XLSTaskManager {
 
 							currentTask = new TaskServerDefn();
 							currentTask.tg_name = tg_name;
-							currentTask.form_name = form_name;
+							currentTask.survey_name = form_name;
 							currentTask.name = getColumn(row, "name", header, lastCellNum, "");
 							currentTask.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
 							currentTask.location_group = getColumn(row, "location_group", header, lastCellNum, null);
