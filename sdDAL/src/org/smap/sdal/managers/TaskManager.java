@@ -301,7 +301,7 @@ public class TaskManager {
 				+ "t.guidance as guidance,"
 				+ "t.repeat as repeat,"
 				+ "t.repeat_count as repeat_count,"
-				+ "t.form_id,"
+				+ "t.survey_ident,"
 				+ "t.survey_name as survey_name,"
 				+ "t.deleted,"
 				+ "t.complete_all,"
@@ -323,7 +323,7 @@ public class TaskManager {
 				+ "t.show_dist "
 				+ "from tasks t "
 				+ "join survey s "
-				+ "on t.form_id = s.s_id "
+				+ "on t.survey_ident = s.ident "
 				+ "join task_group tg "
 				+ "on t.tg_id = tg.tg_id "
 				+ "left outer join assignments a "
@@ -465,7 +465,7 @@ public class TaskManager {
 					tf.properties.to = rs.getTimestamp("default_finish");
 				}
 				tf.properties.status = status;	
-				tf.properties.survey_ident = rs.getString("form_ident");
+				tf.properties.survey_ident = rs.getString("survey_ident");
 				tf.properties.survey_name = rs.getString("survey_name");
 				tf.properties.action_link = rs.getString("action_link");
 				tf.properties.blocked = rs.getBoolean("blocked");
@@ -1499,7 +1499,7 @@ public class TaskManager {
 				+ "values(?, 'accepted', ?, now(), (select name from users where id = ?))";
 
 		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.action_link, "
-				+ "t.form_id, t.update_id "
+				+ "t.survey_ident, t.update_id "
 				+ "from assignments a, tasks t "
 				+ "where a.task_id = t.id "
 				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
@@ -1671,7 +1671,8 @@ public class TaskManager {
 						String status = rs.getString("status");
 						String email = rs.getString("email");
 						String actionLink = rs.getString("action_link");
-						int sId = rs.getInt("form_id");
+						String surveyIdent = rs.getString("survey_ident");
+						int sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 						String instanceId = rs.getString("update_id");
 						
 						if(action.action.equals("email_unsent") && !status.equals("unsent") && !status.equals("blocked")) {

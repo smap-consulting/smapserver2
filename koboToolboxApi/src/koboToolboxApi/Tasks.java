@@ -271,7 +271,7 @@ public class Tasks extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
 		
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), tp.survey_ident, false, superUser);
+		a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
 		
 		if(tp.assignee_ident != null) {
 			tp.assignee = GeneralUtilityMethods.getUserId(sd, tp.assignee_ident);
@@ -283,6 +283,8 @@ public class Tasks extends Application {
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			tp.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, tp.form_id);
 			
 			if(tz == null) {
 				tz = "UTC";	// Set default for timezone

@@ -42,12 +42,9 @@ public class SubmissionMessage {
 			String emailQuestionName,
 			String emailMeta,
 			ArrayList<String> emails,
-			String target,
-			String user,
 			String scheme,
 			String server,
-			String basePath,
-			String serverRoot) {
+			String basePath) {
 		
 		this.ident = ident;
 		this.pId = pId;
@@ -62,12 +59,9 @@ public class SubmissionMessage {
 		this.emailQuestionName = emailQuestionName;
 		this.emailMeta = emailMeta;
 		this.emails = emails;
-		this.target = target;
-		this.user = user;
 		this.scheme = scheme;
 		this.server = server;
 		this.basePath = basePath;
-		this.serverRoot = serverRoot;
 	}
 	
 	public boolean emailQuestionSet() {

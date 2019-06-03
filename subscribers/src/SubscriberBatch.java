@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ServerManager;
@@ -58,9 +59,11 @@ import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Notification;
+import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.ServerData;
+import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.HostUnreachableException;
@@ -72,6 +75,9 @@ import org.smap.subscribers.SmapForward;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import JdbcManagers.JdbcUploadEventManager;
 
@@ -141,6 +147,7 @@ public class SubscriberBatch {
 		
 		String sqlResultsDB = "update upload_event set results_db_applied = 'true' where ue_id = ?";
 		PreparedStatement pstmtResultsDB = null;
+		String serverName = null;
 
 		String language = "none";
 		try {
@@ -168,7 +175,7 @@ public class SubscriberBatch {
 			// Default to english though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			String serverName = GeneralUtilityMethods.getSubmissionServer(sd);
+			serverName = GeneralUtilityMethods.getSubmissionServer(sd);
 
 			/*
 			 * Get subscribers and their configuration
@@ -392,7 +399,7 @@ public class SubscriberBatch {
 			 * Apply any other subscriber type dependent processing
 			 */
 			if(subscriberType.equals("upload")) {
-				applyReminderNotifications(sd, cResults);
+				applyReminderNotifications(sd, cResults, basePath, serverName);
 			} else if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, localisation, basePath);
@@ -996,17 +1003,28 @@ public class SubscriberBatch {
 	 * Apply Reminder notifications
 	 * Triggered by a time period
 	 */
-	private void applyReminderNotifications(Connection sd, Connection cResults) {
+	private void applyReminderNotifications(Connection sd, Connection cResults, String basePath, String serverName) {
 
-		String sql = "select t.id as t_id, f.id as f_id, a.id as a_id from tasks t, assignments a, forward f "
-				+ "where t.tg_id = f.tg_id "
+		// Sql to get notifications that need a reminder
+		String sql = "select "
+				+ "t.id as t_id, "
+				+ "n.id as f_id, "
+				+ "a.id as a_id, "
+				+ "t.survey_ident, "
+				+ "t.update_id,"
+				+ "t.p_id,"
+				+ "n.notify_details "
+				+ "from tasks t, assignments a, forward n "
+				+ "where t.tg_id = n.tg_id "
 				+ "and t.id = a.task_id "
-				+ "and f.enabled "
-				+ "and f.trigger = 'task_reminder' "
+				+ "and n.enabled "
+				+ "and n.trigger = 'task_reminder' "
 				+ "and a.status = 'accepted' "
-				+ "and a.assigned_date < now() - cast(f.period as interval) ";
+				+ "and a.assigned_date < now() - cast(n.period as interval) "
+				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
 		
+		// Sql to record a reminder being sent
 		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
 		PreparedStatement pstmtSent = null;
 		
@@ -1019,19 +1037,47 @@ public class SubscriberBatch {
 			pstmt = sd.prepareStatement(sql);
 			pstmtSent = sd.prepareStatement(sqlSent);
 			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
+			MessagingManager mm = new MessagingManager();
 			
-			System.out.println("");
-			System.out.println(pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			int idx = 0;
 			while (rs.next()) {
+				
 				if(idx++ == 0) {
 					System.out.println("\n-------------");
 				}
 				int tId = rs.getInt(1);
 				int nId = rs.getInt(2);
 				int aId = rs.getInt(3);
+				String surveyIdent = rs.getString(4);
+				String instanceId = rs.getString(5);
+				int pId = rs.getInt(6);
+				String notifyDetailsString = rs.getString(7);
+				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+				
+				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
+				
+				// Send the reminder
+				SubmissionMessage subMgr = new SubmissionMessage(
+						surveyIdent,
+						pId,
+						instanceId, 
+						nd.from,
+						nd.subject, 
+						nd.content,
+						nd.attach,
+						nd.include_references,
+						nd.launched_only,
+						nd.emailQuestion,
+						nd.emailQuestionName,
+						nd.emailMeta,
+						nd.emails,
+						"https",
+						serverName,
+						basePath);
+				mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
 				
 				// record the sending of the notification
 				pstmtSent.setInt(1, nId);
@@ -1040,7 +1086,6 @@ public class SubscriberBatch {
 				
 				// Write to the log
 				ResourceBundle localisation = locMap.get(nId);
-				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
@@ -1053,8 +1098,6 @@ public class SubscriberBatch {
 					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
 				}
 				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage);
-				
-				System.out.println("    " + tId);
 				
 				
 			}

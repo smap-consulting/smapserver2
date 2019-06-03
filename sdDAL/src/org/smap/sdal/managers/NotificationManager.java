@@ -519,12 +519,9 @@ public class NotificationManager {
 							nd.emailQuestionName,
 							nd.emailMeta,
 							nd.emails,
-							target,
-							remoteUser,
 							scheme,
 							serverName,
-							basePath,
-							serverRoot);
+							basePath);
 					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
 					
 				}
