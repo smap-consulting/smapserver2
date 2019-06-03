@@ -10,7 +10,7 @@ public class TaskProperties {
 	// Properties exposed via Task API
 	public int tg_id;
 	public String name;
-	public String form_ident;
+	public String survey_ident;
 	public String assignee_type;				// user || role   (Default to user)
 	public String assignee_ident;
 	public boolean generate_user;			// Create a temporary user ident (Default to false_
@@ -37,9 +37,8 @@ public class TaskProperties {
 	public int id;
 	public String tg_name;
 	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
-	public int form_id;
 	public String action_link;
-	public String form_name;
+	public String survey_name;
 	public boolean blocked;
 	public String form_version;
 	public int assignee;

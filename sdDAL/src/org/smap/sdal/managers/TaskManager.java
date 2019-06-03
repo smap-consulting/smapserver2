@@ -302,7 +302,7 @@ public class TaskManager {
 				+ "t.repeat as repeat,"
 				+ "t.repeat_count as repeat_count,"
 				+ "t.form_id,"
-				+ "t.survey_name as form_name,"
+				+ "t.survey_name as survey_name,"
 				+ "t.deleted,"
 				+ "t.complete_all,"
 				+ "t.tg_id,"
@@ -465,9 +465,8 @@ public class TaskManager {
 					tf.properties.to = rs.getTimestamp("default_finish");
 				}
 				tf.properties.status = status;	
-				tf.properties.form_id = rs.getInt("form_id");
-				tf.properties.form_ident = rs.getString("form_ident");
-				tf.properties.form_name = rs.getString("form_name");
+				tf.properties.survey_ident = rs.getString("form_ident");
+				tf.properties.survey_name = rs.getString("survey_name");
 				tf.properties.action_link = rs.getString("action_link");
 				tf.properties.blocked = rs.getBoolean("blocked");
 				tf.properties.assignee = rs.getInt("assignee");
@@ -515,14 +514,14 @@ public class TaskManager {
 				tf.links.put("detail", urlprefix + "/api/v1/tasks/" + tf.properties.id);
 				tf.links.put("webform", GeneralUtilityMethods.getWebformLink(
 						urlprefix, 
-						tf.properties.form_ident, 
+						tf.properties.survey_ident, 
 						tf.properties.initial_data_source,
 						tf.properties.a_id,
 						tf.properties.id,
 						tf.properties.update_id));
 				tf.links.put("xml_data", GeneralUtilityMethods.getInitialXmlDataLink(
 						urlprefix, 
-						tf.properties.form_ident, 
+						tf.properties.survey_ident, 
 						tf.properties.initial_data_source,
 						tf.properties.id,
 						tf.properties.update_id));
@@ -730,7 +729,7 @@ public class TaskManager {
 	public void updateTasksForSubmission(
 			Connection sd, 
 			Connection cResults,
-			int source_s_id, 
+			String source_s_ident, 
 			String hostname,
 			String instanceId,
 			int pId,
@@ -745,7 +744,7 @@ public class TaskManager {
 
 		
 		try {
-
+			int source_s_id = GeneralUtilityMethods.getSurveyId(sd, source_s_ident);
 			pstmtGetRules = sd.prepareStatement(sqlGetRules);
 			pstmtGetRules.setInt(1, source_s_id);
 			log.info("Get task rules: " + pstmtGetRules.toString());
@@ -776,6 +775,7 @@ public class TaskManager {
 						address = new Gson().fromJson(addressString, new TypeToken<ArrayList<TaskAddressSettings>>() {}.getType());
 					}
 					int target_s_id = rs.getInt(5);
+					String target_s_ident = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 	
 					log.info("Assign Survey String: " + rs.getString(3));
 					log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
@@ -830,7 +830,7 @@ public class TaskManager {
 									);
 						}
 						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
-								target_s_id, tid, instanceId, true, remoteUser);  // Write to the database
+								target_s_ident, tid, instanceId, true, remoteUser);  // Write to the database
 					}
 				}
 			}
@@ -856,7 +856,7 @@ public class TaskManager {
 			int pId,
 			String pName,
 			Survey sourceSurvey,				// Set if we need to get the instance data from the survey
-			int target_s_id,
+			String target_s_ident,
 			TaskInstanceData tid,			// data from submission
 			String updateId,
 			boolean autosendEmails,
@@ -879,8 +879,6 @@ public class TaskManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 		try {
-
-			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 
 			/*
 			 * Set data to be updated
@@ -993,7 +991,7 @@ public class TaskManager {
 					tgId,
 					tgName,
 					title,
-					target_s_id,
+					target_s_ident,
 					taskPoint,
 					updateId,
 					tid.address,
@@ -1015,7 +1013,7 @@ public class TaskManager {
 			int roleId = as.role_id;
 			log.info("Assign user: userId: "  + userId + " roleId: " + roleId + " tid.ident: " + tid.ident);
 			int fixedRoleId = as.fixed_role_id;
-			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, target_s_id);
+			int oId = GeneralUtilityMethods.getOrganisationIdForSurveyIdent(sd, target_s_ident);
 			
 			// Assign to people dependent on data from a form
 			String emails = as.emails;
@@ -1054,7 +1052,7 @@ public class TaskManager {
 						emails,
 						oId,
 						pId,
-						targetSurveyIdent,
+						target_s_ident,
 						updateId,
 						autosendEmails,
 						remoteUser,
@@ -1195,8 +1193,8 @@ public class TaskManager {
 		PreparedStatement pstmtAssign = null;
 		PreparedStatement pstmtInsert = null;
 
-		String sqlGetFormIdFromName = "select s_id from survey where display_name = ? and p_id = ? and deleted = 'false'";
-		PreparedStatement pstmtGetFormId = sd.prepareStatement(sqlGetFormIdFromName);
+		String sqlGetSurveyIdentFromName = "select ident from survey where display_name = ? and p_id = ? and deleted = 'false'";
+		PreparedStatement pstmtGetSurveyIdent = sd.prepareStatement(sqlGetSurveyIdentFromName);
 
 		String sqlGetAssigneeId = "select u.id from users u, user_project up "
 				+ "where u.ident = ? "
@@ -1224,19 +1222,19 @@ public class TaskManager {
 				}
 			}
 
-			// 2. Get the form id, if only the form name is specified
-			if(tsd.form_id <= 0) {
-				if(tsd.form_name == null) {
-					throw new Exception("Missing form Name");
+			// 2. Get the survey ident, if only the form name is specified
+			if(tsd.survey_ident == null) {
+				if(tsd.survey_name == null) {
+					throw new Exception("Missing survey Name");
 				} else {
-					pstmtGetFormId.setString(1, tsd.form_name);
-					pstmtGetFormId.setInt(2, pId);
-					log.info("Get survey id: " + pstmtGetFormId.toString());
-					ResultSet rs = pstmtGetFormId.executeQuery();
+					pstmtGetSurveyIdent.setString(1, tsd.survey_name);
+					pstmtGetSurveyIdent.setInt(2, pId);
+					log.info("Get survey id: " + pstmtGetSurveyIdent.toString());
+					ResultSet rs = pstmtGetSurveyIdent.executeQuery();
 					if(rs.next()) {
-						tsd.form_id = rs.getInt(1);
+						tsd.survey_ident = rs.getString(1);
 					} else {
-						throw new Exception("Form not found: " + tsd.form_name);
+						throw new Exception("Form not found: " + tsd.survey_name);
 					}
 				}
 			}
@@ -1259,7 +1257,7 @@ public class TaskManager {
 				}
 			}
 
-			String targetSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, tsd.form_id);
+			String targetSurveyIdent = tsd.survey_ident;
 			
 			/*
 			 * 4. Location and GPS 
@@ -1323,7 +1321,7 @@ public class TaskManager {
 						tsd.id,
 						tgId,
 						tsd.name,
-						tsd.form_id,
+						tsd.survey_ident,
 						gpsCoords,
 						tsd.address,
 						tsd.from,
@@ -1345,7 +1343,7 @@ public class TaskManager {
 						tgId,
 						tgName,
 						tsd.name,
-						tsd.form_id,
+						tsd.survey_ident,
 						gpsCoords,
 						tsd.update_id,
 						tsd.address,
@@ -1458,7 +1456,7 @@ public class TaskManager {
 			if(pstmt != null) try {pstmt.close(); } catch(SQLException e) {};
 			if(pstmtAssign != null) try {pstmtAssign.close(); } catch(SQLException e) {};
 			if(pstmtInsert != null) try {pstmtInsert.close(); } catch(SQLException e) {};
-			if(pstmtGetFormId != null) try {pstmtGetFormId.close(); } catch(SQLException e) {};
+			if(pstmtGetSurveyIdent != null) try {pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 			if(pstmtGetAssigneeId != null) try {pstmtGetAssigneeId.close(); } catch(SQLException e) {};
 			if(pstmtHasLocationTrigger != null) try {pstmtHasLocationTrigger.close(); } catch(SQLException e) {};
 		}
@@ -1930,7 +1928,7 @@ public class TaskManager {
 				+ "tg_id, "
 				+ "tg_name, "
 				+ "title, "
-				+ "form_id, "
+				+ "survey_ident, "
 				+ "survey_name, "
 				+ "geo_point,"
 				+ "update_id,"
@@ -1951,8 +1949,8 @@ public class TaskManager {
 				+ "?, "		// tg_id
 				+ "?, "		// tg_name
 				+ "?, "		// title
-				+ "?, "		// form_id
-				+ "(select display_name from survey where s_id = ?), "		// Survey name
+				+ "?, "		// Survey ident
+				+ "(select display_name from survey where ident = ?), "		// Survey name
 				+ "ST_GeomFromText(?, 4326), "	// geo_point
 				+ "?, "		// update_id
 				+ "?, "		// address
@@ -1980,7 +1978,7 @@ public class TaskManager {
 			int tgId,
 			String tgName,
 			String title,
-			int target_s_id,
+			String target_s_ident,
 			String location,
 			String targetInstanceId,
 			String address,
@@ -2000,10 +1998,10 @@ public class TaskManager {
 		pstmt.setInt(3,  tgId);
 		pstmt.setString(4,  tgName);
 		pstmt.setString(5,  title);
-		pstmt.setInt(6, target_s_id);			// form id
-		pstmt.setInt(7, target_s_id);			// For survey name			
-		pstmt.setString(8, location);			// geopoint
-		pstmt.setString(9, targetInstanceId);	// update id
+		pstmt.setString(6, target_s_ident);	
+		pstmt.setString(7, target_s_ident);			// For survey name			
+		pstmt.setString(8, location);				// geopoint
+		pstmt.setString(9, targetInstanceId);		// update id
 		pstmt.setString(10, address);
 		pstmt.setTimestamp(11, taskStart);
 		pstmt.setTimestamp(12, taskFinish);
@@ -2028,8 +2026,8 @@ public class TaskManager {
 
 		String sql = "update tasks set "
 				+ "title = ?, "
-				+ "form_id = ?, "
-				+ "survey_name = (select display_name from survey where s_id = ?), "
+				+ "survey_ident = ?, "
+				+ "survey_name = (select display_name from survey where ident = ?), "
 				+ "geo_point = ST_GeomFromText(?, 4326),"
 				+ "address = ?,"
 				+ "schedule_at = ?,"
@@ -2055,7 +2053,7 @@ public class TaskManager {
 			int tId,
 			int tgId,
 			String title,
-			int target_s_id,
+			String target_s_ident,
 			String location,
 			String address,
 			Timestamp taskStart,
@@ -2070,8 +2068,8 @@ public class TaskManager {
 			int show_dist) throws SQLException {
 		
 		pstmt.setString(1, title);
-		pstmt.setInt(2,  target_s_id);
-		pstmt.setInt(3,  target_s_id);			// To set survey name				
+		pstmt.setString(2,  target_s_ident);
+		pstmt.setString(3,  target_s_ident);			// To set survey name				
 		pstmt.setString(4, location);			// geopoint
 		pstmt.setString(5, address);
 		pstmt.setTimestamp(6, taskStart);
@@ -2716,8 +2714,8 @@ public class TaskManager {
 		tsd.id = tf.properties.id;
 		tsd.name = tf.properties.name;
 		tsd.address = tf.properties.address;
-		tsd.form_id = tf.properties.form_id;
-		tsd.form_name = tf.properties.form_name;
+		tsd.survey_ident = tf.properties.survey_ident;
+		tsd.survey_name = tf.properties.survey_name;
 		tsd.from = tf.properties.from;
 		tsd.to = tf.properties.to;
 		tsd.guidance = tf.properties.guidance;

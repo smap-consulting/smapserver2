@@ -1015,6 +1015,36 @@ public class GeneralUtilityMethods {
 
 		return o_id;
 	}
+	
+	/*
+	 * Get the organisation id for the survey ident
+	 */
+	static public int getOrganisationIdForSurveyIdent(Connection sd, String ident) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select p.o_id " + 
+				" from survey s, project p " + 
+				"where s.p_id = p.id " + 
+				"and s.ident = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, ident);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return o_id;
+	}
 
 	/*
 	 * Get the organisation id for the project

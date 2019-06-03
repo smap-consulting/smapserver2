@@ -10,9 +10,9 @@ import java.util.ArrayList;
 public class TaskServerDefn {
 	public int id;
 	public String name;
-	public int form_id;
+	public String survey_ident;
 	public String tg_name;
-	public String form_name;
+	public String survey_name;
 	public Timestamp from;
 	public Timestamp to;
 	public String location_trigger;

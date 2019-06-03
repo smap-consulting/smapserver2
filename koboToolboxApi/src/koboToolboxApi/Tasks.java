@@ -271,10 +271,7 @@ public class Tasks extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
 		
-		if(tp.form_ident != null) {
-			tp.form_id = GeneralUtilityMethods.getSurveyId(sd, tp.form_ident);
-		}
-		a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), tp.survey_ident, false, superUser);
 		
 		if(tp.assignee_ident != null) {
 			tp.assignee = GeneralUtilityMethods.getUserId(sd, tp.assignee_ident);

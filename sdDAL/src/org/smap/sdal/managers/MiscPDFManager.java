@@ -397,7 +397,7 @@ public class MiscPDFManager {
 			for(TaskFeature tf : t.features) {
 				TaskProperties p = tf.properties;
 
-				table.addCell(p.form_name);
+				table.addCell(p.survey_name);
 				table.addCell(p.name);
 				table.addCell(p.status);
 				table.addCell(p.assignee_name);
