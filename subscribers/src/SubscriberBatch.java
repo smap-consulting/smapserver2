@@ -1013,6 +1013,8 @@ public class SubscriberBatch {
 				+ "t.survey_ident, "
 				+ "t.update_id,"
 				+ "t.p_id,"
+				+ "n.target,"
+				+ "n.remote_user,"
 				+ "n.notify_details "
 				+ "from tasks t, assignments a, forward n "
 				+ "where t.tg_id = n.tg_id "
@@ -1054,7 +1056,9 @@ public class SubscriberBatch {
 				String surveyIdent = rs.getString(4);
 				String instanceId = rs.getString(5);
 				int pId = rs.getInt(6);
-				String notifyDetailsString = rs.getString(7);
+				String target = rs.getString(7);
+				String remoteUser = rs.getString(8);
+				String notifyDetailsString = rs.getString(9);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
@@ -1074,10 +1078,12 @@ public class SubscriberBatch {
 						nd.emailQuestionName,
 						nd.emailMeta,
 						nd.emails,
+						target,
+						remoteUser,
 						"https",
 						serverName,
 						basePath);
-				mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
+				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
 				
 				// record the sending of the notification
 				pstmtSent.setInt(1, nId);
