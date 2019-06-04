@@ -66,7 +66,7 @@ public class TextManager {
 			ArrayList<String> text,
 			String basePath, 
 			String remoteUser,
-			org.smap.sdal.model.Survey survey,
+			Survey survey,
 			String language,
 			int oId) {		
 
@@ -84,12 +84,17 @@ public class TextManager {
 			 *  question's results
 			 */
 			GlobalVariables gv = new GlobalVariables();
-			for(int i = 0; i < survey.instance.results.size(); i++) {
-				getDependencies(gv, survey.instance.results.get(i), survey, i);	
-			}		
-			
-			for(int i = 0; i < survey.instance.results.size(); i++) {
-				replaceTextParameters(sd, cResults, remoteUser, gv, text, survey.instance.results.get(i), basePath, null, i, survey, languageIdx, oId);
+			if(survey != null) {
+				for(int i = 0; i < survey.instance.results.size(); i++) {
+					getDependencies(gv, survey.instance.results.get(i), survey, i);	
+				}		
+				
+				for(int i = 0; i < survey.instance.results.size(); i++) {
+					replaceTextParameters(sd, cResults, remoteUser, gv, text, survey.instance.results.get(i), basePath, null, i, survey, languageIdx, oId);
+				}
+			} else {
+				// Perhaps the survey has been deleted
+				log.log(Level.SEVERE, "Survey null when attempting to get data values");
 			}
 				
 			

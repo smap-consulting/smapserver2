@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 public class SubmissionMessage {
-	public int sId;
-	public String ident;
+	public int sId;					// Legacy reference to survey - now use survey_ident
+	public String survey_ident;
 	public int pId;
 	public String instanceId;
 	public String from;
@@ -29,7 +29,7 @@ public class SubmissionMessage {
 	public String serverRoot;
 	
 	public SubmissionMessage(
-			String ident,
+			String survey_ident,
 			int pId, 
 			String instanceId, 
 			String from, 
@@ -42,11 +42,13 @@ public class SubmissionMessage {
 			String emailQuestionName,
 			String emailMeta,
 			ArrayList<String> emails,
+			String target,
+			String user,
 			String scheme,
 			String server,
 			String basePath) {
 		
-		this.ident = ident;
+		this.survey_ident = survey_ident;
 		this.pId = pId;
 		this.instanceId = instanceId;
 		this.from = from;
@@ -59,6 +61,8 @@ public class SubmissionMessage {
 		this.emailQuestionName = emailQuestionName;
 		this.emailMeta = emailMeta;
 		this.emails = emails;
+		this.target = target;
+		this.user = user;
 		this.scheme = scheme;
 		this.server = server;
 		this.basePath = basePath;

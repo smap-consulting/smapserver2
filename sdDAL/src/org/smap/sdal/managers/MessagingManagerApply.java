@@ -154,13 +154,24 @@ public class MessagingManagerApply {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 			
 					NotificationManager nm = new NotificationManager(localisation);
-					nm.processNotification(
+					nm.processSubmissionNotification(
 							sd, 
 							cResults, 
 							organisation, 
 							msg,
-							id,
-							msg.user); 
+							id); 
+					
+				} else if(topic.equals("reminder")) {
+					// Use SubmissionMessage structure - this may change
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
+			
+					NotificationManager nm = new NotificationManager(localisation);
+					nm.processReminderNotification(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id); 
 					
 				} else if(topic.equals("email_task")) {
 					TaskManager tm = new TaskManager(localisation, tz);
