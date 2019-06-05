@@ -66,6 +66,8 @@ public class Survey implements Serializable {
 	
 	private boolean auditLocationData;
 	
+	private boolean trackChanges;
+	
 	private boolean hideOnDevice;
 	
 	private String surveyClass;
@@ -139,6 +141,10 @@ public class Survey implements Serializable {
 	
 	public boolean getAuditLocationData() {
 		return auditLocationData;
+	}
+	
+	public boolean getTrackChanges() {
+		return trackChanges;
 	}
 	
 	public boolean getHideOnDevice() {
@@ -220,6 +226,10 @@ public class Survey implements Serializable {
 	
 	public void setAuditLocationData(boolean v) {
 		auditLocationData = v;
+	}
+	
+	public void setTrackChanges(boolean v) {
+		trackChanges = v;
 	}
 	
 	public void setHideOnDevice(boolean v) {

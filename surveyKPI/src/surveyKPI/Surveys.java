@@ -705,7 +705,8 @@ public class Surveys extends Application {
 					+ "key_policy = ?, "
 					+ "exclude_empty = ?, "
 					+ "hide_on_device = ?, "
-					+ "audit_location_data = ? "
+					+ "audit_location_data = ?, "
+					+ "track_changes = ? "
 					+ "where s_id = ?;";		
 		
 			if(survey.surveyClass != null && survey.surveyClass.equals("none")) {
@@ -726,7 +727,8 @@ public class Surveys extends Application {
 			pstmt.setBoolean(12, survey.exclude_empty);
 			pstmt.setBoolean(13, survey.getHideOnDevice());
 			pstmt.setBoolean(14, survey.audit_location_data);
-			pstmt.setInt(15, sId);
+			pstmt.setBoolean(15, survey.track_changes);
+			pstmt.setInt(16, sId);
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
@@ -1199,7 +1201,7 @@ public class Surveys extends Application {
 	    try {
 	    		FileUtils.copyFile(oldFile, newFile);
 		} catch (Exception e) {
-			e.printStackTrace();
+			log.info(e.getMessage());;
 		}
 	 
 	    return newName;

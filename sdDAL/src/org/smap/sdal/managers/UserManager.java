@@ -105,6 +105,7 @@ public class UserManager {
 					+ "o.ft_send_location, "
 					+ "o.billing_enabled,"
 					+ "o.e_id,"
+					+ "o.set_as_theme,"
 					+ "u.timezone,"
 					+ "e.name as enterprise_name  "
 					+ "from users u, organisation o, enterprise e "
@@ -156,6 +157,7 @@ public class UserManager {
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 				user.timezone = resultSet.getString("timezone");
 				user.enterprise_name = resultSet.getString("enterprise_name");
+				user.set_as_theme = resultSet.getBoolean("set_as_theme");
 			}
 
 			/*
