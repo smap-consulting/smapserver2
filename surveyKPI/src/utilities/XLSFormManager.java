@@ -99,6 +99,8 @@ public class XLSFormManager {
 		public static final int COL_PULLDATA_REPEAT = 207;
 		public static final int COL_HIDE_ON_DEVICE = 208;
 		public static final int COL_TIMING_DATA = 209;
+		public static final int COL_AUDIT_LOCATION_DATA = 210;
+		public static final int COL_TRACK_CHANGES = 211;
 
 		String name;
 		private int type;
@@ -367,6 +369,12 @@ public class XLSFormManager {
 
 			} else if(type == COL_TIMING_DATA) {				
 				value = survey.timing_data ? "yes" : "no";
+
+			} else if(type == COL_AUDIT_LOCATION_DATA) {				
+				value = survey.audit_location_data ? "yes" : "no";
+
+			} else if(type == COL_TRACK_CHANGES) {				
+				value = survey.track_changes ? "yes" : "no";
 
 			} else {
 				log.info("Unknown settings type: " + type);
@@ -761,6 +769,8 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "allow_import", Column.COL_ALLOW_IMPORT, 0, "allow_import"));
 		cols.add(new Column(colNumber++, "hide_on_device", Column.COL_HIDE_ON_DEVICE, 0, "hide_on_device"));
 		cols.add(new Column(colNumber++, "timing_data", Column.COL_TIMING_DATA, 0, "timing_data"));
+		cols.add(new Column(colNumber++, "audit_location_data", Column.COL_AUDIT_LOCATION_DATA, 0, "audit_location_data"));
+		cols.add(new Column(colNumber++, "track_changes", Column.COL_TRACK_CHANGES, 0, "track_changes"));
 		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
 
 		// Add role columns

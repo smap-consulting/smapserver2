@@ -73,6 +73,7 @@ public class JdbcSurveyManager {
 			+ "hrk,"
 			+ "timing_data,"
 			+ "audit_location_data,"
+			+ "track_changes,"
 			+ "hide_on_device,"
 			+ "meta "
 			+ "from survey where ";
@@ -220,8 +221,9 @@ public class JdbcSurveyManager {
 			s.setHrk(rs.getString(12));
 			s.setTimingData(rs.getBoolean(13));
 			s.setAuditLocationData(rs.getBoolean(14));
-			s.setHideOnDevice(rs.getBoolean(15));
-			s.setMeta(rs.getString(16));
+			s.setTrackChanges(rs.getBoolean(15));
+			s.setHideOnDevice(rs.getBoolean(16));
+			s.setMeta(rs.getString(17));
 		
 		}
 		return s;
