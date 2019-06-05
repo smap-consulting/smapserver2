@@ -535,7 +535,7 @@ public class GetXForm {
 						audit.setAttribute("odk:location-max-age", "60");
 					}
 					if (template.getSurvey().getTrackChanges()) {
-						audit.setAttribute("odk:track-changes", "true()");
+						audit.setAttribute("odk:track-changes", "true");
 					}
 					currentParent.appendChild(audit);
 				}
