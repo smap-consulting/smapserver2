@@ -691,11 +691,22 @@ public class GetHtml {
 		textElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		textElement.setAttribute("data-type-xml", q.type);
 
+		if (q.relevant != null && q.relevant.trim().length() > 0) {
+			textElement.setAttribute("data-relevant",
+					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+		}
+		if(q.constraint != null && q.constraint.length() > 0) {
+			textElement.setAttribute("data-constraint", q.constraint);
+		}		
 		if (q.readonly) {
 			textElement.setAttribute("readonly", "readonly");
 		}
 		if (q.required) {
 			textElement.setAttribute("data-required", "true()");
+		}
+		// Dynamic Default
+		if (q.calculation != null && q.calculation.trim().length() > 0) {
+			textElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
 		}
 		
 		
@@ -880,11 +891,6 @@ public class GetHtml {
 		bodyElement.setAttribute("name", paths.get(getRefName(q.name, form)));
 		bodyElement.setAttribute("data-type-xml", getXmlType(q));
 		
-		// Add dynamic defaults
-		if(q.calculation != null && q.calculation.length() > 0) {
-			bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
-		}
-
 		// media specific
 		if (q.type.equals("image")) {
 			bodyElement.setAttribute("accept", "image/*");
@@ -930,6 +936,11 @@ public class GetHtml {
 		if (q.relevant != null && q.relevant.trim().length() > 0) {
 			bodyElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+		}
+		
+		// Add dynamic defaults
+		if(q.calculation != null && q.calculation.length() > 0) {
+			bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name));
 		}
 
 		parent.appendChild(bodyElement);
