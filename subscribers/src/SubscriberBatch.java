@@ -1022,7 +1022,8 @@ public class SubscriberBatch {
 				+ "and n.enabled "
 				+ "and n.trigger = 'task_reminder' "
 				+ "and a.status = 'accepted' "
-				+ "and a.assigned_date < now() - cast(n.period as interval) "
+				//+ "and a.assigned_date < now() - cast(n.period as interval) "	// use schedule at however could allow assigned date to be used
+				+ "and t.schedule_at < now() - cast(n.period as interval) "
 				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
 		
@@ -1030,11 +1031,7 @@ public class SubscriberBatch {
 		String sqlSent = "insert into reminder (n_id, a_id, reminder_date) values (?, ?, now())";
 		PreparedStatement pstmtSent = null;
 		
-		String server = "some server";
 		try {
-				
-			// Apply notifications
-			String urlprefix = "https://" + server + "/";
 			
 			pstmt = sd.prepareStatement(sql);
 			pstmtSent = sd.prepareStatement(sqlSent);
@@ -1065,6 +1062,7 @@ public class SubscriberBatch {
 				
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
+						tId,
 						surveyIdent,
 						pId,
 						instanceId, 

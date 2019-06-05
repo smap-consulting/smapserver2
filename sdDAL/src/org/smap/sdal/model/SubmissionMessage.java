@@ -8,6 +8,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 public class SubmissionMessage {
 	public int sId;					// Legacy reference to survey - now use survey_ident
+	public int taskId;
 	public String survey_ident;
 	public int pId;
 	public String instanceId;
@@ -29,6 +30,7 @@ public class SubmissionMessage {
 	public String serverRoot;
 	
 	public SubmissionMessage(
+			int taskId,
 			String survey_ident,
 			int pId, 
 			String instanceId, 
@@ -48,6 +50,7 @@ public class SubmissionMessage {
 			String server,
 			String basePath) {
 		
+		this.taskId = taskId;
 		this.survey_ident = survey_ident;
 		this.pId = pId;
 		this.instanceId = instanceId;

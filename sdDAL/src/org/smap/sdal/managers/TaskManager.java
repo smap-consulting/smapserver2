@@ -39,6 +39,7 @@ import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskAssignmentPair;
@@ -2850,6 +2851,25 @@ public class TaskManager {
 		}
 
 		return instance;
+	}
+	
+	public String fillStringTaskTemplate(TaskProperties task, SubmissionMessage msg, String in) {
+		String out = in;
+
+		String taskUrl = msg.scheme + "://" + msg.server + "/webForm";
+		if(task.action_link != null) {
+			taskUrl +=  task.action_link;
+		} else {
+			taskUrl += "/" + task.survey_ident + "?assignment_id=" + task.a_id;
+		}
+		
+		if(out != null && task != null) {
+			out = out.replaceAll("\\$\\{task_webform\\}", taskUrl);
+		} else {
+			log.info("Could not fill task template details for: " + out + " : " + ((task == null) ? "task is null" : "task not null" ));
+		}
+
+		return out;
 	}
 }
 

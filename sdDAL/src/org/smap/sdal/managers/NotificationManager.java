@@ -22,6 +22,9 @@ import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskProperties;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -388,6 +391,9 @@ public class NotificationManager {
 			if(getPassword) {
 				n.remote_password = resultSet.getString(16);
 			}
+			if(n.trigger.equals("task_reminder")) {
+				n.tg_name = GeneralUtilityMethods.getTaskGroupName(sd, n.tgId);
+			}
 			
 			notifications.add(n);
 			
@@ -506,7 +512,8 @@ public class NotificationManager {
 				} else {
 		
 					SubmissionMessage subMgr = new SubmissionMessage(
-							ident,
+							0,				// Task Id - ignore, only relevant for a reminder
+							ident,			// Survey Ident
 							pId,
 							instanceId, 
 							nd.from,
@@ -548,6 +555,7 @@ public class NotificationManager {
 	public void processSubmissionNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
+			String tz,
 			SubmissionMessage msg,
 			int messageId) throws Exception {
 		
@@ -894,6 +902,7 @@ public class NotificationManager {
 	public void processReminderNotification(Connection sd, 
 			Connection cResults, 
 			Organisation organisation,
+			String tz,
 			SubmissionMessage msg,
 			int messageId) throws Exception {
 		
@@ -912,7 +921,28 @@ public class NotificationManager {
 				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
 		
 		// TODO get Task information
-			
+		String urlprefix = msg.scheme + "://" + msg.server;
+		TaskManager tm = new TaskManager(localisation, tz);
+		TaskListGeoJson t = tm.getTasks(
+				sd, 
+				urlprefix,
+				0,		// Organisation id 
+				0, 		// task group id
+				msg.taskId,
+				true, 
+				0,		// userId 
+				null, 
+				null,	// period 
+				0,		// start 
+				0,		// limit
+				null,	// sort
+				null);	// sort direction	
+		
+		TaskProperties task = null;
+		if(t != null && t.features.size() > 0) {
+			task = t.features.get(0).properties;
+		}
+		
 		try {
 			
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
@@ -925,6 +955,9 @@ public class NotificationManager {
 			
 			if(organisation.can_notify) {
 
+				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject);
+				msg.content = tm.fillStringTaskTemplate(task, msg, msg.content);
+				
 				/*
 				 * Send document to target
 				 */

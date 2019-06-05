@@ -7,7 +7,7 @@ public class Notification {
 	public String target;
 	public int s_id;
 	public String filter;
-	public String s_name;
+	public String s_name;				// submission only
 	public String remote_s_ident;	
 	public boolean enabled;
 	public String remote_s_name;
@@ -17,8 +17,8 @@ public class Notification {
 	public boolean update_password;
 	public NotifyDetails notifyDetails;
 	
-	// reminders
-	public int tgId;	
-	public String period;
+	public int tgId;					// reminder only
+	public String period;			// reminder only
+	public String tg_name;			// reminder only
 	
 }

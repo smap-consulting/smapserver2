@@ -111,6 +111,9 @@ public class MessagingManagerApply {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				String tz = "UTC";		// Default timezone to UTC
+				if(organisation.timeZone != null) {
+					tz = organisation.timeZone;
+				}
 				
 				log.info("++++++ Message: " + topic + " " + description + " : " + data );
 
@@ -158,6 +161,7 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
+							tz,
 							msg,
 							id); 
 					
@@ -170,6 +174,7 @@ public class MessagingManagerApply {
 							sd, 
 							cResults, 
 							organisation, 
+							tz,
 							msg,
 							id); 
 					

@@ -8,7 +8,6 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
