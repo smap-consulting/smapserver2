@@ -1667,7 +1667,6 @@ public class TaskManager {
 					ResultSet rs = pstmtEmailDetails.executeQuery();
 					while(rs.next()) {
 					
-						// "select a.status, a.assignee_name, a.email, a.temp_user_id, t.form_id "
 						int aId = rs.getInt("id");
 						String status = rs.getString("status");
 						String email = rs.getString("email");
@@ -2856,15 +2855,20 @@ public class TaskManager {
 	public String fillStringTaskTemplate(TaskProperties task, SubmissionMessage msg, String in) {
 		String out = in;
 
-		String taskUrl = msg.scheme + "://" + msg.server + "/webForm";
+		StringBuffer taskUrl = new StringBuffer("");
+		taskUrl.append(msg.scheme).append("://").append(msg.server).append("/webForm");
 		if(task.action_link != null) {
-			taskUrl +=  task.action_link;
+			taskUrl.append(task.action_link);
 		} else {
-			taskUrl += "/" + task.survey_ident + "?assignment_id=" + task.a_id;
+			taskUrl.append("/").append(task.survey_ident).append("?assignment_id=").append(task.a_id);
+			if(task.update_id != null) {
+				taskUrl.append("&datakey=instanceid&datakeyvalue=").append(task.update_id);
+			}
 		}
-		
+	
 		if(out != null && task != null) {
-			out = out.replaceAll("\\$\\{task_webform\\}", taskUrl);
+			out = out.replaceAll("\\$\\{task_webform\\}", taskUrl.toString());
+			out = out.replaceAll("\\$\\{assignee_name\\}", task.assignee_name);
 		} else {
 			log.info("Could not fill task template details for: " + out + " : " + ((task == null) ? "task is null" : "task not null" ));
 		}

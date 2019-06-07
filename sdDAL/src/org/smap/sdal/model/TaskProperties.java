@@ -10,7 +10,7 @@ public class TaskProperties {
 	// Properties exposed via Task API
 	public int tg_id;
 	public String name;
-	public int form_id;						// Survey ID sent back from client
+	public int form_id;						// Survey ID sent back from client - Deprecate, survey_ident should be used
 	public String survey_ident;
 	public String assignee_type;				// user || role   (Default to user)
 	public String assignee_ident;

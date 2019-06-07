@@ -259,7 +259,7 @@ public class MyAssignments extends Application {
 					+ "from tasks t, assignments a, users u, survey s, user_project up, project p, task_group tg "
 					+ "where t.id = a.task_id "
 					+ "and t.tg_id = tg.tg_id "
-					+ "and t.form_id = s.s_id "
+					+ "and t.survey_ident = s.ident "
 					+ "and u.id = up.u_id "
 					+ "and s.p_id = up.p_id "
 					+ "and s.p_id = p.id "
