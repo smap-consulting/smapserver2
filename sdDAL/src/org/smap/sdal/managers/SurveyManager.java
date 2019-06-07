@@ -3482,9 +3482,9 @@ public class SurveyManager {
 			int newSurveyId		// If greater than 0 then this survey is being replaced
 			) throws Exception {
 		
-		// Get the survey ident and name
-		String surveyIdent = null;
-		String surveyName = null;
+		// Get the survey ident and name of the original survey
+		String surveyIdent = null;			// Original survey ident
+		String surveyName = null;			// Original survey name
 		String surveyDisplayName = null;
 		int projectId = 0;
 		boolean hidden = false;
@@ -3502,7 +3502,11 @@ public class SurveyManager {
 		
 		PreparedStatement pstmt = null;
 		
-		String sqlUpdateIdent = "update survey set ident = ?, original_ident = ?, hidden = ? where s_id = ?";
+		String sqlUpdateIdent = "update survey "
+				+ "set ident = ?, "
+				+ "original_ident = ?, "
+				+ "hidden = ? "
+				+ "where s_id = ?";
 		PreparedStatement pstmtUpdateIdent = null;		
 		
 		try {
@@ -3533,7 +3537,6 @@ public class SurveyManager {
 					ResultSet rs = pstmtReplaced.executeQuery();
 					while (rs.next()) {
 						int rSId = rs.getInt("s_id");
-						String rSurveyName = rs.getString("name");
 						String rSurveyIdent = rs.getString("ident");
 						String rSurveyDisplayName = rs.getString("display_name");
 						int rProjectId = rs.getInt("p_id");
@@ -3637,11 +3640,11 @@ public class SurveyManager {
 			pstmt.executeUpdate();
 	
 			/*
-			 * Delete or update any tasks that are to update this survey
+			 * Delete or update any tasks that are to update this survey (Only do this if the survey is not being replaced)
 			 */
 			if(newSurveyId == 0) {
 				// tasks
-				sql = "update tasks set deleted = 'true', deleted_at = now() where form_id = ?;";	
+				sql = "update tasks set deleted = 'true', deleted_at = now() where survey_ident = ?;";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
@@ -3650,21 +3653,13 @@ public class SurveyManager {
 				
 				// assignments
 				sql = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
-						+ "(select id from tasks where form_id = ?)";	
+						+ "(select id from tasks where survey_ident = ?)";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				log.info("Delete assignments: " + pstmt.toString());
 				pstmt.executeUpdate();
-			} else {
-				sql = "update tasks set form_id = ? where form_id = ?;";	
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, newSurveyId);
-				pstmt.setInt(2, sId);
-				log.info("Update tasks: " + pstmt.toString());
-				pstmt.executeUpdate();
-			}
+			} 
 			
 			/*
 			 * Delete or update any notifications that are sent for this survey
