@@ -2870,6 +2870,8 @@ public class TaskManager {
 		if(out != null && task != null) {
 			out = out.replaceAll("\\$\\{task_webform\\}", taskUrl.toString());
 			out = out.replaceAll("\\$\\{assignee_name\\}", task.assignee_name);
+			out = out.replaceAll("\\$\\{scheduled\\}", task.from.toString());
+
 		} else {
 			log.info("Could not fill task template details for: " + out + " : " + ((task == null) ? "task is null" : "task not null" ));
 		}
