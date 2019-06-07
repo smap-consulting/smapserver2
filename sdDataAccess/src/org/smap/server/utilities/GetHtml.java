@@ -389,7 +389,6 @@ public class GetHtml {
 					bodyElement = outputDoc.createElement("fieldset");
 					currentParent.appendChild(bodyElement);
 					setQuestionClass(q, bodyElement);
-					bodyElement.setAttribute("class", "question");
 					
 					// inner fieldSet
 					Element fieldset = outputDoc.createElement("fieldset");
@@ -473,7 +472,7 @@ public class GetHtml {
 				classVal.append("or-group-data");
 			}
 		} else if (q.type.equals("trigger") || q.type.equals("acknowledge")) {
-			classVal.append("single-select trigger");
+			classVal.append("question single-select trigger");
 
 		} else {
 			classVal.append("question");
@@ -1185,6 +1184,8 @@ public class GetHtml {
 			bodyElement.setTextContent(label);
 			parent.appendChild(bodyElement);
 
+			addMedia(parent, q.labels.get(idx), lang, q.text_id);
+			
 			// Hint
 			String hint = q.labels.get(idx).hint;
 			if (hint != null && hint.trim().length() > 0) {
@@ -1203,7 +1204,6 @@ public class GetHtml {
 				parent.appendChild(bodyElement);
 			}
 
-			addMedia(parent, q.labels.get(idx), lang, q.text_id);
 
 			idx++;
 		}
