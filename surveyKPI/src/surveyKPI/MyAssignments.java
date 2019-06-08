@@ -599,13 +599,8 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtUser = null;
 		PreparedStatement pstmtTasks = null;
 		PreparedStatement pstmtTrail = null;
-		PreparedStatement pstmtRepeats = null;
 		try {
 			String sql = null;
-
-			String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 " +
-					"where id = (select task_id from assignments where id = ?);";
-			pstmtRepeats = sd.prepareStatement(sqlRepeats);
 
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
@@ -638,11 +633,6 @@ public class MyAssignments extends Application {
 						pstmt.setInt(2, ta.assignment.assignment_id);
 						pstmt.setString(3, userName);
 
-						if(ta.assignment.assignment_status.equals("submitted")) {
-							pstmtRepeats.setInt(1, ta.assignment.assignment_id);
-							log.info("Updating task repeats: " + pstmtRepeats.toString());
-							pstmtRepeats.executeUpdate();
-						}
 					}
 
 					log.info("update assignments: " + pstmt.toString());
@@ -732,7 +722,6 @@ public class MyAssignments extends Application {
 			try {if ( pstmtUser != null ) { pstmtUser.close(); }} catch (Exception e) {}
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
-			try {if ( pstmtRepeats != null ) { pstmtRepeats.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection("surveyKPI-MyAssignments", sd);
 		}
