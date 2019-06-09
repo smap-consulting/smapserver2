@@ -70,10 +70,12 @@ public class OrganisationManager {
 			Connection sd,
 			Organisation o,
 			String userIdent,
-			String fileName,
+			String bannerFileName,
+			String mainFileName,
 			String requestUrl,
 			String basePath,
-			FileItem logoItem,
+			FileItem bannerLogoItem,
+			FileItem mainLogoItem,
 			String serverName,
 			String scheme
 			) throws SQLException {
@@ -148,9 +150,13 @@ public class OrganisationManager {
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 	
-			// Save the logo, if it has been passed
-			if(fileName != null) {
-				writeLogo(sd, fileName, logoItem, o.id, basePath, userIdent, requestUrl);
+			// Save the banner logo, if it has been passed
+			if(bannerFileName != null) {
+				writeLogo(sd, bannerFileName, bannerLogoItem, o.id, basePath, userIdent, requestUrl, "bannerLogo");
+			}
+			// Save the main logo, if it has been passed
+			if(mainFileName != null) {
+				writeLogo(sd, mainFileName, mainLogoItem, o.id, basePath, userIdent, requestUrl, "mainLogo");
 			}
 			
 			/*
@@ -245,10 +251,12 @@ public class OrganisationManager {
 			Connection sd,
 			Organisation o,
 			String userIdent,
-			String fileName,
+			String bannerFileName,
+			String mainFileName,
 			String requestUrl,
 			String basePath,
-			FileItem logoItem,
+			FileItem bannerLogoItem,
+			FileItem mainLogoItem,
 			String email
 			) throws SQLException {
 		
@@ -349,10 +357,14 @@ public class OrganisationManager {
             }
             rs.close();
             
-			// Save the logo, if it has been passed
-			if(fileName != null) {			
-				writeLogo(sd, fileName, logoItem, o_id, basePath, userIdent, requestUrl);
+			// Save the banner logo, if it has been passed
+			if(bannerFileName != null) {			
+				writeLogo(sd, bannerFileName, bannerLogoItem, o_id, basePath, userIdent, requestUrl, "bannerLogo");
 	        } 
+			// Save the main logo, if it has been passed
+			if(mainFileName != null) {			
+				writeLogo(sd, mainFileName, mainLogoItem, o_id, basePath, userIdent, requestUrl, "mainLogo");
+			} 
 	            
 		} catch (SQLException e) {
 			throw e;
@@ -375,7 +387,8 @@ public class OrganisationManager {
 			int oId,
 			String basePath,
 			String userIdent,
-			String requestUrl) {
+			String requestUrl,
+			String storageName) {
 		
 		MediaInfo mediaInfo = new MediaInfo();
 		mediaInfo.setFolder(basePath, userIdent, oId, sd, true);				 
@@ -384,7 +397,7 @@ public class OrganisationManager {
 		String folderPath = mediaInfo.getPath();
 		fileName = mediaInfo.getFileName(fileName);
 		if(folderPath != null) {						
-			String filePath = folderPath + "/bannerLogo";
+			String filePath = folderPath + "/" + storageName;
 		    File savedFile = new File(filePath);
 		    log.info("Saving file to: " + filePath);
 		    try {

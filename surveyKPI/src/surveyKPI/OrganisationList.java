@@ -240,8 +240,11 @@ public class OrganisationList extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 
-		FileItem logoItem = null;
-		String fileName = null;
+		FileItem bannerLogoItem = null;
+		String bannerFileName = null;
+		FileItem mainLogoItem = null;
+		String mainFileName = null;
+		
 		String organisations = null;
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -277,9 +280,17 @@ public class OrganisationList extends Application {
 						", File Size = "+item.getSize());
 					
 					if(item.getSize() > 0) {
-						logoItem = item;
-						fileName = item.getName();
-						fileName = fileName.replaceAll(" ", "_"); // Remove spaces from file name
+						String fieldName = item.getFieldName();
+						if(fieldName != null) {
+							if(fieldName.equals("banner_logo")) {
+								bannerLogoItem = item;
+								bannerFileName = item.getName().replaceAll(" ", "_"); // Remove spaces from file name
+							} else if(fieldName.equals("main_logo")) {
+								mainLogoItem = item;
+								mainFileName = item.getName().replaceAll(" ", "_");
+							}
+						}
+						
 					}
 					
 				}
@@ -310,10 +321,12 @@ public class OrganisationList extends Application {
 							sd, 
 							o, 
 							userIdent, 
-							fileName,
+							bannerFileName,
+							mainFileName,
 							requestUrl,
 							basePath,
-							logoItem,
+							bannerLogoItem,
+							mainLogoItem,
 							null);
 					
 						 
@@ -326,10 +339,12 @@ public class OrganisationList extends Application {
 							sd, 
 							o, 
 							userIdent, 
-							fileName,
+							bannerFileName,
+							mainFileName,
 							requestUrl,
 							basePath,
-							logoItem,
+							bannerLogoItem,
+							mainLogoItem,
 							request.getServerName(),
 							request.getScheme());	
 				}
