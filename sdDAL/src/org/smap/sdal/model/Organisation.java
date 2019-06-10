@@ -18,7 +18,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
  */
 
-public class Organisation {
+public class Organisation {	
+	public static String DEFAULT_NAVBAR_COLOR = "#2c3c28";
+	
 	public int id;
 	public String name;
 	public String company_name;
@@ -48,6 +50,7 @@ public class Organisation {
 	public String timeZone;
 	public String server_description;
 	public int e_id;		// Enterprise id
+	public String navbar_color;
 	public WebformOptions webform;
 
 	public String getAdminEmail() {

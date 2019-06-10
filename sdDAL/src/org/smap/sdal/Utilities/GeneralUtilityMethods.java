@@ -886,6 +886,7 @@ public class GeneralUtilityMethods {
 				+ "can_use_api, "
 				+ "can_submit, "
 				+ "set_as_theme, "
+				+ "navbar_color, "
 				+ "email_task, "
 				+ "changed_by, "
 				+ "changed_ts," 
@@ -926,6 +927,7 @@ public class GeneralUtilityMethods {
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.set_as_theme = resultSet.getBoolean("set_as_theme");
+				org.navbar_color = resultSet.getString("navbar_color");
 				org.email_task = resultSet.getBoolean("email_task");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");

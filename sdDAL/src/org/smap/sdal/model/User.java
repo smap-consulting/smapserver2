@@ -63,4 +63,5 @@ public class User {
 	public String timezone;
 	public String enterprise_name;
 	public boolean set_as_theme;
+	public String navbar_color;
 }
