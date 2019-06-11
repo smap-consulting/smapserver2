@@ -412,7 +412,6 @@ public class NotificationManager {
 			String serverName,
 			String basePath,
 			String serverRoot,
-			int sId,
 			String ident,
 			String instanceId,
 			int pId,
@@ -432,6 +431,9 @@ public class NotificationManager {
 		ResultSet rsNotifications = null;		
 		PreparedStatement pstmtGetNotifications = null;
 		PreparedStatement pstmtUpdateUploadEvent = null;
+		
+		// TODO remove sId as key for survey in notifications and replace with sIdent
+		int sId = GeneralUtilityMethods.getSurveyId(sd, ident);
 		
 		try {
 			
@@ -511,7 +513,7 @@ public class NotificationManager {
 							.replace("%s3", instanceId));
 				} else {
 		
-					SubmissionMessage subMgr = new SubmissionMessage(
+					SubmissionMessage subMsg = new SubmissionMessage(
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
 							pId,
@@ -531,7 +533,7 @@ public class NotificationManager {
 							scheme,
 							serverName,
 							basePath);
-					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
+					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 					
 				}
 			}

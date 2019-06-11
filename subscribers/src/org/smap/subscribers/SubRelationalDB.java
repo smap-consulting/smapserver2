@@ -327,7 +327,6 @@ public class SubRelationalDB extends Subscriber {
 			if(rs.next()) {
 				ident = rs.getString(1);
 				instanceId = rs.getString(2);
-				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 				pId = rs.getInt(3);
 				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 				
@@ -343,7 +342,6 @@ public class SubRelationalDB extends Subscriber {
 						server,
 						gBasePath,
 						urlprefix,
-						sId,
 						ident,
 						instanceId,
 						pId,
