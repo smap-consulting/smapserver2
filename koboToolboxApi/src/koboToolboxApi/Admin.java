@@ -62,10 +62,12 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.SubmissionsManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
 
 /*
@@ -152,9 +154,8 @@ public class Admin extends Application {
 	@Produces("application/json")
 	@Path("/resend_notifications")
 	public Response resendNotifications(@Context HttpServletRequest request,
-			@QueryParam("startDate") Date startDate,
-			@QueryParam("endDate") Date endDate,
-			@QueryParam("tz") String tz					// Timezone
+			@QueryParam("start") int start,
+			@QueryParam("end") int end
 			) throws ApplicationException, Exception { 
 		
 		Response response = null;
@@ -166,7 +167,7 @@ public class Admin extends Application {
 		// End Authorisation
 		
 		// Check to see if any notifications are enabled for this survey
-		String sqlGetNotifications = "select count(*) "
+		String sqlGetNotifications = "select n.filter "
 				+ "from forward n "
 				+ "where n.s_id = ? " 
 				+ "and n.target != 'forward' "
@@ -177,8 +178,8 @@ public class Admin extends Application {
 		
 		String sql = "select ue_id, user_name, ident, instanceid, p_id "
 				+ "from upload_event "
-				+ "where upload_time > ? "
-				+ "and upload_time < ?";
+				+ "where ue_id >= ? "
+				+ "and ue_id <= ?";
 		PreparedStatement pstmt = null;
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
@@ -192,8 +193,7 @@ public class Admin extends Application {
 		String sqlMsg = "select data "
 				+ "from message "
 				+ "where topic = 'submission' "
-				+ "and created_time > ? "
-				+ "and created_time < ?";
+				+ "and created_time > (select upload_time from upload_event where ue_id = ?)";
 		PreparedStatement pstmtMsg = null;
 		
 		try {
@@ -206,8 +206,8 @@ public class Admin extends Application {
 			
 			// Get the submissions that have already been sent as messages
 			pstmtMsg = sd.prepareStatement(sqlMsg);
-			pstmtMsg.setDate(1, startDate);
-			pstmtMsg.setDate(2, endDate);
+			pstmtMsg.setInt(1, start);
+			log.info("Get messages: " + pstmtMsg.toString());
 			ResultSet rsMsg = pstmtMsg.executeQuery();
 			while(rsMsg.next()) {
 				String data = rsMsg.getString("data");
@@ -220,8 +220,8 @@ public class Admin extends Application {
 			}
 
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setDate(1, startDate);
-			pstmt.setDate(2, endDate);
+			pstmt.setInt(1, start);
+			pstmt.setInt(2, end);
 			
 			log.info("Get submissions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -230,6 +230,7 @@ public class Admin extends Application {
 			String server = request.getServerName();
 			String urlprefix = "https://" + server + "/";
 			
+			int count = 1;
 			while(rs.next()) {
 				
 				int ueId = rs.getInt("ue_id");
@@ -246,7 +247,7 @@ public class Admin extends Application {
 					excludeEmpty = rsEE.getBoolean(1);
 				}
 				
-				output.append("Upload Event: ").append(ueId).append(" ").append(instanceId);
+				output.append(count).append(" Upload Event: ").append(ueId).append(" ").append(instanceId);
 				
 				if(sentMessages.get(instanceId) != null) {
 					// Already sent
@@ -256,22 +257,53 @@ public class Admin extends Application {
 					// Check to see if notifications are enabled
 					pstmtGetNotifications.setInt(1, sId);
 					ResultSet rsNot = pstmtGetNotifications.executeQuery();
-					if(rsNot.next() && rsNot.getInt(1) > 0) {
+					if(rsNot.next()) {
+						
+						// Test the filter
+						SurveyManager sm = new SurveyManager(localisation, "UTC");
+						Survey survey = sm.getById(sd, cResults, userName, sId, true, basePath, 
+								instanceId, true, false, true, false, true, "real", 
+								false, false, 
+								true, 			// pretend to be super user
+								"geojson",
+								false,			// Do not follow links to child surveys
+								false	// launched only
+								);	
+						
+						String filter = rsNot.getString(1);
+						boolean proceed = true;
+						if(filter != null && filter.trim().length() > 0) {
+							try {
+								proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId, "UTC");
+							} catch(Exception e) {
+								String msg = e.getMessage();
+								if(msg == null) {
+									msg = "";
+								}
+								log.log(Level.SEVERE, e.getMessage(), e);
+							}
+						}
+						if(proceed) {
+							
+							nm.notifyForSubmission(
+									sd, 
+									cResults,
+									ueId, 
+									userName, 
+									"https",
+									server,
+									basePath,
+									urlprefix,
+									sIdent,
+									instanceId,
+									pId,
+									excludeEmpty);
 									
-						nm.notifyForSubmission(
-								sd, 
-								cResults,
-								ueId, 
-								userName, 
-								"https",
-								server,
-								basePath,
-								urlprefix,
-								sIdent,
-								instanceId,
-								pId,
-								excludeEmpty);
-						output.append(":::::::::::::::::::::::::::::::::: Notification Resent");
+									
+							output.append(":::::::::::::::::::::::::::::::::: Notification Resent");
+						} else {
+							output.append(":::: filtered out");
+						}
 					} else {
 						// no enabled notifications
 						output.append(":::: No enabled notifications");
@@ -279,6 +311,8 @@ public class Admin extends Application {
 				}
 				
 				output.append("\n");
+				count++;
+				
 			}
 			response = Response.ok(output.toString()).build();
 				
