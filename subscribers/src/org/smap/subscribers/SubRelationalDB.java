@@ -327,6 +327,7 @@ public class SubRelationalDB extends Subscriber {
 			if(rs.next()) {
 				ident = rs.getString(1);
 				instanceId = rs.getString(2);
+				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 				pId = rs.getInt(3);
 				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 				
@@ -427,7 +428,8 @@ public class SubRelationalDB extends Subscriber {
 							if(source.trim().startsWith("attachments")) {
 								if(item.type.equals("imagelabel")) {
 									String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
-									lm.writeLog(sd, sId, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
+									// TODO set sId to correct survey
+									lm.writeLog(sd, 0, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
 									// 4. Write labels to database
 									pstmtUpdate.setString(1, labels);
 									pstmtUpdate.setInt(2, prikey);
