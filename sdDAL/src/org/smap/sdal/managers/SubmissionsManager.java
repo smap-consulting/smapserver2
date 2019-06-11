@@ -74,7 +74,7 @@ public class SubmissionsManager {
 		whereClause.append("results_db_applied");
 		
 		whereClause.append(getJoin(whereClause));		// Only return submissions that made it to the results table
-		whereClause.append("se.status = 'success'");
+		whereClause.append("ue.status = 'success'");
 		
 		if(oId > 0) {
 			whereClause.append(getJoin(whereClause));
