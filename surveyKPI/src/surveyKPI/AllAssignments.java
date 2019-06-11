@@ -166,7 +166,7 @@ public class AllAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String source_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.source_survey_id);
-			String target_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.source_survey_id);
+			String target_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.target_survey_id);
 			
 			projectName = GeneralUtilityMethods.getProjectName(sd, projectId);
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
