@@ -149,7 +149,7 @@ public class SubmissionsManager {
 		
 		StringBuffer sqlPage = new StringBuffer("");
 		if(start_key > 0) {
-			sqlPage.append(" and ue_id < ").append(start_key);
+			sqlPage.append(" and ue.ue_id < ").append(start_key);
 		}	
 		
 		// Get columns for main select
