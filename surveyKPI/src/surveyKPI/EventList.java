@@ -94,7 +94,7 @@ public class EventList extends Application {
 			pstmtNot.setInt(1,messageId);
 			pstmtNot.executeUpdate();
 			
-			// Delete message
+			// Set message as unprocessed
 			pstmtMsg = sd.prepareStatement(sqlMsg);
 			pstmtMsg.setInt(1,messageId);
 			pstmtMsg.executeUpdate();
@@ -417,7 +417,7 @@ public class EventList extends Application {
 					"and u.o_id = n.o_id " +
 					filter +
 					projSurveySelect +
-					" ORDER BY n.id desc;";
+					" ORDER BY n.id desc";
 		
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
