@@ -64,6 +64,7 @@ import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.SubmissionsManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SubmissionMessage;
@@ -167,7 +168,7 @@ public class Admin extends Application {
 		// End Authorisation
 		
 		// Check to see if any notifications are enabled for this survey
-		String sqlGetNotifications = "select n.filter "
+		String sqlGetNotifications = "select n.filter, n.notify_details "
 				+ "from forward n "
 				+ "where n.s_id = ? " 
 				+ "and n.target != 'forward' "
@@ -188,7 +189,7 @@ public class Admin extends Application {
 		String sqlEE = "select exclude_empty from survey where ident = ?";
 		PreparedStatement pstmtEE = null;
 		
-		HashMap<String, String> sentMessages = new HashMap<>();
+		HashMap<String, SubmissionMessage> sentMessages = new HashMap<>();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String sqlMsg = "select data "
 				+ "from message "
@@ -214,7 +215,7 @@ public class Admin extends Application {
 				if(data != null) {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
 					if(msg != null) {
-						sentMessages.put(msg.instanceId, msg.instanceId);
+						sentMessages.put(msg.instanceId, msg);
 					}
 				}
 			}
@@ -248,43 +249,61 @@ public class Admin extends Application {
 				}
 				
 				output.append(count).append(" Upload Event: ").append(ueId).append(" ").append(instanceId);
-				
-				if(sentMessages.get(instanceId) != null) {
-					// Already sent
-					output.append(":::: Already Sent");
-				} else {
 					
-					// Check to see if notifications are enabled
-					pstmtGetNotifications.setInt(1, sId);
-					ResultSet rsNot = pstmtGetNotifications.executeQuery();
-					if(rsNot.next()) {
-						
-						// Test the filter
-						SurveyManager sm = new SurveyManager(localisation, "UTC");
-						Survey survey = sm.getById(sd, cResults, userName, sId, true, basePath, 
-								instanceId, true, false, true, false, true, "real", 
-								false, false, 
-								true, 			// pretend to be super user
-								"geojson",
-								false,			// Do not follow links to child surveys
-								false	// launched only
-								);	
-						
-						String filter = rsNot.getString(1);
-						boolean proceed = true;
-						if(filter != null && filter.trim().length() > 0) {
-							try {
-								proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId, "UTC");
-							} catch(Exception e) {
-								String msg = e.getMessage();
-								if(msg == null) {
-									msg = "";
-								}
-								log.log(Level.SEVERE, e.getMessage(), e);
+				// Check to see if notifications are enabled
+				pstmtGetNotifications.setInt(1, sId);
+				ResultSet rsNot = pstmtGetNotifications.executeQuery();
+				int countNots = 0;
+				while(rsNot.next()) {
+					countNots++;	
+					// Test the filter
+					SurveyManager sm = new SurveyManager(localisation, "UTC");
+					Survey survey = sm.getById(sd, cResults, userName, sId, true, basePath, 
+							instanceId, true, false, true, false, true, "real", 
+							false, false, 
+							true, 			// pretend to be super user
+							"geojson",
+							false,			// Do not follow links to child surveys
+							false	// launched only
+							);	
+					
+					String filter = rsNot.getString(1);
+					String notifyDetailsString = rsNot.getString(2);
+					boolean proceed = true;
+					if(filter != null && filter.trim().length() > 0) {
+						try {
+							proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId, "UTC");
+						} catch(Exception e) {
+							String msg = e.getMessage();
+							if(msg == null) {
+								msg = "";
 							}
+							log.log(Level.SEVERE, e.getMessage(), e);
 						}
-						if(proceed) {
+					}
+					
+					if(proceed) {
+						/*
+						 * Check to see if the message has already been sent
+						 */
+						SubmissionMessage sentMsg = sentMessages.get(instanceId);
+						NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+						
+						if(sentMsg != null 
+								&& ((sentMsg.getEmailQuestionName(sd) != null && !sentMsg.getEmailQuestionName(sd).trim().equals("") 
+									&& !sentMsg.getEmailQuestionName(sd).trim().equals("-1") 
+									&& !sentMsg.getEmailQuestionName(sd).trim().equals("0"))
+								|| nd.emailQuestionName == null || nd.emailQuestionName.trim().equals("") || nd.emailQuestionName.trim().equals("-1"))) {
+					
+							// Already sent
+							output.append(":::: Already Sent");
+						} else {
 							
+							boolean dynamicEmailOnly = false;
+							if(sentMsg != null) {
+								// Sent but we only want to redo the dynamic questions
+								dynamicEmailOnly = true;
+							}
 							nm.notifyForSubmission(
 									sd, 
 									cResults,
@@ -297,17 +316,20 @@ public class Admin extends Application {
 									sIdent,
 									instanceId,
 									pId,
-									excludeEmpty);
+									excludeEmpty,
+									dynamicEmailOnly);
 									
 									
 							output.append(":::::::::::::::::::::::::::::::::: Notification Resent");
-						} else {
-							output.append(":::: filtered out");
 						}
 					} else {
-						// no enabled notifications
-						output.append(":::: No enabled notifications");
+						output.append(":::: filtered out");
 					}
+				}
+				
+				if(countNots == 0) {
+					// no enabled notifications
+					output.append(":::: No enabled notifications");
 				}
 				
 				output.append("\n");
