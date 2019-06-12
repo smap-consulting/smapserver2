@@ -220,9 +220,13 @@ public class ForeignKeyManager {
 										pstmtResult.executeUpdate();
 									}
 									
+								} else {
+									pstmtResult.setString(1, "error: foreign key table not found");
+									pstmtResult.setInt(2, id);
+									pstmtResult.executeUpdate();
 								}
 							} else {
-								pstmtResult.setString(1, "error: foreign key table not found");
+								pstmtResult.setString(1, "error: HRK found");
 								pstmtResult.setInt(2, id);
 								pstmtResult.executeUpdate();
 							}
