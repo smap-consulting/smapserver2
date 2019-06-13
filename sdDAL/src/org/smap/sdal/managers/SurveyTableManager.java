@@ -179,7 +179,7 @@ public class SurveyTableManager {
 			String tz
 			) throws Exception {
 		
-		if(sqlDef != null && sqlDef.qnames.size() > 0) {
+		if(sqlDef != null && sqlDef.qnames != null && sqlDef.qnames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
 			// Add filter

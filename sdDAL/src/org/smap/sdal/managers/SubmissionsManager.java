@@ -74,7 +74,7 @@ public class SubmissionsManager {
 		whereClause.append("results_db_applied");
 		
 		whereClause.append(getJoin(whereClause));		// Only return submissions that made it to the results table
-		whereClause.append("se.status = 'success'");
+		whereClause.append("ue.status = 'success'");
 		
 		if(oId > 0) {
 			whereClause.append(getJoin(whereClause));
@@ -149,7 +149,7 @@ public class SubmissionsManager {
 		
 		StringBuffer sqlPage = new StringBuffer("");
 		if(start_key > 0) {
-			sqlPage.append(" and ue_id < ").append(start_key);
+			sqlPage.append(" and ue.ue_id < ").append(start_key);
 		}	
 		
 		// Get columns for main select

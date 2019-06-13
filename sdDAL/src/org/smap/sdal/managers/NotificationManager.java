@@ -412,7 +412,6 @@ public class NotificationManager {
 			String serverName,
 			String basePath,
 			String serverRoot,
-			int sId,
 			String ident,
 			String instanceId,
 			int pId,
@@ -432,6 +431,9 @@ public class NotificationManager {
 		ResultSet rsNotifications = null;		
 		PreparedStatement pstmtGetNotifications = null;
 		PreparedStatement pstmtUpdateUploadEvent = null;
+		
+		// TODO remove sId as key for survey in notifications and replace with sIdent
+		int sId = GeneralUtilityMethods.getSurveyId(sd, ident);
 		
 		try {
 			
@@ -511,7 +513,7 @@ public class NotificationManager {
 							.replace("%s3", instanceId));
 				} else {
 		
-					SubmissionMessage subMgr = new SubmissionMessage(
+					SubmissionMessage subMsg = new SubmissionMessage(
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
 							pId,
@@ -531,7 +533,7 @@ public class NotificationManager {
 							scheme,
 							serverName,
 							basePath);
-					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMgr));
+					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 					
 				}
 			}
@@ -678,13 +680,13 @@ public class NotificationManager {
 						ArrayList<String> emailList = null;
 						log.info("Email question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
+							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							emailList = new ArrayList<String> ();
 						}
 						
 						// Add any meta email addresses to the per question emails
-						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, msg.sId, msg.emailMeta, msg.instanceId);
+						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
 						if(metaEmail != null) {
 							emailList.add(metaEmail);
 						}
@@ -785,10 +787,11 @@ public class NotificationManager {
 							} catch(Exception e) {
 								status = "error";
 								error_details = e.getMessage();
+								log.log(Level.INFO, error_details);
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
 							writeToMonitor = false;
 						}
 					} else {
@@ -815,7 +818,7 @@ public class NotificationManager {
 						ArrayList<String> responseList = new ArrayList<> ();
 						log.info("SMS question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
+							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							smsList = new ArrayList<String> ();
 						}
@@ -879,7 +882,7 @@ public class NotificationManager {
 				}
 				pstmtNotificationLog.setInt(1, organisation.id);
 				pstmtNotificationLog.setInt(2, msg.pId);
-				pstmtNotificationLog.setInt(3, msg.sId);
+				pstmtNotificationLog.setInt(3, surveyId);
 				pstmtNotificationLog.setString(4, notify_details);
 				pstmtNotificationLog.setString(5, status);
 				pstmtNotificationLog.setString(6, error_details);
@@ -953,6 +956,13 @@ public class NotificationManager {
 			String notify_details = null;
 			String status = null;
 			
+			int surveyId;
+			if(msg.survey_ident != null) {
+				surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
+			} else {
+				surveyId = msg.sId;		// A legacy message
+			}
+			
 			if(organisation.can_notify) {
 
 				msg.subject = tm.fillStringTaskTemplate(task, msg, msg.subject);
@@ -970,13 +980,13 @@ public class NotificationManager {
 						ArrayList<String> emailList = null;
 						log.info("Email question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
+							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							emailList = new ArrayList<String> ();
 						}
 						
 						// Add any meta email addresses to the per question emails
-						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, msg.sId, msg.emailMeta, msg.instanceId);
+						String metaEmail = GeneralUtilityMethods.getResponseMetaValue(sd, cResults, surveyId, msg.emailMeta, msg.instanceId);
 						if(metaEmail != null) {
 							emailList.add(metaEmail);
 						}
@@ -1036,7 +1046,7 @@ public class NotificationManager {
 							
 							notify_details = "Sending email to: " + emails + " containing link " + logContent;
 							
-							log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
+							log.info("+++ emailing reminder to: " + emails + " docUrl: " + logContent + 
 									" from: " + from + 
 									" subject: " + subject +
 									" smtp_host: " + emailServer.smtpHost +
@@ -1080,7 +1090,7 @@ public class NotificationManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
 							writeToMonitor = false;
 						}
 					} else {
@@ -1107,7 +1117,7 @@ public class NotificationManager {
 						ArrayList<String> responseList = new ArrayList<> ();
 						log.info("SMS question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, msg.sId, msg.getEmailQuestionName(sd), msg.instanceId);
+							smsList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
 						} else {
 							smsList = new ArrayList<String> ();
 						}
@@ -1171,7 +1181,7 @@ public class NotificationManager {
 				}
 				pstmtNotificationLog.setInt(1, organisation.id);
 				pstmtNotificationLog.setInt(2, msg.pId);
-				pstmtNotificationLog.setInt(3, msg.sId);
+				pstmtNotificationLog.setInt(3, surveyId);
 				pstmtNotificationLog.setString(4, notify_details);
 				pstmtNotificationLog.setString(5, status);
 				pstmtNotificationLog.setString(6, error_details);

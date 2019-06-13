@@ -3647,7 +3647,7 @@ public class SurveyManager {
 				sql = "update tasks set deleted = 'true', deleted_at = now() where survey_ident = ?;";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, sId);
+				pstmt.setString(1, surveyIdent);
 				log.info("Delete tasks: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
@@ -3656,7 +3656,7 @@ public class SurveyManager {
 						+ "(select id from tasks where survey_ident = ?)";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, sId);
+				pstmt.setString(1, surveyIdent);
 				log.info("Delete assignments: " + pstmt.toString());
 				pstmt.executeUpdate();
 			} 
