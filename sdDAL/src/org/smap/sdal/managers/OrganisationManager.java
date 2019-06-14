@@ -107,6 +107,7 @@ public class OrganisationManager {
 				" can_use_api = ?, " + 
 				" can_submit = ?, " + 
 				" set_as_theme = ?, " + 
+				" navbar_color = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
 				" id = ?;";
@@ -145,7 +146,8 @@ public class OrganisationManager {
 			pstmt.setBoolean(24, o.can_use_api);
 			pstmt.setBoolean(25, o.can_submit);
 			pstmt.setBoolean(26, o.set_as_theme);
-			pstmt.setInt(27, o.id);
+			pstmt.setString(27, o.navbar_color);
+			pstmt.setInt(28, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -280,12 +282,12 @@ public class OrganisationManager {
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, ft_image_size, ft_send, ft_delete, "
-				+ "ft_send_location, ft_pw_policy, changed_ts) "
+				+ "ft_send_location, ft_pw_policy, navbar_color, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?,"
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, now());";
+				+ "?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -347,6 +349,7 @@ public class OrganisationManager {
 			pstmt.setString(31, "not set");		// FT delete after sending
 			pstmt.setString(32, "not set");		// Send location
 			pstmt.setInt(33, -1);				// Never require re-entry of FT password
+			pstmt.setString(34, Organisation.DEFAULT_NAVBAR_COLOR);
 			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
