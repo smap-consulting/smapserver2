@@ -18,18 +18,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import managers.AuditManager;
-import managers.DataManager;
-import model.DataEndPoint;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import java.io.PrintWriter;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -44,32 +36,24 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ProjectManager;
-import org.smap.sdal.managers.SubmissionsManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Project;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
 
 /*
  * Provides access to various admin services
@@ -299,11 +283,6 @@ public class Admin extends Application {
 							output.append(":::: Already Sent");
 						} else {
 							
-							boolean dynamicEmailOnly = false;
-							if(sentMsg != null) {
-								// Sent but we only want to redo the dynamic questions
-								dynamicEmailOnly = true;
-							}
 							nm.notifyForSubmission(
 									sd, 
 									cResults,
@@ -316,8 +295,7 @@ public class Admin extends Application {
 									sIdent,
 									instanceId,
 									pId,
-									excludeEmpty,
-									dynamicEmailOnly);
+									excludeEmpty);
 									
 									
 							output.append(":::::::::::::::::::::::::::::::::: Notification Resent");
