@@ -2456,8 +2456,8 @@ public class TaskManager {
 		
 		PreparedStatement pstmtNotificationLog = null;
 		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?, 'task'); ";
 		
 		// Time Zone
 		int utcOffset = 0;	

@@ -575,8 +575,8 @@ public class NotificationManager {
 		
 		PreparedStatement pstmtNotificationLog = null;
 		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?, 'submission'); ";
 		
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		int surveyId;
@@ -920,8 +920,8 @@ public class NotificationManager {
 		
 		PreparedStatement pstmtNotificationLog = null;
 		String sqlNotificationLog = "insert into notification_log " +
-				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id) " +
-				"values( ?, ?,?, ?, ?, ?, now(), ?); ";
+				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
+				"values( ?, ?,?, ?, ?, ?, now(), ?, 'reminder'); ";
 		
 		// TODO get Task information
 		String urlprefix = msg.scheme + "://" + msg.server;
