@@ -1,6 +1,6 @@
 #!/bin/sh
 cd smapServer
-./dep.sh
+./dep.sh $1
 cd ..
 
 cd fieldAnalysis
