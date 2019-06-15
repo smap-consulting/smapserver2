@@ -499,8 +499,7 @@ public class UserList extends Application {
 			// Get the ident of the person to be deleted
 			String sqlGetIdent = "select u.ident "
 					+ "from users u "
-					+ "where u.id = ? "
-					+ "and u.o_id = ?";								
+					+ "where u.id = ? ";							
 			pstmtGetIdent = sd.prepareStatement(sqlGetIdent);
 			
 			// Get organisations that the user is in
@@ -545,7 +544,6 @@ public class UserList extends Application {
 					
 					// Get the user ident to use in deleting dependent records
 					pstmtGetIdent.setInt(1, u.id);
-					pstmtGetIdent.setInt(2,o_id);
 					ResultSet rs = pstmtGetIdent.executeQuery();
 					if(rs.next()) {
 						ident = rs.getString(1);
@@ -640,7 +638,8 @@ public class UserList extends Application {
 			PreparedStatement pstmt, 
 			ResourceBundle localisation,
 			User u, 
-			String ident, int o_id, String basePath,
+			String ident, 
+			int o_id, String basePath,
 			boolean delete_all,
 			ArrayList<Integer> organisationList) throws Exception {
 		
