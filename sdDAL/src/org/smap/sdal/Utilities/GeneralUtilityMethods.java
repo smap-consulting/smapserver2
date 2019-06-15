@@ -642,7 +642,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return true if the user has the organisational administrator role
 	 */
-	static public boolean isOrgUser(Connection con, String ident) throws SQLException {
+	static public boolean isOrgUser(Connection sd, String ident) throws SQLException {
 
 		String sql = "select count(*) " 
 				+ "from users u, user_group ug " 
@@ -653,7 +653,7 @@ public class GeneralUtilityMethods {
 		boolean isOrg = false;
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = con.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ident);
 			ResultSet resultSet = pstmt.executeQuery();
 
