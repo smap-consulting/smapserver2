@@ -474,7 +474,7 @@ public class UserList extends Application {
 		ArrayList<User> uArray = new Gson().fromJson(users, type);
 		
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtHardDelete = null;
 		PreparedStatement pstmtGetIdent = null;
 		PreparedStatement pstmtCountOrgs = null;
 		PreparedStatement pstmtSoftDelete = null;
@@ -506,10 +506,10 @@ public class UserList extends Application {
 			pstmtCountOrgs = sd.prepareStatement(sqlCountOrgs);
 			
 			// Perform a hard delete of the user
-			String sqlUpdate = "delete from users u "  
+			String sqlHardDelete = "delete from users u "  
 					+ "where u.id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
 					+ "and u.o_id = ?";					
-			pstmtUpdate = sd.prepareStatement(sqlUpdate);	
+			pstmtHardDelete = sd.prepareStatement(sqlHardDelete);	
 			
 			// Perform a soft delete of the user
 			String sqlSoftDelete = "delete from user_organisation "  
@@ -545,12 +545,12 @@ public class UserList extends Application {
 					}
 					
 					if(numberOrgs <= 1) {
-						// Only one organisation so performa a Hard delete
-						pstmtUpdate.setInt(1, u.id);
-						pstmtUpdate.setInt(2, o_id);
-						log.info("Delete user: " + pstmtUpdate.toString());
+						// Only one organisation so perform a Hard delete
+						pstmtHardDelete.setInt(1, u.id);
+						pstmtHardDelete.setInt(2, o_id);
+						log.info("Hard Delete user: " + pstmtHardDelete.toString());
 						
-						int count = pstmtUpdate.executeUpdate();
+						int count = pstmtHardDelete.executeUpdate();
 						
 						if(count > 0) {	
 							// If a user was deleted then delete their directories
@@ -572,7 +572,10 @@ public class UserList extends Application {
 						 pstmtSoftDelete.executeUpdate();
 						 
 						lm.writeLogOrganisation(sd, 
-									o_id, request.getRemoteUser(), "delete", "User " + u.ident + " was soft deleted from organisation " + o_id);
+									o_id, 
+									request.getRemoteUser(), 
+									LogManager.DELETE, 
+									"User " + u.ident + " was soft deleted from organisation " + o_id);
 					}
 
 				}
@@ -596,7 +599,7 @@ public class UserList extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (SQLException e) {}
+			try {if (pstmtHardDelete != null) {pstmtHardDelete.close();}} catch (SQLException e) {}
 			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
 			try {if (pstmtCountOrgs != null) {pstmtCountOrgs.close();}} catch (SQLException e) {}
 			try {if (pstmtSoftDelete != null) {pstmtSoftDelete.close();}} catch (SQLException e) {}
