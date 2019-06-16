@@ -264,6 +264,9 @@ public class OrganisationManager {
 		
 		int o_id = 0;
 		
+		String sqlAddOrgList = "insert into user_organisation (u_id, o_id) values (?,?)";
+		PreparedStatement pstmtAddOrgList = null;
+		
 		String sqlDeleteOrganisation = "delete from organisation where id = ?;";
 		PreparedStatement pstmtDeleteOrganisation = null;
 		
@@ -349,7 +352,11 @@ public class OrganisationManager {
 			pstmt.setString(31, "not set");		// FT delete after sending
 			pstmt.setString(32, "not set");		// Send location
 			pstmt.setInt(33, -1);				// Never require re-entry of FT password
-			pstmt.setString(34, Organisation.DEFAULT_NAVBAR_COLOR);
+			String navBarColor = o.navbar_color;
+			if(navBarColor == null) {
+				navBarColor =  Organisation.DEFAULT_NAVBAR_COLOR;
+			}
+			pstmt.setString(34,navBarColor);
 			
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -368,15 +375,21 @@ public class OrganisationManager {
 			if(mainFileName != null) {			
 				writeLogo(sd, mainFileName, mainLogoItem, o_id, basePath, userIdent, requestUrl, "mainLogo");
 			} 
+			// Add this new organisation to the requesting users list of organisations
+			int u_id = GeneralUtilityMethods.getUserId(sd, userIdent);
+			pstmtAddOrgList = sd.prepareStatement(sqlAddOrgList);
+			pstmtAddOrgList.setInt(1, u_id);
+			pstmtAddOrgList.setInt(2, o_id);
+			pstmtAddOrgList.executeUpdate();			
 	            
 		} catch (SQLException e) {
 			throw e;
 		} finally {
 			
-			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
-			try {if (pstmtCheckInactive != null) {pstmtCheckInactive.close();} } catch (SQLException e) {	}
-			try {if (pstmtDeleteOrganisation != null) {pstmtDeleteOrganisation.close();} } catch (SQLException e) {	}
-			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+			try {if (pstmtCheckInactive != null) {pstmtCheckInactive.close();} } catch (SQLException e) {}
+			try {if (pstmtDeleteOrganisation != null) {pstmtDeleteOrganisation.close();} } catch (SQLException e) {}
+			try {if (pstmtAddOrgList != null) {pstmtAddOrgList.close();} } catch (SQLException e) {}	
 		}
 		
 		return o_id;
