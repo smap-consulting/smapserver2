@@ -843,6 +843,10 @@ public class GetHtml {
 			if (q.required) {
 				inputElement.setAttribute("data-required", "true()");
 			}
+			if (q.relevant != null && q.relevant.trim().length() > 0) {
+				inputElement.setAttribute("data-relevant",
+						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name));
+			}
 			parent.appendChild(inputElement);
 		}
 		// Option wrapper
