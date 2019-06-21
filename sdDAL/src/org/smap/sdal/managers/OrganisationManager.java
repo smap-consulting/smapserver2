@@ -376,11 +376,15 @@ public class OrganisationManager {
 				writeLogo(sd, mainFileName, mainLogoItem, o_id, basePath, userIdent, requestUrl, "mainLogo");
 			} 
 			// Add this new organisation to the requesting users list of organisations
-			int u_id = GeneralUtilityMethods.getUserId(sd, userIdent);
-			pstmtAddOrgList = sd.prepareStatement(sqlAddOrgList);
-			pstmtAddOrgList.setInt(1, u_id);
-			pstmtAddOrgList.setInt(2, o_id);
-			pstmtAddOrgList.executeUpdate();			
+			if(userIdent != null) {
+				int u_id = GeneralUtilityMethods.getUserId(sd, userIdent);
+				if(u_id > 0) {
+					pstmtAddOrgList = sd.prepareStatement(sqlAddOrgList);
+					pstmtAddOrgList.setInt(1, u_id);
+					pstmtAddOrgList.setInt(2, o_id);
+					pstmtAddOrgList.executeUpdate();	
+				}
+			}
 	            
 		} catch (SQLException e) {
 			throw e;
