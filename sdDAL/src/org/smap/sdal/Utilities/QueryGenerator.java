@@ -489,7 +489,6 @@ public class QueryGenerator {
 		
 		for(TableColumn col : cols) {
 			
-			System.out.println(" xxxx " + col.question_name + " : " + col.column_name);
 			sqlDesc.colNameLookup.put(col.question_name, col.column_name);
 			
 			String column_name = null;
