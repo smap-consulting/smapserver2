@@ -113,6 +113,7 @@ public class Register extends Application {
 			o.set_as_theme = false;
 			o.navbar_color = Organisation.DEFAULT_NAVBAR_COLOR;
 			o.email_task = false;
+			o.can_sms = false;
 			o.e_id = 1;				// Default organisation!
 			
 			int o_id = om.createOrganisation(

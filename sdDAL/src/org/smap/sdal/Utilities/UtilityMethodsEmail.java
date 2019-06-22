@@ -232,7 +232,8 @@ public class UtilityMethodsEmail {
 				+ "o.server_description,"
 				+ "o.can_notify,"
 				+ "o.can_use_api,"
-				+ "o.can_submit "
+				+ "o.can_submit,"
+				+ "o.can_sms "
 				+ "from organisation o, users u "
 				+ "where u.o_id = o.id ";
 		String sqlUser = " and u.ident = ?;";
@@ -271,6 +272,7 @@ public class UtilityMethodsEmail {
 				o.can_notify = rs.getBoolean(12);
 				o.can_use_api = rs.getBoolean(13);
 				o.can_submit = rs.getBoolean(14);
+				o.can_sms = rs.getBoolean(15);
 						
 			}
 		} catch (SQLException e) {

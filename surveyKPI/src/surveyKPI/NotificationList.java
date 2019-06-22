@@ -142,7 +142,7 @@ public class NotificationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager fm = new NotificationManager(localisation);
-			ArrayList<String> tList = fm.getNotificationTypes(connectionSD);
+			ArrayList<String> tList = fm.getNotificationTypes(connectionSD, request.getRemoteUser());
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(tList);

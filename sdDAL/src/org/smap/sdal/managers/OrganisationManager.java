@@ -108,6 +108,7 @@ public class OrganisationManager {
 				" can_submit = ?, " + 
 				" set_as_theme = ?, " + 
 				" navbar_color = ?, " + 
+				" can_sms = ?, " + 
 				" changed_ts = now() " + 
 				" where " +
 				" id = ?;";
@@ -147,7 +148,8 @@ public class OrganisationManager {
 			pstmt.setBoolean(25, o.can_submit);
 			pstmt.setBoolean(26, o.set_as_theme);
 			pstmt.setString(27, o.navbar_color);
-			pstmt.setInt(28, o.id);
+			pstmt.setBoolean(28, o.can_sms);
+			pstmt.setInt(29, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -167,7 +169,8 @@ public class OrganisationManager {
 			if(originalOrg.can_notify != o.can_notify 
 					|| originalOrg.can_use_api != o.can_use_api 
 					|| originalOrg.can_submit != o.can_submit
-					|| originalOrg.email_task != o.email_task) {
+					|| originalOrg.email_task != o.email_task
+					|| originalOrg.can_sms != o.can_sms) {
 				
 				EmailServer emailServer = null;
 				String emailKey = null;
@@ -200,6 +203,9 @@ public class OrganisationManager {
 							}
 							if(originalOrg.can_submit != o.can_submit) {
 								contentBuf.append("\n    ").append(o.can_submit ? localisation.getString("en_submit") : localisation.getString("susp_submit"));
+							}
+							if(originalOrg.can_sms != o.can_sms) {
+								contentBuf.append("\n    ").append(o.can_sms ? localisation.getString("en_sms") : localisation.getString("susp_sms"));
 							}
 							if(originalOrg.email_task != o.email_task) {
 								contentBuf.append("\n    ").append(o.email_task ? localisation.getString("en_email_tasks") : localisation.getString("susp_email_tasks"));
@@ -285,12 +291,12 @@ public class OrganisationManager {
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, ft_image_size, ft_send, ft_delete, "
-				+ "ft_send_location, ft_pw_policy, navbar_color, changed_ts) "
+				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?,"
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, now());";
+				+ "?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -357,7 +363,7 @@ public class OrganisationManager {
 				navBarColor =  Organisation.DEFAULT_NAVBAR_COLOR;
 			}
 			pstmt.setString(34,navBarColor);
-			
+			pstmt.setBoolean(35, o.can_sms);
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

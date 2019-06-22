@@ -885,6 +885,7 @@ public class GeneralUtilityMethods {
 				+ "can_notify, "
 				+ "can_use_api, "
 				+ "can_submit, "
+				+ "can_sms, "
 				+ "set_as_theme, "
 				+ "navbar_color, "
 				+ "email_task, "
@@ -926,6 +927,7 @@ public class GeneralUtilityMethods {
 				org.can_notify = resultSet.getBoolean("can_notify");
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
+				org.can_sms = resultSet.getBoolean("can_sms");
 				org.set_as_theme = resultSet.getBoolean("set_as_theme");
 				org.navbar_color = resultSet.getString("navbar_color");
 				org.email_task = resultSet.getBoolean("email_task");

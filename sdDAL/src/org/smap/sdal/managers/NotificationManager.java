@@ -299,16 +299,22 @@ public class NotificationManager {
 	/*
 	 * Get all Notifications that are accessible by the requesting user and in a specific project
 	 */
-	public ArrayList<String> getNotificationTypes(Connection sd) throws SQLException {
+	public ArrayList<String> getNotificationTypes(Connection sd, String user) throws SQLException {
 		
 		ArrayList<String> types = new ArrayList<>();
-		PreparedStatement pstmt = null;
 		
-		String sql = "select s.sms_url, s.document_sync "
-				+ "from server s";
+		PreparedStatement pstmt = null;
+		String sql = "select s.sms_url, s.document_sync from server s";
+		
+		PreparedStatement orgLevelPstmt = null;
+		String sqlOrgLevel = "select o.can_sms from organisation o, user u "
+				+ "where o.id = u.o_id "
+				+ "and u.ident = ?";
 		
 		types.add("email");
 		types.add("forward");
+		
+		boolean foundSMS = false;
 		
 		try {
 		
@@ -318,13 +324,28 @@ public class NotificationManager {
 				String smsUrl = rs.getString("sms_url");
 				if(smsUrl != null) {
 					types.add("sms");
+					foundSMS = true;
 				}
 				if(rs.getBoolean("document_sync")) {
 					types.add("document");
 				}
 			}
+			
+			// Check users organisation for SMS being enabled
+			if(!foundSMS) {
+				orgLevelPstmt = sd.prepareStatement(sqlOrgLevel);
+				orgLevelPstmt.setString(1, user);
+				rs = orgLevelPstmt.executeQuery();
+				if(rs.next()) {
+					if(rs.getBoolean(1)) {
+						types.add("sms");
+					}
+				}
+			}
+			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (orgLevelPstmt != null) {orgLevelPstmt.close();}} catch (SQLException e) {}
 		}
 
 		return types;
