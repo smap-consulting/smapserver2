@@ -12,6 +12,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
+import org.smap.notifications.interfaces.EmitSMS;
 
 /*****************************************************************************
 
@@ -35,16 +36,18 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 /*
  * Manage the sending of emails
  */
-public class SMSManager {
+public class SMSExternalManager extends EmitSMS {
 	
-	private static Logger log =
-			 Logger.getLogger(SMSManager.class.getName());
+	String url;
 	
+	public SMSExternalManager(String url) {
+		this.url = url;
+	}
 
 	
 	// Send an email
-	public String sendSMSUrl( 
-			String url, 
+	@Override
+	public String sendSMS( 
 			String number, 
 			String content) throws Exception  {
 		
@@ -90,18 +93,6 @@ public class SMSManager {
 		return responseBody;
 	}
 	
-	/*
-	 * Validate an email
-	 */
-	private boolean isValidPhoneNumber(String number) {
-		boolean isValid = true;
-		if(number == null) {
-			isValid = false;
-		} else if(number.trim().length() == 0) {
-			isValid = false;
-		}
-		return isValid;
-	}
 }
 
 

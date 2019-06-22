@@ -14,6 +14,10 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
+
+import org.smap.notifications.interfaces.EmitAwsSMS;
+import org.smap.notifications.interfaces.EmitDeviceNotification;
+import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
@@ -853,12 +857,19 @@ public class NotificationManager {
 						}
 						
 						if(smsList.size() > 0) {
-							SMSManager smsUrlMgr = new SMSManager();
+							
+							EmitSMS smsMgr = null;
+							if(sms_url.equals("aws")) {
+								smsMgr = new EmitAwsSMS("senderx");
+							} else {
+								smsMgr = new SMSExternalManager(sms_url);
+							}
+							
 							for(String sms : smsList) {
 								
 								if(sentEndPoints.get(sms) == null) {
 									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
-									responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
+									responseList.add(smsMgr.sendSMS(sms, msg.content));
 									sentEndPoints.put(sms, sms);
 								} else {
 									log.info("Duplicate phone number: " + sms);
@@ -1152,12 +1163,19 @@ public class NotificationManager {
 						}
 						
 						if(smsList.size() > 0) {
-							SMSManager smsUrlMgr = new SMSManager();
+							
+							EmitSMS smsMgr = null;
+							if(sms_url.equals("aws")) {
+								smsMgr = new EmitAwsSMS("smapx");
+							} else {
+								smsMgr = new SMSExternalManager(sms_url);
+							}
+							
 							for(String sms : smsList) {
 								
 								if(sentEndPoints.get(sms) == null) {
 									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
-									responseList.add(smsUrlMgr.sendSMSUrl(sms_url, sms, msg.content));
+									responseList.add(smsMgr.sendSMS(sms, msg.content));
 									sentEndPoints.put(sms, sms);
 								} else {
 									log.info("Duplicate phone number: " + sms);
