@@ -311,14 +311,14 @@ public class NotificationManager {
 		String sql = "select s.sms_url, s.document_sync from server s";
 		
 		PreparedStatement orgLevelPstmt = null;
-		String sqlOrgLevel = "select o.can_sms from organisation o, user u "
+		String sqlOrgLevel = "select o.can_sms from organisation o, users u "
 				+ "where o.id = u.o_id "
 				+ "and u.ident = ?";
 		
 		types.add("email");
 		types.add("forward");
 		
-		boolean foundSMS = false;
+		boolean awsSMS = false;
 		
 		try {
 		
@@ -327,18 +327,22 @@ public class NotificationManager {
 			if(rs.next()) {
 				String smsUrl = rs.getString("sms_url");
 				if(smsUrl != null) {
-					types.add("sms");
-					foundSMS = true;
+					if(smsUrl.trim().length() > 0  && !smsUrl.equals("aws")) {
+						types.add("sms");
+					} else if(smsUrl.equals("aws")) {
+						awsSMS = true;
+					}
 				}
 				if(rs.getBoolean("document_sync")) {
 					types.add("document");
 				}
 			}
 			
-			// Check users organisation for SMS being enabled
-			if(!foundSMS) {
+			// If SMS is enabled using AWS then check users organisation for SMS being enabled
+			if(awsSMS) {
 				orgLevelPstmt = sd.prepareStatement(sqlOrgLevel);
 				orgLevelPstmt.setString(1, user);
+				log.info("Check for SMS: " + orgLevelPstmt.toString());
 				rs = orgLevelPstmt.executeQuery();
 				if(rs.next()) {
 					if(rs.getBoolean(1)) {
