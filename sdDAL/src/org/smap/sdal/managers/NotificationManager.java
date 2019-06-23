@@ -864,7 +864,11 @@ public class NotificationManager {
 							
 							EmitSMS smsMgr = null;
 							if(sms_url.equals("aws")) {
-								smsMgr = new EmitAwsSMS("senderx");
+								String sender_id = "Smap";
+								if(msg.subject != null && msg.subject.trim().length() > 0) {
+									sender_id = msg.subject;
+								}
+								smsMgr = new EmitAwsSMS(sender_id);
 							} else {
 								smsMgr = new SMSExternalManager(sms_url);
 							}
@@ -1170,7 +1174,11 @@ public class NotificationManager {
 							
 							EmitSMS smsMgr = null;
 							if(sms_url.equals("aws")) {
-								smsMgr = new EmitAwsSMS("smapx");
+								String sender_id = "Smap";
+								if(msg.subject != null && msg.subject.trim().length() > 0) {
+									sender_id = msg.subject;
+								}
+								smsMgr = new EmitAwsSMS(sender_id);
 							} else {
 								smsMgr = new SMSExternalManager(sms_url);
 							}
