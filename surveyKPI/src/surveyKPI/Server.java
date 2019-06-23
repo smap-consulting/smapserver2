@@ -213,6 +213,56 @@ public class Server extends Application {
 	}
 	
 	/*
+	 * Return the type of sms that is enabled for this server
+	 */
+	@GET
+	@Path("/sms")
+	@Produces("text/html")
+	public Response getAwsSMS(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "SurveyKPI-getSMS";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUserLevel.isAuthorised(sd, request.getRemoteUser());
+		// End role based authorisation
+
+		String sql = "select sms_url from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+		
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			String key = "none";
+			if(rs.next()) {
+				String sms_url = rs.getString(1);
+				if(sms_url != null) {
+					if(sms_url.equals("aws")) {
+						key = "aws";
+					} else {
+						key = "external";
+					}
+				}
+			}
+			response = Response.ok(key).build();
+			
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			SDDataSource.closeConnection("connectionString", sd);
+			
+		}
+
+		return response;
+	}
+	
+	/*
 	 * Get the google key
 	 */
 	@GET
