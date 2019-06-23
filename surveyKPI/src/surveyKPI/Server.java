@@ -40,6 +40,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -48,18 +49,31 @@ import java.util.logging.Logger;
 @Path("/server")
 public class Server extends Application {
 
-	Authorise a = new Authorise(null, Authorise.ORG);
+	Authorise aServerLevel = new Authorise(null, Authorise.OWNER);
+	Authorise aUserLevel = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Server.class.getName());
-	
+		
+	public Server() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
+		aUserLevel = new Authorise(authorisations, null);
+	}
 	
 	@GET
 	@Produces("application/json")
 	public Response getServerSettings(@Context HttpServletRequest request) { 
 
 		Response response = null;
-		Connection sd = SDDataSource.getConnection("SurveyKPI-getServerSettings");
+		String connectionString = "SurveyKPI-getServerSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aServerLevel.isAuthorised(sd, request.getRemoteUser());
+		// End role based authorisation
 
 		try {
 			
@@ -80,7 +94,7 @@ public class Server extends Application {
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("SurveyKPI-getServerSettings", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
@@ -88,17 +102,18 @@ public class Server extends Application {
 	}
 	
 	/*
-	 * Load tasks, that is survey results, from a file
+	 * Save updated server settings
 	 */
 	@POST
 	public Response saveServerSettings(@Context HttpServletRequest request,
 			@FormParam("settings") String settings) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-SaveServerSettings";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-SaveServerSettings");
-		a.isAuthorised(sd, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aServerLevel.isAuthorised(sd, request.getRemoteUser());
 		// End role based authorisation
 		
 		ServerData data = new Gson().fromJson(settings, ServerData.class);
@@ -148,9 +163,95 @@ public class Server extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
 		
-			SDDataSource.closeConnection("surveyKPI-AllAssignments-Save Server Settings", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
+		return response;
+	}
+	
+	/*
+	 * Get the mapbox key
+	 */
+	@GET
+	@Path("/mapbox")
+	@Produces("text/html")
+	public Response getMapboxKey(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "SurveyKPI-getMapboxKey";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUserLevel.isAuthorised(sd, request.getRemoteUser());
+		// End role based authorisation
+
+		String sql = "select mapbox_default from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+		
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			String key = "";
+			if(rs.next()) {
+				key = rs.getString(1);
+			}
+			response = Response.ok(key).build();
+			
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			SDDataSource.closeConnection("connectionString", sd);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get the google key
+	 */
+	@GET
+	@Path("/googlemaps")
+	@Produces("text/html")
+	public Response getGoogleKey(@Context HttpServletRequest request) {
+
+		Response response = null;
+		String connectionString = "SurveyKPI-getGoogleKey";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aUserLevel.isAuthorised(sd, request.getRemoteUser());
+		// End role based authorisation
+
+		String sql = "select google_key from server;";
+		PreparedStatement pstmt = null;
+		
+		try {
+		
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			String key = "";
+			if(rs.next()) {
+				key = rs.getString(1);
+			}
+			response = Response.ok(key).build();
+			
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
 		return response;
 	}
 
