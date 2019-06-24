@@ -4101,104 +4101,106 @@ public class SurveyManager {
 					instanceId
 					);
 			
-			ResultSet rs = pstmt.executeQuery();
-			
-			while(rs.next()) {
-				Instance instance = new Instance();
-				int prikey = 0;
-				for (int i = 0; i < columns.size(); i++) {
-					TableColumn c = columns.get(i);
-					String name = null;
-					String value = null;
-					
-					name = c.displayName;
-					if(name.equals("prikey")) {
-						prikey = rs.getInt(i + 1);
-					} else if (c.type.equals("geopoint")) {
-						// Add Geometry (assume one geometry type per table)
-						//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
-						instance.point_geometry = gson.fromJson(rs.getString(i + 1), Point.class);
-					} else if (c.type.equals("geoshape")) {
-						instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
-					} else if (c.type.equals("geotrace")) {
-						instance.line_geometry = gson.fromJson(rs.getString(i + 1), Line.class);
-					} else if (c.type.equals("select1") && c.selectDisplayNames) {
-						// Convert value to display name
-						value = rs.getString(i + 1);
-						for(KeyValue kv: c.choices) {
-							if(kv.k.equals(value)) {
-								value = kv.v;
-								break;
+			if(pstmt != null) {
+				ResultSet rs = pstmt.executeQuery();
+				
+				while(rs.next()) {
+					Instance instance = new Instance();
+					int prikey = 0;
+					for (int i = 0; i < columns.size(); i++) {
+						TableColumn c = columns.get(i);
+						String name = null;
+						String value = null;
+						
+						name = c.displayName;
+						if(name.equals("prikey")) {
+							prikey = rs.getInt(i + 1);
+						} else if (c.type.equals("geopoint")) {
+							// Add Geometry (assume one geometry type per table)
+							//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
+							instance.point_geometry = gson.fromJson(rs.getString(i + 1), Point.class);
+						} else if (c.type.equals("geoshape")) {
+							instance.polygon_geometry = gson.fromJson(rs.getString(i + 1), Polygon.class);
+						} else if (c.type.equals("geotrace")) {
+							instance.line_geometry = gson.fromJson(rs.getString(i + 1), Line.class);
+						} else if (c.type.equals("select1") && c.selectDisplayNames) {
+							// Convert value to display name
+							value = rs.getString(i + 1);
+							for(KeyValue kv: c.choices) {
+								if(kv.k.equals(value)) {
+									value = kv.v;
+									break;
+								}
 							}
-						}
-					} else if (c.type.equals("decimal")) {
-						Double dValue = rs.getDouble(i + 1);
-						dValue = Math.round(dValue * 10000.0) / 10000.0;
-						value = String.valueOf(dValue);
-					} else if (c.type.equals("dateTime")) {
-						value = rs.getString(i + 1);
-						if (value != null) {
-							value = value.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
-						}
-					} else if (c.type.equals("calculate")) {
-						// This calculation may be a decimal - give it a go
-						String v = rs.getString(i + 1);
-						if (v != null && v.indexOf('.') > -1) {
-							try {
-								Double dValue = rs.getDouble(i + 1);
-								dValue = Math.round(dValue * 10000.0) / 10000.0;
-								value = String.valueOf(dValue);
-							} catch (Exception e) {
+						} else if (c.type.equals("decimal")) {
+							Double dValue = rs.getDouble(i + 1);
+							dValue = Math.round(dValue * 10000.0) / 10000.0;
+							value = String.valueOf(dValue);
+						} else if (c.type.equals("dateTime")) {
+							value = rs.getString(i + 1);
+							if (value != null) {
+								value = value.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
+							}
+						} else if (c.type.equals("calculate")) {
+							// This calculation may be a decimal - give it a go
+							String v = rs.getString(i + 1);
+							if (v != null && v.indexOf('.') > -1) {
+								try {
+									Double dValue = rs.getDouble(i + 1);
+									dValue = Math.round(dValue * 10000.0) / 10000.0;
+									value = String.valueOf(dValue);
+								} catch (Exception e) {
+									value = rs.getString(i + 1); // Assume text
+								}
+							} else {
 								value = rs.getString(i + 1); // Assume text
 							}
-						} else {
-							value = rs.getString(i + 1); // Assume text
-						}
-
-					} else {
-						value = rs.getString(i + 1);
-					}
-						
-					if(!name.equals("prikey") && !c.type.equals("begin repeat")) {
-						instance.values.put(name, value);
-					}
 	
+						} else {
+							value = rs.getString(i + 1);
+						}
 							
-				}
-				
-				/*
-				 * Check for repeats
-				 */
-				for(Form f : s.forms) {
-					if(f.parentform == form.id) {
-						if(instance.repeats == null) {
-							instance.repeats = new HashMap<String, ArrayList<Instance>> ();
+						if(!name.equals("prikey") && !c.type.equals("begin repeat")) {
+							instance.values.put(name, value);
 						}
-						int parentQuestion = f.parentQuestionIndex;
-						Question q = form.questions.get(parentQuestion);
-						String qName = q.name;
-						if(q.display_name != null) {
-							qName = q.display_name;
-						}
-						if(instance.repeats.get(qName) == null) {
-							instance.repeats.put(qName, new ArrayList<Instance> ());
-						}
-						
-						ArrayList<Instance> repeats = instance.repeats.get(qName);
-						repeats.addAll(sm.getInstances(
-								sd,
-								cResults,
-								s,
-								s.getSubFormQId(form, q.id),
-								prikey,
-								null,
-								null,
-								sm));
+		
+								
 					}
-				}
 					
-				instances.add(instance);
-
+					/*
+					 * Check for repeats
+					 */
+					for(Form f : s.forms) {
+						if(f.parentform == form.id) {
+							if(instance.repeats == null) {
+								instance.repeats = new HashMap<String, ArrayList<Instance>> ();
+							}
+							int parentQuestion = f.parentQuestionIndex;
+							Question q = form.questions.get(parentQuestion);
+							String qName = q.name;
+							if(q.display_name != null) {
+								qName = q.display_name;
+							}
+							if(instance.repeats.get(qName) == null) {
+								instance.repeats.put(qName, new ArrayList<Instance> ());
+							}
+							
+							ArrayList<Instance> repeats = instance.repeats.get(qName);
+							repeats.addAll(sm.getInstances(
+									sd,
+									cResults,
+									s,
+									s.getSubFormQId(form, q.id),
+									prikey,
+									null,
+									null,
+									sm));
+						}
+					}
+						
+					instances.add(instance);
+	
+				}
 			}
 			
 			

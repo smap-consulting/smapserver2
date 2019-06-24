@@ -243,7 +243,8 @@ public class TableDataManager {
 			}
 
 		} else {
-			throw new ApplicationException("Table does not exist");
+			// throw new ApplicationException("Table does not exist");
+			// Its OK just return a null statement
 		}
 		return pstmt;
 
