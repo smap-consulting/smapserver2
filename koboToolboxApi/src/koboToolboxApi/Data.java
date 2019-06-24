@@ -399,10 +399,12 @@ public class Data extends Application {
 					tz
 					);
 
-			if(mgmt) {
+			if(mgmt && managedId > 0) {
 				CustomReportsManager crm = new CustomReportsManager ();
 				ReportConfig config = crm.get(sd, managedId, -1);
-				columns.addAll(config.columns);
+				if(config != null) {
+					columns.addAll(config.columns);
+				}
 			}
 
 			TableDataManager tdm = new TableDataManager(localisation, tz);
