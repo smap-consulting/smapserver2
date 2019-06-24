@@ -883,12 +883,15 @@ public class SubRelationalDB extends Subscriber {
 
 							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 							auditString = gson.toJson(auditData.auditItems);
-						}
+						}	
 						pstmt.setString(stmtIndex++, auditString);
-						if(hasAuditRaw) {
+						if(hasAuditRaw && auditData != null && auditData.rawAudit != null) {
 							pstmt.setString(stmtIndex++, auditData.rawAudit.toString());
+						} else {
+							pstmt.setString(stmtIndex++, null);
 						}
 					}
+				
 					
 
 					log.info("        SQL statement: " + pstmt.toString());
