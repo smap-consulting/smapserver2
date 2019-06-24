@@ -47,6 +47,7 @@ import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AssignmentDetails;
+import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ChoiceList;
@@ -2518,11 +2519,15 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert and audit file into a Hashmap
 	 */
-	public static  HashMap<String, AuditItem> getAudit(File csvFile, ArrayList<String> columns, String auditPath, ResourceBundle localisation) {
+	public static  AuditData getAudit(File csvFile, ArrayList<String> columns, String auditPath, ResourceBundle localisation) {
 
+		AuditData data = new AuditData();
+		
 		BufferedReader br = null;
 		HashMap<String, AuditItem> firstPassAudit = new HashMap<>();
-		HashMap<String, AuditItem> audit = new HashMap<>();				// Final set of audit values restricted to current columns
+		
+		data.auditItems = new HashMap<>();				// Final set of audit values restricted to current columns
+		data.rawAudit = new StringBuffer();
 
 		try {
 			FileReader reader = new FileReader(csvFile);
@@ -2534,6 +2539,9 @@ public class GeneralUtilityMethods {
 
 			// Get audit values that match the current audit path that is: auditPath/qname
 			while (line != null) {
+				
+				data.rawAudit.append(line).append("\n");		// Save the raw data
+				
 				String[] auditCols = parser.parseLine(line);
 				int time = 0;
 				if (auditCols.length >= 4 && auditCols[0] != null && auditCols[0].equals("question")) {
@@ -2543,7 +2551,6 @@ public class GeneralUtilityMethods {
 						if (id.startsWith(auditPath)) {
 							String name = id.substring(auditPath.length() + 1);
 							if (name.indexOf('/') < 0) {
-								AuditItem item = new AuditItem();
 								try {
 									BigInteger from = new BigInteger(auditCols[2]);
 									BigInteger to = new BigInteger(auditCols[3]);
@@ -2588,7 +2595,7 @@ public class GeneralUtilityMethods {
 					if(ai == null) {
 						ai = new AuditItem();
 					}
-					audit.put(col, ai);
+					data.auditItems.put(col, ai);
 					
 				}
 			}
@@ -2599,7 +2606,7 @@ public class GeneralUtilityMethods {
 			try {br.close();} catch (Exception e) {};
 		}
 		
-		return audit;
+		return data;
 
 	}
 
@@ -7757,6 +7764,16 @@ public class GeneralUtilityMethods {
 		url.append("webForm/").append(surveyIdent);
 		url.append("?datakey=instanceid");
 		url.append("&datakeyvalue=").append(updateId);
+			
+		return url.toString();
+	}
+	
+	public static String getAuditLogLink(String urlprefix, 
+			String surveyIdent, 
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("api/v1/audit/log/").append(surveyIdent).append("/").append(updateId);
 			
 		return url.toString();
 	}

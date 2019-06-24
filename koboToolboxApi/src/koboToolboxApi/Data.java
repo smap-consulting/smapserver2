@@ -287,17 +287,17 @@ public class Data extends Application {
 		}
 		
 		boolean audit=false;
-		if(audit_set != null && audit_set.equals("yes")) {
+		if(audit_set != null && (audit_set.equals("yes") || audit_set.equals("true"))) {
 			audit = true;
 		}
 		
 		boolean isGeoJson=false;
-		if(geojson != null && geojson.equals("yes")) {
+		if(geojson != null && (geojson.equals("yes") || geojson.equals("true"))) {
 			isGeoJson = true;
 		}
 		
 		boolean mergeSelectMultiple = false;
-		if(merge != null && merge.equals("yes")) {
+		if(merge != null && (merge.equals("yes") || merge.equals("true"))) {
 			mergeSelectMultiple = true;
 		}
 
@@ -466,6 +466,7 @@ public class Data extends Application {
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
+							sd,
 							rs,
 							columns,
 							urlprefix,

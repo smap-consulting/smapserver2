@@ -55,6 +55,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.ForeignKey;
@@ -771,6 +772,15 @@ public class SubRelationalDB extends Subscriber {
 						hasSurveyNotes = GeneralUtilityMethods.hasColumn(cResults, tableName, "_survey_notes");
 					}
 					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
+					if(!hasAudit) {
+						GeneralUtilityMethods.addColumn(cResults, tableName, "_audit", "text");
+						hasAudit = true;
+					}
+					boolean hasAuditRaw = GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME);
+					if(!hasAuditRaw) {
+						GeneralUtilityMethods.addColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
+						hasAuditRaw = true;
+					}
 					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, "the_geom_alt"); 
 
 					sql = "INSERT INTO " + tableName + " (parkey";
@@ -796,6 +806,9 @@ public class SubRelationalDB extends Subscriber {
 					if (hasAudit) {
 						sql += ", _audit";
 					}
+					if (hasAuditRaw) {
+						sql += ", _audit_raw";
+					}
 
 					sql += addSqlColumns(columns, hasAltitude);
 
@@ -820,6 +833,9 @@ public class SubRelationalDB extends Subscriber {
 					}
 
 					if (hasAudit) {
+						sql += ", ?";
+					}
+					if (hasAuditRaw) {
 						sql += ", ?";
 					}
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
@@ -859,16 +875,21 @@ public class SubRelationalDB extends Subscriber {
 
 					if (hasAudit) {
 						String auditString = null;
+						AuditData auditData = null;
 						if (gAuditFilePath != null) {
 							File auditFile = new File(gAuditFilePath);
-							HashMap<String, AuditItem> audit = GeneralUtilityMethods.getAudit(auditFile,
+							auditData = GeneralUtilityMethods.getAudit(auditFile,
 									getColNames(columns), auditPath, localisation);
 
 							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-							auditString = gson.toJson(audit);
+							auditString = gson.toJson(auditData.auditItems);
 						}
 						pstmt.setString(stmtIndex++, auditString);
+						if(hasAuditRaw) {
+							pstmt.setString(stmtIndex++, auditData.rawAudit.toString());
+						}
 					}
+					
 
 					log.info("        SQL statement: " + pstmt.toString());
 					pstmt.executeUpdate();

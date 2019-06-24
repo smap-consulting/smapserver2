@@ -4101,7 +4101,6 @@ public class SurveyManager {
 					instanceId
 					);
 			
-			JsonParser parser = new JsonParser();
 			ResultSet rs = pstmt.executeQuery();
 			
 			while(rs.next()) {

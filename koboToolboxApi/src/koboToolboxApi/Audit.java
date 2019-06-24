@@ -27,6 +27,10 @@ import model.DataEndPoint;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -48,6 +52,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.io.IOUtils;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -58,6 +64,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 
@@ -66,7 +73,7 @@ import org.smap.sdal.model.TableColumn;
  */
 @Path("/v1/audit")
 public class Audit extends Application {
-
+	
 	Authorise a = null;
 	Authorise aSuper = null;
 
@@ -430,6 +437,89 @@ public class Audit extends Application {
 
 		//return response;
 
+	}
+	
+	/*
+	 * API version 1 /audit
+	 * Get the oiginal audit log file as a csv file
+	 */
+	@GET
+	@Produces("text/csv")
+	@Path("/log/{sIdent}/{instanceid}")
+	public Response getAuditLogFile(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("instanceid") String instanceId,				// Primary key to start from
+			@Context HttpServletResponse servletResponse
+			) throws ApplicationException, Exception { 
+		
+		Response response = null;
+		String connectionString = "Audit API - Get Log File";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}	
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		PreparedStatement pstmt = null;	
+		String rawAudit = null;
+		String fileName = "error.csv";
+		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tablename = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			fileName = GeneralUtilityMethods.getSurveyName(sd, sId) + 
+					"_" + localisation.getString("audit") + ".csv";
+			
+			if(GeneralUtilityMethods.hasColumn(cResults, tablename, AuditData.AUDIT_RAW_COLUMN_NAME)) {
+				// Get the raw audit data
+				StringBuffer sql = new StringBuffer("select ").append(AuditData.AUDIT_RAW_COLUMN_NAME);
+				sql.append(" from ").append(tablename);
+				sql.append(" where instanceid = ?");
+								
+				pstmt = cResults.prepareStatement(sql.toString());
+				pstmt.setString(1, instanceId);
+				
+				ResultSet rs = pstmt.executeQuery();
+	
+				if(rs.next()) {
+					rawAudit = rs.getString(1);
+				} else {
+					rawAudit = localisation.getString("mf_nf");
+				}
+			} else {
+				rawAudit = localisation.getString("audit_na");
+			}
+			if(rawAudit == null) {
+				rawAudit = localisation.getString("audit_na");
+			}
+			response = Response.ok(rawAudit).build();
+			
+		} catch (Exception e) { 
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+		
+		servletResponse.setHeader("Content-type",  "text/csv; charset=UTF-8");
+		servletResponse.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+		
+		return response;
+				
 	}
 
 }

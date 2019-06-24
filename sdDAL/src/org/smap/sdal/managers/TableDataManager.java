@@ -15,6 +15,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyFilter;
@@ -356,6 +357,7 @@ public class TableDataManager {
 	 * Get the next record of data
 	 */
 	public JSONObject getNextRecord(
+			Connection sd,
 			ResultSet rs,
 			ArrayList<TableColumn> columns, 
 			String urlprefix, 
@@ -478,9 +480,15 @@ public class TableDataManager {
 						value = "{\"" + name + "\":" + rs.getString(i + 1) + "}";
 						jsonAudit = new JSONObject(value);
 					} else {
-						value = rs.getString(i + 1);
+						
+						if(c.column_name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+							value = GeneralUtilityMethods.getSurveyName(sd,  rs.getInt(i + 1));	// Convert survey id into survey name
+						} else {
+							value = rs.getString(i + 1);
+						}
 					}
 
+					
 					if (value == null) {
 						value = "";
 					}
@@ -527,6 +535,12 @@ public class TableDataManager {
 				
 				// Link to webform
 				jl.put("webform", GeneralUtilityMethods.getWebformLink(
+						urlprefix, 
+						sIdent, 
+						uuid));
+				
+				// Link to audit form
+				jl.put("audit_log", GeneralUtilityMethods.getAuditLogLink(
 						urlprefix, 
 						sIdent, 
 						uuid));
