@@ -3358,7 +3358,7 @@ public class GeneralUtilityMethods {
 			}
 			c = new TableColumn();
 			c.column_name = "_assigned";
-			c.displayName = "Assigned";
+			c.displayName = "_assigned";
 			c.type = SmapQuestionTypes.STRING;
 			c.question_name = c.column_name;
 			columnList.add(c);

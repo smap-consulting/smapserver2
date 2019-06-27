@@ -22,6 +22,7 @@ import org.smap.sdal.model.MapLayer;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnConfig;
+import org.smap.sdal.model.TableColumnMarkup;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -56,6 +57,8 @@ public class SurveyViewManager {
 	
 	private ResourceBundle localisation = null;
 	String tz;
+	
+	public static String ASSIGNED_COLUMN = "_assigned";
 	
 	public SurveyViewManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -171,7 +174,7 @@ public class SurveyViewManager {
 					false,		// HXL only include with XLS exports
 					false,		// Don't include audit data
 					tz,
-					false		// mgmt
+					true		// mgmt
 					);		
 			
 			
@@ -204,6 +207,13 @@ public class SurveyViewManager {
 					
 					if(tc.column_name.equals("the_geom")) {
 						tc.column_name = "_geolocation";
+					}
+
+					// Add markup for assigned column
+					if(tc.column_name.equals(ASSIGNED_COLUMN)) {
+						tc.markup = new ArrayList<> ();
+						tc.markup.add(new TableColumnMarkup(uIdent, "bg-info"));		// Blue
+						tc.markup.add(new TableColumnMarkup("", "bg-warning"));		// Yellow
 					}
 					if(tc.include) {
 						svd.columns.add(tc);

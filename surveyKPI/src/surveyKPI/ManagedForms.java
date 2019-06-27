@@ -72,8 +72,6 @@ public class ManagedForms extends Application {
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
 	
-	public static String ASSIGNED_COLUMN = "_assigned";
-	
 	public ManagedForms() {
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -210,8 +208,8 @@ public class ManagedForms extends Application {
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
 			if(tableName != null) {
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, ASSIGNED_COLUMN)) {
-					GeneralUtilityMethods.addColumn(cResults, tableName, ASSIGNED_COLUMN, "text");
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
+					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
 				}
 				GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
 				
