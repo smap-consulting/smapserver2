@@ -52,12 +52,7 @@ import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.lang.reflect.Type;
 import java.sql.*;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -76,6 +71,8 @@ public class ManagedForms extends Application {
 	
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
+	
+	public static String ASSIGNED_COLUMN = "_assigned";
 	
 	public ManagedForms() {
 		
@@ -139,7 +136,7 @@ public class ManagedForms extends Application {
 			) { 
 		
 		Response response = null;
-		String requester = "surveyMobileAPI-UpdateManagedRecord";
+		String requester = "surveyKPI-UpdateManagedRecord";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requester);
@@ -165,6 +162,66 @@ public class ManagedForms extends Application {
 			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, managedId, settings);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
+		} finally {
+			
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+			
+		}
+		
+		return response;
+
+	}
+	
+	/*
+	 * Lock a record for editing
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes("application/json")
+	@Path("/lock/{sId}/{instanceid}")
+	public Response lockManagedRecord(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@PathParam("instanceid") String instanceId
+			) { 
+		
+		Response response = null;
+		String requester = "surveyKPI - lockManagedRecord";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";
+			
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			if(tableName != null) {
+				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, ASSIGNED_COLUMN)) {
+					GeneralUtilityMethods.addColumn(cResults, tableName, ASSIGNED_COLUMN, "text");
+				}
+				GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
+				
+				response = Response.ok().build();
+			} else {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);   
 		} finally {
 			
 			SDDataSource.closeConnection(requester, sd);
@@ -351,7 +408,8 @@ public class ManagedForms extends Application {
 						superUser,
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data
-						tz
+						tz,
+						false		// mgmt
 						);
 				
 				for(TableColumn mc : svd.columns) {

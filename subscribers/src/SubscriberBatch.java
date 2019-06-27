@@ -493,7 +493,8 @@ public class SubscriberBatch {
 											true,		// Super user
 											false,		// Don't include HXL
 											true	,		// include audit data
-											tz
+											tz,
+											false		// mgmt
 											);
 	
 									if(mgmt) {

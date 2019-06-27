@@ -3266,7 +3266,8 @@ public class GeneralUtilityMethods {
 			boolean superUser,
 			boolean hxl,
 			boolean audit,
-			String tz)	// If set substitute display name for the question name if it is not null
+			String tz,
+			boolean mgmt)	// If set substitute display name for the question name if it is not null
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
@@ -3347,6 +3348,19 @@ public class GeneralUtilityMethods {
 		c.type = SmapQuestionTypes.INT;
 		c.question_name = c.column_name;
 		if (includePrikey) {
+			columnList.add(c);
+		}
+		
+		// Add assigned if this is a management request
+		if(mgmt) {
+			if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+			}
+			c = new TableColumn();
+			c.column_name = "_assigned";
+			c.displayName = "Assigned";
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
 			columnList.add(c);
 		}
 
@@ -5551,6 +5565,24 @@ public class GeneralUtilityMethods {
 			} else {
 				throw e;
 			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+	}
+	
+	/*
+	 * Method to lock a record out to a user
+	 */
+	public static void lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+
+		String sql = "update " + tablename + " set _assigned = ? where instanceid = ?";
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		pstmt.setString(1, user);
+		pstmt.setString(2,instanceId);
+		log.info("locking record: " + pstmt.toString());
+		try {
+			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}

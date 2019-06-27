@@ -396,7 +396,8 @@ public class Data extends Application {
 					superUser,
 					false,		// TODO include HXL
 					audit,
-					tz
+					tz,
+					mgmt			// If this is a management request then include the assigned user after prikey
 					);
 
 			if(mgmt && managedId > 0) {
@@ -766,7 +767,8 @@ public class Data extends Application {
 					superUser,
 					false,		// Only include HXL with CSV and Excel output
 					false,
-					tz
+					tz,
+					false		// mgmt
 					);
 
 			if(mgmt) {

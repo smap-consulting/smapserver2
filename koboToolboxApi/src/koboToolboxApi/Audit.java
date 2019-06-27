@@ -327,7 +327,8 @@ public class Audit extends Application {
 					superUser,
 					false,		// TODO include HXL
 					true,
-					tz
+					tz,
+					false
 					);
 
 			if(mgmt) {
