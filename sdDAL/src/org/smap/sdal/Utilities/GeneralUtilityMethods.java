@@ -5573,19 +5573,48 @@ public class GeneralUtilityMethods {
 	/*
 	 * Method to lock a record out to a user
 	 */
-	public static void lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+	public static int lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
 
-		String sql = "update " + tablename + " set _assigned = ? where instanceid = ?";
+		int count = 0;
+		
+		String sql = "update " + tablename + " set _assigned = ? "
+				+ "where instanceid = ? "
+				+ "and _assigned is null";
 
 		PreparedStatement pstmt = conn.prepareStatement(sql);
 		pstmt.setString(1, user);
 		pstmt.setString(2,instanceId);
 		log.info("locking record: " + pstmt.toString());
 		try {
-			pstmt.executeUpdate();
+			count = pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
+		
+		return count;
+	}
+	
+	/*
+	 * Method to release a record 
+	 */
+	public static int releaseRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+
+		int count = 0;
+		String sql = "update " + tablename + " set _assigned = null "
+				+ "where instanceid = ? "
+				+ "and _assigned = ?";
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		pstmt.setString(1, instanceId);
+		pstmt.setString(2,user);
+		log.info("locking record: " + pstmt.toString());
+		try {
+			count = pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count;
 		
 	}
 	

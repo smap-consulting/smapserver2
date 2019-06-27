@@ -211,9 +211,72 @@ public class ManagedForms extends Application {
 				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
 					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
 				}
-				GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
-				
-				response = Response.ok().build();
+				int count = GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
+				if(count == 0) {
+					response = Response.serverError().entity(localisation.getString("mf_aa")).build();
+				} else {
+					response = Response.ok().build();
+				}
+			} else {
+				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+			}
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);   
+		} finally {
+			
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+			
+		}
+		
+		return response;
+
+	}
+	
+	/*
+	 * Release a record
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes("application/json")
+	@Path("/release/{sId}/{instanceid}")
+	public Response releaseManagedRecord(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@PathParam("instanceid") String instanceId
+			) { 
+		
+		Response response = null;
+		String requester = "surveyKPI - lockManagedRecord";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";
+			
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			if(tableName != null) {
+				int count = GeneralUtilityMethods.releaseRecord(cResults, tableName, instanceId, request.getRemoteUser());
+				if(count == 0) {
+					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
+				} else {
+					response = Response.ok().build();
+				}
 			} else {
 				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 			}
