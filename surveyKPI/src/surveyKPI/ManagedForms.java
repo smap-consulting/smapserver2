@@ -177,11 +177,11 @@ public class ManagedForms extends Application {
 	@POST
 	@Produces("text/html")
 	@Consumes("application/json")
-	@Path("/lock/{sId}/{instanceid}")
+	@Path("/lock/{sId}")
 	public Response lockManagedRecord(
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
-			@PathParam("instanceid") String instanceId
+			@FormParam("record") String instanceId
 			) { 
 		
 		Response response = null;
@@ -240,11 +240,11 @@ public class ManagedForms extends Application {
 	@POST
 	@Produces("text/html")
 	@Consumes("application/json")
-	@Path("/release/{sId}/{instanceid}")
+	@Path("/release/{sId}")
 	public Response releaseManagedRecord(
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
-			@PathParam("instanceid") String instanceId
+			@FormParam("record") String instanceId
 			) { 
 		
 		Response response = null;
