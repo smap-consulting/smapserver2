@@ -383,6 +383,9 @@ public class NotificationManager {
 		
 			// Log the delete event
 			String logMessage = localisation.getString("lm_del_notification");
+			if(nName == null) {
+				nName = "";
+			}
 			logMessage = logMessage.replaceAll("%s1", nName);
 			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage);
 		} finally {
