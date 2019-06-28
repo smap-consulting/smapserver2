@@ -327,7 +327,7 @@ public class UserList extends Application {
 	@Produces("application/json")
 	public Response getUsersForSurvey(
 			@Context HttpServletRequest request,
-			@PathParam("survey") String sIdent
+			@PathParam("survey") int sId
 			) { 
 
 		Response response = null;
@@ -341,7 +341,7 @@ public class UserList extends Application {
 		} catch (Exception e) {
 		}		
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -354,7 +354,7 @@ public class UserList extends Application {
 					+ "where u.id = up.u_id "
 					+ "and p.id = up.p_id "
 					+ "and s.p_id = up.p_id "
-					+ "and s.ident = ? "
+					+ "and s.s_id = ? "
 					+ "and not temporary");
 			String sqlRBAC = " and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
 					+ "(s.s_id in (select s_id from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
@@ -363,7 +363,7 @@ public class UserList extends Application {
 			sql.append(sqlRBAC);
 			
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setString(1, sIdent);
+			pstmt.setInt(1, sId);
 			log.info("Get users of survey: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 							
