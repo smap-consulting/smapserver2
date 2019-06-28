@@ -269,22 +269,7 @@ public class UserList extends Application {
 		try {
 			String sql = null;
 			ResultSet resultSet = null;
-			int o_id = 0;
-			
-			/*
-			 * Get the organisation
-			 */
-			sql = "SELECT u.o_id " +
-					" FROM users u " +  
-					" WHERE u.ident = ?;";				
-						
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, request.getRemoteUser());
-			log.info("Get organisation: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-			if(resultSet.next()) {
-				o_id = resultSet.getInt(1);
-			}
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			/*
 			 * Get the users for this project
@@ -300,7 +285,6 @@ public class UserList extends Application {
 					"and not u.temporary " +
 					"order by u.ident";
 			
-			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
 			pstmt.setInt(2, o_id);
@@ -314,6 +298,81 @@ public class UserList extends Application {
 				user.ident = resultSet.getString("ident");
 				user.name = resultSet.getString("name");
 				user.email = resultSet.getString("email");
+				users.add(user);
+			}
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(users);
+			response = Response.ok(resp).build();
+					
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		    
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection(requestName, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get the users who have access to a specific survey
+	 */
+	@Path("/survey/{survey}")
+	@GET
+	@Produces("application/json")
+	public Response getUsersForSurvey(
+			@Context HttpServletRequest request,
+			@PathParam("survey") String sIdent
+			) { 
+
+		Response response = null;
+		String requestName = "surveyKPI - getUsersForSurvey";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requestName);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}		
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, superUser);
+		// End Authorisation
+		
+		PreparedStatement pstmt = null;
+		ArrayList<UserSimple> users = new ArrayList<> ();
+		
+		try {
+			ResultSet resultSet = null;
+			
+			StringBuffer sql = new StringBuffer("select u.id, u.ident, u.name from survey s, users u, user_project up, project p "
+					+ "where u.id = up.u_id "
+					+ "and p.id = up.p_id "
+					+ "and s.p_id = up.p_id "
+					+ "and s.ident = ? "
+					+ "and not temporary");
+			String sqlRBAC = " and ((s.s_id not in (select s_id from survey_role where enabled = true)) or " // No roles on survey
+					+ "(s.s_id in (select s_id from users u2, user_role ur, survey_role sr where u2.ident = u.ident and sr.enabled = true and u.id = ur.u_id and ur.r_id = sr.r_id)) " // User also has role
+					+ ") ";
+			
+			sql.append(sqlRBAC);
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setString(1, sIdent);
+			log.info("Get users of survey: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+							
+			UserSimple user = null;
+			while(resultSet.next()) {
+				user = new UserSimple();
+				user.id = resultSet.getInt("id");
+				user.ident = resultSet.getString("ident");
+				user.name = resultSet.getString("name");
 				users.add(user);
 			}
 			
