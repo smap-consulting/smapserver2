@@ -206,7 +206,7 @@ public class SurveyViewManager {
 					}
 					
 					if(tc.column_name.equals("the_geom")) {
-						tc.column_name = "_geolocation";
+						tc.displayName = "_geolocation";
 					}
 
 					// Add markup for assigned column
