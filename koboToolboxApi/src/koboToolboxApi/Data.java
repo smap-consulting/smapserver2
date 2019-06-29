@@ -207,6 +207,26 @@ public class Data extends Application {
 	
 	/*
 	 * KoboToolBox API version 1 /data
+	 * changes to a record - Check first to see if the key is an HRK then try instanceid
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/{sIdent}/{key}")
+	public Response getRecordChanges(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("key") String key,		
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
+			) throws ApplicationException, Exception { 
+		
+		Response response = null;
+		System.out.println("------ Survey: " + sIdent + " :  Key: " + key);
+		return response;
+		
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
 	 * Get records for an individual survey in JSON format
 	 */
 	private void getDataRecords(HttpServletRequest request,

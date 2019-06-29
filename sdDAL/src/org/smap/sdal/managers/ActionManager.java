@@ -358,8 +358,11 @@ public class ActionManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(settings, type);
 
-		String sqlCanUpdate = "select p_id from survey " + "where s_id = ? " + "and managed_id = ? "
-				+ "and blocked = 'false' " + "and deleted = 'false';";
+		String sqlCanUpdate = "select p_id from survey " 
+				+ "where s_id = ? " 
+				+ "and managed_id = ? "
+				+ "and blocked = 'false' " 
+				+ "and deleted = 'false';";
 		PreparedStatement pstmtCanUpdate = null;
 		PreparedStatement pstmtUpdate = null;
 		int priority = -1;
