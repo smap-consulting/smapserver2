@@ -801,21 +801,6 @@ public class SurveyManager {
 				+ "and c.visible = true "
 				+ "order by c_id desc; ";
 		PreparedStatement pstmtGetChanges = sd.prepareStatement(sqlGetChanges);
-
-		/*
-		// Get the surveys that can be linked to
-		ResultSet rsGetLinkable = null;
-		String sqlGetLinkable = "select s.s_id, s.display_name "
-				+ "from survey s, project p, user_project up, users u "
-				+ "where s.p_id = p.id "
-				+ "and not s.deleted "
-				+ "and p.o_id = ? "
-				+ "and u.id = up.u_id "
-				+ "and p.id = up.p_id "
-				+ "and u.ident = ? "
-				+ "order by s.display_name asc; ";
-		PreparedStatement pstmtGetLinkable = sd.prepareStatement(sqlGetLinkable);
-		*/
 		
 		// Get the available languages
 		s.languages = GeneralUtilityMethods.getLanguages(sd, s.id);
@@ -1024,23 +1009,6 @@ public class SurveyManager {
 				s.changes.add(cl);
 			}
 		}
-
-		// Add the linkable surveys
-		/*
-		pstmtGetLinkable.setInt(1, oId);
-		pstmtGetLinkable.setString(2, user);
-		log.info("Get linkable surveys: " + pstmtGetLinkable.toString());
-		rsGetLinkable = pstmtGetLinkable.executeQuery();
-		while(rsGetLinkable.next()) {
-			int linkedId = rsGetLinkable.getInt(1);
-			if(linkedId != s.id) {	// Remove any self referentials links
-				LinkedSurvey ls = new LinkedSurvey();
-				ls.id = linkedId;
-				ls.name = rsGetLinkable.getString(2);
-				s.linkedSurveys.add(ls);
-			}
-		}
-		*/
 		
 		// Get the roles
 		if(getRoles) {
