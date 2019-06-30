@@ -1537,13 +1537,14 @@ public class GeneralUtilityMethods {
 
 		String surveyIdent = null;
 
-		String sqlGetSurveyIdent = "select ident " + " from survey " + " where s_id = ?;";
-
+		String sql = "select ident " 
+				+ " from survey " 
+				+ " where s_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetSurveyIdent);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, surveyId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {

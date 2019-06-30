@@ -54,10 +54,12 @@ import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.Form;
@@ -560,7 +562,11 @@ public class SubRelationalDB extends Subscriber {
 								existingKey , 
 								keys.newKey, 
 								hasHrk,
-								sId);		
+								instance.getUuid(),
+								updateId,
+								hrk,
+								sId,
+								remoteUser);		
 					}
 				}
 			}
@@ -1308,12 +1314,18 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Method to replace an existing record
 	 */
-	private  void replaceExistingRecord(Connection cRel, Connection cMeta, 
+	private  void replaceExistingRecord(
+			Connection cRel, 
+			Connection sd, 
 			IE element, 
 			int existingKey, 
 			int newKey,
 			boolean hasHrk,
-			int sId) throws SQLException, Exception {
+			String hrk,
+			String newInstance,
+			String oldInstance,
+			int sId,
+			String remoteUser) throws SQLException, Exception {
 
 		/*
 		 * Set the record as bad with the reason being that it has been replaced
@@ -1321,8 +1333,12 @@ public class SubRelationalDB extends Subscriber {
 		String tableName = element.getTableName();
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtCheckBad = null;
-		PreparedStatement pstmtAddHrk = null;
+		PreparedStatement pstmtAdd = null;
 		PreparedStatement pstmtHrk = null;
+		PreparedStatement pstmtReplacedBy = null;
+		PreparedStatement pstmtGetColumns = null;
+		PreparedStatement pstmtGetData1 = null;
+		PreparedStatement pstmtGetData2 = null;
 
 		try {
 			// Check that the new record is not bad
@@ -1341,7 +1357,7 @@ public class SubRelationalDB extends Subscriber {
 				int f_id;
 				sql = "select f.f_id from form f where f.table_name = ? and f.s_id = ?;";
 
-				pstmt = cMeta.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, tableName);
 				pstmt.setInt(2, sId);
 				ResultSet rs = pstmt.executeQuery();
@@ -1362,10 +1378,59 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
+					/*
+					 * Save the delta and delete the old record
+					 */
+					String sqlGetData = "select * from " + tableName + " where prikey = ?";
+					pstmtGetData1 = cRel.prepareStatement(sqlGetData);
+					pstmtGetData1.setInt(1, existingKey);
+					ResultSet rsExisting = pstmtGetData1.executeQuery();
+					pstmtGetData2 = cRel.prepareStatement(sqlGetData);
+					pstmtGetData2.setInt(1, newKey);
+					ResultSet rsNew = pstmtGetData2.executeQuery();
+					
+					String sqlGetColumns = "select column_name, data_type from INFORMATION_SCHEMA.COLUMNS where table_name = ?";
+					pstmtGetColumns = cRel.prepareStatement(sqlGetColumns);
+					pstmtGetColumns.setString(1, tableName);
+					
+					ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
+					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+					
+					if(rsExisting.next() && rsNew.next()) {
+						ResultSet rsCols = pstmtGetColumns.executeQuery();
+						while(rsCols.next()) {
+							String col = rsCols.getString(1);
+							String type = rsCols.getString(2);
+							
+							String oldVal = rsExisting.getString(col);
+							String newVal = rsNew.getString(col);
+							
+							if(col.equals("prikey") || col.equals("_upload_time")) {
+								continue;
+							} else if(oldVal == null && newVal == null) {
+								continue;
+							} else if(oldVal == null || newVal == null || !oldVal.equals(newVal)) {
+								System.out.println("New val of: " + newVal + " for " + col + " was " + oldVal);
+								DataItemChange item = new DataItemChange(col, type, newVal, oldVal);
+								changes.add(item);
+							} else {
+								continue;
+							}
+						}
+					}
+
+					System.out.println("================= Changes: " + gson.toJson(changes));
+					// Save the changes
+					RecordEventManager rem = new RecordEventManager();
+					rem.saveChange(sd, remoteUser, tableName, hrk, newInstance, oldInstance, gson.toJson(changes), sId);					
+
+
 					// Mark the record being replaced as bad
+					/*
+					 * Is now deleted see above
 					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
 							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz, false);
-					
+					*/
 					// Set the hrk of the new record to the hrk of the old record
 					// This can only be done for one old record, possibly there is never more than 1
 					if(hasHrk) {
@@ -1373,8 +1438,8 @@ public class SubRelationalDB extends Subscriber {
 							// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
 							log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
 							String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
-							pstmtAddHrk = cRel.prepareStatement(sqlAddHrk);
-							pstmtAddHrk.executeUpdate();
+							pstmtAdd = cRel.prepareStatement(sqlAddHrk);
+							pstmtAdd.executeUpdate();
 						}
 						String sqlHrk = "update " + tableName + " set _hrk = (select t2._hrk from "
 								+ tableName
@@ -1387,10 +1452,11 @@ public class SubRelationalDB extends Subscriber {
 						pstmtHrk.executeUpdate();
 
 					}
+					
 					// If the records being replaced were all bad then set the new record to bad
 					if(!replacedRecordsAreGood) {
 						bad_reason = localisation.getString("t_rep_bad") + previousKeys;
-						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
+						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, sd, localisation, tableName, 
 								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true, tz, false);
 					}
 				}		
@@ -1401,8 +1467,12 @@ public class SubRelationalDB extends Subscriber {
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
-			if(pstmtAddHrk != null) try{pstmtAddHrk.close();}catch(Exception e) {};
+			if(pstmtAdd != null) try{pstmtAdd.close();}catch(Exception e) {};
+			if(pstmtReplacedBy != null) try{pstmtReplacedBy.close();}catch(Exception e) {};
 			if(pstmtCheckBad != null) try{pstmtCheckBad.close();}catch(Exception e) {};
+			if(pstmtGetData1 != null) try{pstmtGetData1.close();}catch(Exception e) {};
+			if(pstmtGetData2 != null) try{pstmtGetData2.close();}catch(Exception e) {};
+			if(pstmtGetColumns != null) try{pstmtGetColumns.close();}catch(Exception e) {};
 		}
 
 	}

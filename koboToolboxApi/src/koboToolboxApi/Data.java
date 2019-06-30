@@ -211,7 +211,7 @@ public class Data extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/{sIdent}/{key}")
+	@Path("/changes/{sIdent}/{key}")
 	public Response getRecordChanges(@Context HttpServletRequest request,
 			@PathParam("sIdent") String sIdent,
 			@PathParam("key") String key,		
