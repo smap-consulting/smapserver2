@@ -56,8 +56,10 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
@@ -115,7 +117,8 @@ public class Data extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		aSuper.isAuthorised(sd, request.getRemoteUser());
-
+		// End Authorisation
+		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -130,7 +133,7 @@ public class Data extends Application {
 			response = Response.ok(resp).build();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			response = Response.serverError().build();
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
@@ -176,6 +179,7 @@ public class Data extends Application {
 			incLinks = false;		// Links can only be specified for the main form
 		}
 		
+		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks);
 	}
@@ -196,6 +200,7 @@ public class Data extends Application {
 			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
 			) throws ApplicationException, Exception { 
 		
+		// Authorisation is done in getSingleRecord
 		return getSingleRecord(request,
 				sIdent,
 				uuid,
@@ -207,20 +212,48 @@ public class Data extends Application {
 	
 	/*
 	 * KoboToolBox API version 1 /data
-	 * changes to a record - Check first to see if the key is an HRK then try instanceid
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/changes/{sIdent}/{key}")
+	@Path("/changes/{sId}/{key}")
 	public Response getRecordChanges(@Context HttpServletRequest request,
-			@PathParam("sIdent") String sIdent,
+			@PathParam("sId") int sId,
 			@PathParam("key") String key,		
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
 			) throws ApplicationException, Exception { 
 		
 		Response response = null;
-		System.out.println("------ Survey: " + sIdent + " :  Key: " + key);
+		String connectionString = "koboToolboxApi - get data changes";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+			
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			System.out.println("------ Table: " + tableName + " :  Key: " + key);
+			RecordEventManager rem = new RecordEventManager();
+			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, key);
+			
+			response = Response.ok(gson.toJson(changeEvents)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
 		return response;
 		
 	}

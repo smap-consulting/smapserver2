@@ -10,10 +10,17 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.CsvHeader;
+import org.smap.sdal.model.DataItemChange;
+import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Question;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
 
@@ -64,6 +71,7 @@ public class RecordEventManager {
 		
 		String sql = "insert into record_event ("
 				+ "key,	"
+				+ "table_name, "
 				+ "instanceid,	"
 				+ "details, "
 				+ "success, "
@@ -72,7 +80,7 @@ public class RecordEventManager {
 				+ "change_survey, "
 				+ "change_survey_version, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select ident, version " 
@@ -82,13 +90,10 @@ public class RecordEventManager {
 		
 		// Set key
 		String key = null;
-		boolean hrkKeyType;
 		if(hrk != null) {
 			key = hrk;
-			 hrkKeyType = true;
 		} else {
 			key = newInstance;
-			hrkKeyType = false;
 		}
 		
 		// Set user id
@@ -109,13 +114,14 @@ public class RecordEventManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, key);
-			pstmt.setString(2,  newInstance);
-			pstmt.setString(3,  changes);
-			pstmt.setBoolean(4,  true);	// success
-			pstmt.setString(5,  null);
-			pstmt.setInt(6, uId);
-			pstmt.setString(7,  sIdent);
-			pstmt.setInt(8,  sVersion);
+			pstmt.setString(2,  tableName);
+			pstmt.setString(3,  newInstance);
+			pstmt.setString(4,  changes);
+			pstmt.setBoolean(5,  true);	// success
+			pstmt.setString(6,  null);
+			pstmt.setInt(7, uId);
+			pstmt.setString(8,  sIdent);
+			pstmt.setInt(9,  sVersion);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
@@ -123,5 +129,50 @@ public class RecordEventManager {
 		}
 	}
 	
+	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tableName, String key) throws SQLException {
+		
+		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
+		
+		String sql = "select event, details, changed_by, change_survey, change_survey_version, event_time "
+				+ "from record_event "
+				+ "where table_name = ?"
+				+ "and key = ?"
+				+ "order by event_time desc";
+		PreparedStatement pstmt = null;
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, tableName);
+			pstmt.setString(2, key);
+			log.info("Get changes: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				DataItemChangeEvent event = new DataItemChangeEvent();
+				event.event = rs.getString("event");
+				event.userName = GeneralUtilityMethods.getUserName(sd, rs.getInt("changed_by"));
+				
+				String changes = rs.getString("details");
+				if(changes != null) {
+					event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
+				}
+				
+				String sIdent = rs.getString("change_survey");
+				if(sIdent != null) {				
+					event.SurveyName = GeneralUtilityMethods.getSurveyNameFromIdent(sd, sIdent);
+					event.surveyVersion = rs.getInt("change_survey_version");
+				}
+				
+
+				events.add(event);
+				
+			}
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
+		}
+		
+		return events;
+	}
 
 }

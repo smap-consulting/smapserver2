@@ -1419,7 +1419,9 @@ public class GeneralUtilityMethods {
 
 		String u_ident = null;
 
-		String sql = "select ident " + " from users u " + " where u.id = ?;";
+		String sql = "select ident " 
+				+ " from users u " 
+				+ " where u.id = ?;";
 
 		PreparedStatement pstmt = null;
 
@@ -1437,6 +1439,35 @@ public class GeneralUtilityMethods {
 		}
 
 		return u_ident;
+	}
+	
+	/*
+	 * Get the user name from the user id
+	 */
+	static public String getUserName(Connection sd, int id) throws SQLException {
+
+		String name = null;
+
+		String sql = "select name " 
+				+ " from users u " 
+				+ " where u.id = ?;";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return name;
 	}
 
 	/*
@@ -5423,9 +5454,39 @@ public class GeneralUtilityMethods {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-		} finally {try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
+		}
+
+		return table;
+	}
+	
+	/*
+	 * Get the main results table for a survey using the survey ident as a key if it exists
+	 */
+	public static String getMainResultsTableSurveyIdent(Connection sd, Connection conn, String sIdent) {
+		String table = null;
+
+		String sql = "select table_name from form where ident = ? and parentform = 0";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				String table_name = rs.getString(1);
+				if (tableExists(conn, table_name)) {
+					table = table_name;
+				}
 			}
 
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
 		}
 
 		return table;
