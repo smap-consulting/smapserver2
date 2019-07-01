@@ -241,7 +241,6 @@ public class Data extends Application {
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-			System.out.println("------ Table: " + tableName + " :  Key: " + key);
 			RecordEventManager rem = new RecordEventManager();
 			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, key);
 			
