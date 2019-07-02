@@ -55,6 +55,8 @@ public class UserManager {
 	private static Logger log =
 			Logger.getLogger(UserManager.class.getName());
 
+	LogManager lm = new LogManager();		// Application log
+	
 	private ResourceBundle localisation;
 	
 	public UserManager(ResourceBundle l) {
@@ -457,6 +459,14 @@ public class UserManager {
 						organisation.server_description);
 
 			}
+			
+			// Log this event
+			String msg = localisation.getString("log_uc");
+			if(msg != null && u.ident != null) {
+				msg = msg.replace("%s1", u.ident);
+			}
+			lm.writeLogOrganisation(sd, o_id, userIdent, LogManager.CREATE, msg);
+			
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 

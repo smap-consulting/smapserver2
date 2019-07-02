@@ -459,9 +459,6 @@ public class UserList extends Application {
 								request.getServerName(),
 								adminName,
 								localisation);
-	
-						lm.writeLogOrganisation(sd, 
-								o_id, request.getRemoteUser(), "create", "User " + u.ident + " was created");
 								
 					} else {
 						// Existing user

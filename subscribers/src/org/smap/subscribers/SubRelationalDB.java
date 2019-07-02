@@ -532,7 +532,9 @@ public class SubRelationalDB extends Subscriber {
 					uploadTime,
 					"/main",
 					assignmentId,
-					foreignKeys);
+					foreignKeys,
+					null				// audit data
+					);
 
 			/*
 			 * Update existing records
@@ -696,7 +698,8 @@ public class SubRelationalDB extends Subscriber {
 			Date uploadTime,
 			String auditPath,
 			int assignmentId,
-			ArrayList<ForeignKey> foreignKeys) throws SQLException, Exception {
+			ArrayList<ForeignKey> foreignKeys,
+			AuditData auditData) throws SQLException, Exception {
 
 		Keys keys = new Keys();
 		PreparedStatement pstmt = null;
@@ -789,6 +792,11 @@ public class SubRelationalDB extends Subscriber {
 					}
 					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, "the_geom_alt"); 
 
+					if(hasAudit && parent_key == 0 && gAuditFilePath != null) {
+						File auditFile = new File(gAuditFilePath);
+						auditData = GeneralUtilityMethods.getAuditHashMap(auditFile, auditPath, localisation);
+					}
+					
 					sql = "INSERT INTO " + tableName + " (parkey";
 					if (parent_key == 0) {
 						sql += ",_user, _complete"; // Add remote user, _complete automatically (top level table only)
@@ -881,14 +889,13 @@ public class SubRelationalDB extends Subscriber {
 
 					if (hasAudit) {
 						String auditString = null;
-						AuditData auditData = null;
-						if (gAuditFilePath != null) {
-							File auditFile = new File(gAuditFilePath);
-							auditData = GeneralUtilityMethods.getAudit(auditFile,
-									getColNames(columns), auditPath, localisation);
+						if (auditData != null) {
+							HashMap<String, AuditItem> auditValues = 
+									GeneralUtilityMethods.getAuditValues(auditData,
+									getColNames(columns), localisation);
 
 							Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-							auditString = gson.toJson(auditData.auditItems);
+							auditString = gson.toJson(auditValues);
 						}	
 						pstmt.setString(stmtIndex++, auditString);
 						if(hasAuditRaw && auditData != null && auditData.rawAudit != null) {
@@ -896,9 +903,7 @@ public class SubRelationalDB extends Subscriber {
 						} else {
 							pstmt.setString(stmtIndex++, null);
 						}
-					}
-				
-					
+					}	
 
 					log.info("        SQL statement: " + pstmt.toString());
 					pstmt.executeUpdate();
@@ -931,16 +936,12 @@ public class SubRelationalDB extends Subscriber {
 					writeTableContent(child, parent_key, sIdent, remoteUser, server, device, uuid, formStatus, version,
 							surveyNotes, locationTrigger, cResults, sd, sId, uploadTime,
 							auditPath + "/" + child.getName() + "[" + recCounter + "]", assignmentId,
-							foreignKeys);
+							foreignKeys, auditData);
 					recCounter++;
 				}
 			}
 		} finally {
-			if (pstmt != null)
-				try {
-					pstmt.close();
-				} catch (Exception e) {
-				}
+			if (pstmt != null) try {	pstmt.close();} catch (Exception e) {}
 		}
 
 		return keys;
@@ -1913,7 +1914,15 @@ public class SubRelationalDB extends Subscriber {
 	private ArrayList<String> getColNames(List<IE> cols) {
 		ArrayList<String> colNames = new ArrayList<String> ();
 		for(IE col : cols) {
-			colNames.add(col.getName());
+			
+			String colType = col.getQType();
+			if(colType != null) {
+				if(colType.equals("begin group")) {
+					colNames.addAll(getColNames(col.getChildren()));
+				} else {
+					colNames.add(col.getName());
+				}
+			}
 		}
 		return colNames;	
 	}
