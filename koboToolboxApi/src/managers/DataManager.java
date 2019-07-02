@@ -56,7 +56,7 @@ public class DataManager {
 			if(s.forms != null && s.forms.size() > 0) {
 				dep.subforms = new HashMap<String, String> ();
 				for(Form f : s.forms) {
-					dep.subforms.put(f.name, dep.url + "?form=" + f.name);
+					dep.subforms.put(f.name, urlprefix + dep.id_string + "?form=" + f.name);
 				}
 			}
 			data.add(dep);

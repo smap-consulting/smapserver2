@@ -2517,17 +2517,13 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Convert and audit file into a Hashmap
+	 * Convert an audit file into a Hashmap
 	 */
-	public static  AuditData getAudit(File csvFile, ArrayList<String> columns, String auditPath, ResourceBundle localisation) {
+	public static  AuditData getAuditHashMap(File csvFile, String auditPath, ResourceBundle localisation) {
 
 		AuditData data = new AuditData();
 		
 		BufferedReader br = null;
-		HashMap<String, AuditItem> firstPassAudit = new HashMap<>();
-		
-		data.auditItems = new HashMap<>();				// Final set of audit values restricted to current columns
-		data.rawAudit = new StringBuffer();
 
 		try {
 			FileReader reader = new FileReader(csvFile);
@@ -2537,7 +2533,7 @@ public class GeneralUtilityMethods {
 			// Get Header
 			String line = br.readLine();
 
-			// Get audit values that match the current audit path that is: auditPath/qname
+			log.info(" Start Get Audit =======================================================");
 			while (line != null) {
 				
 				data.rawAudit.append(line).append("\n");		// Save the raw data
@@ -2549,8 +2545,11 @@ public class GeneralUtilityMethods {
 					if (id != null) {
 						id = id.trim();
 						if (id.startsWith(auditPath)) {
-							String name = id.substring(auditPath.length() + 1);
-							if (name.indexOf('/') < 0) {
+							int idx = id.lastIndexOf('/');
+							if(idx >= 0) {
+								String name = id.substring(idx + 1);
+							
+								log.info("Name: " + name);
 								try {
 									BigInteger from = new BigInteger(auditCols[2]);
 									BigInteger to = new BigInteger(auditCols[3]);
@@ -2558,7 +2557,7 @@ public class GeneralUtilityMethods {
 									time = diff.intValue();
 									
 									// Timer audit value based on total time in the question
-									AuditItem currentItem = firstPassAudit.get(name);
+									AuditItem currentItem = data.firstPassAudit.get(name);
 									if(currentItem == null) {
 										currentItem = new AuditItem();
 									}	
@@ -2570,7 +2569,7 @@ public class GeneralUtilityMethods {
 										Double lon = new Double(auditCols[5]);
 										currentItem.location = new GeoPoint(lat, lon);
 									}
-									firstPassAudit .put(name, currentItem);
+									data.firstPassAudit .put(name, currentItem);
 									
 								} catch (Exception e) {
 									log.info("Error: invalid audit line: " + e.getMessage() + " : " + line);
@@ -2583,22 +2582,9 @@ public class GeneralUtilityMethods {
 				line = br.readLine();
 			}
 
-			/*
-			 * Only add audit values that are in this form Also make sure we had a timing
-			 * value for very column in this form
-			 */
-			for (String col : columns) {
-				if (!col.startsWith("_") && !col.equals("meta")) {
-					
-					
-					AuditItem ai = firstPassAudit.get(col);
-					if(ai == null) {
-						ai = new AuditItem();
-					}
-					data.auditItems.put(col, ai);
-					
-				}
-			}
+		
+			
+			log.info(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -2607,6 +2593,40 @@ public class GeneralUtilityMethods {
 		}
 		
 		return data;
+
+	}
+	
+	/*
+	 * Convert an audit file into a Hashmap
+	 */
+	public static  HashMap<String, AuditItem> getAuditValues(AuditData data, ArrayList<String> columns, ResourceBundle localisation) {
+
+			/*
+			 * Only add audit values that are in this form Also make sure we had a timing
+			 * value for very column in this form
+			 */
+		HashMap<String, AuditItem> auditItems = new HashMap();
+
+		for (String col : columns) {
+			if (!col.startsWith("_") && !col.equals("meta") && 
+					!col.equals("instanceID") && !col.equals("instanceName")) {				
+
+				AuditItem ai = data.firstPassAudit.get(col);
+				log.info("Getting audit item for: " + col);
+				if(ai == null) {
+					log.info("audit item not found");
+					ai = new AuditItem();
+				}
+				auditItems.put(col, ai);
+
+			}
+		}
+			
+		log.info(" End Get Audit xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx");
+
+		
+		
+		return auditItems;
 
 	}
 
