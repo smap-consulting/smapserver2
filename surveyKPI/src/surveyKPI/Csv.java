@@ -88,7 +88,6 @@ public class Csv extends Application {
 		String connectionString = "surveyKPI-Csv - Files";
 		
 		// Authorisation - Access
-		GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());	
 		// End Authorisation

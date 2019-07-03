@@ -1537,7 +1537,9 @@ public class GeneralUtilityMethods {
 
 		String surveyIdent = null;
 
-		String sqlGetSurveyIdent = "select ident " + " from survey " + " where s_id = ?;";
+		String sqlGetSurveyIdent = "select ident " 
+				+ " from survey " 
+				+ " where s_id = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -1584,6 +1586,51 @@ public class GeneralUtilityMethods {
 
 		return sId;
 	}
+	
+	/*
+	 * Get the latest survey id from the past in surveyId
+	 * HACK
+	 * This results from the difficulty of moving away from using surveyId on the client while the 
+	 *  survey ident now should be the correct identifier of a unique survey
+	 */
+	static public int getLatestSurveyId(Connection sd, int sId) throws SQLException {
+
+		int latestSurveyId = sId;
+
+		String sql = "select ident, deleted " 
+				+ "from survey " 
+				+ "where s_id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				String ident = rs.getString(1);
+				boolean deleted = rs.getBoolean(2);
+				
+				if(deleted) {
+					// Get index of second underscore
+					int idx = ident.indexOf('_');
+					if(idx > 0 && idx < ident.length() - 1) {
+						idx = ident.indexOf('_', idx+1);
+						if(idx > 0) {
+							ident = ident.substring(0, idx);		// The unique ident for the current survey
+							latestSurveyId = getSurveyId(sd, ident);
+						}
+					}
+				}
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return latestSurveyId;
+	}
+
 
 	/*
 	 * Get the survey id from the form id

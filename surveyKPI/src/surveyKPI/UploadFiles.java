@@ -67,7 +67,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -534,7 +533,6 @@ public class UploadFiles extends Application {
 						// End Authorisation
 						
 					} else if(item.getFieldName().equals("surveyId")) {
-						surveyId = -1;
 						try {
 							surveyId = Integer.parseInt(item.getString());
 						} catch (Exception e) {
@@ -588,6 +586,11 @@ public class UploadFiles extends Application {
 			boolean merge = false;							// Set true if an existing survey is to be replaced or this survey is to be merged with an existing survey
 			
 			if(surveyId > 0) {
+				
+				// Hack.  Because the client is sending surveyId's instead of idents we need to get the latest
+				// survey id o we risk updating an old version
+				surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
+				
 				merge = true;
 				groupForms = sm.getGroupForms(sd, surveyId);
 				questionNames = sm.getGroupQuestions(sd, surveyId);
@@ -597,6 +600,7 @@ public class UploadFiles extends Application {
 			if(action == null) {
 				action = "add";
 			} else if(action.equals("replace")) {
+				
 				existingSurvey = sm.getById(sd, cResults, user, surveyId, 
 						false, basePath, null, false, false, false, 
 						false, false, null, false, false, superUser, null, 
