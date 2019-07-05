@@ -1332,6 +1332,7 @@ public class SubRelationalDB extends Subscriber {
 		 * Set the record as bad with the reason being that it has been replaced
 		 */		
 		String tableName = element.getTableName();
+		List<IE> columns = element.getQuestions();
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtCheckBad = null;
 		PreparedStatement pstmtAdd = null;
@@ -1351,7 +1352,7 @@ public class SubRelationalDB extends Subscriber {
 			if(rsCheckBad.next()) {
 				isGood = !rsCheckBad.getBoolean(1);
 			}
-
+				
 			if(isGood) {
 				// Get the form id for this table
 				String bad_reason = "Replaced by " + newKey;
