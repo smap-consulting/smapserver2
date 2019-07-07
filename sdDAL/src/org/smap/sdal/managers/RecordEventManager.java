@@ -65,7 +65,6 @@ public class RecordEventManager {
 			String tableName, 
 			String hrk, 
 			String newInstance, 
-			String oldInstance,
 			String changes,
 			int sId) throws SQLException {
 		

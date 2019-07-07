@@ -611,7 +611,8 @@ public class SubRelationalDB extends Subscriber {
 			if(hasHrk) {
 				if(keyPolicy.equals("merge") || keyPolicy.equals("replace")) {					
 					log.info("Apply merge-replace policy");
-					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, replace);
+					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
+							replace, remoteUser, instance.getUuid());
 				} else if(keyPolicy.equals("discard")) {
 					log.info("Apply discard policy");		// Only applied with HRK, direct updates use "replace" when policy is set to "discard"
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
@@ -626,7 +627,7 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace);
+							existingKey, replace, remoteUser, instance.getUuid());
 				}
 			} 
 
@@ -996,7 +997,9 @@ public class SubRelationalDB extends Subscriber {
 			int prikey,
 			int f_id,
 			int sourceKey,
-			boolean replace) throws SQLException, Exception {
+			boolean replace,
+			String user,
+			String newInstance) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -1031,11 +1034,12 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmtCopyChild = null;
 		PreparedStatement pstmtCopyBack = null;
 		
+		ArrayList<DataItemChange> changes = null;
+		String hrk = null;
 		try {
 
 			if(sourceKey == 0) {
 				// Get the HRK that identifies duplicates
-				String hrk = null;
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				pstmtHrk.setInt(1, prikey);
 				ResultSet rs = pstmtHrk.executeQuery();
@@ -1056,7 +1060,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			if(sourceKey > 0) {
 
-				mergeRecords(sd, cResults, table, prikey, sourceKey, true, replace, f_id);
+				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, true, replace, f_id);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
@@ -1176,6 +1180,13 @@ public class SubRelationalDB extends Subscriber {
 				
 
 			}
+			
+			if(changes != null) {
+				// Save the changes
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				RecordEventManager rem = new RecordEventManager();
+				rem.saveChange(sd, user, table, hrk, newInstance, gson.toJson(changes), sId);					
+			}
 
 			if(sourceKey > 0) {
 				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
@@ -1200,7 +1211,7 @@ public class SubRelationalDB extends Subscriber {
 	 * If replace is set then for questions that are in the submitting survey the merge is not applied
 	 *  - This would mean that an update can set a value to null within its own scope
 	 */
-	private void mergeRecords(
+	private ArrayList<DataItemChange> mergeRecords(
 			Connection sd,
 			Connection cRel, 
 			String table, 
@@ -1209,6 +1220,8 @@ public class SubRelationalDB extends Subscriber {
 			boolean addThread, 
 			boolean replace,
 			int f_id) throws SQLException {
+		
+		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 		
 		StringBuffer sqlCols = new StringBuffer("select column_name from information_schema.columns where table_name = ? "
 				+ "and column_name not like '\\_%' "
@@ -1257,12 +1270,6 @@ public class SubRelationalDB extends Subscriber {
 				
 				if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
 				pstmtGetSource = cRel.prepareStatement(sqlGetTarget);
-				pstmtGetSource.setInt(1, sourceKey);
-				ResultSet rsGetSource = pstmtGetSource.executeQuery();
-				String sourceVal = null;
-				if(rsGetSource.next()) {
-					sourceVal = rsGetSource.getString(1);
-				}
 				
 				if(rsGetTarget.next()) {
 					String val = rsGetTarget.getString(1);
@@ -1293,6 +1300,23 @@ public class SubRelationalDB extends Subscriber {
 					 */
 					if(subColType != null) {
 						System.out.println("Calculate change for: " + col);
+						
+						pstmtGetSource.setInt(1, sourceKey);
+						ResultSet rsGetSource = pstmtGetSource.executeQuery();
+						String oldVal = null;
+						if(rsGetSource.next()) {
+							oldVal = rsGetSource.getString(1);
+						}
+						
+						if(oldVal == null && val == null) {
+							continue;
+						} else if(oldVal == null || val == null || !oldVal.equals(val)) {
+							System.out.println("New val of: " + val + " for " + col + " was " + oldVal);
+							DataItemChange item = new DataItemChange(col, subColType, val, oldVal);
+							changes.add(item);
+						} else {
+							continue;
+						}
 					}
 				}
 	
@@ -1308,6 +1332,8 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
 			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
 		}
+		
+		return changes;
 
 	}
 	
@@ -1377,7 +1403,7 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Method to replace an existing record
-	 */
+	 *
 	private  void replaceExistingRecord(
 			Connection cRel, 
 			Connection sd, 
@@ -1391,9 +1417,9 @@ public class SubRelationalDB extends Subscriber {
 			int sId,
 			String remoteUser) throws SQLException, Exception {
 
-		/*
+		 *
 		 * Set the record as bad with the reason being that it has been replaced
-		 */		
+		 *	
 		String tableName = element.getTableName();
 		List<IE> columns = element.getQuestions();
 		PreparedStatement pstmt = null;
@@ -1443,9 +1469,9 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
-					/*
+					 *
 					 * Save the delta and delete the old record
-					 */
+					 *
 					String sqlGetData = "select * from " + tableName + " where prikey = ?";
 					pstmtGetData1 = cRel.prepareStatement(sqlGetData);
 					pstmtGetData1.setInt(1, existingKey);
@@ -1491,11 +1517,11 @@ public class SubRelationalDB extends Subscriber {
 
 
 					// Mark the record being replaced as bad
-					/*
+					 *
 					 * Is now deleted see above
 					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
 							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz, false);
-					*/
+					*
 					// Set the hrk of the new record to the hrk of the old record
 					// This can only be done for one old record, possibly there is never more than 1
 					if(hasHrk) {
@@ -1541,6 +1567,7 @@ public class SubRelationalDB extends Subscriber {
 		}
 
 	}
+	*/
 
 	/*
 	 * Get the primary key from the unique instance id
