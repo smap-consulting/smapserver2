@@ -1015,7 +1015,7 @@ public class SubRelationalDB extends Subscriber {
 				+ "and reference = 'false'";
 		PreparedStatement pstmtChildTables = null;
 		
-		String sqlChildTablesInGroup = "select distinct table_name from form "
+		String sqlChildTablesInGroup = "select distinct table_name, f_id  from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
 				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
@@ -1071,11 +1071,11 @@ public class SubRelationalDB extends Subscriber {
 				ArrayList<String> replaceTables = new ArrayList<> ();
 				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
-					if(rtm.getBoolean("merge")) {
-						mergeTables.add(rtm.getString(1));
-					} else if(rtm.getBoolean("replace")) {
+					if(rtm.getBoolean("replace") || replace) {		// Overall survey replace overrides sub form key policy
 						replaceTables.add(rtm.getString(1));
-					}
+					} else if(rtm.getBoolean("merge")) {
+						mergeTables.add(rtm.getString(1));
+					} 
 					log.info("Need to merge or replace table " + rtm.getString(1));
 				}
 				
@@ -1102,6 +1102,8 @@ public class SubRelationalDB extends Subscriber {
 					String tableName = rsc.getString(1);
 					int child_f_id = rsc.getInt(2);
 					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
+						
+						ArrayList<DataItemChange> subFormChanges = null;
 						
 						/*
 						 * Transfer data from the source key to the primary key in sequence
@@ -1132,11 +1134,11 @@ public class SubRelationalDB extends Subscriber {
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									mergeRecords(
+									subFormChanges = mergeRecords(
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, replace, child_f_id);
+											childPrikeys.get(i), childSourcekeys.get(i), false, false, child_f_id);  // Doing a merge so set replace to false
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1144,24 +1146,81 @@ public class SubRelationalDB extends Subscriber {
 									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
 									pstmtCopyChild.executeUpdate();
 									copiedSourceKeys.add(childSourcekeys.get(i));
+									/* TODO
+									subFormChanges = getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childSourcekeys.get(i), false, false, child_f_id);
+											*/
+								}
+								
+								changes.add(new DataItemChange(tableName, subFormChanges));
+							}
+							
+						} else if(replaceTables.contains(tableName)) {
+							log.info("Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							
+							for(int i = 0; i < childSourcekeys.size(); i++) {
+								if(i < childPrikeys.size()) {
+									// merge
+									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
+									subFormChanges = mergeRecords(
+											sd,
+											cResults, 
+											tableName, 
+											childPrikeys.get(i), childSourcekeys.get(i), false, true, child_f_id);  // Doing a replace so set replace to true
+								} else {
+									// Record the dropped record									
+									subFormChanges = getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childSourcekeys.get(i), false, child_f_id);
+											
+								}
+								
+								changes.add(new DataItemChange(tableName, subFormChanges));
+							}
+							if(childPrikeys.size() > childSourcekeys.size()) {
+								for(int i = childSourcekeys.size(); i < childPrikeys.size(); i++) {
+									// Record the added record									
+									subFormChanges = getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childPrikeys.get(i), false, child_f_id);
+									
+									changes.add(new DataItemChange(tableName, subFormChanges));
 								}
 							}
 							
-						} else if(!replaceTables.contains(tableName)) {
-							// Append old records to new
+						} else {
+							// Add. Therefore append old records to new
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								pstmtCopyChild.setInt(1, prikey);
 								pstmtCopyChild.setInt(2, childSourcekeys.get(i));
 								pstmtCopyChild.executeUpdate();
 								copiedSourceKeys.add(childSourcekeys.get(i));
 							}
-						}
+							for(int i = 0; i < childPrikeys.size(); i++) {
+								// Record the added records									
+								subFormChanges = getChangeRecord(
+										sd,
+										cResults, 
+										tableName, 
+										childPrikeys.get(i), false, child_f_id);
+								
+								changes.add(new DataItemChange(tableName, subFormChanges));
+							}
+						} 
 						
 						/*
 						 * Restore child entries for source survey
 						 * We do it in this way, ie move children to the new parent then copy back
 						 *  so that we can preserve order of children which is determined by their primary keys
 						 *  However if the record was merged then the order of the old records will be wrong
+						 *  Deprecate -- source surveys will be deleted when change is working correctly
 						 */
 						pstmtCopyBack = cResults.prepareStatement(getCopyBackSql(cResults, tableName, sourceKey));
 						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
@@ -1332,6 +1391,25 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
 			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
 		}
+		
+		return changes;
+
+	}
+	
+	/*
+	 * Get a change record for either a new subform record or deletion of a subform record
+	 */
+	private ArrayList<DataItemChange> getChangeRecord(
+			Connection sd,
+			Connection cRel, 
+			String table, 
+			int prikey, 
+			boolean replace,
+			int f_id) throws SQLException {
+		
+		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
+		
+		// TODO calculate the values in the deleted or added record
 		
 		return changes;
 
