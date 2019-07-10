@@ -7586,6 +7586,34 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the thread for a record
+	 * This is a UUID which identifies a series of changes to a record.
+	 * Ie if you start with Record A and then Update it then the two records will have the same thread id.
+	 */
+	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
+		
+		String thread = null;
+		String sql = "select _thread from " + table + " where instanceid = ?";
+		PreparedStatement pstmt = null;
+			
+		try {
+			
+			pstmt = cResults.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				thread = rs.getString(1);
+			}			
+			
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+		}
+		
+		return thread;
+
+	}
+	
+	/*
 	 * Set columns which have actually been published but are still marked as un-published to published
 	 * This function has been added due to the difficulty of keeping the published indicator always up to date
 	 *  in the situation where you have shared tables

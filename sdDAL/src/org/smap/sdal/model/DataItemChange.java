@@ -10,7 +10,7 @@ public class DataItemChange {
 	String type;
 	String newVal;									// Set for all types other than begin repeat
 	String oldVal;									// Set for all types other than begin repeat
-	ArrayList<DataItemChange> changes = null;		// Set if this is a begin repeat
+	ArrayList<ArrayList<DataItemChange>> changes = null;		// Set if this is a begin repeat
 
 	// Normal constructor
 	public DataItemChange(String col, String type, String newVal, String oldVal) {
@@ -21,7 +21,7 @@ public class DataItemChange {
 	}
 	
 	// Constructor for subform
-	public DataItemChange(String col, ArrayList<DataItemChange> changes) {
+	public DataItemChange(String col, ArrayList<ArrayList<DataItemChange>> changes) {
 		this.col = col;
 		type = "begin repeat";
 		this.changes = changes;

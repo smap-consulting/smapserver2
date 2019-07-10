@@ -1010,12 +1010,12 @@ public class SubRelationalDB extends Subscriber {
 				+ "order by prikey desc limit 1";
 		PreparedStatement pstmtSource = null;
 
-		String sqlChildTables = "select table_name, f_id from form "
+		String sqlChildTables = "select table_name, f_id, name from form "
 				+ "where parentform in (select f_id from form where parentform = 0 and s_id = ?) "
 				+ "and reference = 'false'";
 		PreparedStatement pstmtChildTables = null;
 		
-		String sqlChildTablesInGroup = "select distinct table_name, f_id  from form "
+		String sqlChildTablesInGroup = "select distinct table_name, f_id, name  from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
 				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
@@ -1026,8 +1026,7 @@ public class SubRelationalDB extends Subscriber {
 
 		String sqlTableMerge = "select table_name, merge, replace from form "
 				+ "where s_id = ? "
-				+ "and reference = 'false' "
-				+ "and (merge = 'true' or replace = 'true')";
+				+ "and reference = 'false' ";
 		PreparedStatement pstmtTableMerge = null;
 		
 		PreparedStatement pstmtChildKeys = null;
@@ -1101,12 +1100,13 @@ public class SubRelationalDB extends Subscriber {
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
 					int child_f_id = rsc.getInt(2);
+					String formname = rsc.getString(3);
 					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
 						
-						ArrayList<DataItemChange> subFormChanges = null;
+						ArrayList<ArrayList<DataItemChange>> subFormChanges = new ArrayList<ArrayList<DataItemChange>> ();
 						
 						/*
-						 * Transfer data from the source key to the primary key in sequence
+						 * Get the source keys and the target primary keys
 						 */
 						String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
 						pstmtChildKeys = cResults.prepareStatement(sqlGetChildKeys);
@@ -1129,16 +1129,17 @@ public class SubRelationalDB extends Subscriber {
 						if(mergeTables.contains(tableName)) {					
 							
 							log.info("Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
-														
+							
 							for(int i = 0; i < childSourcekeys.size(); i++) {
+								
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									subFormChanges = mergeRecords(
+									subFormChanges.add(mergeRecords(
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, false, child_f_id);  // Doing a merge so set replace to false
+											childPrikeys.get(i), childSourcekeys.get(i), false, false, child_f_id));  // Doing a merge so set replace to false
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1155,7 +1156,6 @@ public class SubRelationalDB extends Subscriber {
 											*/
 								}
 								
-								changes.add(new DataItemChange(tableName, subFormChanges));
 							}
 							
 						} else if(replaceTables.contains(tableName)) {
@@ -1165,33 +1165,30 @@ public class SubRelationalDB extends Subscriber {
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									subFormChanges = mergeRecords(
+									subFormChanges.add(mergeRecords(
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, true, child_f_id);  // Doing a replace so set replace to true
+											childPrikeys.get(i), childSourcekeys.get(i), false, true, child_f_id));  // Doing a replace so set replace to true
 								} else {
 									// Record the dropped record									
-									subFormChanges = getChangeRecord(
+									subFormChanges.add(getChangeRecord(
 											sd,
 											cResults, 
 											tableName, 
-											childSourcekeys.get(i), false, child_f_id);
+											childSourcekeys.get(i), false, child_f_id));
 											
 								}
-								
-								changes.add(new DataItemChange(tableName, subFormChanges));
 							}
 							if(childPrikeys.size() > childSourcekeys.size()) {
 								for(int i = childSourcekeys.size(); i < childPrikeys.size(); i++) {
 									// Record the added record									
-									subFormChanges = getChangeRecord(
+									subFormChanges.add(getChangeRecord(
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), false, child_f_id);
+											childPrikeys.get(i), false, child_f_id));
 									
-									changes.add(new DataItemChange(tableName, subFormChanges));
 								}
 							}
 							
@@ -1205,15 +1202,20 @@ public class SubRelationalDB extends Subscriber {
 							}
 							for(int i = 0; i < childPrikeys.size(); i++) {
 								// Record the added records									
-								subFormChanges = getChangeRecord(
+								subFormChanges.add(getChangeRecord(
 										sd,
 										cResults, 
 										tableName, 
-										childPrikeys.get(i), false, child_f_id);
+										childPrikeys.get(i), false, child_f_id));
 								
-								changes.add(new DataItemChange(tableName, subFormChanges));
 							}
+							
 						} 
+						
+						// Add the subform changes to the change record
+						if(hasSubFormChanges(subFormChanges)) {
+							changes.add(new DataItemChange(formname, subFormChanges));
+						}
 						
 						/*
 						 * Restore child entries for source survey
@@ -1244,7 +1246,7 @@ public class SubRelationalDB extends Subscriber {
 				// Save the changes
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				RecordEventManager rem = new RecordEventManager();
-				rem.saveChange(sd, user, table, hrk, newInstance, gson.toJson(changes), sId);					
+				rem.saveChange(sd, cResults, user, table, newInstance, gson.toJson(changes), sId);					
 			}
 
 			if(sourceKey > 0) {
@@ -1265,6 +1267,18 @@ public class SubRelationalDB extends Subscriber {
 
 	}
 
+	private boolean hasSubFormChanges(ArrayList<ArrayList<DataItemChange>> subFormChanges) {
+		
+		if(subFormChanges.size() > 0) {
+			for(ArrayList<DataItemChange> recChanges : subFormChanges) {
+				if(recChanges.size() > 0) {
+					return true;
+				}			
+			}
+		}
+		return false;
+	}
+	
 	/*
 	 * Merge records in a table
 	 * If replace is set then for questions that are in the submitting survey the merge is not applied

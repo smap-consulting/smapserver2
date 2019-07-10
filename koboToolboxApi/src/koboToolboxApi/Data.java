@@ -211,7 +211,7 @@ public class Data extends Application {
 	}
 	
 	/*
-	 * KoboToolBox API version 1 /data
+	 * Get changes to a record
 	 */
 	@GET
 	@Produces("application/json")
@@ -241,8 +241,9 @@ public class Data extends Application {
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
 			RecordEventManager rem = new RecordEventManager();
-			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, key);
+			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, thread);
 			
 			response = Response.ok(gson.toJson(changeEvents)).build();
 		} catch (Exception e) {

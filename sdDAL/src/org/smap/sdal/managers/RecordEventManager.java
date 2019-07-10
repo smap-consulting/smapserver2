@@ -61,9 +61,9 @@ public class RecordEventManager {
 	 *   by the old instanceid so all of these will need to be updated to the new instanceid
 	 */
 	public void saveChange(Connection sd, 
+			Connection cResults,
 			String user,
 			String tableName, 
-			String hrk, 
 			String newInstance, 
 			String changes,
 			int sId) throws SQLException {
@@ -87,13 +87,8 @@ public class RecordEventManager {
 				+ " where s_id = ?";
 		PreparedStatement pstmtSurvey = null;
 		
-		// Set key
-		String key = null;
-		if(hrk != null) {
-			key = hrk;
-		} else {
-			key = newInstance;
-		}
+		// Don't use the actual instance id as it will change with every update
+		String key = GeneralUtilityMethods.getThread(cResults, tableName, newInstance);
 		
 		// Set user id
 		int uId = GeneralUtilityMethods.getUserId(sd, user);
@@ -163,7 +158,6 @@ public class RecordEventManager {
 					event.surveyVersion = rs.getInt("change_survey_version");
 				}
 				
-
 				events.add(event);
 				
 			}
