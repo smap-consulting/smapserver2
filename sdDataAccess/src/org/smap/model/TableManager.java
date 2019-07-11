@@ -600,6 +600,8 @@ public class TableManager {
 			colType = "double precision";
 		} else if(colType.equals("dateTime")) {
 			colType = "timestamp with time zone";					
+		} else if(colType.equals("time")) {
+			colType = "time with time zone";					
 		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
 			colType = "text";					
 		} else if(colType.equals("select") && compressed) {
