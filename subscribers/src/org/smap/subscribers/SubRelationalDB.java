@@ -1059,7 +1059,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			if(sourceKey > 0) {
 
-				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, true, replace, f_id);
+				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
@@ -1139,7 +1139,7 @@ public class SubRelationalDB extends Subscriber {
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, false, child_f_id));  // Doing a merge so set replace to false
+											childPrikeys.get(i), childSourcekeys.get(i), false, child_f_id));  // Doing a merge so set replace to false
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1169,7 +1169,7 @@ public class SubRelationalDB extends Subscriber {
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, true, child_f_id));  // Doing a replace so set replace to true
+											childPrikeys.get(i), childSourcekeys.get(i), false, child_f_id));  // Doing a replace so set replace to true
 								} else {
 									// Record the dropped record									
 									subFormChanges.add(getChangeRecord(
@@ -1290,7 +1290,6 @@ public class SubRelationalDB extends Subscriber {
 			String table, 
 			int prikey, 
 			int sourceKey, 
-			boolean addThread, 
 			boolean replace,
 			int f_id) throws SQLException {
 		
@@ -1394,9 +1393,9 @@ public class SubRelationalDB extends Subscriber {
 				}
 	
 			}
-			if(addThread) {
-				GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
-			}
+
+			GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
+
 			
 		} finally {
 			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}

@@ -7537,6 +7537,36 @@ public class GeneralUtilityMethods {
 	 */
 	public static void continueThread(Connection cResults, String table, int prikey, int sourceKey) throws SQLException {
 		
+		String sqlCopyThreadCol = "update " + table 
+						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
+						+ " _assigned = (select _assigned from " + table + " where prikey = ?) "
+						+ "where prikey = ?";
+		PreparedStatement pstmtCopyThreadCol = null;
+			
+		try {
+			initialiseThread(cResults, table, sourceKey, null);
+			
+			// At this point the thread col must exist and the _thread value for the source must exist
+			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
+			pstmtCopyThreadCol.setInt(1, sourceKey);
+			pstmtCopyThreadCol.setInt(2, sourceKey);
+			pstmtCopyThreadCol.setInt(3, prikey);
+			log.info("continue thread: " + pstmtCopyThreadCol.toString());
+			pstmtCopyThreadCol.executeUpdate();
+			
+			
+		} finally {
+			if(pstmtCopyThreadCol != null) try{pstmtCopyThreadCol.close();}catch(Exception e) {}
+		}
+
+	}
+	
+	/*
+	 * Add the thread value that links replaced records
+	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
+	 */
+	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
+		
 		String sqlHasThreadCol = "select count(*) from information_schema.columns where table_name = ? "
 				+ "and column_name = '_thread' ";
 		PreparedStatement pstmtHasThreadCol = null;
@@ -7547,10 +7577,8 @@ public class GeneralUtilityMethods {
 		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ?";
 		PreparedStatement pstmtInitThreadCol = null;
 		
-		String sqlCopyThreadCol = "update " + table 
-				+ " set _thread = (select _thread from " + table
-				+ " where prikey = ?) where prikey = ?";
-		PreparedStatement pstmtCopyThreadCol = null;
+		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ?";
+		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
 			pstmtHasThreadCol = cResults.prepareStatement(sqlHasThreadCol);
@@ -7564,23 +7592,22 @@ public class GeneralUtilityMethods {
 				pstmtAddThreadCol.executeUpdate();
 				
 				// Initialise the thread column
-				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-				pstmtInitThreadCol.setInt(1, sourceKey);
-				pstmtInitThreadCol.executeUpdate();
+				if(sourceKey > 0) {
+					pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
+					pstmtInitThreadCol.setInt(1, sourceKey);
+					pstmtInitThreadCol.executeUpdate();
+				} else {
+					pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
+					pstmtInitThreadCol2.setString(1, instanceId);
+					pstmtInitThreadCol2.executeUpdate();
+				}
 			}
-			
-			// At this point the thread col must exist and the _thread value for the source must exist
-			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
-			pstmtCopyThreadCol.setInt(1, sourceKey);
-			pstmtCopyThreadCol.setInt(2, prikey);
-			pstmtCopyThreadCol.executeUpdate();
-			
 			
 		} finally {
 			if(pstmtHasThreadCol != null) try{pstmtHasThreadCol.close();}catch(Exception e) {}
 			if(pstmtAddThreadCol != null) try{pstmtAddThreadCol.close();}catch(Exception e) {}
 			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
-			if(pstmtCopyThreadCol != null) try{pstmtCopyThreadCol.close();}catch(Exception e) {}
+			if(pstmtInitThreadCol2 != null) try{pstmtInitThreadCol2.close();}catch(Exception e) {}
 		}
 
 	}
@@ -7598,12 +7625,18 @@ public class GeneralUtilityMethods {
 			
 		try {
 			
+			initialiseThread(cResults, table, 0, instanceId);
+			
 			pstmt = cResults.prepareStatement(sql);
 			pstmt.setString(1, instanceId);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				thread = rs.getString(1);
-			}			
+			}	
+			
+			if (thread == null) {
+				
+			}
 			
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
