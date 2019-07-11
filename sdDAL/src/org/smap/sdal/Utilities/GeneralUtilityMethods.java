@@ -8122,6 +8122,30 @@ public class GeneralUtilityMethods {
 		}
 
 	}
+	
+	public static String getInstanceId(Connection cResults, String tableName, int prikey) throws SQLException {
+
+		String instanceId = null;
+		
+		PreparedStatement pstmt = null;
+		String sql = "select instanceid "
+				+ "from " + tableName + " "
+				+ "where prikey = ? ";
+
+		try {
+			pstmt = cResults.prepareStatement(sql);
+
+			pstmt.setInt(1, prikey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				instanceId = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+		return instanceId;
+	}
 
 	
 }

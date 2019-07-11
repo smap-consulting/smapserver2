@@ -1371,7 +1371,6 @@ public class SubRelationalDB extends Subscriber {
 					 * Get the change value if this question is in the submitting form
 					 */
 					if(subColType != null) {
-						System.out.println("Calculate change for: " + col);
 						
 						pstmtGetSource.setInt(1, sourceKey);
 						ResultSet rsGetSource = pstmtGetSource.executeQuery();
@@ -1383,9 +1382,7 @@ public class SubRelationalDB extends Subscriber {
 						if(oldVal == null && val == null) {
 							continue;
 						} else if(oldVal == null || val == null || !oldVal.equals(val)) {
-							System.out.println("New val of: " + val + " for " + col + " was " + oldVal);
-							DataItemChange item = new DataItemChange(col, subColType, val, oldVal);
-							changes.add(item);
+							changes.add(new DataItemChange(col, subColType, val, oldVal));
 						} else {
 							continue;
 						}

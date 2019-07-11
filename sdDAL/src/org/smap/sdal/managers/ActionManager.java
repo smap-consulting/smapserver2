@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -21,6 +22,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Action;
+import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
@@ -402,12 +404,21 @@ public class ActionManager {
 			/*
 			 * Process each column
 			 */
+			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
 			log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
 				Update u = updates.get(i);
 
+				// Set up storage of changes
+				String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
+				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
+				if(changes == null) {
+					changes = new ArrayList<DataItemChange> ();
+					changeMap.put(instanceid, changes);
+				}
+				
 				// 1. Escape quotes in update name, though not really necessary due to next step
 				u.name = u.name.replace("'", "''").trim();
 
@@ -488,8 +499,23 @@ public class ActionManager {
 					applyManagedFormActions(request, sd, tc, oId, sId, pId, managedId, u.prikey, priority, u.value,
 							localisation);
 				}
+				
+				/*
+				 * Record the change
+				 */
+				changes.add(new DataItemChange(u.name, tc.type, u.value, u.currentValue));
 
 			}
+			
+			/*
+			 * save change log
+			 */
+			RecordEventManager rem = new RecordEventManager();
+			for(String inst : changeMap.keySet()) {
+				rem.saveChange(sd, cResults, userIdent, f.tableName, inst, gson.toJson(changeMap.get(inst)), sId);
+			}
+			
+			
 			cResults.commit();
 			response = Response.ok().build();
 
