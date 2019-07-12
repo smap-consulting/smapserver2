@@ -7567,13 +7567,6 @@ public class GeneralUtilityMethods {
 	 */
 	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
 		
-		String sqlHasThreadCol = "select count(*) from information_schema.columns where table_name = ? "
-				+ "and column_name = '_thread' ";
-		PreparedStatement pstmtHasThreadCol = null;
-		
-		String sqlAddThread = "alter table " + table + " add column _thread text";
-		PreparedStatement pstmtAddThreadCol = null;
-		
 		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ?";
 		PreparedStatement pstmtInitThreadCol = null;
 		
@@ -7581,15 +7574,9 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
-			pstmtHasThreadCol = cResults.prepareStatement(sqlHasThreadCol);
-			pstmtHasThreadCol.setString(1, table);
-			ResultSet rsCols = pstmtHasThreadCol.executeQuery();
-
-			rsCols.next();
-			if(rsCols.getInt(1) == 0) {
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
 				// Add the thread column
-				pstmtAddThreadCol = cResults.prepareStatement(sqlAddThread);
-				pstmtAddThreadCol.executeUpdate();
+				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");
 				
 				// Initialise the thread column
 				if(sourceKey > 0) {
@@ -7602,10 +7589,11 @@ public class GeneralUtilityMethods {
 					pstmtInitThreadCol2.executeUpdate();
 				}
 			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
+			}
 			
 		} finally {
-			if(pstmtHasThreadCol != null) try{pstmtHasThreadCol.close();}catch(Exception e) {}
-			if(pstmtAddThreadCol != null) try{pstmtAddThreadCol.close();}catch(Exception e) {}
 			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
 			if(pstmtInitThreadCol2 != null) try{pstmtInitThreadCol2.close();}catch(Exception e) {}
 		}
