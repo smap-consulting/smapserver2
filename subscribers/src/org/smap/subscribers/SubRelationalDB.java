@@ -1307,6 +1307,8 @@ public class SubRelationalDB extends Subscriber {
 		
 		PreparedStatement pstmtGetTarget = null;
 		PreparedStatement pstmtGetSource = null;
+		PreparedStatement pstmtGetTargetGeom = null;
+		PreparedStatement pstmtGetSourceGeom = null;
 		PreparedStatement pstmtUpdateTarget = null;
 		
 		HashMap<String, String> subCols = new HashMap<> (); 
@@ -1332,17 +1334,18 @@ public class SubRelationalDB extends Subscriber {
 			int count = 0;
 			while(rsCols.next()) {
 				String col = rsCols.getString(1);
-				
+
 				String sqlGetTarget = "select " + col + " from " + table + " where prikey = ?";
+				String sqlGetTargetGeom = "select ST_AsGeoJSON(" + col + ") from " + table + " where prikey = ?";
 	
 				if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
 				pstmtGetTarget = cRel.prepareStatement(sqlGetTarget);
-				pstmtGetTarget.setInt(1, prikey);
-				ResultSet rsGetTarget = pstmtGetTarget.executeQuery();
 				
 				if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
 				pstmtGetSource = cRel.prepareStatement(sqlGetTarget);
 				
+				pstmtGetTarget.setInt(1, prikey);
+				ResultSet rsGetTarget = pstmtGetTarget.executeQuery();
 				if(rsGetTarget.next()) {
 					String val = rsGetTarget.getString(1);
 					String subColType = subCols.get(col);
@@ -1372,11 +1375,34 @@ public class SubRelationalDB extends Subscriber {
 					 */
 					if(subColType != null) {
 						
-						pstmtGetSource.setInt(1, sourceKey);
-						ResultSet rsGetSource = pstmtGetSource.executeQuery();
 						String oldVal = null;
-						if(rsGetSource.next()) {
-							oldVal = rsGetSource.getString(1);
+						
+						// If this is a geo question then replace values with geoJson
+						if(GeneralUtilityMethods.isGeometry(subColType)) {
+							if(pstmtGetSourceGeom != null) try{pstmtGetSourceGeom.close();}catch(Exception e) {}
+							pstmtGetSourceGeom = cRel.prepareStatement(sqlGetTargetGeom);						
+							if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}
+							pstmtGetTargetGeom = cRel.prepareStatement(sqlGetTargetGeom);
+							
+							pstmtGetSourceGeom.setInt(1, sourceKey);
+							ResultSet rsGetGeom = pstmtGetSourceGeom.executeQuery();						
+							if(rsGetGeom.next()) {
+								oldVal = rsGetGeom.getString(1);
+							}
+							
+							pstmtGetTargetGeom.setInt(1, prikey);
+							rsGetGeom = pstmtGetTargetGeom.executeQuery();						
+							if(rsGetGeom.next()) {
+								val = rsGetGeom.getString(1);
+							}
+							
+						} else {
+							// Just get the source in raw string format
+							pstmtGetSource.setInt(1, sourceKey);
+							ResultSet rsGetSource = pstmtGetSource.executeQuery();
+							if(rsGetSource.next()) {
+								oldVal = rsGetSource.getString(1);
+							}
 						}
 						
 						if(oldVal == null && val == null) {
@@ -1397,6 +1423,8 @@ public class SubRelationalDB extends Subscriber {
 		} finally {
 			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}
 			if(pstmtSubmissionCols != null) try{pstmtSubmissionCols.close();}catch(Exception e) {}
+			if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}
+			if(pstmtGetSourceGeom != null) try{pstmtGetSourceGeom.close();}catch(Exception e) {}
 			if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
 			if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
 			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
