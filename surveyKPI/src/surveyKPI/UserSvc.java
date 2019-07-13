@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Alert;
+import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -326,9 +327,8 @@ public class UserSvc extends Application {
 
 		// Authorisation - Not Required
 		Connection sd = SDDataSource.getConnection("surveyKPI-UserSvc");
-		
-		Type type = new TypeToken<User>(){}.getType();		
-		User u = new Gson().fromJson(user, type);		// The user settings
+			
+		User u = new Gson().fromJson(user, User.class);		// The user settings
 		
 		PreparedStatement pstmt = null;
 		try {	
@@ -366,7 +366,6 @@ public class UserSvc extends Application {
 				pstmt.setString(2, request.getRemoteUser());
 			}
 				
-			log.info("Update user defaults: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
 			if(count == 0) {
 				log.info("Failed to update current project id and survey id");
@@ -384,6 +383,67 @@ public class UserSvc extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-UserSvc", sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Update the current survey, project and task group
+	 */
+	@POST
+	@Consumes("application/json")
+	@Path("/groupsurvey")
+	public Response updateGroupSurvey(@Context HttpServletRequest request, @FormParam("groupSurvey") String group) { 
+		
+		Response response = null;
+		String connectionString = "SurveyKPI - save groupsurvey";
+		// Authorisation - Not Required
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		GroupSurvey gs = new Gson().fromJson(group, GroupSurvey.class);
+		
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtDel = null;
+		try {	
+			
+			// Localisation			
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+		
+			String sqlDel = "delete from group_survey "
+						+ "where u_ident = ? "
+						+ "and s_id = ? ";
+			pstmtDel = sd.prepareStatement(sqlDel);
+			
+			String sql = "insert into group_survey (u_ident, s_id, group_ident) "
+					+ "values (?, ? , ?) ";
+			pstmt = sd.prepareStatement(sql);
+			
+			pstmtDel.setString(1, request.getRemoteUser());
+			pstmtDel.setInt(2, gs.sId);
+			pstmtDel.executeUpdate();	
+			
+			pstmt.setString(1, request.getRemoteUser());
+			pstmt.setInt(2, gs.sId);
+			pstmt.setString(3, gs.groupIdent);
+			pstmtDel.executeUpdate();	
+				
+			int count = pstmt.executeUpdate();
+
+			response = Response.ok().build();
+				
+		} catch (Exception e) {
+
+			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error", e);
+			
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtDel != null) {pstmtDel.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;

@@ -18,6 +18,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
@@ -244,6 +245,26 @@ public class UserManager {
 				role.id = resultSet.getInt("id");
 				role.name = resultSet.getString("name");
 				user.roles.add(role);
+			}
+			
+			/*
+			 * Get the current survey - group survey relationships
+			 */
+			sql = "SELECT s_id, group_ident " +
+					" from group_survey " +
+					" where u_ident = ?";
+
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+			pstmt = connectionSD.prepareStatement(sql);
+			pstmt.setString(1, ident);
+
+			resultSet = pstmt.executeQuery();
+
+			while(resultSet.next()) {
+				if(user.groupSurveys == null) {
+					user.groupSurveys = new ArrayList<GroupSurvey> ();
+				}
+				user.groupSurveys.add(new GroupSurvey(resultSet.getInt(1), resultSet.getString(2)));
 			}
 			
 			/*
