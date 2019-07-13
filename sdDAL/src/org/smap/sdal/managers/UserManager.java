@@ -679,11 +679,11 @@ public class UserManager {
 			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			if(isOrgUser) {
-				sql = "delete from user_group where u_id = ?;";
+				sql = "delete from user_group where u_id = ? and g_id != 9;";
 			} else if(isSecurityManager) {
-				sql = "delete from user_group where u_id = ? and g_id != 4;";					// Cannot change super user group
+				sql = "delete from user_group where u_id = ? and g_id != 4 and g_id != 9;";					// Cannot change super user group
 			} else {
-				sql = "delete from user_group where u_id = ? and g_id != 4 and g_id != 6;";		// Cannot change super user group, or security manager
+				sql = "delete from user_group where u_id = ? and g_id != 4 and g_id != 6 and g_id != 9;";		// Cannot change super user group, or security manager
 			}
 
 			if(u.groups != null) {
