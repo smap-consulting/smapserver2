@@ -130,6 +130,10 @@ public class SurveyView extends Application {
 		} else if(queryId > 0) {
 			aNormal.isValidQuery(sd, request.getRemoteUser(), queryId);
 		}
+		if(groupSurveyIdent != null) {
+			aManage.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurveyIdent);
+		}
+		
 		// End Authorisation
 		
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-GetReportConfig");
