@@ -80,7 +80,8 @@ public class SurveyViewManager {
 			int managedId,
 			String uIdent,
 			int oId,
-			boolean superUser) throws SQLException, Exception  {
+			boolean superUser,
+			String groupSurvey) throws SQLException, Exception  {
 		
 		SurveyViewDefn svd = new SurveyViewDefn(viewId, sId, managedId, 0);		// Todo Query id
 		

@@ -99,7 +99,7 @@ public class SurveyView extends Application {
 			@PathParam("viewId") int viewId,
 			@QueryParam("survey") int sId,
 			@QueryParam("managed") int managedId,
-			@QueryParam("groupSurvey") String groupSurveyIdent,
+			@QueryParam("groupSurvey") String groupSurvey,
 			@QueryParam("query") int queryId) throws Exception {
 		
 		if(managedId > 0 && sId == 0) {
@@ -110,7 +110,7 @@ public class SurveyView extends Application {
 			throw new Exception("You must specify either a query id or a survey id");
 		}
 		
-		System.out.println("GroupSurvey: " + groupSurveyIdent);
+		System.out.println("GroupSurvey: " + groupSurvey);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-GetReportConfig");
@@ -130,8 +130,8 @@ public class SurveyView extends Application {
 		} else if(queryId > 0) {
 			aNormal.isValidQuery(sd, request.getRemoteUser(), queryId);
 		}
-		if(groupSurveyIdent != null) {
-			aManage.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurveyIdent);
+		if(groupSurvey != null) {
+			aManage.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
 		}
 		
 		// End Authorisation
@@ -155,7 +155,11 @@ public class SurveyView extends Application {
 				viewId = svm.getDefaultView(sd, uId, sId, managedId, queryId);
 			}
 			
-			SurveyViewDefn sv = svm.getSurveyView(sd, cResults, uId, viewId, sId, managedId, request.getRemoteUser(), oId, superUser);
+			SurveyViewDefn sv = svm.getSurveyView(sd, 
+					cResults, 
+					uId, 
+					viewId, sId, managedId, request.getRemoteUser(), oId, superUser,
+					groupSurvey);
 			
 			/*
 			 * Remove data that is only used on the server

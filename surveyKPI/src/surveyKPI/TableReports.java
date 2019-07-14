@@ -142,7 +142,8 @@ public class TableReports extends Application {
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			// Get the default view	
 			int viewId = svm.getDefaultView(sd, uId, sId, managedId, 0);
-			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, viewId, sId, managedId, request.getRemoteUser(), oId, superUser);
+			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, viewId, sId, managedId, 
+					request.getRemoteUser(), oId, superUser, null);	// TODO add support for group survey
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;

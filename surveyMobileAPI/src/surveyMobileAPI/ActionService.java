@@ -278,7 +278,8 @@ public class ActionService extends Application {
 		int uId = GeneralUtilityMethods.getUserId(sd, uIdent);
 		SurveyViewManager mfm = new SurveyViewManager(localisation, tz);
 		mfc = mfm.getSurveyView(sd, cResults, uId, 0, a.sId, a.managedId, uIdent,
-				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser);
+				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser,
+				null);	// TODO Add GroupSurvey
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		Form f = GeneralUtilityMethods.getTopLevelForm(sd, a.sId);
 
