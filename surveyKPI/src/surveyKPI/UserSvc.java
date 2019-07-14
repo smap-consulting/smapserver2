@@ -424,12 +424,15 @@ public class UserSvc extends Application {
 			pstmtDel.setInt(2, gs.sId);
 			pstmtDel.executeUpdate();	
 			
+			// Add the group ident if it is not zero length (ie set to none)
+			if(gs.groupIdent != null && gs.groupIdent.length() > 0) {
 			pstmt.setString(1, request.getRemoteUser());
-			pstmt.setInt(2, gs.sId);
-			pstmt.setString(3, gs.groupIdent);
-			pstmtDel.executeUpdate();	
-				
-			int count = pstmt.executeUpdate();
+				pstmt.setInt(2, gs.sId);
+				pstmt.setString(3, gs.groupIdent);
+				log.info("Update group survey: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+
 
 			response = Response.ok().build();
 				
