@@ -60,6 +60,7 @@ import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
@@ -465,6 +466,8 @@ public class Data extends Application {
 			
 			if(groupSurvey != null) {
 				int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
+				Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
+
 				ArrayList<TableColumn> groupColumns = GeneralUtilityMethods.getColumnsInForm(
 						sd,
 						cResults,
@@ -475,7 +478,7 @@ public class Data extends Application {
 						request.getRemoteUser(),
 						null,
 						parentform,
-						fId,
+						f.id,
 						table_name,
 						true,		// Read Only
 						false,	// Include parent key if the form is not the top level form (fId is 0)
@@ -588,11 +591,11 @@ public class Data extends Application {
 			
 			outWriter.print("]");
 			if(isDt) {
+				outWriter.print(",\"schema\":{\"tom\":\"harry\"}");
 				outWriter.print("}");
 			}
 			
-			if(isGeoJson) {
-										// TODO bbox
+			if(isGeoJson) {				// TODO bbox										
 				outWriter.print("}");	// close
 			}
 
