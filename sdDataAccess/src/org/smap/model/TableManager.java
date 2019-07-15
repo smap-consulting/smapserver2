@@ -192,20 +192,12 @@ public class TableManager {
 				+ "where f_id = ? "
 				+ "and column_name in (select column_name from question where f_id = ?);";
 
-		//String sqlSetOptionsPublishedThisForm = "update option set published = 'true' "
-		//		+ "where l_id in (select l_id from question q where f_id = ?);";
-		
-		//String sqlSetOptionsPublishedSharedForm = "update option set published = 'true' "
-		//		+ "where l_id in (select l_id from question q where f_id = ? "
-		//		+ "and column_name in (select column_name from question where f_id = ?));";
 
 		PreparedStatement pstmtGetForms = null;
 		PreparedStatement pstmtSetPublishedThisForm = null;
 		PreparedStatement pstmtSetPublishedSharedForm = null;
 		PreparedStatement pstmtSetPublishedParentQuestion = null;
 		PreparedStatement pstmtSetPublishedParentQuestionSharedForm = null;
-		//PreparedStatement pstmtSetOptionsPublishedThisForm = null;
-		//PreparedStatement pstmtSetOptionsPublishedSharedForm = null;
 
 		try {
 
@@ -214,8 +206,6 @@ public class TableManager {
 			pstmtSetPublishedSharedForm = sd.prepareStatement(sqlSetPublishedSharedForm);
 			pstmtSetPublishedParentQuestion = sd.prepareStatement(sqlSetPublishedParentQuestion);
 			pstmtSetPublishedParentQuestionSharedForm = sd.prepareStatement(sqlSetPublishedParentQuestionSharedForm);
-			//pstmtSetOptionsPublishedThisForm = sd.prepareStatement(sqlSetOptionsPublishedThisForm);
-			//pstmtSetOptionsPublishedSharedForm = sd.prepareStatement(sqlSetOptionsPublishedSharedForm);
 
 			// 1. Get all the affected forms
 			pstmtGetForms.setInt(1, fId);
@@ -241,11 +231,6 @@ public class TableManager {
 					pstmtSetPublishedThisForm.setInt(1, fd.fId);
 					log.info("Mark published: " + pstmtSetPublishedThisForm.toString());
 					pstmtSetPublishedThisForm.executeUpdate();
-
-					// 3.2a Update Options in the submitting form
-					//pstmtSetOptionsPublishedThisForm.setInt(1, fd.fId);
-					//log.info("Mark published: " + pstmtSetOptionsPublishedThisForm.toString());
-					//pstmtSetOptionsPublishedThisForm.executeUpdate();
 					
 					// 3.3a Update parent question in the submitting form
 					pstmtSetPublishedParentQuestion.setInt(1, fd.fId);
@@ -373,7 +358,7 @@ public class TableManager {
 				
 				if(tableCreated) {
 					markPublished(sd, form.getId(), sId);
-					//markAllChangesApplied(sd, sId);
+
 				}
 
 				// Add managed columns if a top level form has been created or a mangedId was passed

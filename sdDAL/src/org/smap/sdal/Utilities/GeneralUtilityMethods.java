@@ -3364,7 +3364,7 @@ public class GeneralUtilityMethods {
 			boolean hxl,
 			boolean audit,
 			String tz,
-			boolean mgmt)	// If set substitute display name for the question name if it is not null
+			boolean mgmt)	// If set substitute display name for the question name if it is not null, also publish un published
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
@@ -3437,7 +3437,7 @@ public class GeneralUtilityMethods {
 				+ "order by o.seq;";
 		PreparedStatement pstmtSelectChoices = sd.prepareStatement(sqlSelectMultiple);
 
-		updateUnPublished(sd, cResults, table_name, f_id);		// Ensure that all columns marked not published really are
+		updateUnPublished(sd, cResults, table_name, f_id, mgmt);		// Ensure that all columns marked not published really are
 		
 		TableColumn c = new TableColumn();
 		c.column_name = "prikey";
@@ -3653,7 +3653,7 @@ public class GeneralUtilityMethods {
 				String display_name = rsQuestions.getString(8);
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
-
+				
 				String hxlCode = getHxlCode(appearance, question_name);
 
 				if (durationColumn != null && source_param != null) {
@@ -7639,9 +7639,10 @@ public class GeneralUtilityMethods {
 	 * This function has been added due to the difficulty of keeping the published indicator always up to date
 	 *  in the situation where you have shared tables
 	 */
-	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, int fId) throws SQLException {
+	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, 
+			int fId, boolean publish) throws SQLException {
 		
-		String sql = "select q_id, column_name " 
+		String sql = "select q_id, column_name, qtype " 
 				+ "from question where f_id = ? "
 				+ "and source is not null "
 				+ "and published = 'false' "
@@ -7654,7 +7655,7 @@ public class GeneralUtilityMethods {
 		
 		String sqlUpdate = "update question set published = 'true' where q_id = ?";
 		PreparedStatement pstmtUpdate = null;
-
+		
 		ResultSet rs = null;
 		ResultSet rsPub = null;
 		try {
@@ -7666,12 +7667,14 @@ public class GeneralUtilityMethods {
 			// Get unpublished
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, fId);
-			
+		
 			log.info(pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				int qId = rs.getInt(1);
-				pstmtPub.setString(2, rs.getString(2));	
+				String columnName = rs.getString(2);
+				String type = rs.getString(3);
+				pstmtPub.setString(2, columnName);	
 				
 				rsPub = pstmtPub.executeQuery();
 				int count = 0;
@@ -7682,6 +7685,8 @@ public class GeneralUtilityMethods {
 					// Column has been published
 					pstmtUpdate.setInt(1, qId);
 					pstmtUpdate.executeUpdate();
+				} else if(publish) {
+					//publishQuestion(tableName, columnName, type);
 				}
 			}
 			

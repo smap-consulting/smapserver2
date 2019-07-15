@@ -148,91 +148,38 @@ public class SurveyViewManager {
 				
 			}
 			
-			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
+			// Add the main form columns to the Survey View Definition
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
-					sd,
-					cResults,
-					localisation,
+			populateSvd(sd, 
+					cResults, 
+					svd,
+					configColumns,
+					true,			// Is main survey
 					language,
 					sId,
 					surveyIdent,
 					uIdent,
-					null,	// roles to apply
-					0,
-					f.id,
-					f.tableName,
-					false,	// Don't include Read only
-					true,	// Include parent key
-					true,	// Include "bad"
-					true,	// Include instanceId
-					true,	// include prikey
-					true,	// Include other meta data
-					true,		// include preloads
-					true,		// include instancename
-					true,		// Survey duration
-					superUser,
-					false,		// HXL only include with XLS exports
-					false,		// Don't include audit data
-					tz,
-					true		// mgmt
-					);		
-			
+					superUser);
 			
 			/*
-			 * Add any configuration settings
-			 * Order the config according to the current survey definition and
-			 * Add any new columns that may have been added to the survey since the configuration was created
-			 */			
-			for(int i = 0; i < columnList.size(); i++) {
-				TableColumn c = columnList.get(i);
-				if(keepThis(c.column_name)) {
-					TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
-					if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
-						tc.hide = hideDefault(c.displayName);
-					}
-					tc.filter = c.filter;
-					tc.type = c.type;
-					tc.l_id = c.l_id;
-					for(int j = 0; j < configColumns.size(); j++) {
-						TableColumnConfig tcConfig = configColumns.get(j);
-						if(tcConfig.name.equals(tc.column_name)) {
-							tc.hide = tcConfig.hide;
-							tc.barcode = tcConfig.barcode;
-							tc.filterValue = tcConfig.filterValue;
-							tc.chart_type = tcConfig.chart_type;
-							tc.width = tcConfig.width;
-							break;
-						}
-					}
-					
-					if(tc.column_name.equals("the_geom")) {
-						tc.displayName = "_geolocation";
-					}
-
-					// Add markup for assigned column
-					if(tc.column_name.equals(ASSIGNED_COLUMN)) {
-						tc.markup = new ArrayList<> ();
-						tc.markup.add(new TableColumnMarkup(uIdent, "bg-info"));		// Blue
-						tc.markup.add(new TableColumnMarkup("", "bg-warning"));		// Yellow
-					}
-					if(tc.include) {
-						svd.columns.add(tc);
-					}
-				}
-			}
-			
-			/*
-			 * Add the managed form columns and configuration
+			 * Add the managed form columns and configuration - Deprecate
 			 */
 			if(managedId > 0) {
 				getDataProcessingConfig(sd, managedId, svd, configColumns, oId);
 			}
 			
-			/*
-			 * Add the choice lists
-			 */
-			svd.choiceLists = GeneralUtilityMethods.getChoicesInForm(sd, sId, f.id);
+			// Add the managed form columns from the group survey
+			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
+			populateSvd(sd, 
+					cResults, 
+					svd,
+					configColumns,
+					false,			// Is main survey
+					language,
+					groupSurveyId,
+					groupSurvey,
+					uIdent,
+					superUser);
 		
 				
 		} catch (SQLException e) {
@@ -245,6 +192,114 @@ public class SurveyViewManager {
 		
 		return svd;
 
+	}
+	
+	/*
+	 * 
+	 */
+	public void populateSvd(
+			Connection sd, 
+			Connection cResults, 
+			SurveyViewDefn svd,
+			ArrayList<TableColumnConfig> configColumns,
+			boolean isMain,
+			String language,
+			int sId,
+			String surveyIdent,
+			String uIdent,
+			boolean superUser) throws Exception {
+		
+		Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
+		
+		ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
+				sd,
+				cResults,
+				localisation,
+				language,
+				sId,
+				surveyIdent,
+				uIdent,
+				null,	// roles to apply
+				0,
+				f.id,
+				f.tableName,
+				false,	// Don't include Read only
+				isMain,	// Include parent key
+				isMain,	// Include "bad"
+				isMain,	// Include instanceId
+				isMain,	// include prikey
+				isMain,	// Include other meta data
+				isMain,		// include preloads
+				isMain,		// include instancename
+				isMain,		// Survey duration
+				superUser,
+				false,		// HXL only include with XLS exports
+				false,		// Don't include audit data
+				tz,
+				isMain		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+				);		
+		
+		
+		/*
+		 * Add any configuration settings
+		 * Order the config according to the current survey definition and
+		 * Add any new columns that may have been added to the survey since the configuration was created
+		 */			
+		for(int i = 0; i < columnList.size(); i++) {
+			TableColumn c = columnList.get(i);
+			if(keepThis(c.column_name)) {
+				TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
+				if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
+					tc.hide = hideDefault(c.displayName);
+				}
+				tc.mgmt = !isMain;
+				tc.filter = c.filter;
+				tc.type = c.type;
+				tc.l_id = c.l_id;
+				for(int j = 0; j < configColumns.size(); j++) {
+					TableColumnConfig tcConfig = configColumns.get(j);
+					if(tcConfig.name.equals(tc.column_name)) {
+						tc.hide = tcConfig.hide;
+						tc.barcode = tcConfig.barcode;
+						tc.filterValue = tcConfig.filterValue;
+						tc.chart_type = tcConfig.chart_type;
+						tc.width = tcConfig.width;
+						break;
+					}
+				}
+				
+				if(tc.column_name.equals("the_geom")) {
+					tc.displayName = "_geolocation";
+				}
+
+				// Add markup for assigned column
+				if(tc.column_name.equals(ASSIGNED_COLUMN)) {
+					tc.markup = new ArrayList<> ();
+					tc.markup.add(new TableColumnMarkup(uIdent, "bg-info"));		// Blue
+					tc.markup.add(new TableColumnMarkup("", "bg-warning"));		// Yellow
+				}
+				
+				if(tc.include) {					
+					svd.columns.add(tc);
+					
+					if(isMain) {
+						svd.mainColumnNames.put(tc.column_name, svd.columns.size() - 1);
+					} else {
+						// remove columns from the data form that are in the group survey form
+						Integer idx = svd.mainColumnNames.get(tc.column_name);
+						if(idx != null) {
+							svd.columns.remove(idx.intValue());
+						}
+					}
+					
+				}
+			}
+		}
+		
+		/*
+		 * Add the choice lists TODO - What is this used for?  Are choice lists also required for the group survey?
+		 */
+		svd.choiceLists = GeneralUtilityMethods.getChoicesInForm(sd, sId, f.id);
 	}
 	
 	/*
@@ -399,6 +454,7 @@ public class SurveyViewManager {
 		}
 		return viewId;
 	}
+	
 	/*
 	 * Get the managed columns
 	 */
@@ -455,6 +511,7 @@ public class SurveyViewManager {
 		}
 		
 	}
+	
 	
 	/*
 	 * Get a list of the surveys in a project and their management status

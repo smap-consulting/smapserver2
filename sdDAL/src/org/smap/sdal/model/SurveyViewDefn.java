@@ -12,6 +12,7 @@ public class SurveyViewDefn {
 	public int managedId;
 	public int queryId;
 	public HashMap<String, String> parameters = null;
+	public HashMap<String, Integer> mainColumnNames = new HashMap<>();
 	public ArrayList<TableColumn> columns = new ArrayList<TableColumn> ();		// Table
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts
