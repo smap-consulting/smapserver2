@@ -155,6 +155,7 @@ public class Data extends Application {
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("mgmt") boolean mgmt,
+			@QueryParam("groupSurvey") String groupSurvey,
 			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			@QueryParam("sort") String sort,				// Column Human Name to sort on
 			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
@@ -180,7 +181,7 @@ public class Data extends Application {
 		}
 		
 		// Authorisation is done in getDataRecords
-		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
+		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks);
 	}
 	
@@ -268,6 +269,7 @@ public class Data extends Application {
 			int start,				// Primary key to start from
 			int limit,				// Number of records to return
 			boolean mgmt,
+			String groupSurvey,
 			boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			String sort,				// Column Human Name to sort on
 			String dirn,				// Sort direction, asc || desc
@@ -459,6 +461,38 @@ public class Data extends Application {
 				if(config != null) {
 					columns.addAll(config.columns);
 				}
+			}
+			
+			if(groupSurvey != null) {
+				int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
+				ArrayList<TableColumn> groupColumns = GeneralUtilityMethods.getColumnsInForm(
+						sd,
+						cResults,
+						localisation,
+						language,
+						groupSurveyId,
+						groupSurvey,
+						request.getRemoteUser(),
+						null,
+						parentform,
+						fId,
+						table_name,
+						true,		// Read Only
+						false,	// Include parent key if the form is not the top level form (fId is 0)
+						false,
+						false,		// include instance id
+						false,		// Include prikey
+						false,		// include other meta data
+						false,		// include preloads
+						false,		// include instancename
+						false,		// include survey duration
+						superUser,
+						false,		// TODO include HXL
+						false,
+						tz,
+						false		// If this is a management request then include the assigned user after prikey
+						);
+				columns.addAll(groupColumns);
 			}
 
 			TableDataManager tdm = new TableDataManager(localisation, tz);

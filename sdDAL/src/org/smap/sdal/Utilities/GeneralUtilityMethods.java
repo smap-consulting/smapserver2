@@ -7643,7 +7643,7 @@ public class GeneralUtilityMethods {
 	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, 
 			int fId, boolean publish) throws SQLException {
 		
-		String sql = "select q_id, column_name, qtype " 
+		String sql = "select q_id, column_name, qtype, compressed " 
 				+ "from question where f_id = ? "
 				+ "and source is not null "
 				+ "and published = 'false' "
@@ -7675,8 +7675,9 @@ public class GeneralUtilityMethods {
 				int qId = rs.getInt(1);
 				String columnName = rs.getString(2);
 				String type = rs.getString(3);
-				pstmtPub.setString(2, columnName);	
+				boolean compressed = rs.getBoolean(4);
 				
+				pstmtPub.setString(2, columnName);	
 				rsPub = pstmtPub.executeQuery();
 				int count = 0;
 				if(rsPub.next()) {
@@ -7687,7 +7688,11 @@ public class GeneralUtilityMethods {
 					pstmtUpdate.setInt(1, qId);
 					pstmtUpdate.executeUpdate();
 				} else if(publish) {
-					//publishQuestion(tableName, columnName, type);
+					if(!GeneralUtilityMethods.hasColumn(cResults, tableName, columnName)) {
+						GeneralUtilityMethods.alterColumn(cResults, tableName, type, columnName, compressed);
+					}
+					pstmtUpdate.setInt(1, qId);
+					pstmtUpdate.executeUpdate();
 				}
 			}
 			
