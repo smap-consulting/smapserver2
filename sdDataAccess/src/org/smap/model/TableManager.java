@@ -21,6 +21,7 @@ import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableUpdateStatus;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -523,7 +524,7 @@ public class TableManager {
 							log.info("Warning: No Options for Select:" + q.getName());
 						}
 					} else {
-						colType = getPostgresColType(colType, q.isCompressed());
+						colType = GeneralUtilityMethods.getPostgresColType(colType, q.isCompressed());
 						sql += ", " + q.getColumnName(false) + " " + colType;
 					}
 				} else {
@@ -560,42 +561,7 @@ public class TableManager {
 
 	}
 	
-	private String getPostgresColType(String colType, boolean compressed) {
-		if(colType.equals("string")) {
-			colType = "text";
-		} else if(colType.equals("decimal")) {
-			colType = "double precision";
-		} else if(colType.equals("select1")) {
-			colType = "text";
-		} else if(colType.equals("barcode")) {
-			colType = "text";
-		} else if(colType.equals("note")) {
-			colType = "text";
-		} else if(colType.equals("calculate")) {
-			colType = "text";
-		} else if(colType.equals("chart")) {
-			colType = "text";
-		} else if(colType.equals("parent_form")) {
-			colType = "text";
-		} else if(colType.equals(SmapQuestionTypes.CHILD_FORM)) {
-			colType = "text";
-		} else if(colType.equals("acknowledge") || colType.equals("trigger")) {
-			colType = "text";
-		} else if(colType.equals("range")) {
-			colType = "double precision";
-		} else if(colType.equals("dateTime")) {
-			colType = "timestamp with time zone";					
-		} else if(colType.equals("time")) {
-			colType = "time with time zone";					
-		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
-			colType = "text";					
-		} else if(colType.equals("select") && compressed) {
-			colType = "text";					
-		} else if(colType.equals("rank")) {
-			colType = "text";					
-		}
-		return colType;
-	}
+
 
 	/*
 	 * Apply changes to results table due to changes in the form
@@ -614,10 +580,6 @@ public class TableManager {
 		String table;
 		boolean reference;
 		boolean compressed;
-	}
-	private class TableUpdateStatus {
-		String msg;
-		boolean tableAltered;
 	}
 
 	public boolean applyTableChanges(Connection connectionSD, Connection cResults, int sId) throws Exception {
@@ -744,7 +706,7 @@ public class TableManager {
 
 								if(qd != null && !qd.reference && !qd.compressed) {
 									if(qd.hasExternalOptions && externalFile || !qd.hasExternalOptions && !externalFile) {
-										status = alterColumn(cResults, qd.table, "integer", qd.columnName + "__" + optionColumnName, qd.compressed);
+										status = GeneralUtilityMethods.alterColumn(cResults, qd.table, "integer", qd.columnName + "__" + optionColumnName, qd.compressed);
 										if(status.tableAltered) {
 											tableChanged = true;
 										}
@@ -817,7 +779,7 @@ public class TableManager {
 	
 										// Apply each column
 										for(String col : columns) {
-											status = alterColumn(cResults, qd.table, qd.type, col, qd.compressed);
+											status = GeneralUtilityMethods.alterColumn(cResults, qd.table, qd.type, col, qd.compressed);
 											tableChanged = true;
 										}
 									}
@@ -929,11 +891,11 @@ public class TableManager {
 					}
 					// Apply each column
 					for(String col : columns) {
-						alterColumn(cResults, table_name, qType, col, compressed);
+						GeneralUtilityMethods.alterColumn(cResults, table_name, qType, col, compressed);
 						tablePublished = true;
 					}	
 				} else {
-					alterColumn(cResults, table_name, qType, columnName, compressed);
+					GeneralUtilityMethods.alterColumn(cResults, table_name, qType, columnName, compressed);
 					tablePublished = true;
 				}
 
@@ -967,96 +929,13 @@ public class TableManager {
 					if(type.equals("string")) {
 						type = "text";
 					}
-					alterColumn(cResults, tableName, type, mi.columnName, false);						
+					GeneralUtilityMethods.alterColumn(cResults, tableName, type, mi.columnName, false);						
 				} 
 			}
 		} 
 	}
 
-	/*
-	 * Alter the table
-	 */
-	private TableUpdateStatus alterColumn(Connection cResults, String table, String type, String column, boolean compressed) {
 
-		PreparedStatement pstmtAlterTable = null;
-		PreparedStatement pstmtApplyGeometryChange = null;
-
-		TableUpdateStatus status = new TableUpdateStatus();
-		status.tableAltered = true;
-		status.msg = "";
-
-		try {
-			if(type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape")) {
-
-				String geoType = null;
-
-				if(type.equals("geopoint")) {
-					geoType = "POINT";
-				} else if (type.equals("geotrace")) {
-					geoType = "LINESTRING";
-				} else if (type.equals("geoshape")) {
-					geoType = "POLYGON";
-				}
-				String gSql = "SELECT AddGeometryColumn('" + table + 
-						"', 'the_geom', 4326, '" + geoType + "', 2);";
-				log.info("Add geometry column: " + gSql);
-
-				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
-				try { 
-					pstmtApplyGeometryChange.executeQuery();
-				} catch (Exception e) {
-					// Allow this to fail where an older version added a geometry, which was then deleted, then a new 
-					//  geometry with altitude was added we need to go on and add the altitude and accuracy
-					log.info("Error altering table -- continuing: " + e.getMessage());
-					try {cResults.rollback();} catch(Exception ex) {}
-				}
-
-				// Add altitude and accuracy
-				if(type.equals("geopoint")) {
-					String sqlAlterTable = "alter table " + table + " add column the_geom_alt double precision";
-					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-					log.info("Alter table: " + pstmtAlterTable.toString());					
-					pstmtAlterTable.executeUpdate();
-
-					try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
-					sqlAlterTable = "alter table " + table + " add column the_geom_acc double precision";
-					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-					log.info("Alter table: " + pstmtAlterTable.toString());					
-					pstmtAlterTable.executeUpdate();
-				}
-
-				// Commit this change to the database
-				try { cResults.commit();	} catch(Exception ex) {}
-			} else {
-
-				type = getPostgresColType(type, compressed);
-				String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
-				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-				log.info("Alter table: " + pstmtAlterTable.toString());
-
-				pstmtAlterTable.executeUpdate();
-
-				// Commit this change to the database
-				try {cResults.commit();} catch(Exception ex) {}
-			} 
-		} catch (Exception e) {
-			// Report but otherwise ignore any errors
-			log.info("Error altering table -- continuing: " + e.getMessage());
-
-			// Rollback this change
-			try {cResults.rollback();} catch(Exception ex) {}
-
-			// Only record the update as failed if the problem was not due to the column already existing
-			status.msg = e.getMessage();
-			if(status.msg == null || !status.msg.contains("already exists")) {
-				status.tableAltered = false;
-			}
-		} finally {
-			try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
-			try {if (pstmtApplyGeometryChange != null) {pstmtApplyGeometryChange.close();}} catch (Exception e) {}
-		}
-		return status;
-	}
 
 	private QuestionDetails getQuestionDetails(Connection sd, int qId) throws Exception {
 

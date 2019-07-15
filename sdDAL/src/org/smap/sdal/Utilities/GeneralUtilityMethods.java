@@ -80,6 +80,7 @@ import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableUpdateStatus;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
@@ -8139,7 +8140,128 @@ public class GeneralUtilityMethods {
 		}
 		return instanceId;
 	}
+	
+	/*
+	 * Alter the table
+	 */
+	public static TableUpdateStatus alterColumn(Connection cResults, String table, String type, String column, boolean compressed) {
 
+		PreparedStatement pstmtAlterTable = null;
+		PreparedStatement pstmtApplyGeometryChange = null;
+
+		TableUpdateStatus status = new TableUpdateStatus();
+		status.tableAltered = true;
+		status.msg = "";
+
+		try {
+			if(type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape")) {
+
+				String geoType = null;
+
+				if(type.equals("geopoint")) {
+					geoType = "POINT";
+				} else if (type.equals("geotrace")) {
+					geoType = "LINESTRING";
+				} else if (type.equals("geoshape")) {
+					geoType = "POLYGON";
+				}
+				String gSql = "SELECT AddGeometryColumn('" + table + 
+						"', 'the_geom', 4326, '" + geoType + "', 2);";
+				log.info("Add geometry column: " + gSql);
+
+				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
+				try { 
+					pstmtApplyGeometryChange.executeQuery();
+				} catch (Exception e) {
+					// Allow this to fail where an older version added a geometry, which was then deleted, then a new 
+					//  geometry with altitude was added we need to go on and add the altitude and accuracy
+					log.info("Error altering table -- continuing: " + e.getMessage());
+					try {cResults.rollback();} catch(Exception ex) {}
+				}
+
+				// Add altitude and accuracy
+				if(type.equals("geopoint")) {
+					String sqlAlterTable = "alter table " + table + " add column the_geom_alt double precision";
+					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+					log.info("Alter table: " + pstmtAlterTable.toString());					
+					pstmtAlterTable.executeUpdate();
+
+					try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
+					sqlAlterTable = "alter table " + table + " add column the_geom_acc double precision";
+					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+					log.info("Alter table: " + pstmtAlterTable.toString());					
+					pstmtAlterTable.executeUpdate();
+				}
+
+				// Commit this change to the database
+				try { cResults.commit();	} catch(Exception ex) {}
+			} else {
+
+				type = getPostgresColType(type, compressed);
+				String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
+				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+				log.info("Alter table: " + pstmtAlterTable.toString());
+
+				pstmtAlterTable.executeUpdate();
+
+				// Commit this change to the database
+				try {cResults.commit();} catch(Exception ex) {}
+			} 
+		} catch (Exception e) {
+			// Report but otherwise ignore any errors
+			log.info("Error altering table -- continuing: " + e.getMessage());
+
+			// Rollback this change
+			try {cResults.rollback();} catch(Exception ex) {}
+
+			// Only record the update as failed if the problem was not due to the column already existing
+			status.msg = e.getMessage();
+			if(status.msg == null || !status.msg.contains("already exists")) {
+				status.tableAltered = false;
+			}
+		} finally {
+			try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
+			try {if (pstmtApplyGeometryChange != null) {pstmtApplyGeometryChange.close();}} catch (Exception e) {}
+		}
+		return status;
+	}
+
+	public static String getPostgresColType(String colType, boolean compressed) {
+		if(colType.equals("string")) {
+			colType = "text";
+		} else if(colType.equals("decimal")) {
+			colType = "double precision";
+		} else if(colType.equals("select1")) {
+			colType = "text";
+		} else if(colType.equals("barcode")) {
+			colType = "text";
+		} else if(colType.equals("note")) {
+			colType = "text";
+		} else if(colType.equals("calculate")) {
+			colType = "text";
+		} else if(colType.equals("chart")) {
+			colType = "text";
+		} else if(colType.equals("parent_form")) {
+			colType = "text";
+		} else if(colType.equals(SmapQuestionTypes.CHILD_FORM)) {
+			colType = "text";
+		} else if(colType.equals("acknowledge") || colType.equals("trigger")) {
+			colType = "text";
+		} else if(colType.equals("range")) {
+			colType = "double precision";
+		} else if(colType.equals("dateTime")) {
+			colType = "timestamp with time zone";					
+		} else if(colType.equals("time")) {
+			colType = "time with time zone";					
+		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
+			colType = "text";					
+		} else if(colType.equals("select") && compressed) {
+			colType = "text";					
+		} else if(colType.equals("rank")) {
+			colType = "text";					
+		}
+		return colType;
+	}
 	
 }
 
