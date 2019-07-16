@@ -83,7 +83,7 @@ public class SurveyViewManager {
 			boolean superUser,
 			String groupSurvey) throws SQLException, Exception  {
 		
-		SurveyViewDefn svd = new SurveyViewDefn(viewId, sId, managedId, 0);		// Todo Query id
+		SurveyViewDefn svd = new SurveyViewDefn(viewId, sId, managedId, 0);
 		
 		ArrayList<TableColumnConfig> configColumns = new ArrayList<TableColumnConfig> ();
 		String language = "none";
@@ -169,17 +169,19 @@ public class SurveyViewManager {
 			}
 			
 			// Add the managed form columns from the group survey
-			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
-			populateSvd(sd, 
-					cResults, 
-					svd,
-					configColumns,
-					false,			// Is main survey
-					language,
-					groupSurveyId,
-					groupSurvey,
-					uIdent,
-					superUser);
+			if(groupSurvey != null) {
+				int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
+				populateSvd(sd, 
+						cResults, 
+						svd,
+						configColumns,
+						false,			// Is main survey
+						language,
+						groupSurveyId,
+						groupSurvey,
+						uIdent,
+						superUser);
+			}
 		
 				
 		} catch (SQLException e) {
@@ -256,8 +258,12 @@ public class SurveyViewManager {
 				}
 				tc.mgmt = !isMain;
 				tc.filter = c.filter;
-				tc.type = c.type;
+				tc.type = convertToTableColumnType(c.type);
 				tc.l_id = c.l_id;
+				if(!isMain) {
+					tc.readonly = false;
+				}
+				
 				for(int j = 0; j < configColumns.size(); j++) {
 					TableColumnConfig tcConfig = configColumns.get(j);
 					if(tcConfig.name.equals(tc.column_name)) {
@@ -302,6 +308,18 @@ public class SurveyViewManager {
 		 * Add the choice lists TODO - What is this used for?  Are choice lists also required for the group survey?
 		 */
 		svd.choiceLists = GeneralUtilityMethods.getChoicesInForm(sd, sId, f.id);
+	}
+	
+	/*
+	 * Convet types from Survey Definition to Table Column Tyoe
+	 */
+	private String convertToTableColumnType(String type) {
+		if(type != null) {
+			if(type.equals("string")) {
+				return "text";
+			}
+		}
+		return type;
 	}
 	
 	/*

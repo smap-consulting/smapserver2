@@ -173,6 +173,59 @@ public class ManagedForms extends Application {
 	}
 	
 	/*
+	 * Update a managed record from the managed forms page
+	 */
+	@POST
+	@Produces("text/html")
+	@Consumes("application/json")
+	@Path("/update_gs/{sId}/{groupSurvey}")
+	public Response updateManagedRecordGroupSurvey(
+			@Context HttpServletRequest request, 
+			@PathParam("sId") int sId,
+			@PathParam("groupSurvey") String groupSurvey,
+			@FormParam("settings") String settings
+			) { 
+		
+		Response response = null;
+		String requester = "surveyKPI-UpdateManagedRecord";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		// End Authorisation
+
+		Connection cResults = ResultsDataSource.getConnection(requester);
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";
+			
+			ActionManager am = new ActionManager(localisation, tz);
+			response = am.processUpdateGroupSurvey(request, sd, cResults, request.getRemoteUser(), sId, groupSurvey, settings);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
+		} finally {
+			
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+			
+		}
+		
+		return response;
+
+	}
+	
+	/*
 	 * Lock a record for editing
 	 */
 	@POST

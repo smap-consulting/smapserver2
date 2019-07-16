@@ -350,6 +350,7 @@ public class ActionManager {
 	/*
 	 * Process an update request that came either from an anonymous form or from the
 	 * managed forms page
+	 * Deprecate - This updated uses managed Id rather than a group survey form
 	 */
 	public Response processUpdate(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
 			int sId, int managedId, String settings) {
@@ -377,6 +378,7 @@ public class ActionManager {
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 			int pId = 0;
+			
 			/*
 			 * Verify that the survey is managed by the management id
 			 */
@@ -551,6 +553,198 @@ public class ActionManager {
 
 		return response;
 	}
+	
+	/*
+	 * Process an update request that came either from an anonymous form or from the console
+	 * The update is for a Group Survey
+	 */
+	public Response processUpdateGroupSurvey(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
+			int sId, String groupSurvey, String settings) {
+
+		Response response = null;
+
+		Type type = new TypeToken<ArrayList<Update>>() {}.getType();
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<Update> updates = gson.fromJson(settings, type);
+
+		PreparedStatement pstmtUpdate = null;
+		int priority = -1;
+
+		try {
+
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
+			int pId = 0;
+
+			/*
+			 * Get the data processing columns
+			 */
+			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
+			Form f = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId ); // Get formId of top level form and its table name
+			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
+					sd,
+					cResults,
+					localisation,
+					"none",
+					sId,
+					groupSurvey,
+					userIdent,
+					null,	// roles to apply
+					0,
+					f.id,
+					f.tableName,
+					false,		// Don't include Read only
+					false,		// Include parent key
+					false,		// Include "bad"
+					false,		// Include instanceId
+					false,		// include prikey
+					false,		// Include other meta data
+					false,		// include preloads
+					false,		// include instancename
+					false,		// Survey duration
+					false,
+					false,		// HXL only include with XLS exports
+					false,		// Don't include audit data
+					tz,
+					false		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+					);		
+			
+			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+			/*
+			 * Process each column
+			 */
+			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
+			log.info("Set autocommit false");
+			cResults.setAutoCommit(false);
+			for (int i = 0; i < updates.size(); i++) {
+
+				Update u = updates.get(i);
+
+				// Set up storage of changes
+				String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
+				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
+				if(changes == null) {
+					changes = new ArrayList<DataItemChange> ();
+					changeMap.put(instanceid, changes);
+				}
+				
+				// 1. Escape quotes in update name, though not really necessary due to next step
+				u.name = u.name.replace("'", "''").trim();
+
+				// 2. Confirm this is an editable managed column
+				boolean updateable = false;
+				TableColumn tc = null;
+				for (int j = 0; j < columnList.size(); j++) {
+					TableColumn xx = columnList.get(j);
+					if (xx.column_name.equals(u.name)) {
+						if (!xx.readonly) {
+							updateable = true;
+							tc = xx;
+						}
+						break;
+					}
+				}
+				if (!updateable) {
+					throw new Exception(u.name + " " + localisation.getString("mf_nu"));
+				}
+
+				String sqlUpdate = "update " + f.tableName;
+
+				if (u.value == null) {
+					sqlUpdate += " set " + u.name + " = null ";
+				} else {
+					sqlUpdate += " set " + u.name + " = ? ";
+				}
+				sqlUpdate += "where " + "prikey = ? ";
+
+				try {
+					if (pstmtUpdate != null) {
+						pstmtUpdate.close();
+					}
+				} catch (Exception e) {
+				}
+				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
+
+				// Set the parameters
+				int paramCount = 1;
+				if (u.value != null) {
+					if (tc.type.equals("text") || tc.type.equals("select_one")) {
+						pstmtUpdate.setString(paramCount++, u.value);
+					} else if (tc.type.equals("date")) {
+						if (u.value == null || u.value.trim().length() == 0) {
+							pstmtUpdate.setDate(paramCount++, null);
+						} else {
+							java.util.Date inputDate = dateFormat.parse(u.value);
+							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
+						}
+					} else if (tc.type.equals("integer")) {
+						int inputInt = Integer.parseInt(u.value);
+						pstmtUpdate.setInt(paramCount++, inputInt);
+					} else if (tc.type.equals("decimal")) {
+						double inputDouble = Double.parseDouble(u.value);
+						pstmtUpdate.setDouble(paramCount++, inputDouble);
+					} else {
+						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
+						pstmtUpdate.setString(paramCount++, u.value);
+					}
+				}
+				pstmtUpdate.setInt(paramCount++, u.prikey);
+
+				log.info("Updating managed survey: " + pstmtUpdate.toString());
+				int count = pstmtUpdate.executeUpdate();
+				if (count == 0) {
+					throw new Exception(
+							"Update failed: " + "Try refreshing your view of the data as someone may already "
+									+ "have updated this record.");
+				}
+
+				/*
+				 * Apply any required actions
+				 */
+				if (tc.actions != null && tc.actions.size() > 0) {
+					if (priority < 0) {
+						priority = getPriority(cResults, f.tableName, u.prikey);
+					}
+					//TODO applyManagedFormActions(request, sd, tc, oId, sId, pId, managedId, u.prikey, priority, u.value,
+					//		localisation);
+				}
+				
+				/*
+				 * Record the change
+				 */
+				changes.add(new DataItemChange(u.name, tc.type, u.value, u.currentValue));
+
+			}
+			
+			/*
+			 * save change log
+			 */
+			RecordEventManager rem = new RecordEventManager();
+			for(String inst : changeMap.keySet()) {
+				rem.saveChange(sd, cResults, userIdent, f.tableName, inst, gson.toJson(changeMap.get(inst)), sId);
+			}
+				
+			cResults.commit();
+			response = Response.ok().build();
+
+		} catch (Exception e) {
+			try {cResults.rollback();} catch (Exception ex) {	}
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+
+			try {log.info("Set autocommit true");cResults.setAutoCommit(true);} catch (Exception ex) {}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+
+		}
+
+		return response;
+	}
+
 
 	/*
 	 * Get temporary users

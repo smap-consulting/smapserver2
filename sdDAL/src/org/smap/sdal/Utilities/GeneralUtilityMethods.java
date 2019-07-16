@@ -3438,7 +3438,7 @@ public class GeneralUtilityMethods {
 				+ "order by o.seq;";
 		PreparedStatement pstmtSelectChoices = sd.prepareStatement(sqlSelectMultiple);
 
-		updateUnPublished(sd, cResults, table_name, f_id, mgmt);		// Ensure that all columns marked not published really are
+		updateUnPublished(sd, cResults, table_name, f_id, true);		// Ensure that all columns marked not published really are
 		
 		TableColumn c = new TableColumn();
 		c.column_name = "prikey";
@@ -7684,7 +7684,7 @@ public class GeneralUtilityMethods {
 					count = rsPub.getInt(1);
 				}
 				if(count > 0) {
-					// Column has been published
+					// Column has been published update the schema to reflect this
 					pstmtUpdate.setInt(1, qId);
 					pstmtUpdate.executeUpdate();
 				} else if(publish) {
