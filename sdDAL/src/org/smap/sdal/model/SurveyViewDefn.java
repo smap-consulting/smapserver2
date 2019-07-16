@@ -17,6 +17,7 @@ public class SurveyViewDefn {
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts
 	public ArrayList<ChoiceList> choiceLists;           						// Choices
+	public String tableName;
 	
 	public SurveyViewDefn() {
 		

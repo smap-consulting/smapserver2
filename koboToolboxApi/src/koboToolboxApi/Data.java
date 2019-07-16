@@ -58,6 +58,7 @@ import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Form;
@@ -65,6 +66,7 @@ import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 
 /*
@@ -156,7 +158,9 @@ public class Data extends Application {
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("mgmt") boolean mgmt,
-			@QueryParam("groupSurvey") String groupSurvey,
+			@QueryParam("groupSurvey") String groupSurvey,	// Console
+			@PathParam("view") int viewId,					// Console
+			@QueryParam("schema") boolean schema,			// Console return schema with the data
 			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			@QueryParam("sort") String sort,				// Column Human Name to sort on
 			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
@@ -182,7 +186,8 @@ public class Data extends Application {
 		}
 		
 		// Authorisation is done in getDataRecords
-		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, group, sort, dirn, formName, start_parkey,
+		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
+				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks);
 	}
 	
@@ -270,7 +275,9 @@ public class Data extends Application {
 			int start,				// Primary key to start from
 			int limit,				// Number of records to return
 			boolean mgmt,
-			String groupSurvey,
+			String groupSurvey,		// Console
+			int viewId,				// Console
+			boolean schema,			// Console - return schema
 			boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			String sort,				// Column Human Name to sort on
 			String dirn,				// Sort direction, asc || desc
@@ -315,6 +322,12 @@ public class Data extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		if(viewId > 0) {
+			a.isValidView(sd, request.getRemoteUser(), viewId, false);
+		}
+		if(groupSurvey != null) {
+			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		}		
 		// End Authorisation
 
 		String language = "none";
@@ -390,17 +403,37 @@ public class Data extends Application {
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
-			// Get the managed Id
-			if(mgmt) {
-				pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
-				pstmtGetManagedId.setInt(1, sId);
-				rs = pstmtGetManagedId.executeQuery();
-				if(rs.next()) {
-					managedId = rs.getInt(1);
-				}
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+			/*
+			 * Get the survey view
+			 */
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			
+			// Get the default view
+			if(viewId == 0) {	
+				viewId = svm.getDefaultView(sd, uId, sId, managedId, 0);
 			}
+			
+			SurveyViewDefn sv = svm.getSurveyView(sd, 
+					cResults, 
+					uId, 
+					viewId, sId, managedId, request.getRemoteUser(), oId, superUser,
+					groupSurvey);		
+			
+			// Get the managed Id
+			//if(mgmt) {
+			//	pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
+			//	pstmtGetManagedId.setInt(1, sId);
+			//	rs = pstmtGetManagedId.executeQuery();
+			//	if(rs.next()) {
+			//		managedId = rs.getInt(1);
+			//	}
+			//	if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+			//}
 
+			/*
 			if(fId == 0) {
 				pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
 				pstmtGetMainForm.setInt(1,sId);
@@ -463,50 +496,17 @@ public class Data extends Application {
 					columns.addAll(config.columns);
 				}
 			}
-			
-			if(groupSurvey != null) {
-				int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
-				Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
-
-				ArrayList<TableColumn> groupColumns = GeneralUtilityMethods.getColumnsInForm(
-						sd,
-						cResults,
-						localisation,
-						language,
-						groupSurveyId,
-						groupSurvey,
-						request.getRemoteUser(),
-						null,
-						parentform,
-						f.id,
-						table_name,
-						true,		// Read Only
-						false,	// Include parent key if the form is not the top level form (fId is 0)
-						false,
-						false,		// include instance id
-						false,		// Include prikey
-						false,		// include other meta data
-						false,		// include preloads
-						false,		// include instancename
-						false,		// include survey duration
-						superUser,
-						false,		// TODO include HXL
-						false,
-						tz,
-						false		// If this is a management request then include the assigned user after prikey
-						);
-				columns.addAll(groupColumns);
-			}
+			*/
 
 			TableDataManager tdm = new TableDataManager(localisation, tz);
 
 			pstmt = tdm.getPreparedStatement(
 					sd, 
 					cResults,
-					columns,
+					sv.columns,
 					urlprefix,
 					sId,
-					table_name,
+					sv.tableName,
 					parkey,
 					hrk,
 					request.getRemoteUser(),
@@ -546,7 +546,6 @@ public class Data extends Application {
 				/*
 				 * Get the data record by record so it can be streamed
 				 */
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				
 				// page the results to reduce memory usage
 				log.info("---------------------- paging results to postgres");
@@ -561,7 +560,7 @@ public class Data extends Application {
 					jo =  tdm.getNextRecord(
 							sd,
 							rs,
-							columns,
+							sv.columns,
 							urlprefix,
 							group,
 							isDt,
@@ -591,7 +590,22 @@ public class Data extends Application {
 			
 			outWriter.print("]");
 			if(isDt) {
-				outWriter.print(",\"schema\":{\"tom\":\"harry\"}");
+				if(schema) {
+					/*
+					 * Return the schema with the data 
+					 * 1. remove data not neeeded by the client for performance and security reasons
+					 */
+					for(TableColumn tc : sv.columns) {
+						tc.actions = null;
+						tc.calculation = null;
+					}
+					sv.tableName = null;
+					
+					// 2. Add the schema to the results
+					outWriter.print(",\"schema\":");
+					outWriter.print(gson.toJson(sv));		// Add the survey view
+				}
+				
 				outWriter.print("}");
 			}
 			

@@ -210,7 +210,9 @@ public class SurveyViewManager {
 			boolean superUser) throws Exception {
 		
 		Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
-		
+		if(isMain) {
+			svd.tableName = f.tableName;
+		}
 		ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 				sd,
 				cResults,
