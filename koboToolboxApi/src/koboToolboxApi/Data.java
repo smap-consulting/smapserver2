@@ -416,97 +416,107 @@ public class Data extends Application {
 				viewId = svm.getDefaultView(sd, uId, sId, managedId, 0);
 			}
 			
-			SurveyViewDefn sv = svm.getSurveyView(sd, 
-					cResults, 
-					uId, 
-					viewId, sId, managedId, request.getRemoteUser(), oId, superUser,
-					groupSurvey);		
+			SurveyViewDefn sv = null;
+			ArrayList<TableColumn> columns = null;
 			
-			// Get the managed Id
-			//if(mgmt) {
-			//	pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
-			//	pstmtGetManagedId.setInt(1, sId);
-			//	rs = pstmtGetManagedId.executeQuery();
-			//	if(rs.next()) {
-			//		managedId = rs.getInt(1);
-			//	}
-			//	if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
-			//}
-
 			/*
-			if(fId == 0) {
-				pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
-				pstmtGetMainForm.setInt(1,sId);
-
-				log.info("Getting main form: " + pstmtGetMainForm.toString() );
-				rs = pstmtGetMainForm.executeQuery();
-				if(rs.next()) {
-					fId = rs.getInt(1);
-					table_name = rs.getString(2);
-				}
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+			 * If the data is destined for the console then get the columns using the survey view class
+			 * For normal API calls this is not used primarily to reduce the chance that anything gets changed due
+			 * to console specific coding
+			 */
+			if(schema) {
+				sv = svm.getSurveyView(sd, 
+						cResults, 
+						uId, 
+						viewId, sId, managedId, request.getRemoteUser(), oId, superUser,
+						groupSurvey);	
+				columns = sv.columns;
+				table_name = sv.tableName;
 			} else {
-				getParkey = true;
-				pstmtGetForm = sd.prepareStatement(sqlGetForm);
-				pstmtGetForm.setInt(1,sId);
-				pstmtGetForm.setInt(2,fId);
-
-				log.info("Getting specific form: " + pstmtGetForm.toString() );
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
-				rs = pstmtGetForm.executeQuery();
-				if(rs.next()) {
-					parentform = rs.getInt(1);
-					table_name = rs.getString(2);
+			
+				// Get the managed Id
+				//if(mgmt) {
+				//	pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
+				//	pstmtGetManagedId.setInt(1, sId);
+				//	rs = pstmtGetManagedId.executeQuery();
+				//	if(rs.next()) {
+				//		managedId = rs.getInt(1);
+				//	}
+				//	if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				//}
+	
+				if(fId == 0) {
+					pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
+					pstmtGetMainForm.setInt(1,sId);
+	
+					log.info("Getting main form: " + pstmtGetMainForm.toString() );
+					rs = pstmtGetMainForm.executeQuery();
+					if(rs.next()) {
+						fId = rs.getInt(1);
+						table_name = rs.getString(2);
+					}
+					if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				} else {
+					getParkey = true;
+					pstmtGetForm = sd.prepareStatement(sqlGetForm);
+					pstmtGetForm.setInt(1,sId);
+					pstmtGetForm.setInt(2,fId);
+	
+					log.info("Getting specific form: " + pstmtGetForm.toString() );
+					rs = pstmtGetForm.executeQuery();
+					if(rs.next()) {
+						parentform = rs.getInt(1);
+						table_name = rs.getString(2);
+					}
+					if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				}
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+	
+				columns = GeneralUtilityMethods.getColumnsInForm(
+						sd,
+						cResults,
+						localisation,
+						language,
+						sId,
+						sIdent,
+						request.getRemoteUser(),
+						null,
+						parentform,
+						fId,
+						table_name,
+						true,		// Read Only
+						getParkey,	// Include parent key if the form is not the top level form (fId is 0)
+						(include_bad.equals("yes") || include_bad.equals("only")),
+						true,		// include instance id
+						true,		// Include prikey
+						true,		// include other meta data
+						true,		// include preloads
+						true,		// include instancename
+						true,		// include survey duration
+						superUser,
+						false,		// TODO include HXL
+						audit,
+						tz,
+						mgmt			// If this is a management request then include the assigned user after prikey
+						);
+	
+				//if(mgmt && managedId > 0) {
+				//	CustomReportsManager crm = new CustomReportsManager ();
+				//	ReportConfig config = crm.get(sd, managedId, -1);
+				//	if(config != null) {
+				//		columns.addAll(config.columns);
+				//	}
+				//}
 			}
-
-			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-					sd,
-					cResults,
-					localisation,
-					language,
-					sId,
-					sIdent,
-					request.getRemoteUser(),
-					null,
-					parentform,
-					fId,
-					table_name,
-					true,		// Read Only
-					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
-					(include_bad.equals("yes") || include_bad.equals("only")),
-					true,		// include instance id
-					true,		// Include prikey
-					true,		// include other meta data
-					true,		// include preloads
-					true,		// include instancename
-					true,		// include survey duration
-					superUser,
-					false,		// TODO include HXL
-					audit,
-					tz,
-					mgmt			// If this is a management request then include the assigned user after prikey
-					);
-
-			if(mgmt && managedId > 0) {
-				CustomReportsManager crm = new CustomReportsManager ();
-				ReportConfig config = crm.get(sd, managedId, -1);
-				if(config != null) {
-					columns.addAll(config.columns);
-				}
-			}
-			*/
 
 			TableDataManager tdm = new TableDataManager(localisation, tz);
 
 			pstmt = tdm.getPreparedStatement(
 					sd, 
 					cResults,
-					sv.columns,
+					columns,
 					urlprefix,
 					sId,
-					sv.tableName,
+					table_name,
 					parkey,
 					hrk,
 					request.getRemoteUser(),
@@ -560,7 +570,7 @@ public class Data extends Application {
 					jo =  tdm.getNextRecord(
 							sd,
 							rs,
-							sv.columns,
+							columns,
 							urlprefix,
 							group,
 							isDt,

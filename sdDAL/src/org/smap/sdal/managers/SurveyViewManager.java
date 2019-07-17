@@ -251,7 +251,7 @@ public class SurveyViewManager {
 		 */			
 		for(int i = 0; i < columnList.size(); i++) {
 			TableColumn c = columnList.get(i);
-			if(keepThis(c.column_name)) {
+			if(keepThis(c.column_name, isMain)) {
 				TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
 				if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
 					tc.hide = hideDefault(c.displayName);
@@ -613,7 +613,7 @@ public class SurveyViewManager {
 	/*
 	 * Identify any columns that should be dropped
 	 */
-	private boolean keepThis(String name) {
+	private boolean keepThis(String name, boolean isMain) {
 		boolean keep = true;
 		
 		if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
@@ -623,10 +623,14 @@ public class SurveyViewManager {
 				name.equals("_location_trigger") ||
 				name.equals("_device") ||
 				name.equals("_bad") ||
-				name.equals("_bad_reason") ||
-				name.equals("instanceid")
+				name.equals("_bad_reason")
 				) {
 			keep = false;
+			
+			// Instance id only returned once
+			if(keep && !isMain && name.equals("instanceid")) {
+				keep = false;
+			}
 		}
 		return keep;
 	}

@@ -7635,6 +7635,8 @@ public class GeneralUtilityMethods {
 		String thread = null;
 		String sql = "select _thread from " + table + " where instanceid = ?";
 		PreparedStatement pstmt = null;
+		
+		String sqlUpdate = "update table " + table + " set_thread = ? where instanceid = ?";
 			
 		try {
 			
@@ -7647,8 +7649,14 @@ public class GeneralUtilityMethods {
 				thread = rs.getString(1);
 			}	
 			
+			// If there is no thread then we should start one (Should only be required for legacy records)
 			if (thread == null) {
+				if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+				pstmt = cResults.prepareStatement(sqlUpdate);
+				pstmt.setString(1,  instanceId);
+				pstmt.setString(2,  instanceId);
 				
+				thread = instanceId;
 			}
 			
 		} finally {
