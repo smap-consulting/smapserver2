@@ -1245,7 +1245,7 @@ public class SubRelationalDB extends Subscriber {
 			if(changes != null) {
 				// Save the changes
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-				RecordEventManager rem = new RecordEventManager();
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.saveChange(sd, cResults, user, table, newInstance, gson.toJson(changes), sId);					
 			}
 

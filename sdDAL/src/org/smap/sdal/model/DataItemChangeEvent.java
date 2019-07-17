@@ -9,8 +9,10 @@ public class DataItemChangeEvent {
 	
 	public String event;
 	public String userName;
-	public String SurveyName;
+	public String surveyName;
 	public int surveyVersion;
+	public String eventTime;
+	public String tz;
 	public ArrayList<DataItemChange> changes;
 
 	

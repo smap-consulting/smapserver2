@@ -512,7 +512,7 @@ public class ActionManager {
 			/*
 			 * save change log
 			 */
-			RecordEventManager rem = new RecordEventManager();
+			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			for(String inst : changeMap.keySet()) {
 				rem.saveChange(sd, cResults, userIdent, f.tableName, inst, gson.toJson(changeMap.get(inst)), sId);
 			}
@@ -729,7 +729,7 @@ public class ActionManager {
 			/*
 			 * save change log
 			 */
-			RecordEventManager rem = new RecordEventManager();
+			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			for(String inst : changeMap.keySet()) {
 				rem.saveChange(sd, cResults, userIdent, f.tableName, inst, gson.toJson(changeMap.get(inst)), sId);
 			}

@@ -56,7 +56,7 @@ public class TableDataManager {
 
 	private static Logger log = Logger.getLogger(TableDataManager.class.getName());
 	private static ResourceBundle localisation;
-	String tz;
+	private String tz;
 	
 	public TableDataManager(ResourceBundle l, String tz) {
 		localisation = l;

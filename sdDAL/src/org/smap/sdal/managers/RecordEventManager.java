@@ -17,6 +17,7 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.SqlParam;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -48,9 +49,15 @@ public class RecordEventManager {
 	
 	private static Logger log =
 			 Logger.getLogger(RecordEventManager.class.getName());
+	private static ResourceBundle localisation;
+	private String tz;
 	
-	public RecordEventManager() {
-		
+	public RecordEventManager(ResourceBundle l, String tz) {
+		localisation = l;
+		if(tz == null) {
+			tz = "UTC";
+		}
+		this.tz = tz;
 	}
 	
 	/*
@@ -127,7 +134,8 @@ public class RecordEventManager {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		
-		String sql = "select event, details, changed_by, change_survey, change_survey_version, event_time "
+		String sql = "select event, details, changed_by, change_survey, change_survey_version, "
+				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
 				+ "from record_event "
 				+ "where table_name = ?"
 				+ "and key = ?"
@@ -138,8 +146,9 @@ public class RecordEventManager {
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, tableName);
-			pstmt.setString(2, key);
+			pstmt.setString(1, tz);
+			pstmt.setString(2, tableName);
+			pstmt.setString(3, key);
 			log.info("Get changes: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
@@ -154,9 +163,12 @@ public class RecordEventManager {
 				
 				String sIdent = rs.getString("change_survey");
 				if(sIdent != null) {				
-					event.SurveyName = GeneralUtilityMethods.getSurveyNameFromIdent(sd, sIdent);
+					event.surveyName = GeneralUtilityMethods.getSurveyNameFromIdent(sd, sIdent);
 					event.surveyVersion = rs.getInt("change_survey_version");
 				}
+				
+				event.eventTime = rs.getString("event_time");
+				event.tz = tz;
 				
 				events.add(event);
 				
