@@ -7337,6 +7337,30 @@ public class GeneralUtilityMethods {
 		return coords;
 	}
 	
+	/*
+	 * Convert a geojson string into a WKT string
+	 * Assume Point TODO update to cater for other types
+	 */
+	public static String getWKTfromGeoJson(String json) {
+		
+		String wkt = null;
+		if(json != null) {
+			int idx1 = json.indexOf("[");
+			int idx2 = json.indexOf("]");
+			
+			if(idx2 > idx1) {
+				String c = json.substring(idx1 + 1, idx2);
+				String [] coords = c.split(",");
+				if(coords.length >= 2) {
+					wkt = "POINT(" + coords[0].trim() + " " + coords[1].trim() + ")"; 
+				}
+				
+			}
+		}
+			
+		return wkt;
+	}
+	
 	public static String getOdkPolygon(Polygon p) {
 		StringBuffer coordsString = new StringBuffer("");
 		ArrayList<ArrayList<Double>> coords = p.coordinates.get(0);

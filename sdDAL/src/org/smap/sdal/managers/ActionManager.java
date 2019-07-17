@@ -657,7 +657,11 @@ public class ActionManager {
 				if (u.value == null) {
 					sqlUpdate += " set " + u.name + " = null ";
 				} else {
-					sqlUpdate += " set " + u.name + " = ? ";
+					if(tc.type.equals("geopoint")) {
+						sqlUpdate += " set " + u.name + " = ST_GeomFromText(? ,4326) "; 
+					} else {
+						sqlUpdate += " set " + u.name + " = ? ";
+					}
 				}
 				sqlUpdate += "where " + "prikey = ? ";
 
@@ -687,6 +691,8 @@ public class ActionManager {
 					} else if (tc.type.equals("decimal")) {
 						double inputDouble = Double.parseDouble(u.value);
 						pstmtUpdate.setDouble(paramCount++, inputDouble);
+					} else if (tc.type.equals("geopoint")) {
+						pstmtUpdate.setString(paramCount++, GeneralUtilityMethods.getWKTfromGeoJson(u.value));
 					} else {
 						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
