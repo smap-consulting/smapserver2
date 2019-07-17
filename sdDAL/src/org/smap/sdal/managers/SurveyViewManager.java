@@ -253,7 +253,7 @@ public class SurveyViewManager {
 			TableColumn c = columnList.get(i);
 			if(keepThis(c.column_name, isMain)) {
 				TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
-				if(configColumns.size() > 0) {	// If a view was not passed then there are no config columns so get everything
+				if(configColumns.size() == 0) {	// If a view was not passed then there are no config columns so get everything
 					tc.hide = hideDefault(c.displayName);
 				}
 				tc.mgmt = !isMain;
@@ -650,6 +650,8 @@ public class SurveyViewManager {
 				name.equals("programme") ||
 				name.equals("project") ||
 				name.equals("instanceName") ||
+				name.equals("instanceid") ||
+				name.equals("the_geom") ||
 				name.equals("_end") 
 				) {
 			hide = true;
