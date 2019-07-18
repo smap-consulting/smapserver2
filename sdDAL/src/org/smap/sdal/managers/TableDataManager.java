@@ -94,7 +94,8 @@ public class TableDataManager {
 			String customFilter,
 			ArrayList<KeyFilter> keyFilters,
 			String tz,
-			String instanceId)
+			String instanceId,
+			String advanced_filter)
 			throws SQLException, Exception {
 
 		StringBuffer columnSelect = new StringBuffer();
@@ -169,10 +170,40 @@ public class TableDataManager {
 				}
 			}
 			
-			// Add custom filter
+			// Add custom filter (No parameters not settable by users)
 			if(customFilter != null) {
-				sqlSelect.append(" and ").append(customFilter);
+				sqlSelect.append(" and (").append(customFilter).append(")");
 			}
+			
+			/*
+			 * Convert advanced filter into SQL and validate
+			 */
+			SqlFrag filterFrag = null;
+			if(advanced_filter != null && advanced_filter.length() > 0) {
+	
+				filterFrag = new SqlFrag();
+				filterFrag.addSqlFragment(advanced_filter, false, localisation);
+	
+	
+				for(String filterCol : filterFrag.columns) {
+					boolean valid = false;
+					for(TableColumn tc : columns) {
+						if(filterCol.equals(tc.column_name)) {
+							valid = true;
+							break;
+						}
+					}
+					if(!valid) {
+						String msg = localisation.getString("inv_qn_misc");
+						msg = msg.replace("%s1", filterCol);
+						throw new Exception(msg);
+					}
+				}
+			}
+			if(filterFrag != null) {
+				sqlSelect.append(" and (").append(filterFrag.sql).append(")");
+			}
+			
 			
 			// Add key filters
 			if(keyFilters != null) {
@@ -231,6 +262,10 @@ public class TableDataManager {
 			}
 			if (hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
+			}
+			
+			if(filterFrag != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount, tz);
 			}
 			
 			// Add key filter parameters

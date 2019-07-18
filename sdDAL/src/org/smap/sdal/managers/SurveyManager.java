@@ -4067,7 +4067,8 @@ public class SurveyManager {
 					null	,		// no custom filter
 					null,		// key filter
 					tz,
-					instanceId
+					instanceId,
+					null				// advanced filter
 					);
 			
 			if(pstmt != null) {

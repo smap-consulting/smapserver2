@@ -440,7 +440,8 @@ public class ActionService extends Application {
 					null	,				// no custom filter
 					null,				// no key filter
 					tz,
-					null
+					null,
+					null				// advanced filter
 			);
 
 			if (pstmt != null) {

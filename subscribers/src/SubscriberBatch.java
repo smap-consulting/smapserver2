@@ -528,7 +528,8 @@ public class SubscriberBatch {
 											prikeyFilter,
 											null	,			// key filter
 											tz,
-											null				// instance id
+											null	,			// instance id
+											null				// advanced filter
 											);
 	
 									// Set parameters for custom filter

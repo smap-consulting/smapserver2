@@ -64,6 +64,7 @@ import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyViewDefn;
@@ -174,7 +175,8 @@ public class Data extends Application {
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
-			@QueryParam("links") String links
+			@QueryParam("links") String links,
+			@QueryParam("filter") String filter
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -188,7 +190,7 @@ public class Data extends Application {
 		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks);
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, filter);
 	}
 	
 	/*
@@ -294,7 +296,8 @@ public class Data extends Application {
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String tz,				// Timezone
-			boolean incLinks	) throws ApplicationException, Exception { 
+			boolean incLinks	,
+			String advanced_filter) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
 		
@@ -510,9 +513,8 @@ public class Data extends Application {
 				//	}
 				//}
 			}
-
+			
 			TableDataManager tdm = new TableDataManager(localisation, tz);
-
 			pstmt = tdm.getPreparedStatement(
 					sd, 
 					cResults,
@@ -538,7 +540,8 @@ public class Data extends Application {
 					null	,			// no custom filter
 					null,			// key filter
 					tz,
-					null
+					null,			// instanceId
+					advanced_filter
 					);
 			
 			// Write array start
