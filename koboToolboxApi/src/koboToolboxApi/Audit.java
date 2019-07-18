@@ -363,7 +363,8 @@ public class Audit extends Application {
 					null	,			// no custom filter
 					null,			// key filter
 					tz,
-					null				// instance id
+					null	,			// instance id
+					null				// advanced filter
 					);
 			
 			// Write array start
