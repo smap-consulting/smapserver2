@@ -643,13 +643,14 @@ public class SurveyViewManager {
 		
 		if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
 				name.equals("User") ||
-				name.equals("Upload Time") ||
+				name.equals("_scheduled_start") ||
 				name.equals("Survey Notes") ||
+				name.equals("Survey Duration") ||
 				name.equals("_start") ||
 				name.equals("decision_date") ||
 				name.equals("programme") ||
 				name.equals("project") ||
-				name.equals("instanceName") ||
+				name.equals("Instance Name") ||
 				name.equals("instanceid") ||
 				name.equals("the_geom") ||
 				name.equals("_end") 
