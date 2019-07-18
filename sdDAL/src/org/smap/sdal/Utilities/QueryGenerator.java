@@ -51,7 +51,7 @@ public class QueryGenerator {
 
 	
 	public static SqlDesc gen(
-			Connection connectionSD, 
+			Connection sd, 
 			Connection connectionResults, 
 			ResourceBundle localisation,
 			int sId, 
@@ -106,7 +106,7 @@ public class QueryGenerator {
 					"AND q.l_id = o.l_id " +
 					"AND t.language = ? " +
 					"ORDER BY o.seq;";		
-			pstmtListLabels = connectionSD.prepareStatement(sqlListLabels);
+			pstmtListLabels = sd.prepareStatement(sqlListLabels);
 			
 			/*
 			 *  Prepare the statement to get the question type and read only status
@@ -118,7 +118,7 @@ public class QueryGenerator {
 					" on q.f_id = f.f_id " +
 					" where f.f_id = ? " +
 					" and q.column_name = ?;";
-			pstmtQType = connectionSD.prepareStatement(sqlQType);
+			pstmtQType = sd.prepareStatement(sqlQType);
 			
 			/*
 			 * Prepare the statement to get the question label
@@ -128,7 +128,7 @@ public class QueryGenerator {
 					" and text_id = ? " +
 					" and language = ? " +
 					" and type = 'none'";
-			pstmtQLabel = connectionSD.prepareStatement(sqlQLabel);
+			pstmtQLabel = sd.prepareStatement(sqlQLabel);
 			
 			/*
 			 * Create an object describing the sql query recursively from the target table
@@ -149,7 +149,7 @@ public class QueryGenerator {
 					wantUrl,
 					exp_ro,
 					labelListMap,
-					connectionSD, 
+					sd, 
 					connectionResults,
 					requiredColumns,
 					namedQuestions,
@@ -237,12 +237,12 @@ public class QueryGenerator {
 			 * The form list is in order of Parent to child forms
 			 */
 			if(form.childForms != null && form.childForms.size() > 0) {
-				shpSqlBuf.append(getJoins(connectionSD, localisation, form.childForms, form));
+				shpSqlBuf.append(getJoins(sd, localisation, form.childForms, form));
 			}
 			
 			String sqlRestrictToDateRange = null;
 			if(dateId != 0) {
-				String dateName = GeneralUtilityMethods.getColumnNameFromId(connectionSD, sId, dateId);
+				String dateName = GeneralUtilityMethods.getColumnNameFromId(sd, sId, dateId);
 				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
 				if(sqlRestrictToDateRange.trim().length() > 0) {
 					shpSqlBuf.append(" and ");
@@ -262,7 +262,7 @@ public class QueryGenerator {
 			ArrayList<SqlFrag> rfArray = null;
 			RoleManager rm = new RoleManager(localisation);
 			if(!superUser) {
-				rfArray = rm.getSurveyRowFilter(connectionSD, sId, user);
+				rfArray = rm.getSurveyRowFilter(sd, sId, user);
 				if(rfArray.size() > 0) {
 					String rFilter = rm.convertSqlFragsToSql(rfArray);
 					if(rFilter.length() > 0) {

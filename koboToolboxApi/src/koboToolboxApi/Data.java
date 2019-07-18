@@ -28,6 +28,7 @@ import com.google.gson.GsonBuilder;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -174,7 +175,10 @@ public class Data extends Application {
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("links") String links,
-			@QueryParam("filter") String filter
+			@QueryParam("filter") String filter,
+			@QueryParam("dateId") int dateId,			// Id of question containing the date to filter by
+			@QueryParam("startDate") Date startDate,
+			@QueryParam("endDate") Date endDate
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -188,7 +192,8 @@ public class Data extends Application {
 		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, filter);
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, 
+				filter, dateId, startDate, endDate);
 	}
 	
 	/*
@@ -295,7 +300,10 @@ public class Data extends Application {
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String tz,				// Timezone
 			boolean incLinks	,
-			String advanced_filter) throws ApplicationException, Exception { 
+			String advanced_filter,
+			int dateId,
+			Date startDate,
+			Date endDate) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
 		
@@ -338,8 +346,8 @@ public class Data extends Application {
 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
-		String sqlGetManagedId = "select managed_id from survey where s_id = ?";
-		PreparedStatement pstmtGetManagedId = null;
+		//String sqlGetManagedId = "select managed_id from survey where s_id = ?";
+		//PreparedStatement pstmtGetManagedId = null;
 
 		String sqlGetMainForm = "select f_id, table_name from form where s_id = ? and parentform = 0;";
 		PreparedStatement pstmtGetMainForm = null;
@@ -539,7 +547,10 @@ public class Data extends Application {
 					null,			// key filter
 					tz,
 					null,			// instanceId
-					advanced_filter
+					advanced_filter,
+					dateId,
+					startDate,
+					endDate
 					);
 			
 			// Write array start
@@ -639,7 +650,7 @@ public class Data extends Application {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetMainForm != null) {pstmtGetMainForm.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
+			//try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
 
 			ResultsDataSource.closeConnection(connectionString, cResults);			
 			SDDataSource.closeConnection(connectionString, sd);
