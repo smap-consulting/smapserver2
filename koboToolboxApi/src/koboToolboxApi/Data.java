@@ -176,7 +176,7 @@ public class Data extends Application {
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("links") String links,
 			@QueryParam("filter") String filter,
-			@QueryParam("dateId") int dateId,			// Id of question containing the date to filter by
+			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate
 			) throws ApplicationException, Exception { 
@@ -193,7 +193,7 @@ public class Data extends Application {
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, 
-				filter, dateId, startDate, endDate);
+				filter, dateName, startDate, endDate);
 	}
 	
 	/*
@@ -301,7 +301,7 @@ public class Data extends Application {
 			String tz,				// Timezone
 			boolean incLinks	,
 			String advanced_filter,
-			int dateId,
+			String dateName,
 			Date startDate,
 			Date endDate) throws ApplicationException, Exception { 
 
@@ -548,7 +548,7 @@ public class Data extends Application {
 					tz,
 					null,			// instanceId
 					advanced_filter,
-					dateId,
+					dateName,
 					startDate,
 					endDate
 					);

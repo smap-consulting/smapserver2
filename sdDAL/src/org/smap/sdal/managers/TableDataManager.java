@@ -97,7 +97,7 @@ public class TableDataManager {
 			String tz,
 			String instanceId,
 			String advanced_filter,
-			int dateId,
+			String dateName,
 			Date startDate,
 			Date endDate)
 			throws SQLException, Exception {
@@ -180,8 +180,7 @@ public class TableDataManager {
 			}
 			
 			String sqlRestrictToDateRange = null;
-			if(dateId != 0) {
-				String dateName = GeneralUtilityMethods.getColumnNameFromId(sd, sId, dateId);
+			if(dateName != null && GeneralUtilityMethods.hasColumn(cResults, table_name, dateName)) {
 				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
 				if(sqlRestrictToDateRange.trim().length() > 0) {
 					sqlSelect.append(" and ");
