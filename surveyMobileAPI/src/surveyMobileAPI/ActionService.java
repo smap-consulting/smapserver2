@@ -441,7 +441,10 @@ public class ActionService extends Application {
 					null,				// no key filter
 					tz,
 					null,
-					null				// advanced filter
+					null	,			// advanced filter
+					null,			// Date filter name
+					null,			// Start date
+					null				// End date
 			);
 
 			if (pstmt != null) {

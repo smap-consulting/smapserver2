@@ -413,7 +413,10 @@ public class Data_CSV extends Application {
 						null	,	// key filter
 						tz,
 						null	,	// instance id
-						null		// advanced filter
+						null,	// advanced filter
+						null,	// Date filter name
+						null,	// Start date
+						null		// End date
 						);
 
 				if(pstmt != null) {

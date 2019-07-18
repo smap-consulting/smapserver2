@@ -529,7 +529,10 @@ public class SubscriberBatch {
 											null	,			// key filter
 											tz,
 											null	,			// instance id
-											null				// advanced filter
+											null	,			// advanced filter
+											null,			// Date filter name
+											null,			// Start date
+											null				// End date
 											);
 	
 									// Set parameters for custom filter
