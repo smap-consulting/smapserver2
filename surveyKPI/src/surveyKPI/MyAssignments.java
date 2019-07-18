@@ -624,14 +624,15 @@ public class MyAssignments extends Application {
 					} else {
 
 						// Apply update making sure the assignment was made to the updating user
-						sql = "UPDATE assignments a SET status = ? " +
+						sql = "UPDATE assignments a SET status = ?, comment = ? " +
 								"where a.id = ? " + 
 								"and a.assignee in (select id from users u " +
 								"where u.ident = ?)";
 						pstmt = sd.prepareStatement(sql);
 						pstmt.setString(1, ta.assignment.assignment_status);
-						pstmt.setInt(2, ta.assignment.assignment_id);
-						pstmt.setString(3, userName);
+						pstmt.setString(2, ta.assignment.task_comment);
+						pstmt.setInt(3, ta.assignment.assignment_id);
+						pstmt.setString(4, userName);
 
 					}
 
