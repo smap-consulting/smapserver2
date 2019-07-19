@@ -59,6 +59,7 @@ import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.DataItemChangeEvent;
@@ -66,6 +67,7 @@ import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveySettingsDefn;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 
@@ -178,7 +180,8 @@ public class Data extends Application {
 			@QueryParam("filter") String filter,
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
-			@QueryParam("endDate") Date endDate
+			@QueryParam("endDate") Date endDate,
+			@QueryParam("getSettings") boolean getSettings			// if set true get the settings from the database
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -193,7 +196,7 @@ public class Data extends Application {
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, 
-				filter, dateName, startDate, endDate);
+				filter, dateName, startDate, endDate, getSettings);
 	}
 	
 	/*
@@ -303,7 +306,9 @@ public class Data extends Application {
 			String advanced_filter,
 			String dateName,
 			Date startDate,
-			Date endDate) throws ApplicationException, Exception { 
+			Date endDate,
+			boolean getSettings		// Set true if the settings are stored in the database, otherwise they are passed with the request
+			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
 		
@@ -419,15 +424,12 @@ public class Data extends Application {
 			 * Get the survey view
 			 */
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			
-			// Get the default view
-			if(viewId == 0) {	
-				viewId = svm.getDefaultView(sd, uId, sId, managedId, 0);
-			}
-			
+			SurveySettingsDefn ssd = null;
 			SurveyViewDefn sv = null;
 			ArrayList<TableColumn> columns = null;
 			
@@ -437,13 +439,25 @@ public class Data extends Application {
 			 * to console specific coding
 			 */
 			if(schema) {
+				ssd = ssm.getSurveySettings(sd, uId, sIdent);
+				if(!getSettings) {
+					// Update the settings with the values passed in the request
+					ssd.limit = limit;
+					ssd.filter = advanced_filter;
+					ssd.dateName = dateName;
+					ssd.fromDate = startDate;
+					ssd.toDate = endDate;
+					
+					ssm.setSurveySettings(sd, uId, sIdent, ssd);
+				}
 				sv = svm.getSurveyView(sd, 
 						cResults, 
 						uId, 
-						viewId, sId, managedId, request.getRemoteUser(), oId, superUser,
+						ssd, sId, managedId, request.getRemoteUser(), oId, superUser,
 						groupSurvey);	
 				columns = sv.columns;
-				table_name = sv.tableName;
+				table_name = sv.tableName;			
+				
 			} else {
 			
 				// Get the managed Id
@@ -547,10 +561,10 @@ public class Data extends Application {
 					null,			// key filter
 					tz,
 					null,			// instanceId
-					advanced_filter,
-					dateName,
-					startDate,
-					endDate
+					ssd.filter,
+					ssd.dateName,
+					ssd.fromDate,
+					ssd.toDate
 					);
 			
 			// Write array start
@@ -603,7 +617,7 @@ public class Data extends Application {
 					}
 					
 					index++;
-					if (limit > 0 && index >= limit) {
+					if (ssd.limit > 0 && index >= ssd.limit) {
 						break;
 					}
 
@@ -618,7 +632,7 @@ public class Data extends Application {
 				if(schema) {
 					/*
 					 * Return the schema with the data 
-					 * 1. remove data not neeeded by the client for performance and security reasons
+					 * 1. remove data not needed by the client for performance and security reasons
 					 */
 					for(TableColumn tc : sv.columns) {
 						tc.actions = null;
@@ -629,6 +643,12 @@ public class Data extends Application {
 					// 2. Add the schema to the results
 					outWriter.print(",\"schema\":");
 					outWriter.print(gson.toJson(sv));		// Add the survey view
+					
+					// 3. Add the survey settings to the results
+					if(getSettings) {
+						outWriter.print(",\"settings\":");
+						outWriter.print(gson.toJson(ssd));		// Add the survey view
+					}
 				}
 				
 				outWriter.print("}");

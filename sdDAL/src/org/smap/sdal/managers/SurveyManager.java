@@ -3600,12 +3600,14 @@ public class SurveyManager {
 			/*
 			 * Delete any survey views that reference this survey
 			 */
-			sql = "delete from survey_view where s_id = ?;";	
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			log.info("Delete survey views: " + pstmt.toString());
-			pstmt.executeUpdate();
+			if(newSurveyId == 0) {
+				sql = "delete from survey_settings where s_ident = ?;";	
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, surveyIdent);
+				log.info("Delete survey views: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
 	
 			/*
 			 * Delete or update any tasks that are to update this survey (Only do this if the survey is not being replaced)

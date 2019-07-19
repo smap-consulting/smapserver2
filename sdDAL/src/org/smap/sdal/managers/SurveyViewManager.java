@@ -20,6 +20,7 @@ import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.ManagedFormItem;
 import org.smap.sdal.model.MapLayer;
 import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.SurveySettingsDefn;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnConfig;
 import org.smap.sdal.model.TableColumnMarkup;
@@ -75,7 +76,7 @@ public class SurveyViewManager {
 			Connection sd, 
 			Connection cResults,
 			int uId,
-			int viewId,
+			SurveySettingsDefn ssd,
 			int sId,
 			int managedId,
 			String uIdent,
@@ -83,7 +84,7 @@ public class SurveyViewManager {
 			boolean superUser,
 			String groupSurvey) throws SQLException, Exception  {
 		
-		SurveyViewDefn svd = new SurveyViewDefn(viewId, sId, managedId, 0);
+		SurveyViewDefn svd = new SurveyViewDefn(ssd, sId, managedId, 0);
 		
 		ArrayList<TableColumnConfig> configColumns = new ArrayList<TableColumnConfig> ();
 		String language = "none";
@@ -101,6 +102,7 @@ public class SurveyViewManager {
 		try {
 
 			// Get the survey view
+			/*
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, viewId);
 			pstmt.setInt(2, uId);
@@ -147,6 +149,7 @@ public class SurveyViewManager {
 				}
 				
 			}
+			*/
 			
 			// Add the main form columns to the Survey View Definition
 			String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
@@ -574,40 +577,6 @@ public class SurveyViewManager {
 		}
 		
 		return items;
-	}
-	
-	/*
-	 * Get default view id
-	 */
-	public int getDefaultView(Connection sd, int uId, int sId, int managedId, int queryId) throws SQLException {
-		int viewId = 0;
-		
-		String sqlGetDefault = "select v_id from default_user_view "
-				+ "where u_id = ? "
-				+ "and s_id = ? "
-				+ "and query_id = ? "
-				+ "and m_id = ?";
-		PreparedStatement pstmtGetDefault = null;
-		
-		try {
-			
-			pstmtGetDefault = sd.prepareStatement(sqlGetDefault);
-			
-			pstmtGetDefault.setInt(1, uId);
-			pstmtGetDefault.setInt(2, sId);
-			pstmtGetDefault.setInt(3, queryId);
-			pstmtGetDefault.setInt(4, managedId);
-			
-			log.info("Get default view: " + pstmtGetDefault.toString());
-			ResultSet rs = pstmtGetDefault.executeQuery();
-			if(rs.next()) {
-				viewId = rs.getInt(1);
-			}
-		} finally {
-			if(pstmtGetDefault != null) { try{pstmtGetDefault.close();}catch(Exception e) {}}
-		}
-		
-		return viewId;
 	}
 	
 	/*

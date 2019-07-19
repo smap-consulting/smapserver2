@@ -7,7 +7,7 @@ import java.util.HashMap;
  * Contains data used in a survey view
  */
 public class SurveyViewDefn {
-	public int viewId;
+	public SurveySettingsDefn ssd;
 	public int sId;
 	public int managedId;
 	public int queryId;
@@ -23,8 +23,8 @@ public class SurveyViewDefn {
 		
 	}
 	
-	public SurveyViewDefn(int v, int s, int m, int q) {
-		viewId = v;
+	public SurveyViewDefn(SurveySettingsDefn ssd, int s, int m, int q) {
+		this.ssd = ssd;
 		sId = s;
 		managedId = m;
 		queryId = q;
