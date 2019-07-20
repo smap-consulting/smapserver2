@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Assignment;
@@ -78,6 +79,8 @@ public class MyAssignments extends Application {
 
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
+	
+	LogManager lm = new LogManager(); // Application log
 
 	/*
 	 * Get assignments for user authenticated with credentials
@@ -602,6 +605,9 @@ public class MyAssignments extends Application {
 		try {
 			String sql = null;
 
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
 				if(ta.assignment.assignment_id > 0) {
@@ -633,6 +639,13 @@ public class MyAssignments extends Application {
 						pstmt.setString(2, ta.assignment.task_comment);
 						pstmt.setInt(3, ta.assignment.assignment_id);
 						pstmt.setString(4, userName);
+						
+						if(ta.assignment.task_comment != null && ta.assignment.task_comment.length() > 0) {
+							// Get the oId here this should be a pretty rare event
+							int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+							lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.TASK_REJECT, 
+									ta.assignment.assignment_id + ": " + ta.assignment.task_comment );
+						}
 
 					}
 
