@@ -314,6 +314,7 @@ public class TaskManager {
 				+ "a.status as status,"
 				+ "a.assignee,"
 				+ "a.assignee_name,"
+				+ "a.comment,"
 				+ "a.email,"
 				+ "a.action_link,"
 				+ "u.ident as assignee_ident, "				// Get current user ident for notification
@@ -473,6 +474,7 @@ public class TaskManager {
 				tf.properties.blocked = rs.getBoolean("blocked");
 				tf.properties.assignee = rs.getInt("assignee");
 				tf.properties.assignee_name = rs.getString("assignee_name");
+				tf.properties.comment = rs.getString("comment");
 				tf.properties.emails = rs.getString("email");
 				tf.properties.assignee_ident = rs.getString("assignee_ident");
 				tf.properties.location_trigger = rs.getString("location_trigger");
