@@ -585,8 +585,9 @@ public class MyAssignments extends Application {
 			String userName) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-MyAssignments - updateTasks";
 
-		Connection sd = SDDataSource.getConnection("surveyKPI-MyAssignments");
+		Connection sd = SDDataSource.getConnection(connectionString);
 
 		// Authorisation not required a user can only update their own assignments
 
@@ -596,17 +597,29 @@ public class MyAssignments extends Application {
 
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
 
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmtForms = null;
-		PreparedStatement pstmtFormsDelete = null;
-		PreparedStatement pstmtUser = null;
-		PreparedStatement pstmtTasks = null;
+		String sqlSetDeleted = "update assignments a set status = 'deleted', deleted_date = now() "
+				+ "where a.id = ? "
+				+ "and a.assignee in (select id from users u "
+				+ "where u.ident = ?)";
+		PreparedStatement pstmtSetDeleted = null;
+		
+		String sqlSetUpdated = "UPDATE assignments a SET status = ?, comment = ? " +
+				"where a.id = ? " + 
+				"and a.assignee in (select id from users u " +
+				"where u.ident = ?)";
+		PreparedStatement pstmtSetUpdated = null;
+		
+		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
+		
+		PreparedStatement pstmtEvents = null;
 		try {
-			String sql = null;
 
 			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			pstmtSetDeleted = sd.prepareStatement(sqlSetDeleted);
+			pstmtSetUpdated = sd.prepareStatement(sqlSetUpdated);
 			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
@@ -619,94 +632,73 @@ public class MyAssignments extends Application {
 					 */
 					if(ta.assignment.assignment_status.equals("cancelled")) {
 						log.info("Assignment:" + ta.assignment.assignment_id + " acknowledge cancel");
-
-						sql = "update assignments a set status = 'deleted', deleted_date = now() "
-								+ "where a.id = ? "
-								+ "and a.assignee in (select id from users u "
-								+ "where u.ident = ?)";
-						pstmt = sd.prepareStatement(sql);	
-						pstmt.setInt(1, ta.assignment.assignment_id);
-						pstmt.setString(2, userName);
+						pstmtSetDeleted.setInt(1, ta.assignment.assignment_id);
+						pstmtSetDeleted.setString(2, userName);
+						log.info("update assignments: " + pstmtSetDeleted.toString());
+						pstmtSetDeleted.executeUpdate();
 					} else {
 
 						// Apply update making sure the assignment was made to the updating user
-						sql = "UPDATE assignments a SET status = ?, comment = ? " +
-								"where a.id = ? " + 
-								"and a.assignee in (select id from users u " +
-								"where u.ident = ?)";
-						pstmt = sd.prepareStatement(sql);
-						pstmt.setString(1, ta.assignment.assignment_status);
-						pstmt.setString(2, ta.assignment.task_comment);
-						pstmt.setInt(3, ta.assignment.assignment_id);
-						pstmt.setString(4, userName);
-						
-						if(ta.assignment.task_comment != null && ta.assignment.task_comment.length() > 0) {
-							// Get the oId here this should be a pretty rare event
-							int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-							lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.TASK_REJECT, 
-									ta.assignment.assignment_id + ": " + ta.assignment.task_comment );
-						}
-
+						pstmtSetUpdated.setString(1, ta.assignment.assignment_status);
+						pstmtSetUpdated.setString(2, ta.assignment.task_comment);
+						pstmtSetUpdated.setInt(3, ta.assignment.assignment_id);
+						pstmtSetUpdated.setString(4, userName);
+						log.info("update assignments: " + pstmtSetUpdated.toString());
+						pstmtSetUpdated.executeUpdate();
 					}
-
-					log.info("update assignments: " + pstmt.toString());
-					pstmt.executeUpdate();
+					if(ta.assignment.task_comment != null && ta.assignment.task_comment.length() > 0) {
+						// Get the oId here this should be a pretty rare event
+						int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+						lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.TASK_REJECT, 
+								ta.assignment.assignment_id + ": " + ta.assignment.task_comment );
+					}
 				}
 			}
 
+			int userId = GeneralUtilityMethods.getUserId(sd, userName);
+			
 			/*
-			 * Update the status of down loaded forms
+			 * Record task information for any submitted tasks
 			 */
-			sql = "select id from users where ident = ?"; 
-			pstmtUser = sd.prepareStatement(sql);
-			pstmtUser.setString(1, userName);
-			ResultSet rs = pstmtUser.executeQuery();
-			if(rs.next()) {
-				int userId = rs.getInt(1);
+			if(tr.taskCompletionInfo != null) {
+				String sqlTasks = "insert into task_completion (" +
+						"u_id, " +
+						"device_id, " +
+						"form_ident, " +
+						"form_version, " +
+						"uuid,"	+
+						"the_geom," +
+						"completion_time" +
+						") " +
+						"values(?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?)";
+				pstmtTasks = sd.prepareStatement(sqlTasks);
+				
+				pstmtTasks.setInt(1, userId);
+				pstmtTasks.setString(2, tr.deviceId);
+				for(TaskCompletionInfo tci : tr.taskCompletionInfo) {
 
-				/*
-				 * Record task information for any submitted tasks
-				 */
-				if(tr.taskCompletionInfo != null) {
-					sql = "insert into task_completion (" +
-							"u_id, " +
-							"device_id, " +
-							"form_ident, " +
-							"form_version, " +
-							"uuid,"	+
-							"the_geom," +
-							"completion_time" +
-							") " +
-							"values(?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?);";
-					pstmtTasks = sd.prepareStatement(sql);
-					pstmtTasks.setInt(1, userId);
-					pstmtTasks.setString(2, tr.deviceId);
-					for(TaskCompletionInfo tci : tr.taskCompletionInfo) {
+					pstmtTasks.setString(3, tci.ident);
+					pstmtTasks.setInt(4, tci.version);
+					pstmtTasks.setString(5, tci.uuid);
+					pstmtTasks.setString(6, "POINT(" + tci.lon + " " + tci.lat + ")");
+					pstmtTasks.setTimestamp(7, new Timestamp(tci.actFinish));
 
-						pstmtTasks.setString(3, tci.ident);
-						pstmtTasks.setInt(4, tci.version);
-						pstmtTasks.setString(5, tci.uuid);
-						pstmtTasks.setString(6, "POINT(" + tci.lon + " " + tci.lat + ")");
-						pstmtTasks.setTimestamp(7, new Timestamp(tci.actFinish));
-
-						log.info("Insert task: " + pstmtTasks.toString());
-						pstmtTasks.executeUpdate();
-					}
-
+					log.info("Insert task: " + pstmtTasks.toString());
+					pstmtTasks.executeUpdate();
 				}
 
 				/*
 				 * Record user trail information
 				 */
 				if(tr.userTrail != null) {
-					sql = "insert into user_trail (" +
+					String sqlTrail = "insert into user_trail (" +
 							"u_id, " +
 							"device_id, " +			
 							"the_geom," +
 							"event_time" +
 							") " +
 							"values(?, ?, ST_GeomFromText(?, 4326), ?);";
-					pstmtTrail = sd.prepareStatement(sql);
+					pstmtTrail = sd.prepareStatement(sqlTrail);
 					pstmtTrail.setInt(1, userId);
 					pstmtTrail.setString(2, tr.deviceId);
 					for(PointEntry pe : tr.userTrail) {
@@ -730,14 +722,12 @@ public class MyAssignments extends Application {
 			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 		} finally {
 
-			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
-			try {if ( pstmtForms != null ) { pstmtForms.close(); }} catch (Exception e) {}
-			try {if ( pstmtFormsDelete != null ) { pstmtFormsDelete.close(); }} catch (Exception e) {}
-			try {if ( pstmtUser != null ) { pstmtUser.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetDeleted != null ) { pstmtSetDeleted.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetUpdated != null ) { pstmtSetUpdated.close(); }} catch (Exception e) {}
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 
-			SDDataSource.closeConnection("surveyKPI-MyAssignments", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
