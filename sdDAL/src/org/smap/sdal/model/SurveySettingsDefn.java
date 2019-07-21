@@ -14,6 +14,7 @@ public class SurveySettingsDefn {
 	public String dateName;
 	public Date fromDate;
 	public Date toDate;
+	public String overridenDefaultLimit;
 	
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts

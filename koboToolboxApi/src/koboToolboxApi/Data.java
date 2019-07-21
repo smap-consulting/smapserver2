@@ -62,6 +62,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
@@ -427,7 +428,7 @@ public class Data extends Application {
 			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			
 			SurveySettingsDefn ssd = null;
 			SurveyViewDefn sv = null;
@@ -447,8 +448,14 @@ public class Data extends Application {
 					ssd.dateName = dateName;
 					ssd.fromDate = startDate;
 					ssd.toDate = endDate;
+					ssd.overridenDefaultLimit = "yes";
 					
 					ssm.setSurveySettings(sd, uId, sIdent, ssd);
+				} else {
+					// If the limit has not previously been set then default it to 1,000
+					if(ssd.overridenDefaultLimit == null) {
+						ssd.limit = 1000;
+					}
 				}
 				sv = svm.getSurveyView(sd, 
 						cResults, 
@@ -567,6 +574,7 @@ public class Data extends Application {
 					ssd.toDate
 					);
 			
+			ConsoleTotals totals = new ConsoleTotals();
 			// Write array start
 			if(isDt) {
 				outWriter.print("{\"data\":");
@@ -618,6 +626,7 @@ public class Data extends Application {
 					
 					index++;
 					if (ssd.limit > 0 && index >= ssd.limit) {
+						totals.reached_limit = true;
 						break;
 					}
 
@@ -647,8 +656,12 @@ public class Data extends Application {
 					// 3. Add the survey settings to the results
 					if(getSettings) {
 						outWriter.print(",\"settings\":");
-						outWriter.print(gson.toJson(ssd));		// Add the survey view
+						outWriter.print(gson.toJson(ssd));
 					}
+					
+					// 4. Add totals to the results
+					outWriter.print(",\"totals\":");
+					outWriter.print(gson.toJson(totals));
 				}
 				
 				outWriter.print("}");
