@@ -44,5 +44,6 @@ public class TaskProperties {
 	public String form_version;
 	public int assignee;
 	public String assignee_name;
+	public String comment;
 	public String status;
 }

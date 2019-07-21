@@ -3,6 +3,7 @@ package utilities;
 import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -476,14 +477,15 @@ public class XLSUtilities {
 			CreationHelper createHelper = wb.getCreationHelper();
 			if(embedImages) {
 				if(value.endsWith(".jpg") || value.endsWith(".png")) {
-					int idx = value.indexOf("attachments");
-					int idxName = value.lastIndexOf('/');
-					if(idx > 0 && idxName > 0) {
-						String fileName = value.substring(idxName);
-						String stem = basePath + "/" + value.substring(idx, idxName);
-						String imageName = stem + "/thumbs" + fileName + ".jpg";
+					//int idx = value.indexOf("attachments");
+					//int idxName = value.lastIndexOf('/');
+					//if(idx > 0 && idxName > 0) {
+						//String fileName = value.substring(idxName);
+						//String stem = basePath + "/" + value.substring(idx, idxName);
+						//String imageName = stem + "/thumbs" + fileName + ".jpg";
 						try {
-							InputStream inputStream = new FileInputStream(imageName);
+							//InputStream inputStream = new FileInputStream(imageName);
+							InputStream inputStream = new URL(value).openStream();
 							byte[] imageBytes = IOUtils.toByteArray(inputStream);
 							int pictureureIdx = wb.addPicture(imageBytes, Workbook.PICTURE_TYPE_JPEG);
 							inputStream.close();
@@ -496,12 +498,12 @@ public class XLSUtilities {
 							anchor.setAnchorType(ClientAnchor.AnchorType.MOVE_AND_RESIZE); 
 							//sheet.setColumnWidth(i, 20 * 256);
 							Drawing drawing = sheet.createDrawingPatriarch();
-							Picture pict = drawing.createPicture(anchor, pictureureIdx);
+							drawing.createPicture(anchor, pictureureIdx);
 							//pict.resize();
 						} catch (Exception e) {
-							log.info("Error: Missing image file: " + imageName);
+							log.info("Error: Missing image file: " + value);
 						}
-					}
+					//}
 				}
 			} 
 

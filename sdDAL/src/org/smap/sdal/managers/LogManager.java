@@ -68,11 +68,13 @@ public class LogManager {
 	public static String VIEW = "view";
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
+	public static String TASK_REJECT = "reject task";
 	
 	/*
 	 * Write a log entry that includes the survey id
 	 */
-	public void writeLog(Connection sd, 
+	public void writeLog(
+			Connection sd, 
 			int sId,
 			String uIdent,
 			String event,
@@ -117,7 +119,8 @@ public class LogManager {
 	/*
 	 * Write a log entry at the organisation level
 	 */
-	public void writeLogOrganisation(Connection sd, 
+	public void writeLogOrganisation(
+			Connection sd, 
 			int oId,
 			String uIdent,
 			String event,
