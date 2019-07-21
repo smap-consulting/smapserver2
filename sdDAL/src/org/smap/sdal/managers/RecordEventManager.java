@@ -52,6 +52,9 @@ public class RecordEventManager {
 	private static ResourceBundle localisation;
 	private String tz;
 	
+	public static String CHANGES = "changes";
+	public static String TASK = "task";
+	
 	public RecordEventManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if(tz == null) {
@@ -67,31 +70,37 @@ public class RecordEventManager {
 	 *  Else the old and new instance id's will be used to create a chain of changes.  The existing changes will be indexed
 	 *   by the old instanceid so all of these will need to be updated to the new instanceid
 	 */
-	public void saveChange(Connection sd, 
+	public void writeEvent(Connection sd, 
 			Connection cResults,
+			String event,
 			String user,
 			String tableName, 
 			String newInstance, 
 			String changes,
-			int sId) throws SQLException {
+			String description,
+			int sId,						// legacy
+			String sIdent
+			) throws SQLException {
 		
 		String sql = "insert into record_event ("
 				+ "key,	"
 				+ "table_name, "
+				+ "event, "
 				+ "instanceid,	"
 				+ "details, "
+				+ "description, "
 				+ "success, "
 				+ "msg, "
 				+ "changed_by, "
 				+ "change_survey, "
 				+ "change_survey_version, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
-		String sqlSurvey = "select ident, version " 
+		String sqlSurvey = "select version " 
 				+ " from survey " 
-				+ " where s_id = ?";
+				+ " where ident = ?";
 		PreparedStatement pstmtSurvey = null;
 		
 		// Don't use the actual instance id as it will change with every update
@@ -101,28 +110,31 @@ public class RecordEventManager {
 		int uId = GeneralUtilityMethods.getUserId(sd, user);
 		
 		// Set survey ident and version
-		String sIdent = null;
 		int sVersion = 0;
+		if(sIdent == null) {
+			sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+		}
 		
 		pstmtSurvey = sd.prepareStatement(sqlSurvey);
-		pstmtSurvey.setInt(1, sId);
+		pstmtSurvey.setString(1, sIdent);
 		ResultSet rs = pstmtSurvey.executeQuery();
 		if(rs.next()) {
-			sIdent = rs.getString(1);
-			sVersion = rs.getInt(2);
+			sVersion = rs.getInt(1);
 		}
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, key);
 			pstmt.setString(2,  tableName);
-			pstmt.setString(3,  newInstance);
-			pstmt.setString(4,  changes);
-			pstmt.setBoolean(5,  true);	// success
-			pstmt.setString(6,  null);
-			pstmt.setInt(7, uId);
-			pstmt.setString(8,  sIdent);
-			pstmt.setInt(9,  sVersion);
+			pstmt.setString(3,  event);
+			pstmt.setString(4,  newInstance);
+			pstmt.setString(5,  changes);
+			pstmt.setString(6,  description);
+			pstmt.setBoolean(7,  true);	// success
+			pstmt.setString(8,  null);
+			pstmt.setInt(9, uId);
+			pstmt.setString(10,  sIdent);
+			pstmt.setInt(11,  sVersion);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
@@ -134,7 +146,13 @@ public class RecordEventManager {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
 		
-		String sql = "select event, details, changed_by, change_survey, change_survey_version, "
+		String sql = "select "
+				+ "event, "
+				+ "details, "
+				+ "description, "
+				+ "changed_by, "
+				+ "change_survey, "
+				+ "change_survey_version, "
 				+ "to_char(timezone(?, event_time), 'YYYY-MM-DD HH24:MI:SS') as event_time "
 				+ "from record_event "
 				+ "where table_name = ?"
@@ -160,6 +178,7 @@ public class RecordEventManager {
 				if(changes != null) {
 					event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
 				}
+				event.description = rs.getString("description");
 				
 				String sIdent = rs.getString("change_survey");
 				if(sIdent != null) {				

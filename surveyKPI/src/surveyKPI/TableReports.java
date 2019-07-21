@@ -146,7 +146,7 @@ public class TableReports extends Application {
 			// Get the default view	
 			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, cResults, uId, sIdent);
+			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, uId, sIdent);
 			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, ssd, sId, managedId, 
 					request.getRemoteUser(), oId, superUser, null);	// TODO add support for group survey
 			

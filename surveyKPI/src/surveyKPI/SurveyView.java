@@ -154,7 +154,7 @@ public class SurveyView extends Application {
 			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
 			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
-			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, cResults, uId, sIdent);
+			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, uId, sIdent);
 			SurveyViewDefn sv = svm.getSurveyView(sd, 
 					cResults, 
 					uId, 

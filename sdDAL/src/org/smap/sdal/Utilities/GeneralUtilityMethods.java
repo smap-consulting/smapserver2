@@ -5533,7 +5533,9 @@ public class GeneralUtilityMethods {
 	public static String getMainResultsTableSurveyIdent(Connection sd, Connection conn, String sIdent) {
 		String table = null;
 
-		String sql = "select table_name from form where ident = ? and parentform = 0";
+		String sql = "select table_name from form "
+				+ "where s_id  = (select s_id from survey where ident = ?) "
+				+ "and parentform = 0";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -5541,6 +5543,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, sIdent);
 
+			log.info("Get main table: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				String table_name = rs.getString(1);

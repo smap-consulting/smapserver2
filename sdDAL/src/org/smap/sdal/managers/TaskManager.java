@@ -1062,11 +1062,22 @@ public class TaskManager {
 						remoteUser,
 						initialDataSource);
 			}
+			
+			/*
+			 * Record the record event if this task applies to a record
+			 */
+			if(updateId != null) {
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, target_s_ident);
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(sd, cResults, RecordEventManager.TASK, remoteUser, tableName, updateId, null, "Task created", 0, target_s_ident);
+				
+			}
+			
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
-			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
+			if(pstmtAssign != null) try { pstmtAssign.close(); } catch(SQLException e) {};
 			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
 			if(pstmtRoles2 != null) try {	pstmtRoles2.close(); } catch(SQLException e) {};
 		}

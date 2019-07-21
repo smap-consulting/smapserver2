@@ -14,6 +14,5 @@ public class DataItemChangeEvent {
 	public String eventTime;
 	public String tz;
 	public ArrayList<DataItemChange> changes;
-
-	
+	public String description;	
 }
