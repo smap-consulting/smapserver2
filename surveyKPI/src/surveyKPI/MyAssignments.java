@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Assignment;
@@ -612,14 +613,23 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
 		
+		String sqlEventInfo = "select t.survey_ident, f.table_name, t.update_id from tasks t, form f, survey s "
+				+ "where t.survey_ident = s.ident "
+				+ "and f.s_id = s.s_id "
+				+ "and t.id = ? ";
 		PreparedStatement pstmtEvents = null;
-		try {
+		
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {	
 
-			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			pstmtSetDeleted = sd.prepareStatement(sqlSetDeleted);
 			pstmtSetUpdated = sd.prepareStatement(sqlSetUpdated);
+			pstmtEvents = sd.prepareStatement(sqlEventInfo);
+			
+			RecordEventManager rem = new RecordEventManager(localisation, "UTC");
 			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
@@ -651,6 +661,22 @@ public class MyAssignments extends Application {
 						int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 						lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.TASK_REJECT, 
 								ta.assignment.assignment_id + ": " + ta.assignment.task_comment );
+					}
+					
+					/*
+					 * Record the task status to the record event
+					 */
+					pstmtEvents.setInt(1, ta.task.id);
+					ResultSet rsEvents = pstmtEvents.executeQuery();
+					if(rsEvents.next()) {
+						String sIdent = rsEvents.getString(1);
+						String tableName = rsEvents.getString(2);
+						String updateId = rsEvents.getString(3);
+						if(updateId != null && sIdent != null && tableName != null) {
+							// TODO create useful change info probably using tr.taskCompletionInfo
+							rem.writeEvent(sd, cResults, RecordEventManager.TASK, userName, tableName, updateId, null, 
+									ta.assignment.assignment_status + " : " + ta.assignment.task_comment, 0, sIdent);
+						}
 					}
 				}
 			}
@@ -726,8 +752,10 @@ public class MyAssignments extends Application {
 			try {if ( pstmtSetUpdated != null ) { pstmtSetUpdated.close(); }} catch (Exception e) {}
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
+			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 		return response;
