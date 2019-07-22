@@ -1174,6 +1174,35 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the task id for an assignment
+	 */
+	static public int getTaskId(Connection sd, int aId) throws SQLException {
+
+		int taskId = 0;
+
+		String sql = "select task_id " 
+				+ " from assignments " 
+				+ "where id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, aId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				taskId = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return taskId;
+	}
+	
+	/*
 	 * Get the notification name
 	 */
 	static public String getNotificationName(Connection sd, int id) throws SQLException {

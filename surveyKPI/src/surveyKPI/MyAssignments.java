@@ -167,6 +167,71 @@ public class MyAssignments extends Application {
 		log.info("webserviceevent : updateAssignments");
 		return updateTasks(request, assignInput, request.getRemoteUser());
 	}
+	
+	/*
+	 * Reject assignments for user authenticated with credentials
+	 */
+	@POST
+	@Path("/update_status")
+	@Produces("application/json")
+	public Response rejectTaskCredentials(
+			@FormParam("assignment") String assignment,
+			@Context HttpServletRequest request) {
+
+		Response response = null;
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
+		Assignment as = gson.fromJson(assignment, Assignment.class);
+		log.info("webserviceevent : update assignment status: " + as.assignment_id);
+		
+		String connectionString = "surveyKPI-MyAssignments-reject";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// TODO validate assignement id
+		// End Authorisation
+			
+		PreparedStatement pstmtSetDeleted = null;
+		PreparedStatement pstmtSetUpdated = null;
+		PreparedStatement pstmtEvents = null;
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
+			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
+			pstmtEvents = getPreparedStatementEvents(sd);
+			
+			int taskId = GeneralUtilityMethods.getTaskId(sd, as.assignment_id);
+			updateAssignment(
+					sd,
+					cResults,
+					localisation, 
+					pstmtSetDeleted, 
+					pstmtSetUpdated, 
+					pstmtEvents,
+					request.getRemoteUser(),
+					taskId,
+					as.assignment_id,
+					as.assignment_status,
+					as.task_comment);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			try {if ( pstmtSetDeleted != null ) { pstmtSetDeleted.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetUpdated != null ) { pstmtSetUpdated.close(); }} catch (Exception e) {}
+			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
+		return response;
+	}
 
 	/*
 	 * Return the list of tasks allocated to the requesting user
@@ -598,25 +663,11 @@ public class MyAssignments extends Application {
 
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
 
-		String sqlSetDeleted = "update assignments a set status = 'deleted', deleted_date = now() "
-				+ "where a.id = ? "
-				+ "and a.assignee in (select id from users u "
-				+ "where u.ident = ?)";
 		PreparedStatement pstmtSetDeleted = null;
-		
-		String sqlSetUpdated = "UPDATE assignments a SET status = ?, comment = ? " +
-				"where a.id = ? " + 
-				"and a.assignee in (select id from users u " +
-				"where u.ident = ?)";
 		PreparedStatement pstmtSetUpdated = null;
 		
 		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
-		
-		String sqlEventInfo = "select t.survey_ident, f.table_name, t.update_id from tasks t, form f, survey s "
-				+ "where t.survey_ident = s.ident "
-				+ "and f.s_id = s.s_id "
-				+ "and t.id = ? ";
 		PreparedStatement pstmtEvents = null;
 		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
@@ -625,59 +676,28 @@ public class MyAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			pstmtSetDeleted = sd.prepareStatement(sqlSetDeleted);
-			pstmtSetUpdated = sd.prepareStatement(sqlSetUpdated);
-			pstmtEvents = sd.prepareStatement(sqlEventInfo);
-			
-			RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
+			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
+			pstmtEvents = getPreparedStatementEvents(sd);
 			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
 				if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
 
-					/*
-					 * If the updated status = "cancelled" then this is an acknowledgment of the status set on the server
-					 *   hence update the server status to "deleted"
-					 */
-					if(ta.assignment.assignment_status.equals("cancelled")) {
-						log.info("Assignment:" + ta.assignment.assignment_id + " acknowledge cancel");
-						pstmtSetDeleted.setInt(1, ta.assignment.assignment_id);
-						pstmtSetDeleted.setString(2, userName);
-						log.info("update assignments: " + pstmtSetDeleted.toString());
-						pstmtSetDeleted.executeUpdate();
-					} else {
+					updateAssignment(
+							sd,
+							cResults,
+							localisation, 
+							pstmtSetDeleted, 
+							pstmtSetUpdated, 
+							pstmtEvents,
+							userName,
+							ta.task.id,
+							ta.assignment.assignment_id,
+							ta.assignment.assignment_status,
+							ta.assignment.task_comment);
 
-						// Apply update making sure the assignment was made to the updating user
-						pstmtSetUpdated.setString(1, ta.assignment.assignment_status);
-						pstmtSetUpdated.setString(2, ta.assignment.task_comment);
-						pstmtSetUpdated.setInt(3, ta.assignment.assignment_id);
-						pstmtSetUpdated.setString(4, userName);
-						log.info("update assignments: " + pstmtSetUpdated.toString());
-						pstmtSetUpdated.executeUpdate();
-					}
-					if(ta.assignment.task_comment != null && ta.assignment.task_comment.length() > 0) {
-						// Get the oId here this should be a pretty rare event
-						int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-						lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), LogManager.TASK_REJECT, 
-								ta.assignment.assignment_id + ": " + ta.assignment.task_comment );
-					}
-					
-					/*
-					 * Record the task status to the record event
-					 */
-					pstmtEvents.setInt(1, ta.task.id);
-					ResultSet rsEvents = pstmtEvents.executeQuery();
-					if(rsEvents.next()) {
-						String sIdent = rsEvents.getString(1);
-						String tableName = rsEvents.getString(2);
-						String updateId = rsEvents.getString(3);
-						if(updateId != null && sIdent != null && tableName != null) {
-							// TODO create useful change info probably using tr.taskCompletionInfo
-							rem.writeEvent(sd, cResults, RecordEventManager.TASK, userName, tableName, updateId, null, 
-									ta.assignment.assignment_status + " : " + ta.assignment.task_comment, 0, sIdent);
-						}
-					}
 				}
 			}
 
@@ -759,6 +779,103 @@ public class MyAssignments extends Application {
 		}
 
 		return response;
+	}
+	
+	// Get a prepared statement to set the status of an assignment to deleted
+	private PreparedStatement getPreparedStatementSetDeleted(Connection sd) throws SQLException {
+
+		String sql = "update assignments a set status = 'deleted', deleted_date = now() "
+				+ "where a.id = ? "
+				+ "and a.assignee in (select id from users u "
+				+ "where u.ident = ?)";
+		PreparedStatement pstmt = sd.prepareStatement(sql);
+		return pstmt;
+	}
+	
+	// Get a prepared statement to update the status of an assignment
+	private PreparedStatement getPreparedStatementSetUpdated(Connection sd) throws SQLException {
+
+		String sql = "UPDATE assignments a SET status = ?, comment = ? " +
+				"where a.id = ? " + 
+				"and a.assignee in (select id from users u " +
+				"where u.ident = ?)";
+		PreparedStatement pstmt = sd.prepareStatement(sql);
+		return pstmt;
+	}
+	
+	// Get a prepared statement to update the record events table
+	private PreparedStatement getPreparedStatementEvents(Connection sd) throws SQLException {
+
+		String sql = "select t.survey_ident, f.table_name, t.update_id from tasks t, form f, survey s "
+				+ "where t.survey_ident = s.ident "
+				+ "and f.s_id = s.s_id "
+				+ "and t.id = ? ";
+		PreparedStatement pstmt = sd.prepareStatement(sql);
+		return pstmt;
+	}
+	
+	
+	
+	/*
+	 * Update the status of an assignment
+	 */
+	private void updateAssignment(
+			Connection sd,
+			Connection cResults,
+			ResourceBundle localisation,
+			PreparedStatement pstmtSetDeleted, 
+			PreparedStatement pstmtSetUpdated,
+			PreparedStatement pstmtEvents,
+			String userName,
+			int taskId,
+			int assignmentId,
+			String status,
+			String comment) throws SQLException {
+		
+		RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+		
+		/*
+		 * If the updated status = "cancelled" then this is an acknowledgment of the status set on the server
+		 *   hence update the server status to "deleted"
+		 */
+		if(status.equals("cancelled")) {
+			log.info("Assignment:" + assignmentId + " acknowledge cancel");
+			pstmtSetDeleted.setInt(1, assignmentId);
+			pstmtSetDeleted.setString(2, userName);
+			log.info("update assignments: " + pstmtSetDeleted.toString());
+			pstmtSetDeleted.executeUpdate();
+		} else {
+
+			// Apply update making sure the assignment was made to the updating user
+			pstmtSetUpdated.setString(1, status);
+			pstmtSetUpdated.setString(2, comment);
+			pstmtSetUpdated.setInt(3, assignmentId);
+			pstmtSetUpdated.setString(4, userName);
+			log.info("update assignments: " + pstmtSetUpdated.toString());
+			pstmtSetUpdated.executeUpdate();
+		}
+		if(comment != null && comment.length() > 0) {
+			// Get the oId here this should be a pretty rare event
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
+			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
+					assignmentId + ": " + comment );
+		}
+		
+		/*
+		 * Record the task status to the record event
+		 */
+		pstmtEvents.setInt(1, taskId);
+		ResultSet rsEvents = pstmtEvents.executeQuery();
+		if(rsEvents.next()) {
+			String sIdent = rsEvents.getString(1);
+			String tableName = rsEvents.getString(2);
+			String updateId = rsEvents.getString(3);
+			if(updateId != null && sIdent != null && tableName != null) {
+				// TODO create useful change info probably using tr.taskCompletionInfo
+				rem.writeEvent(sd, cResults, RecordEventManager.TASK, userName, tableName, updateId, null, 
+						status + " : " + comment, 0, sIdent);
+			}
+		}
 	}
 }
 

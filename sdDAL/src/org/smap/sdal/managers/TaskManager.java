@@ -92,14 +92,19 @@ public class TaskManager {
 	public static String TASK_DATA_SOURCE = "task";
 	public static String NO_DATA_SOURCE = "none";
 	
+	public static final String STATUS_T_ACCEPTED = "accepted";
+    public static final String STATUS_T_REJECTED = "rejected";
+    public static final String STATUS_T_SUBMITTED = "submitted";
+    public static final String STATUS_T_CANCELLED = "cancelled";
+    
 	private String fullStatusList[] = {
 			"new", 
-			"accepted", 
+			STATUS_T_ACCEPTED, 
 			"unsent", 
 			"unsubscribed", 
-			"submitted", 
-			"rejected", 
-			"cancelled", 
+			STATUS_T_SUBMITTED, 
+			STATUS_T_REJECTED, 
+			STATUS_T_CANCELLED , 
 			"deleted",
 			"pending",
 			"error",
@@ -1068,6 +1073,7 @@ public class TaskManager {
 			 */
 			if(updateId != null) {
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, target_s_ident);
+				log.info("Record event: " + target_s_ident + " : " + tableName);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(sd, cResults, RecordEventManager.TASK, remoteUser, tableName, updateId, null, "Task created", 0, target_s_ident);
 				
