@@ -517,6 +517,7 @@ public class ActionManager {
 				rem.writeEvent(sd, cResults, "changes", userIdent, f.tableName, 
 						inst, 
 						gson.toJson(changeMap.get(inst)),
+						null,		// task details
 						null,		// description
 						sId, null);
 			}
@@ -739,7 +740,8 @@ public class ActionManager {
 						userIdent, 
 						f.tableName, 
 						inst, 
-						gson.toJson(changeMap.get(inst)), 
+						gson.toJson(changeMap.get(inst)),
+						null,		// task details
 						null,		// description
 						sId, null);
 			}

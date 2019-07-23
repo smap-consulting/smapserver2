@@ -48,6 +48,7 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.Task;
 import org.smap.sdal.model.TaskAssignment;
+import org.smap.sdal.model.TaskItemChange;
 import org.smap.sdal.model.TaskLocation;
 
 import com.google.gson.Gson;
@@ -213,6 +214,7 @@ public class MyAssignments extends Application {
 					pstmtSetDeleted, 
 					pstmtSetUpdated, 
 					pstmtEvents,
+					gson,
 					request.getRemoteUser(),
 					taskId,
 					as.assignment_id,
@@ -670,6 +672,8 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
 		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
+		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {	
 
@@ -692,6 +696,7 @@ public class MyAssignments extends Application {
 							pstmtSetDeleted, 
 							pstmtSetUpdated, 
 							pstmtEvents,
+							gson,
 							userName,
 							ta.task.id,
 							ta.assignment.assignment_id,
@@ -806,7 +811,7 @@ public class MyAssignments extends Application {
 	// Get a prepared statement to update the record events table
 	private PreparedStatement getPreparedStatementEvents(Connection sd) throws SQLException {
 
-		String sql = "select t.survey_ident, f.table_name, t.update_id from tasks t, form f, survey s "
+		String sql = "select t.survey_ident, f.table_name, t.update_id, t.title from tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
 				+ "and t.id = ? ";
@@ -826,6 +831,7 @@ public class MyAssignments extends Application {
 			PreparedStatement pstmtSetDeleted, 
 			PreparedStatement pstmtSetUpdated,
 			PreparedStatement pstmtEvents,
+			Gson gson,
 			String userName,
 			int taskId,
 			int assignmentId,
@@ -870,10 +876,18 @@ public class MyAssignments extends Application {
 			String sIdent = rsEvents.getString(1);
 			String tableName = rsEvents.getString(2);
 			String updateId = rsEvents.getString(3);
+			String taskName = rsEvents.getString(4);
 			if(updateId != null && sIdent != null && tableName != null) {
-				// TODO create useful change info probably using tr.taskCompletionInfo
-				rem.writeEvent(sd, cResults, RecordEventManager.TASK, userName, tableName, updateId, null, 
-						status + " : " + comment, 0, sIdent);
+				TaskItemChange tic = new TaskItemChange(assignmentId, taskName, status, userName, comment);
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.TASK, 
+						userName, 
+						tableName, 
+						updateId, 
+						null, 
+						gson.toJson(tic),
+						status + " : " + comment, 
+						0, sIdent);
 			}
 		}
 	}

@@ -47,6 +47,7 @@ import org.smap.sdal.model.TaskBulkAction;
 import org.smap.sdal.model.TaskEmailDetails;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
+import org.smap.sdal.model.TaskItemChange;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.TaskServerDefn;
@@ -1065,18 +1066,9 @@ public class TaskManager {
 						updateId,
 						autosendEmails,
 						remoteUser,
-						initialDataSource);
-			}
-			
-			/*
-			 * Record the record event if this task applies to a record
-			 */
-			if(updateId != null) {
-				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, target_s_ident);
-				log.info("Record event: " + target_s_ident + " : " + tableName);
-				RecordEventManager rem = new RecordEventManager(localisation, tz);
-				rem.writeEvent(sd, cResults, RecordEventManager.TASK, remoteUser, tableName, updateId, null, "Task created", 0, target_s_ident);
-				
+						initialDataSource,
+						updateId,
+						title);
 			}
 			
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
@@ -1420,7 +1412,9 @@ public class TaskManager {
 							targetSurveyIdent,
 							autosendEmails,
 							remoteUser,
-							tsd.initial_data_source);
+							tsd.initial_data_source,
+							tsd.update_id,
+							tsd.name);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1441,7 +1435,9 @@ public class TaskManager {
 							null,
 							autosendEmails,
 							remoteUser,
-							tsd.initial_data_source);
+							tsd.initial_data_source,
+							tsd.update_id,
+							tsd.name);
 				}
 				
 				if(asd.assignee > 0) {
@@ -2146,11 +2142,18 @@ public class TaskManager {
 	 * Insert an assignment
 	 */
 	public int insertAssignment(
+			Connection sd,
+			Connection cResults,
+			Gson gson,
 			PreparedStatement pstmt,
+			String name,					// Task name
 			int assignee,
 			String email,
 			String status,
-			int task_id) throws SQLException {
+			int task_id,
+			String updateId,
+			String sIdent,
+			String remoteUser) throws SQLException {
 		
 		pstmt.setInt(1, assignee);
 		if(email != null) {
@@ -2171,6 +2174,35 @@ public class TaskManager {
 			aId = rs.getInt(1);
 		}
 		rs.close();
+		
+		/*
+		 * Record the record event if this task applies to a record
+		 */
+		if(updateId != null) {
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+			log.info("Record event: " + sIdent + " : " + tableName);
+			String assigned = null;
+			if(email != null) {
+				assigned = email;
+			} else {
+				assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
+			}
+			TaskItemChange tic = new TaskItemChange(aId, name, status, assigned, null);
+			RecordEventManager rem = new RecordEventManager(localisation, tz);
+			rem.writeEvent(
+					sd, 
+					cResults, 
+					RecordEventManager.TASK, 
+					remoteUser, 
+					tableName, 
+					updateId, 
+					null,			// Change object
+					gson.toJson(tic),
+					"Task created", 
+					0, 
+					sIdent);
+			
+		}
 		
 		return aId;
 	}
@@ -2216,7 +2248,9 @@ public class TaskManager {
 			String targetSurveyIdent,
 			boolean autosendEmails,
 			String remoteUser,
-			String initialDataSource) throws Exception {
+			String initialDataSource,
+			String update_id,
+			String task_name) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -2261,7 +2295,9 @@ public class TaskManager {
 						null,
 						autosendEmails,
 						remoteUser,
-						initialDataSource);
+						initialDataSource,
+						update_id,
+						task_name);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -2301,14 +2337,17 @@ public class TaskManager {
 			String targetInstanceId,
 			boolean autosendEmails,
 			String remoteUser,			// For autosend of emails
-			String initialDataSource
+			String initialDataSource,
+			String update_id,
+			String task_name
 			) throws Exception {
 
 		String status = "accepted";
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(pstmtAssign, userId, null, status, taskId);
+			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, null, status, taskId, update_id, sIdent, remoteUser);
 			
 			// Notify the user of their new assignment
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -2333,7 +2372,7 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(pstmtAssign, rsRoles.getInt(1), null, status, taskId);
+				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, rsRoles.getInt(1), null, status, taskId, update_id, sIdent, remoteUser);
 				
 				// Notify the user of their new assignment
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
@@ -2375,14 +2414,14 @@ public class TaskManager {
 					action.datakeyvalue = targetInstanceId;
 				}
 			}
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
 			for(String email : emailArray) {
 				
 				if(emailTaskBlocked) {
-					insertAssignment(pstmtAssign, 0, email, "blocked", taskId);
+					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, "blocked", taskId, update_id, sIdent, remoteUser);
 				} else {
 					// Create the assignment
-					int aId = insertAssignment(pstmtAssign, 0, email, status, taskId);
+					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, status, taskId, update_id, sIdent, remoteUser);
 					
 					// Create a temporary user embedding the assignment id in the action link, get the link to that user
 					action.assignmentId = aId;

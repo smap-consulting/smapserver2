@@ -18,6 +18,7 @@ import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlParam;
+import org.smap.sdal.model.TaskItemChange;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -77,6 +78,7 @@ public class RecordEventManager {
 			String tableName, 
 			String newInstance, 
 			String changes,
+			String task,
 			String description,
 			int sId,						// legacy
 			String sIdent
@@ -87,7 +89,8 @@ public class RecordEventManager {
 				+ "table_name, "
 				+ "event, "
 				+ "instanceid,	"
-				+ "details, "
+				+ "changes, "
+				+ "task, "
 				+ "description, "
 				+ "success, "
 				+ "msg, "
@@ -95,7 +98,7 @@ public class RecordEventManager {
 				+ "change_survey, "
 				+ "change_survey_version, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -129,12 +132,13 @@ public class RecordEventManager {
 			pstmt.setString(3,  event);
 			pstmt.setString(4,  newInstance);
 			pstmt.setString(5,  changes);
-			pstmt.setString(6,  description);
-			pstmt.setBoolean(7,  true);	// success
-			pstmt.setString(8,  null);
-			pstmt.setInt(9, uId);
-			pstmt.setString(10,  sIdent);
-			pstmt.setInt(11,  sVersion);
+			pstmt.setString(6,  task);
+			pstmt.setString(7,  description);
+			pstmt.setBoolean(8,  true);	// success
+			pstmt.setString(9,  null);
+			pstmt.setInt(10, uId);
+			pstmt.setString(11,  sIdent);
+			pstmt.setInt(12,  sVersion);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
@@ -148,7 +152,8 @@ public class RecordEventManager {
 		
 		String sql = "select "
 				+ "event, "
-				+ "details, "
+				+ "changes,"
+				+ "task, "
 				+ "description, "
 				+ "changed_by, "
 				+ "change_survey, "
@@ -174,9 +179,13 @@ public class RecordEventManager {
 				event.event = rs.getString("event");
 				event.userName = GeneralUtilityMethods.getUserName(sd, rs.getInt("changed_by"));
 				
-				String changes = rs.getString("details");
+				String changes = rs.getString("changes");
 				if(changes != null) {
 					event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
+				}
+				String task = rs.getString("task");
+				if(task != null) {
+					event.task = gson.fromJson(task, TaskItemChange.class);
 				}
 				event.description = rs.getString("description");
 				
