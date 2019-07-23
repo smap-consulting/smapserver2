@@ -2262,8 +2262,10 @@ public class GeneralUtilityMethods {
 
 		String userIdent = null;
 
-		String sqlGetUserDetails = "select u.ident from users u, dynamic_users d " + " where u.id = d.u_id "
-				+ " and d.access_key = ? " + " and d.expiry > now();";
+		String sqlGetUserDetails = "select u.ident from users u, dynamic_users d " 
+				+ " where u.id = d.u_id "
+				+ " and d.access_key = ? " 
+				+ " and d.expiry > now();";
 		PreparedStatement pstmtGetUserDetails = null;
 
 		log.info("GetDynamicUser");
