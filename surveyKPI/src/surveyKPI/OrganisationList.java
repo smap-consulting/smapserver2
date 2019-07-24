@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
@@ -186,8 +187,8 @@ public class OrganisationList extends Application {
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.can_sms = resultSet.getBoolean("can_sms");
-				org.set_as_theme = resultSet.getBoolean("set_as_theme");
-				org.navbar_color = resultSet.getString("navbar_color");
+				org.appearance.set_as_theme = resultSet.getBoolean("set_as_theme");
+				org.appearance.navbar_color = resultSet.getString("navbar_color");
 				org.email_task = resultSet.getBoolean("email_task");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
@@ -512,6 +513,41 @@ public class OrganisationList extends Application {
 		return response;
 	}
 	
+	// Get appearance settings for an organisation
+	@GET
+	@Path("/appearance")
+	public Response getAppearanceSettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-getAppearanceSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			OrganisationManager om = new OrganisationManager(localisation);		
+			AppearanceOptions ao = om.getAppearance(sd, request.getRemoteUser());
+			
+			String resp = gson.toJson(ao);
+			response = Response.ok(resp).build();
+			
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
 	@GET
 	@Path("/sensitive")
 	public Response getSensitivitySettings(@Context HttpServletRequest request) {
@@ -681,6 +717,67 @@ public class OrganisationList extends Application {
 			pstmt.setString(2, request.getRemoteUser());
 					
 			log.info("Update organisation with webform details: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			response = Response.ok().build();
+	
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}		
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	@POST
+	@Path("/appearance")
+	public Response updateAppearanceSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) throws ApplicationException {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-updateAppearanceSettings";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		AppearanceOptions ao = gson.fromJson(settings, AppearanceOptions.class);
+		
+		/*
+		 * Validate options
+		 * Objective is to prevent sql injection
+		 */
+		Pattern pattern;
+		Matcher matcher;
+
+		String hexRegex = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$";
+		pattern = Pattern.compile(hexRegex);
+
+		if(ao.navbar_color != null && ao.navbar_color.trim().length() > 0) {
+			matcher = pattern.matcher(ao.navbar_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + ao.navbar_color);
+			}
+		}	
+	
+		String sql = "update organisation set "			
+				+ "set_as_theme = ?, "
+				+ "navbar_color = ? "
+				+ "where id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setBoolean(1, ao.set_as_theme);
+			pstmt.setString(2, ao.navbar_color);
+			pstmt.setString(3, request.getRemoteUser());
+					
+			log.info("Update organisation with appearance details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			response = Response.ok().build();

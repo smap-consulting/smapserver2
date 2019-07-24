@@ -19,6 +19,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
@@ -146,8 +147,8 @@ public class OrganisationManager {
 			pstmt.setBoolean(23, o.can_notify);
 			pstmt.setBoolean(24, o.can_use_api);
 			pstmt.setBoolean(25, o.can_submit);
-			pstmt.setBoolean(26, o.set_as_theme);
-			pstmt.setString(27, o.navbar_color);
+			pstmt.setBoolean(26, o.appearance.set_as_theme);
+			pstmt.setString(27, o.appearance.navbar_color);
 			pstmt.setBoolean(28, o.can_sms);
 			pstmt.setInt(29, o.id);
 					
@@ -349,7 +350,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(22, o.can_notify);
 			pstmt.setBoolean(23, o.can_use_api);
 			pstmt.setBoolean(24, o.can_submit);
-			pstmt.setBoolean(25, o.set_as_theme);
+			pstmt.setBoolean(25, o.appearance.set_as_theme);
 			pstmt.setInt(26, o.e_id);			// TODO set from current organisation enterprise id
 			pstmt.setString(27, "not set");		// backward navigation
 			pstmt.setString(28, "not set");		// screen navigation
@@ -358,7 +359,7 @@ public class OrganisationManager {
 			pstmt.setString(31, "not set");		// FT delete after sending
 			pstmt.setString(32, "not set");		// Send location
 			pstmt.setInt(33, -1);				// Never require re-entry of FT password
-			String navBarColor = o.navbar_color;
+			String navBarColor = o.appearance.navbar_color;
 			if(navBarColor == null) {
 				navBarColor =  Organisation.DEFAULT_NAVBAR_COLOR;
 			}
@@ -542,6 +543,42 @@ public class OrganisationManager {
 		}
 		
 		return webform;
+	}
+	
+	/*
+	 * Get appearance options
+	 */
+	public AppearanceOptions getAppearance(Connection sd, String user) throws SQLException {
+		
+		String sql = "select set_as_theme, navbar_color "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		AppearanceOptions ao = new AppearanceOptions();
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, user);
+					
+			log.info("Get organisation appearance options: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				
+				ao.set_as_theme = rs.getBoolean(1);
+				ao.navbar_color = rs.getString(2);								
+			} 
+			if(ao.navbar_color == null) {
+				ao.navbar_color = Organisation.DEFAULT_NAVBAR_COLOR;
+			}
+			
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+		}
+		
+		return ao;
 	}
 	
 }

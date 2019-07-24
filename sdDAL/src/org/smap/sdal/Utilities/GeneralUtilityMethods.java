@@ -868,7 +868,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the organisation object for this orrganisation id
+	 * Get the organisation object for this organisation id
 	 */
 	static public Organisation getOrganisation(Connection sd, int oId) throws SQLException {
 
@@ -930,8 +930,8 @@ public class GeneralUtilityMethods {
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.can_sms = resultSet.getBoolean("can_sms");
-				org.set_as_theme = resultSet.getBoolean("set_as_theme");
-				org.navbar_color = resultSet.getString("navbar_color");
+				org.appearance.set_as_theme = resultSet.getBoolean("set_as_theme");
+				org.appearance.navbar_color = resultSet.getString("navbar_color");
 				org.email_task = resultSet.getBoolean("email_task");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
