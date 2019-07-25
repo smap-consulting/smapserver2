@@ -213,6 +213,9 @@ public class GetHtml {
 		for (Language lang : survey.languages) {
 			bodyElement = outputDoc.createElement("option");
 			bodyElement.setAttribute("value", lang.name);
+			if(isRtl(lang.name)) {
+				bodyElement.setAttribute("data-dir", "rtl");
+			}
 			bodyElement.setTextContent(lang.name);
 			parent.appendChild(bodyElement);
 
@@ -222,6 +225,20 @@ public class GetHtml {
 			}
 			idx++;
 		}
+	}
+	
+	private boolean isRtl(String name) {
+		boolean rtl = false;
+		if(name != null) {
+			if(name.contains("arabic")
+					|| name.contains("(ar)")
+					|| name.contains("(he)")
+					|| name.contains("(rtl)")
+					) {
+				rtl = true;
+			}
+		}
+		return rtl;
 	}
 
 	/*
