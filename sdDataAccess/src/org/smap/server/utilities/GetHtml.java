@@ -230,9 +230,13 @@ public class GetHtml {
 	private boolean isRtl(String name) {
 		boolean rtl = false;
 		if(name != null) {
-			if(name.contains("arabic")
+			name = name.toLowerCase();
+			if(name.contains("(ltr)")) {
+				rtl = false;
+			} else if(name.contains("arabic")
 					|| name.contains("(ar)")
 					|| name.contains("(he)")
+					|| name.contains("(ur)")
 					|| name.contains("(rtl)")
 					) {
 				rtl = true;
