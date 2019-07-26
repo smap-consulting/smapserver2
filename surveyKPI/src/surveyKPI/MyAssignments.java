@@ -491,7 +491,7 @@ public class MyAssignments extends Application {
 				fl.version = survey.version;
 				fl.name = survey.displayName;
 				fl.project = survey.projectName;
-				fl.pid = survey.pId;
+				fl.pid = survey.p_id;
 				fl.tasks_only = survey.getHideOnDevice();
 				fl.hasManifest = hasManifest;
 

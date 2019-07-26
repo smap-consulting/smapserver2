@@ -11,7 +11,6 @@ import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MessagingManager;
@@ -69,7 +68,6 @@ public class Survey {
 	public boolean exclude_empty;
 	public String autoUpdates;
 	public String projectName;
-	public int pId;
 	private boolean projectTasksOnly;		// deprecated
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
 	public int groupSurveyId;
@@ -194,7 +192,6 @@ public class Survey {
 	
 	// Setters
 	public void setId(int v) { id = v;};
-	public void setPId(int v) { p_id = v;};
 	public void setIdent(String v) { ident = v;};
 	public void setDisplayName(String v) { displayName = v;};
 	public void setDeleted(boolean v) { deleted = v;};
@@ -204,7 +201,7 @@ public class Survey {
 	public void setVersion(int v) { version = v;};
 	public void setLoadedFromXLS(boolean v) { loadedFromXLS = v;};
 	public void setProjectName(String v) { projectName = v;};
-	public void setProjectId(int v) { pId = v;};
+	public void setProjectId(int v) { p_id = v;};
 	public void setProjectTasksOnly(boolean v) { projectTasksOnly = v;};		// Deprecated
 	public void setHideOnDevice(boolean v) { hideOnDevice = v;};
 	

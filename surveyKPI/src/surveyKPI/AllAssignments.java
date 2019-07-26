@@ -152,9 +152,8 @@ public class AllAssignments extends Application {
 		Connection cResults = null; 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtCheckGeom = null;
-		PreparedStatement pstmtTaskGroup = null;
+		
 		PreparedStatement pstmtGetSurveyIdent = null;
-		PreparedStatement pstmtUniqueTg = null;
 
 		int taskGroupId = -1;
 		try {
@@ -165,7 +164,6 @@ public class AllAssignments extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			String source_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.source_survey_id);
 			String target_survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, as.target_survey_id);
 			
 			projectName = GeneralUtilityMethods.getProjectName(sd, projectId);
@@ -182,71 +180,29 @@ public class AllAssignments extends Application {
 			
 			sd.setAutoCommit(false);
 			
-			/*
-			 * Create the task group if an existing task group was not specified
-			 */
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
-			
-			// get default timezone
 			String tz = GeneralUtilityMethods.getOrganisationTZ(sd, oId);
+			TaskManager tm = new TaskManager(localisation, tz);
 			
-			ResultSet rsKeys = null;
+			// Create the task group if an existing task group was not specified
 			if(as.task_group_id <= 0) {
-
-				/*
-				 * Check that a task group of this name does not already exist
-				 * This would be better implemented as a constraint on the database but existing customers probably have task
-				 *  groups with duplicate names
-				 */
-				String checkUniqueTg = "select count(*) from task_group where name = ? and p_id = ?;";
-				pstmtUniqueTg = sd.prepareStatement(checkUniqueTg);
-				pstmtUniqueTg.setString(1, as.task_group_name);
-				pstmtUniqueTg.setInt(2, projectId);
-				log.info("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());
-				ResultSet rs = pstmtUniqueTg.executeQuery();
-
-				if(rs.next()) {
-					if(rs.getInt(1) > 0) {
-						throw new Exception("Task Group Name " + as.task_group_name + " already Exists");
-					}
-				}
-
-				String addressParams = gson.toJson(as.address_columns); 	
-				String tgSql = "insert into task_group ( "
-						+ "name, "
-						+ "p_id, "
-						+ "address_params,"
-						+ "rule,"
-						+ "source_s_id,"
-						+ "target_s_id,"
-						+ "dl_dist) "
-						+ "values (?, ?, ?, ?, ?, ?, ?);";
-
-				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
-				pstmtTaskGroup.setString(1, as.task_group_name);
-				pstmtTaskGroup.setInt(2, projectId);
-				pstmtTaskGroup.setString(3, addressParams);
-				pstmtTaskGroup.setString(4, settings);
-				pstmtTaskGroup.setInt(5, as.source_survey_id);
-				pstmtTaskGroup.setInt(6, as.target_survey_id);
-				pstmtTaskGroup.setInt(7, as.dl_dist);
-				log.info("Insert into task group: " + pstmtTaskGroup.toString());
-				pstmtTaskGroup.execute();
-
-				sd.commit();		// Success as TG is created, even if there are no existing tasks ready to go this is good
-
-				rsKeys = pstmtTaskGroup.getGeneratedKeys();
-				if(rsKeys.next()) {
-					taskGroupId = rsKeys.getInt(1);
-				}
+				taskGroupId = tm.createTaskGroup(sd, as.task_group_name, 
+						projectId,
+						gson.toJson(as.address_columns),
+						settings,
+						as.source_survey_id,
+						as.target_survey_id,
+						as.dl_dist,
+						false		// don't use an existing task group of the same name
+						);	
 			} else {
 				taskGroupId = as.task_group_id;
 			}
+			sd.commit();		// Success as TG is created, even if there are no existing tasks ready to go this is good
 
 			/*
 			 * Set the task email details
 			 */
-			TaskManager tm = new TaskManager(localisation, tz);
 			tm.updateEmailDetails(sd, projectId, taskGroupId, as.emailDetails);
 			
 			/*
@@ -597,9 +553,7 @@ public class AllAssignments extends Application {
 		} finally {
 
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
-			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 			if(pstmtGetSurveyIdent != null) try {	pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
-			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};
 
 			SDDataSource.closeConnection("surveyKPI-AllAssignments", sd);
 			ResultsDataSource.closeConnection("surveyKPI-AllAssignments", cResults);

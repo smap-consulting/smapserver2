@@ -46,7 +46,9 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
 import org.smap.sdal.model.TaskListGeoJson;
@@ -238,7 +240,7 @@ public class Tasks extends Application {
 	 */
 	@POST
 	@Produces("application/json")
-	public Response getTask(@Context HttpServletRequest request,
+	public Response createTask(@Context HttpServletRequest request,
 			@QueryParam("tz") String tz,					// Timezone
 			@FormParam("task") String task
 			) throws ApplicationException, Exception { 
@@ -267,22 +269,49 @@ public class Tasks extends Application {
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
+			
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
-		
-		a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
+		if(tp.form_id > 0) {
+			a.isValidSurvey(sd, request.getRemoteUser(), tp.form_id, false, superUser);
+		} else {
+			a.isValidSurveyIdent(sd, request.getRemoteUser(), tp.survey_ident, false, superUser);
+			tp.form_id = GeneralUtilityMethods.getSurveyId(sd, tp.survey_ident);
+		}
 		
 		if(tp.assignee_ident != null) {
 			tp.assignee = GeneralUtilityMethods.getUserId(sd, tp.assignee_ident);
 			a.isValidUser(sd, request.getRemoteUser(), tp.assignee);
 		}
-
+		
+		if(tp.tg_id > 0) {
+			a.isValidTaskGroup(sd, request.getRemoteUser(), tp.tg_id);
+		}
 		// End Authorisation
 		
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			TaskManager tm = new TaskManager(localisation, tz);
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			if(tp.tg_id <= 0) {
+				
+				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), tp.form_id, 
+						false, null, null, false, false, 
+						false, false, false, null, false, false, false, null, false, false);
+				
+				// Create a task group based on the survey
+				tp.tg_id = tm.createTaskGroup(sd, s.displayName, 
+						s.p_id,
+						null,	// address columns
+						null,	// setting
+						0,	// source survey id
+						0,	// Target survey id
+						0,	// Download distance
+						true		// don't use an existing task group of the same name
+						);	
+			}
 			
 			tp.survey_ident = GeneralUtilityMethods.getSurveyIdent(sd, tp.form_id);
 			
@@ -292,7 +321,6 @@ public class Tasks extends Application {
 			
 			cResults = ResultsDataSource.getConnection(connectionString);
 			
-			TaskManager tm = new TaskManager(localisation, tz);
 			TaskFeature tf = new TaskFeature();
 			tf.properties = (TaskProperties) tp;
 			

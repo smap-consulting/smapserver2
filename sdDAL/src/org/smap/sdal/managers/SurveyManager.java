@@ -418,7 +418,7 @@ public class SurveyManager {
 				s.setDeleted(resultSet.getBoolean(5));
 				s.blocked = resultSet.getBoolean(6);
 				s.setProjectName(resultSet.getString(7));
-				s.setPId(resultSet.getInt(8));
+				s.setProjectId(resultSet.getInt(8));
 				s.def_lang = resultSet.getString(9);
 				s.task_file = resultSet.getBoolean(10);
 				s.timing_data = resultSet.getBoolean(11);
@@ -1068,7 +1068,7 @@ public class SurveyManager {
 
 			if (resultSet.next()) {						
 				s = new Survey();
-				s.setPId(resultSet.getInt(1));
+				s.setProjectId(resultSet.getInt(1));
 				s.setId(resultSet.getInt(2));
 				
 				boolean surveyBlocked = resultSet.getBoolean(3);

@@ -1439,7 +1439,7 @@ public class TaskManager {
 							tsd.update_id,
 							tsd.name);
 				}
-				
+
 				if(asd.assignee > 0) {
 					// Create a notification to alert the new user of the change to the task details
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
@@ -2452,6 +2452,25 @@ public class TaskManager {
 			}
 		} else {
 			log.info("No matching assignments found");
+			// Write an entry in the RecordEvent Log anyway (if the update id is not null)
+			if(update_id != null) {
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+				log.info("Record event: " + sIdent + " : " + tableName);
+				TaskItemChange tic = new TaskItemChange(0, task_name, "created", null, null);
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						RecordEventManager.TASK, 
+						remoteUser, 
+						tableName, 
+						update_id, 
+						null,			// Change object
+						gson.toJson(tic),
+						"Task created", 
+						0, 
+						sIdent);
+			}
 		}
 	}
 	
@@ -2935,6 +2954,82 @@ public class TaskManager {
 		}
 
 		return out;
+	}
+	
+	/*
+	 * Create a task group if it does not exist or return the existing task group id
+	 * Task groups have unique names within a project
+	 */
+	public int createTaskGroup(Connection sd, 
+			String taskGroupName, 
+			int projectId,
+			String addressParams,
+			String settings,
+			int sourceSurveyId,
+			int targetSurveyId,
+			int dlDist,
+			boolean useExisting			// If set and there is an existing task group with the same name return its id, otherwise throw an exception
+			) throws Exception {
+		
+		int taskGroupId = 0;
+		
+		PreparedStatement pstmtUniqueTg = null;
+		PreparedStatement pstmtTaskGroup = null;
+		ResultSet rsKeys = null;
+		
+		try {
+			/*
+			 * Check that a task group of this name does not already exist
+			 * This would be better implemented as a constraint on the database but existing customers probably have task
+			 *  groups with duplicate names
+			 */
+			String checkUniqueTg = "select tg_id from task_group where name = ? and p_id = ?;";
+			pstmtUniqueTg = sd.prepareStatement(checkUniqueTg);
+			pstmtUniqueTg.setString(1, taskGroupName);
+			pstmtUniqueTg.setInt(2, projectId);
+			log.info("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());
+			ResultSet rs = pstmtUniqueTg.executeQuery();
+	
+			if(rs.next()) {
+				taskGroupId = rs.getInt(1);
+				if(taskGroupId > 0 && !useExisting) {
+					throw new Exception("Task Group Name " + taskGroupName + " already Exists");
+				}
+			}
+		
+			// Create a task group if one was not found
+			if(taskGroupId == 0) {
+				String tgSql = "insert into task_group ( "
+						+ "name, "
+						+ "p_id, "
+						+ "address_params,"
+						+ "rule,"
+						+ "source_s_id,"
+						+ "target_s_id,"
+						+ "dl_dist) "
+						+ "values (?, ?, ?, ?, ?, ?, ?);";
+		
+				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
+				pstmtTaskGroup.setString(1, taskGroupName);
+				pstmtTaskGroup.setInt(2, projectId);
+				pstmtTaskGroup.setString(3, addressParams);
+				pstmtTaskGroup.setString(4, settings);
+				pstmtTaskGroup.setInt(5, sourceSurveyId);
+				pstmtTaskGroup.setInt(6, targetSurveyId);
+				pstmtTaskGroup.setInt(7, dlDist);
+				log.info("Insert into task group: " + pstmtTaskGroup.toString());
+				pstmtTaskGroup.execute();
+		
+				rsKeys = pstmtTaskGroup.getGeneratedKeys();
+				if(rsKeys.next()) {
+					taskGroupId = rsKeys.getInt(1);
+				}
+			}
+		} finally {
+			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};
+			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
+		}
+		return taskGroupId;
 	}
 }
 
