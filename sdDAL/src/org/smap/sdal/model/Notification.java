@@ -21,4 +21,6 @@ public class Notification {
 	public String period;			// reminder only
 	public String tg_name;			// reminder only
 	
+	public String project;		// Reports only
+	
 }

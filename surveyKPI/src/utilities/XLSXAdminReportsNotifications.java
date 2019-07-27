@@ -123,8 +123,7 @@ public class XLSXAdminReportsNotifications {
 			 */
 			NotificationManager nm = new NotificationManager(localisation);
 			ArrayList<Notification> nList = nm.getAllNotifications(sd, pstmt, oId);
-			
-							
+								
 			/*
 			 * Add the headings 
 			 */
@@ -135,6 +134,26 @@ public class XLSXAdminReportsNotifications {
 			cell = row.createCell(colNumber++);	// Project
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("ar_project"));
+			
+			cell = row.createCell(colNumber++);	// Notification name
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("name"));
+			
+			cell = row.createCell(colNumber++);	// Survey
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("a_name"));
+			
+			cell = row.createCell(colNumber++);	// Trigger
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("a_trigger"));
+			
+			cell = row.createCell(colNumber++);	// Target
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("a_target"));
+			
+			cell = row.createCell(colNumber++);	// Details
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("a_details"));
 			
 			/*
 			 * Add the data
@@ -147,6 +166,66 @@ public class XLSXAdminReportsNotifications {
 				cell = row.createCell(colNumber++);	// Project
 				cell.setCellValue(n.project);
 				
+				cell = row.createCell(colNumber++);	// Notification name
+				cell.setCellValue(n.name);
+				
+				cell = row.createCell(colNumber++);	// Survey
+				cell.setCellValue(n.s_name);
+				
+				cell = row.createCell(colNumber++);	// Trigger
+				cell.setCellValue(n.trigger);
+				
+				cell = row.createCell(colNumber++);	// Target
+				cell.setCellValue(n.target);
+
+				cell = row.createCell(colNumber++);	// Details
+				StringBuffer details = new StringBuffer("");
+				if(n.target.equals("email") && n.notifyDetails != null) {
+					if(n.notifyDetails.emails != null && n.notifyDetails.emails.size() > 0) {
+						for(String e : n.notifyDetails.emails) {
+							if(details.length() > 0) {
+								details.append(", ");
+							}
+							details.append(e);
+						}
+					}
+					if(n.notifyDetails.emailQuestionName != null
+							&& !n.notifyDetails.emailQuestionName.equals("-1")) {
+						if(details.length() > 0) {
+							details.append(", ");
+						}
+						details.append(localisation.getString("a_eq"));
+					}
+					if(n.notifyDetails.emailMeta != null
+							&& !n.notifyDetails.emailMeta.equals("-1")) {
+						if(details.length() > 0) {
+							details.append(", ");
+						}
+						details.append(localisation.getString("a_eq2"));
+					}
+				} else if(n.target.equals("forward")) {
+					details.append(n.remote_host).append(" : ").append(n.remote_s_name);
+				} else if(n.target.equals("sms") && n.notifyDetails != null) {
+					if(n.notifyDetails.emails != null && n.notifyDetails.emails.size() > 0) {
+						details.append(localisation.getString("a_sms_1"));
+						int count = 0;
+						for(String e : n.notifyDetails.emails) {
+							if(count++ > 0) {
+								details.append(", ");
+							}
+							details.append(e);
+						}
+					}
+					if(n.notifyDetails.emailQuestionName != null
+							&& !n.notifyDetails.emailQuestionName.equals("-1")) {
+						if(details.length() > 0) {
+							details.append(", ");
+						}
+						details.append(localisation.getString("a_sms_2"));
+					}
+				}
+
+				cell.setCellValue(details.toString());			
 			}
 
 		} catch (Exception e) {
