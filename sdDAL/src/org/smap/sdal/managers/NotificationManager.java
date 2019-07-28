@@ -317,6 +317,7 @@ public class NotificationManager {
 				+ "f.tg_id, f.period, p.name  "
 				+ "from forward f, survey s, project p "
 				+ "where s.s_id = f.s_id "
+				+ "and s.p_id = p.id "
 				+ "and p.o_id = ? "
 				+ "and s.deleted = 'false' "
 				+ "order by p.name, f.name, s.display_name asc";
