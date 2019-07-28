@@ -80,10 +80,17 @@ import com.google.gson.reflect.TypeToken;
 @Path("/notifications")
 public class NotificationList extends Application {
 	
-	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise a = null;
 	
 	private static Logger log =
 			 Logger.getLogger(NotificationList.class.getName());
+	
+	public NotificationList() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);		// Enumerators with MANAGE access can process managed forms
+		a = new Authorise(authorisations, null);		
+	}
 	
 	@Path("/{projectId}")
 	@GET
@@ -91,21 +98,22 @@ public class NotificationList extends Application {
 			@PathParam("projectId") int projectId) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-Notifications";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Notifications");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
 		
 		try {
 			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			NotificationManager nm = new NotificationManager(localisation);
-			ArrayList<Notification> nList = nm.getProjectNotifications(connectionSD, pstmt, request.getRemoteUser(), projectId);
+			ArrayList<Notification> nList = nm.getProjectNotifications(sd, pstmt, request.getRemoteUser(), projectId);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(nList);
@@ -118,7 +126,7 @@ public class NotificationList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-Notifications", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 

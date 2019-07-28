@@ -114,7 +114,7 @@ public class NotificationManager {
 			pstmt.setString(1, trigger);
 			resultSet = pstmt.executeQuery();
 			
-			addToList(sd, resultSet, forwards, true);
+			addToList(sd, resultSet, forwards, true, false);
 		} finally {
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 		}
@@ -294,14 +294,48 @@ public class NotificationManager {
 		log.info("Project Notifications: " + pstmt.toString());
 		resultSet = pstmt.executeQuery();
 
-		addToList(sd, resultSet, notifications, false);
+		addToList(sd, resultSet, notifications, false, false);
 
 		return notifications;
 		
 	}
 	
 	/*
-	 * Get all Notifications that are accessible by the requesting user and in a specific project
+	 * Get all Notifications in the users organisation
+	 */
+	public ArrayList<Notification> getAllNotifications(
+			Connection sd, 
+			PreparedStatement pstmt,
+			int oId) throws SQLException {
+		
+		ArrayList<Notification> notifications = new ArrayList<Notification>();	// Results of request
+		
+		ResultSet resultSet = null;
+		String sql = "select f.id, f.s_id, f.enabled, "
+				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
+				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
+				+ "f.tg_id, f.period, p.name  "
+				+ "from forward f, survey s, project p "
+				+ "where s.s_id = f.s_id "
+				+ "and p.o_id = ? "
+				+ "and s.deleted = 'false' "
+				+ "order by p.name, f.name, s.display_name asc";
+		
+		try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+		pstmt = sd.prepareStatement(sql);	 			
+
+		pstmt.setInt(1, oId);
+		log.info("All Notifications: " + pstmt.toString());
+		resultSet = pstmt.executeQuery();
+
+		addToList(sd, resultSet, notifications, false, true);
+
+		return notifications;
+		
+	}
+	
+	/*
+	 * Get a list of notification types
 	 */
 	public ArrayList<String> getNotificationTypes(Connection sd, String user) throws SQLException {
 		
@@ -394,7 +428,11 @@ public class NotificationManager {
 		
 	}
 
-	private void addToList(Connection sd, ResultSet resultSet, ArrayList<Notification> notifications, boolean getPassword) throws SQLException {
+	private void addToList(Connection sd, 
+			ResultSet resultSet, 
+			ArrayList<Notification> notifications, 
+			boolean getPassword,
+			boolean getProject) throws SQLException {
 		
 		while (resultSet.next()) {								
 
@@ -423,6 +461,10 @@ public class NotificationManager {
 			if(getPassword) {
 				n.remote_password = resultSet.getString(16);
 			}
+			if(getProject) {
+				n.project = resultSet.getString(16);
+			}
+			
 			if(n.trigger.equals("task_reminder")) {
 				n.tg_name = GeneralUtilityMethods.getTaskGroupName(sd, n.tgId);
 			}
