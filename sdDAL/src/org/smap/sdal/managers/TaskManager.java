@@ -2459,7 +2459,7 @@ public class TaskManager {
 			log.info("No matching assignments found");
 			// Write an entry in the RecordEvent Log anyway (if the update id is not null)
 			if(update_id != null) {
-				String eventStatus = RecordEventManager.STATUS_CREATED;
+				String eventStatus = RecordEventManager.STATUS_NEW;
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 				log.info("Record event: " + sIdent + " : " + tableName);
 				TaskItemChange tic = new TaskItemChange(0, task_name, eventStatus, null, null);

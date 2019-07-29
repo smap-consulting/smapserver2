@@ -8212,6 +8212,31 @@ public class GeneralUtilityMethods {
 		return instanceId;
 	}
 	
+	public static String getLatestInstanceId(Connection cResults, String tableName, String instanceId) throws SQLException {
+
+		String latestInstanceId = null;
+		
+		PreparedStatement pstmt = null;
+		String sql = "select instanceid "
+				+ "from " + tableName + " "
+				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
+				+ "order by prikey desc limit 1";
+
+		try {
+			pstmt = cResults.prepareStatement(sql);
+
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				latestInstanceId = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+		return latestInstanceId;
+	}
+	
 	/*
 	 * Alter the table
 	 */

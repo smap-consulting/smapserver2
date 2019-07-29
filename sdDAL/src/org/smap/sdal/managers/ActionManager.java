@@ -450,12 +450,7 @@ public class ActionManager {
 				}
 				sqlUpdate += "where " + "prikey = ? ";
 
-				try {
-					if (pstmtUpdate != null) {
-						pstmtUpdate.close();
-					}
-				} catch (Exception e) {
-				}
+				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
 				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
 
 				// Set the parameters
@@ -476,6 +471,8 @@ public class ActionManager {
 					} else if (tc.type.equals("decimal")) {
 						double inputDouble = Double.parseDouble(u.value);
 						pstmtUpdate.setDouble(paramCount++, inputDouble);
+					} else if (tc.type.equals("string")) {
+						pstmtUpdate.setString(paramCount++, u.value);
 					} else {
 						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
@@ -506,7 +503,6 @@ public class ActionManager {
 				 * Record the change
 				 */
 				changes.add(new DataItemChange(u.name, tc.type, u.value, u.currentValue));
-
 			}
 			
 			/*
@@ -527,10 +523,7 @@ public class ActionManager {
 			response = Response.ok().build();
 
 		} catch (Exception e) {
-			try {
-				cResults.rollback();
-			} catch (Exception ex) {
-			}
+			try {cResults.rollback();} catch (Exception ex) {	}
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE, "Error", e);
 		} finally {
@@ -541,18 +534,8 @@ public class ActionManager {
 			} catch (Exception ex) {
 			}
 
-			try {
-				if (pstmtCanUpdate != null) {
-					pstmtCanUpdate.close();
-				}
-			} catch (Exception e) {
-			}
-			try {
-				if (pstmtUpdate != null) {
-					pstmtUpdate.close();
-				}
-			} catch (Exception e) {
-			}
+			try {if (pstmtCanUpdate != null) {pstmtCanUpdate.close();	}} catch (Exception e) {	}
+			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
 
 		}
 
@@ -698,6 +681,8 @@ public class ActionManager {
 						pstmtUpdate.setDouble(paramCount++, inputDouble);
 					} else if (tc.type.equals("geopoint")) {
 						pstmtUpdate.setString(paramCount++, GeneralUtilityMethods.getWKTfromGeoJson(u.value));
+					} else if (tc.type.equals("string")) {
+						pstmtUpdate.setString(paramCount++, u.value);
 					} else {
 						log.info("Warning: unknown type: " + tc.type + " value: " + u.value);
 						pstmtUpdate.setString(paramCount++, u.value);
@@ -736,9 +721,11 @@ public class ActionManager {
 			 */
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(sd, cResults, 
+				rem.writeEvent(
+						sd, 
+						cResults, 
 						RecordEventManager.CHANGES, 
-						RecordEventManager.STATUS_CREATED, 
+						RecordEventManager.STATUS_SUCCESS, 
 						userIdent, 
 						f.tableName, 
 						inst, 

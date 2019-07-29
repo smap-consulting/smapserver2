@@ -50,7 +50,7 @@ public class RecordEventManager {
 	public static String TASK = "task";
 	
 	public static String STATUS_SUCCESS = "success";
-	public static String STATUS_CREATED = "created";
+	public static String STATUS_NEW = "new";
 	
 	public RecordEventManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -63,7 +63,8 @@ public class RecordEventManager {
 	/*
 	 * Save a change
 	 */
-	public void writeEvent(Connection sd, 
+	public void writeEvent(
+			Connection sd, 
 			Connection cResults,
 			String event,
 			String status,

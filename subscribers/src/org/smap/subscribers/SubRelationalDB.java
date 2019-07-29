@@ -1257,7 +1257,7 @@ public class SubRelationalDB extends Subscriber {
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.CHANGES, 
-						RecordEventManager.STATUS_CREATED,
+						RecordEventManager.STATUS_SUCCESS,
 						user, table, 
 						newInstance, gson.toJson(changes), null, null, sId, null);					
 			}
