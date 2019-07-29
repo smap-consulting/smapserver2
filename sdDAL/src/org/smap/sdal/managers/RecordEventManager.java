@@ -49,8 +49,8 @@ public class RecordEventManager {
 	public static String CHANGES = "changes";
 	public static String TASK = "task";
 	
-	public static String STATUS_SUCCESS;
-	public static String STATUS_CREATED;
+	public static String STATUS_SUCCESS = "success";
+	public static String STATUS_CREATED = "created";
 	
 	public RecordEventManager(ResourceBundle l, String tz) {
 		localisation = l;
