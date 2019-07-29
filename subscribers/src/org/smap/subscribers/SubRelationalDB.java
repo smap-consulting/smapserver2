@@ -62,6 +62,7 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TaskItemChange;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -186,7 +187,7 @@ public class SubRelationalDB extends Subscriber {
 			applySubmissionNotifications(sd, cResults, ue_id, remoteUser, server, survey.ident, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
-				applyAssignmentStatus(sd, assignmentId, ue_id, remoteUser);
+				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, remoteUser);
 			}
 			
 			if(survey.autoUpdates != null && survey.managed_id > 0) {
@@ -230,7 +231,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private void applyAssignmentStatus(Connection sd, int assignmentId, int ue_id, String remoteUser) {
+	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId, int ue_id, String remoteUser) {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtRepeats = null;
@@ -255,6 +256,14 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Updating task repeats: " + pstmtRepeats.toString());
 				pstmtRepeats.executeUpdate();
 
+				// Write a message to the record event manager
+				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+				rem.writeTaskStatusEvent(
+						sd, 
+						cResults,
+						remoteUser, 
+						assignmentId,
+						"submitted");
 			}
 
 

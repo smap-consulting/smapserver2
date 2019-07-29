@@ -59,10 +59,6 @@ public class RecordEventManager {
 	
 	/*
 	 * Save a change
-	 * Either specify the HRK or the old and new instanceids
-	 *  If the HRK exists and the key policy is merge or replace then it should be used and will provide an invarying index for the change
-	 *  Else the old and new instance id's will be used to create a chain of changes.  The existing changes will be indexed
-	 *   by the old instanceid so all of these will need to be updated to the new instanceid
 	 */
 	public void writeEvent(Connection sd, 
 			Connection cResults,
@@ -139,6 +135,64 @@ public class RecordEventManager {
 		}
 	}
 	
+	/*
+	 * Save a change to task status 
+	 * This is an abbreviated form of the writeEvent method where some details are retrieved from the task
+	 */
+	public void writeTaskStatusEvent(
+			Connection sd, 
+			Connection cResults,
+			String userName,
+			int assignmentId,
+			String status
+			) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			/*
+			 * Get record information from the task
+			 */
+			String sql = "select t.update_id, t.survey_ident, t.title, f.table_name "
+					+ "from assignments a, tasks t, form f, survey s "
+					+ "where t.survey_ident = s.ident "
+					+ "and f.s_id = s.s_id "
+					+ "and a.task_id = t.id "
+					+ "and a.id = ?";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, assignmentId);
+			log.info("Get task info: " + pstmt.toString());
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+				
+				String updateId = rs.getString(1);
+				String sIdent = rs.getString(2);
+				String taskName = rs.getString(3);
+				String  tableName = rs.getString(4);
+				TaskItemChange tic = new TaskItemChange(assignmentId, taskName, status, userName, "");
+				writeEvent(sd, cResults, 
+						RecordEventManager.TASK, 
+						userName, 
+						tableName, 
+						updateId, 
+						null, 
+						gson.toJson(tic),
+						"", 
+						0, 
+						sIdent);
+			}
+				
+			
+		} finally {
+			
+		}
+	}
+	
+	/*
+	 * Get a list of event changes for a thread
+	 */
 	public ArrayList<DataItemChangeEvent> getChangeEvents(Connection sd, String tableName, String key) throws SQLException {
 		
 		ArrayList<DataItemChangeEvent> events = new ArrayList<DataItemChangeEvent> ();
