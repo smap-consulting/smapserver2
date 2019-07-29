@@ -350,7 +350,7 @@ public class ActionManager {
 	/*
 	 * Process an update request that came either from an anonymous form or from the
 	 * managed forms page
-	 * Deprecate - This updated uses managed Id rather than a group survey form
+	 * Deprecate - This update function uses managed Id rather than a group survey form
 	 */
 	public Response processUpdate(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
 			int sId, int managedId, String settings) {

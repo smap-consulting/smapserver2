@@ -2180,28 +2180,32 @@ public class TaskManager {
 		 */
 		if(updateId != null) {
 			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
-			log.info("Record event: " + sIdent + " : " + tableName);
-			String assigned = null;
-			if(email != null) {
-				assigned = email;
-			} else {
-				assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
+			if(tableName != null) {
+				log.info("Record event: " + sIdent + " : " + tableName);
+				String assigned = null;
+				if(email != null) {
+					assigned = email;
+				} else {
+					assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
+				}
+				TaskItemChange tic = new TaskItemChange(aId, name, status, assigned, null);
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						RecordEventManager.TASK, 
+						remoteUser, 
+						tableName, 
+						updateId, 
+						null,			// Change object
+						gson.toJson(tic),
+						"Task created", 
+						0, 
+						sIdent);
+				
 			}
-			TaskItemChange tic = new TaskItemChange(aId, name, status, assigned, null);
-			RecordEventManager rem = new RecordEventManager(localisation, tz);
-			rem.writeEvent(
-					sd, 
-					cResults, 
-					RecordEventManager.TASK, 
-					remoteUser, 
-					tableName, 
-					updateId, 
-					null,			// Change object
-					gson.toJson(tic),
-					"Task created", 
-					0, 
-					sIdent);
-			
+		} else {
+			log.info("Error: Tablename not found");
 		}
 		
 		return aId;

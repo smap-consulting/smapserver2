@@ -636,7 +636,7 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, instance.getUuid());
+							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not hav ebeen committed yet
 				}
 			} 
 
