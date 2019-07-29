@@ -2193,7 +2193,8 @@ public class TaskManager {
 				rem.writeEvent(
 						sd, 
 						cResults, 
-						RecordEventManager.TASK, 
+						RecordEventManager.TASK,
+						status,
 						remoteUser, 
 						tableName, 
 						updateId, 
@@ -2458,14 +2459,16 @@ public class TaskManager {
 			log.info("No matching assignments found");
 			// Write an entry in the RecordEvent Log anyway (if the update id is not null)
 			if(update_id != null) {
+				String eventStatus = RecordEventManager.STATUS_CREATED;
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 				log.info("Record event: " + sIdent + " : " + tableName);
-				TaskItemChange tic = new TaskItemChange(0, task_name, "created", null, null);
+				TaskItemChange tic = new TaskItemChange(0, task_name, eventStatus, null, null);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(
 						sd, 
 						cResults, 
 						RecordEventManager.TASK, 
+						eventStatus,
 						remoteUser, 
 						tableName, 
 						update_id, 

@@ -49,6 +49,9 @@ public class RecordEventManager {
 	public static String CHANGES = "changes";
 	public static String TASK = "task";
 	
+	public static String STATUS_SUCCESS;
+	public static String STATUS_CREATED;
+	
 	public RecordEventManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if(tz == null) {
@@ -63,6 +66,7 @@ public class RecordEventManager {
 	public void writeEvent(Connection sd, 
 			Connection cResults,
 			String event,
+			String status,
 			String user,
 			String tableName, 
 			String newInstance, 
@@ -76,7 +80,8 @@ public class RecordEventManager {
 		String sql = "insert into record_event ("
 				+ "key,	"
 				+ "table_name, "
-				+ "event, "
+				+ "event,"
+				+ "status, "
 				+ "instanceid,	"
 				+ "changes, "
 				+ "task, "
@@ -87,7 +92,7 @@ public class RecordEventManager {
 				+ "change_survey, "
 				+ "change_survey_version, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?,  ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -119,15 +124,16 @@ public class RecordEventManager {
 			pstmt.setString(1, key);
 			pstmt.setString(2,  tableName);
 			pstmt.setString(3,  event);
-			pstmt.setString(4,  newInstance);
-			pstmt.setString(5,  changes);
-			pstmt.setString(6,  task);
-			pstmt.setString(7,  description);
-			pstmt.setBoolean(8,  true);	// success
-			pstmt.setString(9,  null);
-			pstmt.setInt(10, uId);
-			pstmt.setString(11,  sIdent);
-			pstmt.setInt(12,  sVersion);
+			pstmt.setString(4,  status);
+			pstmt.setString(5,  newInstance);
+			pstmt.setString(6,  changes);
+			pstmt.setString(7,  task);
+			pstmt.setString(8,  description);
+			pstmt.setBoolean(9,  true);	// success
+			pstmt.setString(10,  null);
+			pstmt.setInt(11, uId);
+			pstmt.setString(12,  sIdent);
+			pstmt.setInt(13,  sVersion);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
@@ -174,6 +180,7 @@ public class RecordEventManager {
 				TaskItemChange tic = new TaskItemChange(assignmentId, taskName, status, userName, "");
 				writeEvent(sd, cResults, 
 						RecordEventManager.TASK, 
+						status,
 						userName, 
 						tableName, 
 						updateId, 
@@ -199,6 +206,7 @@ public class RecordEventManager {
 		
 		String sql = "select "
 				+ "event, "
+				+ "status,"
 				+ "changes,"
 				+ "task, "
 				+ "description, "
@@ -224,6 +232,7 @@ public class RecordEventManager {
 			while(rs.next()) {
 				DataItemChangeEvent event = new DataItemChangeEvent();
 				event.event = rs.getString("event");
+				event.status = rs.getString("status");
 				event.userName = GeneralUtilityMethods.getUserName(sd, rs.getInt("changed_by"));
 				
 				String changes = rs.getString("changes");

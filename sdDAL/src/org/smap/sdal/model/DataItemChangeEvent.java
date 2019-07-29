@@ -8,6 +8,7 @@ import java.util.ArrayList;
 public class DataItemChangeEvent {
 	
 	public String event;
+	public String status;
 	public String userName;
 	public String surveyName;
 	public int surveyVersion;

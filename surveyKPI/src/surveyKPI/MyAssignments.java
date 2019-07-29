@@ -881,6 +881,7 @@ public class MyAssignments extends Application {
 				TaskItemChange tic = new TaskItemChange(assignmentId, taskName, status, userName, comment);
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.TASK, 
+						status,
 						userName, 
 						tableName, 
 						updateId, 

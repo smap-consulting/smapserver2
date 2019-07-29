@@ -514,7 +514,7 @@ public class ActionManager {
 			 */
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(sd, cResults, "changes", userIdent, f.tableName, 
+				rem.writeEvent(sd, cResults, "changes", RecordEventManager.STATUS_SUCCESS, userIdent, f.tableName, 
 						inst, 
 						gson.toJson(changeMap.get(inst)),
 						null,		// task details
@@ -736,7 +736,9 @@ public class ActionManager {
 			 */
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(sd, cResults, RecordEventManager.CHANGES, 
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.CHANGES, 
+						RecordEventManager.STATUS_CREATED, 
 						userIdent, 
 						f.tableName, 
 						inst, 
