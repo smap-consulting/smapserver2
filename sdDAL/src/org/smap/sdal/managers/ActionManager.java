@@ -510,12 +510,22 @@ public class ActionManager {
 			 */
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(sd, cResults, "changes", RecordEventManager.STATUS_SUCCESS, userIdent, f.tableName, 
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						"changes", 
+						RecordEventManager.STATUS_SUCCESS, 
+						userIdent, 
+						f.tableName, 
 						inst, 
 						gson.toJson(changeMap.get(inst)),
 						null,		// task details
 						null,		// description
-						sId, null);
+						sId, 
+						null,
+						0,			// AssignmentId - tasks only
+						0			// Task Id - tasks only
+						);
 			}
 			
 			
@@ -732,7 +742,10 @@ public class ActionManager {
 						gson.toJson(changeMap.get(inst)),
 						null,		// task details
 						null,		// description
-						sId, null);
+						sId, 
+						null,
+						0,
+						0);
 			}
 				
 			cResults.commit();

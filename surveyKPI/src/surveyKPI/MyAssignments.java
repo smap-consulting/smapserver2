@@ -878,17 +878,14 @@ public class MyAssignments extends Application {
 			String updateId = rsEvents.getString(3);
 			String taskName = rsEvents.getString(4);
 			if(updateId != null && sIdent != null && tableName != null) {
-				TaskItemChange tic = new TaskItemChange(assignmentId, taskName, status, userName, comment);
-				rem.writeEvent(sd, cResults, 
-						RecordEventManager.TASK, 
-						status,
+				rem.writeTaskStatusEvent(
+						sd, 
+						cResults,
 						userName, 
-						tableName, 
-						updateId, 
-						null, 
-						gson.toJson(tic),
-						status + " : " + comment, 
-						0, sIdent);
+						assignmentId,
+						"submitted",
+						null,			// Assigned not changed
+						taskName);
 			}
 		}
 	}

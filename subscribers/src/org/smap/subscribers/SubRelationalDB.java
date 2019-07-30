@@ -263,7 +263,9 @@ public class SubRelationalDB extends Subscriber {
 						cResults,
 						remoteUser, 
 						assignmentId,
-						"submitted");
+						"submitted",
+						null,			// Assigned not changed
+						null);			// Task Title not changed
 			}
 
 
@@ -1259,7 +1261,14 @@ public class SubRelationalDB extends Subscriber {
 						RecordEventManager.CHANGES, 
 						RecordEventManager.STATUS_SUCCESS,
 						user, table, 
-						newInstance, gson.toJson(changes), null, null, sId, null);					
+						newInstance, 
+						gson.toJson(changes), 
+						null, 
+						null, 
+						sId, 
+						null,
+						0,
+						0);					
 			}
 
 			if(sourceKey > 0) {

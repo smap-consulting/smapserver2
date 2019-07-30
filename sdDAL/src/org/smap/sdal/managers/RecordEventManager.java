@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.TaskEventChange;
 import org.smap.sdal.model.TaskItemChange;
 
 import com.google.gson.Gson;
@@ -75,7 +76,9 @@ public class RecordEventManager {
 			String task,
 			String description,
 			int sId,						// legacy
-			String sIdent
+			String sIdent,
+			int taskId,
+			int assignmentId
 			) throws SQLException {
 		
 		String sql = "insert into record_event ("
@@ -92,8 +95,10 @@ public class RecordEventManager {
 				+ "changed_by, "
 				+ "change_survey, "
 				+ "change_survey_version, "
+				+ "task_id, "
+				+ "assignment_id, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -135,6 +140,8 @@ public class RecordEventManager {
 			pstmt.setInt(11, uId);
 			pstmt.setString(12,  sIdent);
 			pstmt.setInt(13,  sVersion);
+			pstmt.setInt(14,  taskId);
+			pstmt.setInt(15,  assignmentId);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
@@ -144,57 +151,98 @@ public class RecordEventManager {
 	
 	/*
 	 * Save a change to task status 
-	 * This is an abbreviated form of the writeEvent method where some details are retrieved from the task
 	 */
 	public void writeTaskStatusEvent(
 			Connection sd, 
 			Connection cResults,
 			String userName,
 			int assignmentId,
-			String status
+			String status,
+			String assigned,
+			String taskName
 			) throws SQLException {
 		
+		String sql = "select t.update_id, f.table_name, t.id "
+				+ "from assignments a, tasks t, form f, survey s "
+				+ "where t.survey_ident = s.ident "
+				+ "and f.s_id = s.s_id "
+				+ "and a.task_id = t.id "
+				+ "and a.id = ?";
 		PreparedStatement pstmt = null;
+		
+		String sqlGet = "select task, status from record_event "
+				+ "where key = ? "
+				+ "and event = 'task' "
+				+ "and (assignment_id = ? or task_id = ?)";
+		PreparedStatement pstmtGet = null;
+		
+		String sqlSet = "update record_event "
+				+ "set task = ?, "
+				+ "assignment_id = ?, "
+				+ "status = ? "
+				+ "where key = ? "
+				+ "and event = 'task' "
+				+ "and (assignment_id = ? or task_id = ?)";
+		PreparedStatement pstmtSet = null;
 		
 		try {
 			/*
 			 * Get record information from the task
 			 */
-			String sql = "select t.update_id, t.survey_ident, t.title, f.table_name "
-					+ "from assignments a, tasks t, form f, survey s "
-					+ "where t.survey_ident = s.ident "
-					+ "and f.s_id = s.s_id "
-					+ "and a.task_id = t.id "
-					+ "and a.id = ?";
+			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, assignmentId);
 			log.info("Get task info: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				
 				String updateId = rs.getString(1);
-				String sIdent = rs.getString(2);
-				String taskName = rs.getString(3);
-				String  tableName = rs.getString(4);
-				TaskItemChange tic = new TaskItemChange(assignmentId, taskName, status, userName, "");
-				writeEvent(sd, cResults, 
-						RecordEventManager.TASK, 
-						status,
-						userName, 
-						tableName, 
-						updateId, 
-						null, 
-						gson.toJson(tic),
-						"", 
-						0, 
-						sIdent);
+				String  tableName = rs.getString(2);
+				int taskId = rs.getInt(3);
+				
+				// Get the current Task Item Change and update it
+				String key = GeneralUtilityMethods.getThread(cResults, tableName, updateId);
+				pstmtGet = sd.prepareStatement(sqlGet);
+				pstmtGet.setString(1,  key);
+				pstmtGet.setInt(2,  assignmentId);
+				pstmtGet.setInt(3, taskId);
+				
+				sd.setAutoCommit(false);
+				ResultSet rs2 = pstmtGet.executeQuery();
+				if(rs2.next()) {
+					String itemString = rs2.getString(1);
+					String oldStatus = rs2.getString(2);
+					if(itemString != null) {
+						TaskItemChange tic = gson.fromJson(itemString, TaskItemChange.class);
+						tic.taskEvents.add(new TaskEventChange(taskName, status, assigned, null));
+						
+						if(status == null) {
+							status = oldStatus;
+						}
+						// Write the changed event back to the database
+						pstmtSet = sd.prepareStatement(sqlSet);
+						pstmtSet.setString(1,gson.toJson(tic));
+						pstmtSet.setInt(2, assignmentId);
+						pstmtSet.setString(3, status);
+						pstmtSet.setString(4, key);
+						pstmtSet.setInt(5, assignmentId);
+						pstmtSet.setInt(6, taskId);
+						pstmtSet.executeUpdate();
+					}				
+				}
+				
+				sd.setAutoCommit(true);
 			}
 				
-			
+		} catch (Exception e) {
+			try {sd.setAutoCommit(true);} catch(Exception ex) {};
+			throw(e);
 		} finally {
-			
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+			if(pstmtGet != null) {try{pstmtGet.close();}catch(Exception e) {}}
+			if(pstmtSet != null) {try{pstmtSet.close();}catch(Exception e) {}}
 		}
 	}
 	

@@ -2188,12 +2188,12 @@ public class TaskManager {
 				} else {
 					assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
 				}
-				TaskItemChange tic = new TaskItemChange(aId, name, status, assigned, null);
+				TaskItemChange tic = new TaskItemChange(0, aId, name, status, assigned, null);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(
 						sd, 
 						cResults, 
-						RecordEventManager.TASK,
+						RecordEventManager.TASK, 
 						status,
 						remoteUser, 
 						tableName, 
@@ -2201,8 +2201,12 @@ public class TaskManager {
 						null,			// Change object
 						gson.toJson(tic),
 						"Task created", 
-						0, 
-						sIdent);
+						0,				// sId (don't care legacy)
+						sIdent,
+						0,				// Don't ned task id if we have an assignment id
+						aId				// Assignment id
+						);
+				
 				
 			}
 		} else {
@@ -2462,7 +2466,7 @@ public class TaskManager {
 				String eventStatus = RecordEventManager.STATUS_NEW;
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 				log.info("Record event: " + sIdent + " : " + tableName);
-				TaskItemChange tic = new TaskItemChange(0, task_name, eventStatus, null, null);
+				TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(
 						sd, 
@@ -2475,8 +2479,11 @@ public class TaskManager {
 						null,			// Change object
 						gson.toJson(tic),
 						"Task created", 
-						0, 
-						sIdent);
+						0,				// sId (don't care legacy)
+						sIdent,
+						taskId,
+						0				// Assignment id
+						);
 			}
 		}
 	}
