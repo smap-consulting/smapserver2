@@ -1262,8 +1262,9 @@ public class SubRelationalDB extends Subscriber {
 						RecordEventManager.STATUS_SUCCESS,
 						user, table, 
 						newInstance, 
-						gson.toJson(changes), 
-						null, 
+						gson.toJson(changes), 	// Change object
+						null, 					// Task object
+						null,					// Notification object
 						null, 
 						sId, 
 						null,

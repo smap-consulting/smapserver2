@@ -2198,8 +2198,9 @@ public class TaskManager {
 						remoteUser, 
 						tableName, 
 						updateId, 
-						null,			// Change object
-						gson.toJson(tic),
+						null,				// Change object
+						gson.toJson(tic),	// Task Object
+						null,				// Notifiation objct
 						"Task created", 
 						0,				// sId (don't care legacy)
 						sIdent,
@@ -2476,8 +2477,9 @@ public class TaskManager {
 						remoteUser, 
 						tableName, 
 						update_id, 
-						null,			// Change object
-						gson.toJson(tic),
+						null,				// Change object
+						gson.toJson(tic),	// Task Object
+						null,				// Notification object
 						"Task created", 
 						0,				// sId (don't care legacy)
 						sIdent,

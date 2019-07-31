@@ -74,6 +74,7 @@ public class RecordEventManager {
 			String newInstance, 
 			String changes,
 			String task,
+			String notification,
 			String description,
 			int sId,						// legacy
 			String sIdent,
@@ -89,6 +90,7 @@ public class RecordEventManager {
 				+ "instanceid,	"
 				+ "changes, "
 				+ "task, "
+				+ "notification, "
 				+ "description, "
 				+ "success, "
 				+ "msg, "
@@ -98,7 +100,7 @@ public class RecordEventManager {
 				+ "task_id, "
 				+ "assignment_id, "
 				+ "event_time) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		String sqlSurvey = "select version " 
@@ -134,14 +136,15 @@ public class RecordEventManager {
 			pstmt.setString(5,  newInstance);
 			pstmt.setString(6,  changes);
 			pstmt.setString(7,  task);
-			pstmt.setString(8,  description);
-			pstmt.setBoolean(9,  true);	// success
-			pstmt.setString(10,  null);
-			pstmt.setInt(11, uId);
-			pstmt.setString(12,  sIdent);
-			pstmt.setInt(13,  sVersion);
-			pstmt.setInt(14,  taskId);
-			pstmt.setInt(15,  assignmentId);
+			pstmt.setString(8,  notification);
+			pstmt.setString(9,  description);
+			pstmt.setBoolean(10,  true);	// success
+			pstmt.setString(11,  null);
+			pstmt.setInt(12, uId);
+			pstmt.setString(13,  sIdent);
+			pstmt.setInt(14,  sVersion);
+			pstmt.setInt(15,  taskId);
+			pstmt.setInt(16,  assignmentId);
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
