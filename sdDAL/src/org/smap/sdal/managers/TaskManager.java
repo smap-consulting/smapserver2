@@ -597,7 +597,7 @@ public class TaskManager {
 				+ "ST_Y(the_geom) as lat "
 				+ "from locations "
 				+ "where o_id = ? "
-				+ "order by id asc;";
+				+ "order by locn_group asc, name asc;";
 		PreparedStatement pstmt = null;
 		ArrayList<Location> locations = new ArrayList<Location> ();
 
