@@ -62,7 +62,6 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TaskItemChange;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -1250,7 +1249,6 @@ public class SubRelationalDB extends Subscriber {
 					}
 				}
 				
-
 			}
 			
 			if(changes != null) {

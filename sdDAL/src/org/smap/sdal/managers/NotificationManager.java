@@ -975,6 +975,33 @@ public class NotificationManager {
 				
 				pstmtNotificationLog.executeUpdate();
 			}
+			
+			/*
+			 * If this notification is for a record then update the Record Event Manager
+			 */
+			if(msg.instanceId != null) {
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						RecordEventManager.NOTIFICATION, 
+						status, 
+						msg.user, 
+						tableName, 
+						msg.instanceId, 
+						null, 
+						null, 
+						gson.toJson(msg),
+						null, 
+						0, 
+						msg.survey_ident,
+						0,
+						0);
+			}
+			
 		} finally {
 			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
 			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
