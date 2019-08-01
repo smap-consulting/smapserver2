@@ -1875,6 +1875,35 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the survey project id from the survey ident
+	 */
+	static public int getProjectIdFromSurveyIdent(Connection sd, String sIdent) throws SQLException {
+
+		int p_id = 0;
+
+		String sql = "select p_id "
+				+ " from survey " 
+				+ " where ident = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				p_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return p_id;
+	}
+	
+	/*
 	 * Get the survey project id from the task group id
 	 */
 	static public int getProjectIdFromTaskGroup(Connection sd, int tgId) throws SQLException {

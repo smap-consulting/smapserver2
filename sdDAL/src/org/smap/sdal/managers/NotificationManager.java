@@ -486,7 +486,7 @@ public class NotificationManager {
 			String serverName,
 			String basePath,
 			String serverRoot,
-			String ident,
+			String ident,			// Survey Ident
 			String instanceId,
 			int pId,
 			boolean excludeEmpty) throws Exception {
