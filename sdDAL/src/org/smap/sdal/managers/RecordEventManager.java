@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.TaskEventChange;
 import org.smap.sdal.model.TaskItemChange;
 
@@ -47,6 +48,7 @@ public class RecordEventManager {
 	private static ResourceBundle localisation;
 	private String tz;
 	
+	public static String CREATED = "created";
 	public static String CHANGES = "changes";
 	public static String TASK = "task";
 	public static String NOTIFICATION = "notification";
@@ -262,6 +264,7 @@ public class RecordEventManager {
 				+ "status,"
 				+ "changes,"
 				+ "task, "
+				+ "notification, "
 				+ "description, "
 				+ "changed_by, "
 				+ "change_survey, "
@@ -296,6 +299,11 @@ public class RecordEventManager {
 				if(task != null) {
 					event.task = gson.fromJson(task, TaskItemChange.class);
 				}
+				String notification = rs.getString("notification");
+				if(notification != null) {
+					event.notification = gson.fromJson(notification, SubmissionMessage.class);
+				}
+				
 				event.description = rs.getString("description");
 				
 				String sIdent = rs.getString("change_survey");

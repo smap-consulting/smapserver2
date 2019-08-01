@@ -62,6 +62,7 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TaskItemChange;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -71,7 +72,6 @@ import org.w3c.dom.Document;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-
 
 public class SubRelationalDB extends Subscriber {
 
@@ -556,38 +556,6 @@ public class SubRelationalDB extends Subscriber {
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
 			} 
-			/*
-			else {
-				 * 
-				 * Check to see this submission was set to update an existing record with new data
-				 * Don't do this if a key policy has been set or the submission is from a task
-				 *  In these cases the key policy will be applied 
-				 *
-
-				log.info("################### Processing straight replacement:" + keyPolicy + ": " + assignmentId );
-				if((keyPolicy == null || keyPolicy.equals("none")) && assignmentId == 0) {
-					if(updateId != null) {
-						log.info("Existing unique id:" + updateId);
-						existingKey = getKeyFromId(cResults, topElement, updateId);
-					} 
-	
-					if(existingKey != 0) {
-						log.info("Existing key:" + existingKey);
-						replaceExistingRecord(cResults, 	// Mark the existing record as being replaced
-								sd, 
-								topElement,
-								existingKey , 
-								keys.newKey, 
-								hasHrk,
-								instance.getUuid(),
-								updateId,
-								hrk,
-								sId,
-								remoteUser);		
-					}
-				}
-			}
-			*/
 
 			/*
 			 * Update any Human readable keys if this survey has them
@@ -638,7 +606,7 @@ public class SubRelationalDB extends Subscriber {
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
 							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not hav ebeen committed yet
-				}
+				} 
 			} 
 
 			/*
@@ -655,6 +623,27 @@ public class SubRelationalDB extends Subscriber {
 			 * Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			 */
 			clearLinkedForms(sd, sId);
+			
+			/*
+			 * If this is a simple create without an HRK then write to the record event manager
+			 */
+			if(updateId == null && !hasHrk) {
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.CREATED, 
+						RecordEventManager.STATUS_SUCCESS,
+						remoteUser, 
+						topLevelForm.tableName, 
+						instance.getUuid(), 
+						null, 					// Change object
+						null, 					// Task object
+						null,					// Notification object
+						null, 
+						sId, 
+						null,
+						0,
+						0);	
+			}
 
 		} catch (Exception e) {
 			if(cResults != null) {
@@ -1067,6 +1056,7 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} 
 			
+			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			if(sourceKey > 0) {
 
 				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id);
@@ -1249,12 +1239,25 @@ public class SubRelationalDB extends Subscriber {
 					}
 				}
 				
+			} else {
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.CREATED, 
+						RecordEventManager.STATUS_SUCCESS,
+						user, table, 
+						newInstance, 
+						null, 					// Change object
+						null, 					// Task object
+						null,					// Notification object
+						null, 
+						sId, 
+						null,
+						0,
+						0);	
 			}
 			
 			if(changes != null) {
 				// Save the changes
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(sd, cResults, 
 						RecordEventManager.CHANGES, 
 						RecordEventManager.STATUS_SUCCESS,

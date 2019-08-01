@@ -913,16 +913,21 @@ public class NotificationManager {
 								if(msg.subject != null && msg.subject.trim().length() > 0) {
 									sender_id = msg.subject;
 								}
-								smsMgr = new EmitAwsSMS(sender_id);
+								smsMgr = new EmitAwsSMS(sender_id, localisation);
 							} else {
-								smsMgr = new SMSExternalManager(sms_url);
+								smsMgr = new SMSExternalManager(sms_url, localisation);
 							}
 							
 							for(String sms : smsList) {
 								
 								if(sentEndPoints.get(sms) == null) {
 									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
-									responseList.add(smsMgr.sendSMS(sms, msg.content));
+									try {
+										responseList.add(smsMgr.sendSMS(sms, msg.content));
+									} catch (Exception e) {
+										status = "error";
+										error_details = e.getMessage();
+									}
 									sentEndPoints.put(sms, sms);
 								} else {
 									log.info("Duplicate phone number: " + sms);
@@ -1250,9 +1255,9 @@ public class NotificationManager {
 								if(msg.subject != null && msg.subject.trim().length() > 0) {
 									sender_id = msg.subject;
 								}
-								smsMgr = new EmitAwsSMS(sender_id);
+								smsMgr = new EmitAwsSMS(sender_id, localisation);
 							} else {
-								smsMgr = new SMSExternalManager(sms_url);
+								smsMgr = new SMSExternalManager(sms_url, localisation);
 							}
 							
 							for(String sms : smsList) {
