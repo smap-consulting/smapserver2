@@ -905,6 +905,10 @@ public class NotificationManager {
 							}
 						}
 						
+						// Write the combined list back into the emails field, if something foes wrong this is the 
+						// list of numbers that we attempted to contact
+						msg.emails = smsList;
+						
 						if(smsList.size() > 0) {
 							
 							EmitSMS smsMgr = null;
@@ -1000,7 +1004,7 @@ public class NotificationManager {
 						null, 
 						null, 
 						gson.toJson(msg),
-						null, 
+						error_details, 
 						0, 
 						msg.survey_ident,
 						0,
