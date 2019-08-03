@@ -310,6 +310,7 @@ public class SurveyResults extends Application {
 					pstmtRestore.executeUpdate();
 							
 					pstmtReset.setString(1, gd.surveyIdent);			// Initiate reset of go faster flag
+					log.info("Restoring survey2 " + pstmtReset.toString());
 					pstmtReset.executeUpdate();
 					
 					// Force regeneration of any dynamic CSV files that this survey links to
