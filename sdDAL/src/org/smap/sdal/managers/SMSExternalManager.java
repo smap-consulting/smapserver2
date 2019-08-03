@@ -53,7 +53,7 @@ public class SMSExternalManager extends EmitSMS {
 		
 		String responseBody = null;
 		
-		if(!isValidPhoneNumber(number)) {
+		if(!isValidPhoneNumber(number, false)) {
 			throw new Exception("Invalid phone number: " + number);
 		}
 		

@@ -914,7 +914,7 @@ public class NotificationManager {
 								if(msg.subject != null && msg.subject.trim().length() > 0) {
 									sender_id = msg.subject;
 								}
-								smsMgr = new EmitAwsSMS(sender_id);
+								smsMgr = new EmitAwsSMS(sender_id, localisation);
 							} else {
 								smsMgr = new SMSExternalManager(sms_url);
 							}
@@ -1224,7 +1224,7 @@ public class NotificationManager {
 								if(msg.subject != null && msg.subject.trim().length() > 0) {
 									sender_id = msg.subject;
 								}
-								smsMgr = new EmitAwsSMS(sender_id);
+								smsMgr = new EmitAwsSMS(sender_id, localisation);
 							} else {
 								smsMgr = new SMSExternalManager(sms_url);
 							}
