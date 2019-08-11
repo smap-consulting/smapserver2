@@ -2,6 +2,7 @@ package org.smap.sdal.managers;
 
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.apache.http.HttpEntity;
@@ -34,14 +35,16 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 /*
- * Manage the sending of emails
+ * Manage the sending of SMS Messages
  */
 public class SMSExternalManager extends EmitSMS {
 	
 	String url;
+	ResourceBundle localisation;
 	
-	public SMSExternalManager(String url) {
+	public SMSExternalManager(String url, ResourceBundle l) {
 		this.url = url;
+		localisation = l;
 	}
 
 	
@@ -54,7 +57,7 @@ public class SMSExternalManager extends EmitSMS {
 		String responseBody = null;
 		
 		if(!isValidPhoneNumber(number, false)) {
-			throw new Exception("Invalid phone number: " + number);
+			throw new Exception(localisation.getString("msg_sms") + ": " + number);
 		}
 		
 		CloseableHttpClient httpclient = null;

@@ -325,7 +325,8 @@ public class Data_CSV extends Application {
 					true, 				// include survey duration
 					superUser, false, 	// TODO include HXL
 					audit,
-					tz
+					tz,
+					false				// mgmt
 					);
 
 			if (mgmt) {
@@ -412,111 +413,118 @@ public class Data_CSV extends Application {
 						null	,	// key filter
 						tz,
 						null	,	// instance id
-						null		// advanced filter
+						null,	// advanced filter
+						null,	// Date filter name
+						null,	// Start date
+						null		// End date
 						);
 
-				log.info("Get CSV data: " + pstmt.toString());
-				HashMap<String, AuditItem> auditData = null;
-				Type auditItemType = new TypeToken<HashMap<String, AuditItem>>() {}.getType();
-				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-
-				sd.setAutoCommit(false);		// page the results to reduce memory usage
-				pstmt.setFetchSize(100);	
-				
-				rs = pstmt.executeQuery();
-
-				int index = 0;
-				while (rs.next()) {
-
-					if (limit > 0 && index >= limit) {
-						break;
-					}
-					index++;
-
-					record = new StringBuffer();
-
-					// Add the standard data
-					for (int i = 0; i < columns.size(); i++) {
-						TableColumn c = columns.get(i);
-
-						String val = rs.getString(i + 1);
-						if (val == null) {
-							val = "";
+				if(pstmt != null) {
+					log.info("Get CSV data: " + pstmt.toString());
+					HashMap<String, AuditItem> auditData = null;
+					Type auditItemType = new TypeToken<HashMap<String, AuditItem>>() {}.getType();
+					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+	
+					sd.setAutoCommit(false);		// page the results to reduce memory usage
+					pstmt.setFetchSize(100);	
+					
+					rs = pstmt.executeQuery();
+	
+					int index = 0;
+					while (rs.next()) {
+	
+						if (limit > 0 && index >= limit) {
+							break;
 						}
-						if (!c.column_name.equals("_audit")) {
-							if (i > 0) {
-								record.append(",");
+						index++;
+	
+						record = new StringBuffer();
+	
+						// Add the standard data
+						for (int i = 0; i < columns.size(); i++) {
+							TableColumn c = columns.get(i);
+	
+							String val = rs.getString(i + 1);
+							if (val == null) {
+								val = "";
 							}
-							if(c.type != null && (c.type.equals("select") || c.type.equals("rank")) && c.compressed && !mergeSelectMultiple) {
-								// Split the select multiple into its choices
-								
-								String[] selected = {""};
-								selected = val.split(" ");
-								int idx = 0;
-								for(KeyValue kv: c.choices) {
-									boolean addChoice = false;
-									for(String selValue : selected) {
-										if(selValue.equals(kv.k)) {
-											addChoice = true;
-											break;
-										}	
-									}
-									if(idx++ > 0) {
-										record.append(",");
-									}
-									String choiceValue = addChoice ? "1" : "0";
-									record.append("\"" + choiceValue + "\"");
-									
-								}
-							} else if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
-								// Convert value to display name
-								for(KeyValue kv: c.choices) {
-									if(kv.k.equals(val)) {
-										val = kv.v;
-										break;
-									}
-								}
-								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
-							} else {
-								record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
-							}
-						} else {
-							auditData = gson.fromJson(val, auditItemType);
-						}
-					}
-
-					// Add the audit data
-					if (audit && auditData != null) {
-						for (TableColumn c : columns) {
-							if (includeInAudit(c.column_name)) {
-								record.append(",");
-								AuditItem item = auditData.get(c.column_name);
-								if(item != null) {
-									record.append(item.time);
-								}
-							}
-						}
-						
-						for (TableColumn c : columns) {
-							if (includeInAudit(c.column_name)) {
-								record.append(",");
-								AuditItem item = auditData.get(c.column_name);
-								if(item != null && item.location != null) {
-									record.append(item.location.lat);
+							if (!c.column_name.equals("_audit")) {
+								if (i > 0) {
 									record.append(",");
-									record.append(item.location.lon);
+								}
+								if(c.type != null && (c.type.equals("select") || c.type.equals("rank")) && c.compressed && !mergeSelectMultiple) {
+									// Split the select multiple into its choices
+									
+									String[] selected = {""};
+									selected = val.split(" ");
+									int idx = 0;
+									for(KeyValue kv: c.choices) {
+										boolean addChoice = false;
+										for(String selValue : selected) {
+											if(selValue.equals(kv.k)) {
+												addChoice = true;
+												break;
+											}	
+										}
+										if(idx++ > 0) {
+											record.append(",");
+										}
+										String choiceValue = addChoice ? "1" : "0";
+										record.append("\"" + choiceValue + "\"");
+										
+									}
+								} else if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
+									// Convert value to display name
+									for(KeyValue kv: c.choices) {
+										if(kv.k.equals(val)) {
+											val = kv.v;
+											break;
+										}
+									}
+									record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
+								} else {
+									record.append("\"" + val.replaceAll("\"", "\"\"") + "\"");
+								}
+							} else {
+								auditData = gson.fromJson(val, auditItemType);
+							}
+						}
+	
+						// Add the audit data
+						if (audit && auditData != null) {
+							for (TableColumn c : columns) {
+								if (includeInAudit(c.column_name)) {
+									record.append(",");
+									AuditItem item = auditData.get(c.column_name);
+									if(item != null) {
+										record.append(item.time);
+									}
+								}
+							}
+							
+							for (TableColumn c : columns) {
+								if (includeInAudit(c.column_name)) {
+									record.append(",");
+									AuditItem item = auditData.get(c.column_name);
+									if(item != null && item.location != null) {
+										record.append(item.location.lat);
+										record.append(",");
+										record.append(item.location.lon);
+									}
 								}
 							}
 						}
+	
+						record.append("\n");
+						outWriter.print(record.toString());
+	
 					}
-
-					record.append("\n");
-					outWriter.print(record.toString());
-
+					
+					sd.setAutoCommit(true);		// page the results to reduce memory
+	
+				} else {
+					outWriter.print(localisation.getString("msg_no_data"));
 				}
-				
-				sd.setAutoCommit(true);		// page the results to reduce memory
-
 			}
 
 			} catch (Exception e) {

@@ -28,6 +28,7 @@ import com.google.gson.GsonBuilder;
 
 import java.io.PrintWriter;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -56,13 +57,19 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveySettingsManager;
+import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.model.ConsoleTotals;
+import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveySettingsDefn;
+import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 
 /*
@@ -116,7 +123,8 @@ public class Data extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		aSuper.isAuthorised(sd, request.getRemoteUser());
-
+		// End Authorisation
+		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -131,7 +139,7 @@ public class Data extends Application {
 			response = Response.ok(resp).build();
 		} catch (SQLException e) {
 			e.printStackTrace();
-			response = Response.serverError().build();
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
@@ -153,6 +161,9 @@ public class Data extends Application {
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("mgmt") boolean mgmt,
+			@QueryParam("groupSurvey") String groupSurvey,	// Console
+			@PathParam("view") int viewId,					// Console
+			@QueryParam("schema") boolean schema,			// Console return schema with the data
 			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			@QueryParam("sort") String sort,				// Column Human Name to sort on
 			@QueryParam("dirn") String dirn,				// Sort direction, asc || desc
@@ -167,7 +178,11 @@ public class Data extends Application {
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("links") String links,
-			@QueryParam("filter") String filter
+			@QueryParam("filter") String filter,
+			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
+			@QueryParam("startDate") Date startDate,
+			@QueryParam("endDate") Date endDate,
+			@QueryParam("getSettings") boolean getSettings			// if set true get the settings from the database
 			) throws ApplicationException, Exception { 
 			
 		boolean incLinks = false;
@@ -178,8 +193,11 @@ public class Data extends Application {
 			incLinks = false;		// Links can only be specified for the main form
 		}
 		
-		getDataRecords(request, response, sIdent, start, limit, mgmt, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, filter);
+		// Authorisation is done in getDataRecords
+		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
+				schema, group, sort, dirn, formName, start_parkey,
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, 
+				filter, dateName, startDate, endDate, getSettings);
 	}
 	
 	/*
@@ -198,12 +216,64 @@ public class Data extends Application {
 			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
 			) throws ApplicationException, Exception { 
 		
+		// Authorisation is done in getSingleRecord
 		return getSingleRecord(request,
 				sIdent,
 				uuid,
 				merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 				tz				// Timezone
 				);
+		
+	}
+	
+	/*
+	 * Get changes to a record
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/changes/{sId}/{key}")
+	public Response getRecordChanges(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("key") String key,		
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
+			) throws ApplicationException, Exception { 
+		
+		Response response = null;
+		String connectionString = "koboToolboxApi - get data changes";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+			
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
+			String thread = GeneralUtilityMethods.getThread(cResults, tableName, key);
+			RecordEventManager rem = new RecordEventManager(localisation, tz);
+			ArrayList<DataItemChangeEvent> changeEvents = rem.getChangeEvents(sd, tableName, thread);
+			
+			response = Response.ok(gson.toJson(changeEvents)).build();
+		} catch (Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
+		return response;
 		
 	}
 	
@@ -217,6 +287,9 @@ public class Data extends Application {
 			int start,				// Primary key to start from
 			int limit,				// Number of records to return
 			boolean mgmt,
+			String groupSurvey,		// Console
+			int viewId,				// Console
+			boolean schema,			// Console - return schema
 			boolean group,			// If set include a dummy group value in the response, used by duplicate query
 			String sort,				// Column Human Name to sort on
 			String dirn,				// Sort direction, asc || desc
@@ -231,7 +304,12 @@ public class Data extends Application {
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
 			String tz,				// Timezone
 			boolean incLinks	,
-			String advanced_filter) throws ApplicationException, Exception { 
+			String advanced_filter,
+			String dateName,
+			Date startDate,
+			Date endDate,
+			boolean getSettings		// Set true if the settings are stored in the database, otherwise they are passed with the request
+			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
 		
@@ -262,14 +340,20 @@ public class Data extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		if(viewId > 0) {
+			a.isValidView(sd, request.getRemoteUser(), viewId, false);
+		}
+		if(groupSurvey != null) {
+			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		}		
 		// End Authorisation
 
 		String language = "none";
 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
-		String sqlGetManagedId = "select managed_id from survey where s_id = ?";
-		PreparedStatement pstmtGetManagedId = null;
+		//String sqlGetManagedId = "select managed_id from survey where s_id = ?";
+		//PreparedStatement pstmtGetManagedId = null;
 
 		String sqlGetMainForm = "select f_id, table_name from form where s_id = ? and parentform = 0;";
 		PreparedStatement pstmtGetMainForm = null;
@@ -337,75 +421,124 @@ public class Data extends Application {
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
-			// Get the managed Id
-			if(mgmt) {
-				pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
-				pstmtGetManagedId.setInt(1, sId);
-				rs = pstmtGetManagedId.executeQuery();
-				if(rs.next()) {
-					managedId = rs.getInt(1);
+			/*
+			 * Get the survey view
+			 */
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
+			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			
+			SurveySettingsDefn ssd = null;
+			SurveyViewDefn sv = null;
+			ArrayList<TableColumn> columns = null;
+			
+			/*
+			 * If the data is destined for the console then get the columns using the survey view class
+			 * For normal API calls this is not used primarily to reduce the chance that anything gets changed due
+			 * to console specific coding
+			 */
+			if(schema) {
+				ssd = ssm.getSurveySettings(sd, uId, sIdent);
+				if(!getSettings) {
+					// Update the settings with the values passed in the request
+					ssd.limit = limit;
+					ssd.filter = advanced_filter;
+					ssd.dateName = dateName;
+					ssd.fromDate = startDate;
+					ssd.toDate = endDate;
+					ssd.overridenDefaultLimit = "yes";
+					
+					ssm.setSurveySettings(sd, uId, sIdent, ssd);
+				} else {
+					// If the limit has not previously been set then default it to 1,000
+					if(ssd.overridenDefaultLimit == null) {
+						ssd.limit = 1000;
+					}
 				}
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
-			}
-
-			if(fId == 0) {
-				pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
-				pstmtGetMainForm.setInt(1,sId);
-
-				log.info("Getting main form: " + pstmtGetMainForm.toString() );
-				rs = pstmtGetMainForm.executeQuery();
-				if(rs.next()) {
-					fId = rs.getInt(1);
-					table_name = rs.getString(2);
-				}
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				sv = svm.getSurveyView(sd, 
+						cResults, 
+						uId, 
+						ssd, sId, managedId, request.getRemoteUser(), oId, superUser,
+						groupSurvey);	
+				columns = sv.columns;
+				table_name = sv.tableName;			
+				
 			} else {
-				getParkey = true;
-				pstmtGetForm = sd.prepareStatement(sqlGetForm);
-				pstmtGetForm.setInt(1,sId);
-				pstmtGetForm.setInt(2,fId);
-
-				log.info("Getting specific form: " + pstmtGetForm.toString() );
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
-				rs = pstmtGetForm.executeQuery();
-				if(rs.next()) {
-					parentform = rs.getInt(1);
-					table_name = rs.getString(2);
+			
+				// Get the managed Id
+				//if(mgmt) {
+				//	pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
+				//	pstmtGetManagedId.setInt(1, sId);
+				//	rs = pstmtGetManagedId.executeQuery();
+				//	if(rs.next()) {
+				//		managedId = rs.getInt(1);
+				//	}
+				//	if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				//}
+	
+				if(fId == 0) {
+					pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
+					pstmtGetMainForm.setInt(1,sId);
+	
+					log.info("Getting main form: " + pstmtGetMainForm.toString() );
+					rs = pstmtGetMainForm.executeQuery();
+					if(rs.next()) {
+						fId = rs.getInt(1);
+						table_name = rs.getString(2);
+					}
+					if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
+				} else {
+					getParkey = true;
+					pstmtGetForm = sd.prepareStatement(sqlGetForm);
+					pstmtGetForm.setInt(1,sId);
+					pstmtGetForm.setInt(2,fId);
+	
+					log.info("Getting specific form: " + pstmtGetForm.toString() );
+					rs = pstmtGetForm.executeQuery();
+					if(rs.next()) {
+						parentform = rs.getInt(1);
+						table_name = rs.getString(2);
+					}
+					if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				}
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
-			}
-
-			ArrayList<TableColumn> columns = GeneralUtilityMethods.getColumnsInForm(
-					sd,
-					cResults,
-					localisation,
-					language,
-					sId,
-					sIdent,
-					request.getRemoteUser(),
-					null,
-					parentform,
-					fId,
-					table_name,
-					true,		// Read Only
-					getParkey,	// Include parent key if the form is not the top level form (fId is 0)
-					(include_bad.equals("yes") || include_bad.equals("only")),
-					true,		// include instance id
-					true,		// Include prikey
-					true,		// include other meta data
-					true,		// include preloads
-					true,		// include instancename
-					true,		// include survey duration
-					superUser,
-					false,		// TODO include HXL
-					audit,
-					tz
-					);
-
-			if(mgmt) {
-				CustomReportsManager crm = new CustomReportsManager ();
-				ReportConfig config = crm.get(sd, managedId, -1);
-				columns.addAll(config.columns);
+	
+				columns = GeneralUtilityMethods.getColumnsInForm(
+						sd,
+						cResults,
+						localisation,
+						language,
+						sId,
+						sIdent,
+						request.getRemoteUser(),
+						null,
+						parentform,
+						fId,
+						table_name,
+						true,		// Read Only
+						getParkey,	// Include parent key if the form is not the top level form (fId is 0)
+						(include_bad.equals("yes") || include_bad.equals("only")),
+						true,		// include instance id
+						true,		// Include prikey
+						true,		// include other meta data
+						true,		// include preloads
+						true,		// include instancename
+						true,		// include survey duration
+						superUser,
+						false,		// TODO include HXL
+						audit,
+						tz,
+						mgmt			// If this is a management request then include the assigned user after prikey
+						);
+	
+				//if(mgmt && managedId > 0) {
+				//	CustomReportsManager crm = new CustomReportsManager ();
+				//	ReportConfig config = crm.get(sd, managedId, -1);
+				//	if(config != null) {
+				//		columns.addAll(config.columns);
+				//	}
+				//}
 			}
 			
 			TableDataManager tdm = new TableDataManager(localisation, tz);
@@ -435,9 +568,13 @@ public class Data extends Application {
 					null,			// key filter
 					tz,
 					null,			// instanceId
-					advanced_filter
+					ssd.filter,
+					ssd.dateName,
+					ssd.fromDate,
+					ssd.toDate
 					);
 			
+			ConsoleTotals totals = new ConsoleTotals();
 			// Write array start
 			if(isDt) {
 				outWriter.print("{\"data\":");
@@ -456,7 +593,6 @@ public class Data extends Application {
 				/*
 				 * Get the data record by record so it can be streamed
 				 */
-				if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
 				
 				// page the results to reduce memory usage
 				log.info("---------------------- paging results to postgres");
@@ -489,11 +625,10 @@ public class Data extends Application {
 					}
 					
 					index++;
-					if (limit > 0 && index >= limit) {
+					if (ssd.limit > 0 && index >= ssd.limit) {
+						totals.reached_limit = true;
 						break;
 					}
-					
-					log.info("-- " + table_name + ": " + index);
 
 				}
 				
@@ -503,11 +638,36 @@ public class Data extends Application {
 			
 			outWriter.print("]");
 			if(isDt) {
+				if(schema) {
+					/*
+					 * Return the schema with the data 
+					 * 1. remove data not needed by the client for performance and security reasons
+					 */
+					for(TableColumn tc : sv.columns) {
+						tc.actions = null;
+						tc.calculation = null;
+					}
+					sv.tableName = null;
+					
+					// 2. Add the schema to the results
+					outWriter.print(",\"schema\":");
+					outWriter.print(gson.toJson(sv));		// Add the survey view
+					
+					// 3. Add the survey settings to the results
+					if(getSettings) {
+						outWriter.print(",\"settings\":");
+						outWriter.print(gson.toJson(ssd));
+					}
+					
+					// 4. Add totals to the results
+					outWriter.print(",\"totals\":");
+					outWriter.print(gson.toJson(totals));
+				}
+				
 				outWriter.print("}");
 			}
 			
-			if(isGeoJson) {
-										// TODO bbox
+			if(isGeoJson) {				// TODO bbox										
 				outWriter.print("}");	// close
 			}
 
@@ -523,7 +683,7 @@ public class Data extends Application {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetMainForm != null) {pstmtGetMainForm.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetForm != null) {pstmtGetForm.close();	}} catch (SQLException e) {	}
-			try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
+			//try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();	}} catch (SQLException e) {	}
 
 			ResultsDataSource.closeConnection(connectionString, cResults);			
 			SDDataSource.closeConnection(connectionString, sd);
@@ -767,7 +927,8 @@ public class Data extends Application {
 					superUser,
 					false,		// Only include HXL with CSV and Excel output
 					false,
-					tz
+					tz,
+					false		// mgmt
 					);
 
 			if(mgmt) {

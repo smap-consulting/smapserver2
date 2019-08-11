@@ -173,7 +173,7 @@ public class Surveys extends Application {
 	@Produces("application/json")
 	public Response getSurveyDetails(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@QueryParam("get_changes") boolean getChanges,
+			@QueryParam("get_changes") boolean getChangeHistory,
 			@QueryParam("tz") String tz
 			) { 
 		
@@ -213,7 +213,7 @@ public class Surveys extends Application {
 					true,
 					false,
 					"internal",
-					getChanges,
+					getChangeHistory,
 					false,
 					superUser,
 					null,

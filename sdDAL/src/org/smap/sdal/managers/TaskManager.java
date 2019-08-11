@@ -47,6 +47,7 @@ import org.smap.sdal.model.TaskBulkAction;
 import org.smap.sdal.model.TaskEmailDetails;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
+import org.smap.sdal.model.TaskItemChange;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.TaskServerDefn;
@@ -92,14 +93,19 @@ public class TaskManager {
 	public static String TASK_DATA_SOURCE = "task";
 	public static String NO_DATA_SOURCE = "none";
 	
+	public static final String STATUS_T_ACCEPTED = "accepted";
+    public static final String STATUS_T_REJECTED = "rejected";
+    public static final String STATUS_T_SUBMITTED = "submitted";
+    public static final String STATUS_T_CANCELLED = "cancelled";
+    
 	private String fullStatusList[] = {
 			"new", 
-			"accepted", 
+			STATUS_T_ACCEPTED, 
 			"unsent", 
 			"unsubscribed", 
-			"submitted", 
-			"rejected", 
-			"cancelled", 
+			STATUS_T_SUBMITTED, 
+			STATUS_T_REJECTED, 
+			STATUS_T_CANCELLED , 
 			"deleted",
 			"pending",
 			"error",
@@ -591,7 +597,7 @@ public class TaskManager {
 				+ "ST_Y(the_geom) as lat "
 				+ "from locations "
 				+ "where o_id = ? "
-				+ "order by id asc;";
+				+ "order by locn_group asc, name asc;";
 		PreparedStatement pstmt = null;
 		ArrayList<Location> locations = new ArrayList<Location> ();
 
@@ -1060,13 +1066,16 @@ public class TaskManager {
 						updateId,
 						autosendEmails,
 						remoteUser,
-						initialDataSource);
+						initialDataSource,
+						updateId,
+						title);
 			}
+			
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
 
 		} finally {
 			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
-			if(pstmtAssign != null) try {	pstmtAssign.close(); } catch(SQLException e) {};
+			if(pstmtAssign != null) try { pstmtAssign.close(); } catch(SQLException e) {};
 			if(pstmtRoles != null) try {	pstmtRoles.close(); } catch(SQLException e) {};
 			if(pstmtRoles2 != null) try {	pstmtRoles2.close(); } catch(SQLException e) {};
 		}
@@ -1403,7 +1412,9 @@ public class TaskManager {
 							targetSurveyIdent,
 							autosendEmails,
 							remoteUser,
-							tsd.initial_data_source);
+							tsd.initial_data_source,
+							tsd.update_id,
+							tsd.name);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1424,9 +1435,11 @@ public class TaskManager {
 							null,
 							autosendEmails,
 							remoteUser,
-							tsd.initial_data_source);
+							tsd.initial_data_source,
+							tsd.update_id,
+							tsd.name);
 				}
-				
+
 				if(asd.assignee > 0) {
 					// Create a notification to alert the new user of the change to the task details
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
@@ -2129,11 +2142,18 @@ public class TaskManager {
 	 * Insert an assignment
 	 */
 	public int insertAssignment(
+			Connection sd,
+			Connection cResults,
+			Gson gson,
 			PreparedStatement pstmt,
+			String name,					// Task name
 			int assignee,
 			String email,
 			String status,
-			int task_id) throws SQLException {
+			int task_id,
+			String updateId,
+			String sIdent,
+			String remoteUser) throws SQLException {
 		
 		pstmt.setInt(1, assignee);
 		if(email != null) {
@@ -2154,6 +2174,45 @@ public class TaskManager {
 			aId = rs.getInt(1);
 		}
 		rs.close();
+		
+		/*
+		 * Record the record event if this task applies to a record
+		 */
+		if(updateId != null) {
+			String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+			if(tableName != null) {
+				log.info("Record event: " + sIdent + " : " + tableName);
+				String assigned = null;
+				if(email != null) {
+					assigned = email;
+				} else {
+					assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
+				}
+				TaskItemChange tic = new TaskItemChange(0, aId, name, status, assigned, null);
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						RecordEventManager.TASK, 
+						status,
+						remoteUser, 
+						tableName, 
+						updateId, 
+						null,				// Change object
+						gson.toJson(tic),	// Task Object
+						null,				// Notifiation objct
+						"Task created", 
+						0,				// sId (don't care legacy)
+						sIdent,
+						0,				// Don't ned task id if we have an assignment id
+						aId				// Assignment id
+						);
+				
+				
+			}
+		} else {
+			log.info("Error: Tablename not found");
+		}
 		
 		return aId;
 	}
@@ -2199,7 +2258,9 @@ public class TaskManager {
 			String targetSurveyIdent,
 			boolean autosendEmails,
 			String remoteUser,
-			String initialDataSource) throws Exception {
+			String initialDataSource,
+			String update_id,
+			String task_name) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -2244,7 +2305,9 @@ public class TaskManager {
 						null,
 						autosendEmails,
 						remoteUser,
-						initialDataSource);
+						initialDataSource,
+						update_id,
+						task_name);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -2284,14 +2347,17 @@ public class TaskManager {
 			String targetInstanceId,
 			boolean autosendEmails,
 			String remoteUser,			// For autosend of emails
-			String initialDataSource
+			String initialDataSource,
+			String update_id,
+			String task_name
 			) throws Exception {
 
 		String status = "accepted";
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(pstmtAssign, userId, null, status, taskId);
+			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, null, status, taskId, update_id, sIdent, remoteUser);
 			
 			// Notify the user of their new assignment
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -2316,7 +2382,7 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(pstmtAssign, rsRoles.getInt(1), null, status, taskId);
+				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, rsRoles.getInt(1), null, status, taskId, update_id, sIdent, remoteUser);
 				
 				// Notify the user of their new assignment
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
@@ -2358,14 +2424,14 @@ public class TaskManager {
 					action.datakeyvalue = targetInstanceId;
 				}
 			}
-			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
 			for(String email : emailArray) {
 				
 				if(emailTaskBlocked) {
-					insertAssignment(pstmtAssign, 0, email, "blocked", taskId);
+					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, "blocked", taskId, update_id, sIdent, remoteUser);
 				} else {
 					// Create the assignment
-					int aId = insertAssignment(pstmtAssign, 0, email, status, taskId);
+					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, status, taskId, update_id, sIdent, remoteUser);
 					
 					// Create a temporary user embedding the assignment id in the action link, get the link to that user
 					action.assignmentId = aId;
@@ -2396,6 +2462,31 @@ public class TaskManager {
 			}
 		} else {
 			log.info("No matching assignments found");
+			// Write an entry in the RecordEvent Log anyway (if the update id is not null)
+			if(update_id != null) {
+				String eventStatus = RecordEventManager.STATUS_NEW;
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
+				log.info("Record event: " + sIdent + " : " + tableName);
+				TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null);
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						RecordEventManager.TASK, 
+						eventStatus,
+						remoteUser, 
+						tableName, 
+						update_id, 
+						null,				// Change object
+						gson.toJson(tic),	// Task Object
+						null,				// Notification object
+						"Task created", 
+						0,				// sId (don't care legacy)
+						sIdent,
+						taskId,
+						0				// Assignment id
+						);
+			}
 		}
 	}
 	
@@ -2879,6 +2970,82 @@ public class TaskManager {
 		}
 
 		return out;
+	}
+	
+	/*
+	 * Create a task group if it does not exist or return the existing task group id
+	 * Task groups have unique names within a project
+	 */
+	public int createTaskGroup(Connection sd, 
+			String taskGroupName, 
+			int projectId,
+			String addressParams,
+			String settings,
+			int sourceSurveyId,
+			int targetSurveyId,
+			int dlDist,
+			boolean useExisting			// If set and there is an existing task group with the same name return its id, otherwise throw an exception
+			) throws Exception {
+		
+		int taskGroupId = 0;
+		
+		PreparedStatement pstmtUniqueTg = null;
+		PreparedStatement pstmtTaskGroup = null;
+		ResultSet rsKeys = null;
+		
+		try {
+			/*
+			 * Check that a task group of this name does not already exist
+			 * This would be better implemented as a constraint on the database but existing customers probably have task
+			 *  groups with duplicate names
+			 */
+			String checkUniqueTg = "select tg_id from task_group where name = ? and p_id = ?;";
+			pstmtUniqueTg = sd.prepareStatement(checkUniqueTg);
+			pstmtUniqueTg.setString(1, taskGroupName);
+			pstmtUniqueTg.setInt(2, projectId);
+			log.info("Check uniqueness of task group name in project: " + pstmtUniqueTg.toString());
+			ResultSet rs = pstmtUniqueTg.executeQuery();
+	
+			if(rs.next()) {
+				taskGroupId = rs.getInt(1);
+				if(taskGroupId > 0 && !useExisting) {
+					throw new Exception("Task Group Name " + taskGroupName + " already Exists");
+				}
+			}
+		
+			// Create a task group if one was not found
+			if(taskGroupId == 0) {
+				String tgSql = "insert into task_group ( "
+						+ "name, "
+						+ "p_id, "
+						+ "address_params,"
+						+ "rule,"
+						+ "source_s_id,"
+						+ "target_s_id,"
+						+ "dl_dist) "
+						+ "values (?, ?, ?, ?, ?, ?, ?);";
+		
+				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
+				pstmtTaskGroup.setString(1, taskGroupName);
+				pstmtTaskGroup.setInt(2, projectId);
+				pstmtTaskGroup.setString(3, addressParams);
+				pstmtTaskGroup.setString(4, settings);
+				pstmtTaskGroup.setInt(5, sourceSurveyId);
+				pstmtTaskGroup.setInt(6, targetSurveyId);
+				pstmtTaskGroup.setInt(7, dlDist);
+				log.info("Insert into task group: " + pstmtTaskGroup.toString());
+				pstmtTaskGroup.execute();
+		
+				rsKeys = pstmtTaskGroup.getGeneratedKeys();
+				if(rsKeys.next()) {
+					taskGroupId = rsKeys.getInt(1);
+				}
+			}
+		} finally {
+			if(pstmtUniqueTg != null) try {	pstmtUniqueTg.close(); } catch(SQLException e) {};
+			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
+		}
+		return taskGroupId;
 	}
 }
 

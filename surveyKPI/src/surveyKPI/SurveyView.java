@@ -35,10 +35,12 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.ChartDefn;
 import org.smap.sdal.model.MapLayer;
+import org.smap.sdal.model.SurveySettingsDefn;
 import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -54,7 +56,7 @@ import java.util.logging.Logger;
 
 /*
  * Services to support a survey view
- * The view is one level below a dashboard and shows, charts, maps and tables of data for a single survey or query
+ * The view shows, charts, maps and tables of data for a single survey
  */
 @Path("/surveyview")
 public class SurveyView extends Application {
@@ -99,6 +101,7 @@ public class SurveyView extends Application {
 			@PathParam("viewId") int viewId,
 			@QueryParam("survey") int sId,
 			@QueryParam("managed") int managedId,
+			@QueryParam("groupSurvey") String groupSurvey,
 			@QueryParam("query") int queryId) throws Exception {
 		
 		if(managedId > 0 && sId == 0) {
@@ -108,6 +111,8 @@ public class SurveyView extends Application {
 		} else if(queryId == 0 && sId == 0) {
 			throw new Exception("You must specify either a query id or a survey id");
 		}
+		
+		System.out.println("GroupSurvey: " + groupSurvey);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-GetReportConfig");
@@ -127,6 +132,10 @@ public class SurveyView extends Application {
 		} else if(queryId > 0) {
 			aNormal.isValidQuery(sd, request.getRemoteUser(), queryId);
 		}
+		if(groupSurvey != null) {
+			aManage.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		}
+		
 		// End Authorisation
 		
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-GetReportConfig");
@@ -142,13 +151,15 @@ public class SurveyView extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
 			
-			// Get the default view
-			if(viewId == 0) {	
-				viewId = svm.getDefaultView(sd, uId, sId, managedId, queryId);
-			}
-			
-			SurveyViewDefn sv = svm.getSurveyView(sd, cResults, uId, viewId, sId, managedId, request.getRemoteUser(), oId, superUser);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, uId, sIdent);
+			SurveyViewDefn sv = svm.getSurveyView(sd, 
+					cResults, 
+					uId, 
+					ssd, sId, managedId, request.getRemoteUser(), oId, superUser,
+					groupSurvey);
 			
 			/*
 			 * Remove data that is only used on the server

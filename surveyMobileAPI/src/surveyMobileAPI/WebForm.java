@@ -832,7 +832,7 @@ public class WebForm extends Application {
 					jr.manifestList.add(mv);
 				} else {
 					url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
-					html = html.replaceAll("jr://" + type + "/" + name, url);
+					html = html.replace("jr://" + type + "/" + name, url);
 				}
 			}
 		}

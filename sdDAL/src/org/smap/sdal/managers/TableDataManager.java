@@ -2,6 +2,7 @@ package org.smap.sdal.managers;
 
 import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -56,7 +57,7 @@ public class TableDataManager {
 
 	private static Logger log = Logger.getLogger(TableDataManager.class.getName());
 	private static ResourceBundle localisation;
-	String tz;
+	private String tz;
 	
 	public TableDataManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -95,7 +96,10 @@ public class TableDataManager {
 			ArrayList<KeyFilter> keyFilters,
 			String tz,
 			String instanceId,
-			String advanced_filter)
+			String advanced_filter,
+			String dateName,
+			Date startDate,
+			Date endDate)
 			throws SQLException, Exception {
 
 		StringBuffer columnSelect = new StringBuffer();
@@ -173,6 +177,15 @@ public class TableDataManager {
 			// Add custom filter (No parameters not settable by users)
 			if(customFilter != null) {
 				sqlSelect.append(" and (").append(customFilter).append(")");
+			}
+			
+			String sqlRestrictToDateRange = null;
+			if(dateName != null && GeneralUtilityMethods.hasColumn(cResults, table_name, dateName)) {
+				sqlRestrictToDateRange = GeneralUtilityMethods.getDateRange(startDate, endDate, dateName);
+				if(sqlRestrictToDateRange.trim().length() > 0) {
+					sqlSelect.append(" and ");
+					sqlSelect.append(sqlRestrictToDateRange);
+				}
 			}
 			
 			/*
@@ -264,6 +277,16 @@ public class TableDataManager {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, rfArray, paramCount, tz);
 			}
 			
+			// if date filter is set then add it
+			if(sqlRestrictToDateRange != null && sqlRestrictToDateRange.trim().length() > 0) {
+				if(startDate != null) {
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.startOfDay(startDate, tz));
+				}
+				if(endDate != null) {
+					pstmt.setTimestamp(paramCount++, GeneralUtilityMethods.endOfDay(endDate, tz));
+				}
+			}
+						
 			if(filterFrag != null) {
 				paramCount = GeneralUtilityMethods.setFragParams(pstmt, filterFrag, paramCount, tz);
 			}
@@ -278,7 +301,8 @@ public class TableDataManager {
 			}
 
 		} else {
-			throw new ApplicationException("Table does not exist");
+			// throw new ApplicationException("Table does not exist");
+			// Its OK just return a null statement
 		}
 		return pstmt;
 

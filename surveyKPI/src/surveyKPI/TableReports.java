@@ -35,11 +35,13 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
+import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.model.ChartData;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SurveySettingsDefn;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -140,9 +142,13 @@ public class TableReports extends Application {
 			
 			// Get columns
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
 			// Get the default view	
-			int viewId = svm.getDefaultView(sd, uId, sId, managedId, 0);
-			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, viewId, sId, managedId, request.getRemoteUser(), oId, superUser);
+			
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, uId, sIdent);
+			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, ssd, sId, managedId, 
+					request.getRemoteUser(), oId, superUser, null);	// TODO add support for group survey
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;

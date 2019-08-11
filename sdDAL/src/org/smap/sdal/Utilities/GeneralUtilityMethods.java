@@ -80,6 +80,7 @@ import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableUpdateStatus;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
@@ -867,7 +868,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the organisation object for this orrganisation id
+	 * Get the organisation object for this organisation id
 	 */
 	static public Organisation getOrganisation(Connection sd, int oId) throws SQLException {
 
@@ -929,8 +930,8 @@ public class GeneralUtilityMethods {
 				org.can_use_api = resultSet.getBoolean("can_use_api");
 				org.can_submit = resultSet.getBoolean("can_submit");
 				org.can_sms = resultSet.getBoolean("can_sms");
-				org.set_as_theme = resultSet.getBoolean("set_as_theme");
-				org.navbar_color = resultSet.getString("navbar_color");
+				org.appearance.set_as_theme = resultSet.getBoolean("set_as_theme");
+				org.appearance.navbar_color = resultSet.getString("navbar_color");
 				org.email_task = resultSet.getBoolean("email_task");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
@@ -1170,6 +1171,35 @@ public class GeneralUtilityMethods {
 		}
 
 		return name;
+	}
+	
+	/*
+	 * Get the task id for an assignment
+	 */
+	static public int getTaskId(Connection sd, int aId) throws SQLException {
+
+		int taskId = 0;
+
+		String sql = "select task_id " 
+				+ " from assignments " 
+				+ "where id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, aId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				taskId = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return taskId;
 	}
 	
 	/*
@@ -1419,7 +1449,9 @@ public class GeneralUtilityMethods {
 
 		String u_ident = null;
 
-		String sql = "select ident " + " from users u " + " where u.id = ?;";
+		String sql = "select ident " 
+				+ " from users u " 
+				+ " where u.id = ?;";
 
 		PreparedStatement pstmt = null;
 
@@ -1437,6 +1469,35 @@ public class GeneralUtilityMethods {
 		}
 
 		return u_ident;
+	}
+	
+	/*
+	 * Get the user name from the user id
+	 */
+	static public String getUserName(Connection sd, int id) throws SQLException {
+
+		String name = null;
+
+		String sql = "select name " 
+				+ " from users u " 
+				+ " where u.id = ?;";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return name;
 	}
 
 	/*
@@ -1537,15 +1598,14 @@ public class GeneralUtilityMethods {
 
 		String surveyIdent = null;
 
-		String sqlGetSurveyIdent = "select ident " 
+		String sql = "select ident " 
 				+ " from survey " 
 				+ " where s_id = ?";
-
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetSurveyIdent);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, surveyId);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
@@ -1802,6 +1862,35 @@ public class GeneralUtilityMethods {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				p_id = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return p_id;
+	}
+	
+	/*
+	 * Get the survey project id from the survey ident
+	 */
+	static public int getProjectIdFromSurveyIdent(Connection sd, String sIdent) throws SQLException {
+
+		int p_id = 0;
+
+		String sql = "select p_id "
+				+ " from survey " 
+				+ " where ident = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				p_id = rs.getInt(1);
@@ -2202,8 +2291,10 @@ public class GeneralUtilityMethods {
 
 		String userIdent = null;
 
-		String sqlGetUserDetails = "select u.ident from users u, dynamic_users d " + " where u.id = d.u_id "
-				+ " and d.access_key = ? " + " and d.expiry > now();";
+		String sqlGetUserDetails = "select u.ident from users u, dynamic_users d " 
+				+ " where u.id = d.u_id "
+				+ " and d.access_key = ? " 
+				+ " and d.expiry > now();";
 		PreparedStatement pstmtGetUserDetails = null;
 
 		log.info("GetDynamicUser");
@@ -3333,7 +3424,8 @@ public class GeneralUtilityMethods {
 			boolean superUser,
 			boolean hxl,
 			boolean audit,
-			String tz)	// If set substitute display name for the question name if it is not null
+			String tz,
+			boolean mgmt)	// If set substitute display name for the question name if it is not null, also publish un published
 					throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
@@ -3406,7 +3498,7 @@ public class GeneralUtilityMethods {
 				+ "order by o.seq;";
 		PreparedStatement pstmtSelectChoices = sd.prepareStatement(sqlSelectMultiple);
 
-		updateUnPublished(sd, cResults, table_name, f_id);		// Ensure that all columns marked not published really are
+		updateUnPublished(sd, cResults, table_name, f_id, true);		// Ensure that all columns marked not published really are
 		
 		TableColumn c = new TableColumn();
 		c.column_name = "prikey";
@@ -3414,6 +3506,19 @@ public class GeneralUtilityMethods {
 		c.type = SmapQuestionTypes.INT;
 		c.question_name = c.column_name;
 		if (includePrikey) {
+			columnList.add(c);
+		}
+		
+		// Add assigned if this is a management request
+		if(mgmt) {
+			if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+				GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+			}
+			c = new TableColumn();
+			c.column_name = "_assigned";
+			c.displayName = "_assigned";
+			c.type = SmapQuestionTypes.STRING;
+			c.question_name = c.column_name;
 			columnList.add(c);
 		}
 
@@ -3609,7 +3714,7 @@ public class GeneralUtilityMethods {
 				String display_name = rsQuestions.getString(8);
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
-
+				
 				String hxlCode = getHxlCode(appearance, question_name);
 
 				if (durationColumn != null && source_param != null) {
@@ -5475,9 +5580,42 @@ public class GeneralUtilityMethods {
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
-		} finally {try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
+		}
+
+		return table;
+	}
+	
+	/*
+	 * Get the main results table for a survey using the survey ident as a key if it exists
+	 */
+	public static String getMainResultsTableSurveyIdent(Connection sd, Connection conn, String sIdent) {
+		String table = null;
+
+		String sql = "select table_name from form "
+				+ "where s_id  = (select s_id from survey where ident = ?) "
+				+ "and parentform = 0";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+
+			log.info("Get main table: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				String table_name = rs.getString(1);
+				if (tableExists(conn, table_name)) {
+					table = table_name;
+				}
 			}
 
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			try {	if (pstmt != null) {	pstmt.close();}} catch (Exception e) {}
 		}
 
 		return table;
@@ -5621,6 +5759,76 @@ public class GeneralUtilityMethods {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
+	}
+	
+	/*
+	 * Method to lock a record out to a user
+	 */
+	public static int lockRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+
+		int count = 0;
+		
+		String sql = "update " + tablename + " set _assigned = ? "
+				+ "where instanceid = ? "
+				+ "and _assigned is null";
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		pstmt.setString(1, user);
+		pstmt.setString(2,instanceId);
+		log.info("locking record: " + pstmt.toString());
+		try {
+			count = pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count;
+	}
+	
+	/*
+	 * Method to assign a record to a user
+	 */
+	public static int assignRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+
+		int count = 0;
+		
+		String sql = "update " + tablename + " set _assigned = ? "
+				+ "where instanceid = ? ";
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		pstmt.setString(1, user);
+		pstmt.setString(2,instanceId);
+		log.info("locking record: " + pstmt.toString());
+		try {
+			count = pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count;
+	}
+	
+	/*
+	 * Method to release a record 
+	 */
+	public static int releaseRecord(Connection conn, String tablename, String instanceId, String user) throws SQLException {
+
+		int count = 0;
+		String sql = "update " + tablename + " set _assigned = null "
+				+ "where instanceid = ? "
+				+ "and _assigned = ?";
+
+		PreparedStatement pstmt = conn.prepareStatement(sql);
+		pstmt.setString(1, instanceId);
+		pstmt.setString(2,user);
+		log.info("locking record: " + pstmt.toString());
+		try {
+			count = pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count;
 		
 	}
 	
@@ -7192,6 +7400,30 @@ public class GeneralUtilityMethods {
 		return coords;
 	}
 	
+	/*
+	 * Convert a geojson string into a WKT string
+	 * Assume Point TODO update to cater for other types
+	 */
+	public static String getWKTfromGeoJson(String json) {
+		
+		String wkt = null;
+		if(json != null) {
+			int idx1 = json.indexOf("[");
+			int idx2 = json.indexOf("]");
+			
+			if(idx2 > idx1) {
+				String c = json.substring(idx1 + 1, idx2);
+				String [] coords = c.split(",");
+				if(coords.length >= 2) {
+					wkt = "POINT(" + coords[0].trim() + " " + coords[1].trim() + ")"; 
+				}
+				
+			}
+		}
+			
+		return wkt;
+	}
+	
 	public static String getOdkPolygon(Polygon p) {
 		StringBuffer coordsString = new StringBuffer("");
 		ArrayList<ArrayList<Double>> coords = p.coordinates.get(0);
@@ -7393,51 +7625,108 @@ public class GeneralUtilityMethods {
 	 */
 	public static void continueThread(Connection cResults, String table, int prikey, int sourceKey) throws SQLException {
 		
-		String sqlHasThreadCol = "select count(*) from information_schema.columns where table_name = ? "
-				+ "and column_name = '_thread' ";
-		PreparedStatement pstmtHasThreadCol = null;
-		
-		String sqlAddThread = "alter table " + table + " add column _thread text";
-		PreparedStatement pstmtAddThreadCol = null;
-		
-		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ?";
-		PreparedStatement pstmtInitThreadCol = null;
-		
 		String sqlCopyThreadCol = "update " + table 
-				+ " set _thread = (select _thread from " + table
-				+ " where prikey = ?) where prikey = ?";
+						+ " set _thread = (select _thread from " + table + " where prikey = ?),"
+						+ " _assigned = (select _assigned from " + table + " where prikey = ?) "
+						+ "where prikey = ?";
 		PreparedStatement pstmtCopyThreadCol = null;
 			
 		try {
-			pstmtHasThreadCol = cResults.prepareStatement(sqlHasThreadCol);
-			pstmtHasThreadCol.setString(1, table);
-			ResultSet rsCols = pstmtHasThreadCol.executeQuery();
-
-			rsCols.next();
-			if(rsCols.getInt(1) == 0) {
-				// Add the thread column
-				pstmtAddThreadCol = cResults.prepareStatement(sqlAddThread);
-				pstmtAddThreadCol.executeUpdate();
-				
-				// Initialise the thread column
-				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-				pstmtInitThreadCol.setInt(1, sourceKey);
-				pstmtInitThreadCol.executeUpdate();
-			}
+			initialiseThread(cResults, table, sourceKey, null);
 			
 			// At this point the thread col must exist and the _thread value for the source must exist
 			pstmtCopyThreadCol = cResults.prepareStatement(sqlCopyThreadCol);
 			pstmtCopyThreadCol.setInt(1, sourceKey);
-			pstmtCopyThreadCol.setInt(2, prikey);
+			pstmtCopyThreadCol.setInt(2, sourceKey);
+			pstmtCopyThreadCol.setInt(3, prikey);
+			log.info("continue thread: " + pstmtCopyThreadCol.toString());
 			pstmtCopyThreadCol.executeUpdate();
 			
 			
 		} finally {
-			if(pstmtHasThreadCol != null) try{pstmtHasThreadCol.close();}catch(Exception e) {}
-			if(pstmtAddThreadCol != null) try{pstmtAddThreadCol.close();}catch(Exception e) {}
-			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
 			if(pstmtCopyThreadCol != null) try{pstmtCopyThreadCol.close();}catch(Exception e) {}
 		}
+
+	}
+	
+	/*
+	 * Add the thread value that links replaced records
+	 * Either get the thread key using the sourceKey or if that is not set use the passed in instanceId directly
+	 */
+	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
+		
+		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ?";
+		PreparedStatement pstmtInitThreadCol = null;
+		
+		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ?";
+		PreparedStatement pstmtInitThreadCol2 = null;
+			
+		try {
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
+				// Add the thread column
+				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");
+				
+				// Initialise the thread column
+				if(sourceKey > 0) {
+					pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
+					pstmtInitThreadCol.setInt(1, sourceKey);
+					pstmtInitThreadCol.executeUpdate();
+				} else {
+					pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
+					pstmtInitThreadCol2.setString(1, instanceId);
+					pstmtInitThreadCol2.executeUpdate();
+				}
+			}
+			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
+				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
+			}
+			
+		} finally {
+			if(pstmtInitThreadCol != null) try{pstmtInitThreadCol.close();}catch(Exception e) {}
+			if(pstmtInitThreadCol2 != null) try{pstmtInitThreadCol2.close();}catch(Exception e) {}
+		}
+
+	}
+	
+	/*
+	 * Get the thread for a record
+	 * This is a UUID which identifies a series of changes to a record.
+	 * Ie if you start with Record A and then Update it then the two records will have the same thread id.
+	 */
+	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
+		
+		String thread = null;
+		String sql = "select _thread from " + table + " where instanceid = ?";
+		PreparedStatement pstmt = null;
+		
+		String sqlUpdate = "update table " + table + " set_thread = ? where instanceid = ?";
+			
+		try {
+			
+			initialiseThread(cResults, table, 0, instanceId);
+			
+			pstmt = cResults.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				thread = rs.getString(1);
+			}	
+			
+			// If there is no thread then we should start one (Should only be required for legacy records)
+			if (thread == null) {
+				if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+				pstmt = cResults.prepareStatement(sqlUpdate);
+				pstmt.setString(1,  instanceId);
+				pstmt.setString(2,  instanceId);
+				
+				thread = instanceId;
+			}
+			
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+		}
+		
+		return thread;
 
 	}
 	
@@ -7446,9 +7735,10 @@ public class GeneralUtilityMethods {
 	 * This function has been added due to the difficulty of keeping the published indicator always up to date
 	 *  in the situation where you have shared tables
 	 */
-	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, int fId) throws SQLException {
+	public static void updateUnPublished(Connection sd, Connection cResults, String tableName, 
+			int fId, boolean publish) throws SQLException {
 		
-		String sql = "select q_id, column_name " 
+		String sql = "select q_id, column_name, qtype, compressed " 
 				+ "from question where f_id = ? "
 				+ "and source is not null "
 				+ "and published = 'false' "
@@ -7461,7 +7751,7 @@ public class GeneralUtilityMethods {
 		
 		String sqlUpdate = "update question set published = 'true' where q_id = ?";
 		PreparedStatement pstmtUpdate = null;
-
+		
 		ResultSet rs = null;
 		ResultSet rsPub = null;
 		try {
@@ -7473,20 +7763,29 @@ public class GeneralUtilityMethods {
 			// Get unpublished
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, fId);
-			
+		
 			log.info(pstmt.toString());
 			rs = pstmt.executeQuery();
 			while(rs.next()) {
 				int qId = rs.getInt(1);
-				pstmtPub.setString(2, rs.getString(2));	
+				String columnName = rs.getString(2);
+				String type = rs.getString(3);
+				boolean compressed = rs.getBoolean(4);
 				
+				pstmtPub.setString(2, columnName);	
 				rsPub = pstmtPub.executeQuery();
 				int count = 0;
 				if(rsPub.next()) {
 					count = rsPub.getInt(1);
 				}
 				if(count > 0) {
-					// Column has been published
+					// Column has been published update the schema to reflect this
+					pstmtUpdate.setInt(1, qId);
+					pstmtUpdate.executeUpdate();
+				} else if(publish) {
+					if(!GeneralUtilityMethods.hasColumn(cResults, tableName, columnName)) {
+						GeneralUtilityMethods.alterColumn(cResults, tableName, type, columnName, compressed);
+					}
 					pstmtUpdate.setInt(1, qId);
 					pstmtUpdate.executeUpdate();
 				}
@@ -7917,7 +8216,177 @@ public class GeneralUtilityMethods {
 		}
 
 	}
+	
+	public static String getInstanceId(Connection cResults, String tableName, int prikey) throws SQLException {
 
+		String instanceId = null;
+		
+		PreparedStatement pstmt = null;
+		String sql = "select instanceid "
+				+ "from " + tableName + " "
+				+ "where prikey = ? ";
+
+		try {
+			pstmt = cResults.prepareStatement(sql);
+
+			pstmt.setInt(1, prikey);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				instanceId = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+		return instanceId;
+	}
+	
+	public static String getLatestInstanceId(Connection cResults, String tableName, String instanceId) throws SQLException {
+
+		String latestInstanceId = null;
+		
+		PreparedStatement pstmt = null;
+		String sql = "select instanceid "
+				+ "from " + tableName + " "
+				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
+				+ "order by prikey desc limit 1";
+
+		try {
+			pstmt = cResults.prepareStatement(sql);
+
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				latestInstanceId = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+		return latestInstanceId;
+	}
+	
+	/*
+	 * Alter the table
+	 */
+	public static TableUpdateStatus alterColumn(Connection cResults, String table, String type, String column, boolean compressed) {
+
+		PreparedStatement pstmtAlterTable = null;
+		PreparedStatement pstmtApplyGeometryChange = null;
+
+		TableUpdateStatus status = new TableUpdateStatus();
+		status.tableAltered = true;
+		status.msg = "";
+
+		try {
+			if(type.equals("geopoint") || type.equals("geotrace") || type.equals("geoshape")) {
+
+				String geoType = null;
+
+				if(type.equals("geopoint")) {
+					geoType = "POINT";
+				} else if (type.equals("geotrace")) {
+					geoType = "LINESTRING";
+				} else if (type.equals("geoshape")) {
+					geoType = "POLYGON";
+				}
+				String gSql = "SELECT AddGeometryColumn('" + table + 
+						"', 'the_geom', 4326, '" + geoType + "', 2);";
+				log.info("Add geometry column: " + gSql);
+
+				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
+				try { 
+					pstmtApplyGeometryChange.executeQuery();
+				} catch (Exception e) {
+					// Allow this to fail where an older version added a geometry, which was then deleted, then a new 
+					//  geometry with altitude was added we need to go on and add the altitude and accuracy
+					log.info("Error altering table -- continuing: " + e.getMessage());
+					try {cResults.rollback();} catch(Exception ex) {}
+				}
+
+				// Add altitude and accuracy
+				if(type.equals("geopoint")) {
+					String sqlAlterTable = "alter table " + table + " add column the_geom_alt double precision";
+					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+					log.info("Alter table: " + pstmtAlterTable.toString());					
+					pstmtAlterTable.executeUpdate();
+
+					try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
+					sqlAlterTable = "alter table " + table + " add column the_geom_acc double precision";
+					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+					log.info("Alter table: " + pstmtAlterTable.toString());					
+					pstmtAlterTable.executeUpdate();
+				}
+
+				// Commit this change to the database
+				try { cResults.commit();	} catch(Exception ex) {}
+			} else {
+
+				type = getPostgresColType(type, compressed);
+				String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
+				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+				log.info("Alter table: " + pstmtAlterTable.toString());
+
+				pstmtAlterTable.executeUpdate();
+
+				// Commit this change to the database
+				try {cResults.commit();} catch(Exception ex) {}
+			} 
+		} catch (Exception e) {
+			// Report but otherwise ignore any errors
+			log.info("Error altering table -- continuing: " + e.getMessage());
+
+			// Rollback this change
+			try {cResults.rollback();} catch(Exception ex) {}
+
+			// Only record the update as failed if the problem was not due to the column already existing
+			status.msg = e.getMessage();
+			if(status.msg == null || !status.msg.contains("already exists")) {
+				status.tableAltered = false;
+			}
+		} finally {
+			try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
+			try {if (pstmtApplyGeometryChange != null) {pstmtApplyGeometryChange.close();}} catch (Exception e) {}
+		}
+		return status;
+	}
+
+	public static String getPostgresColType(String colType, boolean compressed) {
+		if(colType.equals("string")) {
+			colType = "text";
+		} else if(colType.equals("decimal")) {
+			colType = "double precision";
+		} else if(colType.equals("select1")) {
+			colType = "text";
+		} else if(colType.equals("barcode")) {
+			colType = "text";
+		} else if(colType.equals("note")) {
+			colType = "text";
+		} else if(colType.equals("calculate")) {
+			colType = "text";
+		} else if(colType.equals("chart")) {
+			colType = "text";
+		} else if(colType.equals("parent_form")) {
+			colType = "text";
+		} else if(colType.equals(SmapQuestionTypes.CHILD_FORM)) {
+			colType = "text";
+		} else if(colType.equals("acknowledge") || colType.equals("trigger")) {
+			colType = "text";
+		} else if(colType.equals("range")) {
+			colType = "double precision";
+		} else if(colType.equals("dateTime")) {
+			colType = "timestamp with time zone";					
+		} else if(colType.equals("time")) {
+			colType = "time with time zone";					
+		} else if(GeneralUtilityMethods.isAttachmentType(colType)) {
+			colType = "text";					
+		} else if(colType.equals("select") && compressed) {
+			colType = "text";					
+		} else if(colType.equals("rank")) {
+			colType = "text";					
+		}
+		return colType;
+	}
 	
 }
 

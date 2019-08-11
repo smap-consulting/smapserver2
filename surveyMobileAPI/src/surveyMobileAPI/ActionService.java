@@ -50,11 +50,14 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveySettingsDefn;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -277,8 +280,10 @@ public class ActionService extends Application {
 
 		int uId = GeneralUtilityMethods.getUserId(sd, uIdent);
 		SurveyViewManager mfm = new SurveyViewManager(localisation, tz);
-		mfc = mfm.getSurveyView(sd, cResults, uId, 0, a.sId, a.managedId, uIdent,
-				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser);
+		
+		mfc = mfm.getSurveyView(sd, cResults, uId, null, a.sId, a.managedId, uIdent,
+				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser,
+				null);	// TODO Add GroupSurvey
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		Form f = GeneralUtilityMethods.getTopLevelForm(sd, a.sId);
 
@@ -440,7 +445,10 @@ public class ActionService extends Application {
 					null,				// no key filter
 					tz,
 					null,
-					null				// advanced filter
+					null	,			// advanced filter
+					null,			// Date filter name
+					null,			// Start date
+					null				// End date
 			);
 
 			if (pstmt != null) {

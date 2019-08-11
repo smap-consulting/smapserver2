@@ -1505,6 +1505,8 @@ public class GetXForm {
 		if(key.equals("instanceid")) {
 			keyColumnName = key;
 			type = "string";
+			// Get the latest instance id in the thread
+			keyval = GeneralUtilityMethods.getLatestInstanceId(cResults, table, keyval);
 		} else {
 			List<Question> questions = firstForm.getQuestions(sd, firstForm.getPath(null));
 			for (int i = 0; i < questions.size(); i++) {

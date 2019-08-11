@@ -92,7 +92,7 @@ public class UtilityMethodsEmail {
 			int count = pstmt.executeUpdate();
 
 			if(count != 1) {
-				log.info("Expecting 1 ecord to be updated.  Number of records updated: " + count);
+				log.info("Expecting 1 record to be updated.  Number of records updated: " + count);
 			}
 			
 			/*

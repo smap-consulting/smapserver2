@@ -106,7 +106,7 @@ public class Audit extends Application {
 	}
 
 	/*
-	 * Returns a list of data end points
+	 * Returns a list of audit end points
 	 */
 	@GET
 	@Produces("application/json")
@@ -144,7 +144,7 @@ public class Audit extends Application {
 
 	/*
 	 * API version 1 /audit
-	 * Get audit records for an individual survey in GeoJSON format
+	 * Get audit records for a survey in GeoJSON format
 	 */
 	@GET
 	@Produces("application/json")
@@ -327,7 +327,8 @@ public class Audit extends Application {
 					superUser,
 					false,		// TODO include HXL
 					true,
-					tz
+					tz,
+					false
 					);
 
 			if(mgmt) {
@@ -364,7 +365,10 @@ public class Audit extends Application {
 					null,			// key filter
 					tz,
 					null	,			// instance id
-					null				// advanced filter
+					null,			// advanced filter
+					null,			// Date filter name
+					null,			// Start date
+					null				// End date
 					);
 			
 			// Write array start
@@ -442,7 +446,7 @@ public class Audit extends Application {
 	
 	/*
 	 * API version 1 /audit
-	 * Get the oiginal audit log file as a csv file
+	 * Get the original audit log file as a csv file
 	 */
 	@GET
 	@Produces("text/csv")

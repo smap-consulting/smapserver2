@@ -34,7 +34,6 @@ public class Organisation {
 	public boolean can_notify = true;
 	public boolean can_use_api = true;
 	public boolean can_submit = true;
-	public boolean set_as_theme = true;
 	public boolean email_task = false;
 	public boolean can_sms = false;
 	public String changed_by;
@@ -51,8 +50,8 @@ public class Organisation {
 	public String timeZone;
 	public String server_description;
 	public int e_id;		// Enterprise id
-	public String navbar_color;
 	public WebformOptions webform;
+	public AppearanceOptions appearance = new AppearanceOptions();
 
 	public String getAdminEmail() {
 

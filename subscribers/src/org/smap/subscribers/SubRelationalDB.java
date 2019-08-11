@@ -54,12 +54,15 @@ import org.smap.sdal.managers.ForeignKeyManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TaskItemChange;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -69,7 +72,6 @@ import org.w3c.dom.Document;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-
 
 public class SubRelationalDB extends Subscriber {
 
@@ -184,7 +186,7 @@ public class SubRelationalDB extends Subscriber {
 			applySubmissionNotifications(sd, cResults, ue_id, remoteUser, server, survey.ident, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
-				applyAssignmentStatus(sd, assignmentId, ue_id, remoteUser);
+				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, remoteUser);
 			}
 			
 			if(survey.autoUpdates != null && survey.managed_id > 0) {
@@ -228,7 +230,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private void applyAssignmentStatus(Connection sd, int assignmentId, int ue_id, String remoteUser) {
+	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId, int ue_id, String remoteUser) {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtRepeats = null;
@@ -253,6 +255,16 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Updating task repeats: " + pstmtRepeats.toString());
 				pstmtRepeats.executeUpdate();
 
+				// Write a message to the record event manager
+				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+				rem.writeTaskStatusEvent(
+						sd, 
+						cResults,
+						remoteUser, 
+						assignmentId,
+						"submitted",
+						null,			// Assigned not changed
+						null);			// Task Title not changed
 			}
 
 
@@ -490,6 +502,9 @@ public class SubRelationalDB extends Subscriber {
 
 		int sId = survey.id;
 		String keyPolicy = survey.key_policy;
+		if(keyPolicy == null) {
+			keyPolicy = "replace";		// default
+		}
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
@@ -540,32 +555,7 @@ public class SubRelationalDB extends Subscriber {
 			int existingKey = 0;
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
-			} else {
-				/* 
-				 * Check to see this submission was set to update an existing record with new data
-				 * Don't do this if a key policy has been set or the submission is from a task
-				 *  In these cases the key policy will be applied 
-				 */
-
-				log.info("################### Processing straight replacement:" + keyPolicy + ": " + assignmentId );
-				if((keyPolicy == null || keyPolicy.equals("none")) && assignmentId == 0) {
-					if(updateId != null) {
-						log.info("Existing unique id:" + updateId);
-						existingKey = getKeyFromId(cResults, topElement, updateId);
-					} 
-	
-					if(existingKey != 0) {
-						log.info("Existing key:" + existingKey);
-						replaceExistingRecord(cResults, 	// Mark the existing record as being replaced
-								sd, 
-								topElement,
-								existingKey , 
-								keys.newKey, 
-								hasHrk,
-								sId);		
-					}
-				}
-			}
+			} 
 
 			/*
 			 * Update any Human readable keys if this survey has them
@@ -595,31 +585,29 @@ public class SubRelationalDB extends Subscriber {
 			 * Apply the key policy
 			 */
 			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
-			if(hasHrk && existingKey == 0 && keyPolicy != null && !keyPolicy.equals("none")) {
-				if(keyPolicy.equals("add")) {
-					log.info("Apply add policy - no action");
-				} else if(keyPolicy.equals("merge")) {
-					log.info("Apply merge policy");
-					mergeTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0);
+			boolean replace = keyPolicy.equals("replace");
+			if(hasHrk) {
+				if(keyPolicy.equals("merge") || keyPolicy.equals("replace")) {					
+					log.info("Apply merge-replace policy");
+					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
+							replace, remoteUser, instance.getUuid());
 				} else if(keyPolicy.equals("discard")) {
-					log.info("Apply discard policy");
+					log.info("Apply discard policy");		// Only applied with HRK, direct updates use "replace" when policy is set to "discard"
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
-				}
-			} else if(assignmentId > 0) {
-				// Apply a default key policy of merge
-				log.info("######## Apply default merge policy to an assignment: " + assignmentId);
-				if(updateId != null) {
-					log.info("Existing unique id:" + updateId);
-					existingKey = getKeyFromId(cResults, topElement, updateId);
 				} 
+				
+			} else if(updateId != null) {
+				// Update to a record without HRK apply a default key policy of merge or replace 
+				log.info("Direct update with Existing unique id:" + updateId);
+				existingKey = getKeyFromId(cResults, topElement, updateId);
 
 				if(existingKey != 0) {
 					log.info("Existing key:" + existingKey);
-					mergeTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
+					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey);
-				}
-			}
+							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not hav ebeen committed yet
+				} 
+			} 
 
 			/*
 			 * Record any foreign keys that need to be set between forms
@@ -635,6 +623,27 @@ public class SubRelationalDB extends Subscriber {
 			 * Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			 */
 			clearLinkedForms(sd, sId);
+			
+			/*
+			 * If this is a simple create without an HRK then write to the record event manager
+			 */
+			if(updateId == null && !hasHrk) {
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.CREATED, 
+						RecordEventManager.STATUS_SUCCESS,
+						remoteUser, 
+						topLevelForm.tableName, 
+						instance.getUuid(), 
+						null, 					// Change object
+						null, 					// Task object
+						null,					// Notification object
+						null, 
+						sId, 
+						null,
+						0,
+						0);	
+			}
 
 		} catch (Exception e) {
 			if(cResults != null) {
@@ -979,14 +988,17 @@ public class SubRelationalDB extends Subscriber {
 	 * Method to merge a previous records content into this new record
 	 * Source = the old records
 	 */
-	private void mergeTableContent(
+	private void combineTableContent(
 			Connection sd,
 			Connection cResults,
 			int sId,
 			String table,
 			int prikey,
 			int f_id,
-			int sourceKey) throws SQLException, Exception {
+			int sourceKey,
+			boolean replace,
+			String user,
+			String newInstance) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -997,12 +1009,12 @@ public class SubRelationalDB extends Subscriber {
 				+ "order by prikey desc limit 1";
 		PreparedStatement pstmtSource = null;
 
-		String sqlChildTables = "select table_name from form "
+		String sqlChildTables = "select table_name, f_id, name from form "
 				+ "where parentform in (select f_id from form where parentform = 0 and s_id = ?) "
 				+ "and reference = 'false'";
 		PreparedStatement pstmtChildTables = null;
 		
-		String sqlChildTablesInGroup = "select distinct table_name from form "
+		String sqlChildTablesInGroup = "select distinct table_name, f_id, name  from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
 				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
@@ -1013,19 +1025,19 @@ public class SubRelationalDB extends Subscriber {
 
 		String sqlTableMerge = "select table_name, merge, replace from form "
 				+ "where s_id = ? "
-				+ "and reference = 'false' "
-				+ "and (merge = 'true' or replace = 'true')";
+				+ "and reference = 'false' ";
 		PreparedStatement pstmtTableMerge = null;
 		
 		PreparedStatement pstmtChildKeys = null;
 		PreparedStatement pstmtCopyChild = null;
 		PreparedStatement pstmtCopyBack = null;
 		
+		ArrayList<DataItemChange> changes = null;
+		String hrk = null;
 		try {
 
 			if(sourceKey == 0) {
 				// Get the HRK that identifies duplicates
-				String hrk = null;
 				pstmtHrk = cResults.prepareStatement(sqlHrk);
 				pstmtHrk.setInt(1, prikey);
 				ResultSet rs = pstmtHrk.executeQuery();
@@ -1043,9 +1055,11 @@ public class SubRelationalDB extends Subscriber {
 					sourceKey = rs.getInt(1);
 				}
 			} 
+			
+			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			if(sourceKey > 0) {
 
-				mergeRecords(cResults, table, prikey, sourceKey, true);
+				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
@@ -1056,11 +1070,11 @@ public class SubRelationalDB extends Subscriber {
 				ArrayList<String> replaceTables = new ArrayList<> ();
 				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
-					if(rtm.getBoolean("merge")) {
-						mergeTables.add(rtm.getString(1));
-					} else if(rtm.getBoolean("replace")) {
+					if(rtm.getBoolean("replace") || replace) {		// Overall survey replace overrides sub form key policy
 						replaceTables.add(rtm.getString(1));
-					}
+					} else if(rtm.getBoolean("merge")) {
+						mergeTables.add(rtm.getString(1));
+					} 
 					log.info("Need to merge or replace table " + rtm.getString(1));
 				}
 				
@@ -1085,10 +1099,14 @@ public class SubRelationalDB extends Subscriber {
 				
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
+					int child_f_id = rsc.getInt(2);
+					String formname = rsc.getString(3);
 					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
 						
+						ArrayList<ArrayList<DataItemChange>> subFormChanges = new ArrayList<ArrayList<DataItemChange>> ();
+						
 						/*
-						 * Transfer data from the source key to the primary key in sequence
+						 * Get the source keys and the target primary keys
 						 */
 						String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
 						pstmtChildKeys = cResults.prepareStatement(sqlGetChildKeys);
@@ -1111,12 +1129,17 @@ public class SubRelationalDB extends Subscriber {
 						if(mergeTables.contains(tableName)) {					
 							
 							log.info("Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
-														
+							
 							for(int i = 0; i < childSourcekeys.size(); i++) {
+								
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									mergeRecords(cResults, tableName, childPrikeys.get(i), childSourcekeys.get(i), false);
+									subFormChanges.add(mergeRecords(
+											sd,
+											cResults, 
+											tableName, 
+											childPrikeys.get(i), childSourcekeys.get(i), false, child_f_id));  // Doing a merge so set replace to false
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1124,17 +1147,74 @@ public class SubRelationalDB extends Subscriber {
 									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
 									pstmtCopyChild.executeUpdate();
 									copiedSourceKeys.add(childSourcekeys.get(i));
+									/* TODO
+									subFormChanges = getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childSourcekeys.get(i), false, false, child_f_id);
+											*/
+								}
+								
+							}
+							
+						} else if(replaceTables.contains(tableName)) {
+							log.info("Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							
+							for(int i = 0; i < childSourcekeys.size(); i++) {
+								if(i < childPrikeys.size()) {
+									// merge
+									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
+									subFormChanges.add(mergeRecords(
+											sd,
+											cResults, 
+											tableName, 
+											childPrikeys.get(i), childSourcekeys.get(i), false, child_f_id));  // Doing a replace so set replace to true
+								} else {
+									// Record the dropped record									
+									subFormChanges.add(getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childSourcekeys.get(i), false, child_f_id));
+											
+								}
+							}
+							if(childPrikeys.size() > childSourcekeys.size()) {
+								for(int i = childSourcekeys.size(); i < childPrikeys.size(); i++) {
+									// Record the added record									
+									subFormChanges.add(getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childPrikeys.get(i), false, child_f_id));
+									
 								}
 							}
 							
-						} else if(!replaceTables.contains(tableName)) {
-							// Append old records to new
+						} else {
+							// Add. Therefore append old records to new
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								pstmtCopyChild.setInt(1, prikey);
 								pstmtCopyChild.setInt(2, childSourcekeys.get(i));
 								pstmtCopyChild.executeUpdate();
 								copiedSourceKeys.add(childSourcekeys.get(i));
 							}
+							for(int i = 0; i < childPrikeys.size(); i++) {
+								// Record the added records									
+								subFormChanges.add(getChangeRecord(
+										sd,
+										cResults, 
+										tableName, 
+										childPrikeys.get(i), false, child_f_id));
+								
+							}
+							
+						} 
+						
+						// Add the subform changes to the change record
+						if(hasSubFormChanges(subFormChanges)) {
+							changes.add(new DataItemChange(formname, subFormChanges));
 						}
 						
 						/*
@@ -1142,6 +1222,7 @@ public class SubRelationalDB extends Subscriber {
 						 * We do it in this way, ie move children to the new parent then copy back
 						 *  so that we can preserve order of children which is determined by their primary keys
 						 *  However if the record was merged then the order of the old records will be wrong
+						 *  Deprecate -- source surveys will be deleted when change is working correctly
 						 */
 						pstmtCopyBack = cResults.prepareStatement(getCopyBackSql(cResults, tableName, sourceKey));
 						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
@@ -1158,7 +1239,38 @@ public class SubRelationalDB extends Subscriber {
 					}
 				}
 				
-
+			} else {
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.CREATED, 
+						RecordEventManager.STATUS_SUCCESS,
+						user, table, 
+						newInstance, 
+						null, 					// Change object
+						null, 					// Task object
+						null,					// Notification object
+						null, 
+						sId, 
+						null,
+						0,
+						0);	
+			}
+			
+			if(changes != null) {
+				// Save the changes
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				rem.writeEvent(sd, cResults, 
+						RecordEventManager.CHANGES, 
+						RecordEventManager.STATUS_SUCCESS,
+						user, table, 
+						newInstance, 
+						gson.toJson(changes), 	// Change object
+						null, 					// Task object
+						null,					// Notification object
+						null, 
+						sId, 
+						null,
+						0,
+						0);					
 			}
 
 			if(sourceKey > 0) {
@@ -1171,7 +1283,6 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtSource != null) try{pstmtSource.close();}catch(Exception e) {}
 			if(pstmtChildTables != null) try{pstmtChildTables.close();}catch(Exception e) {}
 			if(pstmtChildTablesInGroup != null) try{pstmtChildTablesInGroup.close();}catch(Exception e) {}
-			//if(pstmtChildUpdate != null) try{pstmtChildUpdate.close();}catch(Exception e) {}
 			if(pstmtTableMerge != null) try{pstmtTableMerge.close();}catch(Exception e) {}
 			if(pstmtChildKeys != null) try{pstmtChildKeys.close();}catch(Exception e) {}
 			if(pstmtCopyChild != null) try{pstmtCopyChild.close();}catch(Exception e) {}
@@ -1180,38 +1291,93 @@ public class SubRelationalDB extends Subscriber {
 
 	}
 
+	private boolean hasSubFormChanges(ArrayList<ArrayList<DataItemChange>> subFormChanges) {
+		
+		if(subFormChanges.size() > 0) {
+			for(ArrayList<DataItemChange> recChanges : subFormChanges) {
+				if(recChanges.size() > 0) {
+					return true;
+				}			
+			}
+		}
+		return false;
+	}
+	
 	/*
 	 * Merge records in a table
+	 * If replace is set then for questions that are in the submitting survey the merge is not applied
+	 *  - This would mean that an update can set a value to null within its own scope
 	 */
-	private void mergeRecords(Connection cRel, String table, int prikey, int sourceKey, boolean addThread) throws SQLException {
+	private ArrayList<DataItemChange> mergeRecords(
+			Connection sd,
+			Connection cRel, 
+			String table, 
+			int prikey, 
+			int sourceKey, 
+			boolean replace,
+			int f_id) throws SQLException {
 		
-		String sqlCols = "select column_name from information_schema.columns where table_name = ? "
+		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
+		
+		StringBuffer sqlCols = new StringBuffer("select column_name from information_schema.columns where table_name = ? "
 				+ "and column_name not like '\\_%' "
 				+ "and column_name != 'prikey' "
 				+ "and column_name != 'parkey' "
-				+ "and column_name != 'instanceid'";
+				+ "and column_name != 'instanceid'");
 		PreparedStatement pstmtCols = null;
 		
+		String sqlSubmissionCols = "select column_name, qtype from question where f_id = ?";
+		PreparedStatement pstmtSubmissionCols = null;
+		
 		PreparedStatement pstmtGetTarget = null;
+		PreparedStatement pstmtGetSource = null;
+		PreparedStatement pstmtGetTargetGeom = null;
+		PreparedStatement pstmtGetSourceGeom = null;
 		PreparedStatement pstmtUpdateTarget = null;
 		
+		HashMap<String, String> subCols = new HashMap<> (); 
+		
 		try {
-			pstmtCols = cRel.prepareStatement(sqlCols);
+			/*
+			 * Get details on the columns that are in the submitting survey
+			 */
+			pstmtSubmissionCols = sd.prepareStatement(sqlSubmissionCols);
+			pstmtSubmissionCols.setInt(1, f_id);
+			ResultSet rsSubs = pstmtSubmissionCols.executeQuery();
+			while(rsSubs.next()) {
+				subCols.put(rsSubs.getString(1), rsSubs.getString(2));
+			}
+			
+			/*
+			 * For each column in the table apply merge / replace and get changes
+			 */
+			pstmtCols = cRel.prepareStatement(sqlCols.toString());
 			pstmtCols.setString(1, table);
+			
 			ResultSet rsCols = pstmtCols.executeQuery();
 			int count = 0;
 			while(rsCols.next()) {
 				String col = rsCols.getString(1);
+
 				String sqlGetTarget = "select " + col + " from " + table + " where prikey = ?";
+				String sqlGetTargetGeom = "select ST_AsGeoJSON(" + col + ") from " + table + " where prikey = ?";
 	
 				if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
 				pstmtGetTarget = cRel.prepareStatement(sqlGetTarget);
+				
+				if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
+				pstmtGetSource = cRel.prepareStatement(sqlGetTarget);
+				
 				pstmtGetTarget.setInt(1, prikey);
 				ResultSet rsGetTarget = pstmtGetTarget.executeQuery();
 				if(rsGetTarget.next()) {
 					String val = rsGetTarget.getString(1);
+					String subColType = subCols.get(col);
 	
-					if( val == null || val.trim().length() == 0) {
+					/*
+					 * Apply the merge if the policy is not replace or this is a question that is not in the submitting form
+					 */
+					if(( !replace || subColType == null) && (val == null || val.trim().length() == 0)) {
 	
 						String sqlUpdateTarget = "update " + table 
 								+ " set " + col + " = (select " + col 
@@ -1227,18 +1393,87 @@ public class SubRelationalDB extends Subscriber {
 						}
 						pstmtUpdateTarget.executeUpdate();
 					}
+					
+					/*
+					 * Get the change value if this question is in the submitting form
+					 */
+					if(subColType != null) {
+						
+						String oldVal = null;
+						
+						// If this is a geo question then replace values with geoJson
+						if(GeneralUtilityMethods.isGeometry(subColType)) {
+							if(pstmtGetSourceGeom != null) try{pstmtGetSourceGeom.close();}catch(Exception e) {}
+							pstmtGetSourceGeom = cRel.prepareStatement(sqlGetTargetGeom);						
+							if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}
+							pstmtGetTargetGeom = cRel.prepareStatement(sqlGetTargetGeom);
+							
+							pstmtGetSourceGeom.setInt(1, sourceKey);
+							ResultSet rsGetGeom = pstmtGetSourceGeom.executeQuery();						
+							if(rsGetGeom.next()) {
+								oldVal = rsGetGeom.getString(1);
+							}
+							
+							pstmtGetTargetGeom.setInt(1, prikey);
+							rsGetGeom = pstmtGetTargetGeom.executeQuery();						
+							if(rsGetGeom.next()) {
+								val = rsGetGeom.getString(1);
+							}
+							
+						} else {
+							// Just get the source in raw string format
+							pstmtGetSource.setInt(1, sourceKey);
+							ResultSet rsGetSource = pstmtGetSource.executeQuery();
+							if(rsGetSource.next()) {
+								oldVal = rsGetSource.getString(1);
+							}
+						}
+						
+						if(oldVal == null && val == null) {
+							continue;
+						} else if(oldVal == null || val == null || !oldVal.equals(val)) {
+							changes.add(new DataItemChange(col, subColType, val, oldVal));
+						} else {
+							continue;
+						}
+					}
 				}
 	
 			}
-			if(addThread) {
-				GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
-			}
+
+			GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
+
 			
 		} finally {
 			if(pstmtCols != null) try{pstmtCols.close();}catch(Exception e) {}
+			if(pstmtSubmissionCols != null) try{pstmtSubmissionCols.close();}catch(Exception e) {}
+			if(pstmtGetTargetGeom != null) try{pstmtGetTargetGeom.close();}catch(Exception e) {}
+			if(pstmtGetSourceGeom != null) try{pstmtGetSourceGeom.close();}catch(Exception e) {}
 			if(pstmtGetTarget != null) try{pstmtGetTarget.close();}catch(Exception e) {}
+			if(pstmtGetSource != null) try{pstmtGetSource.close();}catch(Exception e) {}
 			if(pstmtUpdateTarget != null) try{pstmtUpdateTarget.close();}catch(Exception e) {}
 		}
+		
+		return changes;
+
+	}
+	
+	/*
+	 * Get a change record for either a new subform record or deletion of a subform record
+	 */
+	private ArrayList<DataItemChange> getChangeRecord(
+			Connection sd,
+			Connection cRel, 
+			String table, 
+			int prikey, 
+			boolean replace,
+			int f_id) throws SQLException {
+		
+		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
+		
+		// TODO calculate the values in the deleted or added record
+		
+		return changes;
 
 	}
 	
@@ -1308,22 +1543,33 @@ public class SubRelationalDB extends Subscriber {
 
 	/*
 	 * Method to replace an existing record
-	 */
-	private  void replaceExistingRecord(Connection cRel, Connection cMeta, 
+	 *
+	private  void replaceExistingRecord(
+			Connection cRel, 
+			Connection sd, 
 			IE element, 
 			int existingKey, 
 			int newKey,
 			boolean hasHrk,
-			int sId) throws SQLException, Exception {
+			String hrk,
+			String newInstance,
+			String oldInstance,
+			int sId,
+			String remoteUser) throws SQLException, Exception {
 
-		/*
+		 *
 		 * Set the record as bad with the reason being that it has been replaced
-		 */		
+		 *	
 		String tableName = element.getTableName();
+		List<IE> columns = element.getQuestions();
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtCheckBad = null;
-		PreparedStatement pstmtAddHrk = null;
+		PreparedStatement pstmtAdd = null;
 		PreparedStatement pstmtHrk = null;
+		PreparedStatement pstmtReplacedBy = null;
+		PreparedStatement pstmtGetColumns = null;
+		PreparedStatement pstmtGetData1 = null;
+		PreparedStatement pstmtGetData2 = null;
 
 		try {
 			// Check that the new record is not bad
@@ -1335,14 +1581,14 @@ public class SubRelationalDB extends Subscriber {
 			if(rsCheckBad.next()) {
 				isGood = !rsCheckBad.getBoolean(1);
 			}
-
+				
 			if(isGood) {
 				// Get the form id for this table
 				String bad_reason = "Replaced by " + newKey;
 				int f_id;
 				sql = "select f.f_id from form f where f.table_name = ? and f.s_id = ?;";
 
-				pstmt = cMeta.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, tableName);
 				pstmt.setInt(2, sId);
 				ResultSet rs = pstmt.executeQuery();
@@ -1363,10 +1609,59 @@ public class SubRelationalDB extends Subscriber {
 						}
 					}
 					
+					 *
+					 * Save the delta and delete the old record
+					 *
+					String sqlGetData = "select * from " + tableName + " where prikey = ?";
+					pstmtGetData1 = cRel.prepareStatement(sqlGetData);
+					pstmtGetData1.setInt(1, existingKey);
+					ResultSet rsExisting = pstmtGetData1.executeQuery();
+					pstmtGetData2 = cRel.prepareStatement(sqlGetData);
+					pstmtGetData2.setInt(1, newKey);
+					ResultSet rsNew = pstmtGetData2.executeQuery();
+					
+					String sqlGetColumns = "select column_name, data_type from INFORMATION_SCHEMA.COLUMNS where table_name = ?";
+					pstmtGetColumns = cRel.prepareStatement(sqlGetColumns);
+					pstmtGetColumns.setString(1, tableName);
+					
+					ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
+					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+					
+					if(rsExisting.next() && rsNew.next()) {
+						ResultSet rsCols = pstmtGetColumns.executeQuery();
+						while(rsCols.next()) {
+							String col = rsCols.getString(1);
+							String type = rsCols.getString(2);
+							
+							String oldVal = rsExisting.getString(col);
+							String newVal = rsNew.getString(col);
+							
+							if(col.equals("prikey") || col.equals("_upload_time")) {
+								continue;
+							} else if(oldVal == null && newVal == null) {
+								continue;
+							} else if(oldVal == null || newVal == null || !oldVal.equals(newVal)) {
+								System.out.println("New val of: " + newVal + " for " + col + " was " + oldVal);
+								DataItemChange item = new DataItemChange(col, type, newVal, oldVal);
+								changes.add(item);
+							} else {
+								continue;
+							}
+						}
+					}
+
+					System.out.println("================= Changes: " + gson.toJson(changes));
+					// Save the changes
+					RecordEventManager rem = new RecordEventManager();
+					rem.saveChange(sd, remoteUser, tableName, hrk, newInstance, oldInstance, gson.toJson(changes), sId);					
+
+
 					// Mark the record being replaced as bad
+					 *
+					 * Is now deleted see above
 					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
 							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz, false);
-					
+					*
 					// Set the hrk of the new record to the hrk of the old record
 					// This can only be done for one old record, possibly there is never more than 1
 					if(hasHrk) {
@@ -1374,8 +1669,8 @@ public class SubRelationalDB extends Subscriber {
 							// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
 							log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
 							String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
-							pstmtAddHrk = cRel.prepareStatement(sqlAddHrk);
-							pstmtAddHrk.executeUpdate();
+							pstmtAdd = cRel.prepareStatement(sqlAddHrk);
+							pstmtAdd.executeUpdate();
 						}
 						String sqlHrk = "update " + tableName + " set _hrk = (select t2._hrk from "
 								+ tableName
@@ -1388,10 +1683,11 @@ public class SubRelationalDB extends Subscriber {
 						pstmtHrk.executeUpdate();
 
 					}
+					
 					// If the records being replaced were all bad then set the new record to bad
 					if(!replacedRecordsAreGood) {
 						bad_reason = localisation.getString("t_rep_bad") + previousKeys;
-						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
+						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, sd, localisation, tableName, 
 								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true, tz, false);
 					}
 				}		
@@ -1402,11 +1698,16 @@ public class SubRelationalDB extends Subscriber {
 		} finally {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
 			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
-			if(pstmtAddHrk != null) try{pstmtAddHrk.close();}catch(Exception e) {};
+			if(pstmtAdd != null) try{pstmtAdd.close();}catch(Exception e) {};
+			if(pstmtReplacedBy != null) try{pstmtReplacedBy.close();}catch(Exception e) {};
 			if(pstmtCheckBad != null) try{pstmtCheckBad.close();}catch(Exception e) {};
+			if(pstmtGetData1 != null) try{pstmtGetData1.close();}catch(Exception e) {};
+			if(pstmtGetData2 != null) try{pstmtGetData2.close();}catch(Exception e) {};
+			if(pstmtGetColumns != null) try{pstmtGetColumns.close();}catch(Exception e) {};
 		}
 
 	}
+	*/
 
 	/*
 	 * Get the primary key from the unique instance id

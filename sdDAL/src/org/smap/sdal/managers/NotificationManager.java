@@ -487,7 +487,7 @@ public class NotificationManager {
 			String serverName,
 			String basePath,
 			String serverRoot,
-			String ident,
+			String ident,			// Survey Ident
 			String instanceId,
 			int pId,
 			boolean excludeEmpty) throws Exception {
@@ -906,6 +906,10 @@ public class NotificationManager {
 							}
 						}
 						
+						// Write the combined list back into the emails field, if something foes wrong this is the 
+						// list of numbers that we attempted to contact
+						msg.emails = smsList;
+						
 						if(smsList.size() > 0) {
 							
 							EmitSMS smsMgr = null;
@@ -916,14 +920,19 @@ public class NotificationManager {
 								}
 								smsMgr = new EmitAwsSMS(sender_id, localisation);
 							} else {
-								smsMgr = new SMSExternalManager(sms_url);
+								smsMgr = new SMSExternalManager(sms_url, localisation);
 							}
 							
 							for(String sms : smsList) {
 								
 								if(sentEndPoints.get(sms) == null) {
 									log.info("userevent: " + msg.user + " sending sms of '" + msg.content + "' to " + sms);
-									responseList.add(smsMgr.sendSMS(sms, msg.content));
+									try {
+										responseList.add(smsMgr.sendSMS(sms, msg.content));
+									} catch (Exception e) {
+										status = "error";
+										error_details = e.getMessage();
+									}
 									sentEndPoints.put(sms, sms);
 								} else {
 									log.info("Duplicate phone number: " + sms);
@@ -976,6 +985,33 @@ public class NotificationManager {
 				
 				pstmtNotificationLog.executeUpdate();
 			}
+			
+			/*
+			 * If this notification is for a record then update the Record Event Manager
+			 */
+			if(msg.instanceId != null) {
+				RecordEventManager rem = new RecordEventManager(localisation, tz);
+				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
+				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+				
+				rem.writeEvent(
+						sd, 
+						cResults, 
+						RecordEventManager.NOTIFICATION, 
+						status, 
+						msg.user, 
+						tableName, 
+						msg.instanceId, 
+						null, 
+						null, 
+						gson.toJson(msg),
+						error_details, 
+						0, 
+						msg.survey_ident,
+						0,
+						0);
+			}
+			
 		} finally {
 			try {if (pstmtNotificationLog != null) {pstmtNotificationLog.close();}} catch (SQLException e) {}
 			try {if (pstmtGetSMSUrl != null) {pstmtGetSMSUrl.close();}} catch (SQLException e) {}
@@ -1226,7 +1262,7 @@ public class NotificationManager {
 								}
 								smsMgr = new EmitAwsSMS(sender_id, localisation);
 							} else {
-								smsMgr = new SMSExternalManager(sms_url);
+								smsMgr = new SMSExternalManager(sms_url, localisation);
 							}
 							
 							for(String sms : smsList) {
