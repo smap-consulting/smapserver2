@@ -175,6 +175,7 @@ public class Tasks extends Application {
 					0, 
 					tgId,
 					0,		// task id
+					0,		// Assignment id
 					true, 
 					userId, 
 					null, 
@@ -481,8 +482,10 @@ public class Tasks extends Application {
 			TaskListGeoJson tl = tm.getTasks(
 					sd, 
 					urlprefix,
-					organisation.id, tgId, 
+					organisation.id, 
+					tgId, 
 					0,		// task id
+					0,		// Assignment Id
 					true, 0, incStatus, period, 0, 0,
 					"scheduled", "desc");	// Get the task list
 			
@@ -626,6 +629,7 @@ public class Tasks extends Application {
 						0, 
 						tgId, 
 						0,	// task id 
+						0,	// Assignment Id
 						true, userId, null, "all", 0, 0,
 						"scheduled", "desc");	// TODO set "complete" flag from passed in parameter
 				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();

@@ -1054,6 +1054,7 @@ public class NotificationManager {
 				0,		// Organisation id 
 				0, 		// task group id
 				msg.taskId,
+				0,		// Assignment id
 				true, 
 				0,		// userId 
 				null, 

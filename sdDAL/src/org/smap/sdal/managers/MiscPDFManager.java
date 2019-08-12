@@ -359,7 +359,14 @@ public class MiscPDFManager {
 			 */
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			TaskManager tm = new TaskManager(localisation, tz);
-			TaskListGeoJson t = tm.getTasks(sd, urlprefix, 0, tgId, 0, false, 0, null, "all", 0, 0, "scheduled", "desc");	
+			TaskListGeoJson t = tm.getTasks(sd, 
+					urlprefix, 
+					0, 
+					tgId, 
+					0, 		// task id
+					0,		// assignment id
+					false, 
+					0, null, "all", 0, 0, "scheduled", "desc");	
 			PdfWriter writer = null;			
 				
 

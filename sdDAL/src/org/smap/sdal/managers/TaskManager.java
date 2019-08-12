@@ -282,6 +282,7 @@ public class TaskManager {
 			int oId,			// only required if tgId is not set
 			int tgId, 		// Presumably this has been security checked as being in correct organisation
 			int taskId,
+			int aId,
 			boolean completed,
 			int userId,
 			String incStatus,
@@ -344,6 +345,8 @@ public class TaskManager {
 			sql.append(" where t.id = ?");
 		} else if(tgId > 0) {		// Restrict by taskGroupId
 			sql.append(" where t.tg_id = ?");
+		} else if(aId > 0) {		// Restrict by assignment id
+			sql.append(" where a.id = ?");
 		} else {
 			sql.append( " where t.p_id in (select id from project where o_id = ?)");
 		}
@@ -419,6 +422,8 @@ public class TaskManager {
 				pstmt.setInt(paramIdx++, taskId);
 			} else if(tgId > 0) {						// Task group or organisation
 				pstmt.setInt(paramIdx++, tgId);
+			} else if(aId > 0) {							// Assignment id
+				pstmt.setInt(paramIdx++, aId);
 			} else {
 				pstmt.setInt(paramIdx++, oId);
 			}
