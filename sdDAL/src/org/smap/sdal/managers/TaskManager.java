@@ -2266,9 +2266,14 @@ public class TaskManager {
 					int existingAssignee = rs.getInt(1);
 					String existingEmail = rs.getString(2);
 					
+					// Notify currently assigned user
+					if(assignee > 0 && existingAssignee != assignee) {
+						cancelAssignment(sd, a_id, existingAssignee);
+					}
+					
+					// Set flag indicating that new assignee should be set
 					if((assignee > 0 && existingAssignee != assignee) ||
-							(email != null && !email.equals(existingEmail))) {
-						cancelAssignment(sd, a_id, assignee);
+							(email != null && !email.equals(existingEmail))) {						
 						assignmentCancelled = true;
 					}
 				}				
