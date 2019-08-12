@@ -152,7 +152,7 @@ public class PdfUtilities {
 			try {
 				log.info("Mapbox API call: " + url);
 				img = Image.getInstance(url.toString());
-				lm.writeLog(sd, sId, user, "Mapbox Request", url.toString());
+				lm.writeLog(sd, sId, user, "Mapbox Request", map);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
 			}
