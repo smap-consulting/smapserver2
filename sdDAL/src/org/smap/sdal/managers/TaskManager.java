@@ -12,6 +12,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -1068,7 +1069,9 @@ public class TaskManager {
 						remoteUser,
 						initialDataSource,
 						updateId,
-						title);
+						title,
+						taskStart,
+						taskFinish);
 			}
 			
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
@@ -1414,7 +1417,9 @@ public class TaskManager {
 							remoteUser,
 							tsd.initial_data_source,
 							tsd.update_id,
-							tsd.name);
+							tsd.name,
+							tsd.from,
+							tsd.to);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					applyAllAssignments(
@@ -1437,7 +1442,9 @@ public class TaskManager {
 							remoteUser,
 							tsd.initial_data_source,
 							tsd.update_id,
-							tsd.name);
+							tsd.name,
+							tsd.from,
+							tsd.to);
 				}
 
 				if(asd.assignee > 0) {
@@ -2153,7 +2160,9 @@ public class TaskManager {
 			int task_id,
 			String updateId,
 			String sIdent,
-			String remoteUser) throws SQLException {
+			String remoteUser,
+			Date scheduledAt,
+			Date scheduledFinish) throws SQLException {
 		
 		pstmt.setInt(1, assignee);
 		if(email != null) {
@@ -2188,7 +2197,7 @@ public class TaskManager {
 				} else {
 					assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
 				}
-				TaskItemChange tic = new TaskItemChange(0, aId, name, status, assigned, null);
+				TaskItemChange tic = new TaskItemChange(0, aId, name, status, assigned, null, scheduledAt, scheduledFinish);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(
 						sd, 
@@ -2260,7 +2269,9 @@ public class TaskManager {
 			String remoteUser,
 			String initialDataSource,
 			String update_id,
-			String task_name) throws Exception {
+			String task_name,
+			Date scheduledAt,
+			Date scheduledFinish) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -2307,7 +2318,9 @@ public class TaskManager {
 						remoteUser,
 						initialDataSource,
 						update_id,
-						task_name);
+						task_name,
+						scheduledAt,
+						scheduledFinish);
 			} else {
 				// Else apply update
 				pstmtAssign.setInt(1, assignee);
@@ -2349,7 +2362,9 @@ public class TaskManager {
 			String remoteUser,			// For autosend of emails
 			String initialDataSource,
 			String update_id,
-			String task_name
+			String task_name,
+			Date scheduledAt,
+			Date scheduledFinish
 			) throws Exception {
 
 		String status = "accepted";
@@ -2357,7 +2372,8 @@ public class TaskManager {
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, null, status, taskId, update_id, sIdent, remoteUser);
+			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, null, status, taskId, update_id, sIdent, 
+					remoteUser, scheduledAt, scheduledFinish);
 			
 			// Notify the user of their new assignment
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
@@ -2382,7 +2398,8 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, rsRoles.getInt(1), null, status, taskId, update_id, sIdent, remoteUser);
+				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, rsRoles.getInt(1), null, status, taskId, update_id, sIdent, 
+						remoteUser, scheduledAt, scheduledFinish);
 				
 				// Notify the user of their new assignment
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
@@ -2428,10 +2445,12 @@ public class TaskManager {
 			for(String email : emailArray) {
 				
 				if(emailTaskBlocked) {
-					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, "blocked", taskId, update_id, sIdent, remoteUser);
+					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, "blocked", taskId, update_id, sIdent, 
+							remoteUser, scheduledAt, scheduledFinish);
 				} else {
 					// Create the assignment
-					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, status, taskId, update_id, sIdent, remoteUser);
+					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, status, taskId, update_id, sIdent, 
+							remoteUser, scheduledAt, scheduledFinish);
 					
 					// Create a temporary user embedding the assignment id in the action link, get the link to that user
 					action.assignmentId = aId;
@@ -2467,7 +2486,7 @@ public class TaskManager {
 				String eventStatus = RecordEventManager.STATUS_NEW;
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 				log.info("Record event: " + sIdent + " : " + tableName);
-				TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null);
+				TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null, null, null);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(
 						sd, 

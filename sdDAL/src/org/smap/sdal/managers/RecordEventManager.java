@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
@@ -168,7 +169,7 @@ public class RecordEventManager {
 			String taskName
 			) throws SQLException {
 		
-		String sql = "select t.update_id, f.table_name, t.id "
+		String sql = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
 				+ "from assignments a, tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
@@ -207,6 +208,8 @@ public class RecordEventManager {
 				String updateId = rs.getString(1);
 				String  tableName = rs.getString(2);
 				int taskId = rs.getInt(3);
+				Timestamp scheduleAt = rs.getTimestamp(4);
+				Timestamp scheduleFinish = rs.getTimestamp(5);
 				
 				// Get the current Task Item Change and update it
 				String key = GeneralUtilityMethods.getThread(cResults, tableName, updateId);
@@ -222,7 +225,11 @@ public class RecordEventManager {
 					String oldStatus = rs2.getString(2);
 					if(itemString != null) {
 						TaskItemChange tic = gson.fromJson(itemString, TaskItemChange.class);
-						tic.taskEvents.add(new TaskEventChange(taskName, status, assigned, null));
+						tic.taskEvents.add(new TaskEventChange(taskName, status, assigned, 
+								null,		// comment
+								scheduleAt,
+								scheduleFinish
+								));
 						
 						if(status == null) {
 							status = oldStatus;
