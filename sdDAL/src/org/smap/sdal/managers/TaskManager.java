@@ -1206,7 +1206,6 @@ public class TaskManager {
 			) throws Exception {
 
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtAssign = null;
 		PreparedStatement pstmtInsert = null;
 
 		String sqlGetSurveyIdentFromName = "select ident from survey where display_name = ? and p_id = ? and deleted = 'false'";
@@ -1399,14 +1398,12 @@ public class TaskManager {
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.a_id > 0) {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
-					pstmtAssign = getUpdateAssignmentStatement(sd);
 					updateAssignment(sd, 
 							cResults,
-							pstmtAssign, 
 							pstmtInsert, 
 							asd.assignee, 
 							asd.email, 
-							"accepted", 
+							asd.status, 
 							tgId,
 							taskId, 
 							asd.a_id,
@@ -1478,7 +1475,6 @@ public class TaskManager {
 
 		} finally {
 			if(pstmt != null) try {pstmt.close(); } catch(SQLException e) {};
-			if(pstmtAssign != null) try {pstmtAssign.close(); } catch(SQLException e) {};
 			if(pstmtInsert != null) try {pstmtInsert.close(); } catch(SQLException e) {};
 			if(pstmtGetSurveyIdent != null) try {pstmtGetSurveyIdent.close(); } catch(SQLException e) {};
 			if(pstmtGetAssigneeId != null) try {pstmtGetAssigneeId.close(); } catch(SQLException e) {};
@@ -2233,28 +2229,11 @@ public class TaskManager {
 	 */
 	
 	/*
-	 * Get the preparedStatement
-	 */
-	public PreparedStatement getUpdateAssignmentStatement(Connection sd) throws SQLException {
-
-		String sql = "update assignments "
-				+ "set assignee = ?, "
-				+ "assignee_name = (select name from users where id = ?),"
-				+ "status = ?,"
-				+ "assigned_date = now() "
-				+ "where task_id = ? "
-				+ "and id = ?";
-		
-		return sd.prepareStatement(sql);
-	}
-	
-	/*
 	 * Update an assignment
 	 */
 	public void updateAssignment(
 			Connection sd,
 			Connection cResults,
-			PreparedStatement pstmtAssign,
 			PreparedStatement pstmtInsert,
 			int assignee,
 			String email,
@@ -2321,17 +2300,7 @@ public class TaskManager {
 						task_name,
 						scheduledAt,
 						scheduledFinish);
-			} else {
-				// Else apply update
-				pstmtAssign.setInt(1, assignee);
-				pstmtAssign.setInt(2,  assignee);
-				pstmtAssign.setString(3,  status);			// default the status to accepted for new assignments
-				pstmtAssign.setInt(4,  task_id);
-				pstmtAssign.setInt(5, a_id);
-				
-				log.info("Update an assignment: " + pstmtAssign.toString());
-				pstmtAssign.executeUpdate();
-			}
+			} 
 		} finally {
 			if(pstmtGetExisting != null) {try {pstmtGetExisting.close();} catch(Exception e){}}
 		}
