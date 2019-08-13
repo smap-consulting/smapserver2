@@ -668,6 +668,7 @@ public class Surveys extends Application {
 			 */
 			String templateName = null;
 			String archivedTemplateName = null;
+			boolean updatePDFName = true;
 			if(fileName != null) {  // Save the file
 				
 				// Temporary save the old file.  This will no longer be necessary once all clients have uploaded their PDFs with the filename saved to the change log
@@ -684,10 +685,12 @@ public class Surveys extends Application {
 				// Try to delete the template file if it exists
 				delPdf(request, survey.displayName, survey.p_id);
 			} else {
-				// If the survey name has been changed then change the name of the template
+				  // If the survey name has been changed then change the name of the template on disk
 				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
 					templateName = renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
 				}
+
+				updatePDFName = false;	// PDF was not changed
 			}
 			
 			String sqlChangeLog = "insert into survey_change " +
@@ -695,7 +698,7 @@ public class Surveys extends Application {
 					"values(?, ?, ?, ?, 'true', ?)";
 			
 			// Update the settings
-			String sql = "update survey set display_name = ?, name = ?, def_lang = ?, task_file = ?, "
+			String sql1 = "update survey set display_name = ?, name = ?, def_lang = ?, task_file = ?, "
 					+ "timing_data = ?, "
 					+ "p_id = ?, "
 					+ "instance_name = ?, "
@@ -706,8 +709,10 @@ public class Surveys extends Application {
 					+ "exclude_empty = ?, "
 					+ "hide_on_device = ?, "
 					+ "audit_location_data = ?, "
-					+ "track_changes = ? "
-					+ "where s_id = ?;";		
+					+ "track_changes = ? ";
+			String sql2 = ",pdf_template = ? ";
+			String sql3 = "where s_id = ?";
+			String sql = sql1 + (updatePDFName ? sql2 : "") + sql3;
 		
 			if(survey.surveyClass != null && survey.surveyClass.equals("none")) {
 				survey.surveyClass = null;
@@ -728,7 +733,12 @@ public class Surveys extends Application {
 			pstmt.setBoolean(13, survey.getHideOnDevice());
 			pstmt.setBoolean(14, survey.audit_location_data);
 			pstmt.setBoolean(15, survey.track_changes);
-			pstmt.setInt(16, sId);
+			if(updatePDFName) {
+				pstmt.setString(16, fileName);
+				pstmt.setInt(17, sId);
+			} else {
+				pstmt.setInt(16, sId);
+			}
 			
 			log.info("Saving survey: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
@@ -795,7 +805,7 @@ public class Surveys extends Application {
 			MessagingManager mm = new MessagingManager();
 			mm.surveyChange(sd, sId, 0);
 		
-			response = Response.ok(templateName).build();
+			response = Response.ok(fileName).build();
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"sql error", e);

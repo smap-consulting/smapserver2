@@ -382,7 +382,8 @@ public class SurveyManager {
 				+ "o.e_id,"
 				+ "s.hide_on_device, "
 				+ "s.audit_location_data, "
-				+ "s.track_changes "
+				+ "s.track_changes,"
+				+ "s.pdf_template "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -449,10 +450,17 @@ public class SurveyManager {
 				s.setHideOnDevice(resultSet.getBoolean(27));
 				s.audit_location_data = resultSet.getBoolean(28);
 				s.track_changes = resultSet.getBoolean(29);
+				
+				
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
-					s.pdfTemplateName = templateFile.getName();
+					String newName = resultSet.getString(30);
+					if(newName != null) {
+						s.pdfTemplateName = newName;
+					} else {
+						s.pdfTemplateName = templateFile.getName();
+					}
 				}
 			} else {
 				log.info("Error: survey not found");
