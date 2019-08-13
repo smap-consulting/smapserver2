@@ -2210,7 +2210,7 @@ public class TaskManager {
 						updateId, 
 						null,				// Change object
 						gson.toJson(tic),	// Task Object
-						null,				// Notifiation objct
+						null,				// Notification object
 						"Task created", 
 						0,				// sId (don't care legacy)
 						sIdent,

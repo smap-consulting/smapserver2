@@ -97,13 +97,15 @@ public class PdfUtilities {
 		
 		StringBuffer url = new StringBuffer();
 		boolean getMap = false;
-		url.append("https://api.mapbox.com/v4/");
+		//url.append("https://api.mapbox.com/v4/");
+		url.append("https://api.mapbox.com/styles/v1/");
+		url.append("mapbox/");		// Mapbox username that owns the style
 		if(map != null) {
 			url.append(map);
 		} else {
-			url.append("mapbox.streets");	// default map
+			url.append("streets-v11");	// default map
 		}
-		url.append("/");
+		url.append("/static/");
 		
 		if(value != null && value.trim().length() > 0) {
 			
@@ -117,6 +119,10 @@ public class PdfUtilities {
 				markerColor = "f00";
 			}
 			value += "\"marker-color\":\"#" + markerColor + "\"";		// Add marker color
+			value += ",";
+			value += "\"stroke\":\"#" + markerColor + "\"";			// Add stroke
+			value += ",";
+			value += "\"fill\":\"#" + markerColor + "\"";			// Add fill
 			
 			value += "}}]}";
 			// End add styling
@@ -147,10 +153,12 @@ public class PdfUtilities {
 		if(getMap && mapbox_key == null) {
 			log.info("Mapbox key not specified.  PDF Map not created");
 		} else if(getMap) {
-			url.append("500x300.png?access_token=");
+			//url.append("500x300.png?access_token=");
+			url.append("500x300?access_token=");
 			url.append(mapbox_key);
 			try {
 				log.info("Mapbox API call: " + url);
+				
 				img = Image.getInstance(url.toString());
 				lm.writeLog(sd, sId, user, "Mapbox Request", map);
 			} catch (Exception e) {
