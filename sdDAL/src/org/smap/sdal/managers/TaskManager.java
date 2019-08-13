@@ -1382,7 +1382,7 @@ public class TaskManager {
 					taskId = rsKeys.getInt(1);
 				}
 			}
-
+			
 			/*
 			 * if a location name is specified
 			 *      if location exists update it
@@ -1401,7 +1401,9 @@ public class TaskManager {
 			 * 6. Assign the user to the task
 			 */ 	
 			for(AssignmentServerDefn asd : tsd.assignments) {
+				String status = null;
 				if(asd.a_id > 0) {
+					status = asd.status;
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					updateAssignment(sd, 
 							cResults,
@@ -1424,7 +1426,7 @@ public class TaskManager {
 							tsd.to);
 				} else {
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
-					applyAllAssignments(
+					status = applyAllAssignments(
 							sd, 
 							cResults,
 							null, 
@@ -1455,6 +1457,19 @@ public class TaskManager {
 					MessagingManager mm = new MessagingManager();
 					mm.userChange(sd, userIdent);
 				}
+				
+				/*
+				 * Update the Record Event Manager
+				 */
+				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+				rem.writeTaskStatusEvent(
+						sd, 
+						cResults,
+						remoteUser, 
+						asd.a_id,
+						status,
+						null,			// Assigned not changed
+						tsd.name);
 			}
 
 			/*
@@ -2321,7 +2336,7 @@ public class TaskManager {
 	/*
 	 * Create all assignments for specific user id, role or emails
 	 */
-	public void applyAllAssignments(
+	public String applyAllAssignments(
 			Connection sd,
 			Connection cResults,
 			PreparedStatement pstmtRoles, 
@@ -2486,6 +2501,7 @@ public class TaskManager {
 						);
 			}
 		}
+		return status;
 	}
 	
 	public PreparedStatement getRoles(Connection sd) throws SQLException {

@@ -883,7 +883,7 @@ public class MyAssignments extends Application {
 						cResults,
 						userName, 
 						assignmentId,
-						"submitted",
+						status,
 						null,			// Assigned not changed
 						taskName);
 			}
