@@ -2289,6 +2289,17 @@ public class TaskManager {
 					// Notify currently assigned user
 					if(assignee > 0 && existingAssignee != assignee) {
 						cancelAssignment(sd, a_id, existingAssignee);
+						
+						// Update record events
+						RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+						rem.writeTaskStatusEvent(
+								sd, 
+								cResults,
+								remoteUser, 
+								a_id,
+								"cancelled",
+								null,			// Assigned not changed
+								task_name);
 					}
 					
 					// Set flag indicating that new assignee should be set
