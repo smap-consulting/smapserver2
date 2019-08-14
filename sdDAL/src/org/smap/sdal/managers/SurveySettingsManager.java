@@ -143,10 +143,10 @@ public class SurveySettingsManager {
 				if(sColumns != null) {
 					Type type = new TypeToken<HashMap<String, ConsoleColumn>>(){}.getType();	
 					try {
-						ssd.columns = gson.fromJson(sColumns, type);
+						ssd.columnSettings = gson.fromJson(sColumns, type);
 					} catch (Exception e) {
 						log.log(Level.SEVERE,"Error: ", e);
-						ssd.columns = new HashMap<String, ConsoleColumn> ();		
+						ssd.columnSettings = new HashMap<String, ConsoleColumn> ();		
 					}
 				} else {
 					ssd.charts = new ArrayList<ChartDefn> ();

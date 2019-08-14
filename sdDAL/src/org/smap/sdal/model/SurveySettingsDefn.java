@@ -18,7 +18,7 @@ public class SurveySettingsDefn {
 	
 	public ArrayList<MapLayer> layers = new ArrayList<MapLayer> ();             // Map
 	public ArrayList<ChartDefn> charts = new ArrayList<ChartDefn> ();           // Charts
-	public HashMap<String, ConsoleColumn> columns = new HashMap<> ();           		  // Columns
+	public HashMap<String, ConsoleColumn> columnSettings = new HashMap<> ();    // Columns
 
 	
 }

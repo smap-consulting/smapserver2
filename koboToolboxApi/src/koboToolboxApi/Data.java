@@ -522,13 +522,6 @@ public class Data extends Application {
 						mgmt			// If this is a management request then include the assigned user after prikey
 						);
 	
-				//if(mgmt && managedId > 0) {
-				//	CustomReportsManager crm = new CustomReportsManager ();
-				//	ReportConfig config = crm.get(sd, managedId, -1);
-				//	if(config != null) {
-				//		columns.addAll(config.columns);
-				//	}
-				//}
 			}
 			
 			TableDataManager tdm = new TableDataManager(localisation, tz);
