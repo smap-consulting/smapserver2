@@ -45,13 +45,19 @@ import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.server.utilities.GetXForm;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,6 +88,7 @@ import org.apache.commons.io.FileUtils;
 public class Survey extends Application {
 
 	Authorise a = null;
+	Authorise aManage = null;
 
 	private static Logger log =
 			Logger.getLogger(Survey.class.getName());
@@ -95,6 +102,13 @@ public class Survey extends Application {
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.MANAGE);
+		aManage = new Authorise(authorisations, null);
 
 	}
 
@@ -1021,6 +1035,82 @@ public class Survey extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
 			SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
+
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Save the console settings for this survey
+	 */
+	@Path("/console_settings/columns")
+	@POST
+	@Consumes("application/json")
+	public Response save_console_columns(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@FormParam("columns") String sColumns) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-Survey-save console columns";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		// End Authorisation
+
+		String sql = "update survey_settings "
+				+ "set columns = ? "
+				+ "where u_id = ? "
+				+ "and s_ident = ? ";		
+		PreparedStatement pstmt = null;
+		
+		String sqlInsert = "insert into survey_settings (u_id, s_ident, columns) "
+				+ "values (?, ?, ?) ";		
+		PreparedStatement pstmtInsert = null;
+		try {
+
+			if(sColumns != null) {
+				Type type = new TypeToken<HashMap<String, ConsoleColumn>>(){}.getType();
+				Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+				HashMap<String, ConsoleColumn> columns = gson.fromJson(sColumns, type);
+				
+				int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				String vColumns = gson.toJson(columns);
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, vColumns);
+				pstmt.setInt(2, uId);
+				pstmt.setString(3, sIdent);
+				int count = pstmt.executeUpdate();
+				
+				if(count == 0) {
+					pstmtInsert = sd.prepareStatement(sqlInsert);
+					pstmtInsert.setInt(1, uId);
+					pstmtInsert.setString(2, sIdent);
+					pstmtInsert.setString(3, vColumns);
+					pstmtInsert.executeUpdate();
+				}
+			} 
+
+			response = Response.ok().build();
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE,"", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtInsert != null) {pstmtInsert.close();}} catch (SQLException e) {}
+
+			SDDataSource.closeConnection(connectionString, sd);
 
 		}
 

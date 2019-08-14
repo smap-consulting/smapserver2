@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -17,6 +18,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.ChartDefn;
+import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
@@ -83,7 +85,7 @@ public class SurveySettingsManager {
 		SurveySettingsDefn ssd = null;
 		
 		// SQL to get settings details
-		String sql = "select view, map_view, chart_view "
+		String sql = "select view, map_view, chart_view, columns "
 				+ "from survey_settings "
 				+ "where u_id = ? "
 				+ "and s_ident = ? ";
@@ -104,6 +106,7 @@ public class SurveySettingsManager {
 				String sView = rs.getString(1);
 				String sMapView = rs.getString(2);
 				String sChartView = rs.getString(3);
+				String sColumns = rs.getString(4);
 				
 				if(sView != null) {
 					try {
@@ -132,6 +135,18 @@ public class SurveySettingsManager {
 					} catch (Exception e) {
 						log.log(Level.SEVERE,"Error: ", e);
 						ssd.charts = new ArrayList<ChartDefn> ();		// If there is an error its likely that the structure of the config file has been changed and we should start from scratch
+					}
+				} else {
+					ssd.charts = new ArrayList<ChartDefn> ();
+				}
+				
+				if(sColumns != null) {
+					Type type = new TypeToken<HashMap<String, ConsoleColumn>>(){}.getType();	
+					try {
+						ssd.columns = gson.fromJson(sColumns, type);
+					} catch (Exception e) {
+						log.log(Level.SEVERE,"Error: ", e);
+						ssd.columns = new HashMap<String, ConsoleColumn> ();		
 					}
 				} else {
 					ssd.charts = new ArrayList<ChartDefn> ();
