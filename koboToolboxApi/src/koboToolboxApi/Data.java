@@ -467,16 +467,6 @@ public class Data extends Application {
 				
 			} else {
 			
-				// Get the managed Id
-				//if(mgmt) {
-				//	pstmtGetManagedId = sd.prepareStatement(sqlGetManagedId);
-				//	pstmtGetManagedId.setInt(1, sId);
-				//	rs = pstmtGetManagedId.executeQuery();
-				//	if(rs.next()) {
-				//		managedId = rs.getInt(1);
-				//	}
-				//	if(rs != null) try {rs.close(); rs = null;} catch(Exception e) {}
-				//}
 	
 				if(fId == 0) {
 					pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
