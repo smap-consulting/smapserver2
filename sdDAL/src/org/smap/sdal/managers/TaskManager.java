@@ -94,13 +94,16 @@ public class TaskManager {
 	public static String TASK_DATA_SOURCE = "task";
 	public static String NO_DATA_SOURCE = "none";
 	
+	public static final String STATUS_T_NEW = "new";
 	public static final String STATUS_T_ACCEPTED = "accepted";
     public static final String STATUS_T_REJECTED = "rejected";
     public static final String STATUS_T_SUBMITTED = "submitted";
     public static final String STATUS_T_CANCELLED = "cancelled";
     
-	private String fullStatusList[] = {
-			"new", 
+    public static final String STATUS_T_LATE = "late";	// Pseudo status = accepted and overdue
+    
+	private String fullStatusList[] = {		// late is not included as a real status
+			STATUS_T_NEW, 
 			STATUS_T_ACCEPTED, 
 			"unsent", 
 			"unsubscribed", 
@@ -367,9 +370,16 @@ public class TaskManager {
 		
 		ArrayList<String> statusList = new ArrayList<String> ();
 		String sqlStatus = "and a.status = any (?) ";		// No need to include unassigned tasks
+		boolean wantLate = false;
+		boolean wantAccepted = false;
 		if(incStatus != null) {
 			String [] incStatusArray = incStatus.split(",");
 			for(String status : incStatusArray) {
+				if(status.trim().equals(STATUS_T_LATE)) {
+					wantLate = true;
+				} else if(status.trim().equals(STATUS_T_ACCEPTED)) {
+					wantAccepted = true;
+				}
 				for(String statusRef : fullStatusList) {
 					if(status.trim().equals(statusRef)) {
 						statusList.add(statusRef);
@@ -379,6 +389,9 @@ public class TaskManager {
 						break;
 					}
 				}
+			}
+			if(wantLate && !wantAccepted) {
+				statusList.add(STATUS_T_ACCEPTED);	// Add accepted back into the status list
 			}
 		}
 		if(statusList.size() > 0) {	
@@ -441,11 +454,16 @@ public class TaskManager {
 			ResultSet rs = pstmt.executeQuery();
 			JsonParser parser = new JsonParser();
 			int index = 0;
+			long now = Calendar.getInstance().getTime().getTime();
 			while (rs.next()) {
 
 				String status = rs.getString("status");
 				boolean deleted = rs.getBoolean("deleted");
 				int assignee = rs.getInt("assignee"); 
+				Timestamp to = rs.getTimestamp("schedule_finish");
+				if(to == null) {
+					to = rs.getTimestamp("default_finish");
+				}
 				
 				// Adjust status
 				if(deleted && status == null) {
@@ -456,6 +474,15 @@ public class TaskManager {
 					status = "new";
 				}
 
+				// If we don't want accepted but do want late tasks then filter on date
+				if(wantLate && !wantAccepted) {
+					if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() > now)) {
+						continue;
+					} else if(status.equals(STATUS_T_ACCEPTED)) {
+						status = STATUS_T_LATE;
+					}
+				}
+				
 				// Ignore any tasks that are not required
 				if(!completed && (status.equals("submitted") || status.equals("complete"))) {
 					continue;
@@ -474,10 +501,7 @@ public class TaskManager {
 				tf.properties.a_id = rs.getInt("assignment_id");
 				tf.properties.name = rs.getString("name");
 				tf.properties.from = rs.getTimestamp("schedule_at");
-				tf.properties.to = rs.getTimestamp("schedule_finish");
-				if(tf.properties.to == null) {
-					tf.properties.to = rs.getTimestamp("default_finish");
-				}
+				tf.properties.to = to;
 				tf.properties.status = status;	
 				tf.properties.survey_ident = rs.getString("survey_ident");
 				tf.properties.form_id = GeneralUtilityMethods.getSurveyId(sd, tf.properties.survey_ident);	// Deprecate - should remove all usage of survey id
