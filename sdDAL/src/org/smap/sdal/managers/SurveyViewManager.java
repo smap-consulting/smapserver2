@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,6 +15,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.ChartDefn;
+import org.smap.sdal.model.ConsoleColumn;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
@@ -86,7 +88,6 @@ public class SurveyViewManager {
 
 		SurveyViewDefn svd = new SurveyViewDefn(ssd, sId, managedId, 0);
 
-		ArrayList<TableColumnConfig> configColumns = new ArrayList<TableColumnConfig> ();
 		String language = "none";
 
 		// Add the main form columns to the Survey View Definition
@@ -94,7 +95,7 @@ public class SurveyViewManager {
 		populateSvd(sd, 
 				cResults, 
 				svd,
-				configColumns,
+				ssd.columnSettings,
 				true,			// Is main survey
 				language,
 				sId,
@@ -102,20 +103,14 @@ public class SurveyViewManager {
 				uIdent,
 				superUser);
 
-		/*
-		 * Add the managed form columns and configuration - Deprecate
-		 */
-		if(managedId > 0) {
-			getDataProcessingConfig(sd, managedId, svd, configColumns, oId);
-		}
-
+		
 		// Add the managed form columns from the group survey
 		if(groupSurvey != null) {
 			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
 			populateSvd(sd, 
 					cResults, 
 					svd,
-					configColumns,
+					ssd.columnSettings,
 					false,			// Is main survey
 					language,
 					groupSurveyId,
@@ -136,7 +131,7 @@ public void populateSvd(
 		Connection sd, 
 		Connection cResults, 
 		SurveyViewDefn svd,
-		ArrayList<TableColumnConfig> configColumns,
+		HashMap<String, ConsoleColumn> columnSettings,
 		boolean isMain,
 		String language,
 		int sId,
@@ -179,15 +174,17 @@ public void populateSvd(
 
 	/*
 	 * Add any configuration settings
-	 * Order the config according to the current survey definition and
-	 * Add any new columns that may have been added to the survey since the configuration was created
 	 */			
 	for(int i = 0; i < columnList.size(); i++) {
 		TableColumn c = columnList.get(i);
 		if(keepThis(c.column_name, isMain)) {
 			TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
-			if(configColumns.size() == 0) {	// If a view was not passed then there are no config columns so get everything
+			ConsoleColumn cc = columnSettings.get(tc.column_name);
+			
+			if(cc == null) {	
 				tc.hide = hideDefault(c.displayName);
+			} else {
+				tc.hide = cc.hide;
 			}
 			tc.mgmt = !isMain;
 			tc.filter = c.filter;
@@ -195,18 +192,6 @@ public void populateSvd(
 			tc.l_id = c.l_id;
 			if(!isMain) {
 				tc.readonly = false;
-			}
-
-			for(int j = 0; j < configColumns.size(); j++) {
-				TableColumnConfig tcConfig = configColumns.get(j);
-				if(tcConfig.name.equals(tc.column_name)) {
-					tc.hide = tcConfig.hide;
-					tc.barcode = tcConfig.barcode;
-					tc.filterValue = tcConfig.filterValue;
-					tc.chart_type = tcConfig.chart_type;
-					tc.width = tcConfig.width;
-					break;
-				}
 			}
 
 			if(tc.column_name.equals("the_geom")) {

@@ -331,6 +331,7 @@ public class Data extends Application {
 				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
 			} else {
 				sId = Integer.parseInt(sIdent);							// Id the old way
+				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			}
 			if(formName != null) {
 				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
