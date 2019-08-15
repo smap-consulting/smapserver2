@@ -486,7 +486,9 @@ public class Tasks extends Application {
 					tgId, 
 					0,		// task id
 					0,		// Assignment Id
-					true, 0, incStatus, period, 0, 0,
+					true, 0, 
+					incStatus, 
+					period, 0, 0,
 					"scheduled", "desc");	// Get the task list
 			
 			// Create XLSTasks File
