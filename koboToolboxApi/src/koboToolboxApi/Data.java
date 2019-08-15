@@ -640,6 +640,13 @@ public class Data extends Application {
 					// 3. Add the survey settings to the results
 					if(getSettings) {
 						outWriter.print(",\"settings\":");
+						/*
+						 * Setting values get applied to the schema with the exception of a few parameters
+						 * Remove the settings not used by the client
+						 */
+						ssd.columnSettings = null;
+						ssd.charts = null;
+						ssd.layers = null;
 						outWriter.print(gson.toJson(ssd));
 					}
 					

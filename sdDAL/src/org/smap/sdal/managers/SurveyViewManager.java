@@ -86,7 +86,7 @@ public class SurveyViewManager {
 			boolean superUser,
 			String groupSurvey) throws SQLException, Exception  {
 
-		SurveyViewDefn svd = new SurveyViewDefn(ssd, sId, managedId, 0);
+		SurveyViewDefn svd = new SurveyViewDefn(sId);
 
 		String language = "none";
 
