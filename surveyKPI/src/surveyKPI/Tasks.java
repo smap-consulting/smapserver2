@@ -86,6 +86,7 @@ public class Tasks extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.MANAGE);
 		a = new Authorise(authorisations, null);
 	}
 	

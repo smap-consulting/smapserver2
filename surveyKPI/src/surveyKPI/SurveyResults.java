@@ -55,12 +55,20 @@ import java.util.logging.Logger;
 public class SurveyResults extends Application {
 	
 	Authorise a = new Authorise(null, Authorise.ANALYST);
+	Authorise aManage = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Results.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
+	public SurveyResults() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.MANAGE);
+		aManage = new Authorise(authorisations, null);
+	}
+	
 	/*
 	 * Delete results for a survey
 	 */
@@ -359,7 +367,7 @@ public class SurveyResults extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SurveyResults - getGroups");
-		a.isAuthorised(sd, request.getRemoteUser());
+		aManage.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		if(sId > 0) {

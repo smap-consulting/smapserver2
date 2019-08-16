@@ -76,6 +76,7 @@ public class Roles extends Application {
 		authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.MANAGE);
 		aLowPriv = new Authorise(authorisations, null);
 	}
 	
@@ -332,7 +333,7 @@ public class Roles extends Application {
 
 	/*
 	 * Get the roles names in the organisation
-	 * This is a low privilege service to allow users who are not the security manager to get role names for pusrposes
+	 * This is a low privilege service to allow users who are not the security manager to get role names for purposes
 	 *  such as assigning tasks to members of a role
 	 */
 	@Path("/roles/names")

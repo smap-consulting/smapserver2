@@ -441,7 +441,7 @@ public class Survey extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getSurveyMeta");
-		a.isAuthorised(sd, request.getRemoteUser());
+		aManage.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 
 		JSONObject jo = new JSONObject();

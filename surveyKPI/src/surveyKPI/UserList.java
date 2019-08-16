@@ -83,8 +83,9 @@ public class UserList extends Application {
 		authorisations.add(Authorise.ORG);
 		a = new Authorise(authorisations, null);
 		
-		// Also allow users with View rights to view the simple list of uses
+		// Also allow users with View rights to view the simple list of users
 		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.MANAGE);
 		aSimpleList = new Authorise(authorisations, null);
 		
 		// Only allow administrators, org administrators and security managers to update user list
@@ -113,7 +114,7 @@ public class UserList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
-		a.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<User> users = null;
@@ -159,7 +160,7 @@ public class UserList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		ArrayList<UserSimple> users = null;

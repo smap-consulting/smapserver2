@@ -56,6 +56,8 @@ public class QuestionList extends Application {
 	
 	Authorise a = null;
 	
+	Authorise aManage = null;
+	
 	private static Logger log =
 			 Logger.getLogger(Review.class.getName());
 
@@ -64,7 +66,16 @@ public class QuestionList extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
+		
 		a = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.MANAGE);
+		
+		aManage = new Authorise(authorisations, null);
 	}
 	
 	/*
@@ -88,8 +99,8 @@ public class QuestionList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		aManage.isAuthorised(connectionSD, request.getRemoteUser());
+		aManage.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		JSONArray jaQuestions = new JSONArray();
