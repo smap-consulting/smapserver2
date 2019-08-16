@@ -741,6 +741,7 @@ public class Tasks extends Application {
 		log.info("userevent: " + request.getRemoteUser() + " : bulk action for : " + tgId + " " 
 					+ bulkAction.action + " : assign user: " + bulkAction.userId + " : " + bulkAction.tasks.toString());
 		
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -748,14 +749,15 @@ public class Tasks extends Application {
 			String tz = "UTC";	// Set default for timezone
 			
 			TaskManager tm = new TaskManager(localisation, tz);
-			tm.applyBulkAction(request, sd, tgId, pId, bulkAction);
+			tm.applyBulkAction(request, sd, cResults, request.getRemoteUser(), tgId, pId, bulkAction);
 			response = Response.ok().build();
 		
 		} catch (Exception e) {
 			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
-			SDDataSource.closeConnection(connectionString, sd);			
+			SDDataSource.closeConnection(connectionString, sd);	
+			ResultsDataSource.closeConnection(connectionString, sd);	
 		}
 		
 		return response;

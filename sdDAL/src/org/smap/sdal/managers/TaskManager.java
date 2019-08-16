@@ -1530,8 +1530,14 @@ public class TaskManager {
 	/*
 	 * Apply an action to multiple tasks
 	 */
-	public void applyBulkAction(HttpServletRequest request, Connection sd, 
-			int tgId, int pId, TaskBulkAction action) throws Exception {
+	public void applyBulkAction(
+			HttpServletRequest request, 
+			Connection sd, 
+			Connection cResults,
+			String remoteUser,
+			int tgId, 
+			int pId, 
+			TaskBulkAction action) throws Exception {
 
 		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
 				+ "(select a.assignee from assignments a, tasks t "
@@ -1584,6 +1590,8 @@ public class TaskManager {
 		PreparedStatement pstmtEmailDetails = null;
 		PreparedStatement pstmtSetStatus = null;
 
+		RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+		
 		try {
 
 			if(action.tasks.size() == 0) {
@@ -1646,6 +1654,10 @@ public class TaskManager {
 				}
 			}
 
+			String updateAssigned = null;
+			String updateStatus = null;
+			String updateName = null;
+			
 			if(action.action.equals("delete")) {
 
 				if(hasAssignments) {
@@ -1668,6 +1680,10 @@ public class TaskManager {
 				pstmt.setInt(1, pId);
 				log.info("Delete unassigned and singly assigned tasks: " + pstmt.toString());
 				pstmt.executeUpdate();
+				
+				updateAssigned = null;
+				updateStatus = "cancelled";
+				updateName = null;
 
 			} else if(action.action.equals("status")) {
 
@@ -1679,6 +1695,10 @@ public class TaskManager {
 					log.info("Set assgignments accepted: " + pstmt.toString());
 					pstmt.executeUpdate();
 				}
+				
+				updateAssigned = null;
+				updateStatus = "accepted";
+				updateName = null;
 
 			} else if(action.action.equals("assign")) {
 
@@ -1715,9 +1735,14 @@ public class TaskManager {
 				// Notify the user who has been assigned the tasks
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, action.userId);
 				mm.userChange(sd, userIdent);
+				
+				updateAssigned = userIdent;
+				updateStatus = "accepted";
+				updateName = null;
+				
 			} else if(emailAction) {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				if(!GeneralUtilityMethods.emailTaskBlocked(sd, oId)) {				
+				if(!GeneralUtilityMethods.emailTaskBlocked(sd, oId)) {			
 					
 					String urlprefix = "https://" + request.getServerName() + "/";					
 					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -1769,6 +1794,29 @@ public class TaskManager {
 					}
 				} else {
 					throw new Exception(localisation.getString("email_b"));
+				}
+				
+				updateAssigned = null;
+				updateStatus = "pending";
+				updateName = null;
+			}
+			
+			/*
+			 * Update the Record Event Manager
+			 */
+			for(Integer taskId : taskList) {
+				ArrayList<Integer> a = hierarchyHash.get(taskId);
+				for(Integer assignmentId : a) {
+					if(assignmentId > 0) {
+						rem.writeTaskStatusEvent(
+								sd, 
+								cResults,
+								remoteUser, 
+								assignmentId,
+								updateStatus,
+								updateAssigned,
+								updateName);
+					}
 				}
 			}
 

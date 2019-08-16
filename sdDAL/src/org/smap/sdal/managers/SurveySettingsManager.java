@@ -162,6 +162,10 @@ public class SurveySettingsManager {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 		}
 		
+		if(ssd == null) {
+			ssd = new SurveySettingsDefn();
+		}
+		
 		return ssd;
 	}
 	

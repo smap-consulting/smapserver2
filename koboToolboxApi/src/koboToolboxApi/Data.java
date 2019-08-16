@@ -182,6 +182,7 @@ public class Data extends Application {
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
+			@QueryParam("instanceid") String instanceId,
 			@QueryParam("getSettings") boolean getSettings			// if set true get the settings from the database
 			) throws ApplicationException, Exception { 
 			
@@ -197,7 +198,7 @@ public class Data extends Application {
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, 
-				filter, dateName, startDate, endDate, getSettings);
+				filter, dateName, startDate, endDate, getSettings, instanceId);
 	}
 	
 	/*
@@ -308,7 +309,8 @@ public class Data extends Application {
 			String dateName,
 			Date startDate,
 			Date endDate,
-			boolean getSettings		// Set true if the settings are stored in the database, otherwise they are passed with the request
+			boolean getSettings,		// Set true if the settings are stored in the database, otherwise they are passed with the request
+			String instanceId
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -551,7 +553,7 @@ public class Data extends Application {
 					null	,			// no custom filter
 					null,			// key filter
 					tz,
-					null,			// instanceId
+					instanceId,			// instanceId
 					ssd.filter,
 					ssd.dateName,
 					ssd.fromDate,
