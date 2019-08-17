@@ -2,7 +2,6 @@ package surveyKPI;
 
 /*
 This file is part of SMAP.
-
 SMAP is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
@@ -104,6 +103,7 @@ public class AllAssignments extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.MANAGE);
 		a = new Authorise(authorisations, null);		
 	}
 

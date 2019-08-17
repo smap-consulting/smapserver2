@@ -179,6 +179,7 @@ public class Tasks extends Application {
 	@Produces("application/json")
 	public Response getTaskAssignment(@Context HttpServletRequest request,
 			@PathParam("id") int aId,
+			@QueryParam("taskid") int taskId,			// Optional task if if unassigned task
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
@@ -187,7 +188,11 @@ public class Tasks extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidAssignment(sd, request.getRemoteUser(), aId);
+		if(aId > 0) {
+			a.isValidAssignment(sd, request.getRemoteUser(), aId);
+		} else {
+			a.isValidTask(sd, request.getRemoteUser(), taskId);
+		}
 		// End authorisation
 
 		Response response = null;
@@ -205,7 +210,7 @@ public class Tasks extends Application {
 					urlprefix,
 					0,		// Organisation id 
 					0, 		// task group id
-					0,		// task id
+					aId == 0 ? taskId : 0,		// task id
 					aId,		// Assignment Id
 					true, 
 					0,		// userId 
