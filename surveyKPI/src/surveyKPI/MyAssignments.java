@@ -882,6 +882,7 @@ public class MyAssignments extends Application {
 						sd, 
 						cResults,
 						userName, 
+						taskId,
 						assignmentId,
 						status,
 						null,			// Assigned not changed

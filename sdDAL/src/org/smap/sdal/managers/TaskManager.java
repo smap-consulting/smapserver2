@@ -1449,6 +1449,23 @@ public class TaskManager {
 							tsd.from,
 							tsd.to);
 				} else {
+					/*
+					 * If a user was assigned to a task that previously did not have
+					 * anyone assigned to it then we need to mark that task as cancelled in the
+					 * RecordEventManager
+					 * Update the Record Event Manager
+					 */
+					RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+					rem.writeTaskStatusEvent(
+							sd, 
+							cResults,
+							remoteUser, 
+							tsd.id,
+							0,
+							"cancelled",
+							null,			
+							tsd.name);
+					
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					status = applyAllAssignments(
 							sd, 
@@ -1473,6 +1490,7 @@ public class TaskManager {
 							tsd.name,
 							tsd.from,
 							tsd.to);
+					
 				}
 
 				if(asd.assignee > 0) {
@@ -1482,18 +1500,6 @@ public class TaskManager {
 					mm.userChange(sd, userIdent);
 				}
 				
-				/*
-				 * Update the Record Event Manager
-				 */
-				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
-				rem.writeTaskStatusEvent(
-						sd, 
-						cResults,
-						remoteUser, 
-						asd.a_id,
-						status,
-						null,			// Assigned not changed
-						tsd.name);
 			}
 
 			/*
@@ -1812,6 +1818,7 @@ public class TaskManager {
 								sd, 
 								cResults,
 								remoteUser, 
+								(int) taskId,
 								assignmentId,
 								updateStatus,
 								updateAssigned,
@@ -2368,6 +2375,7 @@ public class TaskManager {
 								sd, 
 								cResults,
 								remoteUser, 
+								task_id,
 								a_id,
 								"cancelled",
 								null,			// Assigned not changed

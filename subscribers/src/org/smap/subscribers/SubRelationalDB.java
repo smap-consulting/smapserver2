@@ -261,6 +261,7 @@ public class SubRelationalDB extends Subscriber {
 						sd, 
 						cResults,
 						remoteUser, 
+						0,
 						assignmentId,
 						"submitted",
 						null,			// Assigned not changed

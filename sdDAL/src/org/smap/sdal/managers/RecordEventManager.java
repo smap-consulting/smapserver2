@@ -163,33 +163,53 @@ public class RecordEventManager {
 			Connection sd, 
 			Connection cResults,
 			String userName,
+			int taskId,
 			int assignmentId,
 			String status,
 			String assigned,
 			String taskName
 			) throws SQLException {
 		
-		String sql = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
+		String sqlUsingAssignment = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
 				+ "from assignments a, tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
 				+ "and a.task_id = t.id "
 				+ "and a.id = ?";
+		String sqlUsingTask = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
+				+ "from tasks t, form f, survey s "
+				+ "where t.survey_ident = s.ident "
+				+ "and f.s_id = s.s_id "
+				+ "and t.id = ?";
+		
 		PreparedStatement pstmt = null;
 		
-		String sqlGet = "select task, status from record_event "
+		String sqlGetUsingAssignment = "select task, status from record_event "
 				+ "where key = ? "
 				+ "and event = 'task' "
-				+ "and (assignment_id = ? or task_id = ?)";
+				+ "and assignment_id = ?";
+		
+		String sqlGetUsingTask = "select task, status from record_event "
+				+ "where key = ? "
+				+ "and event = 'task' "
+				+ "and task_id = ?";
 		PreparedStatement pstmtGet = null;
 		
-		String sqlSet = "update record_event "
+		String sqlSetUsingAssignment = "update record_event "
 				+ "set task = ?, "
 				+ "assignment_id = ?, "
 				+ "status = ? "
 				+ "where key = ? "
 				+ "and event = 'task' "
-				+ "and (assignment_id = ? or task_id = ?)";
+				+ "and assignment_id = ?";
+		
+		String sqlSetUsingTask = "update record_event "
+				+ "set task = ?, "
+				+ "assignment_id = ?, "
+				+ "status = ? "
+				+ "where key = ? "
+				+ "and event = 'task' "
+				+ "and task_id = ?";
 		PreparedStatement pstmtSet = null;
 		
 		try {
@@ -197,8 +217,13 @@ public class RecordEventManager {
 			 * Get record information from the task
 			 */
 			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, assignmentId);
+			if(assignmentId > 0) {
+				pstmt = sd.prepareStatement(sqlUsingAssignment);
+				pstmt.setInt(1, assignmentId);
+			} else {
+				pstmt = sd.prepareStatement(sqlUsingTask);
+				pstmt.setInt(1, taskId);
+			}
 			log.info("Get task info: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
@@ -207,17 +232,22 @@ public class RecordEventManager {
 				
 				String updateId = rs.getString(1);
 				String  tableName = rs.getString(2);
-				int taskId = rs.getInt(3);
+				taskId = rs.getInt(3);
 				Timestamp scheduleAt = rs.getTimestamp(4);
 				Timestamp scheduleFinish = rs.getTimestamp(5);
 				
 				// Get the current Task Item Change and update it
 				String key = GeneralUtilityMethods.getThread(cResults, tableName, updateId);
-				pstmtGet = sd.prepareStatement(sqlGet);
-				pstmtGet.setString(1,  key);
-				pstmtGet.setInt(2,  assignmentId);
-				pstmtGet.setInt(3, taskId);
-				
+				if(assignmentId > 0) {
+					pstmtGet = sd.prepareStatement(sqlGetUsingAssignment);
+					pstmtGet.setString(1,  key);
+					pstmtGet.setInt(2,  assignmentId);
+				} else {
+					pstmtGet = sd.prepareStatement(sqlGetUsingTask);
+					pstmtGet.setString(1,  key);
+					pstmtGet.setInt(2, taskId);
+				}
+
 				sd.setAutoCommit(false);
 				ResultSet rs2 = pstmtGet.executeQuery();
 				if(rs2.next()) {
@@ -235,13 +265,17 @@ public class RecordEventManager {
 							status = oldStatus;
 						}
 						// Write the changed event back to the database
-						pstmtSet = sd.prepareStatement(sqlSet);
+						if(assignmentId > 0) {
+							pstmtSet = sd.prepareStatement(sqlSetUsingAssignment);
+							pstmtSet.setInt(5, assignmentId);
+						} else {
+							pstmtSet = sd.prepareStatement(sqlSetUsingTask);
+							pstmtSet.setInt(5, taskId);
+						}
 						pstmtSet.setString(1,gson.toJson(tic));
 						pstmtSet.setInt(2, assignmentId);
 						pstmtSet.setString(3, status);
 						pstmtSet.setString(4, key);
-						pstmtSet.setInt(5, assignmentId);
-						pstmtSet.setInt(6, taskId);
 						pstmtSet.executeUpdate();
 					}				
 				}
