@@ -171,6 +171,8 @@ public void populateSvd(
 			isMain		// mgmt - Only the main survey request should result in the addition of the mgmt columns
 			);		
 
+	// If this is a group form track which duplicate main qustions need to be removed
+	ArrayList<Integer> mainColumnsToRemove = new ArrayList<Integer>();
 
 	/*
 	 * Add any configuration settings
@@ -214,11 +216,18 @@ public void populateSvd(
 					// remove columns from the data form that are in the group survey form
 					Integer idx = svd.mainColumnNames.get(tc.column_name);
 					if(idx != null) {
-						svd.columns.remove(idx.intValue());
+						mainColumnsToRemove.add(idx);
 					}
 				}
 
 			}
+		}
+	}
+	
+	// remove any of the main form qustions that were in the group form
+	if(mainColumnsToRemove.size() > 0) {
+		for(int i = mainColumnsToRemove.size() - 1; i >= 0; i--) {
+			svd.columns.remove(mainColumnsToRemove.get(i).intValue());
 		}
 	}
 
