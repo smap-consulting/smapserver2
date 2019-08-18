@@ -463,7 +463,9 @@ public class Data extends Application {
 				sv = svm.getSurveyView(sd, 
 						cResults, 
 						uId, 
-						ssd, sId, managedId, request.getRemoteUser(), oId, superUser,
+						ssd, 
+						sId,
+						request.getRemoteUser(), oId, superUser,
 						groupSurvey);	
 				columns = sv.columns;
 				table_name = sv.tableName;			

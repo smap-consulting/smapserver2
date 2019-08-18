@@ -687,22 +687,16 @@ public class ManagedForms extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/actionlink/{sId}/{managedId}/{prikey}")
+	@Path("/actionlink/{sId}/{prikey}")
 	public Response getActionLink(
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
-			@PathParam("managedId") int managedId,
 			@PathParam("prikey") int prikey,
-			@QueryParam("roles") String roles
+			@QueryParam("roles") String roles,
+			@QueryParam("groupSurvey") String groupSurvey
 			) { 
 		
 		Response response = null;
-		
-		String sqlCanUpdate = "select p_id from survey "
-				+ "where s_id = ? "
-				+ "and managed_id = ? "
-				+ "and deleted = 'false';";
-		PreparedStatement pstmtCanUpdate = null;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-Get Action Link");
@@ -713,6 +707,9 @@ public class ManagedForms extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		if(groupSurvey != null) {
+			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		}
 		// End Authorisation
 		
 		try {
@@ -724,25 +721,12 @@ public class ManagedForms extends Application {
 			String tz = "UTC";
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			int pId = 0;
+			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
 			
-			/*
-			 * Verify that the survey is managed by the provided data processing id and get the project id
-			 */
-			pstmtCanUpdate = sd.prepareStatement(sqlCanUpdate);
-			pstmtCanUpdate.setInt(1, sId);
-			pstmtCanUpdate.setInt(2, managedId);
-			ResultSet rs = pstmtCanUpdate.executeQuery();
-			if(rs.next()) {
-				pId = rs.getInt(1);
-			}
-			if(pId == 0) {
-				throw new Exception(localisation.getString("mf_blocked"));
-			}
 			ActionManager am = new ActionManager(localisation, tz);
 			Action action = new Action("respond");
 			action.sId = sId;
-			action.managedId = managedId;
+			action.groupSurvey = groupSurvey;
 			action.prikey = prikey;
 			action.pId = pId;
 			
@@ -779,14 +763,12 @@ public class ManagedForms extends Application {
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
 			
-	
-			try {if (pstmtCanUpdate != null) {pstmtCanUpdate.close();}} catch (Exception e) {}
-			
 			SDDataSource.closeConnection("surveyKPI-Get Action Link", sd);
 		}
 		
 		return response;
 	}
+	
 	
 	/*
 	 * Get the configuration settings

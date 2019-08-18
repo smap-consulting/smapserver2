@@ -80,7 +80,6 @@ public class SurveyViewManager {
 			int uId,
 			SurveySettingsDefn ssd,
 			int sId,
-			int managedId,
 			String uIdent,
 			int oId,
 			boolean superUser,
@@ -95,7 +94,7 @@ public class SurveyViewManager {
 		populateSvd(sd, 
 				cResults, 
 				svd,
-				ssd.columnSettings,
+				ssd != null ? ssd.columnSettings : null,
 				true,			// Is main survey
 				language,
 				sId,
@@ -110,7 +109,7 @@ public class SurveyViewManager {
 			populateSvd(sd, 
 					cResults, 
 					svd,
-					ssd.columnSettings,
+					ssd != null ? ssd.columnSettings : null,
 					false,			// Is main survey
 					language,
 					groupSurveyId,
@@ -181,7 +180,10 @@ public void populateSvd(
 		TableColumn c = columnList.get(i);
 		if(keepThis(c.column_name, isMain)) {
 			TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
-			ConsoleColumn cc = columnSettings.get(tc.column_name);
+			ConsoleColumn cc = null;
+			if(columnSettings != null) {
+				cc = columnSettings.get(tc.column_name);
+			}
 			
 			if(cc == null) {	
 				tc.hide = hideDefault(c.displayName);

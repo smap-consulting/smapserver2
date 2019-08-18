@@ -22,7 +22,8 @@ public class Action {
 	public String surveyName;
 	public String surveyIdent;
 	public int pId;
-	public int managedId;
+	public int managedId;		// deprecate
+	public String groupSurvey;
 	public int prikey;
 	public int taskKey;
 	

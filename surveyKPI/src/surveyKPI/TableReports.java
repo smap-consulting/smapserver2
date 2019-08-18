@@ -147,7 +147,7 @@ public class TableReports extends Application {
 			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, uId, sIdent);
-			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, ssd, sId, managedId, 
+			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, ssd, sId,
 					request.getRemoteUser(), oId, superUser, null);	// TODO add support for group survey
 			
 			// Convert data to an array
