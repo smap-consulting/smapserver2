@@ -91,7 +91,7 @@ public class ActionManager {
 	 * Apply actions resulting from a change to managed forms
 	 */
 	public void applyManagedFormActions(@Context HttpServletRequest request, Connection sd, TableColumn tc, int oId,
-			int sId, int pId, int managedId, int prikey, int priority, String value, ResourceBundle localisation)
+			int sId, int pId, String groupSurvey, int prikey, int priority, String value, ResourceBundle localisation)
 			throws Exception {
 
 		for (int i = 0; i < tc.actions.size(); i++) {
@@ -100,7 +100,7 @@ public class ActionManager {
 			// Add the action specific settings
 			a.sId = sId;
 			a.pId = pId;
-			a.managedId = managedId;
+			a.groupSurvey = groupSurvey;
 			a.prikey = prikey;
 
 			log.info("Apply managed actions: Action: " + a.action + " : " + a.notify_type + " : " + a.notify_person);
@@ -350,10 +350,10 @@ public class ActionManager {
 	/*
 	 * Process an update request that came either from an anonymous form or from the
 	 * managed forms page
-	 * Deprecate - This update function uses managed Id rather than a group survey form
 	 */
-	public Response processUpdate(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
-			int sId, int managedId, String settings) {
+	public Response processUpdate(
+			HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
+			int sId, String groupSurvey, String settings) {
 
 		Response response = null;
 
@@ -361,12 +361,6 @@ public class ActionManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(settings, type);
 
-		String sqlCanUpdate = "select p_id from survey " 
-				+ "where s_id = ? " 
-				+ "and managed_id = ? "
-				+ "and blocked = 'false' " 
-				+ "and deleted = 'false';";
-		PreparedStatement pstmtCanUpdate = null;
 		PreparedStatement pstmtUpdate = null;
 		int priority = -1;
 
@@ -377,28 +371,14 @@ public class ActionManager {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-			int pId = 0;
-			
-			/*
-			 * Verify that the survey is managed by the management id
-			 */
-			pstmtCanUpdate = sd.prepareStatement(sqlCanUpdate);
-			pstmtCanUpdate.setInt(1, sId);
-			pstmtCanUpdate.setInt(2, managedId);
-			ResultSet rs = pstmtCanUpdate.executeQuery();
-			if (rs.next()) {
-				pId = rs.getInt(1);
-			}
-			if (pId == 0) {
-				throw new Exception(localisation.getString("mf_blocked"));
-			}
+			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
 
 			/*
 			 * Get the data processing columns
 			 */
 			SurveyViewDefn svd = new SurveyViewDefn();
-			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
-			svm.getDataProcessingConfig(sd, managedId, svd, null, oId);
+			//SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			//svm.getDataProcessingConfig(sd, managedId, svd, null, oId);
 
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -495,7 +475,7 @@ public class ActionManager {
 					if (priority < 0) {
 						priority = getPriority(cResults, f.tableName, u.prikey);
 					}
-					applyManagedFormActions(request, sd, tc, oId, sId, pId, managedId, u.prikey, priority, u.value,
+					applyManagedFormActions(request, sd, tc, oId, sId, pId, groupSurvey, u.prikey, priority, u.value,
 							localisation);
 				}
 				
@@ -545,7 +525,6 @@ public class ActionManager {
 			} catch (Exception ex) {
 			}
 
-			try {if (pstmtCanUpdate != null) {pstmtCanUpdate.close();	}} catch (Exception e) {	}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
 
 		}

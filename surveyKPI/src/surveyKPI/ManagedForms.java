@@ -126,11 +126,11 @@ public class ManagedForms extends Application {
 	@POST
 	@Produces("text/html")
 	@Consumes("application/json")
-	@Path("/update/{sId}/{managedId}")
+	@Path("/update/{sId}/{groupSurvey}")
 	public Response updateManagedRecord(
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
-			@PathParam("managedId") int managedId,
+			@PathParam("groupSurvey") String groupSurvey,
 			@FormParam("settings") String settings
 			) { 
 		
@@ -158,7 +158,7 @@ public class ManagedForms extends Application {
 			String tz = "UTC";
 			
 			ActionManager am = new ActionManager(localisation, tz);
-			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, managedId, settings);
+			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, groupSurvey, settings);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
 		} finally {

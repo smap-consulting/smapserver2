@@ -117,14 +117,17 @@ public class ActionService extends Application {
 			
 			// 1. Get details on the action to be performed using the user credentials
 			ActionManager am = new ActionManager(localisation, tz);
-			Action a = am.getAction(sd, userIdent);
+			Action action = am.getAction(sd, userIdent);
 
+			// Authorisation
+			a.isValidGroupSurvey(sd, request.getRemoteUser(), action.sId, action.groupSurvey);
+			
 			// 2. If temporary user does not exist then throw exception
 			if (a == null) {
 				throw new Exception(localisation.getString("mf_adnf"));
 			}
 			
-			response = am.processUpdate(request, sd, cResults, userIdent, a.sId, a.managedId, settings);
+			response = am.processUpdate(request, sd, cResults, userIdent, action.sId, action.groupSurvey, settings);
 
 		} finally {
 			SDDataSource.closeConnection(requester, sd);
