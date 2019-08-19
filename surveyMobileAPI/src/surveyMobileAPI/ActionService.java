@@ -119,9 +119,6 @@ public class ActionService extends Application {
 			ActionManager am = new ActionManager(localisation, tz);
 			Action action = am.getAction(sd, userIdent);
 
-			// Authorisation
-			a.isValidGroupSurvey(sd, request.getRemoteUser(), action.sId, action.groupSurvey);
-			
 			// 2. If temporary user does not exist then throw exception
 			if (a == null) {
 				throw new Exception(localisation.getString("mf_adnf"));

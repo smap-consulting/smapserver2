@@ -372,13 +372,19 @@ public class ActionManager {
 
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
 			int pId = GeneralUtilityMethods.getProjectId(sd, sId);
+			int uId = GeneralUtilityMethods.getUserId(sd, userIdent);
 
 			/*
 			 * Get the data processing columns
 			 */
-			SurveyViewDefn svd = new SurveyViewDefn();
-			//SurveyViewManager svm = new SurveyViewManager(localisation, tz);
-			//svm.getDataProcessingConfig(sd, managedId, svd, null, oId);
+			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
+			SurveyViewDefn svd = svm.getSurveyView(sd, 
+					cResults, 
+					uId, 
+					null,		// ssd 
+					sId,
+					request.getRemoteUser(), oId, false,
+					groupSurvey);	
 
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
@@ -445,10 +451,10 @@ public class ActionManager {
 							java.util.Date inputDate = dateFormat.parse(u.value);
 							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
 						}
-					} else if (tc.type.equals("integer")) {
+					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
 						int inputInt = Integer.parseInt(u.value);
 						pstmtUpdate.setInt(paramCount++, inputInt);
-					} else if (tc.type.equals("decimal")) {
+					} else if (tc.type.equals("decimal") || tc.type.equals("range")) {
 						double inputDouble = Double.parseDouble(u.value);
 						pstmtUpdate.setDouble(paramCount++, inputDouble);
 					} else if (tc.type.equals("string")) {
