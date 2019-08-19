@@ -666,7 +666,7 @@ public class ActionManager {
 					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
 						int inputInt = Integer.parseInt(u.value);
 						pstmtUpdate.setInt(paramCount++, inputInt);
-					} else if (tc.type.equals("decimal")) {
+					} else if (tc.type.equals("decimal") || tc.type.equals("range")) {
 						double inputDouble = Double.parseDouble(u.value);
 						pstmtUpdate.setDouble(paramCount++, inputDouble);
 					} else if (tc.type.equals("geopoint")) {
