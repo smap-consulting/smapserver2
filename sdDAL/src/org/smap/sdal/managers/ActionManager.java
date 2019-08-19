@@ -663,7 +663,7 @@ public class ActionManager {
 							java.util.Date inputDate = dateFormat.parse(u.value);
 							pstmtUpdate.setDate(paramCount++, new java.sql.Date(inputDate.getTime()));
 						}
-					} else if (tc.type.equals("integer")) {
+					} else if (tc.type.equals("integer") || tc.type.equals("int")) {
 						int inputInt = Integer.parseInt(u.value);
 						pstmtUpdate.setInt(paramCount++, inputInt);
 					} else if (tc.type.equals("decimal")) {
