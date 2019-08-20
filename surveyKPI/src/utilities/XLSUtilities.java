@@ -612,44 +612,40 @@ public class XLSUtilities {
 
 		String xmlForm = xForm.get(template, false, true, false, user);
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
-		try {
-			org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
-			FormEntryModel fem = new FormEntryModel(fd);
-			
-			// make sure properties get loaded
-	        fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));
 
-	        // update evaluation context for function handlers
-	        fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
+		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
+		FormEntryModel fem = new FormEntryModel(fd);
 
-	            public String getName() {
-	                return "pulldata";
-	            }
+		// make sure properties get loaded
+		fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));
 
-	            public List<Class[]> getPrototypes() {
-	                return new ArrayList<Class[]>();
-	            }
+		// update evaluation context for function handlers
+		fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
 
-	            public boolean rawArgs() {
-	                return true;
-	            }
+			public String getName() {
+				return "pulldata";
+			}
 
-	            public boolean realTime() {
-	                return false;
-	            }
+			public List<Class[]> getPrototypes() {
+				return new ArrayList<Class[]>();
+			}
 
-				@Override
-				public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
-					// TODO Auto-generated method stub
-					return arg0[0];
-				}});
-	        
-			fd.initialize(true, new InstanceInitializationFactory());
-		} catch(Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-			log.info(xmlForm);
-			throw e;
-		}
+			public boolean rawArgs() {
+				return true;
+			}
+
+			public boolean realTime() {
+				return false;
+			}
+
+			@Override
+			public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
+				// TODO Auto-generated method stub
+				return arg0[0];
+			}});
+
+		fd.initialize(true, new InstanceInitializationFactory());
+
 
 	}
     
