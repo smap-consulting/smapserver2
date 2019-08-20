@@ -472,7 +472,14 @@ public class Data extends Application {
 				
 			} else {
 			
-	
+				ssd = new SurveySettingsDefn();
+				ssd.limit = limit;
+				ssd.filter = advanced_filter;
+				ssd.dateName = dateName;
+				ssd.fromDate = startDate;
+				ssd.toDate = endDate;
+				ssd.overridenDefaultLimit = "yes";
+				
 				if(fId == 0) {
 					pstmtGetMainForm = sd.prepareStatement(sqlGetMainForm);
 					pstmtGetMainForm.setInt(1,sId);
