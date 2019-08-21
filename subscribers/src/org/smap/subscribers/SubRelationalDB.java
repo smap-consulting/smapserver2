@@ -1715,10 +1715,7 @@ public class SubRelationalDB extends Subscriber {
 	 */
 	private  int getKeyFromId(Connection connection, IE element, String instanceId) throws SQLException {
 
-		int key = 0;
-		/*
-		 * Set the record as bad with the reason being that it has been replaced
-		 */		
+		int key = 0;	
 		String tableName = element.getTableName();
 
 		String sql = "select prikey, _bad from " + tableName + " where instanceid = ?";
@@ -1746,11 +1743,13 @@ public class SubRelationalDB extends Subscriber {
 						ResultSet rst = pstmtGetThread.executeQuery();
 						if(rst.next()) {
 							String thread = rst.getString(1);
-							pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
-							pstmtGetLatest.setString(1, thread);
-							ResultSet rsl = pstmtGetLatest.executeQuery();
-							if(rsl.next()) {
-								key = rsl.getInt(1);
+							if(thread != null) {
+								pstmtGetLatest = connection.prepareStatement(sqlGetLatest);
+								pstmtGetLatest.setString(1, thread);
+								ResultSet rsl = pstmtGetLatest.executeQuery();
+								if(rsl.next()) {
+									key = rsl.getInt(1);
+								}
 							}
 						}
 					} catch (Exception ex) {

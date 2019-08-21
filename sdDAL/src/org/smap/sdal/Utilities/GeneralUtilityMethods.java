@@ -8263,6 +8263,11 @@ public class GeneralUtilityMethods {
 		} finally {
 			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 		}
+		
+		if(latestInstanceId == null) {
+			latestInstanceId = instanceId;
+		}
+		
 		return latestInstanceId;
 	}
 	
