@@ -465,6 +465,17 @@ public class TaskManager {
 					to = rs.getTimestamp("default_finish");
 				}
 				
+				// If we don't want accepted but do want late tasks then filter on date
+				if(wantLate && !wantAccepted) {
+					if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() > now)) {
+						continue;
+					} 
+				} else if(wantAccepted && !wantLate) {
+					if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() < now)) {
+						continue;
+					}
+				}
+				
 				// Adjust status
 				if(deleted && status == null) {
 					status = "deleted";
@@ -472,15 +483,8 @@ public class TaskManager {
 					status = "new";
 				} else if(assignee < 0) {
 					status = "new";
-				}
-
-				// If we don't want accepted but do want late tasks then filter on date
-				if(wantLate && !wantAccepted) {
-					if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() > now)) {
-						continue;
-					} else if(status.equals(STATUS_T_ACCEPTED)) {
-						status = STATUS_T_LATE;
-					}
+				} else if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() < now)) {
+					status = STATUS_T_LATE;
 				}
 				
 				// Ignore any tasks that are not required
