@@ -554,7 +554,7 @@ public class PDFSurveyManager {
 
 					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 					if(ad != null) {
-						Image img = PdfUtilities.getMapImage(sd, di.map, r.value, di.location, di.zoom
+						Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, di.location, di.zoom
 								,gv.mapbox_key,
 								survey.id,
 								user,
@@ -1274,7 +1274,15 @@ public class PDFSurveyManager {
 					} else if(app.equals("pdflabelbold")) {
 						di.labelbold = true;
 					} else if(app.startsWith("pdfmap")) {			// mapbox map id
-						di.map = getAppValue(app);
+						String map = getAppValue(app);
+						if(!map.equals("custom")) {
+							di.map = map;
+							di.account = "mapbox";
+						}
+					} else if(app.startsWith("pdfcustommap")) {		// custom map style
+							di.map = getAppValue(app);
+					} else if(app.startsWith("pdfaccount")) {			// mapbox account
+						di.account = getAppValue(app);
 					} else if(app.startsWith("pdflocation")) {
 						di.location = getAppValue(app);			// lon,lat,zoom
 					} else if(app.startsWith("pdfbarcode")) {
@@ -1566,7 +1574,7 @@ public class PDFSurveyManager {
 
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 		
-			Image img = PdfUtilities.getMapImage(sd, di.map, di.value, di.location, di.zoom, gv.mapbox_key,
+			Image img = PdfUtilities.getMapImage(sd, di.map, di.account, di.value, di.location, di.zoom, gv.mapbox_key,
 					survey.id,
 					user,
 					di.markerColor);

@@ -85,6 +85,7 @@ public class PdfUtilities {
 	
 	public static Image getMapImage(Connection sd, 
 			String map, 
+			String account,
 			String value, 
 			String location, 
 			String zoom,
@@ -97,9 +98,8 @@ public class PdfUtilities {
 		
 		StringBuffer url = new StringBuffer();
 		boolean getMap = false;
-		//url.append("https://api.mapbox.com/v4/");
 		url.append("https://api.mapbox.com/styles/v1/");
-		url.append("mapbox/");		// Mapbox username that owns the style
+		url.append(account).append("/");	// Mapbox username that owns the style
 		if(map != null) {
 			url.append(map);
 		} else {

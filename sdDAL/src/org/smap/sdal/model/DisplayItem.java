@@ -25,6 +25,7 @@ public class DisplayItem {
 	public int qIdx = 0;
 	public int rec_number = 0;
 	public String map;
+	public String account;
 	public String location;
 	public String zoom;					// Map zoom
 	public boolean isBarcode = false;
