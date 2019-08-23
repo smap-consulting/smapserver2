@@ -1060,7 +1060,7 @@ public class SubRelationalDB extends Subscriber {
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			if(sourceKey > 0) {
 
-				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id);
+				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id, false);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
@@ -1140,7 +1140,10 @@ public class SubRelationalDB extends Subscriber {
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, child_f_id));  // Doing a merge so set replace to false
+											childPrikeys.get(i), childSourcekeys.get(i), 
+											false, 
+											child_f_id,
+											true));  // Doing a merge so set replace to false
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1170,7 +1173,9 @@ public class SubRelationalDB extends Subscriber {
 											sd,
 											cResults, 
 											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, child_f_id));  // Doing a replace so set replace to true
+											childPrikeys.get(i), childSourcekeys.get(i), false, 
+											child_f_id,
+											true));  // Doing a replace so set replace to true
 								} else {
 									// Record the dropped record									
 									subFormChanges.add(getChangeRecord(
@@ -1316,7 +1321,8 @@ public class SubRelationalDB extends Subscriber {
 			int prikey, 
 			int sourceKey, 
 			boolean replace,
-			int f_id) throws SQLException {
+			int f_id,
+			boolean subform) throws SQLException {
 		
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 		
@@ -1442,7 +1448,9 @@ public class SubRelationalDB extends Subscriber {
 	
 			}
 
-			GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
+			if(!subform) {
+				GeneralUtilityMethods.continueThread(cRel, table, prikey, sourceKey);
+			}
 
 			
 		} finally {

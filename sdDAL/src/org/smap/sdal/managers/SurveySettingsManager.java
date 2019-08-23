@@ -64,8 +64,6 @@ public class SurveySettingsManager {
 	private ResourceBundle localisation = null;
 	String tz;
 	
-	public static String ASSIGNED_COLUMN = "_assigned";
-	
 	public SurveySettingsManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if(tz == null) {
