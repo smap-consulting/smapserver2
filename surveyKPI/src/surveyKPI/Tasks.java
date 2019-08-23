@@ -758,7 +758,7 @@ public class Tasks extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
 			SDDataSource.closeConnection(connectionString, sd);	
-			ResultsDataSource.closeConnection(connectionString, sd);	
+			ResultsDataSource.closeConnection(connectionString, cResults);	
 		}
 		
 		return response;

@@ -689,6 +689,10 @@ public class MyAssignments extends Application {
 				if(ta.assignment.assignment_id > 0) {
 					log.info("Task Assignment: " + ta.assignment.assignment_status);
 
+					if(ta.task == null) {
+						ta.task = new Task();
+						ta.task.id = GeneralUtilityMethods.getTaskId(sd, ta.assignment.assignment_id);
+					}
 					updateAssignment(
 							sd,
 							cResults,
