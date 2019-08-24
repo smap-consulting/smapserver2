@@ -1805,6 +1805,10 @@ public class GetXForm {
 				elementStack.push(currentParent);
 				currentParent = childElement;
 
+			} if (item.end_group) {
+				
+				currentParent = elementStack.pop();
+				
 			} else { // Question
 
 				// Create the question element
@@ -1812,6 +1816,12 @@ public class GetXForm {
 				childElement = outputDoc.createElement(item.name);
 				childElement.setTextContent(item.value);
 				currentParent.appendChild(childElement);
+				
+				if (item.begin_group) {
+					elementStack.push(currentParent);
+					currentParent = childElement;
+				}
+					
 			}
 
 		}
