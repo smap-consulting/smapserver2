@@ -31,5 +31,6 @@ public class AssignFromSurvey {
 	public int taskDuration;				// Duration of the task
 	public String durationUnits;			// Units for the duration 
 	public String emails;				// Comma separated list of emails
-	public TaskEmailDetails emailDetails;	
+	public TaskEmailDetails emailDetails;
+	public boolean complete_all;
 }

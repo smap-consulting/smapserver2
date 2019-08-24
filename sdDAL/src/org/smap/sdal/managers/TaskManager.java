@@ -3102,6 +3102,7 @@ public class TaskManager {
 			int sourceSurveyId,
 			int targetSurveyId,
 			int dlDist,
+			boolean complete_all,
 			boolean useExisting			// If set and there is an existing task group with the same name return its id, otherwise throw an exception
 			) throws Exception {
 		
@@ -3140,8 +3141,9 @@ public class TaskManager {
 						+ "rule,"
 						+ "source_s_id,"
 						+ "target_s_id,"
-						+ "dl_dist) "
-						+ "values (?, ?, ?, ?, ?, ?, ?);";
+						+ "dl_dist,"
+						+ "complete_all) "
+						+ "values (?, ?, ?, ?, ?, ?, ?, ?);";
 		
 				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
 				pstmtTaskGroup.setString(1, taskGroupName);
@@ -3151,6 +3153,7 @@ public class TaskManager {
 				pstmtTaskGroup.setInt(5, sourceSurveyId);
 				pstmtTaskGroup.setInt(6, targetSurveyId);
 				pstmtTaskGroup.setInt(7, dlDist);
+				pstmtTaskGroup.setBoolean(8, complete_all);
 				log.info("Insert into task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 		
