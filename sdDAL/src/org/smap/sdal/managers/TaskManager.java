@@ -2191,6 +2191,7 @@ public class TaskManager {
 				+ "location_group,"
 				+ "location_name,"
 				+ "repeat,"
+				+ "complete_all,"
 				+ "guidance,"
 				+ "initial_data_source,"
 				+ "initial_data,"
@@ -2212,6 +2213,7 @@ public class TaskManager {
 				+ "?,"		// location_group
 				+ "?,"		// location_name
 				+ "?,"		// repeat
+				+ "?,"		// complete_all
 				+ "?,"		// guidance
 				+ "?,"		// initial_data_source
 				+ "?,"		// initial_data	
