@@ -99,8 +99,13 @@ public class PdfUtilities {
 		StringBuffer url = new StringBuffer();
 		boolean getMap = false;
 		url.append("https://api.mapbox.com/styles/v1/");
-		url.append(account).append("/");	// Mapbox username that owns the style
-		if(map != null) {
+		if(account != null) {
+			url.append(account).append("/");	// Mapbox username that owns the style
+		} else {
+			url.append("mapbox").append("/");	// Mapbox username that owns the style
+		}
+		
+		if(map != null && !map.equals("none")) {
 			url.append(map);
 		} else {
 			url.append("streets-v11");	// default map
