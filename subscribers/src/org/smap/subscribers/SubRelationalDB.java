@@ -260,7 +260,6 @@ public class SubRelationalDB extends Subscriber {
 				rem.writeTaskStatusEvent(
 						sd, 
 						cResults,
-						remoteUser, 
 						0,
 						assignmentId,
 						"submitted",
@@ -268,6 +267,9 @@ public class SubRelationalDB extends Subscriber {
 						null);			// Task Title not changed
 			}
 
+			// Cancel other assignements if complete_all is not set for the task
+			TaskManager tm = new TaskManager(localisation, tz);
+			tm.cancelOtherAssignments(sd, cResults, assignmentId);
 
 		} catch (SQLException e) {
 			e.printStackTrace();

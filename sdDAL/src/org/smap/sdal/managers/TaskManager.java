@@ -99,19 +99,21 @@ public class TaskManager {
     public static final String STATUS_T_REJECTED = "rejected";
     public static final String STATUS_T_SUBMITTED = "submitted";
     public static final String STATUS_T_CANCELLED = "cancelled";
+    public static final String STATUS_T_PENDING = "pending";
+    public static final String STATUS_T_UNSENT = "unsent";
     
     public static final String STATUS_T_LATE = "late";	// Pseudo status = accepted and overdue
     
 	private String fullStatusList[] = {		// late is not included as a real status
 			STATUS_T_NEW, 
 			STATUS_T_ACCEPTED, 
-			"unsent", 
+			STATUS_T_UNSENT, 
 			"unsubscribed", 
 			STATUS_T_SUBMITTED, 
 			STATUS_T_REJECTED, 
-			STATUS_T_CANCELLED , 
+			STATUS_T_CANCELLED, 
 			"deleted",
-			"pending",
+			STATUS_T_PENDING,
 			"error",
 			"blocked"
 			};
@@ -1466,10 +1468,9 @@ public class TaskManager {
 					rem.writeTaskStatusEvent(
 							sd, 
 							cResults,
-							remoteUser, 
 							tsd.id,
 							0,
-							"cancelled",
+							STATUS_T_CANCELLED,
 							null,			
 							tsd.name);
 					
@@ -1782,7 +1783,7 @@ public class TaskManager {
 						}
 						
 						// Set email status to pending
-						pstmtSetStatus.setString(1, "pending");
+						pstmtSetStatus.setString(1, STATUS_T_PENDING);
 						pstmtSetStatus.setInt(2, aId);
 						pstmtSetStatus.executeUpdate();
 						
@@ -1810,7 +1811,7 @@ public class TaskManager {
 				}
 				
 				updateAssigned = null;
-				updateStatus = "pending";
+				updateStatus = STATUS_T_PENDING;
 				updateName = null;
 			}
 			
@@ -1824,7 +1825,6 @@ public class TaskManager {
 						rem.writeTaskStatusEvent(
 								sd, 
 								cResults,
-								remoteUser, 
 								(int) taskId,
 								assignmentId,
 								updateStatus,
@@ -1936,6 +1936,67 @@ public class TaskManager {
 			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
 		}		
 	}
+	
+	/*
+	 * If a user has completed a task and the task is set to only require one assignment
+	 * to be completed then delete the other assignments
+	 */
+	public void cancelOtherAssignments(
+			Connection sd, 
+			Connection cResults,
+			int assignmentId) throws SQLException {
+
+		String sqlGetTask = "select a.task_id, t.complete_all "
+				+ "from assignments a, tasks t "
+				+ "where a.task_id = t.id "
+				+ "and a.id = ?";
+		PreparedStatement pstmtGetTask = null;
+		
+		String sql = "select id from assignments a "
+				+ "where a.task_id = ? and"
+				+ "a.id not = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			// 1. Get the task info
+			pstmtGetTask = sd.prepareStatement(sqlGetTask);
+			pstmtGetTask.setInt(1, assignmentId);
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				int taskId = rs.getInt(1);
+				boolean complete_all = rs.getBoolean(2);
+				String taskName = rs.getString(3);
+				
+				if(complete_all) {
+					// 2. Cancel the assignments
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setInt(1, taskId);
+					pstmt.setInt(2, assignmentId);
+					ResultSet rs2 = pstmt.executeQuery();
+		
+					while (rs.next()) {
+						int aId = rs.getInt(1);
+						if(aId != assignmentId) {
+							log.info("Cancelling other assignment");
+							cancelAssignment(
+									sd, 
+									cResults,
+									taskId,
+									aId,
+									taskName);
+						}
+					}
+				}
+			}
+
+			
+		} finally {
+			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+			if(pstmtGetTask != null) try {	pstmtGetTask.close(); } catch(SQLException e) {};
+		}		
+	}
 
 
 	/*
@@ -1994,6 +2055,69 @@ public class TaskManager {
 			if(pstmtTempUsers != null) try {	pstmtTempUsers.close(); } catch(SQLException e) {};
 			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
 		}		
+	}
+	
+	/*
+	 * Utility function to cancel an assignment
+	 */
+	private void cancelAssignment(
+			Connection sd,
+			Connection cResults,
+			int taskId,
+			int assignmentId,
+			String updateName) throws SQLException {
+		
+		String sqlUsers = "delete from users where temporary = true and id in "
+				+ "(select assignee from assignments where id = ?) ";
+		PreparedStatement pstmtUsers = null;
+		
+		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
+				+ "(select assignee from assignments where id = ?) ";
+		PreparedStatement pstmtGetUsers = null;
+		
+		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() "
+				+ "where id = ?";
+		PreparedStatement pstmtCancel = null;
+		
+		try {
+		
+			// 1. Delete any temporary users created for this task
+			pstmtUsers = sd.prepareStatement(sqlUsers);
+			pstmtUsers.setInt(1, assignmentId);
+			log.info("Delete temporary user for assignment: " + pstmtUsers.toString());
+			pstmtUsers.executeUpdate();
+			
+			// 2. Notify users whose task has been deleted
+			MessagingManager mm = new MessagingManager();
+			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
+			pstmtGetUsers.setInt(1, assignmentId);
+			log.info("Get task users: " + pstmtGetUsers.toString());
+			ResultSet rs = pstmtGetUsers.executeQuery();
+			while (rs.next()) {
+				mm.userChange(sd, rs.getString(1));
+			}			
+			
+			// 3. Cancel the assignments
+			pstmtCancel = sd.prepareStatement(sqlAssignments);
+			pstmtCancel.setInt(1, assignmentId);
+			log.info("Cancel Assignment: " + pstmtCancel.toString());
+			pstmtCancel.executeUpdate();
+			
+			// Update Record Event Manager
+			RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+			rem.writeTaskStatusEvent(
+					sd, 
+					cResults,
+					taskId,
+					assignmentId,
+					STATUS_T_CANCELLED,
+					null,
+					updateName);
+		} finally {
+			if(pstmtUsers != null) try {	pstmtUsers.close(); } catch(SQLException e) {};
+			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
+			if(pstmtCancel != null) try {	pstmtCancel.close(); } catch(SQLException e) {};
+		}
 	}
 	
 	public Timestamp getTaskStartTime(AssignFromSurvey as, Timestamp taskStart) {
@@ -2379,18 +2503,11 @@ public class TaskManager {
 					
 					// Notify currently assigned user
 					if(assignee > 0 && existingAssignee != assignee) {
-						cancelAssignment(sd, a_id, existingAssignee);
-						
-						// Update record events
-						RecordEventManager rem = new RecordEventManager(localisation, "UTC");
-						rem.writeTaskStatusEvent(
+						cancelAssignment(
 								sd, 
 								cResults,
-								remoteUser, 
 								task_id,
 								a_id,
-								"cancelled",
-								null,			// Assigned not changed
 								task_name);
 					}
 					
@@ -2510,9 +2627,9 @@ public class TaskManager {
 			boolean emailTaskBlocked = GeneralUtilityMethods.emailTaskBlocked(sd, oId);
 			String [] emailArray = emails.split(",");
 			if(autosendEmails) {
-				status = "pending";
+				status = STATUS_T_PENDING;
 			} else {
-				status = "unsent";
+				status = STATUS_T_UNSENT;
 			}
 			
 			TaskManager tm = new TaskManager(localisation, tz);
@@ -2883,36 +3000,6 @@ public class TaskManager {
 			pstmt.executeUpdate();
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-		}
-	}
-	
-	private void cancelAssignment(Connection sd, int aId, int assignee) throws SQLException {
-		String sql = "update assignments set status = 'cancelled' where id = ? ";
-		PreparedStatement pstmt = null;
-		
-		String sqlGetAssignedUsers = "select distinct ident from users where temporary = false and id in "
-				+ "(select a.assignee from assignments a where a.id = ?) ";
-		PreparedStatement pstmtGetUsers = null;
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, aId);
-			pstmt.executeUpdate();
-		
-			// Notify currently assigned users that are being modified
-			MessagingManager mm = new MessagingManager();
-			if(assignee > 0) {				
-				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers);
-				pstmtGetUsers.setInt(1, assignee);
-						
-				ResultSet rsNot = pstmtGetUsers.executeQuery();
-				while(rsNot.next()) {
-					mm.userChange(sd, rsNot.getString(1));
-				}
-			}
-
-		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-			if(pstmtGetUsers != null) {try {pstmtGetUsers.close();} catch(Exception e) {}}
 		}
 	}
 	

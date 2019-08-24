@@ -162,7 +162,6 @@ public class RecordEventManager {
 	public void writeTaskStatusEvent(
 			Connection sd, 
 			Connection cResults,
-			String userName,
 			int taskId,
 			int assignmentId,
 			String status,

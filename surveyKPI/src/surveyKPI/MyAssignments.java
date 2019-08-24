@@ -885,7 +885,6 @@ public class MyAssignments extends Application {
 				rem.writeTaskStatusEvent(
 						sd, 
 						cResults,
-						userName, 
 						taskId,
 						assignmentId,
 						status,
