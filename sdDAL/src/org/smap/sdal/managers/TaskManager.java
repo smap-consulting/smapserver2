@@ -101,10 +101,12 @@ public class TaskManager {
     public static final String STATUS_T_CANCELLED = "cancelled";
     public static final String STATUS_T_PENDING = "pending";
     public static final String STATUS_T_UNSENT = "unsent";
+    public static final String STATUS_T_DELETED = "deleted";
     
+    public static final String STATUS_T_COMPLETE = "complete";
     public static final String STATUS_T_LATE = "late";	// Pseudo status = accepted and overdue
     
-	private String fullStatusList[] = {		// late is not included as a real status
+	private String fullStatusList[] = {		// late, complete are not included as a real status
 			STATUS_T_NEW, 
 			STATUS_T_ACCEPTED, 
 			STATUS_T_UNSENT, 
@@ -112,7 +114,7 @@ public class TaskManager {
 			STATUS_T_SUBMITTED, 
 			STATUS_T_REJECTED, 
 			STATUS_T_CANCELLED, 
-			"deleted",
+			STATUS_T_DELETED,
 			STATUS_T_PENDING,
 			"error",
 			"blocked"
@@ -480,7 +482,7 @@ public class TaskManager {
 				
 				// Adjust status
 				if(deleted && status == null) {
-					status = "deleted";
+					status = STATUS_T_DELETED;
 				} else if(status == null) {
 					status = "new";
 				} else if(assignee < 0) {
@@ -490,7 +492,7 @@ public class TaskManager {
 				}
 				
 				// Ignore any tasks that are not required
-				if(!completed && (status.equals("submitted") || status.equals("complete"))) {
+				if(!completed && (status.equals(STATUS_T_SUBMITTED) || status.equals(STATUS_T_COMPLETE))) {
 					continue;
 				}
 				if(userId > 0 && userId != assignee) {	// Assigned to a specific user only
