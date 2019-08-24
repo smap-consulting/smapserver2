@@ -30,7 +30,7 @@ public class TaskProperties {
 	public String emails;
 	public double lon;				// Duplicates geometry information, used when updating the location
 	public double lat;
-	public boolean complete_all;			// When set true all the assignments associated to a task need to be completed	
+	public boolean complete_all;		// When set true all the assignments associated to a task need to be completed	
 	public Instance initial_data;	// The actual data in json format
 	public int show_dist;			// The distance at which the task will be shown on the phone	
 	

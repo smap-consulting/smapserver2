@@ -780,7 +780,7 @@ public class TaskManager {
 			String pName,
 			String remoteUser) throws Exception {
 
-		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id from task_group where source_s_id = ?;";
+		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
@@ -820,7 +820,8 @@ public class TaskManager {
 					}
 					int target_s_id = rs.getInt(5);
 					String target_s_ident = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
-	
+					boolean complete_all = rs.getBoolean(6);
+					
 					log.info("Assign Survey String: " + rs.getString(3));
 					log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
 	
@@ -874,7 +875,7 @@ public class TaskManager {
 									);
 						}
 						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
-								target_s_ident, tid, instanceId, true, remoteUser);  // Write to the database
+								target_s_ident, tid, instanceId, true, remoteUser, complete_all);  // Write to the database
 					}
 				}
 			}
@@ -904,7 +905,8 @@ public class TaskManager {
 			TaskInstanceData tid,			// data from submission
 			String updateId,
 			boolean autosendEmails,
-			String remoteUser
+			String remoteUser,
+			boolean complete_all
 			) throws Exception {
 
 		PreparedStatement pstmtAssign = null;
@@ -1045,6 +1047,7 @@ public class TaskManager {
 					null,
 					null,
 					false,
+					complete_all,
 					null,
 					initialDataSource,
 					initialData,
@@ -1378,6 +1381,7 @@ public class TaskManager {
 						tsd.location_group,
 						tsd.location_name,
 						tsd.repeat,
+						tsd.complete_all,
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
@@ -1401,6 +1405,7 @@ public class TaskManager {
 						tsd.location_group,
 						tsd.location_name,
 						tsd.repeat,
+						tsd.complete_all,
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
@@ -1429,9 +1434,7 @@ public class TaskManager {
 			 * 6. Assign the user to the task
 			 */ 	
 			for(AssignmentServerDefn asd : tsd.assignments) {
-				String status = null;
 				if(asd.a_id > 0) {
-					status = asd.status;
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
 					updateAssignment(sd, 
 							cResults,
@@ -1471,7 +1474,7 @@ public class TaskManager {
 							tsd.name);
 					
 					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
-					status = applyAllAssignments(
+					applyAllAssignments(
 							sd, 
 							cResults,
 							null, 
@@ -2111,6 +2114,7 @@ public class TaskManager {
 			String locationGroup,
 			String locationName,
 			boolean repeat,
+			boolean complete_all,
 			String guidance,
 			String initial_data_source,
 			String initial_data,
@@ -2131,11 +2135,12 @@ public class TaskManager {
 		pstmt.setString(13, locationTrigger);
 		pstmt.setString(14, locationGroup);
 		pstmt.setString(15, locationName);
-		pstmt.setBoolean(16, repeat);	
-		pstmt.setString(17, guidance);	
-		pstmt.setString(18, initial_data_source);
-		pstmt.setString(19, initial_data);	
-		pstmt.setInt(20, show_dist);	
+		pstmt.setBoolean(16, repeat);
+		pstmt.setBoolean(17, complete_all);	
+		pstmt.setString(18, guidance);	
+		pstmt.setString(19, initial_data_source);
+		pstmt.setString(20, initial_data);	
+		pstmt.setInt(21, show_dist);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -2159,6 +2164,7 @@ public class TaskManager {
 				+ "location_group = ?,"
 				+ "location_name = ?,"
 				+ "repeat = ?,"
+				+ "complete_all = ?,"
 				+ "guidance = ?,"
 				+ "initial_data_source = ?,"
 				+ "initial_data = ?, "
@@ -2185,6 +2191,7 @@ public class TaskManager {
 			String locationGroup,
 			String locationName,
 			boolean repeat,
+			boolean complete_all,
 			String guidance,
 			String initial_data_source,
 			String initial_data,
@@ -2201,12 +2208,13 @@ public class TaskManager {
 		pstmt.setString(9, locationGroup);
 		pstmt.setString(10, locationName);
 		pstmt.setBoolean(11, repeat);	
-		pstmt.setString(12, guidance);
-		pstmt.setString(13, initial_data_source);
-		pstmt.setString(14, initial_data);
-		pstmt.setInt(15, show_dist);
-		pstmt.setInt(16, tId);
-		pstmt.setInt(17, tgId);
+		pstmt.setBoolean(12, complete_all);	
+		pstmt.setString(13, guidance);
+		pstmt.setString(14, initial_data_source);
+		pstmt.setString(15, initial_data);
+		pstmt.setInt(16, show_dist);
+		pstmt.setInt(17, tId);
+		pstmt.setInt(18, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -2927,6 +2935,7 @@ public class TaskManager {
 		tsd.show_dist = tf.properties.show_dist;
 		tsd.initial_data_source = tf.properties.initial_data_source;
 		tsd.repeat = tf.properties.repeat;
+		tsd.complete_all = tf.properties.complete_all;
 		tsd.update_id = tf.properties.update_id;
 		tsd.lon = tf.properties.lon;
 		tsd.lat = tf.properties.lat;
