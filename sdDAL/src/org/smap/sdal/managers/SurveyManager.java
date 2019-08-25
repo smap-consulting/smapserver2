@@ -3622,21 +3622,18 @@ public class SurveyManager {
 			 */
 			if(newSurveyId == 0) {
 				// tasks
-				sql = "update tasks set deleted = 'true', deleted_at = now() where survey_ident = ?;";	
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, surveyIdent);
-				log.info("Delete tasks: " + pstmt.toString());
-				pstmt.executeUpdate();
+				TaskManager tm = new TaskManager(localisation, tz);
 				
-				// assignments
-				sql = "update assignments set status = 'cancelled', cancelled_date = now() where task_id in "
-						+ "(select id from tasks where survey_ident = ?)";	
+				sql = "select id from tasks "
+						+ "where survey_ident = ? "
+						+ "and deleted != true";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, surveyIdent);
-				log.info("Delete assignments: " + pstmt.toString());
-				pstmt.executeUpdate();
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					tm.deleteTask(sd, cRel, rs.getInt(1));
+				}
 			} 
 			
 			/*

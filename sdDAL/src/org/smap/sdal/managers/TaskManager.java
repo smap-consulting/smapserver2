@@ -1940,6 +1940,48 @@ public class TaskManager {
 	}
 	
 	/*
+	 * Delete a task
+	 */
+	public void deleteTask(Connection sd, Connection cResults, int taskId) throws SQLException {
+		
+		String sql = "update tasks set deleted = 'true', deleted_at = now() where id = ?"; 
+		PreparedStatement pstmt = null;
+		
+		String sqlAssignments = "select a.id, t.title from assignments a, tasks t "
+				+ "where a.task_id = ? "
+				+ "and a.task_id = t.id "
+				+ "and a.status != 'cancelled'";
+		PreparedStatement pstmtAssignments = null;
+		
+		try {
+			// Delete the task
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, taskId);
+			log.info("Delete tasks in task group: " + pstmt.toString());
+			pstmt.executeUpdate();
+				
+			// Cancel the assignments
+			pstmtAssignments = sd.prepareStatement(sqlAssignments);
+			pstmtAssignments.setInt(1, taskId);
+			ResultSet rs = pstmtAssignments.executeQuery();
+			while (rs.next()) {
+				int aId = rs.getInt(1);
+				String taskName = rs.getString(2);
+				cancelAssignment(
+						sd, 
+						cResults,
+						taskId,
+						aId,
+						taskName);
+			}
+			
+		} finally {
+			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
+			if(pstmtAssignments != null) try {	pstmtAssignments.close(); } catch(SQLException e) {};
+		}
+	}
+	
+	/*
 	 * If a user has completed a task and the task is set to only require one assignment
 	 * to be completed then delete the other assignments
 	 */
@@ -2003,7 +2045,7 @@ public class TaskManager {
 	/*
 	 * Utility function to cancel an assignment
 	 */
-	private void cancelAssignment(
+	public void cancelAssignment(
 			Connection sd,
 			Connection cResults,
 			int taskId,
