@@ -1948,15 +1948,15 @@ public class TaskManager {
 			Connection cResults,
 			int assignmentId) throws SQLException {
 
-		String sqlGetTask = "select a.task_id, t.complete_all "
+		String sqlGetTask = "select a.task_id, t.complete_all, t.title "
 				+ "from assignments a, tasks t "
 				+ "where a.task_id = t.id "
 				+ "and a.id = ?";
 		PreparedStatement pstmtGetTask = null;
 		
 		String sql = "select id from assignments a "
-				+ "where a.task_id = ? and"
-				+ "a.id not = ?";
+				+ "where a.task_id = ? and "
+				+ "a.id != ?";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -1964,22 +1964,22 @@ public class TaskManager {
 			// 1. Get the task info
 			pstmtGetTask = sd.prepareStatement(sqlGetTask);
 			pstmtGetTask.setInt(1, assignmentId);
-			ResultSet rs = pstmt.executeQuery();
+			ResultSet rs = pstmtGetTask.executeQuery();
 			
 			if(rs.next()) {
 				int taskId = rs.getInt(1);
 				boolean complete_all = rs.getBoolean(2);
 				String taskName = rs.getString(3);
 				
-				if(complete_all) {
+				if(!complete_all) {
 					// 2. Cancel the assignments
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, taskId);
 					pstmt.setInt(2, assignmentId);
 					ResultSet rs2 = pstmt.executeQuery();
 		
-					while (rs.next()) {
-						int aId = rs.getInt(1);
+					while (rs2.next()) {
+						int aId = rs2.getInt(1);
 						if(aId != assignmentId) {
 							log.info("Cancelling other assignment");
 							cancelAssignment(
