@@ -1999,65 +1999,6 @@ public class TaskManager {
 			if(pstmtGetTask != null) try {	pstmtGetTask.close(); } catch(SQLException e) {};
 		}		
 	}
-
-
-	/*
-	 * Delete tasks that reference a specific updateId
-	 */
-	public void deleteTaskforUpdateId(Connection sd, int sId, String updateId, String user) throws SQLException {
-
-		String sqlGetUsers = "select distinct ident from users where temporary = false and id in "
-				+ "(select a.assignee from assignments a, tasks t "
-				+ "where t.update_id = ? "
-				+ "and a.status = 'accepted' "
-				+ "and a.task_id = t.id)"; 
-		PreparedStatement pstmtGetUsers = null;
-
-		String sqlTempUsers = "delete from users where temporary = true and id in "
-				+ "(select a.assignee from assignments a, tasks t "
-				+ "where t.update_id = ? "
-				+ "and a.status = 'accepted' "
-				+ "and a.task_id = t.id)"; 
-		PreparedStatement pstmtTempUsers = null;
-		
-		String sqlAssignments = "update assignments set status = 'cancelled', cancelled_date = now() "
-				+ "where status = 'accepted' "
-				+ "and task_id in (select id from tasks where update_id = ?)";
-		PreparedStatement pstmt = null;
-
-		try {
-
-			// Delete any temporary users created for this task
-			pstmtTempUsers = sd.prepareStatement(sqlTempUsers);
-			pstmtTempUsers.setString(1, updateId);
-
-			log.info("Delete temporary user: " + pstmtTempUsers.toString());
-			pstmtTempUsers.executeUpdate();
-
-			// Notify users whose task has been deleted
-			MessagingManager mm = new MessagingManager();
-			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
-			pstmtGetUsers.setString(1, updateId);
-
-			log.info("Get task users: " + pstmtGetUsers.toString());
-			ResultSet rs = pstmtGetUsers.executeQuery();
-			while (rs.next()) {
-				mm.userChange(sd, rs.getString(1));
-			}			
-			
-			// Delete the assignments
-			pstmt = sd.prepareStatement(sqlAssignments);
-			pstmt.setString(1, updateId);
-			log.info("Delete assignments that reference an update id: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-
-		} finally {
-			if(pstmt != null) try {	pstmt.close(); } catch(SQLException e) {};
-			if(pstmtTempUsers != null) try {	pstmtTempUsers.close(); } catch(SQLException e) {};
-			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
-		}		
-	}
 	
 	/*
 	 * Utility function to cancel an assignment

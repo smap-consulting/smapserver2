@@ -95,27 +95,6 @@ public class UtilityMethodsEmail {
 				log.info("Expecting 1 record to be updated.  Number of records updated: " + count);
 			}
 			
-			/*
-			 * Update any dependencies
-			 */
-			if(!isChild) {
-				try {
-					if(value) {	// Setting bad
-						pstmtGetInstanceId = cRel.prepareStatement(sqlGetInstanceId);
-						pstmtGetInstanceId.setInt(1, key);
-						ResultSet rs = pstmtGetInstanceId.executeQuery();
-						if(rs.next()) {
-							// Delete tasks that referenced this now 'bad' record
-							TaskManager tm = new TaskManager(localisation, tz);
-							tm.deleteTaskforUpdateId(sd, sId, rs.getString(1), user);
-						}
-					}
-				} catch (Exception e) {
-					// Record but otherwise Ignore exceptions
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-			}
-
 			if(updateChildren) {
 				// Get the child tables
 				sql = "SELECT DISTINCT f.table_name, f_id FROM form f " +
