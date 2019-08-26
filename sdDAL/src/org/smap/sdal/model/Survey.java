@@ -26,7 +26,7 @@ import com.google.gson.GsonBuilder;
  */
 public class Survey {
 	
-	private static Logger log =Logger.getLogger(Survey.class.getName());
+	private static Logger log = Logger.getLogger(Survey.class.getName());
 	
 	public int id;
 	public int e_id;
@@ -47,6 +47,7 @@ public class Survey {
 	public boolean hasManifest;
 	public ArrayList<Form> forms = new ArrayList<Form> ();
 	public HashMap<String, OptionList> optionLists = new HashMap<String, OptionList> ();
+	public HashMap<String, StyleList> styleLists = new HashMap<String, StyleList> ();
 	public ArrayList<Language> languages = new ArrayList<Language> (); 
 	public ArrayList<ServerSideCalculate> sscList  = new ArrayList<ServerSideCalculate> ();
 	public ArrayList<ManifestValue> surveyManifest  = new ArrayList<ManifestValue> ();
@@ -679,11 +680,12 @@ public class Survey {
 				+ "dataType,"
 				+ "compressed,"
 				+ "display_name,"
-				+ "intent"
+				+ "intent,"
+				+ "style_id"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 		try {
 			
@@ -715,6 +717,16 @@ public class Survey {
 					throw new Exception("List name " + q.list_name + " not found");
 				}
 				q.l_id = ol.id;
+			}
+			
+			// Set style id
+			q.style_id = 0;	
+			if(q.style_name != null) {
+				StyleList sl = styleLists.get(q.style_name);
+				if(sl == null) {
+					throw new Exception("Style name " + q.style_name + " not found");
+				}
+				q.style_id = sl.id;
 			}
 			
 			// Set name
