@@ -102,6 +102,7 @@ public class TaskManager {
     public static final String STATUS_T_PENDING = "pending";
     public static final String STATUS_T_UNSENT = "unsent";
     public static final String STATUS_T_DELETED = "deleted";
+    public static final String STATUS_T_BLOCKED = "blocked";
     
     public static final String STATUS_T_COMPLETE = "complete";
     public static final String STATUS_T_LATE = "late";	// Pseudo status = accepted and overdue
@@ -1950,7 +1951,12 @@ public class TaskManager {
 		String sqlAssignments = "select a.id, t.title from assignments a, tasks t "
 				+ "where a.task_id = ? "
 				+ "and a.task_id = t.id "
-				+ "and a.status != 'cancelled'";
+				+ "and (a.status = 'new' "
+				+ "or a.status = 'accepted' "
+				+ "or a.status = 'unsent' "
+				+ "or a.status = 'pending' "
+				+ "or a.status = 'blocked') ";
+		
 		PreparedStatement pstmtAssignments = null;
 		
 		try {
@@ -1998,7 +2004,13 @@ public class TaskManager {
 		
 		String sql = "select id from assignments a "
 				+ "where a.task_id = ? and "
-				+ "a.id != ?";
+				+ "and a.status "
+				+ "a.id != ?"
+				+ "and (a.status = 'new' "
+				+ "or a.status = 'accepted' "
+				+ "or a.status = 'unsent' "
+				+ "or a.status = 'pending' "
+				+ "or a.status = 'blocked') ";
 		PreparedStatement pstmt = null;
 
 		try {
