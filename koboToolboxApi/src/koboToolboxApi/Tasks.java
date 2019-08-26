@@ -383,7 +383,7 @@ public class Tasks extends Application {
 						0,	// Target survey id
 						0,	// Download distance
 						tp.complete_all,
-						true		// don't use an existing task group of the same name
+						true		// Use an existing task group of the same name
 						);	
 			}
 			
