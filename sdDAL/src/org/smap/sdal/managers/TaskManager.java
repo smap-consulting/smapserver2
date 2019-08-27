@@ -1612,7 +1612,7 @@ public class TaskManager {
 		try {
 
 			if(action.tasks.size() == 0) {
-				throw new Exception("No tasks");
+				throw new Exception(localisation.getString("msg_no_tasks"));
 			} 
 			
 			pstmtSetStatus = sd.prepareStatement(setStatusSql);
@@ -2003,9 +2003,8 @@ public class TaskManager {
 		PreparedStatement pstmtGetTask = null;
 		
 		String sql = "select id from assignments a "
-				+ "where a.task_id = ? and "
-				+ "and a.status "
-				+ "a.id != ?"
+				+ "where a.task_id = ? "
+				+ "and a.id != ? "
 				+ "and (a.status = 'new' "
 				+ "or a.status = 'accepted' "
 				+ "or a.status = 'unsent' "
@@ -2030,6 +2029,7 @@ public class TaskManager {
 					pstmt = sd.prepareStatement(sql);
 					pstmt.setInt(1, taskId);
 					pstmt.setInt(2, assignmentId);
+					log.info("Get other asignments: " + pstmt.toString());
 					ResultSet rs2 = pstmt.executeQuery();
 		
 					while (rs2.next()) {

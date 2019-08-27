@@ -170,13 +170,15 @@ public class AllAssignments extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, 
-					true, 		// full
-					basePath, 
-					null, false, false, false, false, false, "real", false, false, superUser, "geojson",
-					false,		// child surveys
-					false		// onlyGetLaunched
-					);	
+			if(sId > 0) {
+				survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, 
+						true, 		// full
+						basePath, 
+						null, false, false, false, false, false, "real", false, false, superUser, "geojson",
+						false,		// child surveys
+						false		// onlyGetLaunched
+						);	
+			}
 			
 			sd.setAutoCommit(false);
 			
