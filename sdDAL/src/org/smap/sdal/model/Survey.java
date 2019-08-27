@@ -225,6 +225,7 @@ public class Survey {
 			writeSurvey(sd, gson);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
+			writeStyles(sd, gson);
 			writeForms(sd, groupForms, existingSurveyId);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
 			writeRoles(sd, localisation, gson, userIdent);
@@ -429,6 +430,40 @@ public class Survey {
 			if(pstmtOption != null) {try {pstmtOption.close();} catch(Exception e) {}}
 			if(pstmtUpdateOption != null) {try {pstmtUpdateOption.close();} catch(Exception e) {}}
 			if(pstmtSetLabels != null) {try {pstmtSetLabels.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Write the styles
+	 * Then get the style id to be used by the question
+	 */
+	private void writeStyles(Connection sd, Gson gson) throws SQLException {
+		
+		String sql = "insert into style (s_id, name,style) values(?, ?, ?);";
+		PreparedStatement pstmt = null;
+		
+		try {
+			// Creating the option list
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+			pstmt.setInt(1, id);
+			
+			for(String stylename : styleLists.keySet()) {
+				
+				StyleList sl = styleLists.get(stylename);
+				
+				// 1. Create the style and get the style id
+				pstmt.setString(2, stylename);
+				pstmt.setString(3, gson.toJson(sl.markup));
+				pstmt.executeUpdate();				
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if(rs.next()) {
+					sl.id = rs.getInt(1);
+				}
+	
+			}		
+			
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
 	}
 	
@@ -791,6 +826,7 @@ public class Survey {
 			}
 			pstmt.setString(30,  q.display_name);
 			pstmt.setString(31,  q.intent);
+			pstmt.setInt(32,  q.style_id);
 
 			pstmt.executeUpdate();
 			
