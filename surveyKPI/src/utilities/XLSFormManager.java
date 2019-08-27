@@ -45,7 +45,9 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumnMarkup;
 
 import surveyKPI.UploadFiles;
 
@@ -80,6 +82,7 @@ public class XLSFormManager {
 		public static final int COL_DISPLAY_NAME = 21;
 		public static final int COL_INTENT = 22;
 		public static final int COL_GUIDANCE_HINT = 23;
+		public static final int COL_STYLE_LIST = 24;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -102,6 +105,11 @@ public class XLSFormManager {
 		public static final int COL_AUDIT_LOCATION_DATA = 210;
 		public static final int COL_TRACK_CHANGES = 211;
 
+		// Style sheet columns
+		public static final int COL_STYLE_LIST2 = 300;
+		public static final int COL_STYLE_NAME = 301;
+		public static final int COL_STYLE_COLOR = 302;
+		
 		String name;
 		private int type;
 		private int labelIndex;		// Where there are multiple labels this records the label index
@@ -267,7 +275,7 @@ public class XLSFormManager {
 			} else if(type == COL_AUDIO) {				
 				value = q.labels.get(labelIndex).audio;
 
-			} else if(type == COL_ROLE) {				
+			} else if(type == COL_ROLE) {			
 				Role r = survey.roles.get(typeString);
 				if(r != null) {
 					ArrayList<RoleColumnFilter> colFilters = r.column_filter;
@@ -282,8 +290,11 @@ public class XLSFormManager {
 					}
 				}
 
+			} else if(type == COL_STYLE_LIST) {				
+				value = q.style_name;
+
 			} else {
-				System.out.println("Unknown column type for survey: " + type);
+				log.info("Unknown column type for survey: " + type);
 			}
 
 			return value;
@@ -315,6 +326,25 @@ public class XLSFormManager {
 				value = o.labels.get(labelIndex).audio;	
 
 			} else {
+				System.out.println("Unknown option type: " + type);
+			}
+
+			return value;
+		}
+		
+		// Return the style value for this column
+		public String getValue(TableColumnMarkup tcm, String styleName) {
+			String value = "";
+
+			if(type == COL_STYLE_LIST2) {			
+				value = styleName;
+
+			} else if(type == COL_STYLE_NAME) {				
+				value = tcm.value;		
+
+			} else if(type == COL_STYLE_COLOR) {				
+				value = tcm.classes;		
+			}  else {
 				System.out.println("Unknown option type: " + type);
 			}
 
@@ -390,8 +420,9 @@ public class XLSFormManager {
 	 */
 	Workbook wb = null;
 	int rowNumberSurvey = 1;		// Heading row is 0
-	int rowNumberChoices = 1;		// Heading row is 0
-	int rowNumberSettings = 1;		// Heading row is 0
+	int rowNumberChoices = 1;	// Heading row is 0
+	int rowNumberSettings = 1;	// Heading row is 0
+	int rowNumberStyles = 1;		// Heading row is 0
 	
 	Survey survey = null;
 
@@ -413,6 +444,7 @@ public class XLSFormManager {
 		Sheet surveySheet = wb.createSheet("survey");
 		Sheet choicesSheet = wb.createSheet("choices");
 		Sheet settingsSheet = wb.createSheet("settings");
+		Sheet stylesSheet = wb.createSheet("styles");
 
 		// Freeze panes by default
 		surveySheet.createFreezePane(2, 1);
@@ -424,22 +456,29 @@ public class XLSFormManager {
 		HashMap<String, Integer> filterIndexes = new HashMap<String, Integer> ();
 		HashMap<String, Integer> namedColumnIndexes = new HashMap<String, Integer> ();
 		HashMap<String, String> addedOptionLists = new HashMap<String, String> ();
+		HashMap<String, String> addedStylesLists = new HashMap<String, String> ();
 
 		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes);
 		ArrayList<Column> colsChoices = getColumnsChoices();
 		ArrayList<Column> colsSettings = getColumnsSettings();
+		ArrayList<Column> colsStyles = getColumnsStyles();
 
 		// Write out the column headings
 		createHeader(colsSurvey, surveySheet, styles);
 		createHeader(colsChoices, choicesSheet, styles);
 		createHeader(colsSettings, settingsSheet, styles);
+		createHeader(colsStyles, stylesSheet, styles);
 
 		// Write out questions
 		Form ff = survey.getFirstForm();
-		processFormForXLS(ff, surveySheet, choicesSheet, styles, colsSurvey, 
+		processFormForXLS(ff, surveySheet, choicesSheet, stylesSheet, 
+				styles, 
+				colsSurvey, 
 				colsChoices, 
+				colsStyles,
 				filterIndexes,
 				addedOptionLists,
+				addedStylesLists,
 				namedColumnIndexes);
 
 		// Write out survey settings
@@ -477,11 +516,14 @@ public class XLSFormManager {
 			Form form, 
 			Sheet surveySheet,
 			Sheet choicesSheet,
+			Sheet stylesSheet,
 			Map<String, CellStyle> styles,
 			ArrayList<Column> colsSurvey,
 			ArrayList<Column> colsChoices,
+			ArrayList<Column> colsStyles,
 			HashMap<String, Integer> filterIndexes,
 			HashMap<String, String> addedOptionLists,
+			HashMap<String, String> addedStyleLists,
 			HashMap<String, Integer> namedColumnIndexes) throws IOException {
 
 		ArrayList<Question> questions = form.questions;
@@ -537,11 +579,14 @@ public class XLSFormManager {
 					if( subForm != null) {
 
 						processFormForXLS(subForm, 
-								surveySheet, choicesSheet, styles, 
+								surveySheet, choicesSheet, stylesSheet,
+								styles, 
 								colsSurvey, 
 								colsChoices,
+								colsStyles,
 								filterIndexes,
 								addedOptionLists,
+								addedStyleLists,
 								namedColumnIndexes);
 
 						addEndGroup(surveySheet, "end repeat", q.name, styles.get("begin repeat"));
@@ -555,6 +600,17 @@ public class XLSFormManager {
 								addChoiceList(choicesSheet, ol, colsChoices, filterIndexes, styles, q.list_name);
 							}
 							addedOptionLists.put(q.list_name, q.list_name);	// Remember lists that have been added
+						}
+					}
+					
+					// If this question has styles then add these to the style sheet but only if they have not already been added
+					if(q.style_name != null) {
+						if(addedStyleLists.get(q.style_name) == null) {
+							StyleList sl = survey.styleLists.get(q.style_name);
+							if(sl != null) {	
+								addStyleList(stylesSheet, sl, colsStyles, styles, q.style_name);
+							}
+							addedStyleLists.put(q.style_name, q.style_name);	// Remember lists that have been added
 						}
 					}
 				}
@@ -614,6 +670,31 @@ public class XLSFormManager {
 
 	}
 
+	/*
+	 * Add a style list
+	 */
+	private void addStyleList(Sheet sheet, 
+			StyleList sl,
+			ArrayList<Column> cols, 
+			Map<String, CellStyle> styles,
+			String styleName) {
+
+		sheet.createRow(rowNumberStyles++);		// blank row
+		for(TableColumnMarkup tcm : sl.markup) {
+			Row row = sheet.createRow(rowNumberStyles++);
+			for(int i = 0; i < cols.size(); i++) {
+				Column col = cols.get(i);
+				CellStyle colStyle = styles.get(col.typeString);
+
+				Cell cell = row.createCell(i);
+				if(colStyle != null) {	cell.setCellStyle(colStyle); }		
+
+				cell.setCellValue(col.getValue(tcm, styleName));
+			}
+		}
+
+	}
+	
 	/*
 	 * Add the end row of a "begin repeat" or "begin group"
 	 */
@@ -705,6 +786,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "required", Column.COL_REQUIRED, 0, "required"));
 		cols.add(new Column(colNumber++,"required_message", Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
+		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
@@ -748,6 +830,22 @@ public class XLSFormManager {
 			cols.add(new Column(colNumber++, "media::video::" + language.name, Column.COL_VIDEO, 0, "video"));
 			cols.add(new Column(colNumber++, "media::audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
 		}
+
+		return cols;
+	}
+	
+	/*
+	 * Get the columns for the styles sheet
+	 */
+	private ArrayList<Column> getColumnsStyles() {
+
+		ArrayList<Column> cols = new ArrayList<Column> ();
+
+		int colNumber = 0;
+
+		cols.add(new Column(colNumber++, "list name", Column.COL_STYLE_LIST2, 0, "list name"));
+		cols.add(new Column(colNumber++, "name", Column.COL_STYLE_NAME, 0, "name"));
+		cols.add(new Column(colNumber++, "color", Column.COL_STYLE_COLOR, 0, "color"));
 
 		return cols;
 	}

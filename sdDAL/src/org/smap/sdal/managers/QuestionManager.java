@@ -1781,9 +1781,11 @@ public class QuestionManager {
 				+ "q.external_choices,"
 				+ "q.external_table,"
 				+ "q.l_id,"
-				+ "q.intent "
+				+ "q.intent, "
+				+ "st.name as style_name "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
+				+ "left outer join style st on q.style_id = st.id "
 				+ "where q.f_id = ? ";
 		String sqlGetQuestions2 = "and q.soft_deleted = 'false' ";
 		String sqlGetQuestions3 =  "order by q.seq asc;";
@@ -1869,6 +1871,7 @@ public class QuestionManager {
 				//String exTable = rsGetQuestions.getString(32);
 				q.l_id = rsGetQuestions.getInt(33);
 				q.intent = rsGetQuestions.getString(34);
+				q.style_name = rsGetQuestions.getString(35);
 				
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
