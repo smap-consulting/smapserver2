@@ -255,6 +255,10 @@ public class SubRelationalDB extends Subscriber {
 				log.info("Updating task repeats: " + pstmtRepeats.toString());
 				pstmtRepeats.executeUpdate();
 
+				// Cancel other assignments if complete_all is not set for the task
+				TaskManager tm = new TaskManager(localisation, tz);
+				tm.cancelOtherAssignments(sd, cResults, assignmentId);
+				
 				// Write a message to the record event manager
 				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
 				rem.writeTaskStatusEvent(
@@ -267,9 +271,6 @@ public class SubRelationalDB extends Subscriber {
 						null);			// Task Title not changed
 			}
 
-			// Cancel other assignements if complete_all is not set for the task
-			TaskManager tm = new TaskManager(localisation, tz);
-			tm.cancelOtherAssignments(sd, cResults, assignmentId);
 
 		} catch (SQLException e) {
 			e.printStackTrace();

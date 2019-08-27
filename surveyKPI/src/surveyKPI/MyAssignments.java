@@ -38,6 +38,7 @@ import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.GeometryString;
@@ -48,7 +49,6 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.Task;
 import org.smap.sdal.model.TaskAssignment;
-import org.smap.sdal.model.TaskItemChange;
 import org.smap.sdal.model.TaskLocation;
 
 import com.google.gson.Gson;
@@ -843,6 +843,7 @@ public class MyAssignments extends Application {
 			String comment) throws SQLException {
 		
 		RecordEventManager rem = new RecordEventManager(localisation, "UTC");
+		TaskManager tm = new TaskManager(localisation, "UTC");
 		
 		/*
 		 * If the updated status = "cancelled" then this is an acknowledgment of the status set on the server
@@ -863,6 +864,11 @@ public class MyAssignments extends Application {
 			pstmtSetUpdated.setString(4, userName);
 			log.info("update assignments: " + pstmtSetUpdated.toString());
 			pstmtSetUpdated.executeUpdate();
+			
+			if(status.equals("submitted")) {
+				// Cancel other assignments if complete_all is not set for the task
+				tm.cancelOtherAssignments(sd, cResults, assignmentId);
+			}
 		}
 		if(comment != null && comment.length() > 0) {
 			// Get the oId here this should be a pretty rare event
