@@ -2743,16 +2743,14 @@ public class GeneralUtilityMethods {
 			 * Only add audit values that are in this form Also make sure we had a timing
 			 * value for very column in this form
 			 */
-		HashMap<String, AuditItem> auditItems = new HashMap();
+		HashMap<String, AuditItem> auditItems = new HashMap<>();
 
 		for (String col : columns) {
 			if (!col.startsWith("_") && !col.equals("meta") && 
 					!col.equals("instanceID") && !col.equals("instanceName")) {				
 
 				AuditItem ai = data.firstPassAudit.get(col);
-				log.info("Getting audit item for: " + col);
 				if(ai == null) {
-					log.info("audit item not found");
 					ai = new AuditItem();
 				}
 				auditItems.put(col, ai);
