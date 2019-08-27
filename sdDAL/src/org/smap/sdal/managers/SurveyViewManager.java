@@ -205,8 +205,10 @@ public void populateSvd(
 			// Add markup for assigned column
 			if(tc.column_name.equals(ASSIGNED_COLUMN)) {
 				tc.markup = new ArrayList<> ();
-				tc.markup.add(new TableColumnMarkup(uIdent, "bg-info"));		// Blue
-				tc.markup.add(new TableColumnMarkup("", "bg-warning"));		// Yellow
+				tc.markup.add(new TableColumnMarkup(uIdent, "blue"));		
+				tc.markup.add(new TableColumnMarkup("", "yellow"));		
+			} else {
+				tc.markup = c.markup;
 			}
 
 			if(tc.include) {					
