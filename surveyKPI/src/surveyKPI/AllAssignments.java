@@ -301,7 +301,7 @@ public class AllAssignments extends Application {
 							String assignSql = null;
 							if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 								SqlFrag frag = new SqlFrag();
-								frag.addSqlFragment(as.assign_data, false, localisation);
+								frag.addSqlFragment(as.assign_data, false, localisation, 0);
 								assignSql = frag.sql.toString();
 							}
 							

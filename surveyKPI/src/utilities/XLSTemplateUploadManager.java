@@ -303,7 +303,7 @@ public class XLSTemplateUploadManager {
 								Role r = survey.roles.get(h);
 								if(r != null) {
 									SqlFrag sq = new SqlFrag();
-									sq.addSqlFragment(filter, false, localisation);
+									sq.addSqlFragment(filter, false, localisation, 0);
 									settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
 									r.row_filter = filter;
 								}
@@ -541,7 +541,7 @@ public class XLSTemplateUploadManager {
 			Row row = surveySheet.getRow(rowNumSurvey++);
 
 			if(row != null) {
-				Question q = getQuestion(row, thisFormIndex, f.questions.size());				
+				Question q = getQuestion(row, thisFormIndex, f.questions.size(), rowNumSurvey);				
 				if(q != null) {
 					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name, metaId, q.appearance);
 					if(item != null) {
@@ -583,7 +583,8 @@ public class XLSTemplateUploadManager {
 	/*
 	 * Get a question from the excel sheet
 	 */
-	private Question getQuestion(Row row, int formIndex, int questionIndex) throws ApplicationException, Exception {
+	private Question getQuestion(Row row, int formIndex, 
+			int questionIndex, int rowNum) throws ApplicationException, Exception {
 
 		Question q = new Question();
 		int lastCellNum = row.getLastCellNum();
@@ -673,8 +674,22 @@ public class XLSTemplateUploadManager {
 		q.required_msg = XLSUtilities.getTextColumn(row, "required_message", surveyHeader, lastCellNum, null); 
 		
 		// 16. Calculation
-		q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum, null); 
-		q.calculation = GeneralUtilityMethods.cleanXlsNames(q.calculation);
+		if(q.type.equals("server_calculate")) {
+			String serverCalculation = XLSUtilities.getTextColumn(row, "server_calculation", surveyHeader, lastCellNum, null);
+			System.out.println("Server Calculation: " + serverCalculation);
+			if(serverCalculation != null) {
+				serverCalculation = serverCalculation.trim();
+				if(serverCalculation.startsWith("if(")) {
+					// Get conditions from conditions sheet
+				} else {
+					q.server_calculation = new SqlFrag();
+					q.server_calculation.addSqlFragment(serverCalculation, true, localisation, rowNum);
+				}
+			}
+		} else {
+			q.calculation = XLSUtilities.getTextColumn(row, "calculation", surveyHeader, lastCellNum, null); 
+			q.calculation = GeneralUtilityMethods.cleanXlsNames(q.calculation);
+		}
 		
 		// 17. Display Name
 		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum, null); 
@@ -1447,7 +1462,9 @@ public class XLSTemplateUploadManager {
 			out = "username";
 		} else if (type.equals("email")) {
 			out = "email";
-		} else if (type.equals("hidden value")) {	// Commcare 
+		} else if (type.equals("server_calculate")) {	
+			out = "server_calculate";
+		} else if (type.equals("hidden value")) {    // Commcare 
 			out = "calculate";
 		} else if (type.equals("label")) {			// Commcare 
 			out = "note";

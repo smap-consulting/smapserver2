@@ -6586,7 +6586,7 @@ public class GeneralUtilityMethods {
 		// Add the filter
 		filterQuery.append(" and (");
 		SqlFrag frag = new SqlFrag();
-		frag.addSqlFragment(filter, false, localisation);
+		frag.addSqlFragment(filter, false, localisation, 0);
 		filterQuery.append(frag.sql);
 		filterQuery.append(")");
 
@@ -6630,7 +6630,7 @@ public class GeneralUtilityMethods {
 
 		// Add the filter
 		SqlFrag frag = new SqlFrag();
-		frag.addSqlFragment(filter, false, localisation);
+		frag.addSqlFragment(filter, false, localisation, 0);
 		filterQuery.append(frag.sql);
 		filterQuery.append("))");
 

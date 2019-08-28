@@ -408,7 +408,7 @@ public class Items extends Application {
 				if(advanced_filter != null && advanced_filter.length() > 0) {
 
 					advancedFilterFrag = new SqlFrag();
-					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation);
+					advancedFilterFrag.addSqlFragment(advanced_filter, false, localisation, 0);
 
 					for(String filterCol : advancedFilterFrag.humanNames) {
 						if(GeneralUtilityMethods.getColumnName(sd, sId, filterCol) == null) {

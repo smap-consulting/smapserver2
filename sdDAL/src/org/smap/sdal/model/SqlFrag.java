@@ -53,7 +53,10 @@ public class SqlFrag {
 	/*
 	 * Add an SQL expression
 	 */
-	public void addSqlFragment(String in, boolean isCondition, ResourceBundle localisation) throws Exception {
+	public void addSqlFragment(String in, boolean isCondition, 
+			ResourceBundle localisation, 
+			int rowNum				// Set non zero when processing a form definition in a spreadsheet
+			) throws Exception {
 		
 		ArrayList<SqlFragParam> tempParams = new ArrayList<SqlFragParam> ();
 		
@@ -105,7 +108,7 @@ public class SqlFrag {
 				tempParams.add(p);
 				addedChars = idx2 + 1;							// Skip over quote
 			} else {
-				throw new Exception(localisation.getString("mf_mq") + ": " + in);
+				throw new ApplicationException(getErrorMsg(localisation, localisation.getString("mf_mq") + ": " + in, rowNum));
 			}
 			
 			start = idx2 + 1;
@@ -127,7 +130,7 @@ public class SqlFrag {
 			if(p.getType().equals("sql")) {
 				String [] token = p.sValue.split("[\\s]");  // Split on white space
 				for(int j = 0; j < token.length; j++) {
-					String s = sqlToken(token[j], localisation);
+					String s = sqlToken(token[j], localisation, rowNum);
 					
 					if(s.length() > 0) {
 						sql.append(" " + s + " ");
@@ -145,7 +148,7 @@ public class SqlFrag {
 	/*
 	 * Process a single sql token
 	 */
-	public String sqlToken(String token, ResourceBundle localisation) throws Exception {
+	public String sqlToken(String token, ResourceBundle localisation, int rowNum) throws Exception {
 		String out = "";
 		
 		token = token.trim();
@@ -260,7 +263,7 @@ public class SqlFrag {
 			} catch (Exception e) {
 				String msg = localisation.getString("inv_token");
 				msg = msg.replace("%s1", token);
-				throw new ApplicationException(msg);
+				throw new ApplicationException(getErrorMsg(localisation, msg, rowNum));
 			}
 			
 		}
@@ -299,5 +302,19 @@ public class SqlFrag {
 		for(int i = 0; i < params.size(); i++) {
 			System.out.println("   " + params.get(i).debug());
 		}
+	}
+	
+	/*
+	 * Create an error message that includes the row number if it is set
+	 */
+	private String getErrorMsg(ResourceBundle localisation, String partB, int rowNum) {
+		StringBuffer msg = new StringBuffer("");
+		if(rowNum > 0) {
+			String partA = localisation.getString("mf_sc");
+			partA = partA.replace("%s1", String.valueOf(rowNum));
+			msg.append(partA).append(". ");
+		} 
+		msg.append(partB);
+		return msg.toString();
 	}
 }

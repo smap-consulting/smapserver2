@@ -390,7 +390,7 @@ public class RoleManager {
 		PreparedStatement pstmt = null;
 		
 		SqlFrag sq = new SqlFrag();
-		sq.addSqlFragment(role.row_filter, false, localisation);
+		sq.addSqlFragment(role.row_filter, false, localisation, 0);
 		StringBuilder bad = new StringBuilder();
 		for(int i = 0; i < sq.columns.size(); i++) {
 			if(GeneralUtilityMethods.getColumnName(sd, sId, sq.humanNames.get(i)) == null) {
@@ -492,7 +492,7 @@ public class RoleManager {
 						rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
 					} else {
 						SqlFrag sf = new SqlFrag();									// New only the string is stored
-						sf.addSqlFragment(sqlFragString, false, localisation);
+						sf.addSqlFragment(sqlFragString, false, localisation, 0);
 						rfArray.add(sf);
 					}
 				}		
@@ -543,7 +543,7 @@ public class RoleManager {
 							rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
 						} else {
 							SqlFrag sf = new SqlFrag();									// New only the string is stored
-							sf.addSqlFragment(sqlFragString, false, localisation);
+							sf.addSqlFragment(sqlFragString, false, localisation, 0);
 							rfArray.add(sf);
 						}
 					}		

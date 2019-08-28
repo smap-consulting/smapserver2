@@ -1157,7 +1157,7 @@ public class TaskManager {
 			}
 			if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 				SqlFrag frag = new SqlFrag();
-				frag.addSqlFragment(as.assign_data, false, localisation);
+				frag.addSqlFragment(as.assign_data, false, localisation, 0);
 				sql.append(",").append(frag.sql.toString()).append(" as _assign_key");;
 			}
 			

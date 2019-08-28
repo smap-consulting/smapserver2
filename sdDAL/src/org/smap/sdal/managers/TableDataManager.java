@@ -195,7 +195,7 @@ public class TableDataManager {
 			if(advanced_filter != null && advanced_filter.length() > 0) {
 	
 				filterFrag = new SqlFrag();
-				filterFrag.addSqlFragment(advanced_filter, false, localisation);
+				filterFrag.addSqlFragment(advanced_filter, false, localisation, 0);
 	
 	
 				for(String filterCol : filterFrag.columns) {

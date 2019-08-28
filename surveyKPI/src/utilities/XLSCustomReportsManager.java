@@ -355,7 +355,7 @@ public class XLSCustomReportsManager {
 											currentCol.isCondition = true;
 										} else if(calculation.length() > 0) {
 											currentCol.calculation = new SqlFrag();
-											currentCol.calculation.addSqlFragment(calculation, true, localisation);
+											currentCol.calculation.addSqlFragment(calculation, true, localisation, 0);
 										} 
 									} else {
 										throw new Exception(localisation.getString("mf_mc") + 
@@ -481,14 +481,14 @@ public class XLSCustomReportsManager {
 										}
 										if(condition.toLowerCase().trim().equals("all")) {
 											currentCol.calculation.add("ELSE");
-											currentCol.calculation.addSqlFragment(value, false, localisation);
+											currentCol.calculation.addSqlFragment(value, false, localisation, 0);
 											//currentCol.calculation.addText(value);
 										} else {
 											currentCol.calculation.add("WHEN");
-											currentCol.calculation.addSqlFragment(condition, true, localisation);
+											currentCol.calculation.addSqlFragment(condition, true, localisation, 0);
 											currentCol.calculation.add("THEN");
 											//currentCol.calculation.addText(value);
-											currentCol.calculation.addSqlFragment(value, false, localisation);
+											currentCol.calculation.addSqlFragment(value, false, localisation, 0);
 										}
 									}
 
@@ -709,7 +709,7 @@ public class XLSCustomReportsManager {
 	                					
 	                				} else if(calculation.length() > 0) {
 	                					select = new SqlFrag();
-	                					select.addSqlFragment(calculation, false, localisation);
+	                					select.addSqlFragment(calculation, false, localisation, 0);
 	                				} 
 	                			} else {
 	                				throw new Exception(localisation.getString("mf_mc") + 
@@ -783,7 +783,7 @@ public class XLSCustomReportsManager {
 	                						currentDataItem.select.addText(value);
 	                					} else {
 	                						currentDataItem.select.add("WHEN");
-	                						currentDataItem.select.addSqlFragment(condition, true, localisation);
+	                						currentDataItem.select.addSqlFragment(condition, true, localisation, 0);
 	                						currentDataItem.select.add("THEN");
 	                						currentDataItem.select.addText(value);
 	                					}
