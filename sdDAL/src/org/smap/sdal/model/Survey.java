@@ -26,7 +26,7 @@ import com.google.gson.GsonBuilder;
  */
 public class Survey {
 	
-	private static Logger log =Logger.getLogger(Survey.class.getName());
+	private static Logger log = Logger.getLogger(Survey.class.getName());
 	
 	public int id;
 	public int e_id;
@@ -47,6 +47,7 @@ public class Survey {
 	public boolean hasManifest;
 	public ArrayList<Form> forms = new ArrayList<Form> ();
 	public HashMap<String, OptionList> optionLists = new HashMap<String, OptionList> ();
+	public HashMap<String, StyleList> styleLists = new HashMap<String, StyleList> ();
 	public ArrayList<Language> languages = new ArrayList<Language> (); 
 	public ArrayList<ServerSideCalculate> sscList  = new ArrayList<ServerSideCalculate> ();
 	public ArrayList<ManifestValue> surveyManifest  = new ArrayList<ManifestValue> ();
@@ -224,7 +225,8 @@ public class Survey {
 			writeSurvey(sd, gson);
 			GeneralUtilityMethods.setLanguages(sd, id, languages);
 			writeLists(sd, gson);
-			writeForms(sd, groupForms, existingSurveyId);	
+			writeStyles(sd, gson);
+			writeForms(sd, localisation, groupForms, existingSurveyId);	
 			updateForms(sd);		// Set parent form id and parent question id for forms
 			writeRoles(sd, localisation, gson, userIdent);
 			
@@ -432,10 +434,44 @@ public class Survey {
 	}
 	
 	/*
+	 * Write the styles
+	 * Then get the style id to be used by the question
+	 */
+	private void writeStyles(Connection sd, Gson gson) throws SQLException {
+		
+		String sql = "insert into style (s_id, name,style) values(?, ?, ?);";
+		PreparedStatement pstmt = null;
+		
+		try {
+			// Creating the option list
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+			pstmt.setInt(1, id);
+			
+			for(String stylename : styleLists.keySet()) {
+				
+				StyleList sl = styleLists.get(stylename);
+				
+				// 1. Create the style and get the style id
+				pstmt.setString(2, stylename);
+				pstmt.setString(3, gson.toJson(sl.markup));
+				pstmt.executeUpdate();				
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if(rs.next()) {
+					sl.id = rs.getInt(1);
+				}
+	
+			}		
+			
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
 	 * 2. Write the forms
 	 * This creates an initial entry for a form and then gets the resultant form ID
 	 */
-	private void writeForms(Connection sd, HashMap<String, String> groupForms, int existingSurveyId) throws Exception {
+	private void writeForms(Connection sd, ResourceBundle localisation, HashMap<String, String> groupForms, int existingSurveyId) throws Exception {
 		
 		String sql = "insert into form ("
 				+ "f_id, "
@@ -499,7 +535,7 @@ public class Survey {
 						// If replacing a survey then set the compress flag to the same value as the existing select question
 						q.compressed = getExistingCompressedFlag(sd, tableName,existingSurveyId, q.name);
 					}
-					writeQuestion(sd, q, f.id, idx++, pstmtSetLabels);
+					writeQuestion(sd, localisation, q, f.id, idx++, pstmtSetLabels);
 				}
 				
 			}
@@ -644,7 +680,7 @@ public class Survey {
 	/*
 	 * 3. Write a Question
 	 */
-	private void writeQuestion(Connection sd, Question q, int f_id, int seq, PreparedStatement pstmtSetLabels) throws Exception {
+	private void writeQuestion(Connection sd, ResourceBundle localisation, Question q, int f_id, int seq, PreparedStatement pstmtSetLabels) throws Exception {
 		
 		PreparedStatement pstmt = null;
 		String sql = "insert into question ("
@@ -679,11 +715,12 @@ public class Survey {
 				+ "dataType,"
 				+ "compressed,"
 				+ "display_name,"
-				+ "intent"
+				+ "intent,"
+				+ "style_id"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 		try {
 			
@@ -715,6 +752,18 @@ public class Survey {
 					throw new Exception("List name " + q.list_name + " not found");
 				}
 				q.l_id = ol.id;
+			}
+			
+			// Set style id
+			q.style_id = 0;	
+			if(q.style_list != null) {
+				StyleList sl = styleLists.get(q.style_list);
+				if(sl == null) {
+					String msg = localisation.getString("msg_style_nf");
+					msg = msg.replace("%s1", q.style_list);
+					throw new Exception(msg);
+				}
+				q.style_id = sl.id;
 			}
 			
 			// Set name
@@ -779,6 +828,7 @@ public class Survey {
 			}
 			pstmt.setString(30,  q.display_name);
 			pstmt.setString(31,  q.intent);
+			pstmt.setInt(32,  q.style_id);
 
 			pstmt.executeUpdate();
 			

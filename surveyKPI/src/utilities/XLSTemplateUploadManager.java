@@ -47,7 +47,9 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumnMarkup;
 
 public class XLSTemplateUploadManager {
 
@@ -58,17 +60,21 @@ public class XLSTemplateUploadManager {
 	Sheet surveySheet = null;
 	Sheet choicesSheet = null;
 	Sheet settingsSheet = null;
+	Sheet styleSheet = null;
 
 	int rowNumSurvey = 0;			// Heading row is 0
 	int rowNumChoices = 0;		
-	int rowNumSettings = 0;		
+	int rowNumSettings = 0;	
+	int rowNumStyles = 0;
 	int lastRowNumSurvey = 0;
 	int lastRowNumChoices = 0;
 	int lastRowNumSettings = 0;
+	int lastRowNumStyles = 0;
 
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
 	HashMap<String, Integer> settingsHeader = null;
+	HashMap<String, Integer> stylesHeader = null;
 	HashMap<String, Integer> choiceFilterHeader = null;
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
@@ -154,9 +160,9 @@ public class XLSTemplateUploadManager {
 		survey.meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null, null));
 		survey.meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null, null));
 
-		surveySheet = wb.getSheet("survey");
-		choicesSheet = wb.getSheet("choices");
+		surveySheet = wb.getSheet("survey");		
 		settingsSheet = wb.getSheet("settings");
+		styleSheet = wb.getSheet("styles");
 
 		if(surveySheet == null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_nw", -1, "survey", null, null, null);
@@ -170,7 +176,10 @@ public class XLSTemplateUploadManager {
 			}
 			if(settingsSheet != null) {
 				lastRowNumSettings = settingsSheet.getLastRowNum();
-			}			
+			}	
+			if(styleSheet != null) {
+				lastRowNumStyles = styleSheet.getLastRowNum();
+			}	
 
 			getHeaders();	// get headers and set the languages from them
 			
@@ -184,10 +193,7 @@ public class XLSTemplateUploadManager {
 
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
-						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum, null);
-						if(listName == null) {
-							listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
-						}
+						String listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
 						
 						if(listName != null) {
 							OptionList ol = survey.optionLists.get(listName);
@@ -201,9 +207,34 @@ public class XLSTemplateUploadManager {
 					}
 				}
 			}
+			
+			/*
+			 * 2. Process the styles sheet
+			 */
+			if(styleSheet != null) {
+				while(rowNumStyles <= lastRowNumStyles) {
+
+					Row row = styleSheet.getRow(rowNumStyles++);
+
+					if(row != null) {
+						int lastCellNum = row.getLastCellNum();	
+						String styleList = XLSUtilities.getTextColumn(row, "list_name", stylesHeader, lastCellNum, null);
+						
+						if(styleList != null) {
+							StyleList sl = survey.styleLists.get(styleList);
+							if(sl == null) {
+								sl = new StyleList ();
+								survey.styleLists.put(styleList, sl);
+							}
+							sl.markup.add(getStyle(row, styleList));
+						}
+
+					}
+				}
+			}
 
 			/*
-			 * 2. Process the survey sheet
+			 * 3. Process the survey sheet
 			 */
 			Form f = getForm("main", -1, -1, null);
 			// Validate the top level form
@@ -213,7 +244,7 @@ public class XLSTemplateUploadManager {
 			validateForm(1, f);
 			
 			/*
-			 * 3, Process the settings sheet
+			 * 4, Process the settings sheet
 			 */
 			if(settingsSheet != null && settingsHeader != null) {
 				Row row = settingsSheet.getRow(rowNumSettings++);
@@ -345,6 +376,19 @@ public class XLSTemplateUploadManager {
 
 		return o;
 	}
+	
+	private TableColumnMarkup getStyle(Row row, String styleList) throws ApplicationException, Exception {
+
+		int lastCellNum = row.getLastCellNum();
+
+		String name = XLSUtilities.getTextColumn(row, "name", stylesHeader, lastCellNum, null);
+		String color = XLSUtilities.getTextColumn(row, "color", stylesHeader, lastCellNum, null);
+		
+		TableColumnMarkup s = new TableColumnMarkup(name, color);
+		validateStyle(s, rowNumStyles, styleList);
+
+		return s;
+	}
 
 	/*
 	 * Get the survey header and the choices header so we can identify all the languages up front
@@ -462,6 +506,17 @@ public class XLSTemplateUploadManager {
 							survey.roles.put(h, new Role(roleA[1]));
 						}
 					}
+				}
+			}
+		}
+		
+		// Get Style sheet headers
+		if(styleSheet != null) {
+			while(rowNumStyles <= lastRowNumStyles) {
+				Row row = styleSheet.getRow(rowNumStyles++);
+				if(row != null) {
+					stylesHeader = XLSUtilities.getHeader(row, localisation, rowNumStyles, "styles");
+					break;
 				}
 			}
 		}
@@ -630,6 +685,13 @@ public class XLSTemplateUploadManager {
 		
 		// 19. body::intent
 		q.intent = XLSUtilities.getTextColumn(row, "body::intent", surveyHeader, lastCellNum, null);
+		
+		// 20. Style
+		q.style_list = XLSUtilities.getTextColumn(row, "style_list", surveyHeader, lastCellNum, null); 
+		if(q.style_list == null) {
+			q.style_list = XLSUtilities.getTextColumn(row, "style list", surveyHeader, lastCellNum, null);
+		}
+
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
@@ -1256,6 +1318,20 @@ public class XLSTemplateUploadManager {
 
 		listMap.put(o.value, rowNumber);
 
+	}
+	
+	private void validateStyle(TableColumnMarkup s, int rowNumber, String styleName) throws ApplicationException {
+
+
+		if(s.value == null || s.value.trim().length() == 0) {
+			// Check for a missing value
+			throw XLSUtilities.getApplicationException(localisation, "tu_vr", rowNumber, "styles", styleName, null, null);
+
+		} else if(s.classes == null) {
+			// Check for a valid color
+			throw XLSUtilities.getApplicationException(localisation, "tu_cn",rowNumber, "styles", s.classes, null, null);
+
+		} 
 	}
 	
 	private void questionInSurvey(ArrayList<String> names, String context, Question q) throws ApplicationException {

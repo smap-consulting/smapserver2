@@ -69,6 +69,9 @@ public class Question {
 	public String repeatCount;			// Temporary data used during xls processing	
 	public boolean isTableList = false;	// Temporary flag used during HTML generation
 	
+	public String style_list;			// The name of the style applied to this question
+	public int style_id;					// The id of the style as used in the database
+	
 	private static Logger log =
 			 Logger.getLogger(Question.class.getName());
 

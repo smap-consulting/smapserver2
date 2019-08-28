@@ -80,6 +80,7 @@ import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinkDetails;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableColumnMarkup;
 import org.smap.sdal.model.TableUpdateStatus;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.User;
@@ -3466,7 +3467,7 @@ public class GeneralUtilityMethods {
 
 		// SQL to get the questions
 		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
-				+ "source_param, appearance, display_name, l_id, compressed " 
+				+ "source_param, appearance, display_name, l_id, compressed, style_id " 
 				+ "from question "
 				+ "where f_id = ? "
 				+ "and source is not null "
@@ -3712,6 +3713,7 @@ public class GeneralUtilityMethods {
 				String display_name = rsQuestions.getString(8);
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
+				int style_id = rsQuestions.getInt(11);
 				
 				String hxlCode = getHxlCode(appearance, question_name);
 
@@ -3856,6 +3858,9 @@ public class GeneralUtilityMethods {
 							}
 						}
 					} 
+					if(style_id > 0) {
+						c.markup = getMarkup(sd, style_id);
+					}
 				}
 
 			}
@@ -8389,6 +8394,28 @@ public class GeneralUtilityMethods {
 			colType = "text";					
 		}
 		return colType;
+	}
+	
+	public static ArrayList<TableColumnMarkup> getMarkup(Connection sd, int styleId) throws SQLException  {
+		
+		ArrayList<TableColumnMarkup> markup = null;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		String sql = "select style from style where id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, styleId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				markup = gson.fromJson(rs.getString(1), new TypeToken<ArrayList<TableColumnMarkup>>() {}.getType());
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return markup;
 	}
 	
 }
