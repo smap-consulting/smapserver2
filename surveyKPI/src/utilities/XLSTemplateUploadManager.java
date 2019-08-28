@@ -161,6 +161,7 @@ public class XLSTemplateUploadManager {
 		survey.meta.add(new MetaItem(metaId--, "string", "instanceName", null, "instancename", null, false, null, null));
 
 		surveySheet = wb.getSheet("survey");		
+		choicesSheet = wb.getSheet("choices");
 		settingsSheet = wb.getSheet("settings");
 		styleSheet = wb.getSheet("styles");
 
@@ -452,7 +453,7 @@ public class XLSTemplateUploadManager {
 					
 					// Get the headers for filters
 					for(String h : choicesHeader.keySet()) {
-						if(h.equals("list name")
+						if(h.equals("list_name")
 								|| h.equals("name")
 								|| h.equals("label")
 								|| h.equals("display_name")

@@ -814,7 +814,7 @@ public class XLSFormManager {
 
 		int colNumber = 0;
 
-		cols.add(new Column(colNumber++, "list name", Column.COL_LIST_NAME, 0, "list name"));
+		cols.add(new Column(colNumber++, "list_name", Column.COL_LIST_NAME, 0, "list_name"));
 		cols.add(new Column(colNumber++, "name", Column.COL_CHOICE_NAME, 0, "choice_name"));
 		cols.add(new Column(colNumber++, "display_name", Column.COL_CHOICE_DISPLAY_NAME, 0, "choice_display_name"));
 
