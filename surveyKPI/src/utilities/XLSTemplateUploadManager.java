@@ -162,7 +162,7 @@ public class XLSTemplateUploadManager {
 
 		surveySheet = wb.getSheet("survey");		
 		settingsSheet = wb.getSheet("settings");
-		styleSheet = wb.getSheet("style");
+		styleSheet = wb.getSheet("styles");
 
 		if(surveySheet == null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_nw", -1, "survey", null, null, null);
@@ -193,10 +193,7 @@ public class XLSTemplateUploadManager {
 
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
-						String listName = XLSUtilities.getTextColumn(row, "list name", choicesHeader, lastCellNum, null);
-						if(listName == null) {
-							listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
-						}
+						String listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
 						
 						if(listName != null) {
 							OptionList ol = survey.optionLists.get(listName);
@@ -221,18 +218,15 @@ public class XLSTemplateUploadManager {
 
 					if(row != null) {
 						int lastCellNum = row.getLastCellNum();	
-						String styleName = XLSUtilities.getTextColumn(row, "style name", stylesHeader, lastCellNum, null);
-						if(styleName == null) {
-							styleName = XLSUtilities.getTextColumn(row, "style_name", stylesHeader, lastCellNum, null);
-						}
+						String styleList = XLSUtilities.getTextColumn(row, "list_name", stylesHeader, lastCellNum, null);
 						
-						if(styleName != null) {
-							StyleList sl = survey.styleLists.get(styleName);
+						if(styleList != null) {
+							StyleList sl = survey.styleLists.get(styleList);
 							if(sl == null) {
 								sl = new StyleList ();
-								survey.styleLists.put(styleName, sl);
+								survey.styleLists.put(styleList, sl);
 							}
-							sl.markup.add(getStyle(row, styleName));
+							sl.markup.add(getStyle(row, styleList));
 						}
 
 					}
@@ -383,7 +377,7 @@ public class XLSTemplateUploadManager {
 		return o;
 	}
 	
-	private TableColumnMarkup getStyle(Row row, String styleName) throws ApplicationException, Exception {
+	private TableColumnMarkup getStyle(Row row, String styleList) throws ApplicationException, Exception {
 
 		int lastCellNum = row.getLastCellNum();
 
@@ -391,7 +385,7 @@ public class XLSTemplateUploadManager {
 		String color = XLSUtilities.getTextColumn(row, "color", stylesHeader, lastCellNum, null);
 		
 		TableColumnMarkup s = new TableColumnMarkup(name, color);
-		validateStyle(s, rowNumStyles, styleName);
+		validateStyle(s, rowNumStyles, styleList);
 
 		return s;
 	}
@@ -693,7 +687,10 @@ public class XLSTemplateUploadManager {
 		q.intent = XLSUtilities.getTextColumn(row, "body::intent", surveyHeader, lastCellNum, null);
 		
 		// 20. Style
-		q.style_name = XLSUtilities.getTextColumn(row, "style_name", surveyHeader, lastCellNum, null); 
+		q.style_list = XLSUtilities.getTextColumn(row, "style_list", surveyHeader, lastCellNum, null); 
+		if(q.style_list == null) {
+			q.style_list = XLSUtilities.getTextColumn(row, "style list", surveyHeader, lastCellNum, null);
+		}
 
 		
 		// Add Column Roles

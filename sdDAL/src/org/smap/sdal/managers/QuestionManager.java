@@ -1871,7 +1871,7 @@ public class QuestionManager {
 				//String exTable = rsGetQuestions.getString(32);
 				q.l_id = rsGetQuestions.getInt(33);
 				q.intent = rsGetQuestions.getString(34);
-				q.style_name = rsGetQuestions.getString(35);
+				q.style_list = rsGetQuestions.getString(35);
 				
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {

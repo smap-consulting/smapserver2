@@ -291,7 +291,7 @@ public class XLSFormManager {
 				}
 
 			} else if(type == COL_STYLE_LIST) {				
-				value = q.style_name;
+				value = q.style_list;
 
 			} else {
 				log.info("Unknown column type for survey: " + type);
@@ -604,13 +604,13 @@ public class XLSFormManager {
 					}
 					
 					// If this question has styles then add these to the style sheet but only if they have not already been added
-					if(q.style_name != null) {
-						if(addedStyleLists.get(q.style_name) == null) {
-							StyleList sl = survey.styleLists.get(q.style_name);
+					if(q.style_list != null) {
+						if(addedStyleLists.get(q.style_list) == null) {
+							StyleList sl = survey.styleLists.get(q.style_list);
 							if(sl != null) {	
-								addStyleList(stylesSheet, sl, colsStyles, styles, q.style_name);
+								addStyleList(stylesSheet, sl, colsStyles, styles, q.style_list);
 							}
-							addedStyleLists.put(q.style_name, q.style_name);	// Remember lists that have been added
+							addedStyleLists.put(q.style_list, q.style_list);	// Remember lists that have been added
 						}
 					}
 				}

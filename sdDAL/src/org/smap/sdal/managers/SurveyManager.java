@@ -72,8 +72,10 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerSideCalculate;
+import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableColumnMarkup;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -758,6 +760,8 @@ public class SurveyManager {
 			boolean getChangeHistory,
 			boolean getRoles) throws Exception {
 
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		/*
 		 * Prepared Statements
 		 */
@@ -782,6 +786,15 @@ public class SurveyManager {
 				+ "from listname "
 				+ "where s_id = ?;";
 		PreparedStatement pstmtGetLists = sd.prepareStatement(sqlGetLists);
+		
+		// SQL to get the styles in this survey
+		ResultSet rsGetStyles = null;
+		String sqlGetStyles = "select id, "
+				+ "name, "
+				+ "style "
+				+ "from style "
+				+ "where s_id = ?;";
+		PreparedStatement pstmtGetStyles = sd.prepareStatement(sqlGetStyles);
 
 		// SQL to get the options belonging to a choice list		
 		ResultSet rsGetOptions = null;
@@ -925,7 +938,6 @@ public class SurveyManager {
 			rsGetOptions = pstmtGetOptions.executeQuery();
 	
 			Type hmType = new TypeToken<HashMap<String, String>>(){}.getType();		// Used to translate cascade filters json
-			Gson gson=  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			boolean externalAdded = false;
 			while(rsGetOptions.next()) {
 				Option o = new Option();
@@ -977,6 +989,24 @@ public class SurveyManager {
 
 		}
 
+		/*
+		 * Get the style lists
+		 */
+		pstmtGetStyles.setInt(1, s.id);
+		log.info("Get styles for survey: " + pstmtGetStyles.toString());
+		rsGetStyles = pstmtGetStyles.executeQuery();
+
+		Type markupType = new TypeToken<ArrayList<TableColumnMarkup>>(){}.getType();
+		while(rsGetStyles.next()) {
+			StyleList sl = new StyleList();
+			String styleListName = rsGetStyles.getString("name");
+			String style = rsGetStyles.getString("style");
+			if(style != null) {
+				sl.markup = gson.fromJson(style, markupType);
+			}
+			s.styleLists.put(styleListName, sl);
+		}
+		
 		// Add the server side calculations
 		pstmtGetSSC.setInt(1, s.getId());
 		rsGetSSC= pstmtGetSSC.executeQuery();
@@ -997,8 +1027,6 @@ public class SurveyManager {
 			pstmtGetChanges.setInt(1, s.getId());
 			log.info("Get change log: " + pstmtGetChanges.toString());
 			rsGetChanges = pstmtGetChanges.executeQuery();
-
-			Gson gson =  new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 
 			while (rsGetChanges.next()) {
 
@@ -1038,6 +1066,8 @@ public class SurveyManager {
 		try { if (pstmtGetOptions != null) {pstmtGetOptions.close();}} catch (SQLException e) {}
 		try { if (pstmtGetSSC != null) {pstmtGetSSC.close();}} catch (SQLException e) {}
 		try { if (pstmtGetChanges != null) {pstmtGetChanges.close();}} catch (SQLException e) {}
+		try { if (pstmtGetLists != null) {pstmtGetLists.close();}} catch (SQLException e) {}
+		try { if (pstmtGetStyles != null) {pstmtGetStyles.close();}} catch (SQLException e) {}
 		//try { if (pstmtGetLinkable != null) {pstmtGetLinkable.close();}} catch (SQLException e) {}
 	}
 

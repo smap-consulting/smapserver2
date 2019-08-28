@@ -278,9 +278,14 @@ public class XLSUtilities {
 				name = cell.getStringCellValue();
 				if(name != null && name.trim().length() > 0) {
 					if(name.toLowerCase().equals("list name") ||
+							name.toLowerCase().equals("list_name") ||
 							name.toLowerCase().equals("name")
 							|| name.toLowerCase().equals("label")) {
 						name = name.toLowerCase();	// Automatically set columns that need to be lower case to lower case		
+					}
+					
+					if(name.toLowerCase().equals("list name")) {
+						name = "list_name";
 					}
 					Integer exists = header.get(name);
 					if(exists == null) {
