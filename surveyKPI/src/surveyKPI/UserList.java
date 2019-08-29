@@ -425,6 +425,8 @@ public class UserList extends Application {
 			ResultSet resultSet = null;
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
+			boolean isEnterpriseManager = GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser());
+			boolean isServerOwner = GeneralUtilityMethods.isServerOwner(sd, request.getRemoteUser());
 			
 			/*
 			 * Get the organisation and name of the user making the request
@@ -455,6 +457,8 @@ public class UserList extends Application {
 						um.createUser(sd, u, o_id,
 								isOrgUser,
 								isSecurityManager,
+								isEnterpriseManager,
+								isServerOwner,
 								request.getRemoteUser(),
 								request.getScheme(),
 								request.getServerName(),
@@ -466,6 +470,8 @@ public class UserList extends Application {
 						um.updateUser(sd, u, o_id,
 								isOrgUser,
 								isSecurityManager,
+								isEnterpriseManager,
+								isServerOwner,
 								request.getRemoteUser(),
 								request.getServerName(),
 								adminName,
@@ -493,6 +499,7 @@ public class UserList extends Application {
 			log.info("sql state:" + state);
 			if(state.startsWith("23")) {
 				response = Response.status(Status.CONFLICT).entity(e.getMessage()).build();
+				log.log(Level.SEVERE,"Error", e);
 			} else {
 				response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 				log.log(Level.SEVERE,"Error", e);

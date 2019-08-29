@@ -395,6 +395,8 @@ public class UserManager {
 			int o_id, 
 			boolean isOrgUser, 
 			boolean isSecurityManager,
+			boolean isEnterpriseManager,
+			boolean isServerOwner,
 			String userIdent,
 			String scheme,
 			String serverName,
@@ -440,7 +442,7 @@ public class UserManager {
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if (rs.next()){
 				u_id = rs.getInt(1);
-				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager);
+				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
 				if(isOrgUser) {
 					insertUserOrganisations(sd, u, u_id, o_id);
 				}
@@ -525,7 +527,7 @@ public class UserManager {
 			ResultSet rs = pstmt.getGeneratedKeys();
 			if (rs.next()){
 				u_id = rs.getInt(1);
-				insertUserGroupsProjects(sd, u, u_id, false, true);		// The user roles are sourced from the action and have been added by a security manager hence we will act as a security manager here
+				insertUserGroupsProjects(sd, u, u_id, false, true, false, false);		// The user roles are sourced from the action and have been added by a security manager hence we will act as a security manager here
 			}
 
 		}  finally {		
@@ -543,6 +545,8 @@ public class UserManager {
 			int adminUserOrgId, 			// Organisation Id of administrator updating the user
 			boolean isOrgUser, 
 			boolean isSecurityManager,
+			boolean isEnterpriseManager,
+			boolean isServerOwner,
 			String userIdent,
 			String serverName,
 			String adminName,
@@ -647,7 +651,7 @@ public class UserManager {
 					pstmt.executeUpdate();
 
 					// Update the groups, projects and roles
-					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager);
+					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
 					if(isOrgUser && !isSwitch) {
 						insertUserOrganisations(sd, u, u.id, u.o_id);
 					}
@@ -668,8 +672,11 @@ public class UserManager {
 	}
 
 
-	private void insertUserGroupsProjects(Connection sd, User u, int u_id, boolean isOrgUser, 
-			boolean isSecurityManager) throws SQLException {
+	private void insertUserGroupsProjects(Connection sd, User u, int u_id, 
+			boolean isOrgUser, 
+			boolean isSecurityManager,
+			boolean isEnterpriseManager,
+			boolean isServerOwner) throws SQLException {
 
 		String sql;
 		PreparedStatement pstmt = null;
@@ -699,12 +706,26 @@ public class UserManager {
 			 */
 			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
-			if(isOrgUser) {
-				sql = "delete from user_group where u_id = ? and g_id != 9;";
-			} else if(isSecurityManager) {
-				sql = "delete from user_group where u_id = ? and g_id != 4 and g_id != 9;";					// Cannot change super user group
-			} else {
-				sql = "delete from user_group where u_id = ? and g_id != 4 and g_id != 6 and g_id != 9;";		// Cannot change super user group, or security manager
+			if(isServerOwner) {	// Can remove all groups
+				sql = "delete from user_group where u_id = ? ";
+			} else if(isEnterpriseManager) {	// Cannot remove server owner
+				sql = "delete from user_group where u_id = ? "
+						+ " and g_id != " + Authorise.OWNER_ID;	
+			} else if(isOrgUser) {		// Cannot remove enterprise admin and server owner
+				sql = "delete from user_group where u_id = ? "
+						+ " and g_id != " + Authorise.ENTERPRISE_ID 
+						+ " and g_id != " + Authorise.OWNER_ID;
+			} else if(isSecurityManager) {	// Cannot remove org admin, enterprise admin and server owner
+				sql = "delete from user_group where u_id = ? "
+						+ " and g_id != " + Authorise.ORG_ID 
+						+ " and g_id != " + Authorise.ENTERPRISE_ID 
+						+ " and g_id != " + Authorise.OWNER_ID;	
+			}  else {		// Admin user
+				sql = "delete from user_group where u_id = ? "
+						+ " and g_id != " + Authorise.ORG_ID 
+						+ " and g_id != " + Authorise.SECURITY_ID 
+						+ " and g_id != " + Authorise.ENTERPRISE_ID 
+						+ " and g_id != " + Authorise.OWNER_ID;	
 			}
 
 			if(u.groups != null) {
@@ -715,9 +736,18 @@ public class UserManager {
 
 				for(int j = 0; j < u.groups.size(); j++) {
 					UserGroup g = u.groups.get(j);
-					if(isOrgUser || (isSecurityManager && g.id != 4) || (g.id != 4 && g.id != 6)) {	// 4 = og admin, 6 = securiy manager
+					
+					// Only insert security groups that the user is authorised to insert
+					if(isServerOwner 
+							|| (isOrgUser && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)
+							|| (isSecurityManager && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)
+							|| (isEnterpriseManager && g.id != Authorise.OWNER_ID)
+							|| (g.id != Authorise.SECURITY_ID && g.id != Authorise.ORG_ID && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)) {
+							
 						pstmtInsertUserGroup.setInt(2, g.id);
+						log.info("Insert user group: " + pstmtInsertUserGroup.toString());
 						pstmtInsertUserGroup.executeUpdate();
+						
 					}
 				}
 				sd.commit();	// Commit changes to user group
@@ -978,7 +1008,7 @@ public class UserManager {
 						u.o_id = newOrgId;
 					}
 					
-					updateUser(sd, u, currentOrgId, true, true, userIdent, null, null, true);
+					updateUser(sd, u, currentOrgId, true, true, true, true, userIdent, null, null, true);
 					
 				} 
 			}			

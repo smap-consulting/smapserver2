@@ -643,6 +643,34 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Return true if the user is the server owner
+	 */
+	static public boolean isServerOwner(Connection con, String ident) throws SQLException {
+
+		String sql = "select count(*) " 
+				+ "from users u, user_group ug " 
+				+ "where u.id = ug.u_id "
+				+ "and ug.g_id = " + Authorise.OWNER_ID + " "
+				+ "and u.ident = ? ";
+
+		boolean isServer = false;
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = con.prepareStatement(sql);
+			pstmt.setString(1, ident);
+			ResultSet resultSet = pstmt.executeQuery();
+
+			if (resultSet.next()) {
+				isServer = (resultSet.getInt(1) > 0);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return isServer;
+	}
+	
+	/*
 	 * Return true if the user has the organisational administrator role
 	 */
 	static public boolean isOrgUser(Connection sd, String ident) throws SQLException {
@@ -740,7 +768,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Return true if the user is a security user
+	 * Return true if the user is a super user
 	 */
 	static public boolean isSuperUser(Connection sd, String user) throws SQLException {
 		boolean superUser = false;
