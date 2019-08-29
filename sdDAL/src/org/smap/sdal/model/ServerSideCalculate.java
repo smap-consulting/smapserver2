@@ -1,5 +1,8 @@
 package org.smap.sdal.model;
 
+/*
+ * Legacy Server calculation replace with ServrCalculation
+ */
 public class ServerSideCalculate {
 	private int id;
 	private String name;

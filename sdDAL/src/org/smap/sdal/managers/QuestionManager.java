@@ -21,6 +21,7 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.Survey;
 
 import com.google.gson.Gson;
@@ -1742,6 +1743,7 @@ public class QuestionManager {
 			Survey s) throws Exception {
 		
 		ArrayList<Question> questions = new ArrayList<Question> ();
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		// SQL to get the sub forms in this survey
 		ResultSet rsGetRepeatValue = null;
@@ -1782,7 +1784,8 @@ public class QuestionManager {
 				+ "q.external_table,"
 				+ "q.l_id,"
 				+ "q.intent, "
-				+ "st.name as style_name "
+				+ "st.name as style_name, "
+				+ "q.server_calculate "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "left outer join style st on q.style_id = st.id "
@@ -1872,6 +1875,11 @@ public class QuestionManager {
 				q.l_id = rsGetQuestions.getInt(33);
 				q.intent = rsGetQuestions.getString(34);
 				q.style_list = rsGetQuestions.getString(35);
+				
+				String serverCalculation = rsGetQuestions.getString(36);
+				if(serverCalculation != null) {
+					q.server_calculation = gson.fromJson(serverCalculation, ServerCalculation.class);
+				}
 				
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {

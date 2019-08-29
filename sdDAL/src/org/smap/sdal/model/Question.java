@@ -40,12 +40,11 @@ public class Question {
 	public String source;
 	public String source_param;
 	public String calculation;
-	public SqlFrag server_calculation;
+	public ServerCalculation server_calculation;
 	public String constraint;
 	public String constraint_msg;
 	public String required_msg;
 	public String relevant;
-	//public String repeats;
 	public boolean visible;
 	public boolean readonly;
 	public boolean required;

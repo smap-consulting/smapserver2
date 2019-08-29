@@ -46,6 +46,7 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
@@ -678,12 +679,15 @@ public class XLSTemplateUploadManager {
 			String serverCalculation = XLSUtilities.getTextColumn(row, "server_calculation", surveyHeader, lastCellNum, null);
 			System.out.println("Server Calculation: " + serverCalculation);
 			if(serverCalculation != null) {
+				SqlFrag testCalc = new SqlFrag();
 				serverCalculation = serverCalculation.trim();
-				if(serverCalculation.startsWith("if(")) {
+				
+				q.server_calculation = new ServerCalculation();
+				q.server_calculation.addExpression(serverCalculation);
+				if(serverCalculation.startsWith("if(")) {			
 					// Get conditions from conditions sheet
-				} else {
-					q.server_calculation = new SqlFrag();
-					q.server_calculation.addSqlFragment(serverCalculation, true, localisation, rowNum);
+				} else {		// Validate the expression as an sql fragment	
+					testCalc.addSqlFragment(serverCalculation, true, localisation, rowNum);
 				}
 			}
 		} else {

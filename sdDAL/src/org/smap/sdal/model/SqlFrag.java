@@ -10,14 +10,11 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 
 /*
- * Form Class
- * Used for survey editing
  * If the param type is sql then this is an intermediate stage where the parameter still needs to be tokenized
  */
 
 public class SqlFrag {
-	public StringBuffer expression = null;		// The original expression used to create this sql
-	public ArrayList<String> conditions = null;	// Alternatively the original conditions used to create it
+	public ArrayList<String> conditions = null;	// The original conditions used to create it
 	
 	public StringBuffer sql = new StringBuffer("");
 	public ArrayList<SqlFragParam> params = new ArrayList<SqlFragParam> ();
@@ -25,11 +22,6 @@ public class SqlFrag {
 	public ArrayList<String> humanNames = new ArrayList<String> ();
 
 	private static Logger log = Logger.getLogger(SqlFrag.class.getName());
-	
-	// Set the original expression used to create this SQlFrag
-	public void setExpression(String in) {
-		expression = new StringBuffer(in);
-	}
 	
 	public void add(String in) {
 		if(sql.length() > 0) {

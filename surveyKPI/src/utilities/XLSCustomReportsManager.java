@@ -107,8 +107,8 @@ public class XLSCustomReportsManager {
 						if(props.isCondition) {
 							value = "condition";
 						} else {
-							if(props.calculation.expression != null) {
-								value = props.calculation.expression.toString();
+							if(props.calculation.conditions != null) {
+								value = props.calculation.conditions.toString();
 							}
 						}
 					}	

@@ -682,6 +682,8 @@ public class Survey {
 	 */
 	private void writeQuestion(Connection sd, ResourceBundle localisation, Question q, int f_id, int seq, PreparedStatement pstmtSetLabels) throws Exception {
 		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 		PreparedStatement pstmt = null;
 		String sql = "insert into question ("
 				+ "q_id, "
@@ -716,11 +718,12 @@ public class Survey {
 				+ "compressed,"
 				+ "display_name,"
 				+ "intent,"
-				+ "style_id"
+				+ "style_id,"
+				+ "server_calculate"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			
@@ -829,6 +832,12 @@ public class Survey {
 			pstmt.setString(30,  q.display_name);
 			pstmt.setString(31,  q.intent);
 			pstmt.setInt(32,  q.style_id);
+			
+			String serverCalculation = null;
+			if(q.server_calculation != null) {
+				serverCalculation = gson.toJson(q.server_calculation);
+			}
+			pstmt.setString(33,  serverCalculation);
 
 			pstmt.executeUpdate();
 			
