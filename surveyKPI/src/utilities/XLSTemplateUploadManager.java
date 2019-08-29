@@ -785,7 +785,10 @@ public class XLSTemplateUploadManager {
 		 * Derived Values
 		 */
 		// 1. Source
-		if(q.type.equals("begin group") || q.type.equals("end group") || q.type.equals("begin repeat")) {
+		if(q.type.equals("begin group") 
+				|| q.type.equals("end group") 
+				|| q.type.equals("begin repeat")
+				|| q.type.equals("server_calculate")) {
 			q.source = null;
 		} else {
 			q.source = "user";

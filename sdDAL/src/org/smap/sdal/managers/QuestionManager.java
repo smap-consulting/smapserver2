@@ -1881,7 +1881,6 @@ public class QuestionManager {
 					q.server_calculation = gson.fromJson(serverCalculation, ServerCalculation.class);
 				}
 				
-
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);
 				} else {
