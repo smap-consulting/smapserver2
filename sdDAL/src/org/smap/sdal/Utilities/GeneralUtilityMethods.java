@@ -74,6 +74,7 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.SqlParam;
@@ -3455,6 +3456,8 @@ public class GeneralUtilityMethods {
 			boolean mgmt)	// If set substitute display name for the question name if it is not null, also publish un published
 					throws Exception {
 
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 		int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
 		ArrayList<TableColumn> columnList = new ArrayList<TableColumn>();
 		ArrayList<TableColumn> realQuestions = new ArrayList<TableColumn>(); // Temporary array so that all property
@@ -3495,10 +3498,11 @@ public class GeneralUtilityMethods {
 
 		// SQL to get the questions
 		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
-				+ "source_param, appearance, display_name, l_id, compressed, style_id " 
+				+ "source_param, appearance, display_name, l_id, compressed, style_id,"
+				+ "server_calculate " 
 				+ "from question "
 				+ "where f_id = ? "
-				+ "and source is not null "
+				+ "and (source is not null or qtype = 'server_calculate') "
 				+ "and published = 'true' "
 				+ "and soft_deleted = 'false' ";
 		
@@ -3733,6 +3737,7 @@ public class GeneralUtilityMethods {
 
 				String question_name = rsQuestions.getString(1);
 				String qType = rsQuestions.getString(2);
+				
 				String question_column_name = rsQuestions.getString(3);
 				int qId = rsQuestions.getInt(4);
 				boolean ro = rsQuestions.getBoolean(5);
@@ -3742,6 +3747,7 @@ public class GeneralUtilityMethods {
 				int l_id = rsQuestions.getInt(9);
 				boolean compressed = rsQuestions.getBoolean(10);
 				int style_id = rsQuestions.getInt(11);
+				String serverCalculate = rsQuestions.getString(12);
 				
 				String hxlCode = getHxlCode(appearance, question_name);
 
@@ -3886,6 +3892,13 @@ public class GeneralUtilityMethods {
 							}
 						}
 					} 
+					
+					// Add server Calculates
+					if(qType.equals("server_calculate") && serverCalculate != null) {
+						ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
+						c.calculation = new SqlFrag();
+						sc.populateSql(c.calculation, localisation);
+					}
 					if(style_id > 0) {
 						c.markup = getMarkup(sd, style_id);
 					}

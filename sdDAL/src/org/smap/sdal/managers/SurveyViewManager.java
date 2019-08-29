@@ -201,6 +201,8 @@ public void populateSvd(
 			if(tc.column_name.equals("the_geom")) {
 				tc.displayName = "_geolocation";
 			}
+			
+			tc.calculation = c.calculation;
 
 			// Add markup for assigned column
 			if(tc.column_name.equals(ASSIGNED_COLUMN)) {
@@ -228,7 +230,7 @@ public void populateSvd(
 		}
 	}
 	
-	// remove any of the main form qustions that were in the group form
+	// remove any of the main form questions that were in the group form
 	if(mainColumnsToRemove.size() > 0) {
 		for(int i = mainColumnsToRemove.size() - 1; i >= 0; i--) {
 			svd.columns.remove(mainColumnsToRemove.get(i).intValue());
@@ -236,13 +238,13 @@ public void populateSvd(
 	}
 
 	/*
-	 * Add the choice lists TODO - What is this used for?  Are choice lists also required for the group survey?
+	 * Add the choice lists 
 	 */
 	svd.choiceLists = GeneralUtilityMethods.getChoicesInForm(sd, sId, f.id);
 }
 
 /*
- * Convet types from Survey Definition to Table Column Tyoe
+ * Convert types from Survey Definition to Table Column Tyoe
  */
 private String convertToTableColumnType(String type) {
 	if(type != null) {

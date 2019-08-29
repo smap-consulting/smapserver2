@@ -84,7 +84,7 @@ public class TableColumn {
 	
 	public boolean isCalculate() {
 		boolean isCalculate = false;
-		if(type.equals("calculate")) {
+		if(type.equals("server_calculate")) {
 			isCalculate = true;
 		}
 		return isCalculate;
@@ -110,11 +110,7 @@ public class TableColumn {
 			if(startName != null && endName != null) {
 				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
 			}
-		} else if(type.equals("duration")) {
-			if(startName != null && endName != null) {
-				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
-			}
-		} else if(!tz.equals("UTC") && (type.equals("dateTime") || type.equals("date"))) {
+		}  else if(!tz.equals("UTC") && (type.equals("dateTime") || type.equals("date"))) {
 			selName = "to_char(timezone(?, " + column_name;
 			params.add(new SqlParam("string", tz));
 			if(type.equals("date")) {
