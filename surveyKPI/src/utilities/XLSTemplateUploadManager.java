@@ -951,7 +951,7 @@ public class XLSTemplateUploadManager {
 
 	private boolean convertVisible(String type) throws Exception {
 		boolean visible = true;
-		if(type.equals("calculate")) {
+		if(type.equals("calculate") || type.equals("server_calculate")) {
 			visible = false;
 		} else if(type.equals("end group")) {
 			visible = false;
