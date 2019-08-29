@@ -150,8 +150,10 @@ public class Register extends Application {
 			u.groups.add(new UserGroup(Authorise.SECURITY_ID, Authorise.SECURITY));
 			
 			int u_id = um.createUser(sd, u, o_id,
-					false,
-					true,
+					false,		// Organisational Administrator
+					true,		// Security Manager
+					false,		// Enterprise Manager
+					false,		// Server owner
 					request.getRemoteUser(),
 					request.getScheme(),
 					request.getServerName(),
