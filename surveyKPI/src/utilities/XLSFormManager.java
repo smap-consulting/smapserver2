@@ -36,6 +36,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
@@ -45,6 +46,7 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumnMarkup;
@@ -109,6 +111,11 @@ public class XLSFormManager {
 		public static final int COL_STYLE_LIST2 = 300;
 		public static final int COL_STYLE_NAME = 301;
 		public static final int COL_STYLE_COLOR = 302;
+		
+		// Conditions sheet columns
+		public static final int COL_QUESTION_NAME = 400;
+		public static final int COL_COND_RULE = 401;
+		public static final int COL_COND_VALUE = 402;
 		
 		String name;
 		private int type;
@@ -326,7 +333,7 @@ public class XLSFormManager {
 				value = o.labels.get(labelIndex).audio;	
 
 			} else {
-				System.out.println("Unknown option type: " + type);
+				log.info("Unknown option type: " + type);
 			}
 
 			return value;
@@ -345,7 +352,26 @@ public class XLSFormManager {
 			} else if(type == COL_STYLE_COLOR) {				
 				value = tcm.classes;		
 			}  else {
-				System.out.println("Unknown option type: " + type);
+				log.info("Unknown style type: " + type);
+			}
+
+			return value;
+		}
+		
+		// Return the condition value for this column
+		public String getValue(Condition c, String questionName) {
+			String value = "";
+
+			if(type == COL_QUESTION_NAME) {			
+				value = questionName;
+
+			} else if(type == COL_COND_RULE) {				
+				value = c.condition;		
+
+			} else if(type == COL_COND_VALUE) {				
+				value = c.value;		
+			}  else {
+				log.info("Unknown condition type: " + type);
 			}
 
 			return value;
@@ -420,9 +446,10 @@ public class XLSFormManager {
 	 */
 	Workbook wb = null;
 	int rowNumberSurvey = 1;		// Heading row is 0
-	int rowNumberChoices = 1;	// Heading row is 0
-	int rowNumberSettings = 1;	// Heading row is 0
-	int rowNumberStyles = 1;		// Heading row is 0
+	int rowNumberChoices = 1;
+	int rowNumberSettings = 1;
+	int rowNumberStyles = 1;
+	int rowNumberConditions = 1;
 	
 	Survey survey = null;
 
@@ -445,6 +472,7 @@ public class XLSFormManager {
 		Sheet choicesSheet = wb.createSheet("choices");
 		Sheet settingsSheet = wb.createSheet("settings");
 		Sheet stylesSheet = wb.createSheet("styles");
+		Sheet conditionsSheet = wb.createSheet("conditions");
 
 		// Freeze panes by default
 		surveySheet.createFreezePane(2, 1);
@@ -462,20 +490,23 @@ public class XLSFormManager {
 		ArrayList<Column> colsChoices = getColumnsChoices();
 		ArrayList<Column> colsSettings = getColumnsSettings();
 		ArrayList<Column> colsStyles = getColumnsStyles();
+		ArrayList<Column> colsConditions = getColumnsConditions();
 
 		// Write out the column headings
 		createHeader(colsSurvey, surveySheet, styles);
 		createHeader(colsChoices, choicesSheet, styles);
 		createHeader(colsSettings, settingsSheet, styles);
 		createHeader(colsStyles, stylesSheet, styles);
+		createHeader(colsConditions, conditionsSheet, styles);
 
 		// Write out questions
 		Form ff = survey.getFirstForm();
-		processFormForXLS(ff, surveySheet, choicesSheet, stylesSheet, 
+		processFormForXLS(ff, surveySheet, choicesSheet, stylesSheet, conditionsSheet,
 				styles, 
 				colsSurvey, 
 				colsChoices, 
 				colsStyles,
+				colsConditions,
 				filterIndexes,
 				addedOptionLists,
 				addedStylesLists,
@@ -517,10 +548,12 @@ public class XLSFormManager {
 			Sheet surveySheet,
 			Sheet choicesSheet,
 			Sheet stylesSheet,
+			Sheet conditionsSheet,
 			Map<String, CellStyle> styles,
 			ArrayList<Column> colsSurvey,
 			ArrayList<Column> colsChoices,
 			ArrayList<Column> colsStyles,
+			ArrayList<Column> colsConditions,
 			HashMap<String, Integer> filterIndexes,
 			HashMap<String, String> addedOptionLists,
 			HashMap<String, String> addedStyleLists,
@@ -579,11 +612,12 @@ public class XLSFormManager {
 					if( subForm != null) {
 
 						processFormForXLS(subForm, 
-								surveySheet, choicesSheet, stylesSheet,
+								surveySheet, choicesSheet, stylesSheet, conditionsSheet,
 								styles, 
 								colsSurvey, 
 								colsChoices,
 								colsStyles,
+								colsConditions,
 								filterIndexes,
 								addedOptionLists,
 								addedStyleLists,
@@ -612,6 +646,11 @@ public class XLSFormManager {
 							}
 							addedStyleLists.put(q.style_list, q.style_list);	// Remember lists that have been added
 						}
+					}
+					
+					// If this question has conditions then add these to the condition sheet
+					if(q.type.equals("server_calculate") && q.server_calculation != null) {
+						addConditionList(conditionsSheet, q.server_calculation, colsConditions, styles, q.name);
 					}
 				}
 			}
@@ -690,6 +729,34 @@ public class XLSFormManager {
 				if(colStyle != null) {	cell.setCellStyle(colStyle); }		
 
 				cell.setCellValue(col.getValue(tcm, styleName));
+			}
+		}
+	}
+	
+	/*
+	 * Add a condition list
+	 */
+	private void addConditionList(Sheet sheet, 
+			ServerCalculation sc,
+			ArrayList<Column> cols, 
+			Map<String, CellStyle> styles,
+			String questionName) {
+
+		if(sc.hasConditions()) {
+			sheet.createRow(rowNumberStyles++);		// blank row
+			
+			ArrayList<Condition> conditions = sc.getConditions();
+			for(Condition c : conditions) {
+				Row row = sheet.createRow(rowNumberConditions++);
+				for(int i = 0; i < cols.size(); i++) {
+					Column col = cols.get(i);
+					CellStyle colStyle = styles.get(col.typeString);
+	
+					Cell cell = row.createCell(i);
+					if(colStyle != null) {	cell.setCellStyle(colStyle); }		
+	
+					cell.setCellValue(col.getValue(c, questionName));
+				}
 			}
 		}
 
@@ -846,6 +913,22 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "list name", Column.COL_STYLE_LIST2, 0, "list name"));
 		cols.add(new Column(colNumber++, "name", Column.COL_STYLE_NAME, 0, "name"));
 		cols.add(new Column(colNumber++, "color", Column.COL_STYLE_COLOR, 0, "color"));
+
+		return cols;
+	}
+	
+	/*
+	 * Get the columns for the conditions sheet
+	 */
+	private ArrayList<Column> getColumnsConditions() {
+
+		ArrayList<Column> cols = new ArrayList<Column> ();
+
+		int colNumber = 0;
+
+		cols.add(new Column(colNumber++, "question name", Column.COL_QUESTION_NAME, 0, "question name"));
+		cols.add(new Column(colNumber++, "rule", Column.COL_COND_RULE, 0, "rule"));
+		cols.add(new Column(colNumber++, "value", Column.COL_COND_VALUE, 0, "value"));
 
 		return cols;
 	}

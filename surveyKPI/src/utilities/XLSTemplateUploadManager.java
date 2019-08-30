@@ -749,7 +749,10 @@ public class XLSTemplateUploadManager {
 				q.server_calculation = new ServerCalculation();
 				q.server_calculation.addExpression(serverCalculation);
 				if(serverCalculation.startsWith("if(")) {			
-					// Get conditions from conditions sheet
+					ServerCalculation sc = survey.serverCalculations.get(q.name);
+					if(sc != null) {
+						q.server_calculation.addAllConditions(sc.getConditions());
+					}
 				} else {		// Validate the expression as an sql fragment	
 					testCalc.addSqlFragment(serverCalculation, true, localisation, rowNum);
 				}
