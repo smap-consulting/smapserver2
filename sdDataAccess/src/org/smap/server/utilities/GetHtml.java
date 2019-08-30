@@ -308,7 +308,9 @@ public class GetHtml {
 				gInTableList = false;
 			}
 
-			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() && !q.type.equals("calculate")) {
+			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
+					&& !q.type.equals("calculate")
+					&& !q.type.equals("server_calculate")) {
 				if (q.type.equals("end group")) {
 
 					currentParent = elementStack.pop();
