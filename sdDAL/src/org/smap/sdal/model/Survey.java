@@ -46,13 +46,14 @@ public class Survey {
 	public String manifest;
 	public boolean hasManifest;
 	public ArrayList<Form> forms = new ArrayList<Form> ();
-	public HashMap<String, OptionList> optionLists = new HashMap<String, OptionList> ();
-	public HashMap<String, StyleList> styleLists = new HashMap<String, StyleList> ();
+	public HashMap<String, OptionList> optionLists = new HashMap<> ();
+	public HashMap<String, StyleList> styleLists = new HashMap<> ();
+	public HashMap<String, ServerCalculation> serverCalculations  = new HashMap<> ();
+	public ArrayList<ServerSideCalculate> sscList  = new ArrayList<ServerSideCalculate> ();	// legacy
 	public ArrayList<Language> languages = new ArrayList<Language> (); 
-	public ArrayList<ServerSideCalculate> sscList  = new ArrayList<ServerSideCalculate> ();
-	public ArrayList<ManifestValue> surveyManifest  = new ArrayList<ManifestValue> ();
-	public HashMap<String, Boolean> filters = new HashMap<String, Boolean> ();
-	public ArrayList<ChangeLog> changes  = new ArrayList<ChangeLog> ();
+	public ArrayList<ManifestValue> surveyManifest  = new ArrayList<> ();
+	public HashMap<String, Boolean> filters = new HashMap<> ();
+	public ArrayList<ChangeLog> changes  = new ArrayList<> ();
 	public ArrayList<MetaItem> meta = new ArrayList<> ();
 	public HashMap<String, Role> roles = new HashMap<> ();
 	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)

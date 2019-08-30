@@ -34,6 +34,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Label;
@@ -61,21 +62,23 @@ public class XLSTemplateUploadManager {
 	Sheet surveySheet = null;
 	Sheet choicesSheet = null;
 	Sheet settingsSheet = null;
-	Sheet styleSheet = null;
 
 	int rowNumSurvey = 0;			// Heading row is 0
 	int rowNumChoices = 0;		
 	int rowNumSettings = 0;	
 	int rowNumStyles = 0;
+	int rowNumConditions = 0;
 	int lastRowNumSurvey = 0;
 	int lastRowNumChoices = 0;
 	int lastRowNumSettings = 0;
 	int lastRowNumStyles = 0;
+	int lastRowNumConditions = 0;
 
 	HashMap<String, Integer> surveyHeader = null;
 	HashMap<String, Integer> choicesHeader = null;
 	HashMap<String, Integer> settingsHeader = null;
 	HashMap<String, Integer> stylesHeader = null;
+	HashMap<String, Integer> conditionsHeader = null;
 	HashMap<String, Integer> choiceFilterHeader = null;
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
@@ -143,6 +146,8 @@ public class XLSTemplateUploadManager {
 			boolean merge,
 			int existingVersion) throws Exception {
 
+		Sheet conditionSheet = null;
+		
 		this.questionNames = questionNames;
 		this.optionNames = optionNames;
 		this.merge = merge;
@@ -164,157 +169,192 @@ public class XLSTemplateUploadManager {
 		surveySheet = wb.getSheet("survey");		
 		choicesSheet = wb.getSheet("choices");
 		settingsSheet = wb.getSheet("settings");
-		styleSheet = wb.getSheet("styles");
+		conditionSheet = wb.getSheet("conditions");
 
 		if(surveySheet == null) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_nw", -1, "survey", null, null, null);
 		} else if(surveySheet.getPhysicalNumberOfRows() == 0) {
 			throw XLSUtilities.getApplicationException(localisation, "tu_ew", -1, "survey", null, null, null);
-		} else {
-
-			lastRowNumSurvey = surveySheet.getLastRowNum();
-			if(choicesSheet != null) {
-				lastRowNumChoices = choicesSheet.getLastRowNum();
-			}
-			if(settingsSheet != null) {
-				lastRowNumSettings = settingsSheet.getLastRowNum();
-			}	
-			if(styleSheet != null) {
-				lastRowNumStyles = styleSheet.getLastRowNum();
-			}	
-
-			getHeaders();	// get headers and set the languages from them
-			
-			/*
-			 * 1. Process the choices sheet
-			 */
-			if(choicesSheet != null) {
-				while(rowNumChoices <= lastRowNumChoices) {
-
-					Row row = choicesSheet.getRow(rowNumChoices++);
-
-					if(row != null) {
-						int lastCellNum = row.getLastCellNum();	
-						String listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
-						
-						if(listName != null) {
-							OptionList ol = survey.optionLists.get(listName);
-							if(ol == null) {
-								ol = new OptionList();
-								survey.optionLists.put(listName, ol);
-							}
-							ol.options.add(getOption(row, listName));
-						}
-
-					}
-				}
-			}
-			
-			/*
-			 * 2. Process the styles sheet
-			 */
-			if(styleSheet != null) {
-				while(rowNumStyles <= lastRowNumStyles) {
-
-					Row row = styleSheet.getRow(rowNumStyles++);
-
-					if(row != null) {
-						int lastCellNum = row.getLastCellNum();	
-						String styleList = XLSUtilities.getTextColumn(row, "list_name", stylesHeader, lastCellNum, null);
-						
-						if(styleList != null) {
-							StyleList sl = survey.styleLists.get(styleList);
-							if(sl == null) {
-								sl = new StyleList ();
-								survey.styleLists.put(styleList, sl);
-							}
-							sl.markup.add(getStyle(row, styleList));
-						}
-
-					}
-				}
-			}
-
-			/*
-			 * 3. Process the survey sheet
-			 */
-			Form f = getForm("main", -1, -1, null);
-			// Validate the top level form
-			if(survey.forms.get(0).questions.size() == 0) {
-				throw new ApplicationException(localisation.getString("tu_nq"));
-			}
-			validateForm(1, f);
-			
-			/*
-			 * 4, Process the settings sheet
-			 */
-			if(settingsSheet != null && settingsHeader != null) {
-				Row row = settingsSheet.getRow(rowNumSettings++);
-				if(row != null) {
-					int lastCellNum = row.getLastCellNum();
-					
-					// Default language
-					survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum, null);
-					if(survey.def_lang != null) {
-						boolean validLanguage = false;
-						for(Language l : survey.languages) {
-							if(l.name.equals(survey.def_lang)) {
-								validLanguage = true;
-								break;
-							}
-						}
-						if(!validLanguage) {
-							throw new ApplicationException(localisation.getString("tu_idl"));
-						}
-					}
-					
-					survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum, null);
-					survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
-					survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
-					survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum));
-					survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum);
-					survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
-					String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
-					if(pdRepeats != null) {
-						String [] pdArray = pdRepeats.split(":");
-						if(pdArray.length > 0) {
-							for(String pd : pdArray) {
-								pd = pd.trim();
-								int idx = pd.indexOf("(");
-								if(idx > 0) {
-									String sName = pd.substring(0, idx);
-									String key = pd.substring(idx + 1, pd.length() - 1);
-									if(survey.pulldata == null) {
-										survey.pulldata = new ArrayList<Pulldata> ();
-									}
-									survey.pulldata.add(new Pulldata(sName, key));
-								}
-								
-							}
-						}
-					}
-					survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
-
-					
-					// Add row filters
-					if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
-						for(String h : rowRoleHeader.keySet()) {
-							String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum, null);
-							if(filter != null) {
-								Role r = survey.roles.get(h);
-								if(r != null) {
-									SqlFrag sq = new SqlFrag();
-									sq.addSqlFragment(filter, false, localisation, 0);
-									settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
-									r.row_filter = filter;
-								}
-							}
-						}
-					}
-				}
-			}
-
 		}
+
+		lastRowNumSurvey = surveySheet.getLastRowNum();
+		if(choicesSheet != null) {
+			lastRowNumChoices = choicesSheet.getLastRowNum();
+		}
+		if(settingsSheet != null) {
+			lastRowNumSettings = settingsSheet.getLastRowNum();
+		}		
+
+		getHeaders();	// get headers for survey, choices and setting. Use thse to set the languages
+
+		/*
+		 * 1. Process the choices sheet
+		 */
+		if(choicesSheet != null) {
+			while(rowNumChoices <= lastRowNumChoices) {
+
+				Row row = choicesSheet.getRow(rowNumChoices++);
+
+				if(row != null) {
+					int lastCellNum = row.getLastCellNum();	
+					String listName = XLSUtilities.getTextColumn(row, "list_name", choicesHeader, lastCellNum, null);
+
+					if(listName != null) {
+						OptionList ol = survey.optionLists.get(listName);
+						if(ol == null) {
+							ol = new OptionList();
+							survey.optionLists.put(listName, ol);
+						}
+						ol.options.add(getOption(row, listName));
+					}
+
+				}
+			}
+		}
+
+		/*
+		 * 2. Process the styles sheet
+		 */
+		Sheet styleSheet = wb.getSheet("styles");
+		if(styleSheet != null) {
+
+			lastRowNumStyles = styleSheet.getLastRowNum();
+			getStyleHeaders(styleSheet);
+
+			while(rowNumStyles <= lastRowNumStyles) {
+
+				Row row = styleSheet.getRow(rowNumStyles++);
+
+				if(row != null) {
+					int lastCellNum = row.getLastCellNum();	
+					String styleList = XLSUtilities.getTextColumn(row, "list_name", stylesHeader, lastCellNum, null);
+
+					if(styleList != null) {
+						StyleList sl = survey.styleLists.get(styleList);
+						if(sl == null) {
+							sl = new StyleList ();
+							survey.styleLists.put(styleList, sl);
+						}
+						sl.markup.add(getStyle(row, styleList));
+					}
+
+				}
+			}
+			styleSheet = null;		// Free memory
+		}
+
+		/*
+		 * 3. Process the conditions sheet
+		 */
+		if(conditionSheet != null) {
+
+			lastRowNumConditions = conditionSheet.getLastRowNum();
+			getConditionHeaders(conditionSheet);
+
+			while(rowNumConditions <= lastRowNumConditions) {
+
+				Row row = conditionSheet.getRow(rowNumConditions++);
+
+				if(row != null) {
+					int lastCellNum = row.getLastCellNum();	
+					String questionName = XLSUtilities.getTextColumn(row, "question_name", conditionsHeader, lastCellNum, null);
+					String rule = XLSUtilities.getTextColumn(row, "rule", conditionsHeader, lastCellNum, null);
+					String value = XLSUtilities.getTextColumn(row, "value", conditionsHeader, lastCellNum, null);
+
+					if(questionName != null && rule != null && value != null) {
+						ServerCalculation sc = survey.serverCalculations.get(questionName);
+						if(sc == null) {
+							sc = new ServerCalculation ();
+							survey.serverCalculations.put(questionName, sc);
+						}
+						sc.addCondition(new Condition(rule, value));
+					}
+
+				}
+			}
+			conditionSheet = null;		// Free memory
+		}
+		
+		
+		/*
+		 * 4. Process the survey sheet
+		 */
+		Form f = getForm("main", -1, -1, null);
+		// Validate the top level form
+		if(survey.forms.get(0).questions.size() == 0) {
+			throw new ApplicationException(localisation.getString("tu_nq"));
+		}
+		validateForm(1, f);
+
+		/*
+		 * 5, Process the settings sheet
+		 */
+		if(settingsSheet != null && settingsHeader != null) {
+			Row row = settingsSheet.getRow(rowNumSettings++);
+			if(row != null) {
+				int lastCellNum = row.getLastCellNum();
+
+				// Default language
+				survey.def_lang = XLSUtilities.getTextColumn(row, "default_language", settingsHeader, lastCellNum, null);
+				if(survey.def_lang != null) {
+					boolean validLanguage = false;
+					for(Language l : survey.languages) {
+						if(l.name.equals(survey.def_lang)) {
+							validLanguage = true;
+							break;
+						}
+					}
+					if(!validLanguage) {
+						throw new ApplicationException(localisation.getString("tu_idl"));
+					}
+				}
+
+				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum, null);
+				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
+				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
+				survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum));
+				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum);
+				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
+				String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
+				if(pdRepeats != null) {
+					String [] pdArray = pdRepeats.split(":");
+					if(pdArray.length > 0) {
+						for(String pd : pdArray) {
+							pd = pd.trim();
+							int idx = pd.indexOf("(");
+							if(idx > 0) {
+								String sName = pd.substring(0, idx);
+								String key = pd.substring(idx + 1, pd.length() - 1);
+								if(survey.pulldata == null) {
+									survey.pulldata = new ArrayList<Pulldata> ();
+								}
+								survey.pulldata.add(new Pulldata(sName, key));
+							}
+
+						}
+					}
+				}
+				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
+
+
+				// Add row filters
+				if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
+					for(String h : rowRoleHeader.keySet()) {
+						String filter = XLSUtilities.getTextColumn(row, h, settingsHeader, lastCellNum, null);
+						if(filter != null) {
+							Role r = survey.roles.get(h);
+							if(r != null) {
+								SqlFrag sq = new SqlFrag();
+								sq.addSqlFragment(filter, false, localisation, 0);
+								settingsQuestionInSurvey(sq.humanNames, h);		// validate question names
+								r.row_filter = filter;
+							}
+						}
+					}
+				}
+			}
+		}
+
 		
 		/*
 		 * Add default preloads
@@ -383,7 +423,7 @@ public class XLSTemplateUploadManager {
 
 		int lastCellNum = row.getLastCellNum();
 
-		String name = XLSUtilities.getTextColumn(row, "name", stylesHeader, lastCellNum, null);
+		String name = XLSUtilities.getTextColumn(row, "value", stylesHeader, lastCellNum, null);
 		String color = XLSUtilities.getTextColumn(row, "color", stylesHeader, lastCellNum, null);
 		
 		TableColumnMarkup s = new TableColumnMarkup(name, color);
@@ -511,6 +551,13 @@ public class XLSTemplateUploadManager {
 				}
 			}
 		}
+
+	}
+	
+	/*
+	 * Get the headers for the styles sheet
+	 */
+	private void getStyleHeaders(Sheet styleSheet) throws ApplicationException {
 		
 		// Get Style sheet headers
 		if(styleSheet != null) {
@@ -518,6 +565,23 @@ public class XLSTemplateUploadManager {
 				Row row = styleSheet.getRow(rowNumStyles++);
 				if(row != null) {
 					stylesHeader = XLSUtilities.getHeader(row, localisation, rowNumStyles, "styles");
+					break;
+				}
+			}
+		}
+	}
+	
+	/*
+	 * Get the headers for the condition sheet
+	 */
+	private void getConditionHeaders(Sheet sheet) throws ApplicationException {
+		
+		// Get Style sheet headers
+		if(sheet != null) {
+			while(rowNumConditions <= lastRowNumConditions) {
+				Row row = sheet.getRow(rowNumConditions++);
+				if(row != null) {
+					conditionsHeader = XLSUtilities.getHeader(row, localisation, rowNumConditions, "conditions");
 					break;
 				}
 			}

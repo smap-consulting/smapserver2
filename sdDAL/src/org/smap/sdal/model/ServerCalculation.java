@@ -20,6 +20,12 @@ public class ServerCalculation {
 	public void addExpression(String expression) {
 		this.expression = expression;
 	}
+	public void addCondition(Condition c) {
+		if(conditions == null) {
+			conditions = new ArrayList<Condition>();
+		}
+		this.conditions.add(c);
+	}
 	public void populateSql(SqlFrag sql, ResourceBundle localisation) throws Exception {
 		// TODO add support for conditions
 		sql.addSqlFragment(expression, false, localisation, 0);

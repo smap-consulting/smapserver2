@@ -286,6 +286,10 @@ public class XLSUtilities {
 					
 					if(name.equals("list name")) {
 						name = "list_name";
+					} else {
+						if(name.equals("question name")) {
+							name = "question_name";
+						}
 					}
 					Integer exists = header.get(name);
 					if(exists == null) {
