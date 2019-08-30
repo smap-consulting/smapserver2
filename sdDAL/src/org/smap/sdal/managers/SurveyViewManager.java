@@ -194,8 +194,8 @@ public void populateSvd(
 			tc.filter = c.filter;
 			tc.type = convertToTableColumnType(c.type);
 			tc.l_id = c.l_id;
-			if(!isMain) {
-				tc.readonly = false;
+			if(!isMain && !tc.type.equals("server_calculate")) {
+				tc.readonly = false;		// Why are we messing with the read only settings here? (TODO)
 			}
 
 			if(tc.column_name.equals("the_geom")) {
