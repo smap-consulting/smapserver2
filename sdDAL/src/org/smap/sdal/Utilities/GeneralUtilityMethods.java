@@ -3503,7 +3503,7 @@ public class GeneralUtilityMethods {
 				+ "from question "
 				+ "where f_id = ? "
 				+ "and (source is not null or qtype = 'server_calculate') "
-				+ "and published = 'true' "
+				+ "and (published = 'true' or qtype = 'server_calculate') "
 				+ "and soft_deleted = 'false' ";
 		
 		String sqlQuestion2 = colList.toString();
