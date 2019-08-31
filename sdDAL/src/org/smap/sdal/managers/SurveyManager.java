@@ -3238,6 +3238,7 @@ public class SurveyManager {
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
 				+ "and u.ident = ? "
+				+ "and not s.deleted "
 				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)";
 
 		PreparedStatement pstmt = null;
