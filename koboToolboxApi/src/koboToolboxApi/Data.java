@@ -368,7 +368,6 @@ public class Data extends Application {
 
 		String table_name = null;
 		int parentform = 0;
-		int managedId = 0;
 		boolean getParkey = false;
 		ResultSet rs = null;
 
@@ -570,18 +569,6 @@ public class Data extends Application {
 					);
 			
 			ConsoleTotals totals = new ConsoleTotals();
-			// Write array start
-			if(isDt) {
-				outWriter.print("{\"data\":");
-			}
-			if(isGeoJson) {
-				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
-																		// TODO metadata
-				outWriter.print("\"features\":");						// Features
-			}
-			
-			// Add feature data
-			outWriter.print("[");
 			
 			if(pstmt != null) {
 				log.info("KoboAPI data: " + pstmt.toString());
@@ -612,6 +599,20 @@ public class Data extends Application {
 							incLinks	,
 							sIdent
 							);
+					
+					// Write json preamble
+					if(index == 0) {
+						if(isDt) {
+							outWriter.print("{\"data\":");
+						}
+						if(isGeoJson) {
+							outWriter.print("{\"type\":\"FeatureCollection\",");		// type
+																					// TODO metadata
+							outWriter.print("\"features\":");						// Features
+						}
+						outWriter.print("[");
+					}
+					
 					if(jo != null) {
 						if(index > 0) {
 							outWriter.print(",");
@@ -675,8 +676,27 @@ public class Data extends Application {
 
 		} catch (Exception e) {
 			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
-			log.log(Level.SEVERE, "Exception", e);
-			outWriter.print(e.getMessage());
+			
+			String status;
+			String msg = e.getMessage();
+			if(msg == null) {
+				status = "ok";
+			} if(msg.indexOf("does not exist", 0) > 0 && msg.startsWith("ERROR: relation")) {
+				status = "ok";
+			} else {
+				status = "error";
+				log.log(Level.SEVERE, "Exception", e);
+			}		
+		
+			if(msg != null) {
+				msg = msg.replace("\"", "\\\"");
+				msg = msg.replace('\n', ',');
+			}
+			outWriter.print("{\"status\": \"" + status + "\"");
+			outWriter.print(",\"msg\": \"");
+			outWriter.print(msg);
+			outWriter.print("\"}");
+			
 		} finally {
 
 			outWriter.flush(); 
