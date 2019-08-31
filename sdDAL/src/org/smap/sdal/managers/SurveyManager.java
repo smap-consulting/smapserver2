@@ -3782,10 +3782,18 @@ public class SurveyManager {
 			 *  Extend the old survey ident in the now deleted survey
 			 */			
 			if(newSurveyId > 0) {
-				pstmtUpdateIdent = sd.prepareStatement(sqlUpdateIdent);
+				
 				sd.setAutoCommit(false);
 				
+				// Delete the survey from the group survey table
+				sql = "delete from group_survey where group_ident = ?";
+				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, surveyIdent);
+				pstmt.executeUpdate();
+				
 				// Modify the ident of the old survey
+				pstmtUpdateIdent = sd.prepareStatement(sqlUpdateIdent);
 				pstmtUpdateIdent.setString(1, surveyIdent + "_" + newSurveyId);
 				pstmtUpdateIdent.setString(2, surveyIdent);	// Original Ident
 				pstmtUpdateIdent.setBoolean(3, true);		// Set hidden
