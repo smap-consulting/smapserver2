@@ -39,6 +39,10 @@ public class ServerCalculation {
 		this.conditions.addAll(conds);
 	}
 	
+	public String getExpression() {
+		return expression;
+	}
+	
 	public ArrayList<Condition> getConditions() {
 		return conditions;
 	}

@@ -74,17 +74,18 @@ public class XLSFormManager {
 		public static final int COL_REQUIRED = 11;
 		public static final int COL_REQUIRED_MSG = 12;
 		public static final int COL_CALCULATION = 13;
-		public static final int COL_IMAGE = 14;
-		public static final int COL_VIDEO = 15;
-		public static final int COL_AUDIO = 16;
-		public static final int COL_AUTOPLAY = 17;
-		public static final int COL_ACCURACY = 18;
-		public static final int COL_PARAMETERS = 19;
-		public static final int COL_ROLE = 20;
-		public static final int COL_DISPLAY_NAME = 21;
-		public static final int COL_INTENT = 22;
-		public static final int COL_GUIDANCE_HINT = 23;
-		public static final int COL_STYLE_LIST = 24;
+		public static final int COL_SERVER_CALCULATION = 14;
+		public static final int COL_IMAGE = 15;
+		public static final int COL_VIDEO = 16;
+		public static final int COL_AUDIO = 17;
+		public static final int COL_AUTOPLAY = 18;
+		public static final int COL_ACCURACY = 19;
+		public static final int COL_PARAMETERS = 20;
+		public static final int COL_ROLE = 21;
+		public static final int COL_DISPLAY_NAME = 22;
+		public static final int COL_INTENT = 23;
+		public static final int COL_GUIDANCE_HINT = 24;
+		public static final int COL_STYLE_LIST = 25;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -242,6 +243,13 @@ public class XLSFormManager {
 					value = "";
 				}
 
+			} else if(type == COL_SERVER_CALCULATION) {
+				if(q.server_calculation != null) {
+					value = q.server_calculation.getExpression();	
+				} else {
+					value = "";
+				}
+			
 			} else if(type == COL_DEFAULT) {				
 				value = q.defaultanswer;		
 
@@ -853,6 +861,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "required", Column.COL_REQUIRED, 0, "required"));
 		cols.add(new Column(colNumber++,"required_message", Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
+		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
 
 		// Add role columns
