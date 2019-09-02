@@ -109,7 +109,7 @@ public class XLSFormManager {
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
-		public static final int COL_STYLE_NAME = 301;
+		public static final int COL_STYLE_VALUE = 301;
 		public static final int COL_STYLE_COLOR = 302;
 		
 		// Conditions sheet columns
@@ -346,7 +346,7 @@ public class XLSFormManager {
 			if(type == COL_STYLE_LIST2) {			
 				value = styleName;
 
-			} else if(type == COL_STYLE_NAME) {				
+			} else if(type == COL_STYLE_VALUE) {				
 				value = tcm.value;		
 
 			} else if(type == COL_STYLE_COLOR) {				
@@ -911,7 +911,7 @@ public class XLSFormManager {
 		int colNumber = 0;
 
 		cols.add(new Column(colNumber++, "list name", Column.COL_STYLE_LIST2, 0, "list name"));
-		cols.add(new Column(colNumber++, "name", Column.COL_STYLE_NAME, 0, "name"));
+		cols.add(new Column(colNumber++, "value", Column.COL_STYLE_VALUE, 0, "value"));
 		cols.add(new Column(colNumber++, "color", Column.COL_STYLE_COLOR, 0, "color"));
 
 		return cols;
