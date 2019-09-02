@@ -1120,7 +1120,7 @@ public class XLSTemplateUploadManager {
 		if(q.relevant != null) {
 			ArrayList<String> refs = GeneralUtilityMethods.getXlsNames(q.relevant);
 			if(refs.contains(q.name)) {		// Circular references
-				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", "relevant", q.name, null);
+				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", "relevant", q.name, q.relevant);
 			}
 			
 			checkParentheses(localisation, q.relevant, rowNumber, "survey", "relevant", q.name);
@@ -1146,6 +1146,7 @@ public class XLSTemplateUploadManager {
 		// check calculate
 		if(q.calculation != null) {
 			checkParentheses(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
+			checkCalculationCircularReferences(localisation, q.calculation, rowNumber, "survey", "calculation", q.name);
 			try {
 				XPathParseTool.parseXPath(GeneralUtilityMethods.convertAllxlsNamesToPseudoXPath(q.calculation));
 			} catch (Exception e) {
@@ -1281,6 +1282,19 @@ public class XLSTemplateUploadManager {
          }
 	}
 	
+	private void checkCalculationCircularReferences(ResourceBundle localisation, String expression, int rowNumber, String sheet, String column, String name) throws ApplicationException {
+		
+		Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+		java.util.regex.Matcher matcher = pattern.matcher(expression);
+		while (matcher.find()) {
+			String matched = matcher.group();
+			String qname = matched.substring(2, matched.length() - 1);
+			if(qname.equals(name)) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, sheet, column, name, expression);
+			}
+		}		
+	}
+	
 	private void validateSurvey() throws Exception {
 		
 		// Validate forms and questions
@@ -1343,7 +1357,7 @@ public class XLSTemplateUploadManager {
 							if(refs.contains(q.name)) {		// Check for self reference
 								Integer rowNumber = qNameMap.get(q.name.toLowerCase());
 								throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", 
-										"label::" + survey.languages.get(idx).name, q.name, null);
+										"label::" + survey.languages.get(idx).name, q.name, q.relevant);
 							}
 						}
 						idx++;
