@@ -878,9 +878,9 @@ public class WebForm extends Application {
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
 		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
-		output.append("<h3></h3>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
+		output.append("<h4></h4>\n");
 		output.append("<p class='alert alert-danger'></p>\n");
 		output.append("<p class='msg'></p>\n");
 		output.append("<span id=\"recname\"></span><span>: </span>");
@@ -902,9 +902,9 @@ public class WebForm extends Application {
 		output.append("<div class='modal-content'>\n");
 		output.append("<div class='modal-header'>\n");
 		output.append("<button type='button' class='close' data-dismiss='modal' aria-hidden='true'>&times;</button>\n");
-		output.append("<h3></h3>\n");
 		output.append("</div>\n");
 		output.append("<div class='modal-body'>\n");
+		output.append("<h4></h4>\n");
 		output.append("<form onsubmit='return false;'>\n");
 		output.append("<div class='alert alert-danger'></div>\n");
 		output.append("<label>\n");
