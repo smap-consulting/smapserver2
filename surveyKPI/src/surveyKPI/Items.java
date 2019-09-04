@@ -239,7 +239,7 @@ public class Items extends Application {
 						parent,
 						fId,
 						tName,
-						true,	// Don't include Read only
+						false,	// Don't include Read only
 						true,	// Include parent key
 						true,	// Include "bad"
 						true,	// Include instanceId
