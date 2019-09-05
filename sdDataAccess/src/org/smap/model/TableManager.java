@@ -284,32 +284,6 @@ public class TableManager {
 	}
 
 	/*
-	 * Mark all the columns in the table as published been applied
-	 */
-	private void markAllChangesApplied(Connection sd, int sId) throws SQLException {
-
-		String sqlUpdateChange = "update survey_change "
-				+ "set apply_results = 'false', "
-				+ "success = 'true' "
-				+ "where s_id = ? ";
-
-		PreparedStatement pstmtUpdateChange = null;
-		try {
-			pstmtUpdateChange = sd.prepareStatement(sqlUpdateChange);
-
-			pstmtUpdateChange.setInt(1, sId);
-			pstmtUpdateChange.executeUpdate();
-
-		}catch (SQLException e) {
-			e.printStackTrace();
-			throw e;
-		} finally {
-			try {if (pstmtUpdateChange != null) {pstmtUpdateChange.close();}} catch (Exception e) {}
-		}
-
-	}
-
-	/*
 	 * Create the tables for the survey
 	 */
 	public void writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
