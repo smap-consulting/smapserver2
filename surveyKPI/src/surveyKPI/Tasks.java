@@ -474,10 +474,6 @@ public class Tasks extends Application {
 			}
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
-			if(period == null) {
-				period = "week";
-			}
-			
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
 			
 			TaskListGeoJson tl = tm.getTasks(
