@@ -25,6 +25,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import org.apache.commons.codec.binary.Base64;
@@ -94,7 +95,7 @@ public class TableReports extends Application {
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
 			@FormParam("sId") int sId,
-			@FormParam("managedId") int managedId,
+			@FormParam("groupSurvey") String groupSurvey,	
 			@FormParam("data") String data,
 			@FormParam("charts") String charts,
 			@FormParam("format") String format,
@@ -114,6 +115,9 @@ public class TableReports extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		if(groupSurvey != null) {
+			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		}
 		// End Authorisation
 		
 		boolean isXLS = format.toLowerCase().equals("xls") || format.toLowerCase().equals("xlsx");
@@ -147,8 +151,16 @@ public class TableReports extends Application {
 			
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			SurveySettingsDefn ssd = ssm.getSurveySettings(sd, uId, sIdent);
-			SurveyViewDefn mfc = svm.getSurveyView(sd, cResults, uId, ssd, sId,
-					request.getRemoteUser(), oId, superUser, null);	// TODO add support for group survey
+			SurveyViewDefn mfc = svm.getSurveyView(
+					sd, 
+					cResults, 
+					uId, 
+					ssd, 
+					sId,
+					request.getRemoteUser(), 
+					oId, 
+					superUser, 
+					groupSurvey);	
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;
