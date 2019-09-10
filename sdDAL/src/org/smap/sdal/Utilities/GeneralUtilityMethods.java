@@ -8048,29 +8048,35 @@ public class GeneralUtilityMethods {
 	/*
 	 * Log a refresh
 	 */
-	static public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon) throws SQLException {
-
+	static public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, long deviceTime) throws SQLException {
 
 		String sql = "update last_refresh "
 				+ "set refresh_time = now(), "
-				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326) "
+				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), "
+				+ "device_time = ? "
 				+ "where o_id = ? "
 				+ "and user_ident = ?";
 
 		String sqlInsert = "insert into last_refresh "
-				+ "(o_id, user_ident, refresh_time, geo_point) "
-				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
+				+ "(o_id, user_ident, refresh_time, geo_point, device_time) "
+				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?)";
+		
+		String sqlInsertLog = "insert into last_refresh_log "
+				+ "(o_id, user_ident, refresh_time, device_time) "
+				+ "values(?, ?, now(), ?)";
 		
 		PreparedStatement pstmt = null;
 
+		Timestamp deviceTimeStamp = new Timestamp(deviceTime);
 		if(user != null) {
 			try {
 				
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setDouble(1, lon);
 				pstmt.setDouble(2, lat);
-				pstmt.setInt(3, oId);
-				pstmt.setString(4,  user);
+				pstmt.setTimestamp(3, deviceTimeStamp);
+				pstmt.setInt(4, oId);
+				pstmt.setString(5,  user);
 				int count = pstmt.executeUpdate();
 				if (count == 0) {
 					try {pstmt.close();} catch (Exception e) {};
@@ -8079,9 +8085,18 @@ public class GeneralUtilityMethods {
 					pstmt.setString(2, user);
 					pstmt.setDouble(3, lon);
 					pstmt.setDouble(4, lat);
+					pstmt.setTimestamp(5,  deviceTimeStamp);
 					pstmt.executeUpdate();
 				}
 	
+				// Write to the log
+				try {pstmt.close();} catch (Exception e) {};
+				pstmt = sd.prepareStatement(sqlInsertLog);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, user);
+				pstmt.setTimestamp(3,  deviceTimeStamp);
+				pstmt.executeUpdate();
+				
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}

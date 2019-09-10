@@ -76,6 +76,7 @@ public class Audit extends Application {
 	
 	Authorise a = null;
 	Authorise aSuper = null;
+	Authorise aAdmin = null;
 
 	private static Logger log =
 			Logger.getLogger(Audit.class.getName());
@@ -103,6 +104,9 @@ public class Audit extends Application {
 		authorisationsSuper.add(Authorise.ADMIN);
 		aSuper = new Authorise(authorisationsSuper, null);
 
+		ArrayList<String> authorisationsAdmin = new ArrayList<String> ();	
+		authorisationsAdmin.add(Authorise.ADMIN);
+		aAdmin = new Authorise(authorisationsSuper, null);
 	}
 
 	/*
@@ -525,6 +529,117 @@ public class Audit extends Application {
 		
 		return response;
 				
+	}
+	
+	/*
+	 * API version 1 /audit
+	 * Get refresh records 
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/refresh/log")
+	public void getrefreshRecords(@Context HttpServletRequest request,
+			@Context HttpServletResponse response,
+			@QueryParam("user") String uIdent,
+			@QueryParam("start") int start,				// Primary key to start from
+			@QueryParam("limit") int limit,				// Number of records to return
+			@QueryParam("tz") String tz					// Timezone
+			) throws ApplicationException, Exception { 
+		
+		// Authorisation - Access
+		String connectionString = "Audit API - Get refresh records";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdmin.isAuthorised(sd, request.getRemoteUser());
+
+		// End Authorisation
+
+		StringBuffer sql = new StringBuffer("select id, user_ident, "
+				+ "to_char(timezone(?, refresh_time), 'YYYY-MM-DD HH24:MI:SS') as refresh_time, "
+				+ "geo_point, "
+				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
+				+ "refresh_time - device_time as server_ahead "
+				+ "from last_refresh_log "
+				+ "where o_id = ?");
+		
+		if(uIdent != null) {
+			sql.append(" and user_ident = ?");
+		}
+		if(start > 0) {
+			sql.append(" and id <= ?");
+		}
+		sql.append(" order by id desc");
+		if(limit > 0) {
+			sql.append(" limit ?");
+		}
+		PreparedStatement pstmt = null;
+		
+		tz = (tz == null) ? "UTC" : tz;
+
+		PrintWriter outWriter = null;
+		try {
+			
+			response.setContentType("application/json; charset=UTF-8");
+			response.setCharacterEncoding("UTF-8");
+			outWriter = response.getWriter();
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			pstmt = sd.prepareStatement(sql.toString());
+			int idx = 1;
+			pstmt.setString(idx++,  tz);
+			pstmt.setString(idx++,  tz);
+			pstmt.setInt(idx++, oId);
+			if(uIdent != null) {
+				pstmt.setString(idx++, uIdent);;
+			}
+			if(start > 0) {
+				pstmt.setInt(idx++, start);	
+			}
+			if(limit > 0) {
+				pstmt.setInt(idx++, limit);	
+			}
+		
+
+			outWriter.print("[");
+			
+			log.info("AuditAPI refresh data: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			int count = 0;
+			while(rs.next()) {
+				if(count++ > 0) {
+					outWriter.print(",");
+				}
+				JSONObject jo = new JSONObject();
+				jo.put("id", rs.getInt("id"));
+				jo.put("user", rs.getString("user_ident"));
+				jo.put("refresh_time", rs.getString("refresh_time"));
+				jo.put("device_time", rs.getString("device_time"));
+				jo.put("server_ahead", rs.getString("server_ahead"));
+				
+				outWriter.print(jo.toString());
+			}
+			
+			outWriter.print("]");
+		
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			outWriter.print(e.getMessage());
+		} finally {
+
+			outWriter.flush(); 
+			outWriter.close();
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
 	}
 
 }

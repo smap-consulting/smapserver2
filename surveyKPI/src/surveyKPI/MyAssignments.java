@@ -273,6 +273,19 @@ public class MyAssignments extends Application {
 			}
 		}
 		
+		// Get the device time if set
+		String deviceTimeString = request.getHeader("devicetime");
+		long deviceTime = 0;
+		if(deviceTimeString != null) {
+			try {				
+				deviceTime = Long.parseLong(deviceTimeString);
+				tr.time_difference = deviceTime - (new java.util.Date()).getTime();
+			} catch (Exception e) {
+				log.info("Invalid device time: " + deviceTimeString);
+			}
+		}
+		
+		log.info("Refresh assignments: " + deviceTimeString);
 		
 		PreparedStatement pstmtGetSettings = null;
 		PreparedStatement pstmtGetProjects = null;
@@ -585,7 +598,7 @@ public class MyAssignments extends Application {
 			/*
 			 * Log the request
 			 */
-			GeneralUtilityMethods.recordRefresh(sd, oId, userName, lat, lon);
+			GeneralUtilityMethods.recordRefresh(sd, oId, userName, lat, lon, deviceTime);
 			
 			/*
 			 * Return the response
