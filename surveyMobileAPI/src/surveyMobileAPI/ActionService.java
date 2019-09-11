@@ -85,7 +85,7 @@ public class ActionService extends Application {
 	SurveyViewDefn mfc = null;
 
 	/*
-	 * Get instance data Respond with JSON
+	 * 
 	 */
 	@GET
 	@Path("/{ident}")
@@ -264,6 +264,8 @@ public class ActionService extends Application {
 		output.append("<link href=\"/css/bootstrap-datetimepicker.min.css\" rel=\"stylesheet\">\n");
 		output.append("<link href=\"/css/wb/plugins/iCheck/custom.css\" rel=\"stylesheet\">\n");
 
+		output.append("<link href=\"/css/bootstrap-multiselect.css\" rel=\"stylesheet\">\n");
+		
 		output.append("<link href=\"/css/wb/animate.css\" rel=\"stylesheet\">\n");
 		output.append("<link href=\"/css/wb/style.css\" rel=\"stylesheet\">\n");
 		output.append("<link href=\"/css/smap-wb.css\" rel=\"stylesheet\">\n");
