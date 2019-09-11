@@ -293,18 +293,6 @@ public class XLSReportsManager {
 					Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
 					url.setAddress(value);
 					cell.setHyperlink(url);
-					/*
-					if(isXLSX) {
-						XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(HyperlinkType.URL);
-						url.setAddress(value);
-						cell.setHyperlink(url);
-					} else {
-						HSSFHyperlink url = new HSSFHyperlink(HyperlinkType.URL);
-						url.setAddress(value);
-						cell.setHyperlink(url);
-					}
-					*/
-
 				}
 
 				boolean cellWritten = false;
