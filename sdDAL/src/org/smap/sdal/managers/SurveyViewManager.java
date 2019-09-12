@@ -170,7 +170,7 @@ public void populateSvd(
 			isMain		// mgmt - Only the main survey request should result in the addition of the mgmt columns
 			);		
 
-	// If this is a group form track which duplicate main qustions need to be removed
+	// If this is a group form track which duplicate main questions need to be removed
 	ArrayList<Integer> mainColumnsToRemove = new ArrayList<Integer>();
 
 	/*

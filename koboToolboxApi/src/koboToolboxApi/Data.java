@@ -450,6 +450,7 @@ public class Data extends Application {
 					ssd.dateName = dateName;
 					ssd.fromDate = startDate;
 					ssd.toDate = endDate;
+					ssd.include_bad = include_bad;
 					ssd.overridenDefaultLimit = "yes";
 					
 					ssm.setSurveySettings(sd, uId, sIdent, ssd);
@@ -477,6 +478,7 @@ public class Data extends Application {
 				ssd.dateName = dateName;
 				ssd.fromDate = startDate;
 				ssd.toDate = endDate;
+				ssd.include_bad = include_bad;
 				ssd.overridenDefaultLimit = "yes";
 				
 				if(fId == 0) {
@@ -519,7 +521,7 @@ public class Data extends Application {
 						table_name,
 						true,		// Read Only
 						getParkey,	// Include parent key if the form is not the top level form (fId is 0)
-						(include_bad.equals("yes") || include_bad.equals("only")),
+						(ssd.include_bad.equals("yes") || ssd.include_bad.equals("only")),
 						true,		// include instance id
 						true,		// Include prikey
 						true,		// include other meta data
@@ -557,7 +559,7 @@ public class Data extends Application {
 					start_parkey,
 					superUser,
 					false,			// Return records greater than or equal to primary key
-					include_bad,
+					ssd.include_bad,
 					null	,			// no custom filter
 					null,			// key filter
 					tz,
@@ -681,7 +683,7 @@ public class Data extends Application {
 			String msg = e.getMessage();
 			if(msg == null) {
 				status = "ok";
-			} if(msg.indexOf("does not exist", 0) > 0 && msg.startsWith("ERROR: relation")) {
+			} else if(msg.indexOf("does not exist", 0) > 0 && msg.startsWith("ERROR: relation")) {
 				status = "ok";
 			} else {
 				status = "error";
