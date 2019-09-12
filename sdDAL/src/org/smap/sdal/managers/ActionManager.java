@@ -384,7 +384,9 @@ public class ActionManager {
 					null,		// ssd 
 					sId,
 					request.getRemoteUser(), oId, false,
-					groupSurvey);	
+					groupSurvey,
+					false		// include bad
+					);	
 
 			Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get the table name of the top level form
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");

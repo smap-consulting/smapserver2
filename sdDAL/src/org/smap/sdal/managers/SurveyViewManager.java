@@ -83,7 +83,8 @@ public class SurveyViewManager {
 			String uIdent,
 			int oId,
 			boolean superUser,
-			String groupSurvey) throws SQLException, Exception  {
+			String groupSurvey,
+			boolean includeBad) throws SQLException, Exception  {
 
 		SurveyViewDefn svd = new SurveyViewDefn(sId);
 
@@ -100,7 +101,8 @@ public class SurveyViewManager {
 				sId,
 				surveyIdent,
 				uIdent,
-				superUser);
+				superUser,
+				includeBad);
 
 		
 		// Add the managed form columns from the group survey
@@ -115,7 +117,8 @@ public class SurveyViewManager {
 					groupSurveyId,
 					groupSurvey,
 					uIdent,
-					superUser);
+					superUser,
+					includeBad);
 		}
 
 
@@ -136,7 +139,8 @@ public void populateSvd(
 		int sId,
 		String surveyIdent,
 		String uIdent,
-		boolean superUser) throws Exception {
+		boolean superUser,
+		boolean includeBad) throws Exception {
 
 	Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
 	if(isMain) {
@@ -178,7 +182,7 @@ public void populateSvd(
 	 */			
 	for(int i = 0; i < columnList.size(); i++) {
 		TableColumn c = columnList.get(i);
-		if(keepThis(c.column_name, isMain)) {
+		if(keepThis(c.column_name, isMain, includeBad)) {
 			TableColumn tc = new TableColumn(c.column_name, c.question_name, c.displayName);
 			ConsoleColumn cc = null;
 			if(columnSettings != null) {
@@ -200,6 +204,11 @@ public void populateSvd(
 
 			if(tc.column_name.equals("the_geom")) {
 				tc.displayName = "_geolocation";
+			} else if(tc.column_name.equals("_bad")) {
+				tc.displayName = localisation.getString("c_del");
+				tc.del_col = true;
+			} else if(tc.column_name.equals("_bad_reason")) {
+				tc.displayName = localisation.getString("c_del_reason");
 			}
 			
 			tc.calculation = c.calculation;
@@ -512,7 +521,7 @@ public ArrayList<ManagedFormItem> getManagedForms(Connection sd, int pId) throws
 /*
  * Identify any columns that should be dropped
  */
-private boolean keepThis(String name, boolean isMain) {
+private boolean keepThis(String name, boolean isMain, boolean includeBad) {
 	boolean keep = true;
 
 	if(name.equals(SmapServerMeta.SURVEY_ID_NAME) ||
@@ -520,17 +529,21 @@ private boolean keepThis(String name, boolean isMain) {
 			name.equals("_version") ||
 			name.equals("_complete") ||
 			name.equals("_location_trigger") ||
-			name.equals("_device") ||
-			name.equals("_bad") ||
-			name.equals("_bad_reason")
+			name.equals("_device")
 			) {
 		keep = false;
-
-		// Instance id only returned once
-		if(keep && !isMain && name.equals("instanceid")) {
-			keep = false;
-		}
 	}
+	if(keep && !includeBad && 
+			(name.equals("_bad") ||
+			name.equals("_bad_reason"))) {
+		keep = false;
+	}
+	
+	// Instance id only returned once
+	if(keep && !isMain && name.equals("instanceid")) {
+		keep = false;
+	}
+	
 	return keep;
 }
 

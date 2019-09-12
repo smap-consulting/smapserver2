@@ -20,6 +20,7 @@ public class TableColumn {
 	public String name;			// Legacy usage but included in reports saved to database - Do not use
 	public String displayName;
 	public boolean include;		// Include in the table
+	public boolean del_col;		// Column indicating if the record is deleted
 	public boolean hide;		// Only show on expand
 	public boolean barcode;		// Show as barcode
 	public boolean mgmt = false;

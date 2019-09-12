@@ -285,7 +285,9 @@ public class ActionService extends Application {
 		
 		mfc = mfm.getSurveyView(sd, cResults, uId, null, a.sId, uIdent,
 				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser,
-				a.groupSurvey);
+				a.groupSurvey,
+				false		// include bad
+				);
 		String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 		Form f = GeneralUtilityMethods.getTopLevelForm(sd, a.sId);
 

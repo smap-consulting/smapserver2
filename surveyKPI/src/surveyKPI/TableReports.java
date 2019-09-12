@@ -160,7 +160,9 @@ public class TableReports extends Application {
 					request.getRemoteUser(), 
 					oId, 
 					superUser, 
-					groupSurvey);	
+					groupSurvey,
+					false		// Include bad
+					);	
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;
