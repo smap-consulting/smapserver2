@@ -66,11 +66,9 @@ public class UtilityMethodsEmail {
 		
 		String sqlChild = "update " + tName + " set _bad = ?, _bad_reason = ? " + 
 				" where prikey = ?;";
-		String sqlGetInstanceId = "select instanceid from " + tName + " where prikey = ?";
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmt2 = null;
-		PreparedStatement pstmtGetInstanceId = null;
 
 		try {
 
@@ -135,7 +133,6 @@ public class UtilityMethodsEmail {
 		} finally {
 			if (pstmt != null) try {pstmt.close();} catch(Exception e) {};
 			if (pstmt2 != null) try {pstmt2.close();} catch(Exception e) {};
-			if (pstmtGetInstanceId != null) try {pstmtGetInstanceId.close();} catch(Exception e) {};
 		}
 
 

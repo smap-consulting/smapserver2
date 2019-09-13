@@ -6012,7 +6012,7 @@ public class GeneralUtilityMethods {
 				+ "table_name "
 				+ "from form "
 				+ "where s_id = ? "
-				+ "and parentform = 0;";
+				+ "and parentform = 0";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -6025,19 +6025,42 @@ public class GeneralUtilityMethods {
 				f.tableName = rs.getString("table_name");
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return f;
+
+	}
+	
+	/*
+	 * Get the primary key for an instance id
+	 */
+	public static int getPrikey(Connection cRel, String table, String instanceId) throws SQLException {
+
+		int prikey = 0;
+
+		String sql = "select  " 
+				+ "prikey from " 
+				+ table
+				+ " where instanceid = ? ";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = cRel.prepareStatement(sql);
+			pstmt.setString(1, instanceId);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				prikey = rs.getInt(1);
+			}
+
+		} finally {
+			try {
+				if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {	}
+		}
+
+		return prikey;
 
 	}
 

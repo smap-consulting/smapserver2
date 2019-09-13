@@ -208,6 +208,7 @@ public void populateSvd(
 				tc.displayName = localisation.getString("c_del");
 				tc.del_col = true;
 			} else if(tc.column_name.equals("_bad_reason")) {
+				tc.del_reason_col = true;
 				tc.displayName = localisation.getString("c_del_reason");
 			}
 			

@@ -1076,6 +1076,70 @@ public class Items extends Application {
 			}
 		} finally {
 			
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection("surveyKPI-Items", cRel);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Update the bad record status
+	 */
+	@POST
+	@Path("/{survey}/survey/bad/{instanceId}")
+	@Consumes("application/json")
+	public Response toggleBadSurvey(@Context HttpServletRequest request,
+			@PathParam("survey") int sId,
+			@PathParam("instanceId") String instanceId,
+			@FormParam("value") boolean value,
+			@FormParam("reason") String reason
+			) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-Items-bad Survey Level";
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+
+		Connection cRel = null; 
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";
+			
+			log.info("New toggle bad");
+			cRel = ResultsDataSource.getConnection("surveyKPI-Items");
+		
+			Form form = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+			int key = GeneralUtilityMethods.getPrikey(cRel, form.tableName, instanceId);
+			boolean isChild = false;
+			UtilityMethodsEmail.markRecord(cRel, sd, localisation, form.tableName, value, 
+						reason, key, sId, form.id, false, isChild, request.getRemoteUser(), true, tz, true);
+
+			response = Response.ok().build();
+				
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			if(msg.equals("Failed to update record")) {
+				response = Response.status(Status.OK).entity("Record cannot be modified").build();
+			} else {
+				response = Response.serverError().build();
+				log.log(Level.SEVERE,"Error", e);
+			}
+		} finally {
+			
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection("surveyKPI-Items", cRel);
 		}
