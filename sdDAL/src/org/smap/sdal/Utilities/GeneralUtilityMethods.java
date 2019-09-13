@@ -5837,9 +5837,14 @@ public class GeneralUtilityMethods {
 
 		int count = 0;
 		
-		String sql = "update " + tablename + " set _assigned = ? "
+		String sql = "update " 
+				+ tablename 
+				+ " set _assigned = ? "
 				+ "where instanceid = ? ";
 
+		if(user != null && user.equals("_none")) {
+			user = null;
+		}
 		PreparedStatement pstmt = conn.prepareStatement(sql);
 		pstmt.setString(1, user);
 		pstmt.setString(2,instanceId);

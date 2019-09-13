@@ -323,6 +323,10 @@ public class ManagedForms extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			if(!uIdent.equals("_none")) {
+				a.isValidUser(sd, request.getRemoteUser(), GeneralUtilityMethods.getUserId(sd, uIdent));
+			}
+			
 			String tz = "UTC";
 			
 			String tableName = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
