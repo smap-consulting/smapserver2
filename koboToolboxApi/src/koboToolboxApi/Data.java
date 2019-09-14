@@ -459,6 +459,9 @@ public class Data extends Application {
 					if(ssd.overridenDefaultLimit == null) {
 						ssd.limit = 1000;
 					}
+					if(ssd.include_bad == null) {
+						ssd.include_bad = "none";
+					}
 				}
 				sv = svm.getSurveyView(sd, 
 						cResults, 
@@ -633,6 +636,8 @@ public class Data extends Application {
 				
 				cResults.setAutoCommit(true);		// page the results to reduce memory
 				
+			} else {
+				log.info("Error:  prepared statement is null");
 			}
 			
 			outWriter.print("]");
@@ -684,8 +689,10 @@ public class Data extends Application {
 			String msg = e.getMessage();
 			if(msg == null) {
 				status = "ok";
+				log.info("Exception with null message");
 			} else if(msg.indexOf("does not exist", 0) > 0 && msg.startsWith("ERROR: relation")) {
 				status = "ok";
+				log.info(msg);
 			} else {
 				status = "error";
 				log.log(Level.SEVERE, "Exception", e);
@@ -731,7 +738,7 @@ public class Data extends Application {
 
 		Response response;
 		
-		String connectionString = "koboToolboxApi - get data records";
+		String connectionString = "koboToolboxApi - get single record";
 		
 		Connection cResults = null;
 		
