@@ -274,6 +274,8 @@ public class MiscPDFManager {
 				// Step 2 - Populate the fields in the stationary
 				PdfReader s_reader = new PdfReader(stationaryName);
 				PdfStamper s_stamper = new PdfStamper(s_reader, baos_s);
+				
+
 				AcroFields pdfForm = s_stamper.getAcroFields();
 				Set<String> fields = pdfForm.getFields().keySet();
 				for(String key: fields) {
