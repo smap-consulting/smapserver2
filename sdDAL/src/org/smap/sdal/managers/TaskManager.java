@@ -612,9 +612,10 @@ public class TaskManager {
 
 		for(TaskServerDefn tsd : tl) {
 			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
-			for(AssignmentServerDefn asd : tsd.assignments)
-			if(asd.assignee_ident != null) {
-				userIdents.put(asd.assignee_ident, asd.assignee_ident);
+			for(AssignmentServerDefn asd : tsd.assignments) {
+				if(asd.assignee_ident != null) {
+					userIdents.put(asd.assignee_ident, asd.assignee_ident);
+				}
 			}
 		}
 
@@ -2385,6 +2386,7 @@ public class TaskManager {
 			PreparedStatement pstmt,
 			String name,					// Task name
 			int assignee,
+			String assigneeIdent,
 			String email,
 			String status,
 			int task_id,
@@ -2398,7 +2400,7 @@ public class TaskManager {
 		if(email != null) {
 			pstmt.setString(2, email);
 		} else {
-			pstmt.setInt(2,  assignee);
+			pstmt.setString(2,  assigneeIdent);
 		}
 		pstmt.setString(3,  email);	
 		pstmt.setString(4,  status);	
@@ -2585,11 +2587,11 @@ public class TaskManager {
 		
 		if(userId > 0) {		// Assign the user to the new task
 
-			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, null, status, taskId, update_id, sIdent, 
+			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
+			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, status, taskId, update_id, sIdent, 
 					remoteUser, scheduledAt, scheduledFinish);
 			
-			// Notify the user of their new assignment
-			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
+			// Notify the user of their new assignment		
 			MessagingManager mm = new MessagingManager();
 			mm.userChange(sd, userIdent);	
 
@@ -2611,11 +2613,13 @@ public class TaskManager {
 			while(rsRoles.next()) {
 				count++;
 		
-				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, rsRoles.getInt(1), null, status, taskId, update_id, sIdent, 
+				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
+				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 
+						rsRoles.getInt(1), userIdent, null, status, taskId, update_id, sIdent, 
 						remoteUser, scheduledAt, scheduledFinish);
 				
 				// Notify the user of their new assignment
-				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
+				
 				MessagingManager mm = new MessagingManager();
 				mm.userChange(sd, userIdent);	
 			}
@@ -2658,11 +2662,11 @@ public class TaskManager {
 			for(String email : emailArray) {
 				
 				if(emailTaskBlocked) {
-					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, "blocked", taskId, update_id, sIdent, 
+					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, "blocked", taskId, update_id, sIdent, 
 							remoteUser, scheduledAt, scheduledFinish);
 				} else {
 					// Create the assignment
-					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, email, status, taskId, update_id, sIdent, 
+					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, status, taskId, update_id, sIdent, 
 							remoteUser, scheduledAt, scheduledFinish);
 					
 					// Create a temporary user embedding the assignment id in the action link, get the link to that user
