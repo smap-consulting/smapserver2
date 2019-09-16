@@ -1087,7 +1087,7 @@ public class TaskManager {
 			if(rsKeys.next()) {
 				int taskId = rsKeys.getInt(1);
 				
-				pstmtAssign = getInsertAssignmentStatement(sd, as.emails == null);
+				pstmtAssign = getInsertAssignmentStatement(sd);
 				pstmtRoles = getRoles(sd);
 				pstmtRoles2 = getRoles2(sd);
 				
@@ -1441,7 +1441,7 @@ public class TaskManager {
 			 */ 	
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.a_id > 0) {
-					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
+					pstmtInsert = getInsertAssignmentStatement(sd);
 					updateAssignment(sd, 
 							cResults,
 							pstmtInsert, 
@@ -1478,7 +1478,7 @@ public class TaskManager {
 							null,			
 							tsd.name);
 					
-					pstmtInsert = getInsertAssignmentStatement(sd, asd.email == null);
+					pstmtInsert = getInsertAssignmentStatement(sd);
 					applyAllAssignments(
 							sd, 
 							cResults,
@@ -2353,26 +2353,17 @@ public class TaskManager {
 	/*
 	 * Get the preparedStatement
 	 */
-	public PreparedStatement getInsertAssignmentStatement(Connection sd, boolean internal) throws SQLException {
+	public PreparedStatement getInsertAssignmentStatement(Connection sd) throws SQLException {
 
-		String sql1 = "insert into assignments ("
+		String sql = "insert into assignments ("
 				+ "assignee, "
 				+ "assignee_name,"
 				+ "email,"
 				+ "status, "
 				+ "task_id,"
 				+ "assigned_date) "
-				+ "values (?, ";
-		String sql2_internal = "(select name from users where id = ?)";
-		String sql2_email = "?";
-		String sql3 = ", ?, ?, ?, now())";
+				+ "values (?, ?, ?, ?, ?, now())";
 		
-		String sql = null;
-		if(internal) {
-			sql = sql1 + sql2_internal +sql3;
-		} else {
-			sql = sql1 + sql2_email +sql3;
-		}
 		return sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 	}
 	
