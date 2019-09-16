@@ -723,10 +723,12 @@ public class NotificationManager {
 							msg.attach = "pdf";
 						}
 		
+						String urlprefix = "https://" + msg.server + "/";
+						
 						filename = pm.createPdf(
 								outputStream,
 								msg.basePath, 
-								msg.serverRoot,
+								urlprefix,
 								msg.user,
 								"none", 
 								generateBlank,

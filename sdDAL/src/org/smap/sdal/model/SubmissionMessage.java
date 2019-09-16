@@ -27,7 +27,6 @@ public class SubmissionMessage {
 	public String scheme;
 	public String server;
 	public String basePath;
-	public String serverRoot;
 	
 	public SubmissionMessage(
 			int taskId,
