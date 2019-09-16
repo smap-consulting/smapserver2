@@ -3,6 +3,7 @@
 	<name>subscribers-P</name>
 	<comment></comment>
 	<projects>
+		<project>sdDAL-P</project>
 		<project>sdDataAccess</project>
 	</projects>
 	<buildSpec>

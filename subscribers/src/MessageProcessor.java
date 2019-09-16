@@ -1,76 +1,19 @@
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.sql.Connection;
 import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.text.DateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathFactory;
-
-import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONObject;
-import org.smap.model.SurveyInstance;
-import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.MessagingManagerApply;
-import org.smap.sdal.managers.NotificationManager;
-import org.smap.sdal.managers.ServerManager;
-import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.managers.TableDataManager;
-import org.smap.sdal.model.Form;
-import org.smap.sdal.model.Notification;
-import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.ReportConfig;
-import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
-import org.smap.server.entities.HostUnreachableException;
-import org.smap.server.entities.MissingSurveyException;
-import org.smap.server.entities.MissingTemplateException;
-import org.smap.server.entities.SubscriberEvent;
-import org.smap.server.entities.UploadEvent;
-import org.smap.subscribers.SmapForward;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
-
-import JdbcManagers.JdbcUploadEventManager;
 
 /*****************************************************************************
  * 
