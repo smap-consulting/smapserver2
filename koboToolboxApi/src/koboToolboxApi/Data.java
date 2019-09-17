@@ -674,6 +674,11 @@ public class Data extends Application {
 					// 4. Add totals to the results
 					outWriter.print(",\"totals\":");
 					outWriter.print(gson.toJson(totals));
+					
+					// 5. Add forms to the results
+					outWriter.print(",\"forms\":");
+					ArrayList<String> forms = GeneralUtilityMethods.getFormNames(sd, sId);
+					outWriter.print(gson.toJson(forms));
 				}
 				
 				outWriter.print("}");

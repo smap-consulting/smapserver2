@@ -6071,7 +6071,10 @@ public class GeneralUtilityMethods {
 
 		Form f = new Form();
 
-		String sql = "select  " + "f_id," + "table_name " + "from form " + "where s_id = ? " + "and f_id = ?;";
+		String sql = "select f_id, table_name " 
+				+ "from form " 
+				+ "where s_id = ? " 
+				+ "and f_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -6085,19 +6088,42 @@ public class GeneralUtilityMethods {
 				f.tableName = rs.getString("table_name");
 			}
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
 		return f;
+
+	}
+	
+	/*
+	 * Get the list of form names in a survey
+	 */
+	public static ArrayList<String> getFormNames(Connection sd, int sId) throws SQLException {
+
+		ArrayList<String> formNames = new ArrayList<String> ();
+
+		String sql = "select name "  
+				+ "from form " 
+				+ "where s_id = ? "
+				+ "and name != 'main' ";
+		PreparedStatement pstmt = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				formNames.add(rs.getString(1));
+			}
+
+		} finally {
+			try {
+				if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
+		}
+
+		return formNames;
 
 	}
 
