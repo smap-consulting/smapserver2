@@ -80,6 +80,7 @@ public class SurveyViewManager {
 			int uId,
 			SurveySettingsDefn ssd,
 			int sId,
+			int fId,
 			String uIdent,
 			int oId,
 			boolean superUser,
@@ -99,6 +100,7 @@ public class SurveyViewManager {
 				true,			// Is main survey
 				language,
 				sId,
+				fId,
 				surveyIdent,
 				uIdent,
 				superUser,
@@ -115,6 +117,7 @@ public class SurveyViewManager {
 					false,			// Is main survey
 					language,
 					groupSurveyId,
+					0,					// TODO group form id
 					groupSurvey,
 					uIdent,
 					superUser,
@@ -137,15 +140,24 @@ public void populateSvd(
 		boolean isMain,
 		String language,
 		int sId,
+		int fId,
 		String surveyIdent,
 		String uIdent,
 		boolean superUser,
 		boolean includeBad) throws Exception {
 
-	Form f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
+	Form f = null;
+	if(fId == 0) {
+		f = GeneralUtilityMethods.getTopLevelForm(sd, sId); // Get formId of top level form and its table name
+	} else {
+		f = GeneralUtilityMethods.getForm(sd, sId, fId);
+	}
 	if(isMain) {
 		svd.tableName = f.tableName;
 	}
+	
+	boolean includeMeta = isMain && (fId == 0);
+	
 	ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 			sd,
 			cResults,
@@ -159,19 +171,19 @@ public void populateSvd(
 			f.id,
 			f.tableName,
 			false,	// Don't include Read only
-			isMain,	// Include parent key
-			isMain,	// Include "bad"
-			isMain,	// Include instanceId
-			isMain,	// include prikey
-			isMain,	// Include other meta data
-			isMain,		// include preloads
-			isMain,		// include instancename
-			isMain,		// Survey duration
+			includeMeta,	// Include parent key
+			includeMeta,	// Include "bad"
+			includeMeta,	// Include instanceId
+			includeMeta,	// include prikey
+			includeMeta,	// Include other meta data
+			includeMeta,		// include preloads
+			includeMeta,		// include instancename
+			includeMeta,		// Survey duration
 			superUser,
 			false,		// HXL only include with XLS exports
 			false,		// Don't include audit data
 			tz,
-			isMain		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+			includeMeta		// mgmt - Only the main survey request should result in the addition of the mgmt columns
 			);		
 
 	// If this is a group form track which duplicate main questions need to be removed

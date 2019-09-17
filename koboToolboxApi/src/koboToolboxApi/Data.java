@@ -468,7 +468,10 @@ public class Data extends Application {
 						uId, 
 						ssd, 
 						sId,
-						request.getRemoteUser(), oId, superUser,
+						fId,
+						request.getRemoteUser(), 
+						oId, 
+						superUser,
 						groupSurvey,
 						ssd.include_bad.equals("yes") || ssd.include_bad.equals("only"));	
 				columns = sv.columns;
