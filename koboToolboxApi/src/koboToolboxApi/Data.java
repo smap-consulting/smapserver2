@@ -638,6 +638,7 @@ public class Data extends Application {
 				
 			} else {
 				log.info("Error:  prepared statement is null");
+				outWriter.print("[");
 			}
 			
 			outWriter.print("]");
