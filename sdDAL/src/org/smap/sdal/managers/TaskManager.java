@@ -1317,6 +1317,17 @@ public class TaskManager {
 			String targetSurveyIdent = tsd.survey_ident;
 			
 			/*
+			 * Set the task name to the survey name if it has not been set
+			 */
+			if(tsd.name == null || tsd.name.isEmpty()) {
+				if(tsd.survey_name != null) {
+					tsd.name = tsd.survey_name;
+				} else {
+					tsd.name = GeneralUtilityMethods.getSurveyNameFromIdent(sd, tsd.survey_ident);
+				}
+			}
+			
+			/*
 			 * 4. Location and GPS 
 			 * if a location name is specified
 			 *      if location exists update it
