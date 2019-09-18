@@ -1018,12 +1018,18 @@ public class SubRelationalDB extends Subscriber {
 				+ "and reference = 'false'";
 		PreparedStatement pstmtChildTables = null;
 		
-		String sqlChildTablesInGroup = "select distinct table_name, f_id, name  from form "
+		String sqlChildTablesInGroup = "select distinct table_name from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
 				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
 				+ "or s_id = ?)";
 		PreparedStatement pstmtChildTablesInGroup = null;
+		
+		String sqlGetFormDetails = "select distinct f_id, name  from form "
+				+ "where reference = 'false' "
+				+ "and table_name = ? "
+				+ "and s_id = ?";
+		PreparedStatement pstmtFormDetails = null;
 
 		//PreparedStatement pstmtChildUpdate = null;
 
@@ -1060,6 +1066,8 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} 
 			
+			log.info("++++++++++++++ Merge Begins +++++++++++++++++");
+			log.info("++++++++++++++ Source Key: " + sourceKey );
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			if(sourceKey > 0) {
 
@@ -1076,10 +1084,11 @@ public class SubRelationalDB extends Subscriber {
 				while(rtm.next()) {
 					if(rtm.getBoolean("replace") || replace) {		// Overall survey replace overrides sub form key policy
 						replaceTables.add(rtm.getString(1));
+						log.info("Need to replace table " + rtm.getString(1));
 					} else if(rtm.getBoolean("merge")) {
 						mergeTables.add(rtm.getString(1));
+						log.info("Need to merge table " + rtm.getString(1));
 					} 
-					log.info("Need to merge or replace table " + rtm.getString(1));
 				}
 				
 				// Add the child records from the merged survey to the new survey
@@ -1092,6 +1101,8 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Get child tables for group: " + pstmtChildTablesInGroup.toString());
 					rsc = pstmtChildTablesInGroup.executeQuery();
 				
+					pstmtFormDetails = sd.prepareStatement(sqlGetFormDetails);
+					pstmtFormDetails.setInt(2, sId);
 				} else {
 					
 					// Not in a group - update the child tables directly
@@ -1103,9 +1114,25 @@ public class SubRelationalDB extends Subscriber {
 				
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
-					int child_f_id = rsc.getInt(2);
-					String formname = rsc.getString(3);
+					
+					// Get the child id and formname which are needed for console history of merges
+					int child_f_id = 0;
+					String formname = null;
+					
+					if(groupId > 0) {
+						pstmtFormDetails.setString(1, tableName);
+						ResultSet rsFD = pstmtFormDetails.executeQuery();
+						if(rsFD.next()) {
+							child_f_id = rsFD.getInt(1);
+							formname = rsFD.getString(2);
+						}
+					} else {
+						child_f_id = rsc.getInt(2);
+						formname = rsc.getString(3);
+					}
 					if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
+						
+						log.info("++++++++++++++ Table: " + tableName );
 						
 						ArrayList<ArrayList<DataItemChange>> subFormChanges = new ArrayList<ArrayList<DataItemChange>> ();
 						
@@ -1132,21 +1159,23 @@ public class SubRelationalDB extends Subscriber {
 						
 						if(mergeTables.contains(tableName)) {					
 							
-							log.info("Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							log.info("====================== Merging " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 							
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									subFormChanges.add(mergeRecords(
-											sd,
-											cResults, 
-											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), 
-											false, 
-											child_f_id,
-											true));  // Doing a merge so set replace to false
+									if(child_f_id > 0) {
+										subFormChanges.add(mergeRecords(
+												sd,
+												cResults, 
+												tableName, 
+												childPrikeys.get(i), childSourcekeys.get(i), 
+												false, 
+												child_f_id,
+												true));  // Doing a merge so set replace to false
+									}
 								} else {
 									// copy		
 									pstmtCopyChild.setInt(1, prikey);
@@ -1166,37 +1195,43 @@ public class SubRelationalDB extends Subscriber {
 							}
 							
 						} else if(replaceTables.contains(tableName)) {
-							log.info("Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
+							log.info("==================== Replacing " + childSourcekeys.size() + " records from " + tableName + " to " + childPrikeys.size() + " records");
 							
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								if(i < childPrikeys.size()) {
 									// merge
 									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
-									subFormChanges.add(mergeRecords(
-											sd,
-											cResults, 
-											tableName, 
-											childPrikeys.get(i), childSourcekeys.get(i), false, 
-											child_f_id,
-											true));  // Doing a replace so set replace to true
+									if(child_f_id > 0) {
+										subFormChanges.add(mergeRecords(
+												sd,
+												cResults, 
+												tableName, 
+												childPrikeys.get(i), childSourcekeys.get(i), false, 
+												child_f_id,
+												true));  // Doing a replace so set replace to true
+									}
 								} else {
-									// Record the dropped record									
-									subFormChanges.add(getChangeRecord(
-											sd,
-											cResults, 
-											tableName, 
-											childSourcekeys.get(i), false, child_f_id));
+									// Record the dropped record		
+									if(child_f_id > 0) {
+										subFormChanges.add(getChangeRecord(
+												sd,
+												cResults, 
+												tableName, 
+												childSourcekeys.get(i), false, child_f_id));
+									}
 											
 								}
 							}
 							if(childPrikeys.size() > childSourcekeys.size()) {
 								for(int i = childSourcekeys.size(); i < childPrikeys.size(); i++) {
-									// Record the added record									
-									subFormChanges.add(getChangeRecord(
-											sd,
-											cResults, 
-											tableName, 
-											childPrikeys.get(i), false, child_f_id));
+									// Record the added record	
+									if(child_f_id > 0) {
+										subFormChanges.add(getChangeRecord(
+												sd,
+												cResults, 
+												tableName, 
+												childPrikeys.get(i), false, child_f_id));
+									}
 									
 								}
 							}
@@ -1210,12 +1245,14 @@ public class SubRelationalDB extends Subscriber {
 								copiedSourceKeys.add(childSourcekeys.get(i));
 							}
 							for(int i = 0; i < childPrikeys.size(); i++) {
-								// Record the added records									
-								subFormChanges.add(getChangeRecord(
-										sd,
-										cResults, 
-										tableName, 
-										childPrikeys.get(i), false, child_f_id));
+								// Record the added records	
+								if(child_f_id > 0) {
+									subFormChanges.add(getChangeRecord(
+											sd,
+											cResults, 
+											tableName, 
+											childPrikeys.get(i), false, child_f_id));
+								}
 								
 							}
 							
@@ -1296,6 +1333,7 @@ public class SubRelationalDB extends Subscriber {
 			if(pstmtChildKeys != null) try{pstmtChildKeys.close();}catch(Exception e) {}
 			if(pstmtCopyChild != null) try{pstmtCopyChild.close();}catch(Exception e) {}
 			if(pstmtCopyBack != null) try{pstmtCopyBack.close();}catch(Exception e) {}
+			if(pstmtFormDetails != null) try{pstmtFormDetails.close();}catch(Exception e) {}
 		}
 
 	}
