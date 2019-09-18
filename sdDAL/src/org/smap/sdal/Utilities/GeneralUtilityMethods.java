@@ -3532,7 +3532,7 @@ public class GeneralUtilityMethods {
 		updateUnPublished(sd, cResults, table_name, f_id, true);		// Ensure that all columns marked not published really are
 		
 		TableColumn c = new TableColumn();
-		c.column_name = table_name + ".prikey";
+		c.column_name = "prikey";
 		c.displayName = "prikey";
 		c.type = SmapQuestionTypes.INT;
 		c.question_name = "prikey";
@@ -3568,7 +3568,7 @@ public class GeneralUtilityMethods {
 
 		if (includeParentKey) {
 			c = new TableColumn();
-			c.column_name = table_name + ".parkey";
+			c.column_name = "parkey";
 			c.displayName = "parkey";
 			c.type = SmapQuestionTypes.INT;
 			c.question_name = "parkey";

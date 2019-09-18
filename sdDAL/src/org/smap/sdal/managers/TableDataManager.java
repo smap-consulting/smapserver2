@@ -128,6 +128,9 @@ public class TableDataManager {
 			if (i > 0) {
 				columnSelect.append(",");
 			}
+			if(c.column_name.equals("prikey") || c.column_name.equals("prikey")) {
+				columnSelect.append(table_name).append(".");
+			}
 			columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
 			if (c.calculation != null && c.calculation.params != null) {
 				columnSqlFrags.add(c.calculation);
@@ -138,6 +141,8 @@ public class TableDataManager {
 			StringBuffer sqlGetData = new StringBuffer("");
 			sqlGetData.append("select ");
 			sqlGetData.append(columnSelect);
+			
+			// Add list of tables
 			sqlGetData.append(" from ");
 			if(queryList != null) {
 				boolean tableAdded = false;
