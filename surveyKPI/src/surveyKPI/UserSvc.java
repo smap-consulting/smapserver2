@@ -416,8 +416,8 @@ public class UserSvc extends Application {
 						+ "and s_id = ? ";
 			pstmtDel = sd.prepareStatement(sqlDel);
 			
-			String sql = "insert into group_survey (u_ident, s_id, group_ident) "
-					+ "values (?, ? , ?) ";
+			String sql = "insert into group_survey (u_ident, s_id, group_ident, f_name) "
+					+ "values (?, ?, ?, ?) ";
 			pstmt = sd.prepareStatement(sql);
 			
 			pstmtDel.setString(1, request.getRemoteUser());
@@ -425,13 +425,13 @@ public class UserSvc extends Application {
 			pstmtDel.executeUpdate();	
 			
 			// Add the group ident if it is not zero length (ie set to none)
-			if(gs.groupIdent != null && gs.groupIdent.length() > 0) {
+			
 			pstmt.setString(1, request.getRemoteUser());
 				pstmt.setInt(2, gs.sId);
 				pstmt.setString(3, gs.groupIdent);
+				pstmt.setString(4, gs.fName);
 				log.info("Update group survey: " + pstmt.toString());
 				pstmt.executeUpdate();
-			}
 
 
 			response = Response.ok().build();

@@ -250,7 +250,7 @@ public class UserManager {
 			/*
 			 * Get the current survey - group survey relationships
 			 */
-			sql = "SELECT s_id, group_ident " +
+			sql = "SELECT s_id, group_ident, f_name " +
 					" from group_survey " +
 					" where u_ident = ?";
 
@@ -264,7 +264,7 @@ public class UserManager {
 				if(user.groupSurveys == null) {
 					user.groupSurveys = new ArrayList<GroupSurvey> ();
 				}
-				user.groupSurveys.add(new GroupSurvey(resultSet.getInt(1), resultSet.getString(2)));
+				user.groupSurveys.add(new GroupSurvey(resultSet.getInt(1), resultSet.getString(2), resultSet.getString(3)));
 			}
 			
 			/*

@@ -6109,7 +6109,8 @@ public class GeneralUtilityMethods {
 		String sql = "select name "  
 				+ "from form " 
 				+ "where s_id = ? "
-				+ "and name != 'main' ";
+				+ "and name != 'main' "
+				+ "and reference = 'false'";
 		PreparedStatement pstmt = null;
 
 		try {
