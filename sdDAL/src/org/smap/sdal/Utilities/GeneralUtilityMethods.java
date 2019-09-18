@@ -3532,10 +3532,10 @@ public class GeneralUtilityMethods {
 		updateUnPublished(sd, cResults, table_name, f_id, true);		// Ensure that all columns marked not published really are
 		
 		TableColumn c = new TableColumn();
-		c.column_name = "prikey";
+		c.column_name = table_name + ".prikey";
 		c.displayName = "prikey";
 		c.type = SmapQuestionTypes.INT;
-		c.question_name = c.column_name;
+		c.question_name = "prikey";
 		if (includePrikey) {
 			columnList.add(c);
 		}
@@ -3543,7 +3543,8 @@ public class GeneralUtilityMethods {
 		// Add assigned if this is a management request
 		if(mgmt) {
 			// Make sure there is an _assigned column at the top level of the survey
-			if(formParent == 0 &&
+			// Don't add one if we are getting columns for a subform
+			if(f_id == 0 &&
 					!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 				GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 			}
@@ -3567,10 +3568,10 @@ public class GeneralUtilityMethods {
 
 		if (includeParentKey) {
 			c = new TableColumn();
-			c.column_name = "parkey";
+			c.column_name = table_name + ".parkey";
 			c.displayName = "parkey";
 			c.type = SmapQuestionTypes.INT;
-			c.question_name = c.column_name;
+			c.question_name = "parkey";
 			columnList.add(c);
 		}
 

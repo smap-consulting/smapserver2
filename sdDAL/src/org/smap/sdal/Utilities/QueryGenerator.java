@@ -350,7 +350,7 @@ public class QueryGenerator {
 		return sqlDesc;
 	}
 	
-	private static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, QueryForm prevForm) throws SQLException {
+	public static StringBuffer getJoins(Connection sd, ResourceBundle localisation, ArrayList<QueryForm> forms, QueryForm prevForm) throws SQLException {
 		StringBuffer join = new StringBuffer("");
 		
 		for(int i = 0; i < forms.size(); i++) {
@@ -392,6 +392,7 @@ public class QueryGenerator {
 		}
 		return join;
 	}
+	
 	/*
 	 * Returns SQL to retrieve the selected form and all of its parents for inclusion in a shape file
 	 *  A geometry is only returned for the level 0 form.

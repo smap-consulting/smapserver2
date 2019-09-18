@@ -406,6 +406,7 @@ public class Data extends Application {
 		tz = (tz == null) ? "UTC" : tz;
 
 		PrintWriter outWriter = null;
+		ResourceBundle localisation = null;
 		try {
 
 			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk));
@@ -415,7 +416,7 @@ public class Data extends Application {
 			outWriter = response.getWriter();
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
@@ -698,8 +699,9 @@ public class Data extends Application {
 			String status;
 			String msg = e.getMessage();
 			if(msg == null) {
-				status = "ok";
-				log.info("Exception with null message");
+				status = "error";
+				msg = localisation.getString("c_error");
+				log.log(Level.SEVERE, "Exception", e);
 			} else if(msg.indexOf("does not exist", 0) > 0 && msg.startsWith("ERROR: relation")) {
 				status = "ok";
 				log.info(msg);

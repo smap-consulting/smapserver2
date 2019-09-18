@@ -15,12 +15,14 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
+import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
@@ -113,8 +115,12 @@ public class TableDataManager {
 		/*
 		 * If the request is for a subform get the join hierarchy up to the top level form
 		 */
-		if(fId > 0) {
-			System.out.println("Get join hierarchy");
+		ArrayList<QueryForm> queryList = null;
+		QueryForm startingForm = null;
+		if(fId > 0) {			
+			QueryManager qm = new QueryManager();				
+			queryList = qm.getFormList(sd, sId, fId);		// Get a form list for this survey / form combo
+			startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 		}
 		
 		for (int i = 0; i < columns.size(); i++) {
@@ -133,32 +139,50 @@ public class TableDataManager {
 			sqlGetData.append("select ");
 			sqlGetData.append(columnSelect);
 			sqlGetData.append(" from ");
-			sqlGetData.append(table_name);
-			if (specificPrikey) {
-				sqlGetData.append(" where prikey = ? ");
+			if(queryList != null) {
+				boolean tableAdded = false;
+				for(QueryForm qf : queryList) {
+					if(tableAdded) {
+						sqlGetData.append(", ");
+					}
+					sqlGetData.append(qf.table);
+					tableAdded = true;
+				}
 			} else {
-				sqlGetData.append(" where prikey >= ? ");
+				sqlGetData.append(table_name);
+			}
+			if (specificPrikey) {
+				sqlGetData.append(" where ").append(table_name).append(".prikey = ? ");
+			} else {
+				sqlGetData.append(" where ").append(table_name).append(".prikey >= ? ");
 			}
 			if (getParkey) {
-				sqlGetData.append(" and parkey >= ?");
+				sqlGetData.append(" and ").append(table_name).append(".parkey >= ?");
+			}
+			
+			// Add table joins if we are getting a child forms data and also need parent information
+			if(startingForm != null) {
+				if(startingForm.childForms != null && startingForm.childForms.size() > 0) {
+					sqlGetData.append(QueryGenerator.getJoins(sd, localisation, startingForm.childForms, startingForm));
+				}
 			}
 
 			if (include_bad.equals("none")) {
-				sqlGetData.append(" and _bad = 'false' ");
+				sqlGetData.append(" and ").append(table_name).append("._bad = 'false' ");
 			} else if (include_bad.equals("only")) {
-				sqlGetData.append(" and _bad = 'true' ");
+				sqlGetData.append(" and ").append(table_name).append("._bad = 'true' ");
 			}
 
 			// Add row selection clause
 			StringBuffer sqlSelect = new StringBuffer("");
 			if (parkey > 0) {
-				sqlSelect.append(" and parkey = ?");
+				sqlSelect.append(" and ").append(table_name).append(".parkey = ?");
 			}
 			if (hrk != null) {
-				sqlSelect.append(" and _hrk = ?");
+				sqlSelect.append(" and ").append(table_name).append("._hrk = ?");
 			}
 			if (instanceId != null) {
-				sqlSelect.append(" and instanceid = ?");
+				sqlSelect.append(" and ").append(table_name).append(".instanceid = ?");
 			}
 
 			// RBAC filter
@@ -240,15 +264,15 @@ public class TableDataManager {
 			if (sort != null) {
 				// User has requested a specific sort order
 				sqlGetDataOrder.append(" order by ");
-				sqlGetDataOrder.append(getSortColumn(columns, sort));
+				sqlGetDataOrder.append(getSortColumn(columns, sort, table_name));
 				sqlGetDataOrder.append(" ");
 				sqlGetDataOrder.append(dirn);
 			} else {
 				// Set default sort order
 				if (mgmt) {
-					sqlGetDataOrder.append(" order by prikey desc limit 10000");
+					sqlGetDataOrder.append(" order by ").append(table_name).append(".prikey desc limit 10000");
 				} else {
-					sqlGetDataOrder.append(" order by prikey asc;");
+					sqlGetDataOrder.append(" order by ").append(table_name).append(".prikey asc;");
 				}
 			}
 
@@ -718,8 +742,8 @@ public class TableDataManager {
 	/*
 	 * Convert the human name for the sort column into sql
 	 */
-	private String getSortColumn(ArrayList<TableColumn> columns, String sort) {
-		String col = "prikey"; // default to prikey
+	private String getSortColumn(ArrayList<TableColumn> columns, String sort, String table_name) {
+		String col = table_name + ".prikey"; // default to prikey
 		sort = sort.trim();
 		for (int i = 0; i < columns.size(); i++) {
 			String name = columns.get(i).question_name;
