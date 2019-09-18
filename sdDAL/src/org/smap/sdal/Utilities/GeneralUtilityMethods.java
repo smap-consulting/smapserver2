@@ -3542,7 +3542,9 @@ public class GeneralUtilityMethods {
 		
 		// Add assigned if this is a management request
 		if(mgmt) {
-			if(!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+			// Make sure there is an _assigned column at the top level of the survey
+			if(formParent == 0 &&
+					!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 				GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
 			}
 			c = new TableColumn();

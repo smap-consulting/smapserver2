@@ -76,6 +76,7 @@ public class TableDataManager {
 			ArrayList<TableColumn> columns,
 			String urlprefix, 
 			int sId, 
+			int fId,
 			String table_name, 
 			int parkey, 
 			String hrk, 
@@ -109,6 +110,13 @@ public class TableDataManager {
 
 		PreparedStatement pstmt = null;
 
+		/*
+		 * If the request is for a subform get the join hierarchy up to the top level form
+		 */
+		if(fId > 0) {
+			System.out.println("Get join hierarchy");
+		}
+		
 		for (int i = 0; i < columns.size(); i++) {
 			TableColumn c = columns.get(i);
 			if (i > 0) {

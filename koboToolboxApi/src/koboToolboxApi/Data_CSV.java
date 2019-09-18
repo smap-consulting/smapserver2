@@ -400,7 +400,10 @@ public class Data_CSV extends Application {
 
 				TableDataManager tdm = new TableDataManager(localisation, tz);
 
-				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, sId, table_name, parkey, hrk,
+				pstmt = tdm.getPreparedStatement(sd, cResults, columns, urlprefix, 
+						sId, 
+						0,		// Sub form Id, only needed if _assigned has to be retrieved
+						table_name, parkey, hrk,
 						request.getRemoteUser(), 
 						null,		// roles (for anonymous calls)
 						sort, dirn, mgmt, group, isDt, start, 

@@ -431,7 +431,11 @@ public class ActionService extends Application {
 
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = tdm.getPreparedStatement(sd, cResults, mfc.columns, urlprefix, sId, tableName, 
+			pstmt = tdm.getPreparedStatement(sd, cResults, mfc.columns, 
+					urlprefix, 
+					sId, 
+					0,					// SubForm Id
+					tableName, 
 					0, 					// parkey
 					null, 				// HRK
 					uIdent, 

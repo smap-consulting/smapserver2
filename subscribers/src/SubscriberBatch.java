@@ -509,6 +509,7 @@ public class SubscriberBatch {
 											columns,
 											urlprefix,
 											sId,
+											0,				// SubForm Id
 											topForm.tableName,
 											0,				// parkey ??
 											null,			// Not searching on HRK
