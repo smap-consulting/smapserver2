@@ -283,7 +283,9 @@ public class ActionService extends Application {
 		int uId = GeneralUtilityMethods.getUserId(sd, uIdent);
 		SurveyViewManager mfm = new SurveyViewManager(localisation, tz);
 		
-		mfc = mfm.getSurveyView(sd, cResults, uId, null, a.sId, uIdent,
+		mfc = mfm.getSurveyView(sd, cResults, uId, null, a.sId, 
+				0, 		// TODO SubForm id
+				uIdent,
 				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser,
 				a.groupSurvey,
 				false		// include bad
