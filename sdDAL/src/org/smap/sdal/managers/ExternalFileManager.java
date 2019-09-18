@@ -249,10 +249,25 @@ public class ExternalFileManager {
 				if (sqlDef.hasRbacFilter) {
 					paramCount = GeneralUtilityMethods.setArrayFragParams(pstmtData, sqlDef.rfArray, paramCount, tz);
 				}
-
-				// 6. Create the file
-				if (linked_s_pd && non_unique_key) {
-
+				if(sqlDef.colNames.size() == 0) {
+					log.info("++++++ No column names present in table. Creating empty file");
+					
+					// Use requested columns 
+					BufferedWriter bw = new BufferedWriter(
+							new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
+					for (int i = 0; i < uniqueColumns.size(); i++) {
+						String col = uniqueColumns.get(i);
+						if(i > 0) {
+							bw.write(",");
+						}
+						bw.write(col);
+					}
+					bw.newLine();
+					bw.flush();
+					bw.close();
+					
+				} else if (linked_s_pd && non_unique_key) {
+					// 6. Create the file
 					log.info("create linked file for linked_s_pd: " + sIdent);
 
 					log.info("Get CSV data: " + pstmtData.toString());
@@ -274,7 +289,7 @@ public class ExternalFileManager {
 					bw.newLine();
 
 					/*
-					 * Class to store a set of records for a single key when when non unique key has
+					 * Class to store a set of records for a single key when non unique key has
 					 * been specified This allows us to count the number of duplicate keys before
 					 * writing the data to the csv file
 					 */
@@ -517,7 +532,10 @@ public class ExternalFileManager {
 						log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
 						// Delete the file if it exists
-						f.delete();					
+						log.info("Deleting file -------- : " + filepath);
+						f.delete();
+						
+						fileExists = false;
 					}
 
 				}
@@ -530,6 +548,9 @@ public class ExternalFileManager {
 
 		if (tableExists && !fileExists) {
 			regenerate = true; // Override regenerate if the file has been deleted
+		}
+		if(!tableExists) {
+			regenerate = true; // Force creation of an empty fil
 		}
 
 		log.info("Result of regenerate question is: " + regenerate);
