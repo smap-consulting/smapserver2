@@ -285,6 +285,7 @@ public class ActionService extends Application {
 		
 		mfc = mfm.getSurveyView(sd, cResults, uId, null, a.sId, 
 				0, 		// TODO SubForm id
+				null,	// Subform name
 				uIdent,
 				GeneralUtilityMethods.getOrganisationIdForSurvey(sd, a.sId), superUser,
 				a.groupSurvey,

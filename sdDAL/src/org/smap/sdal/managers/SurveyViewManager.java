@@ -81,6 +81,7 @@ public class SurveyViewManager {
 			SurveySettingsDefn ssd,
 			int sId,
 			int fId,
+			String formName,
 			String uIdent,
 			int oId,
 			boolean superUser,
@@ -110,6 +111,11 @@ public class SurveyViewManager {
 		// Add the managed form columns from the group survey
 		if(groupSurvey != null) {
 			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
+			int groupFormId = 0;
+			if(fId != 0) {
+				// Get the group form id that matchs the selected form name
+				groupFormId = GeneralUtilityMethods.getFormId(sd, groupSurveyId, formName);
+			}
 			populateSvd(sd, 
 					cResults, 
 					svd,
@@ -117,7 +123,7 @@ public class SurveyViewManager {
 					false,			// Is main survey
 					language,
 					groupSurveyId,
-					0,					// TODO group form id
+					groupFormId,					// TODO group form id
 					groupSurvey,
 					uIdent,
 					superUser,
