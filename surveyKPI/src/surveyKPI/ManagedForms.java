@@ -183,7 +183,9 @@ public class ManagedForms extends Application {
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("groupSurvey") String groupSurvey,
-			@FormParam("settings") String settings
+			@FormParam("groupForm") String groupForm,
+			@FormParam("settings") String settings,
+			@FormParam("instanceid") String instanceid
 			) { 
 		
 		Response response = null;
@@ -211,7 +213,8 @@ public class ManagedForms extends Application {
 			String tz = "UTC";
 			
 			ActionManager am = new ActionManager(localisation, tz);
-			response = am.processUpdateGroupSurvey(request, sd, cResults, request.getRemoteUser(), sId, groupSurvey, settings);
+			response = am.processUpdateGroupSurvey(request, sd, cResults, 
+					request.getRemoteUser(), sId, instanceid, groupSurvey, groupForm, settings);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
 		} finally {

@@ -546,14 +546,22 @@ public class ActionManager {
 	 * Process an update request that came either from an anonymous form or from the console
 	 * The update is for a Group Survey
 	 */
-	public Response processUpdateGroupSurvey(HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
-			int sId, String groupSurvey, String settings) {
+	public Response processUpdateGroupSurvey(
+			HttpServletRequest request, 
+			Connection sd, 
+			Connection cResults, 
+			String userIdent,
+			int sId, 
+			String instanceid,
+			String groupSurvey, 
+			String groupForm,
+			String updateString) {
 
 		Response response = null;
 
 		Type type = new TypeToken<ArrayList<Update>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		ArrayList<Update> updates = gson.fromJson(settings, type);
+		ArrayList<Update> updates = gson.fromJson(updateString, type);
 
 		PreparedStatement pstmtUpdate = null;
 		int priority = -1;
@@ -571,7 +579,18 @@ public class ActionManager {
 			 * Get the data processing columns
 			 */
 			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
-			Form f = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId ); // Get formId of top level form and its table name
+			
+			Form f = null;
+			Form topLevelForm = null;
+			if(groupForm == null || groupForm.equals("_none")) {
+				 f = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId ); // Get formId of top level form and its table name
+				 topLevelForm = f;
+			} else {
+				int fId = GeneralUtilityMethods.getFormId(sd, groupSurveyId, groupForm);
+				f = GeneralUtilityMethods.getForm(sd, groupSurveyId, fId);
+				topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId );
+			}
+		
 			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
 					sd,
 					cResults,
@@ -613,7 +632,7 @@ public class ActionManager {
 				Update u = updates.get(i);
 
 				// Set up storage of changes
-				String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
+				//String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
 				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
 				if(changes == null) {
 					changes = new ArrayList<DataItemChange> ();
@@ -727,7 +746,7 @@ public class ActionManager {
 						RecordEventManager.CHANGES, 
 						RecordEventManager.STATUS_SUCCESS, 
 						userIdent, 
-						f.tableName, 
+						topLevelForm.tableName, 
 						inst, 
 						gson.toJson(changeMap.get(inst)),
 						null,		// task details
