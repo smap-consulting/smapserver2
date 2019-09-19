@@ -265,11 +265,16 @@ public class ManagedForms extends Application {
 				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN)) {
 					GeneralUtilityMethods.addColumn(cResults, tableName, SurveyViewManager.ASSIGNED_COLUMN, "text");
 				}
-				int count = GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
-				if(count == 0) {
-					response = Response.serverError().entity(localisation.getString("mf_aa")).build();
+				
+				if(instanceId != null) {
+					int count = GeneralUtilityMethods.lockRecord(cResults, tableName, instanceId, request.getRemoteUser());
+					if(count == 0) {
+						response = Response.serverError().entity(localisation.getString("mf_aa")).build();
+					} else {
+						response = Response.ok().build();
+					}
 				} else {
-					response = Response.ok().build();
+					response = Response.serverError().entity(localisation.getString("mf_nf")).build();
 				}
 			} else {
 				response = Response.serverError().entity(localisation.getString("mf_nf")).build();
@@ -371,7 +376,7 @@ public class ManagedForms extends Application {
 			) { 
 		
 		Response response = null;
-		String requester = "surveyKPI - lockManagedRecord";
+		String requester = "surveyKPI - releaseManagedRecord";
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requester);
@@ -1049,10 +1054,6 @@ public class ManagedForms extends Application {
 
 		return response;
 	}
-
-	
-
-	
 
 }
 

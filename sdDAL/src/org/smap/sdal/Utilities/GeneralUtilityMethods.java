@@ -3664,16 +3664,6 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 			}
 
-			if (includeInstanceId && (uptodateTable
-					|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
-				c = new TableColumn();
-				c.column_name = "instanceid";
-				c.displayName = "instanceid";
-				c.type = "";
-				c.isMeta = true;
-				columnList.add(c);
-			}
-
 			if (uptodateTable) {
 				c = new TableColumn();
 				c.column_name = "_survey_notes";
@@ -3714,6 +3704,16 @@ public class GeneralUtilityMethods {
 				}
 			}
 
+		}
+		
+		if (includeInstanceId && (mgmt || uptodateTable
+				|| GeneralUtilityMethods.columnType(cResults, table_name, "instanceid") != null)) {
+			c = new TableColumn();
+			c.column_name = "instanceid";
+			c.displayName = "instanceid";
+			c.type = "";
+			c.isMeta = true;
+			columnList.add(c);
 		}
 
 		if (audit && GeneralUtilityMethods.columnType(cResults, table_name, "_audit") != null) {

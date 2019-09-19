@@ -173,8 +173,8 @@ public void populateSvd(
 			false,	// Don't include Read only
 			includeMeta,	// Include parent key
 			includeMeta,	// Include "bad"
-			includeMeta,	// Include instanceId
-			includeMeta,	// include prikey
+			isMain,		// Include instanceId
+			isMain,		// include prikey
 			includeMeta,	// Include other meta data
 			includeMeta,		// include preloads
 			includeMeta,		// include instancename
