@@ -8207,6 +8207,24 @@ public class GeneralUtilityMethods {
 		return url.toString();
 	}
 	
+	public static String getInitialJsonDataLink(String urlprefix, 
+			String surveyIdent, 
+			String initial_data_source, 
+			int taskId,
+			String updateId) {
+		
+		StringBuffer url = new StringBuffer(urlprefix);		
+		url.append("/api/v1/data/").append(surveyIdent);
+		
+		if(initial_data_source != null && initial_data_source.equals("survey")) {
+			url.append("/").append(updateId); 
+		} else {
+			return null;
+		}
+		
+		return url.toString();
+	}
+	
 	public static String getInitialDataLink(String urlprefix, 
 			String surveyIdent, 
 			String initial_data_source, 

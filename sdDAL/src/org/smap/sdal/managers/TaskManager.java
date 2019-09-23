@@ -574,6 +574,12 @@ public class TaskManager {
 						tf.properties.initial_data_source,
 						tf.properties.id,
 						tf.properties.update_id));
+				tf.links.put("json_data", GeneralUtilityMethods.getInitialJsonDataLink(
+						urlprefix, 
+						tf.properties.survey_ident, 
+						tf.properties.initial_data_source,
+						tf.properties.id,
+						tf.properties.update_id));
 				
 				tl.features.add(tf);
 				
@@ -2700,30 +2706,32 @@ public class TaskManager {
 			}
 		} else {
 			log.info("No matching assignments found");
-			// Write an entry in the RecordEvent Log anyway (if the update id is not null)
+			// Write an entry in the RecordEvent Log anyway (if the update id is not null and the results table exists)
 			if(update_id != null) {
 				String eventStatus = RecordEventManager.STATUS_NEW;
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, sIdent);
 				log.info("Record event: " + sIdent + " : " + tableName);
-				TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null, null, null);
-				RecordEventManager rem = new RecordEventManager(localisation, tz);
-				rem.writeEvent(
-						sd, 
-						cResults, 
-						RecordEventManager.TASK, 
-						eventStatus,
-						remoteUser, 
-						tableName, 
-						update_id, 
-						null,				// Change object
-						gson.toJson(tic),	// Task Object
-						null,				// Notification object
-						"Task created", 
-						0,				// sId (don't care legacy)
-						sIdent,
-						taskId,
-						0				// Assignment id
-						);
+				if(tableName != null) {
+					TaskItemChange tic = new TaskItemChange(taskId, 0, task_name, eventStatus, null, null, null, null);
+					RecordEventManager rem = new RecordEventManager(localisation, tz);
+					rem.writeEvent(
+							sd, 
+							cResults, 
+							RecordEventManager.TASK, 
+							eventStatus,
+							remoteUser, 
+							tableName, 
+							update_id, 
+							null,				// Change object
+							gson.toJson(tic),	// Task Object
+							null,				// Notification object
+							"Task created", 
+							0,				// sId (don't care legacy)
+							sIdent,
+							taskId,
+							0				// Assignment id
+							);
+				}
 			}
 		}
 		return status;

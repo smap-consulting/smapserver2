@@ -582,6 +582,16 @@ public class Data extends Application {
 			
 			ConsoleTotals totals = new ConsoleTotals();
 			
+			if(isDt) {
+				outWriter.print("{\"data\":");
+			}
+			if(isGeoJson) {
+				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
+																		// TODO metadata
+				outWriter.print("\"features\":");						// Features
+			}
+			outWriter.print("[");
+			
 			if(pstmt != null) {
 				log.info("KoboAPI data: " + pstmt.toString());
 				/*
@@ -612,19 +622,6 @@ public class Data extends Application {
 							sIdent
 							);
 					
-					// Write json preamble
-					if(index == 0) {
-						if(isDt) {
-							outWriter.print("{\"data\":");
-						}
-						if(isGeoJson) {
-							outWriter.print("{\"type\":\"FeatureCollection\",");		// type
-																					// TODO metadata
-							outWriter.print("\"features\":");						// Features
-						}
-						outWriter.print("[");
-					}
-					
 					if(jo != null) {
 						if(index > 0) {
 							outWriter.print(",");
@@ -644,7 +641,6 @@ public class Data extends Application {
 				
 			} else {
 				log.info("Error:  prepared statement is null");
-				outWriter.print("[");
 			}
 			
 			outWriter.print("]");
