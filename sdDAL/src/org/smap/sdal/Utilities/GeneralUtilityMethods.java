@@ -8207,6 +8207,9 @@ public class GeneralUtilityMethods {
 		return url.toString();
 	}
 	
+	/*
+	 * This link shows the data to be updated or the results of the submitted task
+	 */
 	public static String getInitialJsonDataLink(String urlprefix, 
 			String surveyIdent, 
 			String initial_data_source, 
@@ -8216,7 +8219,7 @@ public class GeneralUtilityMethods {
 		StringBuffer url = new StringBuffer(urlprefix);		
 		url.append("/api/v1/data/").append(surveyIdent);
 		
-		if(initial_data_source != null && initial_data_source.equals("survey")) {
+		if(updateId != null) {
 			url.append("/").append(updateId); 
 		} else {
 			return null;

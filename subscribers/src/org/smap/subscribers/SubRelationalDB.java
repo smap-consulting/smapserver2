@@ -186,7 +186,11 @@ public class SubRelationalDB extends Subscriber {
 			applySubmissionNotifications(sd, cResults, ue_id, remoteUser, server, survey.ident, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
-				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, remoteUser);
+				String id = updateId;
+				if(id == null) {
+					id = instance.getUuid();
+				}
+				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, remoteUser, id);
 			}
 			
 			if(survey.autoUpdates != null && survey.managed_id > 0) {
@@ -230,21 +234,29 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply any changes to assignment status
 	 */
-	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId, int ue_id, String remoteUser) {
+	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId, int ue_id, 
+			String remoteUser,
+			String updateId) {
 
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtRepeats = null;
+		PreparedStatement pstmtUpdateId = null;
 
 		String sql = "update assignments set status = 'submitted', completed_date = now() "
 				+ "where id = ? ";
 
 		String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 "
 				+ "where id = (select task_id from assignments where id = ?)";
+		
+		String sqlUpdateId = "update tasks set update_id = ? "
+				+ "where id = (select task_id from assignments where id = ?) "
+				+ "and update_id is null";
 
 		try {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmtRepeats = sd.prepareStatement(sqlRepeats);
+			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
 			
 			if(assignmentId > 0) {
 				pstmt.setInt(1, assignmentId);
@@ -258,6 +270,12 @@ public class SubRelationalDB extends Subscriber {
 				// Cancel other assignments if complete_all is not set for the task
 				TaskManager tm = new TaskManager(localisation, tz);
 				tm.cancelOtherAssignments(sd, cResults, assignmentId);
+				
+				// If this task created new data then set its updateId to point to that new data
+				pstmtUpdateId.setString(1, updateId);
+				pstmtUpdateId.setInt(2, assignmentId);
+				log.info("Updating task updateId: " + pstmtUpdateId.toString());
+				pstmtUpdateId.executeUpdate();
 				
 				// Write a message to the record event manager
 				RecordEventManager rem = new RecordEventManager(localisation, "UTC");
@@ -278,6 +296,7 @@ public class SubRelationalDB extends Subscriber {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtRepeats != null) {pstmtRepeats.close();}} catch (SQLException e) {}
+			try {if (pstmtUpdateId != null) {pstmtUpdateId.close();}} catch (SQLException e) {}
 
 		}
 	}
@@ -294,7 +313,6 @@ public class SubRelationalDB extends Subscriber {
 		String sql = "select ue.assignment_id " +
 				" from upload_event ue " +
 				" where ue.ue_id = ? and ue.assignment_id is not null";
-
 
 		try {
 			
