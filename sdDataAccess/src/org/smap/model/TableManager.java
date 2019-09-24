@@ -385,9 +385,9 @@ public class TableManager {
 			/*
 			 * Create default columns in the top level form
 			 */
-			sql += ", _bad boolean DEFAULT FALSE, _bad_reason text, _audit text, _audit_raw text, _assigned text";
+			sql += ", _bad boolean DEFAULT FALSE, _bad_reason text, _audit text, _audit_raw text";
 			if(!form.hasParent()) {
-				sql += ", _user text, _version text, _survey_notes text, _location_trigger text,"
+				sql += ", _user text, _version text, _survey_notes text, _location_trigger text, _assigned text,"
 						+ "_complete boolean default true, "
 						+ "_modified boolean default false,"
 						+ SmapServerMeta.UPLOAD_TIME_NAME + " timestamp with time zone, "

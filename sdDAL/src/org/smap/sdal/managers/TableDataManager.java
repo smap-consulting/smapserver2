@@ -117,10 +117,12 @@ public class TableDataManager {
 		 */
 		ArrayList<QueryForm> queryList = null;
 		QueryForm startingForm = null;
+		String topLevelTable = null;
 		if(fId > 0) {			
 			QueryManager qm = new QueryManager();				
 			queryList = qm.getFormList(sd, sId, fId);		// Get a form list for this survey / form combo
 			startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
+			topLevelTable = startingForm.table;
 		}
 		
 		for (int i = 0; i < columns.size(); i++) {
@@ -128,9 +130,15 @@ public class TableDataManager {
 			if (i > 0) {
 				columnSelect.append(",");
 			}
-			if(c.column_name.equals("prikey") || c.column_name.equals("prikey")) {
+			if(c.column_name.equals("prikey") || c.column_name.equals("parkey")) {
 				columnSelect.append(table_name).append(".");
 			}
+			
+			// _assigned should only be created in the top level table however this may not always have happened in the past
+			if(c.column_name.equals("_assigned") && topLevelTable != null) {
+				columnSelect.append(topLevelTable).append(".");
+			}
+			
 			columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
 			if (c.calculation != null && c.calculation.params != null) {
 				columnSqlFrags.add(c.calculation);
