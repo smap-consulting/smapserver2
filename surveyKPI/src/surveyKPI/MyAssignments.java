@@ -684,6 +684,7 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
+		PreparedStatement pstmtUpdateId = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		
@@ -696,6 +697,11 @@ public class MyAssignments extends Application {
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
 			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
 			pstmtEvents = getPreparedStatementEvents(sd);
+			
+			String sqlUpdateId = "update tasks set update_id = ? "
+					+ "where id = ? "
+					+ "and update_id is null";
+			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
 			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
@@ -719,6 +725,11 @@ public class MyAssignments extends Application {
 							ta.assignment.assignment_id,
 							ta.assignment.assignment_status,
 							ta.assignment.task_comment);
+					
+					pstmtUpdateId.setString(1, ta.assignment.uuid);
+					pstmtUpdateId.setInt(2, ta.task.id);
+					log.info("+++++++++++++++ Updating task updateId: " + pstmtUpdateId.toString());
+					pstmtUpdateId.executeUpdate();	
 
 				}
 			}
@@ -753,6 +764,7 @@ public class MyAssignments extends Application {
 
 					log.info("Insert task: " + pstmtTasks.toString());
 					pstmtTasks.executeUpdate();
+									
 				}
 
 				/*
@@ -795,6 +807,7 @@ public class MyAssignments extends Application {
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
+			try {if ( pstmtUpdateId != null ) { pstmtUpdateId.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);

@@ -3,6 +3,7 @@ package taskModel;
 import java.util.Date;
 
 public class TaskCompletionInfo {
+	public int assId;
 	public double lat;
 	public double lon;
 	public long actFinish;	// When the task was finished

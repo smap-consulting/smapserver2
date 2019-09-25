@@ -8,4 +8,5 @@ public class Assignment {
 	public String task_comment;
 	public User user;
 	public int task_id;
+	public String uuid;		// The identifier of the data created by this task
 }
