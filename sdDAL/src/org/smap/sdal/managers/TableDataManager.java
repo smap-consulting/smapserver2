@@ -130,7 +130,8 @@ public class TableDataManager {
 			if (i > 0) {
 				columnSelect.append(",");
 			}
-			if(c.column_name.equals("prikey") || c.column_name.equals("parkey")) {
+			if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
+					|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")) {
 				columnSelect.append(table_name).append(".");
 			}
 			
