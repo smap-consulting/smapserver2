@@ -520,7 +520,11 @@ public class TableDataManager {
 
 				} else if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
 					// Split the select multiple into its choices
-					name = c.displayName;
+					if(isDt) {
+						name = c.column_name;	// Names must be escapd and are hidden to user
+					} else {
+						name = c.displayName;
+					}
 					value = rs.getString(i + 1);
 					if (value == null) {
 						value = "";
@@ -546,7 +550,11 @@ public class TableDataManager {
 					}
 				} else {
 
-					name = c.displayName;
+					if(isDt) {
+						name = c.column_name;
+					} else {
+						name = c.displayName;
+					}
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name
@@ -592,7 +600,6 @@ public class TableDataManager {
 							value = rs.getString(i + 1);
 						}
 					}
-
 					
 					if (value == null) {
 						value = "";
