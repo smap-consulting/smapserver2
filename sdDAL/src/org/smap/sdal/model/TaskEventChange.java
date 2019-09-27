@@ -6,13 +6,13 @@ import java.util.Date;
  * Contains details of an event within a task's lifecycle
  */
 public class TaskEventChange {
-	Date when;
-	String name;
-	String status;
-	String assigned;
-	String comment;
-	Date schedule_at;
-	Date schedule_finish;
+	public Date when;
+	public String name;
+	public String status;
+	public String assigned;
+	public String comment;
+	public Date schedule_at;
+	public Date schedule_finish;
 
 	// Normal constructor
 	public TaskEventChange(String name, String status, String assigned, String comment,

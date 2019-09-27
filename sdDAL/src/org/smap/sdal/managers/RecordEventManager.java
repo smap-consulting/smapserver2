@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -330,7 +331,6 @@ public class RecordEventManager {
 			while(rs.next()) {
 				DataItemChangeEvent event = new DataItemChangeEvent();
 				event.event = rs.getString("event");
-				event.status = rs.getString("status");
 				event.userName = GeneralUtilityMethods.getUserName(sd, rs.getInt("changed_by"));
 				
 				String changes = rs.getString("changes");
@@ -338,9 +338,23 @@ public class RecordEventManager {
 					event.changes = gson.fromJson(changes, new TypeToken<ArrayList<DataItemChange>>() {}.getType());
 				}
 				String task = rs.getString("task");
+				long scheduledFinish = 0;
 				if(task != null) {
 					event.task = gson.fromJson(task, TaskItemChange.class);
+					if(event.task.taskEvents != null) {
+						TaskEventChange lastEvent = event.task.taskEvents.get(event.task.taskEvents.size() - 1);
+						if(lastEvent != null && lastEvent.schedule_finish != null) {
+							scheduledFinish = lastEvent.schedule_finish.getTime();
+						}
+					}
 				}
+				event.status = rs.getString("status");
+				if(scheduledFinish > 0) {
+					if(event.status.equals(TaskManager.STATUS_T_ACCEPTED) && (scheduledFinish < Calendar.getInstance().getTime().getTime())) {
+						event.status = TaskManager.STATUS_T_LATE;
+					}
+				}
+				
 				String notification = rs.getString("notification");
 				if(notification != null) {
 					event.notification = gson.fromJson(notification, SubmissionMessage.class);
