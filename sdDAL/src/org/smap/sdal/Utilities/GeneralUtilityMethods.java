@@ -7766,22 +7766,21 @@ public class GeneralUtilityMethods {
 			
 		try {
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_thread")) {
-				// Add the thread column
-				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");
-				
-				// Initialise the thread column
-				if(sourceKey > 0) {
-					pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
-					pstmtInitThreadCol.setInt(1, sourceKey);
-					pstmtInitThreadCol.executeUpdate();
-				} else {
-					pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
-					pstmtInitThreadCol2.setString(1, instanceId);
-					pstmtInitThreadCol2.executeUpdate();
-				}
+				GeneralUtilityMethods.addColumn(cResults, table, "_thread", "text");		// Add the thread column
 			}
 			if(!GeneralUtilityMethods.hasColumn(cResults, table, "_assigned")) {
 				GeneralUtilityMethods.addColumn(cResults, table, "_assigned", "text");
+			}
+			
+			// Initialise the thread column
+			if(sourceKey > 0) {
+				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
+				pstmtInitThreadCol.setInt(1, sourceKey);
+				pstmtInitThreadCol.executeUpdate();
+			} else {
+				pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
+				pstmtInitThreadCol2.setString(1, instanceId);
+				pstmtInitThreadCol2.executeUpdate();
 			}
 			
 		} finally {
