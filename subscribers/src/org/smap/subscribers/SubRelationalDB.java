@@ -1278,7 +1278,7 @@ public class SubRelationalDB extends Subscriber {
 						
 						// Add the subform changes to the change record
 						if(hasSubFormChanges(subFormChanges)) {
-							changes.add(new DataItemChange(formname, subFormChanges));
+							changes.add(new DataItemChange(formname, formname, subFormChanges));
 						}
 						
 						/*
@@ -1392,7 +1392,7 @@ public class SubRelationalDB extends Subscriber {
 				+ "and column_name != 'instanceid'");
 		PreparedStatement pstmtCols = null;
 		
-		String sqlSubmissionCols = "select column_name, qtype from question where f_id = ?";
+		String sqlSubmissionCols = "select column_name, qtype, qName from question where f_id = ?";
 		PreparedStatement pstmtSubmissionCols = null;
 		
 		PreparedStatement pstmtGetTarget = null;
@@ -1402,6 +1402,7 @@ public class SubRelationalDB extends Subscriber {
 		PreparedStatement pstmtUpdateTarget = null;
 		
 		HashMap<String, String> subCols = new HashMap<> (); 
+		HashMap<String, String> subColNames = new HashMap<> (); 
 		
 		try {
 			/*
@@ -1412,6 +1413,7 @@ public class SubRelationalDB extends Subscriber {
 			ResultSet rsSubs = pstmtSubmissionCols.executeQuery();
 			while(rsSubs.next()) {
 				subCols.put(rsSubs.getString(1), rsSubs.getString(2));
+				subColNames.put(rsSubs.getString(1), rsSubs.getString(3));
 			}
 			
 			/*
@@ -1439,6 +1441,7 @@ public class SubRelationalDB extends Subscriber {
 				if(rsGetTarget.next()) {
 					String val = rsGetTarget.getString(1);
 					String subColType = subCols.get(col);
+					String qName = subColNames.get(col);
 	
 					/*
 					 * Apply the merge if the policy is not replace or this is a question that is not in the submitting form
@@ -1498,7 +1501,7 @@ public class SubRelationalDB extends Subscriber {
 						if(oldVal == null && val == null) {
 							continue;
 						} else if(oldVal == null || val == null || !oldVal.equals(val)) {
-							changes.add(new DataItemChange(col, subColType, val, oldVal));
+							changes.add(new DataItemChange(col, qName, subColType, val, oldVal));
 						} else {
 							continue;
 						}

@@ -122,7 +122,8 @@ public class ManagedForms extends Application {
 	
 	/*
 	 * Update a managed record from the managed forms page
-	 */
+	 * deprecate - replaced by updae_gs
+	 *
 	@POST
 	@Produces("text/html")
 	@Consumes("application/json")
@@ -131,7 +132,7 @@ public class ManagedForms extends Application {
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("groupSurvey") String groupSurvey,
-			@FormParam("settings") String settings
+			@FormParam("settings") String updatesString
 			) { 
 		
 		Response response = null;
@@ -158,7 +159,7 @@ public class ManagedForms extends Application {
 			String tz = "UTC";
 			
 			ActionManager am = new ActionManager(localisation, tz);
-			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, groupSurvey, settings);
+			response = am.processUpdate(request, sd, cResults, request.getRemoteUser(), sId, groupSurvey, updatesString);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
 		} finally {
@@ -171,6 +172,7 @@ public class ManagedForms extends Application {
 		return response;
 
 	}
+	*/
 	
 	/*
 	 * Update a managed record from the managed forms page
@@ -184,7 +186,7 @@ public class ManagedForms extends Application {
 			@PathParam("sId") int sId,
 			@PathParam("groupSurvey") String groupSurvey,
 			@FormParam("groupForm") String groupForm,
-			@FormParam("settings") String settings,
+			@FormParam("updates") String updatesString,
 			@FormParam("instanceid") String instanceid
 			) { 
 		
@@ -214,7 +216,7 @@ public class ManagedForms extends Application {
 			
 			ActionManager am = new ActionManager(localisation, tz);
 			response = am.processUpdateGroupSurvey(request, sd, cResults, 
-					request.getRemoteUser(), sId, instanceid, groupSurvey, groupForm, settings);
+					request.getRemoteUser(), sId, instanceid, groupSurvey, groupForm, updatesString);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
 		} finally {

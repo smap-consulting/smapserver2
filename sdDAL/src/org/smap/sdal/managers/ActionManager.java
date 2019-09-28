@@ -82,6 +82,7 @@ public class ActionManager {
 	 */
 	class Update {
 		String name;
+		String displayName;
 		String value;
 		String currentValue;
 		int prikey;
@@ -346,20 +347,19 @@ public class ActionManager {
 		
 	}
 
-
 	/*
 	 * Process an update request that came either from an anonymous form or from the
 	 * managed forms page
 	 */
 	public Response processUpdate(
 			HttpServletRequest request, Connection sd, Connection cResults, String userIdent,
-			int sId, String groupSurvey, String settings) {
+			int sId, String groupSurvey, String updatesString) {
 
 		Response response = null;
 
 		Type type = new TypeToken<ArrayList<Update>>() {}.getType();
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		ArrayList<Update> updates = gson.fromJson(settings, type);
+		ArrayList<Update> updates = gson.fromJson(updatesString, type);
 
 		PreparedStatement pstmtUpdate = null;
 		int priority = -1;
@@ -492,7 +492,7 @@ public class ActionManager {
 				/*
 				 * Record the change
 				 */
-				changes.add(new DataItemChange(u.name, tc.type, u.value, u.currentValue));
+				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
 			}
 			
 			/*
@@ -731,7 +731,7 @@ public class ActionManager {
 				/*
 				 * Record the change
 				 */
-				changes.add(new DataItemChange(u.name, tc.type, u.value, u.currentValue));
+				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
 
 			}
 			
