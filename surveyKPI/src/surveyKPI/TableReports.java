@@ -96,6 +96,7 @@ public class TableReports extends Application {
 			@Context HttpServletResponse response,
 			@FormParam("sId") int sId,
 			@FormParam("groupSurvey") String groupSurvey,	
+			@FormParam("form") String formName,			// Form name (optional only specify for a child form)
 			@FormParam("data") String data,
 			@FormParam("charts") String charts,
 			@FormParam("format") String format,
@@ -144,6 +145,11 @@ public class TableReports extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			int fId = 0;
+			if(formName != null) {
+				fId = GeneralUtilityMethods.getFormId(sd, sId, formName);
+			}
+			
 			// Get columns
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
@@ -157,8 +163,8 @@ public class TableReports extends Application {
 					uId, 
 					ssd, 
 					sId,
-					0,		// TODO SubForm Id
-					null,
+					fId,
+					formName,
 					request.getRemoteUser(), 
 					oId, 
 					superUser, 
@@ -196,7 +202,15 @@ public class TableReports extends Application {
 			
 			if(isXLS) {
 				XLSReportsManager xm = new XLSReportsManager(format);
-				xm.createXLSReportsFile(response.getOutputStream(), dArray, chartDataArray, settings, mfc, localisation, tz);
+				xm.createXLSReportsFile(response.getOutputStream(), 
+						dArray, 
+						chartDataArray, 
+						settings, 
+						mfc, 
+						GeneralUtilityMethods.getSurveyName(sd, sId),
+						formName,
+						localisation, 
+						tz);
 			} else if(isPdf) {
 				String basePath = GeneralUtilityMethods.getBasePath(request);
 				PDFTableManager pm = new PDFTableManager();

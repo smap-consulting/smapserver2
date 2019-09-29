@@ -101,6 +101,8 @@ public class XLSReportsManager {
 			ArrayList<ChartData> chartDataArray,
 			ArrayList<KeyValue> settings,
 			SurveyViewDefn mfc,
+			String surveyName,
+			String formName,
 			ResourceBundle l, 
 			String tz) throws IOException {
 		
@@ -114,7 +116,7 @@ public class XLSReportsManager {
 		ArrayList<Column> cols = getColumnList(mfc, dArray);
 		
 		createHeader(cols, dataSheet, styles);	
-		processDataListForXLS(dArray, dataSheet, taskSettingsSheet, styles, cols, tz, settings);
+		processDataListForXLS(dArray, dataSheet, taskSettingsSheet, styles, cols, tz, settings, surveyName, formName);
 		
 		/*
 		 * Write the chart data if it is not null
@@ -271,7 +273,9 @@ public class XLSReportsManager {
 			Map<String, CellStyle> styles,
 			ArrayList<Column> cols,
 			String tz,
-			ArrayList<KeyValue> settings) throws IOException {
+			ArrayList<KeyValue> settings,
+			String surveyName,
+			String formName) throws IOException {
 		
 		CreationHelper createHelper = wb.getCreationHelper();
 		
@@ -347,15 +351,31 @@ public class XLSReportsManager {
 		Cell k = settingsRow.createCell(0);
 		Cell v = settingsRow.createCell(1);
 		k.setCellStyle(styles.get("header"));	
-		k.setCellValue("Time Zone:");
+		k.setCellValue(localisation.getString("a_tz"));
 		v.setCellValue(tz);
+		
+		settingsRow = settingsSheet.createRow(settingsRowIdx++);
+		k = settingsRow.createCell(0);
+		v = settingsRow.createCell(1);
+		k.setCellStyle(styles.get("header"));
+		k.setCellValue(localisation.getString("ar_survey"));
+		v.setCellValue(surveyName);
+		
+		if(formName != null) {
+			settingsRow = settingsSheet.createRow(settingsRowIdx++);
+			k = settingsRow.createCell(0);
+			v = settingsRow.createCell(1);
+			k.setCellStyle(styles.get("header"));
+			k.setCellValue(localisation.getString("form"));
+			v.setCellValue(formName);
+		}
 		
 		// Show filter settings
 		settingsRowIdx++;
 		settingsRow = settingsSheet.createRow(settingsRowIdx++);
 		Cell f = settingsRow.createCell(0);
 		f.setCellStyle(styles.get("header2"));	
-		f.setCellValue("Filters:");
+		f.setCellValue(localisation.getString("filters"));
 		
 		if(settings != null) {
 			for(KeyValue kv : settings) {
