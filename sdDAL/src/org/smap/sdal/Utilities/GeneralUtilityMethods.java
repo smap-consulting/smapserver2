@@ -3837,6 +3837,7 @@ public class GeneralUtilityMethods {
 					c.l_id = l_id;
 					c.compressed = compressed;
 					
+					
 					// Check for sensitive data
 					if(msd.signature) {
 						if(qType.equals("image") && appearance != null && appearance.contains("signature")) {

@@ -123,6 +123,7 @@ public class Items extends Application {
 		int maxRec = 0;
 		int recCount = 0;
 		String language = "none";
+		ArrayList<SqlFrag> columnSqlFrags = new ArrayList<SqlFrag>();
 		ArrayList<String> colNames = new ArrayList<String> ();
 		HashMap<String, String> surveyNames = new HashMap<String, String> ();
 		String connectionString = "surveyKPI-Items";
@@ -290,6 +291,16 @@ public class Items extends Application {
 					}  else if(c.type != null && c.type.equals("date")) {
 						cols.append(tName).append(".").append(c.column_name).append(" as ").append(c.column_name);
 						
+					} else if(c.type != null && c.type.equals("server_calculate")) {
+						if (c.calculation != null) {
+							cols.append(c.calculation.sql.toString()).append(" as ").append(c.column_name);
+						
+							// record any parameters for server side calculations
+							if (c.calculation != null && c.calculation.params != null) {
+								columnSqlFrags.add(c.calculation);
+							}
+						}
+						
 					} else {
 						cols.append(tName + "." + c.column_name + " as " +  c.column_name);
 						
@@ -315,7 +326,8 @@ public class Items extends Application {
 				}
 				
 				/*
-				 * Add the server side calculations
+				 * Add the old style server side calculations
+				 * Deprecate this by 19.12
 				 */
 				String sqlSSC = "select ssc.name, ssc.function, ssc.units from ssc ssc, form f " +
 						" where f.f_id = ssc.f_id " +
@@ -586,6 +598,10 @@ public class Items extends Application {
 				
 				// Add any parameters in the select
 				attribIdx = GeneralUtilityMethods.addSqlParams(pstmt, attribIdx, params);
+				
+				if (columnSqlFrags.size() > 0) {
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, attribIdx, tz);
+				}
 				
 				if(advancedFilterFrag != null) {
 					attribIdx = GeneralUtilityMethods.setFragParams(pstmt, advancedFilterFrag, attribIdx, tz);

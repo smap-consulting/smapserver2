@@ -141,6 +141,8 @@ public class TableDataManager {
 			}
 			
 			columnSelect.append(c.getSqlSelect(urlprefix, tz, params));
+			
+			// record any parameters for server side calculations
 			if (c.calculation != null && c.calculation.params != null) {
 				columnSqlFrags.add(c.calculation);
 			}
