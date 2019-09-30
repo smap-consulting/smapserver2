@@ -70,7 +70,7 @@ public class TableDataManager {
 	}
 
 	/*
-	 * Get the prepared statment to retrieve the data
+	 * Get the prepared statement to retrieve the data
 	 */
 	public PreparedStatement getPreparedStatement(
 			Connection sd, 

@@ -106,8 +106,12 @@ public class TableColumn {
 			selName = "'" + urlprefix + "' || " + column_name + " as " + column_name;
 		} else if(isGeometry()) {
 			selName = "ST_AsGeoJson(the_geom) ";
-		} else if(isCalculate() && calculation != null) {
-			selName = calculation.sql.toString();
+		} else if(isCalculate()) {
+			if(calculation != null) {
+				selName = calculation.sql.toString();
+			} else {
+				selName = "'' as " + column_name;
+			}
 		} else if(type.equals("duration")) {
 			if(startName != null && endName != null) {
 				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;

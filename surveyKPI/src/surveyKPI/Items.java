@@ -299,6 +299,8 @@ public class Items extends Application {
 							if (c.calculation != null && c.calculation.params != null) {
 								columnSqlFrags.add(c.calculation);
 							}
+						} else {
+							cols.append("'' as ").append(c.column_name);	// No value
 						}
 						
 					} else {

@@ -3903,7 +3903,7 @@ public class GeneralUtilityMethods {
 						c.calculation = new SqlFrag();
 						sc.populateSql(c.calculation, localisation);
 						c.readonly = true;		// All server calculations are read only
-					}
+					} 
 					if(style_id > 0) {
 						c.markup = getMarkup(sd, style_id);
 					}
