@@ -685,6 +685,7 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
 		PreparedStatement pstmtUpdateId = null;
+		PreparedStatement pstmtRepeats = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		
@@ -702,6 +703,10 @@ public class MyAssignments extends Application {
 					+ "where id = ? "
 					+ "and update_id is null";
 			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
+			
+			String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 "
+					+ "where id = ?";
+			pstmtRepeats = sd.prepareStatement(sqlRepeats);
 			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
@@ -731,6 +736,9 @@ public class MyAssignments extends Application {
 					log.info("+++++++++++++++ Updating task updateId: " + pstmtUpdateId.toString());
 					pstmtUpdateId.executeUpdate();	
 
+					pstmtRepeats.setInt(1, ta.task.id);
+					log.info("+++++++++++++++ Updating repeats: " + pstmtRepeats.toString());
+					pstmtRepeats.executeUpdate();
 				}
 			}
 
@@ -792,7 +800,10 @@ public class MyAssignments extends Application {
 				}
 			}
 
-			sd.commit();
+			if(!sd.getAutoCommit()) {
+				sd.commit();
+			}
+			
 			response = Response.ok().build();
 			log.info("Assignments updated");	
 
@@ -802,12 +813,21 @@ public class MyAssignments extends Application {
 			try { sd.rollback();} catch (Exception ex){log.log(Level.SEVERE,"", ex);}
 		} finally {
 
+			try {
+				if(!sd.getAutoCommit()) {
+					sd.setAutoCommit(true);
+				}
+			} catch(Exception e) {
+				
+			}
+			
 			try {if ( pstmtSetDeleted != null ) { pstmtSetDeleted.close(); }} catch (Exception e) {}
 			try {if ( pstmtSetUpdated != null ) { pstmtSetUpdated.close(); }} catch (Exception e) {}
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 			try {if ( pstmtUpdateId != null ) { pstmtUpdateId.close(); }} catch (Exception e) {}
+			try {if ( pstmtRepeats != null ) { pstmtRepeats.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
@@ -848,8 +868,6 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}
-	
-	
 	
 	/*
 	 * Update the status of an assignment
