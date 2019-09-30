@@ -71,7 +71,9 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.ServerSideCalculate;
+import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumn;
@@ -1711,6 +1713,17 @@ public class SurveyManager {
 						}
 						pstmtProperty2 = sd.prepareStatement(sqlProperty2);
 
+						if(property.equals("server_calculate")) {
+							if(ci.property.newVal != null) {
+								SqlFrag testCalc = new SqlFrag();
+								testCalc.addSqlFragment(ci.property.newVal, true, localisation, 0);	// validate
+								
+								ServerCalculation calc = new ServerCalculation();
+								calc.addExpression(ci.property.newVal);
+								Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+								ci.property.newVal = gson.toJson(calc);
+							}
+						}
 						// Special case for list name (no integrity checking)
 						String sqlProperty3 = "update question set l_id = ? " +
 								"where q_id = ?";
