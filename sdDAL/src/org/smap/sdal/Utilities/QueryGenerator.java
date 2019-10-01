@@ -579,13 +579,12 @@ public class QueryGenerator {
 				continue;
 			}
 			
-			if(!exp_ro && col.readonly) {
-				continue;			// Drop read only columns if they are not selected to be exported				
+			if(!exp_ro && col.readonly && col.calculation == null) {
+				continue;			// Drop non server calculation read only columns if they are not selected to be exported				
 			}
 			
 			if(sqlDesc.numberFields <= colLimit || type.equals("geometry")) {
-				
-				
+							
 				// Set flag if this question has an attachment
 				boolean isAttachment = GeneralUtilityMethods.isAttachmentType(type);
 				
@@ -651,11 +650,23 @@ public class QueryGenerator {
 					} else if(type.equals("timestamptz")) {
 						colBuf.append("timezone(?, "); 
 						sqlDesc.params.add(new SqlParam("string", tz));
+					} else if(type.equals("server_calculate")) {
+						if(col.calculation != null) {
+							colBuf.append(col.calculation.sql.toString());
+							
+							// record any parameters for server side calculations
+							if (col.calculation.params != null) {
+								sqlDesc.columnSqlFrags.add(col.calculation);
+							}
+							
+						} else {
+							colBuf.append("''");
+						}
 					}
 				
 					if(isAttachment && wantUrl) {	// Add the url prefix to the file
 						colBuf.append("'" + urlprefix + "' || " + form.table + "." + column_name);
-					} else {
+					} else if(!type.equals("server_calculate")) {
 						colBuf.append(form.table + "." + column_name);
 					}
 				
@@ -765,18 +776,15 @@ public class QueryGenerator {
 	 */
 	private static String getQuestionLabel(PreparedStatement pstmt,int sId, String text_id, String language) throws SQLException {
 		String label = null;
-		
-		//if(text_id != null) {
-			pstmt.setInt(1, sId);
-			pstmt.setString(2, text_id);
-			pstmt.setString(3, language);
-			System.out.println("Get label: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				label = rs.getString(1);
-				System.out.println("Label: " + label);
-			}
-		//}
+
+		pstmt.setInt(1, sId);
+		pstmt.setString(2, text_id);
+		pstmt.setString(3, language);
+		ResultSet rs = pstmt.executeQuery();
+		if(rs.next()) {
+			label = rs.getString(1);
+		}
+
 		return label;
 	}
 	
