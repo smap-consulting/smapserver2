@@ -131,7 +131,7 @@ public class XLSXEventParser {
 								line, 
 								form);
 						isHeader = false;
-					} catch (SQLException e) {
+					} catch (Exception e) {
 						responseMsg.add(e.getMessage());
 						hasError = true;
 						e.printStackTrace();

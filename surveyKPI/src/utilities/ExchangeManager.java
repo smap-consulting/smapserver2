@@ -997,7 +997,7 @@ public class ExchangeManager {
 			ArrayList<MetaItem> preloads,
 			ExchangeHeader eh, 
 			String [] line, 
-			FormDesc form) throws SQLException {
+			FormDesc form) throws Exception {
 		/*
 		 * Get the columns in the file that are also in the form
 		 * Assume first line is the header
@@ -1121,6 +1121,8 @@ public class ExchangeManager {
 			sqlInsert.append(")");
 			
 			eh.pstmtInsert = results.prepareStatement(sqlInsert.toString(), Statement.RETURN_GENERATED_KEYS);
+		} else {
+			throw new Exception(localisation.getString("pk_nq"));
 		}
 	}
 
