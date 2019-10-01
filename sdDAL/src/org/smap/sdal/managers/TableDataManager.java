@@ -131,7 +131,8 @@ public class TableDataManager {
 				columnSelect.append(",");
 			}
 			if(c.column_name.equals("prikey") || c.column_name.equals("parkey") 
-					|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")) {
+					|| c.column_name.equals("_bad") || c.column_name.equals("_bad_reason")
+					|| c.column_name.equals("_audit")) {
 				columnSelect.append(table_name).append(".");
 			}
 			
