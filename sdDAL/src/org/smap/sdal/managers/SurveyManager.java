@@ -2508,6 +2508,7 @@ public class SurveyManager {
 			sql.append("select prikey ");
 		}
 		
+		ArrayList<SqlFrag> columnSqlFrags = new ArrayList<SqlFrag>();
 		ArrayList<Question> questions = form.questions;
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtSelect = null;
@@ -2555,6 +2556,21 @@ public class SurveyManager {
 
 							} else if(qType.equals("select") && !q.compressed){
 								continue;	// Select data columns are retrieved separately as there are multiple columns per question
+							} else if(qType.equals("server_calculate")) {
+								if (q.server_calculation != null) {
+									SqlFrag calc = new SqlFrag();
+									q.server_calculation.populateSql(calc, localisation);
+									col = new StringBuffer("")
+											.append(calc.sql)
+											.append(" as ").append(q.columnName).toString();
+								
+									// record any parameters for server side calculations
+									if (calc.params != null) {
+										columnSqlFrags.add(calc);
+									}
+								} else {
+									col = new StringBuffer("").append("'' as ").append(q.columnName).toString();	// No value
+								} 
 							} else {
 								col = q.columnName;
 							}
@@ -2596,13 +2612,18 @@ public class SurveyManager {
 				sql.append(" and not _bad");
 				sql.append(" order by prikey asc");
 				
-				pstmt = cResults.prepareStatement(sql.toString());	 
+				pstmt = cResults.prepareStatement(sql.toString());
+				
+				int attribIdx = 1;
+				if (columnSqlFrags.size() > 0) {
+					attribIdx = GeneralUtilityMethods.setArrayFragParams(pstmt, columnSqlFrags, attribIdx, tz);
+				}
 				if(instanceId != null) {
-					pstmt.setString(1, instanceId);
+					pstmt.setString(attribIdx++, instanceId);
 				} else if(parentKey > 0) {
-					pstmt.setInt(1, parentKey);
+					pstmt.setInt(attribIdx++, parentKey);
 				} else if(keyQuestionName != null) {
-					pstmt.setString(1, keyQuestionValue);
+					pstmt.setString(attribIdx++, keyQuestionValue);
 				}
 
 				log.info("Get results: " + pstmt.toString());

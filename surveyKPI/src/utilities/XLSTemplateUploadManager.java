@@ -741,7 +741,6 @@ public class XLSTemplateUploadManager {
 		// 16. Calculation
 		if(q.type.equals("server_calculate")) {
 			String serverCalculation = XLSUtilities.getTextColumn(row, "server_calculation", surveyHeader, lastCellNum, null);
-			System.out.println("Server Calculation: " + serverCalculation);
 			if(serverCalculation != null) {
 				SqlFrag testCalc = new SqlFrag();
 				serverCalculation = serverCalculation.trim();
@@ -854,8 +853,7 @@ public class XLSTemplateUploadManager {
 		// 1. Source
 		if(q.type.equals("begin group") 
 				|| q.type.equals("end group") 
-				|| q.type.equals("begin repeat")
-				|| q.type.equals("server_calculate")) {
+				|| q.type.equals("begin repeat")) {
 			q.source = null;
 		} else {
 			q.source = "user";
