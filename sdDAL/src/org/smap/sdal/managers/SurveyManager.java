@@ -1720,7 +1720,7 @@ public class SurveyManager {
 								
 								ServerCalculation calc = new ServerCalculation();
 								calc.addExpression(ci.property.newVal);
-								Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+								Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 								ci.property.newVal = gson.toJson(calc);
 							}
 						}
@@ -2548,7 +2548,7 @@ public class SurveyManager {
 
 					if(s.getSubForm(form, q) == null || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 						// This question is not a place holder for a subform
-						if(q.source != null) {		// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
+						if(q.source != null || q.type.equals("server_calculate")) {		// Ignore questions with no source, these can only be dummy questions that indicate the position of a subform
 							String qType = q.type;
 							if(qType.equals("geopoint") || qType.equals("geoshape") || qType.equals("geotrace") || q.name.startsWith("geopolygon_") || q.name.startsWith("geolinestring_")) {
 

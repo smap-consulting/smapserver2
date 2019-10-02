@@ -853,6 +853,7 @@ public class XLSTemplateUploadManager {
 		// 1. Source
 		if(q.type.equals("begin group") 
 				|| q.type.equals("end group") 
+				|| q.type.equals("server_calculate") 
 				|| q.type.equals("begin repeat")) {
 			q.source = null;
 		} else {

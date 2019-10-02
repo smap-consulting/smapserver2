@@ -64,7 +64,8 @@ public class QuestionManager {
 
 		String columnName = null;
 		SurveyManager sm = new SurveyManager(localisation, "UTC");		// To apply survey level updates resulting from this question change
-
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		PreparedStatement pstmtInsertQuestion = null;
 		String sql = "insert into question (q_id, "
 				+ "f_id, "
@@ -77,6 +78,7 @@ public class QuestionManager {
 				+ "infotext_id, "
 				+ "source, "
 				+ "calculate, "
+				+ "server_calculate, "
 				+ "defaultanswer, "
 				+ "appearance, "
 				+ "parameters, "
@@ -216,24 +218,30 @@ public class QuestionManager {
 				} else {
 					pstmtInsertQuestion.setString(10,  q.calculation);
 				}
-				pstmtInsertQuestion.setString(11, q.defaultanswer );
-				pstmtInsertQuestion.setString(12, q.appearance);
+				
+				String serverCalculateString = null;
+				if(q.server_calculation != null) {
+					serverCalculateString = gson.toJson(q.server_calculation);
+				}
+				pstmtInsertQuestion.setString(11, serverCalculateString );
+				pstmtInsertQuestion.setString(12, q.defaultanswer );
+				pstmtInsertQuestion.setString(13, q.appearance);
 				// Set parameters, default the parameters if the type is range and they have not been set
 				// Reference q.parameters not q.paramArry as it is the string that is set by the online editor
 				String params = q.parameters;
 				if(q.type.equals("range") && (params == null || params.trim().length() == 0)) {
 					params = "start=1;end=5;step=1";
 				}
-				pstmtInsertQuestion.setString(13, params);
-				pstmtInsertQuestion.setBoolean(14, q.visible);
-				pstmtInsertQuestion.setBoolean(15, readonly);
-				pstmtInsertQuestion.setString(16, q.relevant);
-				pstmtInsertQuestion.setString(17, q.constraint);
-				pstmtInsertQuestion.setString(18, q.constraint_msg);
-				pstmtInsertQuestion.setBoolean(19, q.required);
-				pstmtInsertQuestion.setString(20, q.required_msg);
-				pstmtInsertQuestion.setString(21, q.autoplay);
-				pstmtInsertQuestion.setString(22, q.accuracy);
+				pstmtInsertQuestion.setString(14, params);
+				pstmtInsertQuestion.setBoolean(15, q.visible);
+				pstmtInsertQuestion.setBoolean(16, readonly);
+				pstmtInsertQuestion.setString(17, q.relevant);
+				pstmtInsertQuestion.setString(18, q.constraint);
+				pstmtInsertQuestion.setString(19, q.constraint_msg);
+				pstmtInsertQuestion.setBoolean(20, q.required);
+				pstmtInsertQuestion.setString(21, q.required_msg);
+				pstmtInsertQuestion.setString(22, q.autoplay);
+				pstmtInsertQuestion.setString(23, q.accuracy);
 
 				String nodeset = null;
 				String nodeset_value = null;
@@ -246,16 +254,16 @@ public class QuestionManager {
 					nodeset_value = "name";
 					nodeset_label = "jr:itext(itextId)";
 				}
-				pstmtInsertQuestion.setString(23, nodeset);
-				pstmtInsertQuestion.setString(24, nodeset_value);
-				pstmtInsertQuestion.setString(25, nodeset_label);
-				pstmtInsertQuestion.setString(26, q.display_name);
+				pstmtInsertQuestion.setString(24, nodeset);
+				pstmtInsertQuestion.setString(25, nodeset_value);
+				pstmtInsertQuestion.setString(26, nodeset_label);
+				pstmtInsertQuestion.setString(27, q.display_name);
 				if(q.type.equals("select") || q.type.equals("rank")) {
-					pstmtInsertQuestion.setBoolean(27, true);		// All select questions now default to compressed
+					pstmtInsertQuestion.setBoolean(28, true);		// All select questions now default to compressed
 				} else {
-					pstmtInsertQuestion.setBoolean(27, false);
+					pstmtInsertQuestion.setBoolean(28, false);
 				}
-				pstmtInsertQuestion.setString(28, q.intent);
+				pstmtInsertQuestion.setString(29, q.intent);
 
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
