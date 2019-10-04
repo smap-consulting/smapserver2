@@ -147,7 +147,8 @@ public class QuestionManager {
 					q.visible = false;
 				} else if(q.type.equals("begin repeat") 
 						|| q.type.equals("begin group")
-						|| q.type.equals("end group")) {
+						|| q.type.equals("end group")
+						|| q.type.equals("server_calculate")) {
 					q.source = null;
 				}
 

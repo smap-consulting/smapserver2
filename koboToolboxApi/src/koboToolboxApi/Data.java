@@ -586,13 +586,17 @@ public class Data extends Application {
 			
 			if(isDt) {
 				outWriter.print("{\"data\":");
+				errorMsgAddClosingBracket++;
 			}
 			if(isGeoJson) {
 				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
 																		// TODO metadata
 				outWriter.print("\"features\":");						// Features
+				errorMsgAddClosingBracket++;
 			}
+			
 			outWriter.print("[");
+			errorMsgAddClosingArray = true;
 			
 			if(pstmt != null) {
 				log.info("KoboAPI data: " + pstmt.toString());
@@ -646,7 +650,8 @@ public class Data extends Application {
 			}
 			
 			outWriter.print("]");
-			errorMsgAddClosingArray = true;
+			errorMsgAddClosingArray = false;
+			
 			if(isDt) {
 				if(schema) {
 					/*
@@ -687,12 +692,12 @@ public class Data extends Application {
 				}
 				
 				outWriter.print("}");
-				errorMsgAddClosingBracket++;
+				errorMsgAddClosingBracket--;
 			}
 			
 			if(isGeoJson) {				// TODO bbox										
 				outWriter.print("}");	// close
-				errorMsgAddClosingBracket++;
+				errorMsgAddClosingBracket--;
 			}
 
 		} catch (Exception e) {
