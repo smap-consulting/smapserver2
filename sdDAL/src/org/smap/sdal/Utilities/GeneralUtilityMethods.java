@@ -3544,7 +3544,7 @@ public class GeneralUtilityMethods {
 		if(mgmt) {
 			// Make sure there is an _assigned column at the top level of the survey
 			// Don't add one if we are getting columns for a subform
-			if(f_id == 0) {
+			if(formParent == 0) {
 				
 				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
 					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
