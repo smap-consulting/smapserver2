@@ -3544,16 +3544,19 @@ public class GeneralUtilityMethods {
 		if(mgmt) {
 			// Make sure there is an _assigned column at the top level of the survey
 			// Don't add one if we are getting columns for a subform
-			if(f_id == 0 &&
-					!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
-				GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+			if(f_id == 0) {
+				
+				if(	!GeneralUtilityMethods.hasColumn(cResults, table_name, "_assigned")) {
+					GeneralUtilityMethods.addColumn(cResults, table_name, "_assigned", "text");
+				}
+			
+				c = new TableColumn();
+				c.column_name = "_assigned";
+				c.displayName = "_assigned";
+				c.type = SmapQuestionTypes.STRING;
+				c.question_name = c.column_name;
+				columnList.add(c);
 			}
-			c = new TableColumn();
-			c.column_name = "_assigned";
-			c.displayName = "_assigned";
-			c.type = SmapQuestionTypes.STRING;
-			c.question_name = c.column_name;
-			columnList.add(c);
 		}
 
 		// Add HRK if it has been specified

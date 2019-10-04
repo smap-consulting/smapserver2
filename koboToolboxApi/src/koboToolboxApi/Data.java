@@ -324,6 +324,8 @@ public class Data extends Application {
 		}
 		int sId = 0;
 		int fId = 0;
+		boolean errorMsgAddClosingArray = false;
+		int errorMsgAddClosingBracket = 0;
 		try {
 			/*
 			 * Hack - some older clients still pass the survey id rather than the ident
@@ -644,6 +646,7 @@ public class Data extends Application {
 			}
 			
 			outWriter.print("]");
+			errorMsgAddClosingArray = true;
 			if(isDt) {
 				if(schema) {
 					/*
@@ -684,10 +687,12 @@ public class Data extends Application {
 				}
 				
 				outWriter.print("}");
+				errorMsgAddClosingBracket++;
 			}
 			
 			if(isGeoJson) {				// TODO bbox										
 				outWriter.print("}");	// close
+				errorMsgAddClosingBracket++;
 			}
 
 		} catch (Exception e) {
@@ -716,6 +721,14 @@ public class Data extends Application {
 			outWriter.print(msg);
 			outWriter.print("\"}");
 			
+			if(errorMsgAddClosingArray) {
+				outWriter.print("]");
+			}
+			if(errorMsgAddClosingBracket > 0) {
+				for(int i = 0; i < errorMsgAddClosingBracket; i++) {
+					outWriter.print("}");
+				}
+			}
 		} finally {
 
 			outWriter.flush(); 
