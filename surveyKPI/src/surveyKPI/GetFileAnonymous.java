@@ -31,6 +31,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -73,6 +74,7 @@ public class GetFileAnonymous extends Application {
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
+			@QueryParam("thumbs") boolean thumbs,
 			@PathParam("ident") String user) throws SQLException {
 			
 		int oId = 0;
@@ -94,7 +96,8 @@ public class GetFileAnonymous extends Application {
 		try {
 			
 			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, filename, false, true);
+			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, 
+					filename, false, true, thumbs);
 			
 		}  catch (Exception e) {
 			log.info("Error getting file:" + e.getMessage());

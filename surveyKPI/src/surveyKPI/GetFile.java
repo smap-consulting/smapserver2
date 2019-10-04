@@ -75,9 +75,11 @@ public class GetFile extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
 			@QueryParam("settings") boolean settings,
+			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("org") int requestedOrgId) throws Exception {
 		
-		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false);
+		log.info("------- " + filename);
+		return getOrganisationFile(request, response, request.getRemoteUser(), requestedOrgId, filename, settings, false, thumbs);
 	}
 	
 	/*
@@ -92,6 +94,7 @@ public class GetFile extends Application {
 			@PathParam("filename") String filename,
 			@PathParam("key") String key,
 			@QueryParam("settings") boolean settings,
+			@QueryParam("thumbs") boolean thumbs,
 			@QueryParam("org") int requestedOrgId) throws SQLException {
 		
 		String user = null;		
@@ -110,7 +113,8 @@ public class GetFile extends Application {
 			log.info("User not found for key");
 			throw new AuthorisationException();
 		}
-		return getOrganisationFile(request, response, user, requestedOrgId, filename, settings, false);
+		return getOrganisationFile(request, response, user, requestedOrgId, filename, 
+				settings, false, thumbs);
 	}
 	
 	/*
@@ -123,10 +127,11 @@ public class GetFile extends Application {
 			@Context HttpServletRequest request, 
 			@Context HttpServletResponse response,
 			@PathParam("filename") String filename,
+			@QueryParam("thumbs") boolean thumbs,
 			@PathParam("ident") String user) throws SQLException {
 				
 		log.info("Getting file authenticated with a key");
-		return getOrganisationFile(request, response, user, 0, filename, false, true);
+		return getOrganisationFile(request, response, user, 0, filename, false, true, thumbs);
 	}
 	
 	@GET
@@ -306,9 +311,10 @@ public class GetFile extends Application {
 			HttpServletResponse response, 
 			String user, 
 			int requestedOrgId, 
-			String filename, boolean 
-			settings,
-			boolean isTemporaryUser) {
+			String filename, 
+			boolean settings,
+			boolean isTemporaryUser,
+			boolean thumbs) {
 		
 		int oId = 0;
 		Response r = null;
@@ -335,10 +341,12 @@ public class GetFile extends Application {
 		try {
 			
 			FileManager fm = new FileManager();
-			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, filename, settings, isTemporaryUser);
+			r = fm.getOrganisationFile(connectionSD, request, response, user, oId, 
+					filename, settings, isTemporaryUser, thumbs);
 			
 		}  catch (Exception e) {
 			log.info("Error getting file:" + e.getMessage());
+			log.log(Level.SEVERE, e.getMessage(), e);
 			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
 			SDDataSource.closeConnection("Get Organisation File", connectionSD);	

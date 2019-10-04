@@ -918,13 +918,17 @@ public class CsvTableManager {
 		
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
+			int idx = 0;
 			for(String r : records) {
 				String[] data = parser.parseLine(r);
 				for(int i = 0; i < data.length && i < headerSize; i++) {
 					pstmt.setString(i + 1, data[i]);
 				}
 				pstmt.executeUpdate();
-				log.info("Insert csv values: " + pstmt.toString());
+				if(idx++ == 0) {
+					log.info("Insert first record of csv values: " + pstmt.toString());
+					log.info("Number of records: " + records.size());
+				}
 			}
 			
 		} finally {

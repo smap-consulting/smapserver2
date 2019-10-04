@@ -13,6 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -54,9 +55,10 @@ public class FileManager {
 			HttpServletResponse response, 
 			String user, 
 			int requestedOrgId, 
-			String filename, boolean 
-			settings,
-			boolean isTemporaryUser) throws IOException {
+			String filename, 
+			boolean	settings,
+			boolean isTemporaryUser,
+			boolean thumbs) throws IOException, ApplicationException {
 		
 		Response r = null;
 		
@@ -65,7 +67,12 @@ public class FileManager {
 		log.info("Get File: " + filename + " for organisation: " + requestedOrgId);
 
 		String basepath = GeneralUtilityMethods.getBasePath(request);
-		String filepath = basepath + "/media/organisation/" + requestedOrgId + (settings ? "/settings/" : "/") + filename;
+		String filepath = null;
+		if(thumbs) {
+			filepath = basepath + "/media/organisation/" + requestedOrgId + "/thumbs/" + filename;
+		} else {
+			filepath = basepath + "/media/organisation/" + requestedOrgId + (settings ? "/settings/" : "/") + filename;
+		}
 		getFile(response, filepath, filename);
 			
 		r = Response.ok("").build();
@@ -76,26 +83,31 @@ public class FileManager {
 	/*
 	 * Add the file to the response stream
 	 */
-	public void getFile(HttpServletResponse response, String filepath, String filename) throws IOException {
+	public void getFile(HttpServletResponse response, String filepath, String filename) throws IOException, ApplicationException {
 		
 		File f = new File(filepath);
+		if(!f.exists()) {
+			log.info("File not found: " + f.getAbsolutePath());
+			throw new ApplicationException("File not found");
+		}
 		response.setContentType(UtilityMethodsEmail.getContentType(filename));
 			
 		response.addHeader("Content-Disposition", "attachment; filename=" + filename);
 		response.setContentLength((int) f.length());
-			
+		
 		FileInputStream fis = new FileInputStream(f);
 		OutputStream responseOutputStream = response.getOutputStream();
-			
-		int bytes;
-		while ((bytes = fis.read()) != -1) {
-			responseOutputStream.write(bytes);
+		
+		try {						
+			int bytes;
+			while ((bytes = fis.read()) != -1) {
+				responseOutputStream.write(bytes);
+			}
+		} finally {
+			responseOutputStream.flush();
+			responseOutputStream.close();
+			fis.close();
 		}
-		responseOutputStream.flush();
-		responseOutputStream.close();
-		fis.close();
-
-
 	}
 
 }
