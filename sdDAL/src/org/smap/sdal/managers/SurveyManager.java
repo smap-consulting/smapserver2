@@ -1713,17 +1713,6 @@ public class SurveyManager {
 						}
 						pstmtProperty2 = sd.prepareStatement(sqlProperty2);
 
-						if(property.equals("server_calculate")) {
-							if(ci.property.newVal != null) {
-								SqlFrag testCalc = new SqlFrag();
-								testCalc.addSqlFragment(ci.property.newVal, true, localisation, 0);	// validate
-								
-								ServerCalculation calc = new ServerCalculation();
-								calc.addExpression(ci.property.newVal);
-								Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-								ci.property.newVal = gson.toJson(calc);
-							}
-						}
 						// Special case for list name (no integrity checking)
 						String sqlProperty3 = "update question set l_id = ? " +
 								"where q_id = ?";
@@ -2006,6 +1995,18 @@ public class SurveyManager {
 							pstmtSource.executeUpdate();
 						}
 
+						// Validate server calculations
+						if(property.equals("server_calculate")) {
+							if(ci.property.newVal != null) {
+								Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+								ServerCalculation sc = gson.fromJson(ci.property.newVal, ServerCalculation.class);
+								SqlFrag testCalc = new SqlFrag();
+								testCalc.addSqlFragment(sc.getExpression(), false, localisation, 0);
+						
+							}
+						}
+
 						// Update the survey manifest if this question references CSV files
 						if(ci.property.prop.equals("calculation")) {
 							updateSurveyManifest(sd, sId, null, ci.property.newVal);
@@ -2280,6 +2281,8 @@ public class SurveyManager {
 			out = "mandatory";
 		} else if(in.equals("calculation")) {
 			out = "calculate";
+		} else if(in.equals("server_calculation")) {
+			out = "server_calculate";
 		} else if(in.equals("constraint")) {
 			out = "qconstraint";
 		} else if(in.equals("list_name")) {
