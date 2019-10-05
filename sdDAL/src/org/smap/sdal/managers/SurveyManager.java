@@ -2570,7 +2570,7 @@ public class SurveyManager {
 											.append(" as ").append(q.columnName).toString();
 								
 									// record any parameters for server side calculations
-									if (calc.params != null) {
+									if (calc.params != null && calc.params.size() > 0) {
 										columnSqlFrags.add(calc);
 									}
 								} else {
@@ -2982,7 +2982,7 @@ public class SurveyManager {
 
 				index--;		// Decrement the index as the select multiple was not in the SQL query
 
-			} else if(qSource != null) {
+			} else if(qSource != null || qType.equals("server_calculate")) {
 
 				String value = "";
 				if(resultSet != null) {
