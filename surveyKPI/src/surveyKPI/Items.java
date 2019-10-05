@@ -268,9 +268,9 @@ public class Items extends Application {
 					if(newColIdx > 0) {
 						cols.append(",");
 					}
-					if(bGeom && c.type.equals("geopoint") || c.type.equals("geopolygon") 
+					if(bGeom && (c.type.equals("geopoint") || c.type.equals("geopolygon") 
 							|| c.type.equals("geolinestring") || c.type.equals("geotrace")
-							|| c.type.equals("geoshape")) {
+							|| c.type.equals("geoshape"))) {
 						
 						geomIdx = newColIdx;
 						cols.append("ST_AsGeoJSON(" + tName + "." + c.column_name + ") ");

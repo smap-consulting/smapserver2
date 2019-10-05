@@ -406,10 +406,12 @@ public class TableManager {
 					for(MetaItem mi : meta) {
 						if(mi.isPreload) {
 							String type = " text";
-							if(mi.dataType.equals("timestamp")) {
-								type = " timestamp with time zone";
-							} else if(mi.dataType.equals("date")) {
-								type = " date";
+							if(mi.dataType != null) {
+								if(mi.dataType.equals("timestamp")) {
+									type = " timestamp with time zone";
+								} else if(mi.dataType.equals("date")) {
+									type = " date";
+								}
 							}
 							sql += "," + mi.columnName + type;
 						}

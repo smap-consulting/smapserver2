@@ -29,6 +29,7 @@ import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
+import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
@@ -885,7 +886,7 @@ public class PDFSurveyManager {
 		Question question = null;
 		if(r.qIdx >= 0) {
 			question = form.questions.get(r.qIdx);
-		} if(r.qIdx <= -1000) {
+		} if(r.qIdx <= MetaItem.INITIAL_ID) {
 			question = GeneralUtilityMethods.getPreloadAsQuestion(sd, survey.id, r.qIdx);	// A preload
 		} else if(r.qIdx == -1) {
 			question = new Question();													// Server generated

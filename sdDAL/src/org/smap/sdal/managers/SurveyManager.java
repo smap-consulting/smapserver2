@@ -2531,6 +2531,8 @@ public class SurveyManager {
 							continue;		// Keep begin repeats even if not published since the table exists
 											// This would not be needed if there were not issues with the publishing record
 						}
+					} else if(q.type != null && q.type.equals("server_calculate")) {
+						continue;		// Sever calculations do not need to be published
 					}
 					questions.remove(i);
 				}

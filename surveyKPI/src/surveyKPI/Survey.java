@@ -725,12 +725,12 @@ public class Survey extends Application {
 			}
 			
 			// Add preloads
-			int metaId = -1000;		// Backward compatability to when meta items did not have an id
+			int metaId = MetaItem.INITIAL_ID;		// Backward compatability to when meta items did not have an id
 			for(MetaItem mi : preloads) {
 				if(mi.type.equals("dateTime") || mi.type.equals("date")) {
 					DateInfo di = new DateInfo();
 
-					int id = (mi.id <= -1000) ? mi.id : metaId--;
+					int id = (mi.id <= MetaItem.INITIAL_ID) ? mi.id : metaId--;
 					di.columnName = mi.columnName;
 					if(mi.display_name != null) {
 						di.name = mi.display_name;

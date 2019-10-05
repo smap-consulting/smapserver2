@@ -223,7 +223,7 @@ public class Review extends Application {
 					qtype = resultSet.getString(3);
 					name = resultSet.getString(4);
 				}
-			} else if(qId <= -1000) {
+			} else if(qId <= MetaItem.INITIAL_ID) {
 				// Meta question
 				MetaItem item = GeneralUtilityMethods.getPreloadDetails(connectionSD, sId, qId);
 				if(item != null) {
@@ -874,7 +874,7 @@ public class Review extends Application {
 				//String table = null;
 				
 				// Get the filter question name and type
-				if(u.qFilter <= -1000) {
+				if(u.qFilter <= MetaItem.INITIAL_ID) {
 					// preload
 					filter_table = topForm.tableName;
 					MetaItem item = GeneralUtilityMethods.getPreloadDetails(sd, sId, u.qFilter);

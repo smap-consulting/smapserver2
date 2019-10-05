@@ -101,7 +101,7 @@ public class XLSTemplateUploadManager {
 	boolean foundSelectInTableListGroup = false;
 	boolean justStartedTableListGroup = false;
 	
-	int metaId = -1000;
+	int metaId = MetaItem.INITIAL_ID;
 
 	Survey survey = null;
 

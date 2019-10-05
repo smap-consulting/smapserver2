@@ -864,28 +864,44 @@ public class Surveys extends Application {
 			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 			
+			if(item.display_name != null && item.display_name.trim().isEmpty()) {
+				item.display_name = null;
+			}
 			/*
 			 * Loop though the existing meta items and update or replace
 			 */
 			boolean replace = false;
+			int id = MetaItem.INITIAL_ID;
 			for(MetaItem mi : preloads) {
+				
+				if(mi.id <= id) {			// Get a unique id if we need to insert a preload
+					id = mi.id - 1;
+				}
+				
 				if(mi.isPreload && mi.sourceParam.equals(item.sourceParam)) {
 					mi.name = item.name;
 					mi.display_name = item.display_name;
 					mi.settings = item.settings;
 					replace = true;
 					break;
-				}
+				} 
 			}
 			if(!replace) {
+				item.id = id;
+				if(item.columnName == null) {
+					item.columnName = item.name;
+				}
 				preloads.add(item);
 				if(item.type == null) {
 					if(item.sourceParam.equals("start") || item.sourceParam.equals("end")) {
-						item.type = "timestamp";
+						item.type = "dateTime";
+						item.dataType = "timestamp";
 					} else if(item.sourceParam.equals("today")) {
 						item.type = "date";
+						item.dataType = "date";
 					} else {
-						item.type = "property";
+						item.type = "string";
+						item.dataType = "property";
 					}
 				}
 			}

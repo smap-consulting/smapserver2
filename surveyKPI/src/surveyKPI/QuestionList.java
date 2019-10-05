@@ -114,11 +114,11 @@ public class QuestionList extends Application {
 			
 			// Get metaItems
 			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(connectionSD, sId);	
-			int metaId = -1000;		// Backward compatability to when meta items did not have an id
+			int metaId = MetaItem.INITIAL_ID;		// Backward compatability to when meta items did not have an id
 			for(MetaItem mi : items) {
 				if(mi.isPreload) {
 					JSONObject joQuestion = new JSONObject();
-					int id = (mi.id <= -1000) ? mi.id : metaId--;
+					int id = (mi.id <= MetaItem.INITIAL_ID) ? mi.id : metaId--;
 					joQuestion.put("id", id);
 					joQuestion.put("type", mi.dataType);
 					joQuestion.put("q", mi.display_name);

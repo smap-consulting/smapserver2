@@ -4,6 +4,8 @@ package org.smap.sdal.model;
 // Prikey id is set to -1
 // Server user is set to -2
 public class MetaItem {
+	
+	public static int INITIAL_ID = -1000;
 	public int id;	// An integer id for preloads so they can be used in lists with questions that are identified by their id
 	public String type;
 	public String name;		
@@ -26,7 +28,7 @@ public class MetaItem {
 			String display_name,
 			String settings
 			) throws Exception {
-		if(id > -1000) {
+		if(id > -INITIAL_ID) {
 			throw new Exception("Invalid Meta Item ID");
 		}
 		this.id = id;

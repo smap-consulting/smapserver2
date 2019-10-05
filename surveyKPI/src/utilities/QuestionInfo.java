@@ -612,12 +612,12 @@ public class QuestionInfo {
 			columnName = SmapServerMeta.SCHEDULED_START_NAME;
 			qType = "dateTime";
 			qLabel = "Upload Time";
-		} else if (qId <= 1000) {
+		} else if (qId <= MetaItem.INITIAL_ID) {
 			// preloads
 			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(connection, sId);	
-			int metaId = -1000;
+			int metaId = MetaItem.INITIAL_ID;
 			for(MetaItem mi : items) {
-				if(mi.id > -1000 ) {
+				if(mi.id > MetaItem.INITIAL_ID ) {
 					mi.id = metaId--;		// Backward compatability
 				}
 				if(mi.id == qId) {
