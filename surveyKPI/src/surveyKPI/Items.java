@@ -275,7 +275,6 @@ public class Items extends Application {
 						geomIdx = newColIdx;
 						cols.append("ST_AsGeoJSON(" + tName + "." + c.column_name + ") ");
 						geomType = c.type;
-						newColIdx++;
 					
 					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
 							cols.append("'" + urlprefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
@@ -700,6 +699,7 @@ public class Items extends Application {
 						jr.put("properties", jp);
 						ja.put(jr);
 					}
+					
 					recCount++;
 				 }
 				
