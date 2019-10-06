@@ -3698,7 +3698,7 @@ public class GeneralUtilityMethods {
 						c.column_name = mi.columnName;
 						c.displayName = mi.name;
 						c.question_name = mi.name;
-						c.type = mi.dataType;
+						c.type = mi.type;
 						if(c.type != null && c.type.equals("timestamp")) {
 							c.type = "dateTime";
 						}

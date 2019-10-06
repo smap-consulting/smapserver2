@@ -408,8 +408,7 @@ public class TableManager {
 							if(mi.type.equals("geopoint")) {
 
 								// Add geometry columns after the table is created using AddGeometryColumn()
-								GeometryColumn gc = new GeometryColumn(tableName, mi.columnName, "POINT");
-								geoms.add(gc);
+								geoms.add(new GeometryColumn(tableName, mi.columnName, "POINT"));
 								sql.append(", ").append(mi.columnName).append("_alt double precision, ")
 								.append(mi.columnName).append("_acc double precision");
 
@@ -454,8 +453,7 @@ public class TableManager {
 					if(colType.equals("geopoint")) {
 
 						// Add geometry columns after the table is created using AddGeometryColumn()
-						GeometryColumn gc = new GeometryColumn(tableName, "the_geom", "POINT");
-						geoms.add(gc);
+						geoms.add(new GeometryColumn(tableName, "the_geom", "POINT"));
 						sql.append(", the_geom_alt double precision, the_geom_acc double precision");
 						continue;
 
@@ -534,7 +532,7 @@ public class TableManager {
 					if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
 					pstmtGeom = cResults.prepareStatement(gSql);
 					log.info("Add geometry columns: " + pstmtGeom.toString());
-					pstmtGeom.executeUpdate();
+					pstmtGeom.executeQuery();
 				}
 			} catch (SQLException e) {
 				log.info(e.getMessage());
