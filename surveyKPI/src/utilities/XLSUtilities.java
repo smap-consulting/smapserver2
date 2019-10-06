@@ -612,7 +612,6 @@ public class XLSUtilities {
             }
 
         }
-		
 		new XFormsModule().registerModule();
 		
 		SurveyTemplate template = new SurveyTemplate(localisation);
@@ -637,6 +636,9 @@ public class XLSUtilities {
 		xmlForm = xmlForm.replace("lookup_choices(", "search(");  // lookup_choices
 		xmlForm = xmlForm.replaceAll("lookup_image_labels\\([a-zA-Z0-9$,\\.{}\'/ ]*\\)", "round(1.1)");	// lookup_imag_labels
 		xmlForm = xmlForm.replaceAll("get_media\\([a-zA-Z0-9$,\\.{}\'/ ]*\\)", "round(1.1)");	// lookup_imag_labels
+		
+		// Remove any actions
+		xmlForm = xmlForm.replaceAll("\\<odk:setgeopoint [a-zA-Z0-9$,\\\\.{}=\\'\\-\"/ ]*\\/\\>", "");	
 				
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
 
@@ -672,11 +674,7 @@ public class XLSUtilities {
 			}
 		});
 
-		try {  // debug
-			fd.initialize(true, new InstanceInitializationFactory());
-		} catch (Exception e) {
-			
-		}
+		fd.initialize(true, new InstanceInitializationFactory());
 
 	}
     
