@@ -1840,7 +1840,7 @@ public class SubRelationalDB extends Subscriber {
 	 * Generate the sql for the column names
 	 */
 	String addSqlColumns(List<IE> columns, boolean hasAltitude) {
-		String sql = "";
+		StringBuffer sql = new StringBuffer("");
 
 		for(IE col : columns) {
 			String colType = col.getQType();
@@ -1851,27 +1851,26 @@ public class SubRelationalDB extends Subscriber {
 				for(IE option : options) {
 					if(uniqueColumns.get(option.getColumnName()) == null) {
 						uniqueColumns.put(option.getColumnName(), option.getColumnName());
-						sql += "," + option.getColumnName();
+						sql.append(",").append(option.getColumnName());
 					}		
 				}
 			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
 					|| colType.equals("geoshape") || colType.equals("geotrace")) {
-				// All geospatial columns have the name "the_geom"
-				sql += ",the_geom";
+				sql.append(",").append(col.getColumnName());
 				if(colType.equals("geopoint") && hasAltitude) {
 					// Geopoint also has altitude and accuracy
-					sql += ",the_geom_alt, the_geom_acc";
+					sql.append(",").append(col.getColumnName()).append("_alt,").append(col.getColumnName()).append("_acc");
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				sql += addSqlColumns(col.getQuestions(), hasAltitude);
+				sql.append(addSqlColumns(col.getQuestions(), hasAltitude));
 			} else {
 				String colName = col.getColumnName();
-				sql += "," + colName;
+				sql.append(",").append(colName);
 			}				
 		}
 
-		return sql;
+		return sql.toString();
 	}
 
 	String addSqlValues(List<IE> columns, String sName, String device, 
@@ -1880,7 +1879,7 @@ public class SubRelationalDB extends Subscriber {
 			boolean hasAltitude,
 			ArrayList<ForeignKey> foreignKeys) {
 		
-		String sql = "";
+		StringBuffer sql = new StringBuffer("");
 		for(IE col : columns) {
 			boolean colPhoneOnly = phoneOnly || col.isPhoneOnly();	// Set phone only if the group is phone only or just this column
 			String colType = col.getQType();
@@ -1892,14 +1891,14 @@ public class SubRelationalDB extends Subscriber {
 				for(IE option : options) {
 					if(uniqueColumns.get(option.getColumnName()) == null) {
 						uniqueColumns.put(option.getColumnName(), option.getColumnName());
-						sql += "," + (colPhoneOnly ? "" : option.getValue());
+						sql.append(",").append((colPhoneOnly ? "" : option.getValue()));
 					}			
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				sql += addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, hasAltitude, foreignKeys);
+				sql.append(addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, hasAltitude, foreignKeys));
 			} else {
-				sql += "," + getDbString(col, sName, device, server, colPhoneOnly, hasAltitude);
+				sql.append(",").append(getDbString(col, sName, device, server, colPhoneOnly, hasAltitude));
 				// Check for a foreign key, the value will start with :::::
 				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
 					ForeignKey fl = new ForeignKey();
@@ -1910,7 +1909,7 @@ public class SubRelationalDB extends Subscriber {
 			}	
 			
 		}
-		return sql;
+		return sql.toString();
 	}
 
 	/*
@@ -1981,18 +1980,27 @@ public class SubRelationalDB extends Subscriber {
 					// To store as a Point in the db this order needs to be reversed
 					String params[] = value.split(" ");
 					if(params.length > 1) {
-						value = "ST_SetSRID(ST_MakePoint(" 
-								+ String.valueOf(Double.parseDouble(params[1])) + ","
-								+ String.valueOf(Double.parseDouble(params[0]))
-								+ "), 4326)";
-
-						// Add altitude and accuracy
-						if(hasAltitude) {
-							if(params.length > 3) {
-								value += "," + String.valueOf(Double.parseDouble(params[2])) + "," 
-										+ String.valueOf(Double.parseDouble(params[3]));
+						try {
+							value = "ST_SetSRID(ST_MakePoint(" 
+									+ String.valueOf(Double.parseDouble(params[1])) + ","
+									+ String.valueOf(Double.parseDouble(params[0]))
+									+ "), 4326)";
+	
+							// Add altitude and accuracy
+							if(hasAltitude) {
+								if(params.length > 3) {
+									value += "," + String.valueOf(Double.parseDouble(params[2])) + "," 
+											+ String.valueOf(Double.parseDouble(params[3]));
+								} else {
+									value += ",null, null";
+								}
+							}
+						} catch (Exception e) {
+							log.info("Error: Invalid geometry point detected: " + value);
+							if(hasAltitude) {
+								value = "null, null, null";
 							} else {
-								value += ",null, null";
+								value = "null";
 							}
 						}
 

@@ -371,33 +371,33 @@ public class TableManager {
 
 		String tableName = form.getTableName();
 		List<Question> columns = form.getQuestions(sd, form.getPath(null));
-		String sql = null;	
+		StringBuffer sql = new StringBuffer("");	
 		List <GeometryColumn> geoms = new ArrayList<GeometryColumn> ();
 
 		/*
 		 * Attempt to create the table, ignore any exception as the table may already be created
 		 */
 		if(columns.size() > 0) {
-			sql = "CREATE TABLE " + tableName + " (" +
-					"prikey SERIAL PRIMARY KEY, " +
-					"parkey int default 0";
+			sql.append("CREATE TABLE ").append(tableName).append(" (")
+					.append("prikey SERIAL PRIMARY KEY, ")
+					.append("parkey int default 0");
 
 			/*
 			 * Create default columns in the top level form
 			 */
-			sql += ", _bad boolean DEFAULT FALSE, _bad_reason text, _audit text, _audit_raw text";
+			sql.append(", _bad boolean DEFAULT FALSE, _bad_reason text, _audit text, _audit_raw text");
 			if(!form.hasParent()) {
-				sql += ", _user text, _version text, _survey_notes text, _location_trigger text, _assigned text,"
-						+ "_complete boolean default true, "
-						+ "_modified boolean default false,"
-						+ SmapServerMeta.UPLOAD_TIME_NAME + " timestamp with time zone, "
-						+ SmapServerMeta.SURVEY_ID_NAME + " integer,"
-						+ "instanceid text, "
-						+ "instancename text,"
-						+ SmapServerMeta.SCHEDULED_START_NAME + " timestamp with time zone";
+				sql.append(", _user text, _version text, _survey_notes text, _location_trigger text, _assigned text,")
+						.append("_complete boolean default true, ")
+						.append("_modified boolean default false,")
+						.append(SmapServerMeta.UPLOAD_TIME_NAME).append(" timestamp with time zone, ")
+						.append(SmapServerMeta.SURVEY_ID_NAME).append(" integer,")
+						.append("instanceid text, ")
+						.append("instancename text,")
+						.append(SmapServerMeta.SCHEDULED_START_NAME).append(" timestamp with time zone");
 
 				if(hasHrk) {
-					sql += ", _hrk text ";
+					sql.append(", _hrk text ");
 				}
 				
 				// Add preloads
@@ -405,15 +405,25 @@ public class TableManager {
 				if(meta != null) {
 					for(MetaItem mi : meta) {
 						if(mi.isPreload) {
-							String type = " text";
-							if(mi.dataType != null) {
-								if(mi.dataType.equals("timestamp")) {
-									type = " timestamp with time zone";
-								} else if(mi.dataType.equals("date")) {
-									type = " date";
+							if(mi.type.equals("geopoint")) {
+
+								// Add geometry columns after the table is created using AddGeometryColumn()
+								GeometryColumn gc = new GeometryColumn(tableName, mi.columnName, "POINT");
+								geoms.add(gc);
+								sql.append(", ").append(mi.columnName).append("_alt double precision, ")
+								.append(mi.columnName).append("_acc double precision");
+
+							} else {
+								String type = " text";
+								if(mi.dataType != null) {
+									if(mi.dataType.equals("timestamp")) {
+										type = " timestamp with time zone";
+									} else if(mi.dataType.equals("date")) {
+										type = " date";
+									} 
 								}
+								sql.append(",").append(mi.columnName).append(type);
 							}
-							sql += "," + mi.columnName + type;
 						}
 					}
 				}
@@ -446,7 +456,7 @@ public class TableManager {
 						// Add geometry columns after the table is created using AddGeometryColumn()
 						GeometryColumn gc = new GeometryColumn(tableName, "the_geom", "POINT");
 						geoms.add(gc);
-						sql += ", the_geom_alt double precision, the_geom_acc double precision";
+						sql.append(", the_geom_alt double precision, the_geom_acc double precision");
 						continue;
 
 					} else if(colType.equals("geopolygon") || colType.equals("geoshape")) {
@@ -492,7 +502,7 @@ public class TableManager {
 									String name = q.getColumnName(false) + "__" + option.getColumnName();
 									if(uniqueColumns.get(name) == null) {
 										uniqueColumns.put(name, name);
-										sql += ", " + name + " integer";
+										sql.append(", ").append(name).append(" integer");
 									}
 								}
 							}
@@ -501,18 +511,18 @@ public class TableManager {
 						}
 					} else {
 						colType = GeneralUtilityMethods.getPostgresColType(colType, q.isCompressed());
-						sql += ", " + q.getColumnName(false) + " " + colType;
+						sql.append(", ").append(q.getColumnName(false)).append(" ").append(colType);
 					}
 				} else {
 					// log.info("Info: Ignoring question with no source:" + q.getName());
 				}
 			}
-			sql += ");";
+			sql.append(")");
 
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtGeom = null;
 			try {
-				pstmt = cResults.prepareStatement(sql);
+				pstmt = cResults.prepareStatement(sql.toString());
 				log.info("Sql statement: " + pstmt.toString());
 				pstmt.executeUpdate();
 				// Add geometry columns

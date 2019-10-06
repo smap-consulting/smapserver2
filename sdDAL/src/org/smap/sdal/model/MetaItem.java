@@ -19,7 +19,7 @@ public class MetaItem {
 	
 	public MetaItem(
 			int id,
-			String type, 			// dateTime, string		
+			String type, 			// dateTime, string, geopoint	
 			String name, 			// nodeset
 			String sourceParam, 		// jr:preloadParams  - deviceid, end, start, 
 			String columnName, 

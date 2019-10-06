@@ -514,12 +514,26 @@ public class GetXForm {
 				if(preloads != null) {
 					for(MetaItem mi : preloads) {
 						if(mi.isPreload) {
-							Element preload = outputDoc.createElement("bind");
-							preload.setAttribute("nodeset", "/main/" + mi.name);
-							preload.setAttribute("type", mi.type);
-							preload.setAttribute("jr:preload", mi.dataType);
-							preload.setAttribute("jr:preloadParams", mi.sourceParam);
-							currentParent.appendChild(preload);
+							if(mi.sourceParam.equals("start-geopoint")) {
+								
+								Element preload = outputDoc.createElement("bind");
+								preload.setAttribute("nodeset", "/main/" + mi.name);
+								preload.setAttribute("type", mi.type);
+								currentParent.appendChild(preload);
+								
+								Element event = outputDoc.createElement("odk:setgeopoint");
+								event.setAttribute("event", "odk-instance-first-load");
+								event.setAttribute("ref", "/main/" + mi.name);
+								currentParent.appendChild(event);
+							} else {
+								Element preload = outputDoc.createElement("bind");
+								preload.setAttribute("nodeset", "/main/" + mi.name);
+								preload.setAttribute("type", mi.type);
+								preload.setAttribute("jr:preload", mi.dataType);
+								preload.setAttribute("jr:preloadParams", mi.sourceParam);
+								currentParent.appendChild(preload);
+							}
+							
 						}
 					}
 				}

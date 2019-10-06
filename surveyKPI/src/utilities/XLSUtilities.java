@@ -637,7 +637,7 @@ public class XLSUtilities {
 		xmlForm = xmlForm.replace("lookup_choices(", "search(");  // lookup_choices
 		xmlForm = xmlForm.replaceAll("lookup_image_labels\\([a-zA-Z0-9$,\\.{}\'/ ]*\\)", "round(1.1)");	// lookup_imag_labels
 		xmlForm = xmlForm.replaceAll("get_media\\([a-zA-Z0-9$,\\.{}\'/ ]*\\)", "round(1.1)");	// lookup_imag_labels
-		
+				
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
 
 		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
@@ -669,10 +669,14 @@ public class XLSUtilities {
 			public Object eval(Object[] arg0, org.javarosa.core.model.condition.EvaluationContext arg1) {
 				// TODO Auto-generated method stub
 				return arg0[0];
-			}});
+			}
+		});
 
-		fd.initialize(true, new InstanceInitializationFactory());
-
+		try {  // debug
+			fd.initialize(true, new InstanceInitializationFactory());
+		} catch (Exception e) {
+			
+		}
 
 	}
     

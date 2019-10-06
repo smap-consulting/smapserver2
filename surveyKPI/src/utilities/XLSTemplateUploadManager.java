@@ -1549,8 +1549,10 @@ public class XLSTemplateUploadManager {
 			out = "username";
 		} else if (type.equals("email")) {
 			out = "email";
-		} else if (type.equals("server_calculate")) {	
+		} else if (type.equals("server_calculate")) {
 			out = "server_calculate";
+		} else if (type.equals("start-geopoint")) {	
+			out = "start-geopoint";
 		} else if (type.equals("hidden value")) {    // Commcare 
 			out = "calculate";
 		} else if (type.equals("label")) {			// Commcare 
