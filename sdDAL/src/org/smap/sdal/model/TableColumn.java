@@ -105,7 +105,7 @@ public class TableColumn {
 		if(isAttachment()) {
 			selName = "'" + urlprefix + "' || " + column_name + " as " + column_name;
 		} else if(isGeometry()) {
-			selName = "ST_AsGeoJson(the_geom) ";
+			selName = "ST_AsGeoJson(" + column_name + ") ";
 		} else if(isCalculate()) {
 			if(calculation != null) {
 				selName = calculation.sql.toString();

@@ -474,6 +474,7 @@ public class TableDataManager {
 			int limit,
 			boolean mergeSelectMultiple,
 			boolean isGeoJson,
+			String geomQuestion,
 			boolean links,
 			String sIdent)
 			throws SQLException, Exception {
@@ -508,7 +509,13 @@ public class TableDataManager {
 				String value = null;
 				JSONObject jsonAudit = null;
 
-				if (c.isGeometry()) {
+				if(isDt) {
+					name = c.column_name;
+				} else {
+					name = c.displayName;
+				}
+				
+				if (c.isGeometry() && c.column_name.equals(geomQuestion)) {
 					// Add Geometry (assume one geometry type per table)
 					String geomValue = rs.getString(i + 1);
 					if (geomValue == null) {
@@ -521,13 +528,19 @@ public class TableDataManager {
 						jf.put(name, new JSONObject(geomValue));
 					}
 
+				} else if (c.isGeometry()) {
+					// Some other geometry in the table
+					String geomValue = rs.getString(i + 1);
+					if (geomValue == null) {
+						geomValue = "{}";
+					}
+	
+					jf.put(name, new JSONObject(geomValue));
+
+
 				} else if(c.type != null && c.type.equals("select") && c.compressed && !mergeSelectMultiple) {
 					// Split the select multiple into its choices
-					if(isDt) {
-						name = c.column_name;	// Names must be escapd and are hidden to user
-					} else {
-						name = c.displayName;
-					}
+					
 					value = rs.getString(i + 1);
 					if (value == null) {
 						value = "";
@@ -552,12 +565,6 @@ public class TableDataManager {
 						jf.put(choiceName, choiceValue);
 					}
 				} else {
-
-					if(isDt) {
-						name = c.column_name;
-					} else {
-						name = c.displayName;
-					}
 
 					if (c.type != null && c.type.equals("select1") && c.selectDisplayNames) {
 						// Convert value to display name

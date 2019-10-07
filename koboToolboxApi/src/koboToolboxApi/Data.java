@@ -177,6 +177,7 @@ public class Data extends Application {
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
+			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("links") String links,
 			@QueryParam("filter") String filter,
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
@@ -197,7 +198,8 @@ public class Data extends Application {
 		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
-				parkey, hrk, format, include_bad, audit_set, merge, geojson, tz, incLinks, 
+				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
+				tz, incLinks, 
 				filter, dateName, startDate, endDate, getSettings, instanceId);
 	}
 	
@@ -303,6 +305,7 @@ public class Data extends Application {
 			String audit_set,		// if yes return audit data
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
 			String geojson,			// If set to yes then render as geoJson rather than the kobo toolbox structure
+			String geomQuestion,		// Set to the name of the question with the geometry
 			String tz,				// Timezone
 			boolean incLinks	,
 			String advanced_filter,
@@ -385,6 +388,10 @@ public class Data extends Application {
 		boolean isGeoJson=false;
 		if(geojson != null && (geojson.equals("yes") || geojson.equals("true"))) {
 			isGeoJson = true;
+		}
+		
+		if(geomQuestion == null) {
+			geomQuestion = "the_geom";
 		}
 		
 		boolean mergeSelectMultiple = false;
@@ -624,6 +631,7 @@ public class Data extends Application {
 							limit,
 							mergeSelectMultiple,
 							isGeoJson,
+							geomQuestion,
 							incLinks	,
 							sIdent
 							);
