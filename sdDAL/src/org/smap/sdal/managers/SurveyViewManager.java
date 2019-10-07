@@ -211,6 +211,7 @@ public void populateSvd(
 				tc.hide = hideDefault(c.displayName);
 			} else {
 				tc.hide = cc.hide;
+				tc.barcode = cc.barcode;
 			}
 			tc.mgmt = !isMain;
 			tc.filter = c.filter;
