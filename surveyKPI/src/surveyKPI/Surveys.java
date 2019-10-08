@@ -899,7 +899,10 @@ public class Surveys extends Application {
 					} else if(item.sourceParam.equals("today")) {
 						item.type = "date";
 						item.dataType = "date";
-					} else {
+					} else if(item.sourceParam.equals("start-geopoint")) {
+						item.type = "geopoint";
+						item.dataType = "property";
+					}else {
 						item.type = "string";
 						item.dataType = "property";
 					}

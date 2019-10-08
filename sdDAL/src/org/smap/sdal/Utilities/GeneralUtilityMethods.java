@@ -8440,32 +8440,35 @@ public class GeneralUtilityMethods {
 					geoType = "POLYGON";
 				}
 				String gSql = "SELECT AddGeometryColumn('" + table + 
-						"', 'the_geom', 4326, '" + geoType + "', 2);";
+						"', '" + column + "', 4326, '" + geoType + "', 2);";
 				log.info("Add geometry column: " + gSql);
 
 				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
+				
 				try { 
 					pstmtApplyGeometryChange.executeQuery();
+					
+					// Add altitude and accuracy
+					if(type.equals("geopoint")) {
+						String sqlAlterTable = "alter table " + table + " add column " 
+								+  column + "_alt double precision";
+						pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+						log.info("Alter table: " + pstmtAlterTable.toString());					
+						pstmtAlterTable.executeUpdate();
+
+						try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
+						sqlAlterTable = "alter table " + table + " add column "
+								+ column + "_acc double precision";
+						pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+						log.info("Alter table: " + pstmtAlterTable.toString());					
+						pstmtAlterTable.executeUpdate();
+					}
 				} catch (Exception e) {
 					// Allow this to fail where an older version added a geometry, which was then deleted, then a new 
 					//  geometry with altitude was added we need to go on and add the altitude and accuracy
 					log.info("Error altering table -- continuing: " + e.getMessage());
 					try {cResults.rollback();} catch(Exception ex) {}
-				}
-
-				// Add altitude and accuracy
-				if(type.equals("geopoint")) {
-					String sqlAlterTable = "alter table " + table + " add column the_geom_alt double precision";
-					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-					log.info("Alter table: " + pstmtAlterTable.toString());					
-					pstmtAlterTable.executeUpdate();
-
-					try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
-					sqlAlterTable = "alter table " + table + " add column the_geom_acc double precision";
-					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-					log.info("Alter table: " + pstmtAlterTable.toString());					
-					pstmtAlterTable.executeUpdate();
-				}
+				}			
 
 				// Commit this change to the database
 				try { cResults.commit();	} catch(Exception ex) {}
