@@ -262,7 +262,10 @@ public class PDFSurveyManager {
 			// If the PDF is to be returned in an http response then the header is set now before writing to the output stream
 			log.info("Filename passed to createPDF is: " + filename);
 			if(filename == null) {
-				filename = survey.getInstanceName() + ".pdf";
+				filename = survey.getInstanceName();
+				filename = GeneralUtilityMethods.getSafeTemplateName(filename);
+				filename += ".pdf";
+				
 			} else {
 				if(!filename.endsWith(".pdf")) {
 					filename += ".pdf";
