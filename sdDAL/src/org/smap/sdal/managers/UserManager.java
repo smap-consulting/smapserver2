@@ -110,6 +110,7 @@ public class UserManager {
 					+ "o.e_id,"
 					+ "o.set_as_theme,"
 					+ "o.navbar_color,"
+					+ "o.training,"
 					+ "u.timezone,"
 					+ "e.name as enterprise_name  "
 					+ "from users u, organisation o, enterprise e "
@@ -163,6 +164,7 @@ public class UserManager {
 				user.enterprise_name = resultSet.getString("enterprise_name");
 				user.set_as_theme = resultSet.getBoolean("set_as_theme");
 				user.navbar_color = resultSet.getString("navbar_color");
+				user.training = resultSet.getString("training");
 			}
 
 			/*
