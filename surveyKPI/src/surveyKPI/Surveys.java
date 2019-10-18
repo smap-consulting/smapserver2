@@ -1033,17 +1033,19 @@ public class Surveys extends Application {
 			version = rs.getInt(1);
 			pstmt.close();
 			
-			if(!required) {
-				// Set all questions to not required
-				String sqlNotRequired = "update question set mandatory = 'false' "
-						+ "where f_id in (select f_id from form where s_id = ?);";
-				pstmtNotRequired = sd.prepareStatement(sqlNotRequired);	
-				pstmtNotRequired.setInt(1, sId);
-				
-				log.info("SQL: Setting questions not required: " + pstmtNotRequired.toString());
-				pstmtNotRequired.executeUpdate();
-			
-			} else {
+
+			// Set all questions to not required
+			// Do this even if the next step is to set questions that should be 
+			//  required as required
+			String sqlNotRequired = "update question set mandatory = 'false' "
+					+ "where f_id in (select f_id from form where s_id = ?);";
+			pstmtNotRequired = sd.prepareStatement(sqlNotRequired);	
+			pstmtNotRequired.setInt(1, sId);
+
+			log.info("SQL: Setting questions not required: " + pstmtNotRequired.toString());
+			pstmtNotRequired.executeUpdate();
+
+			if(required) {
 				// Set all questions to required
 				String sqlRequired = "update question set mandatory = 'true' "
 						+ "where readonly = 'false' "
