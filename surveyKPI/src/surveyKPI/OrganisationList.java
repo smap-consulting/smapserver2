@@ -854,10 +854,18 @@ public class OrganisationList extends Application {
 				} else {
 					throw new Exception("Error getting project count");
 				}
+				
+			    // Delete any users in this organisation.  If the user is in multiple organisations
+				// then just their connection to the deleted organisation should be removed
+				UserManager um = new UserManager(localisation);				
+				ArrayList<User> users = um.getUserList(sd, o.id, false, false);
+				for(User u : users) {
+					um.deleteUser(sd, request.getRemoteUser(), 
+							basePath, u.id, o.id, false);	
+				}
 					
 				sql = "DELETE FROM organisation o " +  
-						" WHERE o.id = ?; ";			
-				
+						" WHERE o.id = ?; ";						
 				if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, o.id);
@@ -867,16 +875,6 @@ public class OrganisationList extends Application {
 			    // Delete the organisation shared resources - not necessary
 			    CsvTableManager tm = new CsvTableManager(sd, localisation);
 			    tm.delete(o.id, 0, null);	
-			    
-			    // Delete any users in this organisation.  If the user is in multiple organisations
-				// then just their connection to the deleted organisation should be removed
-				UserManager um = new UserManager(localisation);
-				
-				ArrayList<User> users = um.getUserList(sd, o.id, false, false);
-				for(User u : users) {
-					um.deleteUser(sd, request.getRemoteUser(), 
-							basePath, u.id, o.id, false);	
-				}
 			    
 				// Delete the organisation folder
 				String fileFolder = basePath + "/media/organisation/" + o.id;
