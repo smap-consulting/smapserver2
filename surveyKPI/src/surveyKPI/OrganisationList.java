@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.DeviceSettings;
 import org.smap.sdal.model.Organisation;
@@ -822,6 +823,8 @@ public class OrganisationList extends Application {
 			ResultSet resultSet = null;
 			sd.setAutoCommit(false);
 				
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
 				a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
@@ -863,10 +866,19 @@ public class OrganisationList extends Application {
 				
 			    // Delete the organisation shared resources - not necessary
 			    CsvTableManager tm = new CsvTableManager(sd, localisation);
-			    tm.delete(o.id, 0, null);		
+			    tm.delete(o.id, 0, null);	
+			    
+			    // Delete any users in this organisation.  If the user is in multiple organisations
+				// then just their connection to the deleted organisation should be removed
+				UserManager um = new UserManager(localisation);
+				
+				ArrayList<User> users = um.getUserList(sd, o.id, false, false);
+				for(User u : users) {
+					um.deleteUser(sd, request.getRemoteUser(), 
+							basePath, u.id, o.id, false);	
+				}
 			    
 				// Delete the organisation folder
-				String basePath = GeneralUtilityMethods.getBasePath(request);
 				String fileFolder = basePath + "/media/organisation/" + o.id;
 			    File folder = new File(fileFolder);
 			    try {

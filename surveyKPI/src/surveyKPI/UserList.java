@@ -538,12 +538,6 @@ public class UserList extends Application {
 		ArrayList<User> uArray = new Gson().fromJson(users, type);
 		
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtHardDelete = null;
-		PreparedStatement pstmtHardDeleteAll = null;
-		PreparedStatement pstmtMove = null;
-		PreparedStatement pstmtGetIdent = null;
-		PreparedStatement pstmtCountOrgs = null;
-		PreparedStatement pstmtSoftDelete = null;
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
 		try {	
@@ -558,42 +552,7 @@ public class UserList extends Application {
 			String sql = "SELECT u.o_id " +
 					" FROM users u " +  
 					" WHERE u.ident = ?;";										
-			pstmt = sd.prepareStatement(sql);
-			
-			// Get the ident of the person to be deleted
-			String sqlGetIdent = "select u.ident "
-					+ "from users u "
-					+ "where u.id = ? ";							
-			pstmtGetIdent = sd.prepareStatement(sqlGetIdent);
-			
-			// Get organisations that the user is in
-			ArrayList<Integer> organisationList = new ArrayList<> ();
-			String sqlCountOrgs = "select o_id from user_organisation where u_id = ?";
-			pstmtCountOrgs = sd.prepareStatement(sqlCountOrgs);
-			
-			// Perform a hard delete of the user
-			String sqlHardDelete = "delete from users u "  
-					+ "where u.id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
-					+ "and u.o_id = ?";					
-			pstmtHardDelete = sd.prepareStatement(sqlHardDelete);	
-			
-			// Perform a hard delete of the user from all organisations. only organisational administrators should be able to call this
-			String sqlHardDeleteAll = "delete from users u "  
-					+ "where u.id = ? ";				
-			pstmtHardDeleteAll = sd.prepareStatement(sqlHardDeleteAll);	
-			
-			// Perform a soft delete of the user
-			String sqlSoftDelete = "delete from user_organisation "  
-					+ "where u_id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
-					+ "and o_id = ?";					
-			pstmtSoftDelete = sd.prepareStatement(sqlSoftDelete);			
-			
-			// Move the user to another organisation if they are currently in the organisation from which they have been soft deleted
-			String sqlMove = "update users "  
-					+ "set o_id = (select o_id from user_organisation where u_id = ? limit 1) "
-					+ "where id = ? "
-					+ "and o_id = ?";				
-			pstmtMove = sd.prepareStatement(sqlMove);	
+			pstmt = sd.prepareStatement(sql);	
 			
 			// Get the organisation id
 			pstmt.setString(1, request.getRemoteUser());
@@ -601,69 +560,13 @@ public class UserList extends Application {
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				o_id = resultSet.getInt(1);
+							
+				UserManager um = new UserManager(localisation);
 				
 				for(int i = 0; i < uArray.size(); i++) {
-					User u = uArray.get(i);
-					String ident = null;
-					
-					// Get the user ident to use in deleting dependent records
-					pstmtGetIdent.setInt(1, u.id);
-					ResultSet rs = pstmtGetIdent.executeQuery();
-					if(rs.next()) {
-						ident = rs.getString(1);
-					}
-					
-					// Get the organisations that this user is a member of
-					pstmtCountOrgs.setInt(1, u.id);
-					rs = pstmtCountOrgs.executeQuery();
-					while(rs.next()) {
-						organisationList.add(rs.getInt(1));
-					}
-					
-					/*
-					 * Do a hard delete if 
-					 *    1) the user is a member of only one organisation
-					 *    2) All has been specified and he requesting user is an org admin
-					 */
-					if(organisationList.size() <= 1) {
-						// Only one organisation so perform a Hard delete
-						hardDelete(request, sd, 
-								pstmtHardDelete, 
-								localisation,
-								u, 
-								ident, o_id, basePath, 
-								false,
-								null);
-					} if(u.all && GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser())) {
-						// Multiple organisations but delete all has been requested
-						hardDelete(request, sd, 
-								pstmtHardDeleteAll, 
-								localisation,
-								u, 
-								ident, o_id, basePath, true, organisationList);
-					} else {
-						// soft delete
-						pstmtSoftDelete.setInt(1, u.id);
-						pstmtSoftDelete.setInt(2, o_id);
-						log.info("Soft Delete user: " + pstmtSoftDelete.toString());						
-						pstmtSoftDelete.executeUpdate();
-						
-						// If the user is currently in this organisation then move them to one of their other organisations
-						pstmtMove.setInt(1, u.id);
-						pstmtMove.setInt(2, u.id);
-						pstmtMove.setInt(3, o_id);
-						log.info("Move user: " + pstmtMove.toString());						
-						pstmtMove.executeUpdate();
-						 
-						String msg = localisation.getString("u_soft_del");
-						msg = msg.replace("%s1", ident);
-						lm.writeLogOrganisation(sd, 
-									o_id, 
-									request.getRemoteUser(), 
-									LogManager.DELETE, 
-									msg);
-					}
-
+					User u = uArray.get(i);					
+					um.deleteUser(sd, request.getRemoteUser(), 
+							basePath, u.id, o_id, u.all);
 				}
 		
 				response = Response.ok().build();
@@ -685,12 +588,6 @@ public class UserList extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			try {if (pstmtHardDelete != null) {pstmtHardDelete.close();}} catch (SQLException e) {}
-			try {if (pstmtHardDeleteAll != null) {pstmtHardDeleteAll.close();}} catch (SQLException e) {}
-			try {if (pstmtMove != null) {pstmtMove.close();}} catch (SQLException e) {}
-			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
-			try {if (pstmtCountOrgs != null) {pstmtCountOrgs.close();}} catch (SQLException e) {}
-			try {if (pstmtSoftDelete != null) {pstmtSoftDelete.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(requestName, sd);
 		}
@@ -698,45 +595,7 @@ public class UserList extends Application {
 		return response;
 	}
 	
-	private void hardDelete( HttpServletRequest  request, Connection sd, 
-			PreparedStatement pstmt, 
-			ResourceBundle localisation,
-			User u, 
-			String ident, 
-			int o_id, String basePath,
-			boolean delete_all,
-			ArrayList<Integer> organisationList) throws Exception {
-		
-		pstmt.setInt(1, u.id);
-		if(!delete_all) {
-			pstmt.setInt(2, o_id);
-		}
-		log.info("Hard Delete user: " + pstmt.toString());
-		
-		int count = pstmt.executeUpdate();
-		
-		if(count > 0) {	
-			// If a user was deleted then delete their directories
-			GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + u.id);
-			
-			// Delete any csv table definitions that they have
-			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
-			stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
 
-			String msg = localisation.getString("u_del");
-			msg = msg.replace("%s1", ident);
-			if(delete_all) {
-				// Write logs for other organisations
-				for(int ox : organisationList) {
-					lm.writeLogOrganisation(sd, 
-							ox, request.getRemoteUser(), "delete", msg);
-				}
-			} else {
-				lm.writeLogOrganisation(sd, 
-						o_id, request.getRemoteUser(), "delete", msg);
-			}
-		}	
-	}
 	
 	private String getGroups(ArrayList<UserGroup> groups) {
 		StringBuffer g = new StringBuffer("");

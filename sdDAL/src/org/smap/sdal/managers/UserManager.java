@@ -13,8 +13,6 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.MediaInfo;
-import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
@@ -1403,5 +1401,170 @@ public class UserManager {
 			try {if (pstmt != null) {pstmt.close();	}} catch (Exception e) {	}
 		}
 		return users;
+	}
+	
+	/*
+	 * Delete a user
+	 */
+	public void deleteUser(Connection sd, String requestingUser, 
+			String basePath, int uId, int oId, boolean deleteAll) throws Exception {
+		
+		String ident = null;
+		
+		PreparedStatement pstmtHardDelete = null;
+		PreparedStatement pstmtGetIdent = null;
+		PreparedStatement pstmtCountOrgs = null;
+		PreparedStatement pstmtHardDeleteAll = null;
+		PreparedStatement pstmtSoftDelete = null;
+		PreparedStatement pstmtMove = null;
+		
+		try {
+			// Perform a hard delete of the user
+			String sqlHardDelete = "delete from users u "  
+					+ "where u.id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
+					+ "and u.o_id = ?";					
+			pstmtHardDelete = sd.prepareStatement(sqlHardDelete);	
+			
+			// Get the user ident to use in deleting dependent records
+			String sqlGetIdent = "select u.ident "
+					+ "from users u "
+					+ "where u.id = ? ";							
+			pstmtGetIdent = sd.prepareStatement(sqlGetIdent);
+	
+			pstmtGetIdent.setInt(1, uId);
+			ResultSet rs = pstmtGetIdent.executeQuery();
+			if(rs.next()) {
+				ident = rs.getString(1);
+			}
+			
+			// Get the organisations that this user is a member of
+			ArrayList<Integer> organisationList = new ArrayList<> ();
+			String sqlCountOrgs = "select o_id from user_organisation where u_id = ?";
+			pstmtCountOrgs = sd.prepareStatement(sqlCountOrgs);
+			
+			pstmtCountOrgs.setInt(1, uId);
+			rs = pstmtCountOrgs.executeQuery();
+			while(rs.next()) {
+				organisationList.add(rs.getInt(1));
+			}
+			
+			/*
+			 * Do a hard delete if 
+			 *    1) the user is a member of only one organisation
+			 *    2) All has been specified and he requesting user is an org admin
+			 */
+			if(organisationList.size() <= 1) {
+				// Only one organisation so perform a Hard delete
+				
+				// Perform a hard delete of the user from all organisations. only organisational administrators should be able to call this
+				String sqlHardDeleteAll = "delete from users u "  
+						+ "where u.id = ? ";				
+				pstmtHardDeleteAll = sd.prepareStatement(sqlHardDeleteAll);	
+				
+				hardDelete(sd, 
+						pstmtHardDelete, 
+						localisation,
+						uId, 
+						ident, 
+						oId, 
+						basePath, 
+						false,
+						null,
+						requestingUser);
+			} if(deleteAll && GeneralUtilityMethods.isOrgUser(sd, requestingUser)) {
+				// Multiple organisations but delete all has been requested
+				hardDelete(sd, 
+						pstmtHardDeleteAll, 
+						localisation,
+						uId, 
+						ident, oId, basePath, true, organisationList, requestingUser);
+			} else {
+				
+				// Perform a soft delete of the user
+				String sqlSoftDelete = "delete from user_organisation "  
+						+ "where u_id = ? "		// Ensure the user is in the same organisation as the administrator doing the editing
+						+ "and o_id = ?";					
+				pstmtSoftDelete = sd.prepareStatement(sqlSoftDelete);		
+				
+				pstmtSoftDelete.setInt(1, uId);
+				pstmtSoftDelete.setInt(2, oId);
+				log.info("Soft Delete user: " + pstmtSoftDelete.toString());						
+				pstmtSoftDelete.executeUpdate();
+				
+				// Move the user to another organisation if they are currently in the organisation from which they have been soft deleted
+				String sqlMove = "update users "  
+						+ "set o_id = (select o_id from user_organisation where u_id = ? limit 1) "
+						+ "where id = ? "
+						+ "and o_id = ?";				
+				pstmtMove = sd.prepareStatement(sqlMove);	
+				
+				pstmtMove.setInt(1, uId);
+				pstmtMove.setInt(2, uId);
+				pstmtMove.setInt(3, oId);
+				log.info("Move user: " + pstmtMove.toString());						
+				pstmtMove.executeUpdate();
+				 
+				String msg = localisation.getString("u_soft_del");
+				msg = msg.replace("%s1", ident);
+				lm.writeLogOrganisation(sd, 
+							oId, 
+							requestingUser, 
+							LogManager.DELETE, 
+							msg);
+			}
+		} finally {
+			try {if (pstmtHardDelete != null) {pstmtHardDelete.close();}} catch (SQLException e) {}
+			try {if (pstmtGetIdent != null) {pstmtGetIdent.close();}} catch (SQLException e) {}
+			try {if (pstmtCountOrgs != null) {pstmtCountOrgs.close();}} catch (SQLException e) {}
+			try {if (pstmtHardDeleteAll != null) {pstmtHardDeleteAll.close();}} catch (SQLException e) {}
+			try {if (pstmtSoftDelete != null) {pstmtSoftDelete.close();}} catch (SQLException e) {}
+			try {if (pstmtMove != null) {pstmtMove.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	/*
+	 * Perform a hard delete of a user
+	 * Remove them from the users table
+	 */
+	private void hardDelete(Connection sd, 
+			PreparedStatement pstmt, 
+			ResourceBundle localisation,
+			int uId, 
+			String ident, 
+			int o_id, 
+			String basePath,
+			boolean delete_all,
+			ArrayList<Integer> organisationList,
+			String requestingUser) throws Exception {
+		
+		pstmt.setInt(1, uId);
+		if(!delete_all) {
+			pstmt.setInt(2, o_id);
+		}
+		log.info("Hard Delete user: " + pstmt.toString());
+		
+		int count = pstmt.executeUpdate();
+		
+		if(count > 0) {	
+			// If a user was deleted then delete their directories
+			GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + uId);
+			
+			// Delete any csv table definitions that they have
+			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
+			stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
+
+			String msg = localisation.getString("u_del");
+			msg = msg.replace("%s1", ident);
+			if(delete_all) {
+				// Write logs for other organisations
+				for(int ox : organisationList) {
+					lm.writeLogOrganisation(sd, 
+							ox, requestingUser, "delete", msg);
+				}
+			} else {
+				lm.writeLogOrganisation(sd, 
+						o_id, requestingUser, "delete", msg);
+			}
+		}	
 	}
 }
