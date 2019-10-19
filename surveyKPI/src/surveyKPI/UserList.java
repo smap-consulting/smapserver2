@@ -405,13 +405,19 @@ public class UserList extends Application {
 		Response response = null;
 		String requestName = "surveyKPI - updateUser";
 		
+		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
+		ArrayList<User> uArray = new Gson().fromJson(users, type);
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(requestName);
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		
+		// That the user is in the administrators organisation is validated on update
+		
 		// End Authorisation
 		
-		Type type = new TypeToken<ArrayList<User>>(){}.getType();		
-		ArrayList<User> uArray = new Gson().fromJson(users, type);
+
+		
 		
 		PreparedStatement pstmt = null;
 		try {	
@@ -433,11 +439,11 @@ public class UserList extends Application {
 			 */
 			sql = "SELECT u.o_id, u.name " +
 					" FROM users u " +  
-					" WHERE u.ident = ?;";				
+					" WHERE u.ident = ?";				
 						
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, request.getRemoteUser());
-			log.info("SQL: " + sql + ":" + request.getRemoteUser());
+			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				o_id = resultSet.getInt(1);

@@ -821,7 +821,6 @@ public class UserManager {
 
 		log.info("Update organisations for user id:" + u_id);
 
-		// Delete existing organisation links
 		try {
 
 			String sqlInsertOrgUser = "insert into user_organisation (u_id, o_id) values (?, ?)";
@@ -829,9 +828,14 @@ public class UserManager {
 			pstmtInsertOrgUser.setInt(1, u_id);
 			
 			/*
-			 * Update user organisation linke
+			 * Update user organisation links
+			 * First delete all links in the users current enterprise
 			 */
-			sql = "delete from user_organisation where u_id = ? and o_id != all (?)";
+			int e_id = GeneralUtilityMethods.getEnterpriseId(sd, u.ident);
+			sql = "delete from user_organisation "
+					+ "where u_id = ? "
+					+ "and o_id != all (?) "
+					+ "and o_id in (select id from organisation where e_id = ?)";
 
 			if(u.orgs != null) {
 				ArrayList<Integer> orgList = new ArrayList<Integer> ();
@@ -842,6 +846,7 @@ public class UserManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u.id);
 				pstmt.setArray(2, sd.createArrayOf("int", orgList.toArray(new Integer[orgList.size()])));
+				pstmt.setInt(3, e_id);
 				log.info("Delete removed org links: " + pstmt.toString());
 				pstmt.executeUpdate();
 
