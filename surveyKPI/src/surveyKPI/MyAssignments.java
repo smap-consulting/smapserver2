@@ -528,6 +528,7 @@ public class MyAssignments extends Application {
 					+ "o.ft_sync_incomplete, "
 					+ "o.ft_odk_style_menus, "
 					+ "o.ft_specify_instancename, "
+					+ "o.ft_prevent_disable_track, "
 					+ "o.ft_admin_menu, "
 					+ "o.ft_exit_track_menu, "
 					+ "o.ft_review_final, "
@@ -555,16 +556,17 @@ public class MyAssignments extends Application {
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
 				tr.settings.ft_specify_instancename = resultSet.getBoolean(5);
-				tr.settings.ft_admin_menu = resultSet.getBoolean(6);
-				tr.settings.ft_exit_track_menu = resultSet.getBoolean(7);
-				tr.settings.ft_review_final = resultSet.getBoolean(8);
-				tr.settings.ft_send = resultSet.getString(9);
+				tr.settings.ft_prevent_disable_track = resultSet.getBoolean(6);
+				tr.settings.ft_admin_menu = resultSet.getBoolean(7);
+				tr.settings.ft_exit_track_menu = resultSet.getBoolean(8);
+				tr.settings.ft_review_final = resultSet.getBoolean(9);
+				tr.settings.ft_send = resultSet.getString(10);
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
-				tr.settings.ft_image_size = resultSet.getString(10);
-				tr.settings.ft_backward_navigation = resultSet.getString(11);
-				tr.settings.ft_navigation = resultSet.getString(12);
-				tr.settings.ft_pw_policy = resultSet.getInt(13);
+				tr.settings.ft_image_size = resultSet.getString(11);
+				tr.settings.ft_backward_navigation = resultSet.getString(12);
+				tr.settings.ft_navigation = resultSet.getString(13);
+				tr.settings.ft_pw_policy = resultSet.getInt(14);
 				tr.settings.ft_location_trigger = true;
 			}
 
