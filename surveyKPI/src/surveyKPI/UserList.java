@@ -415,10 +415,7 @@ public class UserList extends Application {
 		// That the user is in the administrators organisation is validated on update
 		
 		// End Authorisation
-		
-
-		
-		
+	
 		PreparedStatement pstmt = null;
 		try {	
 			
