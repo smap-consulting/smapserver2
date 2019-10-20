@@ -275,9 +275,6 @@ public class XFormData {
 						locationTrigger = item.getString();
 					} else if (fieldName.equals("survey_notes")) {
 						surveyNotes = item.getString();
-						if(Base64.isBase64(surveyNotes)) {
-							surveyNotes = new String(Base64.decodeBase64(surveyNotes), "UTF-8");
-						}
 					} else {
 						log.info("Warning FormField Ignored, Item:" + item.getFieldName() + ":" + item.getString());
 					}
