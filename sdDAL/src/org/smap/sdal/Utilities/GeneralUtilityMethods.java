@@ -1325,20 +1325,48 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the organisation name for the organisation id
+	 * Get the enterprise name for the enterprise id
 	 */
-	static public String getOrganisationName(Connection sd, int o_id) throws SQLException {
+	static public String getEnterpriseName(Connection sd, int e_id) throws SQLException {
 
-		String sqlGetOrgName = "select o.name, o.company_name "
-				+ " from organisation o " 
-				+ " where o.id = ?;";
+		String sql = "select name "
+				+ " from enterprise " 
+				+ " where id = ?;";
 
 		PreparedStatement pstmt = null;
 		String name = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sqlGetOrgName);
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, e_id);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return name;
+	}
+	
+	/*
+	 * Get the organisation name for the organisation id
+	 */
+	static public String getOrganisationName(Connection sd, int o_id) throws SQLException {
+
+		String sql = "select name, company_name "
+				+ "from organisation " 
+				+ "where id = ?;";
+
+		PreparedStatement pstmt = null;
+		String name = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, o_id);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {

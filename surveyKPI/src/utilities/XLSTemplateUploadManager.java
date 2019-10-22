@@ -358,7 +358,6 @@ public class XLSTemplateUploadManager {
 				}
 			}
 		}
-
 		
 		/*
 		 * Add default preloads

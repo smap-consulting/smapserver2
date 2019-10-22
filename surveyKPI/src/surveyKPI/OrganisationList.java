@@ -628,14 +628,19 @@ public class OrganisationList extends Application {
 				+ " ft_backward_navigation = ?, "
 				+ " ft_navigation = ?, "
 				+ "ft_pw_policy = ?, "
-				+ " changed_by = ?, "
-				+ " changed_ts = now() "
-				+ " where "
-				+ " id = (select o_id from users where ident = ?)";
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where "
+				+ "id = ?";
 	
 		PreparedStatement pstmt = null;
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
 			DeviceSettings d = new Gson().fromJson(settings, DeviceSettings.class);
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, d.ft_delete);
@@ -653,11 +658,16 @@ public class OrganisationList extends Application {
 			pstmt.setString(13, d.ft_navigation);
 			pstmt.setInt(14, d.ft_pw_policy);
 			pstmt.setString(15, request.getRemoteUser());
-			pstmt.setString(16, request.getRemoteUser());
+			pstmt.setInt(16, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
+			String orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
+			String msg = localisation.getString("org_device");
+			msg = msg.replace("%s1", orgName);
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.ORGANISATION_UPDATE, msg);
+
 			response = Response.ok().build();
 	
 		} catch (SQLException e) {
@@ -806,9 +816,10 @@ public class OrganisationList extends Application {
 	public Response delOrganisation(@Context HttpServletRequest request, @FormParam("organisations") String organisations) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-OrganisationList-delOrganisation";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-delOrganisation");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -916,7 +927,7 @@ public class OrganisationList extends Application {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtDrop != null) {pstmtDrop.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-OrganisationList-delOrganisation", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -1074,6 +1085,10 @@ public class OrganisationList extends Application {
 	
 		try {	
 			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String sql = "update organisation set e_id =  ? " +  
 					" WHERE id = ?; ";			
 			
@@ -1083,7 +1098,12 @@ public class OrganisationList extends Application {
 			pstmt.executeUpdate();
 			log.info("Move organisation: " + pstmt.toString());
 			
-			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.MOVE_ORGANISATION, "Organisation " + orgId + " moved to enterprise " + entId);
+			String orgName = GeneralUtilityMethods.getOrganisationName(sd, orgId);
+			String entName = GeneralUtilityMethods.getEnterpriseName(sd, entId);
+			String msg = localisation.getString("org_move");
+			msg = msg.replace("%s1", orgName);
+			msg = msg.replace("%s2", entName);
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.MOVE_ORGANISATION, msg);
 			
 			response = Response.ok().build();
 				
