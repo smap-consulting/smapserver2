@@ -313,8 +313,14 @@ public class XLSTemplateUploadManager {
 				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
 				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
 				survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum));
+				
 				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum);
+				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum);
+				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum);
+
 				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
+				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
+
 				String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
 				if(pdRepeats != null) {
 					String [] pdArray = pdRepeats.split(":");
@@ -334,9 +340,7 @@ public class XLSTemplateUploadManager {
 						}
 					}
 				}
-				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
-
-
+				
 				// Add row filters
 				if(rowRoleHeader != null && rowRoleHeader.size() > 0) {
 					for(String h : rowRoleHeader.keySet()) {
