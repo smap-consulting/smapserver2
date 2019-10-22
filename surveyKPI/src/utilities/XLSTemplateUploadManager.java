@@ -1469,7 +1469,7 @@ public class XLSTemplateUploadManager {
 	private String getValidQuestionType(String in) {
 		
 		String out = null;	
-		in = in.trim();
+		in = in.trim().replaceAll(" +", " ");	// From https://stackoverflow.com/questions/2932392/java-how-to-replace-2-or-more-spaces-with-single-space-in-string-and-delete-lead
 		String type = in.toLowerCase();
 		
 		if(type.equals("text")) {
