@@ -180,6 +180,8 @@ public class SqlFrag {
 				token.equals("null") || 
 				token.equals("not") || 
 				token.equals("like") || 
+				token.equals("cast") || 
+				token.equals("as") || 
 				token.equals("integer") || 
 				token.equals("current_date") ||
 				token.equals("now()")) {
@@ -188,6 +190,8 @@ public class SqlFrag {
 			out = "is null";
 		} else if (token.equals("all")) {
 			out = "";
+		} else if (token.equals("decimal") || token.equals("double")) {
+			out = "double precision";
 		} else if (token.startsWith("{") && token.endsWith("}")) {	// Preserve {xx} syntax if xx is integer
 			out = "";
 			String content = token.substring(1, token.length() - 1);
