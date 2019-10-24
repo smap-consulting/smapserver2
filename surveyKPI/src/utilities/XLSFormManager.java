@@ -20,7 +20,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.io.IOException;
 import java.io.OutputStream;
-
+import java.sql.Connection;
+import java.sql.SQLException;
 
 //import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 //import org.apache.poi.ss.usermodel.Workbook;
@@ -472,7 +473,7 @@ public class XLSFormManager {
 	/*
 	 * Convert a Survey Definition into an XLS file
 	 */
-	public void createXLSForm(OutputStream outputStream, Survey survey) throws IOException {
+	public void createXLSForm(Connection sd, int sId, OutputStream outputStream, Survey survey) throws IOException, SQLException {
 
 		this.survey = survey;
 		
@@ -494,8 +495,17 @@ public class XLSFormManager {
 		HashMap<String, String> addedOptionLists = new HashMap<String, String> ();
 		HashMap<String, String> addedStylesLists = new HashMap<String, String> ();
 
-		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes);
-		ArrayList<Column> colsChoices = getColumnsChoices();
+		boolean hasMultiImageLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "image");
+		boolean hasMultiVideoLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "video");
+		boolean hasMultiAudioLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "audio");
+		
+		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes, 
+				hasMultiImageLanguages,
+				hasMultiVideoLanguages,
+				hasMultiAudioLanguages);
+		ArrayList<Column> colsChoices = getColumnsChoices(hasMultiImageLanguages,
+				hasMultiVideoLanguages,
+				hasMultiAudioLanguages);
 		ArrayList<Column> colsSettings = getColumnsSettings();
 		ArrayList<Column> colsStyles = getColumnsStyles();
 		ArrayList<Column> colsConditions = getColumnsConditions();
@@ -820,7 +830,10 @@ public class XLSFormManager {
 	/*
 	 * Get the columns for the survey sheet
 	 */
-	private ArrayList<Column> getColumnsSurvey(HashMap<String, Integer> namedColumnIndexes) {
+	private ArrayList<Column> getColumnsSurvey(HashMap<String, Integer> namedColumnIndexes,
+			boolean hasMultiImageLanguages,
+			boolean hasMultiVideoLanguages,
+			boolean hasMultiAudioLanguages) throws SQLException {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -870,12 +883,14 @@ public class XLSFormManager {
 		}
 		
 		// Add media columns (Do this as the last columns since these columns are less used
-		// TODO only do this if there are media associated with choices
 		labelIndex = 0;
 		for(Language language : survey.languages) {
-			cols.add(new Column(colNumber++, "media::image::" + language.name, Column.COL_IMAGE, 0, "image"));
-			cols.add(new Column(colNumber++, "media::video::" + language.name, Column.COL_VIDEO, 0, "video"));
-			cols.add(new Column(colNumber++, "media::audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
+			cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
+					Column.COL_IMAGE, labelIndex, "image"));
+			cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
+					Column.COL_VIDEO, labelIndex, "video"));
+			cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
+					Column.COL_AUDIO, labelIndex, "audio"));
 			labelIndex++;
 		}
 		return cols;
@@ -884,7 +899,9 @@ public class XLSFormManager {
 	/*
 	 * Get the columns for the choices sheet
 	 */
-	private ArrayList<Column> getColumnsChoices() {
+	private ArrayList<Column> getColumnsChoices(boolean hasMultiImageLanguages,
+			boolean hasMultiVideoLanguages,
+			boolean hasMultiAudioLanguages) {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -901,10 +918,14 @@ public class XLSFormManager {
 		}
 
 		// Add media
+		labelIndex = 0;
 		for(Language language : survey.languages) {
-			cols.add(new Column(colNumber++, "media::image::" + language.name, Column.COL_IMAGE, 0, "image"));
-			cols.add(new Column(colNumber++, "media::video::" + language.name, Column.COL_VIDEO, 0, "video"));
-			cols.add(new Column(colNumber++, "media::audio::" + language.name, Column.COL_AUDIO, 0, "audio"));
+			cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
+					Column.COL_IMAGE, labelIndex, "image"));
+			cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
+					Column.COL_VIDEO, labelIndex, "video"));
+			cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
+					Column.COL_AUDIO, labelIndex, "audio"));
 		}
 
 		return cols;

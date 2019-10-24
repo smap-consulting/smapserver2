@@ -8590,5 +8590,34 @@ public class GeneralUtilityMethods {
 		return markup;
 	}
 	
+	/*
+	 * Return true if there is more than one language specified for the given ype
+	 */
+	public static boolean hasMultiLanguages(Connection sd, int sId, String type) throws SQLException  {
+			
+		String sql = "select count(*), text_id "
+				+ "from translation "
+				+ "where type = ? "
+				+ "and s_id = ? "
+				+ "group by text_id "
+				+ "order by count(*) desc";
+		PreparedStatement pstmt = null;
+		
+		int count = 0;		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, type);
+			pstmt.setInt(2, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				count = rs.getInt(1);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count > 1;
+	}
+	
 }
 

@@ -68,21 +68,22 @@ public class CreateXLSForm extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("sId") int sId,
 			@QueryParam("filetype") String filetype) throws Exception {
-				
+			
+		String connectionString = "createXLSForm";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("createXLSForm");	
+		Connection sd = SDDataSource.getConnection(connectionString);	
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());		
-		a.isValidDelSurvey(connectionSD, request.getRemoteUser(), sId,superUser);
+		a.isAuthorised(sd, request.getRemoteUser());		
+		a.isValidDelSurvey(sd, request.getRemoteUser(), sId,superUser);
 		// End Authorisation 
 		
 
 		org.smap.sdal.model.Survey survey = null;
-		Connection cResults = ResultsDataSource.getConnection("createXLSForm");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
@@ -93,13 +94,13 @@ public class CreateXLSForm extends Application {
 		
 		try {
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			
 			// Get the survey details
-			survey = sm.getById(connectionSD, cResults, request.getRemoteUser(), 
+			survey = sm.getById(sd, cResults, request.getRemoteUser(), 
 					sId, true, basePath, 
 					null, 		// instanceId
 					false, 		// get results
@@ -121,12 +122,12 @@ public class CreateXLSForm extends Application {
 			
 			// Create XLSForm
 			XLSFormManager xf = new XLSFormManager(filetype);
-			xf.createXLSForm(response.getOutputStream(), survey);
+			xf.createXLSForm(sd, sId, response.getOutputStream(), survey);
 			
 		} finally {
 			
-			SDDataSource.closeConnection("createXLSForm", connectionSD);		
-			ResultsDataSource.closeConnection("createXLSForm", cResults);
+			SDDataSource.closeConnection(connectionString, sd);		
+			ResultsDataSource.closeConnection(connectionString, cResults);
 			
 		}
 		return Response.ok("").build();
