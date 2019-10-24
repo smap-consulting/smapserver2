@@ -230,6 +230,10 @@ public class XLSFormManager {
 				} else {
 					value = q.labels.get(labelIndex).constraint_msg;
 				}
+				// If the multi language constraint is not set then use the single language one
+				if(value == null) {
+					value = q.constraint_msg;
+				}
 
 			} else if(type == COL_RELEVANT) {				
 				value = q.relevant;
