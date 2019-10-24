@@ -224,8 +224,12 @@ public class XLSFormManager {
 			} else if(type == COL_CONSTRAINT) {				
 				value = q.constraint;
 
-			} else if(type == COL_CONSTRAINT_MSG) {				
-				value = q.constraint_msg;
+			} else if(type == COL_CONSTRAINT_MSG) {	
+				if(q.type.equals("calculate")) {	
+					value = "";
+				} else {
+					value = q.labels.get(labelIndex).constraint_msg;
+				}
 
 			} else if(type == COL_RELEVANT) {				
 				value = q.relevant;
@@ -851,6 +855,7 @@ public class XLSFormManager {
 			cols.add(new Column(colNumber++,"label::" + language.name, Column.COL_LABEL, labelIndex, "label"));
 			cols.add(new Column(colNumber++,"hint::" + language.name, Column.COL_HINT, labelIndex, "label"));
 			cols.add(new Column(colNumber++,"guidance_hint::" + language.name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));
+			cols.add(new Column(colNumber++,"constraint_msg::" + language.name, Column.COL_CONSTRAINT_MSG, labelIndex, "label"));
 			labelIndex++;
 		}
 
@@ -885,12 +890,18 @@ public class XLSFormManager {
 		// Add media columns (Do this as the last columns since these columns are less used
 		labelIndex = 0;
 		for(Language language : survey.languages) {
-			cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
-					Column.COL_IMAGE, labelIndex, "image"));
-			cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
-					Column.COL_VIDEO, labelIndex, "video"));
-			cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
-					Column.COL_AUDIO, labelIndex, "audio"));
+			if(hasMultiImageLanguages || labelIndex == 0) {
+				cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
+						Column.COL_IMAGE, labelIndex, "image"));
+			}
+			if(hasMultiVideoLanguages || labelIndex == 0) {
+				cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
+						Column.COL_VIDEO, labelIndex, "video"));
+			}
+			if(hasMultiAudioLanguages || labelIndex == 0) {
+				cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
+						Column.COL_AUDIO, labelIndex, "audio"));
+			}
 			labelIndex++;
 		}
 		return cols;
@@ -920,12 +931,19 @@ public class XLSFormManager {
 		// Add media
 		labelIndex = 0;
 		for(Language language : survey.languages) {
-			cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
-					Column.COL_IMAGE, labelIndex, "image"));
-			cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
-					Column.COL_VIDEO, labelIndex, "video"));
-			cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
-					Column.COL_AUDIO, labelIndex, "audio"));
+			if(hasMultiImageLanguages || labelIndex == 0) {
+				cols.add(new Column(colNumber++, "media::image" + (hasMultiImageLanguages ? "::" + language.name : ""), 
+						Column.COL_IMAGE, labelIndex, "image"));
+			}
+			if(hasMultiVideoLanguages || labelIndex == 0) {
+				cols.add(new Column(colNumber++, "media::video" + (hasMultiVideoLanguages ? "::" + language.name : ""), 
+						Column.COL_VIDEO, labelIndex, "video"));
+			}
+			if(hasMultiAudioLanguages || labelIndex == 0) {
+				cols.add(new Column(colNumber++, "media::audio" + (hasMultiAudioLanguages ? "::" + language.name : ""), 
+						Column.COL_AUDIO, labelIndex, "audio"));
+			}
+			labelIndex++;
 		}
 
 		return cols;

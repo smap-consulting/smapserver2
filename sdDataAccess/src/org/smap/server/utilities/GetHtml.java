@@ -402,7 +402,7 @@ public class GetHtml {
 						addSelectContents(sd, extraFieldsetElement, q, form, false);
 						
 						// Add constraint message at end to the outer fieldset
-						addConstraintMsg(q, bodyElement);
+						addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
 
 					}
 
@@ -1230,14 +1230,17 @@ public class GetHtml {
 				bodyElement.setTextContent(hint);
 				parent.appendChild(bodyElement);
 			}
+			
+			// Constraint
+			addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
 
 
 			idx++;
 		}
 
-		// Constraint message
+		// Constraint message (Without a language)
 		if(!q.type.startsWith("select")) {
-			addConstraintMsg(q, parent);
+			addConstraintMsg(q.constraint_msg, null, parent, 0);
 		}
 
 		// Required
@@ -1260,12 +1263,22 @@ public class GetHtml {
 	/*
 	 * Add a constraint
 	 */
-	private void addConstraintMsg(Question q, Element parent) {		
-		if (q.constraint_msg != null && q.constraint_msg.length() > 0) {
+	private void addConstraintMsg(String msg, String lang, Element parent, int idx) {		
+
+		if(lang == null) {
+			lang = "";
+		}
+		
+		if (msg != null && msg.length() > 0) {
 			Element  bodyElement = outputDoc.createElement("span");
-			bodyElement.setAttribute("lang", "");
-			bodyElement.setAttribute("class", "or-constraint-msg active");
-			bodyElement.setTextContent(q.constraint_msg);
+			bodyElement.setAttribute("lang", lang);
+			
+			String theClass = "or-constraint-msg";
+			if(languageIndex == idx || lang.equals("")) {
+				theClass += " active";
+			}
+			bodyElement.setAttribute("class", theClass);
+			bodyElement.setTextContent(msg);
 			parent.appendChild(bodyElement);
 		}
 	}

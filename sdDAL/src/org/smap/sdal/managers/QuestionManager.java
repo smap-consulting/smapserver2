@@ -197,10 +197,13 @@ public class QuestionManager {
 					columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
 				}
 
-				// Assume that every question has a label, however hints are optional (to reduce size of form)
+				// Assume that every question has a label, however hints, constraint_msg are optional (to reduce size of form)
 				String infotextId = null;
 				for(Label l : q.labels) {
-					if(l.hint != null && !l.hint.isEmpty() || l.guidance_hint != null && !l.guidance_hint.isEmpty()) {
+					if(l.hint != null && !l.hint.isEmpty() || 
+							l.guidance_hint != null && !l.guidance_hint.isEmpty() ||
+							l.constraint_msg != null && !l.constraint_msg.isEmpty()
+							) {
 						infotextId = q.fId + "_question_" + columnName + ":hint";
 					}
 				}

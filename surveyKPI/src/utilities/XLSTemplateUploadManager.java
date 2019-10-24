@@ -395,7 +395,7 @@ public class XLSTemplateUploadManager {
 
 		o.value = XLSUtilities.getTextColumn(row, "name", choicesHeader, lastCellNum, null);
 		o.display_name = XLSUtilities.getTextColumn(row, "display_name", choicesHeader, lastCellNum, null);
-		getLabels(row, lastCellNum, choicesHeader, o.labels, "choice");
+		getLabels(row, lastCellNum, choicesHeader, o.labels, "choice", true);
 		
 		if(merge) {
 			// Attempt to get existing column name
@@ -676,7 +676,7 @@ public class XLSTemplateUploadManager {
 		}	
 		
 		// 3. Labels
-		getLabels(row, lastCellNum, surveyHeader, q.labels, q.type);	
+		getLabels(row, lastCellNum, surveyHeader, q.labels, q.type, false);	
 		
 		if(merge) {
 			String n = questionNames.get(q.name);
@@ -872,15 +872,20 @@ public class XLSTemplateUploadManager {
 	/*
 	 * For media try under the default column heading if the language specific is null
 	 */
-	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels, String type) throws ApplicationException, Exception {
+	private void getLabels(Row row, int lastCellNum, HashMap<String, Integer> header, ArrayList<Label> labels, 
+			String type, boolean choiceSheet) throws ApplicationException, Exception {
 		
 		// Get the label language values
 		String defaultLabel = getDefaultLabel(type);
 		if(useDefaultLanguage) {
 			Label lab = new Label();
 			lab.text = XLSUtilities.getTextColumn(row, "label", header, lastCellNum, defaultLabel);
-			lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
-			lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint", header, lastCellNum, null);
+			
+			if(!choiceSheet) {
+				lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
+				lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint", header, lastCellNum, null);
+				lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_msg", header, lastCellNum, null);
+			}
 			
 			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
 			if(lab.image == null) {
@@ -902,17 +907,23 @@ public class XLSTemplateUploadManager {
 			// Find out if any language has a hint or label.  If so make sure every language does
 			boolean hintSet = false;
 			boolean guidanceHintSet = false;
+			boolean constraintMsgSet = false;
 			boolean labelSet = false;
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
-				if(XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null) != null) {
-					hintSet = true;
-				}
-				if(XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null) != null) {
-					guidanceHintSet = true;
-				}
 				if(XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, null) != null) {
 					labelSet = true;
+				}
+				if(!choiceSheet) {
+					if(XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null) != null) {
+						hintSet = true;
+					}
+					if(XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null) != null) {
+						guidanceHintSet = true;
+					}
+					if(XLSUtilities.getTextColumn(row, "constraint_message::" + lang, header, lastCellNum, null) != null) {
+						constraintMsgSet = true;
+					}
 				}
 				
 			}
@@ -936,6 +947,12 @@ public class XLSTemplateUploadManager {
 					lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, "-");
 				} else {
 					lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null);
+				}
+				
+				if(constraintMsgSet) {
+					lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message::" + lang, header, lastCellNum, "-");
+				} else {
+					lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message::" + lang, header, lastCellNum, null);
 				}
 				
 				// image - try various combination of headers

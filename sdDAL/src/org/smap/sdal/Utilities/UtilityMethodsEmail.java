@@ -754,6 +754,8 @@ public class UtilityMethodsEmail {
 							l.hint = v;
 						} else if(t.equals("guidance")) {
 							l.guidance_hint = v;
+						} else if(t.equals("constraint_msg")) {
+							l.constraint_msg = v;
 						} else {
 							log.info("Error: Invalid type for hint: " + t);
 						}
@@ -879,6 +881,14 @@ public class UtilityMethodsEmail {
 				pstmt.setString(3, textId + ":hint");
 				pstmt.setString(4, "guidance");
 				pstmt.setString(5, l.guidance_hint);
+				pstmt.executeUpdate();
+			}
+			
+			// Update constraint_msg
+			if(l.constraint_msg != null) {
+				pstmt.setString(3, textId + ":hint");
+				pstmt.setString(4, "constraint_msg");
+				pstmt.setString(5, l.constraint_msg);
 				pstmt.executeUpdate();
 			}
 
