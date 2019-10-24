@@ -717,11 +717,15 @@ public class UploadFiles extends Application {
 					// Error! Delete the survey we just created
 					log.log(Level.SEVERE, e.getMessage(), e);
 					valid = false;
-					errMsg = e.getMessage();
+					
+					errMsg = e.getMessage();			
+					if(errMsg.startsWith("no <translation>s defined")) {
+						errMsg = localisation.getString("tu_nl");
+					}
 							
 				} else if(msg == null) {
 					log.log(Level.SEVERE, e.getMessage(), e);
-				}
+				} 
 			}
 			if(valid) {
 				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.id);
