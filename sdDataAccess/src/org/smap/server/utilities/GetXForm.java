@@ -92,6 +92,7 @@ public class GetXForm {
 
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
 	private HashMap<String, String> multiLanguageConstraints = new HashMap<> ();
+	private HashMap<String, String> multiLanguageRequireds = new HashMap<> ();
 	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
@@ -335,6 +336,11 @@ public class GetXForm {
 						// Constraint messages do not appear within the label section
 						constraints.add(trans);
 						multiLanguageConstraints.put(trans.getTextId(), "yes");	// Record that this multi language constraint exists
+					} else if (type.equals("required_msg")) {
+						// Save required to be applied later we can store these with other constraints
+						// Constraint messages do not appear within the label section
+						constraints.add(trans);
+						multiLanguageRequireds.put(trans.getTextId(), "yes");	// Record that this multi language constraint exists
 					} else if (type.equals("guidance")) { 
 						// save this for later
 						guidance_hints.put(trans.getTextId(), trans.getValue());
@@ -888,6 +894,23 @@ public class GetXForm {
 					if(exists != null) {						
 						questionElement.setAttribute("jr:constraintMsg", 
 								"jr:itext('" + constraintId + "')");
+					}
+				}
+			}
+			
+			// Add required message
+			String requiredMsg = q.getRequiredMsg();
+			if (requiredMsg != null && requiredMsg.trim().length() > 0) {
+				questionElement.setAttribute("jr:requiredMsg", requiredMsg);
+			} else {
+				// Add multi language required
+				String textId = q.getQTextId();
+				if(textId != null) {
+					String requiredId = textId.replace(":label", ":required");
+					String exists = multiLanguageRequireds.get(requiredId);
+					if(exists != null) {						
+						questionElement.setAttribute("jr:requiredMsg", 
+								"jr:itext('" + requiredId + "')");
 					}
 				}
 			}
