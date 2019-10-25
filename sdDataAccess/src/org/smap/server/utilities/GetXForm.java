@@ -306,6 +306,8 @@ public class GetXForm {
 			Collection<HashMap<String, Translation>> l = aLanguageTranslation.values();
 			Iterator<HashMap<String, Translation>> itrL = l.iterator();
 			ArrayList<Translation> constraints = new ArrayList<>();	// Constraints for the language
+			HashMap<String, Element> hints = new HashMap<>();				// Hints for the language
+			HashMap<String, String> guidance_hints = new HashMap<>();		// Guidance Hints for the language
 			Element languageElement = null;
 			while (itrL.hasNext()) { // ID of a question or label
 				HashMap<String, Translation> types = (HashMap<String, Translation>) itrL.next();
@@ -333,6 +335,9 @@ public class GetXForm {
 						// Constraint messages do not appear within the label section
 						constraints.add(trans);
 						multiLanguageConstraints.put(trans.getTextId(), "yes");	// Record that this multi language constraint exists
+					} else if (type.equals("guidance")) { 
+						// save this for later
+						guidance_hints.put(trans.getTextId(), trans.getValue());
 					} else {
 						if (textElement == null) {
 							textElement = outputDoc.createElement("text");
@@ -385,6 +390,11 @@ public class GetXForm {
 						}
 	
 						textElement.appendChild(valueElement);
+						
+						if(type.equals("none") && trans.getTextId().endsWith(":hint")) {
+							// Keep a record of these hints
+							hints.put(trans.getTextId(), textElement);
+						}
 					}
 
 				}
@@ -399,6 +409,29 @@ public class GetXForm {
 					Element valueElement = outputDoc.createElement("value");
 					valueElement.setTextContent(t.getValue());
 					textElement.appendChild(valueElement);
+				}
+			}
+			
+			// Add guidance hints
+			if(guidance_hints.size() > 0) {
+				
+				for(String id : guidance_hints.keySet()) {
+					String val = guidance_hints.get(id);
+				
+					String hintId;
+					int idx = id.indexOf(':');
+					if(idx > 0) {
+						hintId = id.substring(0, idx) + ":hint";
+						
+						Element e = hints.get(hintId);
+						if(e != null && val != null) {
+				
+							Element tgElement = outputDoc.createElement("value");
+							tgElement.setAttribute("form", "guidance");
+							tgElement.setTextContent(val);
+							e.appendChild(tgElement);
+						}
+					}
 				}
 			}
 		}
