@@ -744,6 +744,8 @@ public class UtilityMethodsEmail {
 								l.guidance_hint = v;
 							} else if(t.equals("constraint_msg")) {
 								l.constraint_msg = v;
+							} else if(t.equals("required_msg")) {
+								l.required_msg = v;
 							} else {
 								log.info("Error: Invalid label type: " + t);
 							}
@@ -879,6 +881,14 @@ public class UtilityMethodsEmail {
 				pstmt.setString(3, textId + ":constraint");
 				pstmt.setString(4, "constraint_msg");
 				pstmt.setString(5, l.constraint_msg);
+				pstmt.executeUpdate();
+			}
+			
+			// Update required_msg
+			if(l.required_msg != null) {
+				pstmt.setString(3, textId + ":required");
+				pstmt.setString(4, "required_msg");
+				pstmt.setString(5, l.required_msg);
 				pstmt.executeUpdate();
 			}
 

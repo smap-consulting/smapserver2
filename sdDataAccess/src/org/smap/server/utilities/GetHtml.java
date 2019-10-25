@@ -1192,6 +1192,8 @@ public class GetHtml {
 	private void addLabels(Element parent, Question q, Form form) {
 		int idx = 0;
 		Element bodyElement = null;
+		boolean requiredMessageAdded = false;
+		boolean requiredIndicatorAdded = false;
 		for (Language lang : survey.languages) {
 
 			// Label
@@ -1215,6 +1217,7 @@ public class GetHtml {
 			
 			// Hint
 			String hint = q.labels.get(idx).hint;
+
 			if (hint != null && hint.trim().length() > 0) {
 				bodyElement = outputDoc.createElement("span");
 				bodyElement.setAttribute("lang", lang.name);
@@ -1233,7 +1236,20 @@ public class GetHtml {
 			
 			// Constraint
 			addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
-
+			if(q.required) {
+				if(q.labels.get(idx).required_msg != null) {
+					if(!requiredIndicatorAdded) {
+						bodyElement = outputDoc.createElement("span");
+						bodyElement.setAttribute("class", "required");
+						bodyElement.setTextContent("*");
+						parent.appendChild(bodyElement);
+						requiredIndicatorAdded = true;
+					}
+					parent.appendChild(getRequiredMsg(q.labels.get(idx).required_msg, 
+							lang.name, !requiredMessageAdded));
+					requiredMessageAdded = true;
+				}
+			}
 
 			idx++;
 		}
@@ -1243,16 +1259,17 @@ public class GetHtml {
 			addConstraintMsg(q.constraint_msg, null, parent, 0);
 		}
 
-		// Required
-		if (q.required) {
+		// Required (Without a language)
+		if (q.required && !requiredMessageAdded) {
 			bodyElement = outputDoc.createElement("span");
 			bodyElement.setAttribute("class", "required");
 			bodyElement.setTextContent("*");
 			parent.appendChild(bodyElement);
 
 			// Message
-			parent.appendChild(getRequiredMsg(q));
+			parent.appendChild(getRequiredMsg(q.required_msg, null, true));
 		}
+		
 		if (q.readonly) {
 			parent.setAttribute("readonly", "readonly");
 		}
@@ -1282,17 +1299,30 @@ public class GetHtml {
 			parent.appendChild(bodyElement);
 		}
 	}
+	
+	
+	
 	/*
 	 * Get the required message
 	 */
-	private Element getRequiredMsg(Question q) {
+	private Element getRequiredMsg(String msg, String lang, boolean active) {
+		
+		if(lang == null) {
+			lang = "";
+		}
+		
 		Element bodyElement = outputDoc.createElement("span");
-		bodyElement.setAttribute("class", "or-required-msg active");
+		String theClass = "or-required-msg";
+		if(active) {
+			theClass += " active";
+		}
+		bodyElement.setAttribute("class", theClass);
+		bodyElement.setAttribute("lang", lang);
 		bodyElement.setAttribute("data-i18n", "constraint.required");
-		if (q.required_msg != null && q.required_msg.trim().length() > 0) {
-			bodyElement.setTextContent(q.required_msg);
+		if (msg != null && msg.trim().length() > 0) {
+			bodyElement.setTextContent(msg);
 		} else {
-			bodyElement.setTextContent("This field is required");
+			bodyElement.setTextContent(localisation.getString("wf_reqd"));
 		}
 		return bodyElement;
 	}

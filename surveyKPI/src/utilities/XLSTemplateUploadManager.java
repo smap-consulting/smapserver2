@@ -740,7 +740,7 @@ public class XLSTemplateUploadManager {
 		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum);		
 		
 		// 15. Required Message
-		q.required_msg = XLSUtilities.getTextColumn(row, "required_message", surveyHeader, lastCellNum, null); 
+		q.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 
 		
 		// 16. Calculation
 		if(q.type.equals("server_calculate")) {
@@ -886,6 +886,7 @@ public class XLSTemplateUploadManager {
 				lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
 				lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint", header, lastCellNum, null);
 				lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
+				lab.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE, header, lastCellNum, null);
 			}
 			
 			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
@@ -909,6 +910,7 @@ public class XLSTemplateUploadManager {
 			boolean hintSet = false;
 			boolean guidanceHintSet = false;
 			boolean constraintMsgSet = false;
+			boolean requiredMsgSet = false;
 			boolean labelSet = false;
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
@@ -924,6 +926,9 @@ public class XLSTemplateUploadManager {
 					}
 					if(XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, null) != null) {
 						constraintMsgSet = true;
+					}
+					if(XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE + "::" + lang, header, lastCellNum, null) != null) {
+						requiredMsgSet = true;
 					}
 				}
 				
@@ -954,6 +959,12 @@ public class XLSTemplateUploadManager {
 					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, "-");
 				} else {
 					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, null);
+				}
+				
+				if(requiredMsgSet) {
+					lab.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE + "::" + lang, header, lastCellNum, "-");
+				} else {
+					lab.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE + "::" + lang, header, lastCellNum, null);
 				}
 				
 				// image - try various combination of headers

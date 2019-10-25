@@ -288,8 +288,16 @@ public class XLSFormManager {
 			} else if(type == COL_REQUIRED) {				
 				value = q.required ? "yes" : "";		
 
-			} else if(type == COL_REQUIRED_MSG) {				
-				value = q.required_msg;		
+			} else if(type == COL_REQUIRED_MSG) {	
+				if(q.type.equals("calculate")) {	
+					value = "";
+				} else {
+					value = q.labels.get(labelIndex).required_msg;
+				}
+				// If the multi language constraint is not set then use the single language one
+				if(value == null) {
+					value = q.required_msg;
+				}	
 
 			} else if(type == COL_IMAGE) {				
 				value = q.labels.get(labelIndex).image;
@@ -508,12 +516,14 @@ public class XLSFormManager {
 		boolean hasMultiVideoLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "video");
 		boolean hasMultiAudioLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "audio");
 		boolean hasMultiConstraintLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "constraint_msg");
+		boolean hasMultiRequiredLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "required_msg");
 		
 		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes, 
 				hasMultiImageLanguages,
 				hasMultiVideoLanguages,
 				hasMultiAudioLanguages,
-				hasMultiConstraintLanguages);
+				hasMultiConstraintLanguages,
+				hasMultiRequiredLanguages);
 		ArrayList<Column> colsChoices = getColumnsChoices(hasMultiImageLanguages,
 				hasMultiVideoLanguages,
 				hasMultiAudioLanguages);
@@ -845,7 +855,8 @@ public class XLSFormManager {
 			boolean hasMultiImageLanguages,
 			boolean hasMultiVideoLanguages,
 			boolean hasMultiAudioLanguages,
-			boolean hasMultiConstraintLanguages) throws SQLException {
+			boolean hasMultiConstraintLanguages,
+			boolean hasMultiRequiredLanguages) throws SQLException {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -871,7 +882,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++,"choice_filter", Column.COL_CHOICE_FILTER, 0, "choice_filter"));
 		cols.add(new Column(colNumber++,"constraint", Column.COL_CONSTRAINT, 0, "constraint"));
 		
-		// Constraint message potentially multi language
+		// Constraint message potentially multi-language
 		labelIndex = 0;
 		if(hasMultiConstraintLanguages) {
 			for(Language language : survey.languages) {
@@ -880,6 +891,17 @@ public class XLSFormManager {
 			}
 		} else {
 			cols.add(new Column(colNumber++,XLSFormColumns.CONSTRAINT_MESSAGE, Column.COL_CONSTRAINT_MSG, 0, "constraint_msg"));
+		}
+		
+		// Required message potentially multi-language
+		labelIndex = 0;
+		if(hasMultiRequiredLanguages) {
+			for(Language language : survey.languages) {
+				cols.add(new Column(colNumber++, 
+						XLSFormColumns.REQUIRED_MESSAGE + "::" + language.name, Column.COL_REQUIRED_MSG, labelIndex++, "label"));
+			}
+		} else {
+			cols.add(new Column(colNumber++,XLSFormColumns.REQUIRED_MESSAGE, Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		}
 		
 		cols.add(new Column(colNumber++,"relevant", Column.COL_RELEVANT, 0, "relevant"));
@@ -895,7 +917,6 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "body::accuracyThreshold", Column.COL_ACCURACY, 0, "accuracy"));
 		cols.add(new Column(colNumber++, "body::intent", Column.COL_INTENT, 0, "intent"));
 		cols.add(new Column(colNumber++, "required", Column.COL_REQUIRED, 0, "required"));
-		cols.add(new Column(colNumber++,"required_message", Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
