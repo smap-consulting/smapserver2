@@ -91,6 +91,7 @@ public class GetXForm {
 	private static  String FILE_MIME="text/plain,application/pdf,application/vnd.ms-excel,application/msword,text/richtext,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip,application/x-zip-compressed" ;
 
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
+	private HashMap<String, String> multiLanguageConstraints = new HashMap<> ();
 	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
@@ -304,6 +305,7 @@ public class GetXForm {
 			HashMap<String, HashMap<String, Translation>> aLanguageTranslation = itr.next(); // A single language
 			Collection<HashMap<String, Translation>> l = aLanguageTranslation.values();
 			Iterator<HashMap<String, Translation>> itrL = l.iterator();
+			ArrayList<Translation> constraints = new ArrayList<>();	// Constraints for the language
 			Element languageElement = null;
 			while (itrL.hasNext()) { // ID of a question or label
 				HashMap<String, Translation> types = (HashMap<String, Translation>) itrL.next();
@@ -315,6 +317,7 @@ public class GetXForm {
 				while (itrT.hasNext()) {
 
 					Translation trans = (Translation) itrT.next();
+					String type = trans.getType().trim();
 
 					if (languageElement == null) {
 						languageElement = outputDoc.createElement("translation");
@@ -325,59 +328,77 @@ public class GetXForm {
 						parent.appendChild(languageElement);
 					}
 
-					if (textElement == null) {
-						textElement = outputDoc.createElement("text");
-						textElement.setAttribute("id", trans.getTextId());
-						languageElement.appendChild(textElement);
-					}
-
-					Element valueElement = outputDoc.createElement("value");
-
-					/*
-					 * Add the translation XML fragment to the output
-					 */
-					String type = trans.getType().trim();
-					Document xfragDoc;
-					if (type.equals("image") || type.equals("video") || type.equals("audio")) {
-						String base = type;
-						if (type.equals("image")) {
-							base = "images";
+					if (type.equals("constraint_msg")) {
+						// Save constraint to be applied later
+						// Constraint messages do not appear within the label section
+						constraints.add(trans);
+						multiLanguageConstraints.put(trans.getTextId(), "yes");	// Record that this multi language constraint exists
+					} else {
+						if (textElement == null) {
+							textElement = outputDoc.createElement("text");
+							textElement.setAttribute("id", trans.getTextId());
+							languageElement.appendChild(textElement);
 						}
-						String fileLocn = trans.getValue(); // Location of file on disk, only file name is used by
-						// fieldTask
-						String filename = "";
-						if (fileLocn != null) {
-							int idx = fileLocn.lastIndexOf('/');
-							if (idx > 0) {
-								filename = fileLocn.substring(idx + 1);
-							} else {
-								filename = fileLocn;
+	
+						Element valueElement = outputDoc.createElement("value");
+	
+						/*
+						 * Add the translation XML fragment to the output
+						 */
+						Document xfragDoc;
+						if (type.equals("image") || type.equals("video") || type.equals("audio")) {
+							String base = type;
+							if (type.equals("image")) {
+								base = "images";
+							}
+							String fileLocn = trans.getValue(); // Location of file on disk, only file name is used by
+							// fieldTask
+							String filename = "";
+							if (fileLocn != null) {
+								int idx = fileLocn.lastIndexOf('/');
+								if (idx > 0) {
+									filename = fileLocn.substring(idx + 1);
+								} else {
+									filename = fileLocn;
+								}
+							}
+	
+							valueElement.setTextContent("jr://" + base + "/" + filename);
+	
+						} else {
+							// The text could be an xml fragment
+							try {
+	
+								String v = trans.getValueXML(template.getQuestionPaths(), 0);
+								// valueElement.setTextContent(v);
+								xfragDoc = builder.parse(new InputSource(new StringReader(v)));
+								Element rootFrag = xfragDoc.getDocumentElement();
+								addXmlFrag(outputDoc, valueElement, rootFrag);
+	
+							} catch (Exception e) {
+								e.printStackTrace();
 							}
 						}
-
-						valueElement.setTextContent("jr://" + base + "/" + filename);
-
-					} else {
-						// The text could be an xml fragment
-						try {
-
-							String v = trans.getValueXML(template.getQuestionPaths(), 0);
-							// valueElement.setTextContent(v);
-							xfragDoc = builder.parse(new InputSource(new StringReader(v)));
-							Element rootFrag = xfragDoc.getDocumentElement();
-							addXmlFrag(outputDoc, valueElement, rootFrag);
-
-						} catch (Exception e) {
-							e.printStackTrace();
+	
+						if (!type.equals("none") && !type.equals("constraint_msg")) {
+							valueElement.setAttribute("form", type);
 						}
+	
+						textElement.appendChild(valueElement);
 					}
 
-					if (!type.equals("none")) {
-						valueElement.setAttribute("form", type);
-					}
-
+				}
+			}
+			// Add constraint messages
+			if(constraints.size() > 0) {
+				for(Translation t : constraints) {
+					Element textElement = outputDoc.createElement("text");
+					textElement.setAttribute("id", t.getTextId());
+					languageElement.appendChild(textElement);
+					
+					Element valueElement = outputDoc.createElement("value");
+					valueElement.setTextContent(t.getValue());
 					textElement.appendChild(valueElement);
-
 				}
 			}
 		}
@@ -825,6 +846,17 @@ public class GetXForm {
 			String constraintMsg = q.getConstraintMsg();
 			if (constraintMsg != null && constraintMsg.trim().length() > 0) {
 				questionElement.setAttribute("jr:constraintMsg", constraintMsg);
+			} else {
+				// Add multi language constraint
+				String textId = q.getQTextId();
+				if(textId != null) {
+					String constraintId = textId.replace(":label", ":constraint");
+					String exists = multiLanguageConstraints.get(constraintId);
+					if(exists != null) {						
+						questionElement.setAttribute("jr:constraintMsg", 
+								"jr:itext('" + constraintId + "')");
+					}
+				}
 			}
 
 			// Add bind parameters

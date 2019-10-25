@@ -966,7 +966,7 @@ public class SurveyManager {
 				o.published = rsGetOptions.getBoolean(8);
 	
 				// Get the labels for the option
-				UtilityMethodsEmail.getLabels(sd, s, o.text_id, null, o.labels, basePath, oId);
+				UtilityMethodsEmail.getLabels(sd, s, o.text_id, o.labels, basePath, oId);
 				
 				// Check for numeric value - if external options are required then a numeric value indicates a static choice
 				boolean isInteger = false;

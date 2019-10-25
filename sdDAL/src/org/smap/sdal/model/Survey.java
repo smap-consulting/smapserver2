@@ -742,8 +742,7 @@ public class Survey {
 			// Hint reference
 			String infotextId = null;
 			for(Label l : q.labels) {
-				if(l.hint != null && !l.hint.isEmpty() || l.guidance_hint != null && !l.guidance_hint.isEmpty()
-						|| l.constraint_msg != null && !l.constraint_msg.isEmpty()) {
+				if(l.hint != null && !l.hint.isEmpty()) {
 					infotextId = transId + ":hint";
 					break;
 				}

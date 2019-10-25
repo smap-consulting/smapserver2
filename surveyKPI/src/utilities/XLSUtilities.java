@@ -643,7 +643,6 @@ public class XLSUtilities {
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
 
 		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);
-		FormEntryModel fem = new FormEntryModel(fd);
 
 		// make sure properties get loaded
 		fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));

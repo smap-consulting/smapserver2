@@ -34,6 +34,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.constants.XLSFormColumns;
 import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
@@ -701,7 +702,7 @@ public class XLSTemplateUploadManager {
 		q.constraint = GeneralUtilityMethods.cleanXlsNames(q.constraint);
 		
 		// 6. Constraint message
-		q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message", surveyHeader, lastCellNum, null); 
+		q.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE, surveyHeader, lastCellNum, null); 
 		if(q.constraint_msg == null) {
 			q.constraint_msg = XLSUtilities.getTextColumn(row, "constraint-msg", surveyHeader, lastCellNum, null);   // as used by enketo
 		}
@@ -884,7 +885,7 @@ public class XLSTemplateUploadManager {
 			if(!choiceSheet) {
 				lab.hint = XLSUtilities.getTextColumn(row, "hint", header, lastCellNum, null);
 				lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint", header, lastCellNum, null);
-				lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_msg", header, lastCellNum, null);
+				lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
 			}
 			
 			lab.image = XLSUtilities.getTextColumn(row, "image", header, lastCellNum, null);
@@ -921,7 +922,7 @@ public class XLSTemplateUploadManager {
 					if(XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null) != null) {
 						guidanceHintSet = true;
 					}
-					if(XLSUtilities.getTextColumn(row, "constraint_message::" + lang, header, lastCellNum, null) != null) {
+					if(XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, null) != null) {
 						constraintMsgSet = true;
 					}
 				}
@@ -950,9 +951,9 @@ public class XLSTemplateUploadManager {
 				}
 				
 				if(constraintMsgSet) {
-					lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message::" + lang, header, lastCellNum, "-");
+					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, "-");
 				} else {
-					lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint_message::" + lang, header, lastCellNum, null);
+					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, null);
 				}
 				
 				// image - try various combination of headers

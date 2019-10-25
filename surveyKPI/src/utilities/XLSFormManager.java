@@ -37,6 +37,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.constants.XLSFormColumns;
 import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Language;
@@ -506,11 +507,13 @@ public class XLSFormManager {
 		boolean hasMultiImageLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "image");
 		boolean hasMultiVideoLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "video");
 		boolean hasMultiAudioLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "audio");
+		boolean hasMultiConstraintLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "constraint_msg");
 		
 		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes, 
 				hasMultiImageLanguages,
 				hasMultiVideoLanguages,
-				hasMultiAudioLanguages);
+				hasMultiAudioLanguages,
+				hasMultiConstraintLanguages);
 		ArrayList<Column> colsChoices = getColumnsChoices(hasMultiImageLanguages,
 				hasMultiVideoLanguages,
 				hasMultiAudioLanguages);
@@ -841,7 +844,8 @@ public class XLSFormManager {
 	private ArrayList<Column> getColumnsSurvey(HashMap<String, Integer> namedColumnIndexes,
 			boolean hasMultiImageLanguages,
 			boolean hasMultiVideoLanguages,
-			boolean hasMultiAudioLanguages) throws SQLException {
+			boolean hasMultiAudioLanguages,
+			boolean hasMultiConstraintLanguages) throws SQLException {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -858,8 +862,7 @@ public class XLSFormManager {
 		for(Language language : survey.languages) {
 			cols.add(new Column(colNumber++,"label::" + language.name, Column.COL_LABEL, labelIndex, "label"));
 			cols.add(new Column(colNumber++,"hint::" + language.name, Column.COL_HINT, labelIndex, "label"));
-			cols.add(new Column(colNumber++,"guidance_hint::" + language.name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));
-			cols.add(new Column(colNumber++,"constraint_msg::" + language.name, Column.COL_CONSTRAINT_MSG, labelIndex, "label"));
+			cols.add(new Column(colNumber++,"guidance_hint::" + language.name, Column.COL_GUIDANCE_HINT, labelIndex, "label"));	
 			labelIndex++;
 		}
 
@@ -867,7 +870,18 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
 		cols.add(new Column(colNumber++,"choice_filter", Column.COL_CHOICE_FILTER, 0, "choice_filter"));
 		cols.add(new Column(colNumber++,"constraint", Column.COL_CONSTRAINT, 0, "constraint"));
-		cols.add(new Column(colNumber++,"constraint_message", Column.COL_CONSTRAINT_MSG, 0, "constraint_msg"));
+		
+		// Constraint message potentially multi language
+		labelIndex = 0;
+		if(hasMultiConstraintLanguages) {
+			for(Language language : survey.languages) {
+				cols.add(new Column(colNumber++, 
+						XLSFormColumns.CONSTRAINT_MESSAGE + "::" + language.name, Column.COL_CONSTRAINT_MSG, labelIndex++, "label"));
+			}
+		} else {
+			cols.add(new Column(colNumber++,XLSFormColumns.CONSTRAINT_MESSAGE, Column.COL_CONSTRAINT_MSG, 0, "constraint_msg"));
+		}
+		
 		cols.add(new Column(colNumber++,"relevant", Column.COL_RELEVANT, 0, "relevant"));
 		cols.add(new Column(colNumber++, "repeat_count", Column.COL_REPEAT_COUNT, 0, "repeat_count"));
 

@@ -684,7 +684,6 @@ public class UtilityMethodsEmail {
 	public static void getLabels(Connection connectionSD,
 			Survey s, 
 			String text_id, 
-			String hint_id, 
 			ArrayList<Label> labels,
 			String basePath,
 			int oId) throws Exception {
@@ -693,7 +692,7 @@ public class UtilityMethodsEmail {
 
 		try {
 
-			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id = ?";
+			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id like ?";
 			pstmt = connectionSD.prepareStatement(sql);
 
 			for(int i = 0; i < s.languages.size(); i++) {
@@ -703,62 +702,53 @@ public class UtilityMethodsEmail {
 
 				// Get label and media
 				if(text_id != null) {
-					pstmt.setInt(1, s.id);
-					pstmt.setString(2, s.languages.get(i).name);
-					pstmt.setString(3, text_id);
-					//log.info("Get labels: " + pstmt.toString());
-
-					resultSet = pstmt.executeQuery();		
-					while(resultSet.next()) {
-
-						String t = resultSet.getString(1).trim();
-						String v = resultSet.getString(2);
-
-						if(t.equals("none")) {
-							l.text = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
-						} else if(basePath != null && oId > 0) {
-							ManifestValue manifest = new ManifestValue();
-							getFileUrl(manifest, s.ident, v, basePath, oId, s.id);
-							if(t.equals("image")) {
-								l.image = v;
-								l.imageUrl = manifest.url;
-								l.imageThumb = manifest.thumbsUrl;
-							} else if(t.equals("audio")) {
-								l.audio = v;
-								l.audioUrl = manifest.url;
-								l.audioThumb = null;
-							} else if(t.equals("video")) {
-								l.video = v;
-								l.videoUrl = manifest.url;
-								l.videoThumb = manifest.thumbsUrl;
+					
+					int idx = text_id.indexOf(':');
+					if(idx > 0) {
+						String root = text_id.substring(0, idx) + "%";
+						
+						pstmt.setInt(1, s.id);
+						pstmt.setString(2, s.languages.get(i).name);
+						pstmt.setString(3, root);
+						//log.info("Get labels: " + pstmt.toString());
+	
+						resultSet = pstmt.executeQuery();		
+						while(resultSet.next()) {
+	
+							String t = resultSet.getString(1).trim();
+							String v = resultSet.getString(2);
+	
+							if(t.equals("none")) {
+								l.text = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
+							} else if(t.equals("image") || t.equals("audio") || t.equals("video")) {							
+								if(basePath != null && oId > 0) {							
+									ManifestValue manifest = new ManifestValue();
+									getFileUrl(manifest, s.ident, v, basePath, oId, s.id);
+									if(t.equals("image")) {
+										l.image = v;
+										l.imageUrl = manifest.url;
+										l.imageThumb = manifest.thumbsUrl;
+									} else if(t.equals("audio")) {
+										l.audio = v;
+										l.audioUrl = manifest.url;
+										l.audioThumb = null;
+									} else if(t.equals("video")) {
+										l.video = v;
+										l.videoUrl = manifest.url;
+										l.videoThumb = manifest.thumbsUrl;
+									}
+								}
+							}  else if(t.equals("none")) {
+								l.hint = v;
+							} else if(t.equals("guidance")) {
+								l.guidance_hint = v;
+							} else if(t.equals("constraint_msg")) {
+								l.constraint_msg = v;
+							} else {
+								log.info("Error: Invalid label type: " + t);
 							}
-						} 
-
-					}
-				}
-
-				// Get hint
-				if(hint_id != null) {
-					pstmt.setInt(1, s.id);
-					pstmt.setString(2, s.languages.get(i).name);
-					pstmt.setString(3, hint_id);
-
-					//log.info("Get hint: " + pstmt.toString());
-					resultSet = pstmt.executeQuery();
-
-					while(resultSet.next()) {
-						String t = resultSet.getString(1).trim();
-						String v = resultSet.getString(2);
-
-						if(t.equals("none")) {
-							l.hint = v;
-						} else if(t.equals("guidance")) {
-							l.guidance_hint = v;
-						} else if(t.equals("constraint_msg")) {
-							l.constraint_msg = v;
-						} else {
-							log.info("Error: Invalid type for hint: " + t);
 						}
+						
 					}
 				}
 
@@ -878,7 +868,7 @@ public class UtilityMethodsEmail {
 			
 			// Update guidance
 			if(l.guidance_hint != null) {
-				pstmt.setString(3, textId + ":hint");
+				pstmt.setString(3, textId + ":guidance_hint");
 				pstmt.setString(4, "guidance");
 				pstmt.setString(5, l.guidance_hint);
 				pstmt.executeUpdate();
@@ -886,7 +876,7 @@ public class UtilityMethodsEmail {
 			
 			// Update constraint_msg
 			if(l.constraint_msg != null) {
-				pstmt.setString(3, textId + ":hint");
+				pstmt.setString(3, textId + ":constraint");
 				pstmt.setString(4, "constraint_msg");
 				pstmt.setString(5, l.constraint_msg);
 				pstmt.executeUpdate();
