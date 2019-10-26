@@ -19,7 +19,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
@@ -1226,11 +1225,34 @@ public class GetHtml {
 
 				try {
 					hint = convertMarkdown(hint);
-					hint = UtilityMethods.convertAllxlsNames(q.labels.get(idx).hint, true, paths, form.id, true, q.name);
+					hint = UtilityMethods.convertAllxlsNames(hint, true, paths, form.id, true, q.name);
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 				bodyElement.setTextContent(hint);
+				parent.appendChild(bodyElement);
+			}
+			
+			// Guidance
+			String guidance = q.labels.get(idx).guidance_hint;
+
+			if (guidance != null && guidance.trim().length() > 0) {
+				bodyElement = outputDoc.createElement("details");
+				bodyElement.setAttribute("lang", lang.name);
+				bodyElement.setAttribute("class", "or-form-guidance" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+
+				Element summaryElement = outputDoc.createElement("summary");
+				summaryElement.setAttribute("data-i18n", "hint.guidance.details");
+							
+				try {
+					guidance = convertMarkdown(guidance);
+					guidance = UtilityMethods.convertAllxlsNames(guidance, true, paths, form.id, true, q.name);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+				bodyElement.setTextContent(guidance);
+				summaryElement.setTextContent(localisation.getString("wf_md"));
+				bodyElement.appendChild(summaryElement);
 				parent.appendChild(bodyElement);
 			}
 			

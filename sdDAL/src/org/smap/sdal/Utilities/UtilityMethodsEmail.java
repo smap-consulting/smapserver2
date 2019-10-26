@@ -692,7 +692,7 @@ public class UtilityMethodsEmail {
 
 		try {
 
-			String sql = "select t.type, t.value from translation t where t.s_id = ? and t.language = ? and t.text_id like ?";
+			String sql = "select t.type, t.value, t.text_id from translation t where t.s_id = ? and t.language = ? and t.text_id like ?";
 			pstmt = connectionSD.prepareStatement(sql);
 
 			for(int i = 0; i < s.languages.size(); i++) {
@@ -717,8 +717,9 @@ public class UtilityMethodsEmail {
 	
 							String t = resultSet.getString(1).trim();
 							String v = resultSet.getString(2);
+							String id = resultSet.getString(3);
 	
-							if(t.equals("none")) {
+							if(t.equals("none") && id.endsWith("label")) {
 								l.text = GeneralUtilityMethods.convertAllEmbeddedOutput(v, true);
 							} else if(t.equals("image") || t.equals("audio") || t.equals("video")) {							
 								if(basePath != null && oId > 0) {							
@@ -738,7 +739,7 @@ public class UtilityMethodsEmail {
 										l.videoThumb = manifest.thumbsUrl;
 									}
 								}
-							}  else if(t.equals("none")) {
+							}  else if(t.equals("none") && id.endsWith("hint")) {
 								l.hint = v;
 							} else if(t.equals("guidance")) {
 								l.guidance_hint = v;
