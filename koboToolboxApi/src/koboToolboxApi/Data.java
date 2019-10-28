@@ -1095,6 +1095,7 @@ public class Data extends Application {
 				pstmtGetSimilar.setInt(paramCount++, start);
 				
 				rs = pstmtGetSimilar.executeQuery();
+				log.info("Get similar: " + pstmtGetSimilar.toString());
 
 				/*
 				 * For each grouping of similar records get the individual records

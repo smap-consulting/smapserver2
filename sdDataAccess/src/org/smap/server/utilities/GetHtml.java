@@ -1426,7 +1426,7 @@ public class GetHtml {
 		} else if (q.type.equals("date")) {
 			type = "date";
 		} else if (q.type.equals("dateTime")) {
-			type = "datetime";
+			type = "datetime-local";
 		} else if (q.type.equals("time")) {
 			type = "time";
 		} else if (q.type.equals("note")) {
