@@ -16,7 +16,6 @@ import java.util.logging.Logger;
 import javax.mail.internet.InternetAddress;
 
 import org.smap.notifications.interfaces.EmitAwsSMS;
-import org.smap.notifications.interfaces.EmitDeviceNotification;
 import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -1032,7 +1031,6 @@ public class NotificationManager {
 			String tz,
 			SubmissionMessage msg,
 			int messageId) throws Exception {
-		
 		
 		String logContent = null;
 		
