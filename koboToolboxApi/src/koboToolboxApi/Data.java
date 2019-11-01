@@ -1102,7 +1102,6 @@ public class Data extends Application {
 				 */
 				while(rs.next()) {
 
-
 					/*
 					 * 3. Get the data that make up these similar records
 					 */

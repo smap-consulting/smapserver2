@@ -706,9 +706,7 @@ public class UserManager {
 			 */
 			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
-			if(isServerOwner) {	// Can remove all groups
-				sql = "delete from user_group where u_id = ? ";
-			} else if(isEnterpriseManager) {	// Cannot remove server owner
+			if(isServerOwner || isEnterpriseManager) {	// Cannot remove server owner
 				sql = "delete from user_group where u_id = ? "
 						+ " and g_id != " + Authorise.OWNER_ID;	
 			} else if(isOrgUser) {		// Cannot remove enterprise admin and server owner
