@@ -1,5 +1,6 @@
 package org.smap.sdal.managers;
 
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -27,14 +28,17 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.AssignmentServerDefn;
+import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.Location;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.NameValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
@@ -528,6 +532,21 @@ public class TaskManager {
 				tf.properties.update_id = rs.getString("update_id");
 				tf.properties.address = rs.getString("address");
 				tf.properties.guidance = rs.getString("guidance");
+				if(tf.properties.guidance == null) {
+					if(tf.properties.address != null) {
+						Type addressType = new TypeToken<ArrayList<NameValue>>() {}.getType();
+						ArrayList<NameValue> address = gson.fromJson(tf.properties.address, addressType);
+						StringBuffer guidance = new StringBuffer("");
+						for(NameValue nv : address) {
+							if(guidance.length() > 0) {
+								guidance.append(", ");
+							}
+							guidance.append(nv.value);
+						}
+						tf.properties.address = guidance.toString();
+					}
+					
+				}
 				tf.properties.repeat = rs.getBoolean("repeat");
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();

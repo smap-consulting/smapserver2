@@ -25,8 +25,8 @@ public class TaskProperties {
 	public String save_type;
 	public boolean repeat;
 	public int repeat_count;
-	public String address;			// Text address
-	public String guidance;			// Key value pairs representing an unstructured address
+	public String address;			// Text address as ky value pairs
+	public String guidance;			// An unstructured address
 	public String emails;
 	public double lon;				// Duplicates geometry information, used when updating the location
 	public double lat;
