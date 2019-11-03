@@ -778,6 +778,9 @@ public class TableDataManager {
 		sort = sort.trim();
 		for (int i = 0; i < columns.size(); i++) {
 			String name = columns.get(i).question_name;
+			if(name == null) {
+				name = columns.get(i).column_name;
+			}
 			if (name.equals(sort)) {
 				TableColumn c = columns.get(i);
 
