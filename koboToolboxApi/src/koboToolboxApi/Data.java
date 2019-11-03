@@ -48,6 +48,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
@@ -171,6 +173,7 @@ public class Data extends Application {
 			@QueryParam("start_parkey") int start_parkey,// Parent key to start from
 			@QueryParam("parkey") int parkey,			// Parent key (optional, use to get records that correspond to a single parent record)
 			@QueryParam("hrk") String hrk,				// Unique key (optional, use to restrict records to a specific hrk)
+			@QueryParam("key") String key,				// Unique key (optional, use to restrict records to a specific key - same as hrk)
 			@QueryParam("format") String format,			// dt for datatables otherwise assume kobo
 			@QueryParam("bad") String include_bad,		// yes | only | none Include records marked as bad
 			@QueryParam("audit") String audit_set,		// if yes return audit data
@@ -193,6 +196,10 @@ public class Data extends Application {
 		}
 		if(formName != null) {
 			incLinks = false;		// Links can only be specified for the main form
+		}
+		
+		if(key != null) {
+			hrk = key;
 		}
 		
 		// Authorisation is done in getDataRecords
@@ -843,7 +850,11 @@ public class Data extends Application {
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			// Just return the first instance - at the top level there should only ever be one
-			response = Response.ok(gson.toJson(instances.get(0))).build();
+			if(instances.size() > 0) {
+				response = Response.ok(gson.toJson(instances.get(0))).build();
+			} else {
+				response = Response.serverError().status(Status.NOT_FOUND).build();
+			}
 
 		} catch (Exception e) {
 			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
