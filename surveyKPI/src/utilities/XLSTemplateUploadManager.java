@@ -865,7 +865,7 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// 2. Visibility
-		q.visible = convertVisible(type);
+		q.visible = convertVisible(q.type);
 
 		return q;
 	}
