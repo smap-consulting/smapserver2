@@ -1062,7 +1062,7 @@ public class OrganisationList extends Application {
 	}
 	
 	/*
-	 * Change the enterprise and organisation belongs to
+	 * Change the enterprise an organisation belongs to
 	 */
 	@POST
 	@Path("/setEnterprise")
@@ -1078,8 +1078,7 @@ public class OrganisationList extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		// End Authorisation
-		
+		// End Authorisation	
 		
 		PreparedStatement pstmt = null;
 	
