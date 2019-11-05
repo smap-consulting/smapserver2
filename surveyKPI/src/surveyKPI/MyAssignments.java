@@ -49,6 +49,8 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.Task;
 import org.smap.sdal.model.TaskAssignment;
+import org.smap.sdal.model.TaskFeature;
+import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskLocation;
 
 import com.google.gson.Gson;
@@ -433,6 +435,25 @@ public class MyAssignments extends Application {
 					ft_number_tasks--;
 				} else {
 					cancelledAssignments.add(ta.assignment.assignment_id);
+				}
+			}
+			
+			/*
+			 * If there is still room for tasks then add new tasks where the task group allows auto selection
+			 */
+			if(ft_number_tasks > 0) {
+				TaskManager tm = new TaskManager(localisation, tz);
+				int uId = GeneralUtilityMethods.getUserId(sd, userName);
+				TaskListGeoJson unassigned = tm.getUnassignedTasks(
+						sd, 
+						oId,			// only required if tgId is not set
+						uId,
+						ft_number_tasks		// Maximum number of tasks to return
+						);
+				
+				for(TaskFeature task : unassigned.features) {
+					System.out.println("Task:    " + task.properties.name);
+					
 				}
 			}
 			

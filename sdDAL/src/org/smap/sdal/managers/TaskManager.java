@@ -618,6 +618,179 @@ public class TaskManager {
 
 		return tl;
 	}
+	
+	/*
+	 * Get unassigned tasks
+	 * Only get tasks if the task group is set to auto allocate
+	 */
+	public TaskListGeoJson getUnassignedTasks(
+			Connection sd, 
+			int oId,			// only required if tgId is not set
+			int userId,
+			int limit		// Maximum number of tasks to return
+			) throws Exception {
+		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		StringBuffer sql = new StringBuffer("select t.id as t_id, "
+				+ "t.title as name,"
+				+ "timezone(?, t.schedule_at) as schedule_at,"
+				+ "timezone(?, t.schedule_finish) as schedule_finish,"
+				+ "timezone(?, t.schedule_at) + interval '1 hour' as default_finish,"
+				+ "t.location_trigger as location_trigger,"
+				+ "t.location_group as location_group,"
+				+ "t.location_name as location_name,"
+				+ "t.update_id as update_id,"
+				+ "t.initial_data as initial_data,"
+				+ "t.initial_data_source as initial_data_source,"
+				+ "t.address as address,"
+				+ "t.guidance as guidance,"
+				+ "t.repeat as repeat,"
+				+ "t.repeat_count as repeat_count,"
+				+ "t.survey_ident,"
+				+ "t.survey_name as survey_name,"
+				+ "t.complete_all,"
+				+ "t.tg_id,"
+				+ "tg.name as tg_name,"
+				+ "s.blocked as blocked,"
+				+ "s.ident as form_ident,"
+				+ "a.id as assignment_id,"
+				+ "a.status as status,"
+				+ "a.assignee,"
+				+ "a.assignee_name,"
+				+ "a.comment,"
+				+ "a.email,"
+				+ "a.action_link,"
+				+ "u.ident as assignee_ident, "				// Get current user ident for notification
+				+ "ST_AsGeoJSON(t.geo_point) as geom, "
+				+ "ST_AsText(t.geo_point) as wkt, "
+				+ "ST_x(t.geo_point) as lon,"
+				+ "ST_Y(t.geo_point) as lat,"
+				+ "t.show_dist "
+				+ "from tasks t "
+				+ "join survey s "
+				+ "on t.survey_ident = s.ident "
+				+ "join task_group tg "
+				+ "on t.tg_id = tg.tg_id "
+				+ "left outer join assignments a "
+				+ "on a.task_id = t.id " 
+				+ "left outer join users u "
+				+ "on a.assignee = u.id");
+		
+		sql.append(" where t.p_id in (select id from project where o_id = ?)");
+		sql.append(" and (a.status is null or a.status = 'new' or assignee < 0) ");
+		sql.append(" and not t.deleted ");
+		sql.append(" and not tg.auto_allocate ");
+		sql.append(" order by t.schedule_at::timestamp(0) ").append("asc").append(", t.id ");	
+		sql.append(", a.id ");
+		
+		PreparedStatement pstmt = null;
+		TaskListGeoJson tl = new TaskListGeoJson();
+	
+		try {
+
+			pstmt = sd.prepareStatement(sql.toString());	
+			
+			/*
+			 * Set the parameters
+			 */
+			int paramIdx = 1;
+			pstmt.setString(paramIdx++, tz);		// Timezones
+			pstmt.setString(paramIdx++, tz);
+			pstmt.setString(paramIdx++, tz);			
+			pstmt.setInt(paramIdx++, oId);
+			
+			// Get the data
+			log.info("Get unassignd tasks: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			JsonParser parser = new JsonParser();
+			int index = 0;
+			while (rs.next()) {
+
+				String status = rs.getString("status");
+				int assignee = rs.getInt("assignee"); 
+				Timestamp to = rs.getTimestamp("schedule_finish");
+				if(to == null) {
+					to = rs.getTimestamp("default_finish");
+				}
+				
+				// Adjust status
+				if(status == null) {
+					status = "new";
+				} else if(assignee < 0) {
+					status = "new";
+				} 
+
+				TaskFeature tf = new TaskFeature();
+				tf.properties = new TaskProperties();
+
+				tf.properties.id = rs.getInt("t_id");
+				tf.properties.a_id = rs.getInt("assignment_id");
+				tf.properties.name = rs.getString("name");
+				tf.properties.from = rs.getTimestamp("schedule_at");
+				tf.properties.to = to;
+				tf.properties.status = status;	
+				tf.properties.survey_ident = rs.getString("survey_ident");
+				tf.properties.form_id = GeneralUtilityMethods.getSurveyId(sd, tf.properties.survey_ident);	// Deprecate - should remove all usage of survey id
+				tf.properties.survey_name = rs.getString("survey_name");
+				tf.properties.action_link = rs.getString("action_link");
+				tf.properties.blocked = rs.getBoolean("blocked");
+				tf.properties.assignee = rs.getInt("assignee");
+				tf.properties.assignee_name = rs.getString("assignee_name");
+				tf.properties.comment = rs.getString("comment");
+				tf.properties.emails = rs.getString("email");
+				tf.properties.assignee_ident = rs.getString("assignee_ident");
+				tf.properties.location_trigger = rs.getString("location_trigger");
+				tf.properties.location_group = rs.getString("location_group");
+				tf.properties.location_name = rs.getString("location_name");
+				tf.properties.update_id = rs.getString("update_id");
+				tf.properties.address = rs.getString("address");
+				tf.properties.guidance = rs.getString("guidance");
+				if(tf.properties.guidance == null) {
+					if(tf.properties.address != null) {
+						Type addressType = new TypeToken<ArrayList<NameValue>>() {}.getType();
+						ArrayList<NameValue> address = gson.fromJson(tf.properties.address, addressType);
+						StringBuffer guidance = new StringBuffer("");
+						for(NameValue nv : address) {
+							if(guidance.length() > 0) {
+								guidance.append(", ");
+							}
+							guidance.append(nv.value);
+						}
+						tf.properties.address = guidance.toString();
+					}
+					
+				}
+				tf.properties.repeat = rs.getBoolean("repeat");
+				tf.properties.repeat_count = rs.getInt("repeat_count");
+				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
+				tf.properties.complete_all = rs.getBoolean("complete_all");
+				tf.properties.tg_id = rs.getInt("tg_id");
+				tf.properties.tg_name = rs.getString("tg_name");
+				tf.properties.initial_data_source = rs.getString("initial_data_source");
+				tf.properties.show_dist = rs.getInt("show_dist");
+
+				tf.properties.lat = rs.getDouble("lat");
+				tf.properties.lon = rs.getDouble("lon");
+				
+				tl.features.add(tf);
+				
+				index++;
+				if (limit > 0 && index >= limit) {
+					break;
+				}
+			}
+
+
+		} catch(Exception e) {
+			throw(e);
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+
+		}
+
+		return tl;
+	}
 
 	/*
 	 * Save the tasks for the specified task group
