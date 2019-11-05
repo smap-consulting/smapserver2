@@ -655,6 +655,7 @@ public class TaskManager {
 				+ "t.assign_auto,"
 				+ "t.tg_id,"
 				+ "tg.name as tg_name,"
+				+ "tg.p_id as p_id,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
 				+ "a.id as assignment_id,"
@@ -771,6 +772,7 @@ public class TaskManager {
 				tf.properties.assign_auto = rs.getBoolean("assign_auto");
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
+				tf.properties.p_id = rs.getInt("p_id");
 				tf.properties.initial_data_source = rs.getString("initial_data_source");
 				tf.properties.show_dist = rs.getInt("show_dist");
 

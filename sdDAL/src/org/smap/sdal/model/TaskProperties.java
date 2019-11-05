@@ -38,6 +38,7 @@ public class TaskProperties {
 	// Other properties
 	public int id;
 	public String tg_name;
+	public int p_id;
 	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
 	public String action_link;
 	public String survey_name;

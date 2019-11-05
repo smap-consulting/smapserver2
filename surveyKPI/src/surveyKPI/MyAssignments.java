@@ -454,6 +454,41 @@ public class MyAssignments extends Application {
 				for(TaskFeature task : unassigned.features) {
 					System.out.println("Task:    " + task.properties.name);
 					
+					// Create the new Task Assignment Objects
+					TaskAssignment ta = new TaskAssignment();
+					ta.task = new Task();
+					ta.location = new TaskLocation();
+					ta.assignment = new Assignment();
+					
+					// Populate the new Task Assignment
+					ta.task.id = task.properties.id;
+					ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
+					ta.task.title = task.properties.name;					
+					ta.task.pid = String.valueOf(task.properties.p_id);				
+					ta.task.form_id = task.properties.survey_ident;		// Form id is survey ident
+					ta.task.form_version = task.properties.form_version;				
+					ta.task.update_id = task.properties.update_id;				
+					ta.task.initial_data_source = task.properties.initial_data_source;				
+					ta.task.scheduled_at = task.properties.from;				
+					ta.task.location_trigger = task.properties.location_trigger;
+					if(ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
+						ta.task.location_trigger = null;
+					}				
+					ta.task.repeat = task.properties.repeat;				
+					ta.task.address = task.properties.address;		
+					ta.task.address = addKeyValuePair(ta.task.address, "guidance", task.properties.guidance);	// Address stored as json key value pairs				
+					ta.task.show_dist = task.properties.show_dist;		
+					ta.assignment.assignment_id = task.properties.a_id;
+					ta.assignment.assignment_status = task.properties.status;
+
+					if(task.properties.lat != 0.0 && task.properties.lon != 0.0) {				
+						ta.location.geometry = new GeometryString();
+						ta.location.geometry.type = "POINT";
+						ta.location.geometry.coordinates = new String [2];
+						ta.location.geometry.coordinates[0] = String.valueOf(task.properties.lon);
+						ta.location.geometry.coordinates[1] = String.valueOf(task.properties.lat);
+					}
+					tr.taskAssignments.add(ta);
 				}
 			}
 			
