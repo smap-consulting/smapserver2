@@ -33,4 +33,5 @@ public class AssignFromSurvey {
 	public String emails;				// Comma separated list of emails
 	public TaskEmailDetails emailDetails;
 	public boolean complete_all;
+	public boolean assign_auto;			// Allow users to assign themselvs to unassigned tasks
 }

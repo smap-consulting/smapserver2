@@ -21,6 +21,7 @@ public class TaskServerDefn {
 	public String save_type;
 	public boolean repeat;
 	public boolean complete_all;
+	public boolean assign_auto;
 	public String address;			// Text address
 	public String guidance;			// Key value pairs representing an unstructured address
 	public Double lat;				// Latitude

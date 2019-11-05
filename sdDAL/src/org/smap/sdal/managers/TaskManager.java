@@ -326,6 +326,7 @@ public class TaskManager {
 				+ "t.survey_name as survey_name,"
 				+ "t.deleted,"
 				+ "t.complete_all,"
+				+ "t.assign_auto,"
 				+ "t.tg_id,"
 				+ "tg.name as tg_name,"
 				+ "s.blocked as blocked,"
@@ -551,6 +552,7 @@ public class TaskManager {
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
 				tf.properties.complete_all = rs.getBoolean("complete_all");
+				tf.properties.assign_auto = rs.getBoolean("assign_auto");
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
 				tf.properties.initial_data_source = rs.getString("initial_data_source");
@@ -650,6 +652,7 @@ public class TaskManager {
 				+ "t.survey_ident,"
 				+ "t.survey_name as survey_name,"
 				+ "t.complete_all,"
+				+ "t.assign_auto,"
 				+ "t.tg_id,"
 				+ "tg.name as tg_name,"
 				+ "s.blocked as blocked,"
@@ -680,7 +683,7 @@ public class TaskManager {
 		sql.append(" where t.p_id in (select id from project where o_id = ?)");
 		sql.append(" and (a.status is null or a.status = 'new' or assignee < 0) ");
 		sql.append(" and not t.deleted ");
-		sql.append(" and not tg.auto_allocate ");
+		sql.append(" and t.assign_auto ");
 		sql.append(" order by t.schedule_at::timestamp(0) ").append("asc").append(", t.id ");	
 		sql.append(", a.id ");
 		
@@ -765,6 +768,7 @@ public class TaskManager {
 				tf.properties.repeat_count = rs.getInt("repeat_count");
 				tf.geometry = parser.parse(rs.getString("geom")).getAsJsonObject();
 				tf.properties.complete_all = rs.getBoolean("complete_all");
+				tf.properties.assign_auto = rs.getBoolean("assign_auto");
 				tf.properties.tg_id = rs.getInt("tg_id");
 				tf.properties.tg_name = rs.getString("tg_name");
 				tf.properties.initial_data_source = rs.getString("initial_data_source");
@@ -984,7 +988,7 @@ public class TaskManager {
 			String pName,
 			String remoteUser) throws Exception {
 
-		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all from task_group where source_s_id = ?;";
+		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all, assign_auto from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
@@ -1025,6 +1029,7 @@ public class TaskManager {
 					int target_s_id = rs.getInt(5);
 					String target_s_ident = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 					boolean complete_all = rs.getBoolean(6);
+					boolean assign_auto = rs.getBoolean(7);
 					
 					log.info("Assign Survey String: " + rs.getString(3));
 					log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
@@ -1079,7 +1084,8 @@ public class TaskManager {
 									);
 						}
 						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
-								target_s_ident, tid, instanceId, true, remoteUser, complete_all);  // Write to the database
+								target_s_ident, tid, instanceId, true, remoteUser, complete_all,
+								assign_auto);  // Write to the database
 					}
 				}
 			}
@@ -1110,7 +1116,8 @@ public class TaskManager {
 			String updateId,
 			boolean autosendEmails,
 			String remoteUser,
-			boolean complete_all
+			boolean complete_all,
+			boolean assign_auto
 			) throws Exception {
 
 		PreparedStatement pstmtAssign = null;
@@ -1252,6 +1259,7 @@ public class TaskManager {
 					null,
 					false,
 					complete_all,
+					assign_auto,
 					null,
 					initialDataSource,
 					initialData,
@@ -1597,6 +1605,7 @@ public class TaskManager {
 						tsd.location_name,
 						tsd.repeat,
 						tsd.complete_all,
+						tsd.assign_auto,
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
@@ -1621,6 +1630,7 @@ public class TaskManager {
 						tsd.location_name,
 						tsd.repeat,
 						tsd.complete_all,
+						tsd.assign_auto,
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
@@ -2397,6 +2407,7 @@ public class TaskManager {
 				+ "location_name,"
 				+ "repeat,"
 				+ "complete_all,"
+				+ "assign_auto,"
 				+ "guidance,"
 				+ "initial_data_source,"
 				+ "initial_data,"
@@ -2419,6 +2430,7 @@ public class TaskManager {
 				+ "?,"		// location_name
 				+ "?,"		// repeat
 				+ "?,"		// complete_all
+				+ "?,"		// assign_auto
 				+ "?,"		// guidance
 				+ "?,"		// initial_data_source
 				+ "?,"		// initial_data	
@@ -2448,6 +2460,7 @@ public class TaskManager {
 			String locationName,
 			boolean repeat,
 			boolean complete_all,
+			boolean assign_auto,
 			String guidance,
 			String initial_data_source,
 			String initial_data,
@@ -2470,10 +2483,11 @@ public class TaskManager {
 		pstmt.setString(15, locationName);
 		pstmt.setBoolean(16, repeat);
 		pstmt.setBoolean(17, complete_all);	
-		pstmt.setString(18, guidance);	
-		pstmt.setString(19, initial_data_source);
-		pstmt.setString(20, initial_data);	
-		pstmt.setInt(21, show_dist);	
+		pstmt.setBoolean(18, assign_auto);	
+		pstmt.setString(19, guidance);	
+		pstmt.setString(20, initial_data_source);
+		pstmt.setString(21, initial_data);	
+		pstmt.setInt(22, show_dist);	
 
 		log.info("Create a new task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -2498,6 +2512,7 @@ public class TaskManager {
 				+ "location_name = ?,"
 				+ "repeat = ?,"
 				+ "complete_all = ?,"
+				+ "assign_auto = ?,"
 				+ "guidance = ?,"
 				+ "initial_data_source = ?,"
 				+ "initial_data = ?, "
@@ -2525,6 +2540,7 @@ public class TaskManager {
 			String locationName,
 			boolean repeat,
 			boolean complete_all,
+			boolean assign_auto,
 			String guidance,
 			String initial_data_source,
 			String initial_data,
@@ -2542,12 +2558,13 @@ public class TaskManager {
 		pstmt.setString(10, locationName);
 		pstmt.setBoolean(11, repeat);	
 		pstmt.setBoolean(12, complete_all);	
-		pstmt.setString(13, guidance);
-		pstmt.setString(14, initial_data_source);
-		pstmt.setString(15, initial_data);
-		pstmt.setInt(16, show_dist);
-		pstmt.setInt(17, tId);
-		pstmt.setInt(18, tgId);
+		pstmt.setBoolean(13, assign_auto);	
+		pstmt.setString(14, guidance);
+		pstmt.setString(15, initial_data_source);
+		pstmt.setString(16, initial_data);
+		pstmt.setInt(17, show_dist);
+		pstmt.setInt(18, tId);
+		pstmt.setInt(19, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
@@ -3228,6 +3245,7 @@ public class TaskManager {
 		tsd.initial_data_source = tf.properties.initial_data_source;
 		tsd.repeat = tf.properties.repeat;
 		tsd.complete_all = tf.properties.complete_all;
+		tsd.assign_auto = tf.properties.assign_auto;
 		tsd.update_id = tf.properties.update_id;
 		tsd.lon = tf.properties.lon;
 		tsd.lat = tf.properties.lat;
@@ -3395,6 +3413,7 @@ public class TaskManager {
 			int targetSurveyId,
 			int dlDist,
 			boolean complete_all,
+			boolean assign_auto,
 			boolean useExisting			// If set and there is an existing task group with the same name return its id, otherwise throw an exception
 			) throws Exception {
 		
@@ -3434,8 +3453,9 @@ public class TaskManager {
 						+ "source_s_id,"
 						+ "target_s_id,"
 						+ "dl_dist,"
-						+ "complete_all) "
-						+ "values (?, ?, ?, ?, ?, ?, ?, ?);";
+						+ "complete_all,"
+						+ "assign_auto) "
+						+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?);";
 		
 				pstmtTaskGroup = sd.prepareStatement(tgSql, Statement.RETURN_GENERATED_KEYS);
 				pstmtTaskGroup.setString(1, taskGroupName);
@@ -3446,6 +3466,7 @@ public class TaskManager {
 				pstmtTaskGroup.setInt(6, targetSurveyId);
 				pstmtTaskGroup.setInt(7, dlDist);
 				pstmtTaskGroup.setBoolean(8, complete_all);
+				pstmtTaskGroup.setBoolean(9, assign_auto);
 				log.info("Insert into task group: " + pstmtTaskGroup.toString());
 				pstmtTaskGroup.execute();
 		

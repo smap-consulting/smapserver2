@@ -196,6 +196,7 @@ public class AllAssignments extends Application {
 						as.target_survey_id,
 						as.dl_dist,
 						as.complete_all,
+						as.assign_auto,
 						false		// don't use an existing task group of the same name
 						);	
 			} else {
@@ -518,7 +519,8 @@ public class AllAssignments extends Application {
 										instanceId,
 										false,
 										request.getRemoteUser(),
-										as.complete_all); 
+										as.complete_all,
+										as.assign_auto); 
 								
 							}
 
