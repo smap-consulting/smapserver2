@@ -658,6 +658,7 @@ public class TaskManager {
 				+ "tg.p_id as p_id,"
 				+ "s.blocked as blocked,"
 				+ "s.ident as form_ident,"
+				+ "s.version as form_version,"
 				+ "a.id as assignment_id,"
 				+ "a.status as status,"
 				+ "a.assignee,"
@@ -736,6 +737,7 @@ public class TaskManager {
 				tf.properties.status = status;	
 				tf.properties.survey_ident = rs.getString("survey_ident");
 				tf.properties.form_id = GeneralUtilityMethods.getSurveyId(sd, tf.properties.survey_ident);	// Deprecate - should remove all usage of survey id
+				tf.properties.form_version = rs.getString("form_version");
 				tf.properties.survey_name = rs.getString("survey_name");
 				tf.properties.action_link = rs.getString("action_link");
 				tf.properties.blocked = rs.getBoolean("blocked");
