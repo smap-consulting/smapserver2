@@ -67,7 +67,6 @@
 		</dependency>
 
 		<!-- JAXB -->
-		<!-- Java 9+ only
 		<dependency>
     			<groupId>javax.xml.bind</groupId>
     			<artifactId>jaxb-api</artifactId>
@@ -83,7 +82,6 @@
     			<artifactId>jaxb-impl</artifactId>
     			<version>2.3.1</version>
 		</dependency>
-		-->
 		
 	</dependencies>
 </project>
