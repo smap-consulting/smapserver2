@@ -627,9 +627,10 @@ public class TaskManager {
 	 */
 	public TaskListGeoJson getUnassignedTasks(
 			Connection sd, 
-			int oId,			// only required if tgId is not set
+			int oId,	
 			int userId,
-			int limit		// Maximum number of tasks to return
+			int limit,		// Maximum number of tasks to return
+			String userName
 			) throws Exception {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -686,6 +687,7 @@ public class TaskManager {
 		sql.append(" and (a.status is null or a.status = 'new' or assignee < 0) ");
 		sql.append(" and not t.deleted ");
 		sql.append(" and t.assign_auto ");
+		sql.append(" and a.id not in (select a_id from task_rejected where ident = ?) ");
 		sql.append(" order by t.schedule_at::timestamp(0) ").append("asc").append(", t.id ");	
 		sql.append(", a.id ");
 		
@@ -704,6 +706,7 @@ public class TaskManager {
 			pstmt.setString(paramIdx++, tz);
 			pstmt.setString(paramIdx++, tz);			
 			pstmt.setInt(paramIdx++, oId);
+			pstmt.setString(paramIdx++, userName);
 			
 			// Get the data
 			log.info("Get unassignd tasks: " + pstmt.toString());

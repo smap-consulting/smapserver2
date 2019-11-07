@@ -85,7 +85,7 @@ public class MyAssignments extends Application {
 			Logger.getLogger(Survey.class.getName());
 	
 	LogManager lm = new LogManager(); // Application log
-
+	
 	/*
 	 * Get assignments for user authenticated with credentials
 	 */
@@ -446,9 +446,10 @@ public class MyAssignments extends Application {
 				int uId = GeneralUtilityMethods.getUserId(sd, userName);
 				TaskListGeoJson unassigned = tm.getUnassignedTasks(
 						sd, 
-						oId,			// only required if tgId is not set
+						oId,			
 						uId,
-						ft_number_tasks		// Maximum number of tasks to return
+						ft_number_tasks,		// Maximum number of tasks to return
+						userName
 						);
 				
 				for(TaskFeature task : unassigned.features) {
@@ -737,8 +738,7 @@ public class MyAssignments extends Application {
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
 
 		PreparedStatement pstmtSetDeleted = null;
-		PreparedStatement pstmtSetUpdated = null;
-		
+		PreparedStatement pstmtSetUpdated = null;		
 		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
@@ -757,9 +757,6 @@ public class MyAssignments extends Application {
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
 			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
 			pstmtEvents = getPreparedStatementEvents(sd);
-			
-			String sqlUnassignedRejected = "insert into task_rejected(t_id, ident) values(?,?) ";
-			pstmtUnassignedRejected = sd.prepareStatement(sqlUnassignedRejected);
 			
 			String sqlUpdateId = "update tasks set update_id = ? "
 					+ "where id = ? "
@@ -802,19 +799,7 @@ public class MyAssignments extends Application {
 					log.info("+++++++++++++++ Updating repeats: " + pstmtRepeats.toString());
 					pstmtRepeats.executeUpdate();
 				} else {
-					// Potentially rejection of an unassigned  task
-					log.info("------------- Record rejection of unassigned task");
-					log.info("      task id: " + ta.task.id);
-					if(ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals(("rejected"))) {
-						pstmtUnassignedRejected.setInt(1, ta.task.id);
-						pstmtUnassignedRejected.setString(2, userName);
-						try {
-							log.info("Adding to unassigned rejected: " + pstmtUnassignedRejected.toString());
-							pstmtUnassignedRejected.executeUpdate();
-						} catch(Exception e) {
-							log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
-						}
-					}
+					log.info("Error: assignment id is zero");
 				}
 			}
 
@@ -996,6 +981,11 @@ public class MyAssignments extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
 					assignmentId + ": " + comment );
+			
+			// Potentially rejection of an unassigned  task
+			if(status.equals(("rejected"))) {
+				updateTaskRejected(sd, assignmentId, userName);
+			}
 		}
 		
 		/*
@@ -1020,6 +1010,45 @@ public class MyAssignments extends Application {
 						taskName,
 						assign_auto);
 			}
+		}
+	}
+	
+	/*
+	 * If a user has rejected a self allocating task then remember this so it is not sent to them again
+	 */
+	private void updateTaskRejected(Connection sd, int assignmentId, String userName) throws SQLException {
+		
+		String sql = "select status from assignments where id = ?";
+		PreparedStatement pstmt = null;
+		
+		String sqlUnassignedRejected = "insert into task_rejected(a_id, ident, rejected_at) values(?,?, now()) ";
+		PreparedStatement pstmtUnassignedRejected = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,assignmentId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String status = rs.getString(1);
+				if(status != null && status.equals("new")) {
+					
+					// Must have been a self allocate task
+					pstmtUnassignedRejected = sd.prepareStatement(sqlUnassignedRejected);			
+					pstmtUnassignedRejected.setInt(1, assignmentId);
+					pstmtUnassignedRejected.setString(2, userName);
+					try {
+						log.info("Adding to unassigned rejected: " + pstmtUnassignedRejected.toString());
+						pstmtUnassignedRejected.executeUpdate();
+					} catch(Exception e) {
+						// Ignore errors as if this has already been rejected we don't really care
+						log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
+					}
+				}
+			}		
+			
+		} finally {
+			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
+			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}
 		}
 	}
 }
