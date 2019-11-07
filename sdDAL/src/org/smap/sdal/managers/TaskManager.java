@@ -1323,7 +1323,8 @@ public class TaskManager {
 						updateId,
 						title,
 						taskStart,
-						taskFinish);
+						taskFinish,
+						assign_auto);
 			}
 			
 			if(rsKeys != null) try{ rsKeys.close(); } catch(SQLException e) {};		
@@ -1683,7 +1684,8 @@ public class TaskManager {
 							tsd.update_id,
 							tsd.name,
 							tsd.from,
-							tsd.to);
+							tsd.to,
+							tsd.assign_auto);
 				} else {
 					
 					/*
@@ -1700,7 +1702,8 @@ public class TaskManager {
 							0,
 							STATUS_T_CANCELLED,
 							null,			
-							tsd.name);
+							tsd.name,
+							tsd.assign_auto);
 					
 					pstmtInsert = getInsertAssignmentStatement(sd);
 					applyAllAssignments(
@@ -1725,7 +1728,8 @@ public class TaskManager {
 							tsd.update_id,
 							tsd.name,
 							tsd.from,
-							tsd.to);
+							tsd.to,
+							tsd.assign_auto);
 					
 				}
 
@@ -1811,7 +1815,7 @@ public class TaskManager {
 				+ "values(?, 'accepted', ?, now(), (select name from users where id = ?))";
 
 		String sqlEmailDetails = "select a.id, a.status, a.assignee_name, a.email, a.action_link, "
-				+ "t.survey_ident, t.update_id "
+				+ "t.survey_ident, t.update_id, t.assign_auto "
 				+ "from assignments a, tasks t "
 				+ "where a.task_id = t.id "
 				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
@@ -2057,7 +2061,8 @@ public class TaskManager {
 								assignmentId,
 								updateStatus,
 								updateAssigned,
-								updateName);
+								updateName,
+								false);
 					}
 				}
 			}
@@ -2203,7 +2208,8 @@ public class TaskManager {
 						cResults,
 						taskId,
 						aId,
-						taskName);
+						taskName,
+						false);
 			}
 			
 		} finally {
@@ -2266,7 +2272,8 @@ public class TaskManager {
 									cResults,
 									taskId,
 									aId,
-									taskName);
+									taskName,
+									false);
 						}
 					}
 				}
@@ -2287,7 +2294,8 @@ public class TaskManager {
 			Connection cResults,
 			int taskId,
 			int assignmentId,
-			String updateName) throws SQLException {
+			String updateName,
+			boolean assign_auto) throws SQLException {
 		
 		String sqlUsers = "delete from users where temporary = true and id in "
 				+ "(select assignee from assignments where id = ?) ";
@@ -2334,7 +2342,8 @@ public class TaskManager {
 					assignmentId,
 					STATUS_T_CANCELLED,
 					null,
-					updateName);
+					updateName,
+					assign_auto);
 		} finally {
 			if(pstmtUsers != null) try {	pstmtUsers.close(); } catch(SQLException e) {};
 			if(pstmtGetUsers != null) try {	pstmtGetUsers.close(); } catch(SQLException e) {};
@@ -2616,7 +2625,8 @@ public class TaskManager {
 			String sIdent,
 			String remoteUser,
 			Date scheduledAt,
-			Date scheduledFinish) throws SQLException {
+			Date scheduledFinish,
+			boolean assign_auto) throws SQLException {
 		
 		/*
 		 * Delete any "new" assignments that have been set
@@ -2655,7 +2665,10 @@ public class TaskManager {
 				} else {
 					assigned = GeneralUtilityMethods.getUserIdent(sd, assignee);
 				}
-				TaskItemChange tic = new TaskItemChange(0, aId, name, status, assigned, null, scheduledAt, scheduledFinish);
+				TaskItemChange tic = new TaskItemChange(0, aId, name, status, assigned, null, 
+						scheduledAt, 
+						scheduledFinish,
+						assign_auto);
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				rem.writeEvent(
 						sd, 
@@ -2671,7 +2684,7 @@ public class TaskManager {
 						"Task created", 
 						0,				// sId (don't care legacy)
 						sIdent,
-						0,				// Don't ned task id if we have an assignment id
+						0,				// Don't need task id if we have an assignment id
 						aId				// Assignment id
 						);
 				
@@ -2712,7 +2725,8 @@ public class TaskManager {
 			String update_id,
 			String task_name,
 			Date scheduledAt,
-			Date scheduledFinish) throws Exception {
+			Date scheduledFinish,
+			boolean assign_auto) throws Exception {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
@@ -2728,13 +2742,14 @@ public class TaskManager {
 				String existingEmail = rs.getString(2);
 
 				// Notify currently assigned user
-				if(existingAssignee  > 0 && existingAssignee != assignee) {
+				if(existingAssignee != assignee) {
 					cancelAssignment(
 							sd, 
 							cResults,
 							task_id,
 							a_id,
-							task_name);
+							task_name,
+							false);
 				}
 
 				// Set flag indicating that new assignee should be set
@@ -2770,7 +2785,8 @@ public class TaskManager {
 						update_id,
 						task_name,
 						scheduledAt,
-						scheduledFinish);
+						scheduledFinish,
+						assign_auto);
 			} 
 		} finally {
 			if(pstmtGetExisting != null) {try {pstmtGetExisting.close();} catch(Exception e){}}
@@ -2804,7 +2820,8 @@ public class TaskManager {
 			String update_id,
 			String task_name,
 			Date scheduledAt,
-			Date scheduledFinish
+			Date scheduledFinish,
+			boolean assign_auto
 			) throws Exception {
 
 		String status = "accepted";
@@ -2814,7 +2831,8 @@ public class TaskManager {
 
 			String userIdent = GeneralUtilityMethods.getUserIdent(sd, userId);
 			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, status, taskId, update_id, sIdent, 
-					remoteUser, scheduledAt, scheduledFinish);
+					remoteUser, scheduledAt, scheduledFinish,
+					assign_auto);
 			
 			// Notify the user of their new assignment		
 			MessagingManager mm = new MessagingManager();
@@ -2841,7 +2859,8 @@ public class TaskManager {
 				String userIdent = GeneralUtilityMethods.getUserIdent(sd, rsRoles.getInt(1));
 				insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 
 						rsRoles.getInt(1), userIdent, null, status, taskId, update_id, sIdent, 
-						remoteUser, scheduledAt, scheduledFinish);
+						remoteUser, scheduledAt, scheduledFinish,
+						assign_auto);
 				
 				// Notify the user of their new assignment
 				
@@ -2888,11 +2907,13 @@ public class TaskManager {
 				
 				if(emailTaskBlocked) {
 					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, "blocked", taskId, update_id, sIdent, 
-							remoteUser, scheduledAt, scheduledFinish);
+							remoteUser, scheduledAt, scheduledFinish,
+							assign_auto);
 				} else {
 					// Create the assignment
 					int aId = insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, status, taskId, update_id, sIdent, 
-							remoteUser, scheduledAt, scheduledFinish);
+							remoteUser, scheduledAt, scheduledFinish,
+							assign_auto);
 					
 					// Create a temporary user embedding the assignment id in the action link, get the link to that user
 					action.assignmentId = aId;
@@ -2926,7 +2947,7 @@ public class TaskManager {
 			// Set the assignment to unassigned
 			String userIdent = null;
 			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, "new", taskId, update_id, sIdent, 
-					remoteUser, scheduledAt, scheduledFinish);
+					remoteUser, scheduledAt, scheduledFinish, assign_auto);
 			
 			/*
 			log.info("No matching assignments found");

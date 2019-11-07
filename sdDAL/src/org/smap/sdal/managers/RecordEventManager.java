@@ -167,7 +167,8 @@ public class RecordEventManager {
 			int assignmentId,
 			String status,
 			String assigned,
-			String taskName
+			String taskName,
+			boolean assign_auto
 			) throws SQLException {
 		
 		String sqlUsingAssignment = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
@@ -259,7 +260,8 @@ public class RecordEventManager {
 							tic.taskEvents.add(new TaskEventChange(taskName, status, assigned, 
 									null,		// comment
 									scheduleAt,
-									scheduleFinish
+									scheduleFinish,
+									assign_auto
 									));
 							
 							if(status == null) {

@@ -938,7 +938,7 @@ public class MyAssignments extends Application {
 	// Get a prepared statement to update the record events table
 	private PreparedStatement getPreparedStatementEvents(Connection sd) throws SQLException {
 
-		String sql = "select t.survey_ident, f.table_name, t.update_id, t.title from tasks t, form f, survey s "
+		String sql = "select t.survey_ident, f.table_name, t.update_id, t.title, t.assign_auto from tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
 				+ "and t.id = ? ";
@@ -1008,6 +1008,7 @@ public class MyAssignments extends Application {
 			String tableName = rsEvents.getString(2);
 			String updateId = rsEvents.getString(3);
 			String taskName = rsEvents.getString(4);
+			boolean assign_auto = rsEvents.getBoolean(5);
 			if(updateId != null && sIdent != null && tableName != null) {
 				rem.writeTaskStatusEvent(
 						sd, 
@@ -1016,7 +1017,8 @@ public class MyAssignments extends Application {
 						assignmentId,
 						status,
 						null,			// Assigned not changed
-						taskName);
+						taskName,
+						assign_auto);
 			}
 		}
 	}
