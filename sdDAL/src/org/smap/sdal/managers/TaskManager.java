@@ -1685,8 +1685,9 @@ public class TaskManager {
 							tsd.from,
 							tsd.to);
 				} else {
+					
 					/*
-					 * If a user was assigned to a task that previously did not have
+					 * If a user was unassigned from a task that previously did not have
 					 * anyone assigned to it then we need to mark that task as cancelled in the
 					 * RecordEventManager
 					 * Update the Record Event Manager
@@ -2617,6 +2618,10 @@ public class TaskManager {
 			Date scheduledAt,
 			Date scheduledFinish) throws SQLException {
 		
+		/*
+		 * Delete any "new" assignments that have been set
+		 */
+		deleteNewAssignments(sd, task_id);
 		pstmt.setInt(1, assignee);
 		if(email != null) {
 			pstmt.setString(2, email);
@@ -2711,39 +2716,38 @@ public class TaskManager {
 		
 		String sql = "select assignee, email from assignments where id = ?";
 		PreparedStatement pstmtGetExisting = null;
-		boolean assignmentCancelled = false;
+		boolean insertAssignment = false;
 		try {
 			// 1.  If assignee id or emails is set then get existing assignee and email and cancel if the assignee has changed
-			if(assignee > 0 || email != null) {
-				pstmtGetExisting = sd.prepareStatement(sql);
-				pstmtGetExisting.setInt(1, a_id);
-				
-				ResultSet rs = pstmtGetExisting.executeQuery();
-				if(rs.next()) {
-					int existingAssignee = rs.getInt(1);
-					String existingEmail = rs.getString(2);
-					
-					// Notify currently assigned user
-					if(assignee > 0 && existingAssignee != assignee) {
-						cancelAssignment(
-								sd, 
-								cResults,
-								task_id,
-								a_id,
-								task_name);
-					}
-					
-					// Set flag indicating that new assignee should be set
-					if((assignee > 0 && existingAssignee != assignee) ||
-							(email != null && !email.equals(existingEmail))) {						
-						assignmentCancelled = true;
-					}
-				}				
-				
-			}
+			pstmtGetExisting = sd.prepareStatement(sql);
+			pstmtGetExisting.setInt(1, a_id);
+
+			ResultSet rs = pstmtGetExisting.executeQuery();
+			if(rs.next()) {
+				int existingAssignee = rs.getInt(1);
+				String existingEmail = rs.getString(2);
+
+				// Notify currently assigned user
+				if(existingAssignee  > 0 && existingAssignee != assignee) {
+					cancelAssignment(
+							sd, 
+							cResults,
+							task_id,
+							a_id,
+							task_name);
+				}
+
+				// Set flag indicating that new assignee should be set
+				// A new assignment is required if the assignee has changed
+				if((existingAssignee != assignee) ||
+						(email != null && !email.equals(existingEmail)) ||
+						(email == null && existingEmail != null)) {						
+					insertAssignment = true;
+				}
+			}				
 		
-			// 2.  If assignment has been cancelled then insert new assignment
-			if(assignmentCancelled) {
+			// 2.  Insert new assignment
+			if(insertAssignment) {
 				applyAllAssignments(
 						sd, 
 						cResults,
@@ -2918,6 +2922,13 @@ public class TaskManager {
 				}
 			}
 		} else {
+			
+			// Set the assignment to unassigned
+			String userIdent = null;
+			insertAssignment(sd, cResults, gson, pstmtAssign, task_name, userId, userIdent, null, "new", taskId, update_id, sIdent, 
+					remoteUser, scheduledAt, scheduledFinish);
+			
+			/*
 			log.info("No matching assignments found");
 			// Write an entry in the RecordEvent Log anyway (if the update id is not null and the results table exists)
 			if(update_id != null) {
@@ -2946,6 +2957,7 @@ public class TaskManager {
 							);
 				}
 			}
+			*/
 		}
 		return status;
 	}
@@ -3484,6 +3496,19 @@ public class TaskManager {
 			if(pstmtTaskGroup != null) try {	pstmtTaskGroup.close(); } catch(SQLException e) {};
 		}
 		return taskGroupId;
+	}
+	
+	private void deleteNewAssignments(Connection sd, int taskId) throws SQLException {
+		String sql = "delete from assignments where task_id = ? and status = 'new'";
+		PreparedStatement pstmt= null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  taskId);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
 	}
 }
 

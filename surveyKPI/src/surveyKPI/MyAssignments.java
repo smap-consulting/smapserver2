@@ -744,6 +744,7 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtEvents = null;
 		PreparedStatement pstmtUpdateId = null;
 		PreparedStatement pstmtRepeats = null;
+		PreparedStatement pstmtUnassignedRejected = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		
@@ -756,6 +757,9 @@ public class MyAssignments extends Application {
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
 			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
 			pstmtEvents = getPreparedStatementEvents(sd);
+			
+			String sqlUnassignedRejected = "insert into task_rejected(t_id, ident) values(?,?) ";
+			pstmtUnassignedRejected = sd.prepareStatement(sqlUnassignedRejected);
 			
 			String sqlUpdateId = "update tasks set update_id = ? "
 					+ "where id = ? "
@@ -797,6 +801,20 @@ public class MyAssignments extends Application {
 					pstmtRepeats.setInt(1, ta.task.id);
 					log.info("+++++++++++++++ Updating repeats: " + pstmtRepeats.toString());
 					pstmtRepeats.executeUpdate();
+				} else {
+					// Potentially rejection of an unassigned  task
+					log.info("------------- Record rejection of unassigned task");
+					log.info("      task id: " + ta.task.id);
+					if(ta.assignment.assignment_status != null && ta.assignment.assignment_status.equals(("rejected"))) {
+						pstmtUnassignedRejected.setInt(1, ta.task.id);
+						pstmtUnassignedRejected.setString(2, userName);
+						try {
+							log.info("Adding to unassigned rejected: " + pstmtUnassignedRejected.toString());
+							pstmtUnassignedRejected.executeUpdate();
+						} catch(Exception e) {
+							log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
+						}
+					}
 				}
 			}
 
@@ -886,6 +904,7 @@ public class MyAssignments extends Application {
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 			try {if ( pstmtUpdateId != null ) { pstmtUpdateId.close(); }} catch (Exception e) {}
 			try {if ( pstmtRepeats != null ) { pstmtRepeats.close(); }} catch (Exception e) {}
+			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
