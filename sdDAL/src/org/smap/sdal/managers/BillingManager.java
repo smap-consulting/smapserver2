@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.RateDetail;
@@ -64,16 +65,14 @@ public class BillingManager {
 		
 		// SQL to get submissions for all organisations
 		
-		String sqlSubmissions = "select  count(*), o.id, o.name from upload_event ue, subscriber_event se, project p, organisation o "
+		String sqlSubmissions = "select  count(*), o_id from upload_event ue, subscriber_event se "
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and subscriber = 'results_db' "
 				+ "and extract(month from upload_time) = ? "
 				+ "and extract(year from upload_time) = ? "
-				+ "and ue.p_id = p.id "
-				+ "and o.id = p.o_id "
-				+ "group by o.id, o.name "
-				+ "order by o.name";
+				+ "group by o_id "
+				+ "order by o_id";
 		
 		PreparedStatement pstmtSubmissions = null;
 		
@@ -96,11 +95,12 @@ public class BillingManager {
 			pstmtSubmissions.setInt(1, month);
 			pstmtSubmissions.setInt(2, year);
 			
+			log.info("Get per organisation usage: " + pstmtSubmissions.toString());
 			ResultSet rs = pstmtSubmissions.executeQuery();
 			while(rs.next()) {
 				int submissions = rs.getInt(1);
 				int oId = rs.getInt(2);
-				String name = rs.getString(3);
+				String name = GeneralUtilityMethods.getOrganisationName(sd, oId);
 				
 				BillingDetail bill = new BillingDetail();
 				bill.line = new ArrayList<BillLineItem> ();

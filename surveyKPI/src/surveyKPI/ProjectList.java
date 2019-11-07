@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.ServerManager;
@@ -66,6 +67,7 @@ public class ProjectList extends Application {
 	private static Logger log =
 			 Logger.getLogger(ProjectList.class.getName());
 
+	LogManager lm = new LogManager(); // Application log
 	
 	@GET
 	@Produces("application/json")
@@ -253,96 +255,86 @@ public class ProjectList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			/*
-			 * Get the organisation
-			 */
-			sql = "SELECT u.o_id " +
-					" FROM users u " +  
-					" WHERE u.ident = ?;";				
-						
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, request.getRemoteUser());
-			resultSet = pstmt.executeQuery();
-			if(resultSet.next()) {
-				o_id = resultSet.getInt(1);
+			o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				
-				for(int i = 0; i < pArray.size(); i++) {
-					Project p = pArray.get(i);
-					
-					a.projectInUsersOrganisation(sd, request.getRemoteUser(), p.id);		// Authorise deletion of this project
-					
-					/*
-					 * Ensure that there are no undeleted surveys in this project
-					 * Don't count hidden surveys which have been replaced
-					 */
-					sql = "select count(*) "
-							+ " from survey s " 
-							+ " where s.p_id = ? "
-							+ "and s.hidden = false";
-					
-					pstmt = sd.prepareStatement(sql);
-					pstmt.setInt(1, p.id);
-					log.info("Check for undeleted surveys: " + pstmt.toString());
-					resultSet = pstmt.executeQuery();
-					if(resultSet.next()) {
-						int count = resultSet.getInt(1);
-						if(count > 0) {
-							String msg = localisation.getString("msg_undel_proj").replace("%s1", String.valueOf(p.id));
-							throw new Exception(msg);
-						}
-					} else {
-						throw new Exception("Error getting survey count");
-					}			
-					
-					// Erase any hidden forms 
-					ServerManager sm = new ServerManager();
-					sql = "select s_id, ident, display_name "
-							+ " from survey s " 
-							+ " where s.p_id = ? "
-							+ "and s.hidden = true";
-					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-					pstmt = sd.prepareStatement(sql);
-					pstmt.setInt(1, p.id);
-					cResults = ResultsDataSource.getConnection(connectionString);
-					String basePath = GeneralUtilityMethods.getBasePath(request);
-					
-					ResultSet rs = pstmt.executeQuery();
-					while(rs.next()) {
-						int sId = rs.getInt(1);
-						String ident = rs.getString(2);
-						String displayName = rs.getString(3);
-						sm.deleteSurvey(		// Delete the replaced survey
-								sd, 
-								cResults,
-								request.getRemoteUser(),
-								p.id,
-								sId,
-								ident,
-								displayName,
-								basePath,
-								true,
-								"yes");
+			for(int i = 0; i < pArray.size(); i++) {
+				Project p = pArray.get(i);
+				
+				a.projectInUsersOrganisation(sd, request.getRemoteUser(), p.id);		// Authorise deletion of this project
+				
+				String project_name = GeneralUtilityMethods.getProjectName(sd, p.id);
+				/*
+				 * Ensure that there are no undeleted surveys in this project
+				 * Don't count hidden surveys which have been replaced
+				 */
+				sql = "select count(*) "
+						+ " from survey s " 
+						+ " where s.p_id = ? "
+						+ "and s.hidden = false";
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				log.info("Check for undeleted surveys: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					int count = resultSet.getInt(1);
+					if(count > 0) {
+						String msg = localisation.getString("msg_undel_proj").replace("%s1", String.valueOf(p.id));
+						throw new Exception(msg);
 					}
-					
-					// Delete the project
-					sql = "delete from project p " 
-							+ "where p.id = ? "
-							+ "and p.o_id = ?";			// Ensure the project is in the same organisation as the administrator doing the editing
-						
-					try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-					pstmt = sd.prepareStatement(sql);
-					pstmt.setInt(1, p.id);
-					pstmt.setInt(2, o_id);
-					log.info("Delete project: " + pstmt.toString());
-					pstmt.executeUpdate();
-
+				} else {
+					throw new Exception("Error getting survey count");
+				}			
+				
+				// Erase any hidden forms 
+				ServerManager sm = new ServerManager();
+				sql = "select s_id, ident, display_name "
+						+ " from survey s " 
+						+ " where s.p_id = ? "
+						+ "and s.hidden = true";
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				cResults = ResultsDataSource.getConnection(connectionString);
+				String basePath = GeneralUtilityMethods.getBasePath(request);
+				
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					int sId = rs.getInt(1);
+					String ident = rs.getString(2);
+					String displayName = rs.getString(3);
+					sm.deleteSurvey(		// Delete the replaced survey
+							sd, 
+							cResults,
+							request.getRemoteUser(),
+							p.id,
+							sId,
+							ident,
+							displayName,
+							basePath,
+							true,
+							"yes");
 				}
-			
-				response = Response.ok().build();
-			} else {
-				log.log(Level.SEVERE,"Error: No organisation");
-			    response = Response.serverError().build();
+				
+				// Delete the project
+				sql = "delete from project p " 
+						+ "where p.id = ? "
+						+ "and p.o_id = ?";			// Ensure the project is in the same organisation as the administrator doing the editing
+					
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				pstmt.setInt(2, o_id);
+				log.info("Delete project: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+				String msg = localisation.getString("msg_del_proj");
+				msg = msg.replace("%s1", project_name);
+				lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.DELETE, 
+						msg);
 			}
+		
+			response = Response.ok().build();
 			
 			sd.commit();
 				
@@ -357,16 +349,11 @@ public class ProjectList extends Application {
 			log.info(ex.getMessage());
 			response = Response.serverError().entity(ex.getMessage()).build();
 			
-			try{
-				sd.rollback();
-			} catch(Exception e2) {
-				
-			}
+			try{	sd.rollback();} catch(Exception e2) {}
 			
 		} finally {
 			
-			try {
-				if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
