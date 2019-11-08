@@ -453,7 +453,11 @@ public class MyAssignments extends Application {
 						);
 				
 				for(TaskFeature task : unassigned.features) {
-					System.out.println("Task:    " + task.properties.name);
+					
+					// Create the list of task assignments if it has not already been created
+					if(tr.taskAssignments == null) {
+						tr.taskAssignments = new ArrayList<TaskAssignment>();
+					}
 					
 					// Create the new Task Assignment Objects
 					TaskAssignment ta = new TaskAssignment();
@@ -912,10 +916,19 @@ public class MyAssignments extends Application {
 	// Get a prepared statement to update the status of an assignment
 	private PreparedStatement getPreparedStatementSetUpdated(Connection sd) throws SQLException {
 
-		String sql = "UPDATE assignments a SET status = ?, comment = ? " +
-				"where a.id = ? " + 
-				"and a.assignee in (select id from users u " +
-				"where u.ident = ?)";
+		/*
+		 * The assignment status can be updated by a user if it is an auto allocate
+		 * task and the current status is new
+		 * or the task is assigned to the user
+		 */
+		String sql = "update assignments a "
+				+ "set status = ?, "
+				+ "comment = ?,"
+				+ "assignee = ?,"
+				+ "assignee_name = (select name from users where id = ?) "
+				+ "where a.id = ? "
+				+ "and ((a.status = 'new' and task_id in (select id from tasks where id = task_id and assign_auto)) "
+				+ "or a.assignee = ?)";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}
@@ -955,7 +968,7 @@ public class MyAssignments extends Application {
 		 * If the updated status = "cancelled" then this is an acknowledgment of the status set on the server
 		 *   hence update the server status to "deleted"
 		 */
-		if(status.equals("cancelled")) {
+		if(status.equals(TaskManager.STATUS_T_CANCELLED)) {
 			log.info("Assignment:" + assignmentId + " acknowledge cancel");
 			pstmtSetDeleted.setInt(1, assignmentId);
 			pstmtSetDeleted.setString(2, userName);
@@ -963,15 +976,19 @@ public class MyAssignments extends Application {
 			pstmtSetDeleted.executeUpdate();
 		} else {
 
+			int uId = GeneralUtilityMethods.getUserId(sd, userName);
+			
 			// Apply update making sure the assignment was made to the updating user
 			pstmtSetUpdated.setString(1, status);
 			pstmtSetUpdated.setString(2, comment);
-			pstmtSetUpdated.setInt(3, assignmentId);
-			pstmtSetUpdated.setString(4, userName);
+			pstmtSetUpdated.setInt(3, uId);
+			pstmtSetUpdated.setInt(4, uId);
+			pstmtSetUpdated.setInt(5, assignmentId);		// To get name
+			pstmtSetUpdated.setInt(6, uId);
 			log.info("update assignments: " + pstmtSetUpdated.toString());
 			pstmtSetUpdated.executeUpdate();
 			
-			if(status.equals("submitted")) {
+			if(status.equals(TaskManager.STATUS_T_SUBMITTED)) {
 				// Cancel other assignments if complete_all is not set for the task
 				tm.cancelOtherAssignments(sd, cResults, assignmentId);
 			}
@@ -981,11 +998,10 @@ public class MyAssignments extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
 					assignmentId + ": " + comment );
-			
+		}
+		if(status.equals(TaskManager.STATUS_T_REJECTED)) {
 			// Potentially rejection of an unassigned  task
-			if(status.equals(("rejected"))) {
-				updateTaskRejected(sd, assignmentId, userName);
-			}
+			updateTaskRejected(sd, assignmentId, userName);
 		}
 		
 		/*
@@ -1016,12 +1032,15 @@ public class MyAssignments extends Application {
 	/*
 	 * If a user has rejected a self allocating task then remember this so it is not sent to them again
 	 */
-	private void updateTaskRejected(Connection sd, int assignmentId, String userName) throws SQLException {
+	private void updateTaskRejected(Connection sd, int assignmentId, 
+			String userName) throws SQLException {
 		
 		String sql = "select status from assignments where id = ?";
 		PreparedStatement pstmt = null;
 		
-		String sqlUnassignedRejected = "insert into task_rejected(a_id, ident, rejected_at) values(?,?, now()) ";
+		String sqlUnassignedRejected = "insert into "
+				+ "task_rejected(a_id, ident, rejected_at) "
+				+ "values(?, ?, now()) ";
 		PreparedStatement pstmtUnassignedRejected = null;
 		
 		try {
