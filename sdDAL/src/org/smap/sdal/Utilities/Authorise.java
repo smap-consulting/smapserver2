@@ -398,7 +398,6 @@ public class Authorise {
 			if(!superUser) {
 				pstmt.setString(4, user);
 			}
-			log.info("IsValidSurvey: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
@@ -414,6 +413,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
+			log.info("IsValidSurvey: " + pstmt.toString());
  			log.info("Survey validation failed for: " + user + " survey was: " + sId);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
@@ -467,7 +467,6 @@ public class Authorise {
 			if(!superUser) {
 				pstmt.setString(4, user);
 			}
-			log.info("IsValidSurvey: " + pstmt.toString());
 			
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
@@ -483,6 +482,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
+			log.info("IsValidSurvey: " + pstmt.toString());
  			log.info("Survey validation failed for: " + user + " survey was: " + sIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);

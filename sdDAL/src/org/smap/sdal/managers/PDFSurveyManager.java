@@ -1062,7 +1062,10 @@ public class PDFSurveyManager {
 					label = question.labels.get(languageIdx);
 				} else {
 					label = new Label();
-					log.info("Error: No label found for question: " + question.name);
+					if(question.source != null) {
+						// Probably should have a label
+						log.info("Error: No label found for question: " + question.name);
+					}
 				}
 			}
 
