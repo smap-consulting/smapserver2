@@ -286,7 +286,8 @@ public class SubRelationalDB extends Subscriber {
 						assignmentId,
 						TaskManager.STATUS_T_SUBMITTED,
 						null,			// Assigned not changed
-						null);			// Task Title not changed
+						null,
+						false);			// Task Title not changed
 			}
 
 

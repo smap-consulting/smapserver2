@@ -31,12 +31,14 @@ public class TaskProperties {
 	public double lon;				// Duplicates geometry information, used when updating the location
 	public double lat;
 	public boolean complete_all;		// When set true all the assignments associated to a task need to be completed	
+	public boolean assign_auto;		// When set true allow users to assign themselves if unassigned	
 	public Instance initial_data;	// The actual data in json format
 	public int show_dist;			// The distance at which the task will be shown on the phone	
 	
 	// Other properties
 	public int id;
 	public String tg_name;
+	public int p_id;
 	public int a_id;					// The assignment ID which is the true identifier of the task (ie the task is the task defn + assignment)
 	public String action_link;
 	public String survey_name;

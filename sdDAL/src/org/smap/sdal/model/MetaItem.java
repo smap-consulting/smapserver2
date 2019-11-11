@@ -14,7 +14,8 @@ public class MetaItem {
 	public String dataType;
 	public boolean isPreload;
 	public String display_name;
-	public boolean published = false;
+	public boolean published = false;		// Only used for temporary indication that item is published
+											// Ie test for availability in database when creating query then use this indicator when reading results 
 	public String settings;
 	
 	public MetaItem(

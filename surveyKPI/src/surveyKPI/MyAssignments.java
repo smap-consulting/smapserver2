@@ -49,6 +49,8 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.Task;
 import org.smap.sdal.model.TaskAssignment;
+import org.smap.sdal.model.TaskFeature;
+import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskLocation;
 
 import com.google.gson.Gson;
@@ -83,7 +85,7 @@ public class MyAssignments extends Application {
 			Logger.getLogger(Survey.class.getName());
 	
 	LogManager lm = new LogManager(); // Application log
-
+	
 	/*
 	 * Get assignments for user authenticated with credentials
 	 */
@@ -437,6 +439,65 @@ public class MyAssignments extends Application {
 			}
 			
 			/*
+			 * If there is still room for tasks then add new tasks where the task group allows auto selection
+			 */
+			if(ft_number_tasks > 0) {
+				TaskManager tm = new TaskManager(localisation, tz);
+				int uId = GeneralUtilityMethods.getUserId(sd, userName);
+				TaskListGeoJson unassigned = tm.getUnassignedTasks(
+						sd, 
+						oId,			
+						uId,
+						ft_number_tasks,		// Maximum number of tasks to return
+						userName
+						);
+				
+				for(TaskFeature task : unassigned.features) {
+					
+					// Create the list of task assignments if it has not already been created
+					if(tr.taskAssignments == null) {
+						tr.taskAssignments = new ArrayList<TaskAssignment>();
+					}
+					
+					// Create the new Task Assignment Objects
+					TaskAssignment ta = new TaskAssignment();
+					ta.task = new Task();
+					ta.location = new TaskLocation();
+					ta.assignment = new Assignment();
+					
+					// Populate the new Task Assignment
+					ta.task.id = task.properties.id;
+					ta.task.type = "xform";									// Kept for backward compatibility with old versions of fieldTask
+					ta.task.title = task.properties.name;					
+					ta.task.pid = String.valueOf(task.properties.p_id);				
+					ta.task.form_id = task.properties.survey_ident;		// Form id is survey ident
+					ta.task.form_version = task.properties.form_version;				
+					ta.task.update_id = task.properties.update_id;				
+					ta.task.initial_data_source = task.properties.initial_data_source;				
+					ta.task.scheduled_at = task.properties.from;				
+					ta.task.location_trigger = task.properties.location_trigger;
+					if(ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
+						ta.task.location_trigger = null;
+					}				
+					ta.task.repeat = task.properties.repeat;				
+					ta.task.address = task.properties.address;		
+					ta.task.address = addKeyValuePair(ta.task.address, "guidance", task.properties.guidance);	// Address stored as json key value pairs				
+					ta.task.show_dist = task.properties.show_dist;		
+					ta.assignment.assignment_id = task.properties.a_id;
+					ta.assignment.assignment_status = task.properties.status;
+
+					if(task.properties.lat != 0.0 && task.properties.lon != 0.0) {				
+						ta.location.geometry = new GeometryString();
+						ta.location.geometry.type = "POINT";
+						ta.location.geometry.coordinates = new String [2];
+						ta.location.geometry.coordinates[0] = String.valueOf(task.properties.lon);
+						ta.location.geometry.coordinates[1] = String.valueOf(task.properties.lat);
+					}
+					tr.taskAssignments.add(ta);
+				}
+			}
+			
+			/*
 			 * Set all tasks to deleted that have been acknowledged as cancelled
 			 */
 			for(int assignmentId : cancelledAssignments) {
@@ -681,13 +742,13 @@ public class MyAssignments extends Application {
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
 
 		PreparedStatement pstmtSetDeleted = null;
-		PreparedStatement pstmtSetUpdated = null;
-		
+		PreparedStatement pstmtSetUpdated = null;		
 		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
 		PreparedStatement pstmtUpdateId = null;
 		PreparedStatement pstmtRepeats = null;
+		PreparedStatement pstmtUnassignedRejected = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		
@@ -741,6 +802,8 @@ public class MyAssignments extends Application {
 					pstmtRepeats.setInt(1, ta.task.id);
 					log.info("+++++++++++++++ Updating repeats: " + pstmtRepeats.toString());
 					pstmtRepeats.executeUpdate();
+				} else {
+					log.info("Error: assignment id is zero");
 				}
 			}
 
@@ -830,6 +893,7 @@ public class MyAssignments extends Application {
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 			try {if ( pstmtUpdateId != null ) { pstmtUpdateId.close(); }} catch (Exception e) {}
 			try {if ( pstmtRepeats != null ) { pstmtRepeats.close(); }} catch (Exception e) {}
+			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
@@ -852,10 +916,19 @@ public class MyAssignments extends Application {
 	// Get a prepared statement to update the status of an assignment
 	private PreparedStatement getPreparedStatementSetUpdated(Connection sd) throws SQLException {
 
-		String sql = "UPDATE assignments a SET status = ?, comment = ? " +
-				"where a.id = ? " + 
-				"and a.assignee in (select id from users u " +
-				"where u.ident = ?)";
+		/*
+		 * The assignment status can be updated by a user if it is an auto allocate
+		 * task and the current status is new
+		 * or the task is assigned to the user
+		 */
+		String sql = "update assignments a "
+				+ "set status = ?, "
+				+ "comment = ?,"
+				+ "assignee = ?,"
+				+ "assignee_name = (select name from users where id = ?) "
+				+ "where a.id = ? "
+				+ "and ((a.status = 'new' and task_id in (select id from tasks where id = task_id and assign_auto)) "
+				+ "or a.assignee = ?)";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}
@@ -863,7 +936,7 @@ public class MyAssignments extends Application {
 	// Get a prepared statement to update the record events table
 	private PreparedStatement getPreparedStatementEvents(Connection sd) throws SQLException {
 
-		String sql = "select t.survey_ident, f.table_name, t.update_id, t.title from tasks t, form f, survey s "
+		String sql = "select t.survey_ident, f.table_name, t.update_id, t.title, t.assign_auto from tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
 				+ "and t.id = ? ";
@@ -895,7 +968,7 @@ public class MyAssignments extends Application {
 		 * If the updated status = "cancelled" then this is an acknowledgment of the status set on the server
 		 *   hence update the server status to "deleted"
 		 */
-		if(status.equals("cancelled")) {
+		if(status.equals(TaskManager.STATUS_T_CANCELLED)) {
 			log.info("Assignment:" + assignmentId + " acknowledge cancel");
 			pstmtSetDeleted.setInt(1, assignmentId);
 			pstmtSetDeleted.setString(2, userName);
@@ -903,15 +976,19 @@ public class MyAssignments extends Application {
 			pstmtSetDeleted.executeUpdate();
 		} else {
 
+			int uId = GeneralUtilityMethods.getUserId(sd, userName);
+			
 			// Apply update making sure the assignment was made to the updating user
 			pstmtSetUpdated.setString(1, status);
 			pstmtSetUpdated.setString(2, comment);
-			pstmtSetUpdated.setInt(3, assignmentId);
-			pstmtSetUpdated.setString(4, userName);
+			pstmtSetUpdated.setInt(3, uId);
+			pstmtSetUpdated.setInt(4, uId);
+			pstmtSetUpdated.setInt(5, assignmentId);		// To get name
+			pstmtSetUpdated.setInt(6, uId);
 			log.info("update assignments: " + pstmtSetUpdated.toString());
 			pstmtSetUpdated.executeUpdate();
 			
-			if(status.equals("submitted")) {
+			if(status.equals(TaskManager.STATUS_T_SUBMITTED)) {
 				// Cancel other assignments if complete_all is not set for the task
 				tm.cancelOtherAssignments(sd, cResults, assignmentId);
 			}
@@ -921,6 +998,10 @@ public class MyAssignments extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
 					assignmentId + ": " + comment );
+		}
+		if(status.equals(TaskManager.STATUS_T_REJECTED)) {
+			// Potentially rejection of an unassigned  task
+			updateTaskRejected(sd, assignmentId, userName);
 		}
 		
 		/*
@@ -933,6 +1014,7 @@ public class MyAssignments extends Application {
 			String tableName = rsEvents.getString(2);
 			String updateId = rsEvents.getString(3);
 			String taskName = rsEvents.getString(4);
+			boolean assign_auto = rsEvents.getBoolean(5);
 			if(updateId != null && sIdent != null && tableName != null) {
 				rem.writeTaskStatusEvent(
 						sd, 
@@ -941,8 +1023,51 @@ public class MyAssignments extends Application {
 						assignmentId,
 						status,
 						null,			// Assigned not changed
-						taskName);
+						taskName,
+						assign_auto);
 			}
+		}
+	}
+	
+	/*
+	 * If a user has rejected a self allocating task then remember this so it is not sent to them again
+	 */
+	private void updateTaskRejected(Connection sd, int assignmentId, 
+			String userName) throws SQLException {
+		
+		String sql = "select status from assignments where id = ?";
+		PreparedStatement pstmt = null;
+		
+		String sqlUnassignedRejected = "insert into "
+				+ "task_rejected(a_id, ident, rejected_at) "
+				+ "values(?, ?, now()) ";
+		PreparedStatement pstmtUnassignedRejected = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,assignmentId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String status = rs.getString(1);
+				if(status != null && status.equals("new")) {
+					
+					// Must have been a self allocate task
+					pstmtUnassignedRejected = sd.prepareStatement(sqlUnassignedRejected);			
+					pstmtUnassignedRejected.setInt(1, assignmentId);
+					pstmtUnassignedRejected.setString(2, userName);
+					try {
+						log.info("Adding to unassigned rejected: " + pstmtUnassignedRejected.toString());
+						pstmtUnassignedRejected.executeUpdate();
+					} catch(Exception e) {
+						// Ignore errors as if this has already been rejected we don't really care
+						log.info("Error: Could not record rejection of unassigned task: " + e.getMessage());
+					}
+				}
+			}		
+			
+		} finally {
+			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
+			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}
 		}
 	}
 }

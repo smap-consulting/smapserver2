@@ -13,11 +13,13 @@ public class TaskEventChange {
 	public String comment;
 	public Date schedule_at;
 	public Date schedule_finish;
+	public boolean assign_auto;
 
 	// Normal constructor
 	public TaskEventChange(String name, String status, String assigned, String comment,
 			Date scheduleAt,
-			Date scheduleFinish) {
+			Date scheduleFinish,
+			boolean assign_auto) {
 		
 		this.when = new Date();
 		this.name = name;
@@ -26,5 +28,6 @@ public class TaskEventChange {
 		this.comment = comment;
 		this.schedule_at = scheduleAt;
 		this.schedule_finish = scheduleFinish;
+		this.assign_auto = assign_auto;
 	}
 }

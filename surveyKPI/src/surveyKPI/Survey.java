@@ -834,16 +834,17 @@ public class Survey extends Application {
 			@QueryParam("set") boolean set) { 
 
 		Response response = null;
+		String connectionRequest = "surveyKPI-Survey";
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection(connectionRequest);
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 
 		PreparedStatement pstmt = null;
@@ -855,7 +856,7 @@ public class Survey extends Application {
 			String sql = "update survey set blocked = ? where s_id = ?;";		
 
 			log.info(sql + " : " + set + " : " + sId);
-			pstmt = connectionSD.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql);	
 			pstmt.setBoolean(1, set);
 			pstmt.setInt(2, sId);
 			int count = pstmt.executeUpdate();
@@ -863,13 +864,13 @@ public class Survey extends Application {
 			if(count == 0) {
 				log.info("Error: Failed to update blocked status");
 			} else {
-				lm.writeLog(connectionSD, sId, request.getRemoteUser(), "block", set ? " : block survey : " : " : unblock survey : ");
+				lm.writeLog(sd, sId, request.getRemoteUser(), "block", set ? " : block survey : " : " : unblock survey : ");
 				log.info("userevent: " + request.getRemoteUser() + (set ? " : block survey : " : " : unblock survey : ") + sId);
 			}
 
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager();
-			mm.surveyChange(connectionSD, sId, 0);
+			mm.surveyChange(sd, sId, 0);
 
 			response = Response.ok().build();
 
@@ -882,7 +883,7 @@ public class Survey extends Application {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
+			SDDataSource.closeConnection(connectionRequest, sd);
 		}
 
 		return response;

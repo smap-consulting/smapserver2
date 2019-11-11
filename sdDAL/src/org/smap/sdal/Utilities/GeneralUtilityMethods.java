@@ -3722,15 +3722,17 @@ public class GeneralUtilityMethods {
 			if (includePreloads) {
 				for(MetaItem mi : preloads) {
 					if(mi.isPreload) {
-						c = new TableColumn();
-						c.column_name = mi.columnName;
-						c.displayName = mi.name;
-						c.question_name = mi.name;
-						c.type = mi.type;
-						if(c.type != null && c.type.equals("timestamp")) {
-							c.type = "dateTime";
+						if(GeneralUtilityMethods.hasColumn(cResults, table_name, mi.columnName)) {
+							c = new TableColumn();
+							c.column_name = mi.columnName;
+							c.displayName = mi.name;
+							c.question_name = mi.name;
+							c.type = mi.type;
+							if(c.type != null && c.type.equals("timestamp")) {
+								c.type = "dateTime";
+							}
+							columnList.add(c);
 						}
-						columnList.add(c);
 					}
 				}
 			}

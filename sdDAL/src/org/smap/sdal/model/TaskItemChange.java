@@ -15,10 +15,13 @@ public class TaskItemChange {
 	public TaskItemChange(int taskId, int assignmentId, String name, String status, String assigned, 
 			String comment,
 			Date scheduleAt,
-			Date scheduleFinish) {
+			Date scheduleFinish,
+			boolean assign_auto) {
 		this.taskId = taskId;
 		this.assignmentId = assignmentId;
-		taskEvents.add(new TaskEventChange(name, status, assigned, comment, scheduleAt, scheduleFinish));
+		taskEvents.add(new TaskEventChange(name, status, assigned, comment, scheduleAt, 
+				scheduleFinish,
+				assign_auto));
 		
 	}
 }

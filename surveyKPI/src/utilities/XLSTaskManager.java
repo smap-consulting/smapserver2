@@ -129,6 +129,8 @@ public class XLSTaskManager {
 				value = String.valueOf(props.repeat);
 			} else if(name.equals("complete_all")) {
 				value = String.valueOf(props.complete_all);
+			} else if(name.equals("assign_auto")) {
+				value = String.valueOf(props.assign_auto);
 			} else if(name.equals("address")) {
 				value = props.address;
 			} else if(name.equals("lon")) {
@@ -583,6 +585,7 @@ public class XLSTaskManager {
 		cols.add(new Column(localisation, colNumber++, "guidance", false));
 		cols.add(new Column(localisation, colNumber++, "repeat", false));
 		cols.add(new Column(localisation, colNumber++, "complete_all", false));
+		cols.add(new Column(localisation, colNumber++, "assign_auto", false));
 		cols.add(new Column(localisation, colNumber++, "address", false));
 		cols.add(new Column(localisation, colNumber++, "lon", false));
 		cols.add(new Column(localisation, colNumber++, "lat", false));	
