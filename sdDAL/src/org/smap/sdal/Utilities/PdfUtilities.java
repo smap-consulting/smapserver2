@@ -40,7 +40,8 @@ public class PdfUtilities {
 			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
 			ad.setProportionalIcon(true);
 			try {
-				ad.setImage(Image.getInstance(basePath + "/" + value));
+				ad.setImage(Image.getInstance(serverRoot + "/" + value));
+				//ad.setImage(Image.getInstance(basePath + "/" + value));
 				pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			} catch (Exception e) {
 				log.info("Error: Failed to add image " + basePath + "/" + value + " to pdf: " + e.getMessage());

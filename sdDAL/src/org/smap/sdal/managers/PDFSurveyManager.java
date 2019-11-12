@@ -1062,7 +1062,10 @@ public class PDFSurveyManager {
 					label = question.labels.get(languageIdx);
 				} else {
 					label = new Label();
-					log.info("Error: No label found for question: " + question.name);
+					if(question.source != null) {
+						// Probably should have a label
+						log.info("Error: No label found for question: " + question.name);
+					}
 				}
 			}
 
@@ -1553,7 +1556,8 @@ public class PDFSurveyManager {
 					valueCell.addElement(getPara("", di, gv, deps, anchor));
 				} else {
 					try {
-						Image img = Image.getInstance(basePath + "/" + di.value);
+						//Image img = Image.getInstance(basePath + "/" + di.value);
+						Image img = Image.getInstance(serverRoot + di.value);
 						valueCell.addElement(img);
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());

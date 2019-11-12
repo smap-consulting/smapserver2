@@ -141,7 +141,6 @@ public class FormsManifest {
 			List<ManifestValue> manifestList = translationMgr.
 					getManifestBySurvey(connectionSD, request.getRemoteUser(), survey.id, basePath, key);
 
-			log.info("Retrieved manifest list: " + manifestList.size());
 			for( ManifestValue m : manifestList) {
 
 				String filepath = null;
@@ -149,17 +148,13 @@ public class FormsManifest {
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, survey.id);
 				
 				if(m.type.equals("linked")) {
-					log.info("Linked file path: " + m.fileName);
 					filepath = basepath + "/media/" + sIdent+ "/" + 
 							request.getRemoteUser() + "/" + m.fileName;
 					filepath += ".csv";
 					m.fileName += ".csv";
 				} else {
-					log.info("CSV file path: " + m.filePath);
 					filepath = m.filePath;
 				}
-				
-				log.info("Getting manifest at: " + filepath);
 				
 				// Check that the file exists
 				if(filepath != null) {
@@ -186,8 +181,7 @@ public class FormsManifest {
 			responseStr.append("</manifest>\n");
 			
 		} catch (Exception e) {
-			System.out.println(e.getMessage());
-			e.printStackTrace();
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
@@ -202,7 +196,6 @@ public class FormsManifest {
 		
 		if(filepath != null) {
 			FileInputStream fis = null;
-			log.info("CSV or Media file:" + filepath);
 			try {
 				fis = new FileInputStream( new File(filepath) );
 				
