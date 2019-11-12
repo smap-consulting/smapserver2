@@ -1556,7 +1556,8 @@ public class PDFSurveyManager {
 					valueCell.addElement(getPara("", di, gv, deps, anchor));
 				} else {
 					try {
-						Image img = Image.getInstance(basePath + "/" + di.value);
+						//Image img = Image.getInstance(basePath + "/" + di.value);
+						Image img = Image.getInstance(serverRoot + di.value);
 						valueCell.addElement(img);
 					} catch(Exception e) {
 						log.info("Error: image " + basePath + "/" + di.value + " not added: " + e.getMessage());
