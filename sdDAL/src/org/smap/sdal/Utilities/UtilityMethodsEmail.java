@@ -705,7 +705,7 @@ public class UtilityMethodsEmail {
 					
 					int idx = text_id.indexOf(':');
 					if(idx > 0) {
-						String root = text_id.substring(0, idx) + "%";
+						String root = text_id.substring(0, idx + 1) + "%";
 						
 						pstmt.setInt(1, s.id);
 						pstmt.setString(2, s.languages.get(i).name);

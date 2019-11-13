@@ -4290,4 +4290,17 @@ public class SurveyManager {
 		}
 		return valid;
 	}
+	
+	public static boolean isValidSubFormKeyPolicy(String policy) {
+		boolean valid = false;
+		
+		if(policy != null) {
+			if(policy.equals(KP_NONE) ||
+				policy.equals(KP_MERGE) ||
+				policy.equals(KP_REPLACE)) {
+				valid = true;
+			}
+		}
+		return valid;
+	}
 }
