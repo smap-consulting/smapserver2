@@ -1192,6 +1192,7 @@ public class GetHtml {
 		int idx = 0;
 		Element bodyElement = null;
 		boolean requiredMessageAdded = false;
+		boolean constraintMessageAdded = false;
 		boolean requiredIndicatorAdded = false;
 		for (Language lang : survey.languages) {
 
@@ -1257,7 +1258,7 @@ public class GetHtml {
 			}
 			
 			// Constraint
-			addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
+			constraintMessageAdded = addConstraintMsg(q.labels.get(idx).constraint_msg, lang.name, parent, idx);
 			if(q.required) {
 				if(q.labels.get(idx).required_msg != null) {
 					if(!requiredIndicatorAdded) {
@@ -1277,7 +1278,7 @@ public class GetHtml {
 		}
 
 		// Constraint message (Without a language)
-		if(!q.type.startsWith("select")) {
+		if(!constraintMessageAdded && !q.type.startsWith("select")) {
 			addConstraintMsg(q.constraint_msg, null, parent, 0);
 		}
 
@@ -1302,8 +1303,10 @@ public class GetHtml {
 	/*
 	 * Add a constraint
 	 */
-	private void addConstraintMsg(String msg, String lang, Element parent, int idx) {		
+	private boolean addConstraintMsg(String msg, String lang, Element parent, int idx) {		
 
+		boolean added = false;
+		
 		if(lang == null) {
 			lang = "";
 		}
@@ -1319,7 +1322,9 @@ public class GetHtml {
 			bodyElement.setAttribute("class", theClass);
 			bodyElement.setTextContent(msg);
 			parent.appendChild(bodyElement);
+			added = true;
 		}
+		return added;
 	}
 	
 	

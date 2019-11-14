@@ -97,6 +97,12 @@ public class SurveyManager {
 	private String gPrimaryKey;			// Set to primary key of top form in top level survey when getting results
 	private String gHRK;					// Set to the HRK of the top level survey when getting results
 	
+	// Survey Key Policies
+	public static String KP_NONE = "none";
+	public static String KP_REPLACE = "replace";
+	public static String KP_MERGE = "merge";
+	public static String KP_DISCARD = "discard";
+	
 	public SurveyManager(ResourceBundle l, String tz) {
 		localisation = l;
 		if(tz == null) {
@@ -4269,5 +4275,32 @@ public class SurveyManager {
 		}
 
 		return instances;
+	}
+	
+	public static boolean isValidSurveyKeyPolicy(String policy) {
+		boolean valid = false;
+		
+		if(policy != null) {
+			if(policy.equals(KP_NONE) ||
+				policy.equals(KP_DISCARD) ||
+				policy.equals(KP_MERGE) ||
+				policy.equals(KP_REPLACE)) {
+				valid = true;
+			}
+		}
+		return valid;
+	}
+	
+	public static boolean isValidSubFormKeyPolicy(String policy) {
+		boolean valid = false;
+		
+		if(policy != null) {
+			if(policy.equals(KP_NONE) ||
+				policy.equals(KP_MERGE) ||
+				policy.equals(KP_REPLACE)) {
+				valid = true;
+			}
+		}
+		return valid;
 	}
 }

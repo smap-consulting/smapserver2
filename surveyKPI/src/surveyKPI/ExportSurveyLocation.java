@@ -144,7 +144,7 @@ public class ExportSurveyLocation extends Application {
 						"\"" + sqlDesc.sql + "\" " +
         				filepath + 
         				" " + format +
-        				" >> /var/log/tomcat7/survey.log 2>&1"});
+        				" >> /var/log/subscribers/survey.log 2>&1"});
 				code = proc.waitFor();
 					
 	            log.info("Process exitValue: " + code);

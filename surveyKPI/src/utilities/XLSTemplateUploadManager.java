@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.XLSFormColumns;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Condition;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.KeyValueSimp;
@@ -320,8 +321,18 @@ public class XLSTemplateUploadManager {
 				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum);
 
 				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
+				
 				survey.key_policy = XLSUtilities.getTextColumn(row, "key_policy", settingsHeader, lastCellNum, null);
-
+				if(survey.key_policy == null) {
+					survey.key_policy = SurveyManager.KP_NONE;
+				}
+				if(!SurveyManager.isValidSurveyKeyPolicy(survey.key_policy)) {
+					String msg = localisation.getString("tu_inv_kp");
+					msg = msg.replace("%s1", survey.key_policy);
+					throw new ApplicationException(msg);
+				}
+				
+				
 				String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
 				if(pdRepeats != null) {
 					String [] pdArray = pdRepeats.split(":");

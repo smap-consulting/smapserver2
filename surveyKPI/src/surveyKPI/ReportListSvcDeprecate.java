@@ -439,7 +439,7 @@ public class ReportListSvcDeprecate extends Application {
 						
 						Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/usr/bin/convert -thumbnail 200 "  + 
 		        				imageFileName + " " + thumbFileName + 
-		        				" >> /var/log/tomcat7/attachments.log 2>&1"});
+		        				" >> /var/log/subscribers/attachments.log 2>&1"});
 						
 						dimURL = getImageDimension(outImageURL);
 						dimThumb = getImageDimension(outThumbURL);
@@ -709,7 +709,7 @@ public class ReportListSvcDeprecate extends Application {
 				
 				String attachments = basePath + "/attachments/report/" + ident + ".*";
 				Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "rm -vf  "  + attachments +  
-        				" >> /var/log/tomcat7/attachments.log 2>&1"});
+        				" >> /var/log/subscribers/attachments.log 2>&1"});
 				
 				response = Response.ok("Report " + ident + " deleted.").build();
 

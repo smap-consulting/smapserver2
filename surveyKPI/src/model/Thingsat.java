@@ -171,7 +171,7 @@ public class Thingsat {
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "zip -rj " + 
 				filepath + ".zip " +
 				filepath  +
-				" >> /var/log/tomcat7/survey.log 2>&1"});
+				" >> /var/log/subscribers/survey.log 2>&1"});
 		code = proc.waitFor();
 		
 		
@@ -183,12 +183,12 @@ public class Thingsat {
 		
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod +x " + 
 				filepath + "/import.sh " +
-				" >> /var/log/tomcat7/survey.log 2>&1"});
+				" >> /var/log/subscribers/survey.log 2>&1"});
 		code = proc.waitFor();	
         System.out.println("Process create local load - 1 exitValue: " + code);
         
 		proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", filepath + "/import.sh " + filepath + 
-				" >> /var/log/tomcat7/survey.log 2>&1"});
+				" >> /var/log/subscribers/survey.log 2>&1"});
 		code = proc.waitFor();	
         System.out.println("Process create local load - 2 exitValue: " + code);
 	};

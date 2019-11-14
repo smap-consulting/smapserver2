@@ -55,6 +55,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
@@ -524,10 +525,7 @@ public class SubRelationalDB extends Subscriber {
 			int assignmentId) throws SQLInsertException {
 
 		int sId = survey.id;
-		String keyPolicy = survey.key_policy;
-		if(keyPolicy == null) {
-			keyPolicy = "replace";		// default
-		}
+		
 		PreparedStatement pstmtHrk = null;
 		PreparedStatement pstmtAddHrk = null;
 		boolean resAutoCommitSetFalse = false;
@@ -605,32 +603,40 @@ public class SubRelationalDB extends Subscriber {
 			}
 
 			/*
-			 * Apply the key policy
+			 * Key policy is applied if the table has an HRK
 			 */
+			String keyPolicy = survey.key_policy;
+			
+			// Make sure the key policy is valid
+			if(!SurveyManager.isValidSurveyKeyPolicy(keyPolicy)) {
+				keyPolicy = SurveyManager.KP_NONE;
+			}
 			log.info("################### Processing key policy:" + keyPolicy + ": " + hasHrk + " : " + assignmentId );
-			boolean replace = keyPolicy.equals("replace");
-			if(hasHrk) {
-				if(keyPolicy.equals("merge") || keyPolicy.equals("replace")) {					
-					log.info("Apply merge-replace policy");
-					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							replace, remoteUser, instance.getUuid());
-				} else if(keyPolicy.equals("discard")) {
-					log.info("Apply discard policy");		// Only applied with HRK, direct updates use "replace" when policy is set to "discard"
-					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
-				} 
-				
-			} else if(updateId != null) {
-				// Update to a record without HRK apply a default key policy of merge or replace 
+			
+			if(updateId != null) {
+				// Direct update to a record
 				log.info("Direct update with Existing unique id:" + updateId);
 				existingKey = getKeyFromId(cResults, topElement, updateId);
 
+				boolean replace = true;		// Always replace for direct updates
 				if(existingKey != 0) {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not hav ebeen committed yet
+							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
-			} 
+			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
+				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
+				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
+					log.info("Apply merge-replace policy");
+					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
+							replace, remoteUser, instance.getUuid());
+				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
+					log.info("Apply discard policy");
+					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
+				} 
+				
+			}  
 
 			/*
 			 * Record any foreign keys that need to be set between forms

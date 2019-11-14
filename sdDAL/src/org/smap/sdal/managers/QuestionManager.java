@@ -302,7 +302,7 @@ public class QuestionManager {
 								merge = true;
 							} else if(k.v.equals("replace")) {
 								replace = true;
-							} else if(k.v.equals("append")) {
+							} else if(k.v.equals("none")) {
 								// default - ignore
 							} else {
 								log.info("Error: unknown key policy: " + k.v);

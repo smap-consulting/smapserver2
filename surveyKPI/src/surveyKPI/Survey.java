@@ -259,7 +259,7 @@ public class Survey extends Application {
 					if(type.equals("codebook")) {
 						Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/gettemplate.sh " + sourceName +
 								" " + language +
-						" >> /var/log/tomcat7/survey.log 2>&1"});
+						" >> /var/log/subscribers/survey.log 2>&1"});
 						code = proc.waitFor();
 						log.info("Process exitValue: " + code);
 					}
