@@ -328,7 +328,7 @@ public class ExportSurveyMedia extends Application {
 							"\"" + sqlDesc.sql + "\" " +
         					filePath + 
         					" " + "media" +
-        					" >> /var/log/tomcat7/survey.log 2>&1"});
+        					" >> /var/log/subscribers/survey.log 2>&1"});
         					
 				code = proc.waitFor();
 					

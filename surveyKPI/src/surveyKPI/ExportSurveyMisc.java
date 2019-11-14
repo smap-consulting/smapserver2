@@ -440,7 +440,7 @@ public class ExportSurveyMisc extends Application {
 							"\"" + sqlDesc.sql + "\" " +
 							filepath + 
 							" " + modifiedFormat +
-					" >> /var/log/tomcat7/survey.log 2>&1"});
+					" >> /var/log/subscribers/survey.log 2>&1"});
 					code = proc.waitFor();
 
 					log.info("Process exitValue: " + code);

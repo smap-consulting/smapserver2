@@ -8129,7 +8129,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void restoreUploadedFiles(String ident, String type) throws InterruptedException, IOException {
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
-				ident + 	" " + type + " >> /var/log/tomcat7/survey.log 2>&1"});
+				ident + 	" " + type + " >> /var/log/subscribers/survey.log 2>&1"});
 		int code = proc.waitFor();
 
 		if(code != 0) {
