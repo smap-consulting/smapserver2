@@ -6036,6 +6036,45 @@ public class GeneralUtilityMethods {
 
 		return table;
 	}
+	
+	/*
+	 * Get the table that is used by a repeat question
+	 */
+	public static String getTableForRepeatQuestion(Connection sd, int sId, String column_name) throws Exception {
+
+		String sql = "select table_name from form f " 
+				+ "where f.s_id = ? "
+				+ "and f.parentquestion = (select q_id from question q where q.f_id = f.parentform and q.column_name = ?)";
+
+		PreparedStatement pstmt = null;
+		int count = 0;
+		String table = null;
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, column_name);
+
+			log.info("Get table for repeat question: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				table = rs.getString(1);
+				count++;
+			}
+
+			if (count == 0) {
+				throw new Exception("Table containing question \"" + column_name + "\" in survey " + sId
+						+ " not found. Check your survey template to see if this question name should be there.");
+			} else if (count > 1) {
+				throw new Exception("Duplicate " + column_name + " found in survey " + sId);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		}
+
+		return table;
+	}
 
 	/*
 	 * Get the details of the top level form
