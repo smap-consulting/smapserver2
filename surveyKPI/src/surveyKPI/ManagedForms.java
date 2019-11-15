@@ -485,10 +485,10 @@ public class ManagedForms extends Application {
 			template.readDatabase(sd, sIdent, false);	
 			if(am.manageId > 0) {
 			
-				tm.writeAllTableStructures(sd, cResults, am.sId, template,  0);
+				ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, am.sId, template,  0);
 				
 				// Apply any updates that have been made to the table structure since the last submission
-				boolean tableChanged = tm.applyTableChanges(sd, cResults, am.sId);
+				boolean tableChanged = tm.applyTableChanges(sd, cResults, am.sId, tablesCreated);
 				
 				//boolean tableChanged = tm.createTable(cResults, sd, f.tableName, sIdent, am.sId, 0);
 				// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)

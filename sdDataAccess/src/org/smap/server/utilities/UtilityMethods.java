@@ -291,14 +291,14 @@ public class UtilityMethods {
 		
 		SurveyTemplate template = new SurveyTemplate(localisation); 
 		template.readDatabase(sd, sIdent, false);	
-		tm.writeAllTableStructures(sd, results, sId, template,  0);
+		ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, results, sId, template,  0);
 		
 		boolean tableChanged = false;
 		boolean tablePublished = false;
 	
 		// Apply any updates that have been made to the table structure since the last submission
-	
-		tableChanged = tm.applyTableChanges(sd, results, sId);
+		// If a table was newly created then just mark the changes as done	
+		tableChanged = tm.applyTableChanges(sd, results, sId, tablesCreated);
 	
 		// Add any previously unpublished columns not in a changeset (Occurs if this is a new survey sharing an existing table)
 		tablePublished = tm.addUnpublishedColumns(sd, results, sId, topForm.table_name);			
