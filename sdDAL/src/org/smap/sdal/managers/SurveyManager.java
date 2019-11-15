@@ -2184,7 +2184,7 @@ public class SurveyManager {
 								columnName = GeneralUtilityMethods.getQuestionNameFromId(sd, sId, ci.property.qId);
 							}
 							
-							String tableName = GeneralUtilityMethods.getTableForQuestion(sd, sId, columnName);
+							String tableName = GeneralUtilityMethods.getTableForRepeatQuestion(sd, sId, columnName);
 							if(tableName == null) {
 								tableName = "s" + sId + "_" + columnName;
 							}
