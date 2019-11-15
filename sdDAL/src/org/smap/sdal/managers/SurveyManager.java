@@ -547,7 +547,6 @@ public class SurveyManager {
 			) throws SQLException, Exception {
 
 		int sId;
-		int fId;
 		String ident = null;
 		String tablename = null;
 		String existingSurvey = null;
