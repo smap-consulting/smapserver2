@@ -99,6 +99,7 @@ public class Data extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.VIEW_OWN_DATA);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.MANAGE);
 		a = new Authorise(authorisations, null);
@@ -106,6 +107,7 @@ public class Data extends Application {
 		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
 		authorisationsSuper.add(Authorise.ANALYST);
 		authorisationsSuper.add(Authorise.VIEW_DATA);
+		authorisationsSuper.add(Authorise.VIEW_OWN_DATA);
 		authorisationsSuper.add(Authorise.ADMIN);
 		aSuper = new Authorise(authorisationsSuper, null);
 
@@ -367,9 +369,6 @@ public class Data extends Application {
 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
-		//String sqlGetManagedId = "select managed_id from survey where s_id = ?";
-		//PreparedStatement pstmtGetManagedId = null;
-
 		String sqlGetMainForm = "select f_id, table_name from form where s_id = ? and parentform = 0;";
 		PreparedStatement pstmtGetMainForm = null;
 
@@ -597,7 +596,7 @@ public class Data extends Application {
 					);
 			
 			ConsoleTotals totals = new ConsoleTotals();
-			
+
 			if(isDt) {
 				outWriter.print("{\"data\":");
 				errorMsgAddClosingBracket++;

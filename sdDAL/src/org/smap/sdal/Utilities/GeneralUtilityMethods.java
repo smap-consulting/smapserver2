@@ -837,6 +837,46 @@ public class GeneralUtilityMethods {
 
 		return onlyView;
 	}
+	
+	/*
+	 * Return true if the user has view own data but not admin and not analysis and not view data
+	 */
+	static public boolean isOnlyViewOwnData(Connection sd, String user) throws SQLException {
+		boolean onlyViewOwn = false;
+
+		String sqlGetAccessIds = "select ug.g_id " 
+				+ "from users u, user_group ug " 
+				+ "where u.ident = ? "
+				+ "and u.id = ug.u_id " 
+				+ "and (ug.g_id = " + Authorise.VIEW_DATA_ID 
+				+ " or ug.g_id = " + Authorise.ADMIN_ID 
+				+ " or ug.g_id = " + Authorise.ANALYST_ID 
+				+ " or ug.g_id = " + Authorise.VIEW_OWN_DATA_ID
+				+ ")";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sqlGetAccessIds);
+			pstmt.setString(1, user);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				int gId = rs.getInt(1);
+				if(gId == Authorise.VIEW_OWN_DATA_ID) {
+					onlyViewOwn = true;
+				} else {
+					onlyViewOwn = false;
+					break;
+				}
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return onlyViewOwn;
+	}
 
 	/*
 	 * Get the current enterprise id for the user 
