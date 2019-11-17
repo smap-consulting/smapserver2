@@ -562,7 +562,8 @@ public class PDFSurveyManager {
 								,gv.mapbox_key,
 								survey.id,
 								user,
-								di.markerColor);
+								di.markerColor,
+								basePath);
 						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
 					} else {
 						log.info("No field for image (Mapbox not called: " + fieldName);
@@ -1582,10 +1583,12 @@ public class PDFSurveyManager {
 
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 		
-			Image img = PdfUtilities.getMapImage(sd, di.map, di.account, di.value, di.location, di.zoom, gv.mapbox_key,
+			Image img = PdfUtilities.getMapImage(sd, di.map, 
+					di.account, di.value, di.location, di.zoom, gv.mapbox_key,
 					survey.id,
 					user,
-					di.markerColor);
+					di.markerColor,
+					basePath);
 
 			if(img != null) {
 				valueCell.addElement(img);
