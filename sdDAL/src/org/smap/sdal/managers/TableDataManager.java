@@ -488,7 +488,8 @@ public class TableDataManager {
 			boolean isGeoJson,
 			String geomQuestion,
 			boolean links,
-			String sIdent)
+			String sIdent,
+			boolean viewOwnDataOnly)
 			throws SQLException, Exception {
 
 		JSONObject jr = null;
@@ -674,10 +675,12 @@ public class TableDataManager {
 						uuid));
 				
 				// Link to audit form
-				jl.put("audit_log", GeneralUtilityMethods.getAuditLogLink(
-						urlprefix, 
-						sIdent, 
-						uuid));
+				if(!viewOwnDataOnly) {
+					jl.put("audit_log", GeneralUtilityMethods.getAuditLogLink(
+							urlprefix, 
+							sIdent, 
+							uuid));
+				}
 				
 				jf.put("links", jl);
 			}

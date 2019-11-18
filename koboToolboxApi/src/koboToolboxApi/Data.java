@@ -625,6 +625,7 @@ public class Data extends Application {
 				rs = pstmt.executeQuery();
 				JSONObject jo = new JSONObject();
 				int index = 0;
+				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, request.getRemoteUser());
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
@@ -639,7 +640,8 @@ public class Data extends Application {
 							isGeoJson,
 							geomQuestion,
 							incLinks	,
-							sIdent
+							sIdent,
+							viewOwnDataOnly
 							);
 					
 					if(jo != null) {
