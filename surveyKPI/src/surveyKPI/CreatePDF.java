@@ -64,6 +64,7 @@ public class CreatePDF extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
+		authorisations.add(Authorise.VIEW_OWN_DATA);
 		a = new Authorise(authorisations, null);	
 	}
 	
