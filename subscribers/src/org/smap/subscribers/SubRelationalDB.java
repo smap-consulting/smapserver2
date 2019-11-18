@@ -63,7 +63,6 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TaskItemChange;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -763,7 +762,7 @@ public class SubRelationalDB extends Subscriber {
 					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
 					template.readDatabase(sd, sIdent, false);	
-					tm.writeAllTableStructures(sd, cResults, sId, template,  0);
+					ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, sId, template,  0);
 					
 					boolean tableChanged = false;
 					boolean tablePublished = false;
@@ -774,7 +773,7 @@ public class SubRelationalDB extends Subscriber {
 					}
 					// Apply any updates that have been made to the table structure since the last
 					// submission
-					tableChanged = tm.applyTableChanges(sd, cResults, sId);
+					tableChanged = tm.applyTableChanges(sd, cResults, sId, tablesCreated);
 
 					// Add any previously unpublished columns not in a changeset (Occurs if this is
 					// a new survey sharing an existing table)

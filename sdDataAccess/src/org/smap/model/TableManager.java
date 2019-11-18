@@ -286,12 +286,13 @@ public class TableManager {
 	/*
 	 * Create the tables for the survey
 	 */
-	public void writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
+	public ArrayList<String> writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
 
 		String response = null;
 		//boolean hasHrk = (template.getHrk() != null);
 		boolean hasHrk = true;		// Always create the hrk column
 		boolean resAutoCommitSetFalse = false;
+		ArrayList<String> tablesCreated = new ArrayList<> ();
 
 		boolean tableCreated = false;
 		String sql = "select count(*) from information_schema.tables where table_name =?";		
@@ -327,6 +328,7 @@ public class TableManager {
 						log.info("        Table does not exist");
 						writeTableStructure(form, sd, cResults, hasHrk, template);
 						tableCreated = true;
+						tablesCreated.add(form.getTableName());
 					}
 				}
 				cResults.commit();
@@ -364,7 +366,9 @@ public class TableManager {
 				resAutoCommitSetFalse = false;
 				try {cResults.setAutoCommit(true);} catch(Exception e) {}
 			}
-		}		
+		}	
+		
+		return tablesCreated;
 	}
 
 	private void writeTableStructure(Form form, Connection sd, Connection cResults, boolean hasHrk, SurveyTemplate template) throws Exception {
@@ -566,7 +570,9 @@ public class TableManager {
 		boolean compressed;
 	}
 
-	public boolean applyTableChanges(Connection connectionSD, Connection cResults, int sId) throws Exception {
+	public boolean applyTableChanges(Connection connectionSD, Connection cResults, 
+			int sId,
+			ArrayList<String> tablesCreated) throws Exception {
 
 		boolean tableChanged = false;
 
@@ -609,7 +615,6 @@ public class TableManager {
 			while(rs.next()) {
 				int cId = rs.getInt(1);
 				String ciJson = rs.getString(2);
-				log.info("Apply table change: " + ciJson);
 				ChangeItem ci = gson.fromJson(ciJson, ChangeItem.class);
 
 				/*
@@ -631,8 +636,6 @@ public class TableManager {
 												ci.property.prop != null && 
 												(ci.property.prop.equals("name") || ci.property.prop.equals("value"))
 												)))) {
-
-					log.info("table is altered");
 
 					ArrayList<String> columns = new ArrayList<String> ();	// Column names in results table
 					TableUpdateStatus status = null;
@@ -668,7 +671,6 @@ public class TableManager {
 						pstmtGetAnOption.setInt(1, listId);
 						pstmtGetAnOption.setString(2, value);
 
-						log.info("Get option details: " + pstmtGetAnOption);
 						ResultSet rsOption = pstmtGetAnOption.executeQuery();
 						if(rsOption.next()) {
 							optionColumnName = rsOption.getString(1);
@@ -680,7 +682,6 @@ public class TableManager {
 							pstmtGetListQuestions.setInt(1, sId);
 							pstmtGetListQuestions.setInt(2, listId);
 
-							log.info("Get list of questions that refer to an option: " + pstmtGetListQuestions);
 							ResultSet rsQuestions = pstmtGetListQuestions.executeQuery();
 
 							while(rsQuestions.next()) {
@@ -690,6 +691,7 @@ public class TableManager {
 
 								if(qd != null && !qd.reference && !qd.compressed) {
 									if(qd.hasExternalOptions && externalFile || !qd.hasExternalOptions && !externalFile) {
+										log.info("Apply table change for option: " + ciJson);
 										status = GeneralUtilityMethods.alterColumn(cResults, qd.table, "integer", qd.columnName + "__" + optionColumnName, qd.compressed);
 										if(status.tableAltered) {
 											tableChanged = true;
@@ -716,7 +718,11 @@ public class TableManager {
 							try {
 								QuestionDetails qd = getQuestionDetails(connectionSD, qId);
 								
-								if(!qd.reference) {
+								// If the table was just created then no need to apply updates
+								if(!tablesCreated.contains(qd.table) && !qd.reference) {
+									
+									log.info("Apply table change for question: " + ciJson);
+									
 									if(qd.type.equals("begin group") || qd.type.equals("end group")) {
 										// Ignore group changes
 									} else if(qd.type.equals("begin repeat")) {

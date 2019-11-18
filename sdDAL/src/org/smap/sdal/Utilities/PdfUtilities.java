@@ -1,13 +1,19 @@
 package org.smap.sdal.Utilities;
 
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLEncoder;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import javax.imageio.ImageIO;
 
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
@@ -93,7 +99,8 @@ public class PdfUtilities {
 			String mapbox_key,
 			int sId,
 			String user,
-			String markerColor) throws BadElementException, MalformedURLException, IOException, SQLException {
+			String markerColor,
+			String basePath) throws BadElementException, MalformedURLException, IOException, SQLException {
 		
 		Image img = null;
 		
@@ -165,7 +172,17 @@ public class PdfUtilities {
 			try {
 				log.info("Mapbox API call: " + url);
 				
-				img = Image.getInstance(url.toString());
+				/*
+				 * There is a problem with passing a URL to the IText getInstance function as
+				 * it will cause two mapbox requests to be recorded resulting in additional charges
+				 * Instead download the imag first then add it to the PDF as a file
+				 */
+				URL mapboxUrl = new URL(url.toString());
+				BufferedImage tempImg = ImageIO.read(mapboxUrl);
+				File file = new File(basePath + "/temp/pdfmap_" + UUID.randomUUID() + ".png");
+				ImageIO.write(tempImg, "png", file);			       
+				img = Image.getInstance(file.getAbsolutePath());
+			    
 				lm.writeLog(sd, sId, user, "Mapbox Request", map);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);

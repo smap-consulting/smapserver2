@@ -238,17 +238,17 @@ public class SurveyTemplate {
      * @param parentQuestion the potential parent question
      * @return the sub form
      */
-    public Form getSubForm(Form parentForm, Question parentQuestion) {
-    	Form subForm = null;
-    	List <Form> forms = getAllForms();
-    	for(Form f : forms) {
-    		if(f.getParentForm() == parentForm.getId() && f.getParentQuestionId() == parentQuestion.getId()) {
-    			subForm = f;
-    			break;   			
-    		}
-    	}
-    	return subForm;
-    }
+	public Form getSubForm(Form parentForm, Question parentQuestion) {
+		Form subForm = null;
+		List <Form> forms = getAllForms();
+		for(Form f : forms) {
+			if(f.getParentForm() == parentForm.getId() && f.getParentQuestionId() == parentQuestion.getId()) {
+				subForm = f;
+				break;   			
+			}
+		}
+		return subForm;
+	}
 	
 	public String getTableName(String formName) {
 		String table = null;
