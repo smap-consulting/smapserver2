@@ -66,6 +66,7 @@ import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
@@ -703,7 +704,7 @@ public class Data extends Application {
 					
 					// 5. Add forms to the results
 					outWriter.print(",\"forms\":");
-					ArrayList<String> forms = GeneralUtilityMethods.getFormNames(sd, sId);
+					ArrayList<FormLink> forms = GeneralUtilityMethods.getFormNames(sd, sId);
 					outWriter.print(gson.toJson(forms));
 				}
 				

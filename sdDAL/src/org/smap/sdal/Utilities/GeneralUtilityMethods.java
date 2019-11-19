@@ -56,6 +56,7 @@ import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
+import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
@@ -6215,12 +6216,12 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the list of form names in a survey
 	 */
-	public static ArrayList<String> getFormNames(Connection sd, int sId) throws SQLException {
+	public static ArrayList<FormLink> getFormNames(Connection sd, int sId) throws SQLException {
 
-		ArrayList<String> formNames = new ArrayList<String> ();
+		ArrayList<FormLink> formLinks = new ArrayList<> ();
 
-		String sql = "select name "  
-				+ "from form " 
+		String sql = "select name, (select name from form where f_id = f.parentform) as parentname  "  
+				+ "from form f " 
 				+ "where s_id = ? "
 				+ "and name != 'main' "
 				+ "and reference = 'false'";
@@ -6232,7 +6233,11 @@ public class GeneralUtilityMethods {
 
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				formNames.add(rs.getString(1));
+				String name = rs.getString(1);
+				String parent = rs.getString(2);
+				
+				formLinks.add(new FormLink(name, parent));
+
 			}
 
 		} finally {
@@ -6240,7 +6245,7 @@ public class GeneralUtilityMethods {
 				if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
 		}
 
-		return formNames;
+		return formLinks;
 
 	}
 
