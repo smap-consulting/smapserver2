@@ -6244,7 +6244,7 @@ public class GeneralUtilityMethods {
 				String name = rs.getString(1);
 				String parent = rs.getString(2);
 				
-				formLinks.add(new FormLink(name, parent, "sub_form"));
+				formLinks.add(new FormLink(name, parent, "sub_form", null));
 			}
 			
 			// Get linked forms
@@ -6259,7 +6259,14 @@ public class GeneralUtilityMethods {
 				String parameters = rs.getString(3);		// TODO something with this
 				String type = rs.getString(4);
 				
-				formLinks.add(new FormLink(name, parent, type));
+				ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
+				String sIdent = getSurveyParameter("form_identifier", params);
+				int iChildSurveyId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				String childSurveyId = null;
+				if(iChildSurveyId > 0) {
+					childSurveyId = String.valueOf(iChildSurveyId);
+				}
+				formLinks.add(new FormLink(name, parent, type, childSurveyId));
 			}
 			
 

@@ -8,10 +8,11 @@ public class FormLink {
 	public String name;
 	public String parentName;		// The name of the form that contains the data used by a reference form	
 	public String type;				// sub_form or survey
-	
-	public FormLink(String n, String pn, String t) {
+	public String surveyId;			// Keep as string
+	public FormLink(String n, String pn, String t, String s) {
 		name = n;
 		parentName = pn;
 		type = t;
+		surveyId = s;
 	}
 }
