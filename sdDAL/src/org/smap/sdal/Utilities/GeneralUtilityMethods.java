@@ -6216,7 +6216,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the list of form names in a survey
 	 */
-	public static ArrayList<FormLink> getFormNames(Connection sd, int sId) throws SQLException {
+	public static ArrayList<FormLink> getFormLinks(Connection sd, int sId) throws SQLException {
 
 		ArrayList<FormLink> formLinks = new ArrayList<> ();
 
@@ -6227,6 +6227,14 @@ public class GeneralUtilityMethods {
 				+ "and reference = 'false'";
 		PreparedStatement pstmt = null;
 
+		String sqlLaunched = "select q.qname, "
+				+ "(select name from form where f_id = q.f_id) as parentname,"
+				+ "q.parameters,"
+				+ "q.qtype "
+				+ "from question q "
+				+ "where q.f_id in (select f_id from form where s_id = ?) "
+				+ "and (q.qtype = 'child_form' or q.qtype = 'parent_form')";
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
@@ -6236,13 +6244,27 @@ public class GeneralUtilityMethods {
 				String name = rs.getString(1);
 				String parent = rs.getString(2);
 				
-				formLinks.add(new FormLink(name, parent));
-
+				formLinks.add(new FormLink(name, parent, "sub_form"));
 			}
+			
+			// Get linked forms
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
+			pstmt = sd.prepareStatement(sqlLaunched);
+			pstmt.setInt(1, sId);
+			
+			rs = pstmt.executeQuery();
+			while (rs.next()) {
+				String name = rs.getString(1);
+				String parent = rs.getString(2);
+				String parameters = rs.getString(3);		// TODO something with this
+				String type = rs.getString(4);
+				
+				formLinks.add(new FormLink(name, parent, type));
+			}
+			
 
 		} finally {
-			try {
-				if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
 		}
 
 		return formLinks;

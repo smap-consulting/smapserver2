@@ -704,7 +704,7 @@ public class Data extends Application {
 					
 					// 5. Add forms to the results
 					outWriter.print(",\"forms\":");
-					ArrayList<FormLink> forms = GeneralUtilityMethods.getFormNames(sd, sId);
+					ArrayList<FormLink> forms = GeneralUtilityMethods.getFormLinks(sd, sId);
 					outWriter.print(gson.toJson(forms));
 				}
 				

@@ -7,9 +7,11 @@ package org.smap.sdal.model;
 public class FormLink {
 	public String name;
 	public String parentName;		// The name of the form that contains the data used by a reference form	
-
-	public FormLink(String n, String pn) {
+	public String type;				// sub_form or survey
+	
+	public FormLink(String n, String pn, String t) {
 		name = n;
 		parentName = pn;
+		type = t;
 	}
 }
