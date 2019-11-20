@@ -6244,7 +6244,7 @@ public class GeneralUtilityMethods {
 				String name = rs.getString(1);
 				String parent = rs.getString(2);
 				
-				formLinks.add(new FormLink(name, parent, "sub_form", null));
+				formLinks.add(new FormLink(name, parent, "sub_form", null, null));
 			}
 			
 			// Get linked forms
@@ -6260,13 +6260,25 @@ public class GeneralUtilityMethods {
 				String type = rs.getString(4);
 				
 				ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
+				
+				// Get survey id		
 				String sIdent = getSurveyParameter("form_identifier", params);
 				int iChildSurveyId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 				String childSurveyId = null;
 				if(iChildSurveyId > 0) {
 					childSurveyId = String.valueOf(iChildSurveyId);
 				}
-				formLinks.add(new FormLink(name, parent, type, childSurveyId));
+				
+				// Get filter
+				String qName = getSurveyParameter("key_question", params);
+				String filter = null;
+				if(qName != null) {
+					filter = "${" + qName + "} = 'x'";
+				}
+				
+				if(filter != null && childSurveyId != null) {
+					formLinks.add(new FormLink(name, parent, type, childSurveyId, filter));
+				}
 			}
 			
 
