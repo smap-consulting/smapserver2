@@ -186,6 +186,7 @@ public class Data extends Application {
 			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("links") String links,
 			@QueryParam("filter") String filter,
+			@QueryParam("dd_filter") String dd_filter,
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
@@ -210,7 +211,7 @@ public class Data extends Application {
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dateName, startDate, endDate, getSettings, instanceId);
+				filter, dd_filter, dateName, startDate, endDate, getSettings, instanceId);
 	}
 	
 	/*
@@ -319,6 +320,7 @@ public class Data extends Application {
 			String tz,				// Timezone
 			boolean incLinks	,
 			String advanced_filter,
+			String dd_filter,		// Console calls only
 			String dateName,
 			Date startDate,
 			Date endDate,
@@ -480,6 +482,16 @@ public class Data extends Application {
 						ssd.include_bad = "none";
 					}
 				}
+				
+				// Add the drill down advanced filter - this is not to be saved
+				if(dd_filter != null && dd_filter.trim().length() > 0) {
+					if(ssd.filter != null && !ssd.filter.isEmpty()) {
+						ssd.filter = "(" + ssd.filter + ") and " + dd_filter;
+					} else 
+						ssd.filter = dd_filter;
+				}
+				
+				
 				sv = svm.getSurveyView(sd, 
 						cResults, 
 						uId, 
