@@ -589,6 +589,10 @@ public class Surveys extends Application {
 		Connection cResults = null;
 		try {
 				
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
 			/*
 			 * Parse the request
 			 */
@@ -754,10 +758,13 @@ public class Surveys extends Application {
 				change.action = "settings_update";
 				change.fileName = archivedTemplateName;
 				change.origSId = sId;
-				change.msg = "Name: " + survey.displayName + ", Default Language: " + survey.def_lang 
-						+ ", Instance Name: "+ survey.instanceNameDefn
-						+ ", HRK: " + survey.hrk 
-						+ ", Key Policy: " + survey.key_policy;
+				change.msg = localisation.getString("name") + ": " + survey.displayName 
+						+ ", " + localisation.getString("cr_lang") + ": " + survey.def_lang 
+						+ ", " + localisation.getString("a_in") + ": " + survey.instanceNameDefn
+						+ ", " + localisation.getString("ar_project") + ": " 
+								+ GeneralUtilityMethods.getProjectName(sd, survey.p_id) 
+						+ ", " + localisation.getString("cr_key") + ": " + survey.hrk 
+						+ ", " + localisation.getString("cr_kp") + ": " + survey.key_policy;
 				
 				// Write to the change log
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
@@ -859,8 +866,34 @@ public class Surveys extends Application {
 		item.isPreload = true;
 		
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtChangeLog = null;
+		int version;
 		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Lock the survey
+			 * update version number of survey and get the new version
+			 */
+			sd.setAutoCommit(false);
+			
+			String sqlUpdateVersion = "update survey set version = version + 1 where ident = ?";
+			String sqlGetVersion = "select version from survey where ident = ?";
+			pstmt = sd.prepareStatement(sqlUpdateVersion);
+			pstmt.setString(1, sIdent);
+			pstmt.execute();
+			pstmt.close();
+			
+			pstmt = sd.prepareStatement(sqlGetVersion);
+			pstmt.setString(1, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			version = rs.getInt(1);
+			pstmt.close();
+			
 			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 			
@@ -910,6 +943,37 @@ public class Surveys extends Application {
 			}
 			GeneralUtilityMethods.setPreloads(sd, sId, preloads);
 			
+			// Write the change log
+			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				
+			ChangeElement change = new ChangeElement();
+			change.action = "add_preload";
+			change.msg = localisation.getString("cr_add_preload");
+			change.msg = change.msg.replace("%s1", item.columnName);
+			change.msg = change.msg.replace("%s2", item.sourceParam);
+			
+			// Write to the change log
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String sqlChangeLog = "insert into survey_change " +
+					"(s_id, version, changes, user_id, apply_results, updated_time) " +
+					"values(?, ?, ?, ?, 'true', ?)";
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+				
+			// Write the change log
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setInt(2, version);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, userId);
+			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmtChangeLog.execute();
+
+			sd.commit();
+			sd.setAutoCommit(true);
+			
+			// Record the message so that devices can be notified
+			MessagingManager mm = new MessagingManager();
+			mm.surveyChange(sd, sId, 0);
+		
 			response = Response.ok().build();
 			
 		} catch (Exception e) {
@@ -918,6 +982,7 @@ public class Surveys extends Application {
 		} finally {
 			
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 			
@@ -927,7 +992,7 @@ public class Surveys extends Application {
 	}
 	
 	/*
-	 * Add a meta item
+	 * Delete a meta item
 	 */
 	@Path("/meta/{sIdent}/{ident}")
 	@DELETE

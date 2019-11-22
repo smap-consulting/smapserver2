@@ -3753,7 +3753,7 @@ public class GeneralUtilityMethods {
 
 				c = new TableColumn();
 				c.column_name = "instancename";
-				c.displayName = localisation.getString("a_inst");
+				c.displayName = localisation.getString("a_in");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
