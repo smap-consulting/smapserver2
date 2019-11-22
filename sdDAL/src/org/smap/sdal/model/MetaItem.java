@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+
 // Device MetaItem ids start from -1000 and go down
 // Prikey id is set to -1
 // Server user is set to -2
@@ -36,7 +38,7 @@ public class MetaItem {
 		this.type = type;
 		this.name = name;
 		this.sourceParam = sourceParam;
-		this.columnName = columnName;
+		this.columnName = GeneralUtilityMethods.cleanName(columnName, true, true, false);
 		this.dataType = dataType;
 		this.isPreload = isPreload;
 		this.display_name = display_name;
