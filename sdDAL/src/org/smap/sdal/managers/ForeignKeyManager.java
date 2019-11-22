@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -108,8 +109,7 @@ public class ForeignKeyManager {
 				int sId = rs.getInt(2);
 				String qname = rs.getString(3);
 				String instanceidLaunchedForm = rs.getString(4);
-				//int prikeyLaunchingForm = rs.getInt(5);
-				//String tableName = rs.getString(6);
+
 				String instanceIdLaunchingForm = rs.getString(7);
 				
 				log.info("Found foreign key to apply: " + sId + " : " + qname + " : " + instanceidLaunchedForm);
@@ -204,7 +204,12 @@ public class ForeignKeyManager {
 										pstmtInsertKey.setString(1, key);
 										pstmtInsertKey.setString(2, instanceOfKeyQuestion);
 										log.info("Inserting key: " + pstmtInsertKey.toString());
-										int count = pstmtInsertKey.executeUpdate();
+										int count = 0;
+										try {	// Continue on error
+											count = pstmtInsertKey.executeUpdate();
+										} catch (Exception e) {
+											log.log(Level.SEVERE, e.getMessage(), e);
+										}
 										if(count == 0) {
 											pstmtResult.setString(1, "error: failed to set key");
 											pstmtResult.setInt(2, id);

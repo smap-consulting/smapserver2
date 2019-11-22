@@ -496,7 +496,7 @@ public class Data extends Application {
 				// Add the prikey select for drill down - this too is not to be saved
 				if(prikey > 0) {
 					start = prikey;
-					limit = 1;
+					ssd.limit = 1;
 				}
 				
 				
