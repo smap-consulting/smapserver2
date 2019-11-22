@@ -889,7 +889,7 @@ public class Surveys extends Application {
 			if(!replace) {
 				item.id = id;
 				if(item.columnName == null) {
-					item.columnName = item.name;
+					item.columnName = GeneralUtilityMethods.cleanName(item.name, true, true, false);
 				}
 				preloads.add(item);
 				if(item.type == null) {
