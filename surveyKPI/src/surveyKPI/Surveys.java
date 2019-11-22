@@ -935,7 +935,7 @@ public class Surveys extends Application {
 					} else if(item.sourceParam.equals("start-geopoint")) {
 						item.type = "geopoint";
 						item.dataType = "property";
-					}else {
+					} else {
 						item.type = "string";
 						item.dataType = "property";
 					}
@@ -978,6 +978,7 @@ public class Surveys extends Application {
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
+			try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
@@ -1015,8 +1016,34 @@ public class Surveys extends Application {
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
+		PreparedStatement pstmtChangeLog = null;
+		int version;
 		
 		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Lock the survey
+			 * update version number of survey and get the new version
+			 */
+			sd.setAutoCommit(false);
+			
+			String sqlUpdateVersion = "update survey set version = version + 1 where ident = ?";
+			String sqlGetVersion = "select version from survey where ident = ?";
+			pstmt = sd.prepareStatement(sqlUpdateVersion);
+			pstmt.setString(1, sIdent);
+			pstmt.execute();
+			pstmt.close();
+			
+			pstmt = sd.prepareStatement(sqlGetVersion);
+			pstmt.setString(1, sIdent);
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			version = rs.getInt(1);
+			pstmt.close();
+			
 			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 			ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 			
@@ -1031,15 +1058,47 @@ public class Surveys extends Application {
 			
 			GeneralUtilityMethods.setPreloads(sd, sId, newPreloads);
 			
+			// Write the change log
+			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+				
+			ChangeElement change = new ChangeElement();
+			change.action = "del_preload";
+			change.msg = localisation.getString("cr_del_preload");
+			change.msg = change.msg.replace("%s1", ident);
+			
+			// Write to the change log
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String sqlChangeLog = "insert into survey_change " +
+					"(s_id, version, changes, user_id, apply_results, updated_time) " +
+					"values(?, ?, ?, ?, 'true', ?)";
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+				
+			// Write the change log
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setInt(2, version);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, userId);
+			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmtChangeLog.execute();
+
+			sd.commit();
+			sd.setAutoCommit(true);
+			
+			// Record the message so that devices can be notified
+			MessagingManager mm = new MessagingManager();
+			mm.surveyChange(sd, sId, 0);
+			
 			response = Response.ok().build();
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception loading settings", e);
+			try {sd.setAutoCommit(true);} catch(Exception ex) {}
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
-			
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+
 			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
