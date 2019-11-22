@@ -186,7 +186,8 @@ public class Data extends Application {
 			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("links") String links,
 			@QueryParam("filter") String filter,
-			@QueryParam("dd_filter") String dd_filter,
+			@QueryParam("dd_filter") String dd_filter,	// Drill Down Filter
+			@QueryParam("prikey") int prikey,				// Return data for a specific primary key (Distinct from using start with limit 1 as this is for drill down and settings should not be stored)
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
@@ -211,7 +212,7 @@ public class Data extends Application {
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dd_filter, dateName, startDate, endDate, getSettings, instanceId);
+				filter, dd_filter, prikey, dateName, startDate, endDate, getSettings, instanceId);
 	}
 	
 	/*
@@ -321,6 +322,7 @@ public class Data extends Application {
 			boolean incLinks	,
 			String advanced_filter,
 			String dd_filter,		// Console calls only
+			int prikey,
 			String dateName,
 			Date startDate,
 			Date endDate,
@@ -489,6 +491,12 @@ public class Data extends Application {
 						ssd.filter = "(" + ssd.filter + ") and " + dd_filter;
 					} else 
 						ssd.filter = dd_filter;
+				}
+				
+				// Add the prikey select for drill down - this too is not to be saved
+				if(prikey > 0) {
+					start = prikey;
+					limit = 1;
 				}
 				
 				

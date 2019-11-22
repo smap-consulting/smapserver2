@@ -1891,7 +1891,7 @@ public class GetXForm {
 
 			if (item.subForm != null) {
 				Instance iSub = null;
-				if(instance != null) {
+				if(instance != null && instance.repeats != null) {
 					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
 					if(subInstanceList.size() > j) {
 						iSub = subInstanceList.get(j);

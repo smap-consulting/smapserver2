@@ -6269,15 +6269,11 @@ public class GeneralUtilityMethods {
 					childSurveyId = String.valueOf(iChildSurveyId);
 				}
 				
-				// Get filter
+				// Get key question
 				String qName = getSurveyParameter("key_question", params);
-				String filter = null;
-				if(qName != null) {
-					filter = "${" + qName + "} = 'x'";
-				}
 				
-				if(filter != null && childSurveyId != null) {
-					formLinks.add(new FormLink(name, parent, type, childSurveyId, filter));
+				if(qName != null && childSurveyId != null) {
+					formLinks.add(new FormLink(name, parent, type, childSurveyId, qName));
 				}
 			}
 			

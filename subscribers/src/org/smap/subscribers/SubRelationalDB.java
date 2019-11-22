@@ -1811,7 +1811,7 @@ public class SubRelationalDB extends Subscriber {
 				key = rs.getInt(1);
 				boolean bad = rs.getBoolean(2);
 				if(bad) {
-					// Try to get the latest good version of the thread.  During transition this may not happen so ignore erors and fall back to the old
+					// Try to get the latest good version of the thread.  During transition this may not happen so ignore errors and fall back to the old
 					// way which was to create a new entry
 					try {
 						pstmtGetThread = connection.prepareStatement(sqlGetThread);
