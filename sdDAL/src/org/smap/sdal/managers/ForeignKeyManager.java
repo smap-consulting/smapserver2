@@ -213,36 +213,43 @@ public class ForeignKeyManager {
 										if(count == 0) {
 											pstmtResult.setString(1, "error: failed to set key");
 											pstmtResult.setInt(2, id);
+											log.info("error: failed to set key");
 											pstmtResult.executeUpdate();
 										} else {
 											pstmtResult.setString(1, "ok: applied");
 											pstmtResult.setInt(2, id);
+											log.info("ok: applied");
 											pstmtResult.executeUpdate();
 										}
 									} else {
 										pstmtResult.setString(1, "error: failed column name for question " + keyQuestion + " not found");
 										pstmtResult.setInt(2, id);
+										log.info("error: failed column name for question " + keyQuestion + " not found");
 										pstmtResult.executeUpdate();
 									}
 									
 								} else {
 									pstmtResult.setString(1, "error: foreign key table not found");
 									pstmtResult.setInt(2, id);
+									log.info("error: foreign key table not found");
 									pstmtResult.executeUpdate();
 								}
 							} else {
 								pstmtResult.setString(1, "error: HRK found");
 								pstmtResult.setInt(2, id);
+								log.info("error: HRK found");
 								pstmtResult.executeUpdate();
 							}
 						}
 					} else {
 						pstmtResult.setString(1, "error: no parameters found");
 						pstmtResult.setInt(2, id);
+						log.info("error: no parameters found");
 						pstmtResult.executeUpdate();
 					}
 				} else {
 					pstmtResult.setString(1, "error: no parameters found");
+					log.info("error: no parameters found 2");
 					pstmtResult.setInt(2, id);
 					pstmtResult.executeUpdate();
 				}

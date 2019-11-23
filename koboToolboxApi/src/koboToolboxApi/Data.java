@@ -186,8 +186,9 @@ public class Data extends Application {
 			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("links") String links,
 			@QueryParam("filter") String filter,
-			@QueryParam("dd_filter") String dd_filter,	// Drill Down Filter
+			@QueryParam("dd_filter") String dd_filter,		// Drill Down Filter when driling down to a child survey
 			@QueryParam("prikey") int prikey,				// Return data for a specific primary key (Distinct from using start with limit 1 as this is for drill down and settings should not be stored)
+			@QueryParam("dd_hrk") String dd_hrk,				// Return data matching key when drilling down to parent
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
@@ -212,7 +213,7 @@ public class Data extends Application {
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dd_filter, prikey, dateName, startDate, endDate, getSettings, instanceId);
+				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, instanceId);
 	}
 	
 	/*
@@ -323,6 +324,7 @@ public class Data extends Application {
 			String advanced_filter,
 			String dd_filter,		// Console calls only
 			int prikey,
+			String dd_hrk,
 			String dateName,
 			Date startDate,
 			Date endDate,
@@ -486,20 +488,41 @@ public class Data extends Application {
 				}
 				
 				// Add the drill down advanced filter - this is not to be saved
+				// This drill down filter overrides the parent filter
 				if(dd_filter != null && dd_filter.trim().length() > 0) {
-					if(ssd.filter != null && !ssd.filter.isEmpty()) {
-						ssd.filter = "(" + ssd.filter + ") and " + dd_filter;
-					} else 
-						ssd.filter = dd_filter;
+					ssd.filter = dd_filter;
 				}
 				
-				// Add the prikey select for drill down - this too is not to be saved
-				if(prikey > 0) {
-					start = prikey;
-					ssd.limit = 1;
+				// Add the filter for drill down to parent - this too is not to be saved
+				if(dd_hrk != null) {
+					
+					StringBuffer parentFilter = new StringBuffer("");
+								
+					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, 
+							GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId), 
+							"_hrk");
+
+					if(hasHrk) {
+						parentFilter.append("(${_hrk} = '").append(dd_hrk).append("')");
+					} else {
+						int pKey = 0;
+						try {
+							pKey = Integer.valueOf(dd_hrk);
+							parentFilter.append("(${prikey} = ").append(pKey).append(")");
+						} catch (Exception e) {
+							
+						}
+						
+					}
+					if(parentFilter.length() > 0) {
+						ssd.filter = parentFilter.toString();
+					} else {
+						ssd.filter = null;
+					}
+					
 				}
 				
-				
+				log.info("xxxxxxxxxxxxxxxxxxxxx filter: " + ssd.filter);
 				sv = svm.getSurveyView(sd, 
 						cResults, 
 						uId, 
