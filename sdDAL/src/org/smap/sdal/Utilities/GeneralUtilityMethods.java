@@ -56,6 +56,7 @@ import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
+import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.GeoPoint;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
@@ -3752,7 +3753,7 @@ public class GeneralUtilityMethods {
 
 				c = new TableColumn();
 				c.column_name = "instancename";
-				c.displayName = localisation.getString("a_inst");
+				c.displayName = localisation.getString("a_in");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
@@ -6215,32 +6216,73 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the list of form names in a survey
 	 */
-	public static ArrayList<String> getFormNames(Connection sd, int sId) throws SQLException {
+	public static ArrayList<FormLink> getFormLinks(Connection sd, int sId) throws SQLException {
 
-		ArrayList<String> formNames = new ArrayList<String> ();
+		ArrayList<FormLink> formLinks = new ArrayList<> ();
 
-		String sql = "select name "  
-				+ "from form " 
+		String sql = "select name, (select name from form where f_id = f.parentform) as parentname  "  
+				+ "from form f " 
 				+ "where s_id = ? "
 				+ "and name != 'main' "
 				+ "and reference = 'false'";
 		PreparedStatement pstmt = null;
 
+		String sqlLaunched = "select q.qname, "
+				+ "(select name from form where f_id = q.f_id) as parentname,"
+				+ "q.parameters,"
+				+ "q.qtype "
+				+ "from question q "
+				+ "where q.f_id in (select f_id from form where s_id = ?) "
+				+ "and (q.qtype = 'child_form' or q.qtype = 'parent_form')";
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				formNames.add(rs.getString(1));
+				String name = rs.getString(1);
+				String parent = rs.getString(2);
+				
+				formLinks.add(new FormLink(name, parent, "sub_form", null, null));
 			}
+			
+			// Get linked forms
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
+			pstmt = sd.prepareStatement(sqlLaunched);
+			pstmt.setInt(1, sId);
+			
+			rs = pstmt.executeQuery();
+			while (rs.next()) {
+				String name = rs.getString(1);
+				String parent = rs.getString(2);
+				String parameters = rs.getString(3);		// TODO something with this
+				String type = rs.getString(4);
+				
+				ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
+				
+				// Get survey id		
+				String sIdent = getSurveyParameter("form_identifier", params);
+				int iChildSurveyId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				String childSurveyId = null;
+				if(iChildSurveyId > 0) {
+					childSurveyId = String.valueOf(iChildSurveyId);
+				}
+				
+				// Get key question
+				String qName = getSurveyParameter("key_question", params);
+				
+				if(qName != null && childSurveyId != null) {
+					formLinks.add(new FormLink(name, parent, type, childSurveyId, qName));
+				}
+			}
+			
 
 		} finally {
-			try {
-				if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {	}
 		}
 
-		return formNames;
+		return formLinks;
 
 	}
 

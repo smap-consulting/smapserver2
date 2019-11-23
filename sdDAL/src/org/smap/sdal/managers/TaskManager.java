@@ -403,9 +403,12 @@ public class TaskManager {
 			if(wantLate && !wantAccepted) {
 				statusList.add(STATUS_T_ACCEPTED);	// Add accepted back into the status list
 			}
-		}
+		} 
+		
 		if(statusList.size() > 0) {	
 			sql.append(sqlStatus);
+		} else {
+			sql.append("and (a.status is null or a.status != 'deleted') ");	// default
 		}
 		
 		// Add order by
@@ -471,18 +474,21 @@ public class TaskManager {
 				boolean deleted = rs.getBoolean("deleted");
 				int assignee = rs.getInt("assignee"); 
 				Timestamp to = rs.getTimestamp("schedule_finish");
-				if(to == null) {
-					to = rs.getTimestamp("default_finish");
-				}
+				// Remove default finish
+				//if(to == null) {
+				//	to = rs.getTimestamp("default_finish");
+				//}
 				
 				// If we don't want accepted but do want late tasks then filter on date
 				if(wantLate && !wantAccepted) {
-					if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() > now)) {
+					if(status.equals(STATUS_T_ACCEPTED) && (to == null || to.getTime() > now)) {
 						continue;
 					} 
 				} else if(wantAccepted && !wantLate) {
-					if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() < now)) {
-						continue;
+					if(to != null) {
+						if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() < now)) {
+							continue;
+						}
 					}
 				}
 				
@@ -491,9 +497,9 @@ public class TaskManager {
 					status = STATUS_T_DELETED;
 				} else if(status == null) {
 					status = "new";
-				} else if(assignee < 0) {
+				} else if(assignee < 0 && !status.equals(STATUS_T_CANCELLED)) {
 					status = "new";
-				} else if(status.equals(STATUS_T_ACCEPTED) && (to.getTime() < now)) {
+				} else if(status.equals(STATUS_T_ACCEPTED) && (to != null && to.getTime() < now)) {
 					status = STATUS_T_LATE;
 				}
 				
@@ -718,9 +724,10 @@ public class TaskManager {
 				String status = rs.getString("status");
 				int assignee = rs.getInt("assignee"); 
 				Timestamp to = rs.getTimestamp("schedule_finish");
-				if(to == null) {
-					to = rs.getTimestamp("default_finish");
-				}
+				// Remove default finish, a task can be set without a finish
+				//if(to == null) {
+				//	to = rs.getTimestamp("default_finish");
+				//}
 				
 				// Adjust status
 				if(status == null) {

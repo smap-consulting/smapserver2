@@ -334,6 +334,7 @@ public class MyAssignments extends Application {
 					+ "t.update_id,"
 					+ "t.initial_data_source,"
 					+ "t.schedule_at,"
+					+ "t.schedule_finish,"
 					+ "t.location_trigger,"
 					+ "t.repeat,"
 					+ "a.status as assignment_status,"
@@ -404,6 +405,7 @@ public class MyAssignments extends Application {
 				ta.task.update_id = resultSet.getString("update_id");
 				ta.task.initial_data_source = resultSet.getString("initial_data_source");
 				ta.task.scheduled_at = resultSet.getTimestamp("schedule_at");
+				ta.task.scheduled_finish = resultSet.getTimestamp("schedule_finish");
 				ta.task.location_trigger = resultSet.getString("location_trigger");
 				if(ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
 					ta.task.location_trigger = null;
@@ -474,7 +476,8 @@ public class MyAssignments extends Application {
 					ta.task.form_version = task.properties.form_version;				
 					ta.task.update_id = task.properties.update_id;				
 					ta.task.initial_data_source = task.properties.initial_data_source;				
-					ta.task.scheduled_at = task.properties.from;				
+					ta.task.scheduled_at = task.properties.from;	
+					ta.task.scheduled_finish = task.properties.to;	
 					ta.task.location_trigger = task.properties.location_trigger;
 					if(ta.task.location_trigger != null && ta.task.location_trigger.trim().length() == 0) {
 						ta.task.location_trigger = null;

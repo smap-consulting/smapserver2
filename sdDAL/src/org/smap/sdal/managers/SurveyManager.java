@@ -2515,10 +2515,11 @@ public class SurveyManager {
 		PreparedStatement pstmtSelect = null;
 		ResultSet resultSet = null;
 
+		boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, remoteUser);
+		
 		/*
 		 * Hack: Remove questions that have not been published.
 		 * This code should be modified to reuse the function to get columns used by results export
-		 * xxxx
 		 */
 		if(!generateDummyValues) {
 			for(int i = questions.size() - 1; i >= 0; i--) {
@@ -2611,6 +2612,12 @@ public class SurveyManager {
 					keyQuestionName = keyQuestionName.replace("'", "''");	// Escape apostrophes
 					sql.append(" where ").append(keyQuestionName).append(" = ?");
 				}
+				
+				// Add only view own filter
+				if(isTopLevel && viewOwnDataOnly) {
+					sql.append(" and _user = ?");
+				}
+				
 				// Do not include records marked as bad - in particular some child records may have been marked as bad and these should be excluded from pdf reports
 				sql.append(" and not _bad");
 				sql.append(" order by prikey asc");
@@ -2629,6 +2636,11 @@ public class SurveyManager {
 					pstmt.setString(attribIdx++, keyQuestionValue);
 				}
 
+				// Add only view own filter
+				if(isTopLevel && viewOwnDataOnly) {
+					pstmt.setString(attribIdx++, remoteUser);
+				}
+				
 				log.info("Get results: " + pstmt.toString());
 				if(GeneralUtilityMethods.tableExists(cResults, form.tableName)) {
 					resultSet = pstmt.executeQuery();
@@ -2733,6 +2745,7 @@ public class SurveyManager {
 				output.add(record);
 			}
 		} catch (SQLException e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			throw e;
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};

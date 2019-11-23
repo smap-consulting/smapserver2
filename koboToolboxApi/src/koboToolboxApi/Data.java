@@ -66,6 +66,7 @@ import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
@@ -185,6 +186,9 @@ public class Data extends Application {
 			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("links") String links,
 			@QueryParam("filter") String filter,
+			@QueryParam("dd_filter") String dd_filter,		// Drill Down Filter when driling down to a child survey
+			@QueryParam("prikey") int prikey,				// Return data for a specific primary key (Distinct from using start with limit 1 as this is for drill down and settings should not be stored)
+			@QueryParam("dd_hrk") String dd_hrk,				// Return data matching key when drilling down to parent
 			@QueryParam("dateName") String dateName,			// Name of question containing the date to filter by
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
@@ -209,7 +213,7 @@ public class Data extends Application {
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dateName, startDate, endDate, getSettings, instanceId);
+				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, instanceId);
 	}
 	
 	/*
@@ -318,6 +322,9 @@ public class Data extends Application {
 			String tz,				// Timezone
 			boolean incLinks	,
 			String advanced_filter,
+			String dd_filter,		// Console calls only
+			int prikey,
+			String dd_hrk,
 			String dateName,
 			Date startDate,
 			Date endDate,
@@ -479,6 +486,43 @@ public class Data extends Application {
 						ssd.include_bad = "none";
 					}
 				}
+				
+				// Add the drill down advanced filter - this is not to be saved
+				// This drill down filter overrides the parent filter
+				if(dd_filter != null && dd_filter.trim().length() > 0) {
+					ssd.filter = dd_filter;
+				}
+				
+				// Add the filter for drill down to parent - this too is not to be saved
+				if(dd_hrk != null) {
+					
+					StringBuffer parentFilter = new StringBuffer("");
+								
+					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, 
+							GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId), 
+							"_hrk");
+
+					if(hasHrk) {
+						parentFilter.append("(${_hrk} = '").append(dd_hrk).append("')");
+					} else {
+						int pKey = 0;
+						try {
+							pKey = Integer.valueOf(dd_hrk);
+							parentFilter.append("(${prikey} = ").append(pKey).append(")");
+						} catch (Exception e) {
+							
+						}
+						
+					}
+					if(parentFilter.length() > 0) {
+						ssd.filter = parentFilter.toString();
+					} else {
+						ssd.filter = null;
+					}
+					
+				}
+				
+				log.info("xxxxxxxxxxxxxxxxxxxxx filter: " + ssd.filter);
 				sv = svm.getSurveyView(sd, 
 						cResults, 
 						uId, 
@@ -625,6 +669,7 @@ public class Data extends Application {
 				rs = pstmt.executeQuery();
 				JSONObject jo = new JSONObject();
 				int index = 0;
+				boolean viewOwnDataOnly = GeneralUtilityMethods.isOnlyViewOwnData(sd, request.getRemoteUser());
 				while(jo != null) {
 					
 					jo =  tdm.getNextRecord(
@@ -639,7 +684,8 @@ public class Data extends Application {
 							isGeoJson,
 							geomQuestion,
 							incLinks	,
-							sIdent
+							sIdent,
+							viewOwnDataOnly
 							);
 					
 					if(jo != null) {
@@ -701,7 +747,7 @@ public class Data extends Application {
 					
 					// 5. Add forms to the results
 					outWriter.print(",\"forms\":");
-					ArrayList<String> forms = GeneralUtilityMethods.getFormNames(sd, sId);
+					ArrayList<FormLink> forms = GeneralUtilityMethods.getFormLinks(sd, sId);
 					outWriter.print(gson.toJson(forms));
 				}
 				

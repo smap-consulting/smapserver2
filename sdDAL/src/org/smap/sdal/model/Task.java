@@ -15,6 +15,7 @@ public class Task {
 	public String update_id;
 	public String initial_data_source;	// none || survey || task
 	public Timestamp scheduled_at;
+	public Timestamp scheduled_finish;
 	public String location_trigger;
 	public boolean repeat;
 	public String address;			// Key value pairs representing an unstructured address
