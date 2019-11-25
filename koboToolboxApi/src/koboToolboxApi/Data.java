@@ -898,6 +898,7 @@ public class Data extends Application {
 			if(instances.size() > 0) {
 				response = Response.ok(gson.toJson(instances.get(0))).build();
 			} else {
+				log.log(Level.SEVERE, "Instance not found for " + s.displayName + " : " + uuid);
 				response = Response.serverError().status(Status.NOT_FOUND).build();
 			}
 

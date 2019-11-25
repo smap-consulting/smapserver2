@@ -4172,6 +4172,7 @@ public class SurveyManager {
 					);
 			
 			if(pstmt != null) {
+				log.info("Getting single instance: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				
 				while(rs.next()) {
