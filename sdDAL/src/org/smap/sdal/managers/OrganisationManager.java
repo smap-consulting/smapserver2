@@ -412,6 +412,8 @@ public class OrganisationManager {
 		    log.info("Saving file to: " + filePath);
 		    try {
 				logoItem.write(savedFile);
+				savedFile.setReadable(true);
+				savedFile.setWritable(true);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
