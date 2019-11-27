@@ -267,22 +267,16 @@ public class OrganisationManager {
 			FileItem bannerLogoItem,
 			FileItem mainLogoItem,
 			String email
-			) throws SQLException {
+			) throws SQLException, ApplicationException {
 		
 		int o_id = 0;
 		
 		String sqlAddOrgList = "insert into user_organisation (u_id, o_id) values (?,?)";
 		PreparedStatement pstmtAddOrgList = null;
 		
-		String sqlDeleteOrganisation = "delete from organisation where id = ?;";
-		PreparedStatement pstmtDeleteOrganisation = null;
-		
-		String sqlCheckInactive = "select id from organisation "
-				+ "where name = ? "
-				+ "and id not in (select o_id from users where password_reset = 'true' "
-				+ "or email = ?)";		// Make sure user does not have same email to discourage sending of multiple 
-										//  emails to the smame possibly wrong address		
-		PreparedStatement pstmtCheckInactive = null;
+		String sqlCheckExists = "select id from organisation "
+				+ "where name = ? ";		
+		PreparedStatement pstmtCheckExists = null;
 		
 		String sql = "insert into organisation (name, company_name, "
 				+ "company_address, "
@@ -302,23 +296,15 @@ public class OrganisationManager {
 		
 		try {
 			/*
-			 * If there is an existing organisation with the same name then it can be overridden if
-			 * there are no users that have logged in to the organisation.  In that case it is assumed
-			 * to be inactive.
+			 * Check to see if this organisation name is already taken
 			 */
-			pstmtCheckInactive = sd.prepareStatement(sqlCheckInactive);
-			pstmtCheckInactive.setString(1,  o.name);
-			pstmtCheckInactive.setString(2,  email);
-			log.info("Check for inactive organisations: " + pstmtCheckInactive.toString());
-			ResultSet rs = pstmtCheckInactive.executeQuery();
-			
+			pstmtCheckExists = sd.prepareStatement(sqlCheckExists);
+			pstmtCheckExists.setString(1,  o.name);
+			log.info("Check for existing organisations with same name " + pstmtCheckExists.toString());
+			ResultSet rs = pstmtCheckExists.executeQuery();			
 			if(rs.next()) {
-				pstmtDeleteOrganisation = sd.prepareStatement(sqlDeleteOrganisation);
-				pstmtDeleteOrganisation.setInt(1, rs.getInt(1));
-				
-				log.info("SQL delete inactive organisation: " + pstmtDeleteOrganisation.toString());
-				pstmtDeleteOrganisation.executeUpdate();
-			}
+				throw new ApplicationException(localisation.getString("msg_org_exists"));
+			} 
 			
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, o.name);
@@ -393,13 +379,10 @@ public class OrganisationManager {
 				}
 			}
 	            
-		} catch (SQLException e) {
-			throw e;
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-			try {if (pstmtCheckInactive != null) {pstmtCheckInactive.close();} } catch (SQLException e) {}
-			try {if (pstmtDeleteOrganisation != null) {pstmtDeleteOrganisation.close();} } catch (SQLException e) {}
+			try {if (pstmtCheckExists != null) {pstmtCheckExists.close();} } catch (SQLException e) {}
 			try {if (pstmtAddOrgList != null) {pstmtAddOrgList.close();} } catch (SQLException e) {}	
 		}
 		
@@ -429,6 +412,8 @@ public class OrganisationManager {
 		    log.info("Saving file to: " + filePath);
 		    try {
 				logoItem.write(savedFile);
+				savedFile.setReadable(true);
+				savedFile.setWritable(true);
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

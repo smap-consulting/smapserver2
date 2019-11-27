@@ -1805,7 +1805,8 @@ public class TaskManager {
 
 		String deleteTaskSql = "update tasks t set deleted = 'true', deleted_at = now() "
 				+ "where t.p_id = ? "		// Authorisation
-				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled') = 0  "
+				+ "and (select count(*) from assignments a where a.task_id = t.id and a.status != 'deleted' and a.status != 'cancelled'"
+				+ "and a.status != 'new') = 0  "
 				+ "and t.id in (";		
 		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
@@ -1819,7 +1820,7 @@ public class TaskManager {
 				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
 				+ "and id in (";
 		String sqlGetUnassigned = "select id from tasks "
-				+ "where id not in (select task_id from assignments) "
+				+ "where id not in (select task_id from assignments where status != 'new'	) "
 				+ "and id in (";
 		String sqlCreateAssignments = "insert into assignments (assignee, status, task_id, assigned_date, assignee_name) "
 				+ "values(?, 'accepted', ?, now(), (select name from users where id = ?))";
@@ -1831,6 +1832,16 @@ public class TaskManager {
 				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
 				+ "and (a.status = 'unsent' or a.status = 'accepted' or a.status = 'blocked') "
 				+ "and a.id in (";
+		
+		String deleteNewAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
+				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "and (status = 'new') "
+				+ "and id in (";
+		
+		String deleteHardNewAssignmentsSql = "delete from assignments "
+				+ "where task_id in (select task_id from tasks where p_id = ? and not assign_auto) "	
+				+ "and (status = 'new') "
+				+ "and id in (";
 		
 		String setStatusSql = "update assignments set status = ? where id = ? ";
 		
@@ -1845,6 +1856,8 @@ public class TaskManager {
 		PreparedStatement pstmtGetUsers = null;
 		PreparedStatement pstmtEmailDetails = null;
 		PreparedStatement pstmtSetStatus = null;
+		PreparedStatement pstmtDeleteNewAssignments = null;
+		PreparedStatement pstmtDeleteHardNewAssignments = null;
 
 		RecordEventManager rem = new RecordEventManager(localisation, "UTC");
 		
@@ -1961,6 +1974,8 @@ public class TaskManager {
 				// Get tasks that have not had an assignment created
 				pstmtGetUnassigned = sd.prepareStatement(sqlGetUnassigned + whereTasksSql);
 				pstmtCreateAssignments = sd.prepareCall(sqlCreateAssignments);
+				pstmtDeleteNewAssignments = sd.prepareStatement(deleteNewAssignmentsSql + whereAssignmentsSql);
+				pstmtDeleteHardNewAssignments = sd.prepareStatement(deleteHardNewAssignmentsSql + whereAssignmentsSql);
 				ResultSet rs = pstmtGetUnassigned.executeQuery();
 				while (rs.next()) {
 					// Create the first assignment for this task
@@ -1970,6 +1985,19 @@ public class TaskManager {
 					log.info("Create assignment: " + pstmtCreateAssignments.toString());
 					pstmtCreateAssignments.executeUpdate();
 				}
+				
+				/*
+				 * First do a hard delete of new tasks that are not auto assign
+				 * Set remaining auto assign tasks to cancelled
+				 */
+				pstmtDeleteHardNewAssignments.setInt(1, pId);
+				log.info("Delete new assignments: " + pstmtDeleteHardNewAssignments.toString());
+				pstmtDeleteHardNewAssignments.executeUpdate();
+				
+				pstmtDeleteNewAssignments.setInt(1, pId);
+				log.info("Delete new assignments: " + pstmtDeleteNewAssignments.toString());
+				pstmtDeleteNewAssignments.executeUpdate();
+				
 				// Update assignments
 				if(hasAssignments) {
 					if(action.userId >= 0) {
@@ -2085,6 +2113,8 @@ public class TaskManager {
 			if(pstmtGetUsers != null) try {pstmtGetUsers.close(); } catch(SQLException e) {};	
 			if(pstmtEmailDetails != null) try {pstmtEmailDetails.close(); } catch(SQLException e) {};	
 			if(pstmtSetStatus != null) try {pstmtSetStatus.close(); } catch(SQLException e) {};	
+			if(pstmtDeleteNewAssignments != null) try {pstmtDeleteNewAssignments.close(); } catch(SQLException e) {};
+			if(pstmtDeleteHardNewAssignments != null) try {pstmtDeleteHardNewAssignments.close(); } catch(SQLException e) {};
 		}
 
 	}

@@ -4138,6 +4138,14 @@ public class SurveyManager {
 					false		// mgmt
 					);
 
+			/*
+			 * Get the lastest instanceid in case this record has been updated
+			 */
+			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, form.tableName, instanceId);
+			
+			/*
+			 * Get the data
+			 */
 			pstmt = tdm.getPreparedStatement(
 					sd, 
 					cResults,
@@ -4172,6 +4180,7 @@ public class SurveyManager {
 					);
 			
 			if(pstmt != null) {
+				log.info("Getting single instance: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				
 				while(rs.next()) {

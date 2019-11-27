@@ -371,6 +371,9 @@ public class OrganisationList extends Application {
 			response = Response.serverError().entity(ex.getMessage()).build();
 			log.log(Level.SEVERE,"Error", ex);
 			
+		} catch (ApplicationException ax) {
+			response = Response.serverError().entity(ax.getMessage()).build();
+			
 		} finally {
 			
 			SDDataSource.closeConnection("surveyKPI-OrganisationList-updateOrganisation", sd);
@@ -835,7 +838,6 @@ public class OrganisationList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String sql = null;
-			ResultSet resultSet = null;
 			sd.setAutoCommit(false);
 				
 			String basePath = GeneralUtilityMethods.getBasePath(request);
@@ -847,27 +849,10 @@ public class OrganisationList extends Application {
 				/*
 				 * Ensure that there are no undeleted projects with surveys in this organisation
 				 */
-				sql = "SELECT count(*) " +
-						" from project p, survey s " +  
-						" where p.id = s.p_id " +
-						" and p.o_id = ? " +
-						" and s.deleted = 'false';";
-					
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, o.id);
-				log.info("SQL check for projects in an organisation: " + pstmt.toString());
-				resultSet = pstmt.executeQuery();
-				if(resultSet.next()) {
-					int count = resultSet.getInt(1);
-					if(count > 0) {
-						log.info("Count of undeleted projects:" + count);
-						log.info("Count of undeleted pganisations:" + count);
-						String msg = localisation.getString("msg_undel_orgs");
-						msg = msg.replace("%s1", o.name);
-						throw new Exception(msg);
-					}
-				} else {
-					throw new Exception("Error getting project count");
+				if(GeneralUtilityMethods.orgSurveyCount(sd, o.id) > 0) {
+					String msg = localisation.getString("msg_undel_orgs");
+					msg = msg.replace("%s1", o.name);
+					throw new Exception(msg);
 				}
 				
 			    // Delete any users in this organisation.  If the user is in multiple organisations

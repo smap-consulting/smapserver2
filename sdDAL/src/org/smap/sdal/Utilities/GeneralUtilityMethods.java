@@ -8742,5 +8742,32 @@ public class GeneralUtilityMethods {
 		return count > 1;
 	}
 	
+	public static int orgSurveyCount(Connection sd, int oId) throws SQLException {
+		
+		int count = -1;
+		
+		String sql = "SELECT count(*) " +
+				" from project p, survey s " +  
+				" where p.id = s.p_id " +
+				" and p.o_id = ? " +
+				" and s.deleted = 'false'";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				count = rs.getInt(1);
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return count;
+	}
+	
 }
 
