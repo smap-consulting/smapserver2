@@ -6,6 +6,8 @@ fieldManager/build
 surveyMobileAPI/build/classes/.gitignore
 koboToolboxApi/.gitignore
 
+Servers/
+
 subscribers/target/
 
 build/css.orig
