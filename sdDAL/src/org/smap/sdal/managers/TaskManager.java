@@ -1170,7 +1170,8 @@ public class TaskManager {
 						0,
 						null,
 						updateId,
-						sm);
+						sm,
+						false);		// Meta data
 				
 				// There should only be one instance at the top level
 				initialData = gson.toJson(instances.get(0), Instance.class);

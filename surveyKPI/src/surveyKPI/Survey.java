@@ -108,6 +108,7 @@ public class Survey extends Application {
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
 		aManage = new Authorise(authorisations, null);
 
 	}

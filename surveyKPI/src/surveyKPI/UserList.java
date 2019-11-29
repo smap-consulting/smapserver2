@@ -86,6 +86,7 @@ public class UserList extends Application {
 		// Also allow users with View rights to view the simple list of users
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
 		aSimpleList = new Authorise(authorisations, null);
 		
 		// Only allow administrators, org administrators and security managers to update user list

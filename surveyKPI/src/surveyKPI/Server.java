@@ -60,6 +60,7 @@ public class Server extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
 		authorisations.add(Authorise.ADMIN);
 		aUserLevel = new Authorise(authorisations, null);
 	}

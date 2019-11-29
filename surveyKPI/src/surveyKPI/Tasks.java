@@ -87,6 +87,7 @@ public class Tasks extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
 		a = new Authorise(authorisations, null);
 	}
 	
