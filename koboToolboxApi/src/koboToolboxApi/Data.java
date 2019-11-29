@@ -185,6 +185,7 @@ public class Data extends Application {
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("links") String links,
+			@QueryParam("meta") String meta,
 			@QueryParam("filter") String filter,
 			@QueryParam("dd_filter") String dd_filter,		// Drill Down Filter when driling down to a child survey
 			@QueryParam("prikey") int prikey,				// Return data for a specific primary key (Distinct from using start with limit 1 as this is for drill down and settings should not be stored)
@@ -208,12 +209,17 @@ public class Data extends Application {
 			hrk = key;
 		}
 		
+		boolean includeMeta = true;		// Default to true for get all records (Historical consistency reason)
+		if(meta != null && (meta.equals("false") || meta.equals("no"))) {
+			includeMeta = false;
+		}
 		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
-				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, instanceId);
+				filter, dd_filter, prikey, dd_hrk, dateName, startDate, endDate, getSettings, 
+				instanceId, includeMeta);
 	}
 	
 	/*
@@ -229,17 +235,23 @@ public class Data extends Application {
 			@PathParam("uuid") String uuid,		
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
 			@QueryParam("tz") String tz,					// Timezone
-			@QueryParam("geojson") String geojson		// if set to yes then format as geoJson
+			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
+			@QueryParam("meta") String meta				// If set true then include meta
 			) throws ApplicationException, Exception { 
+		
+		boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
+		if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
+			includeMeta = true;
+		}
 		
 		// Authorisation is done in getSingleRecord
 		return getSingleRecord(request,
 				sIdent,
 				uuid,
 				merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
-				tz				// Timezone
-				);
-		
+				tz,				// Timezone
+				includeMeta
+				);	
 	}
 	
 	/*
@@ -329,7 +341,8 @@ public class Data extends Application {
 			Date startDate,
 			Date endDate,
 			boolean getSettings,		// Set true if the settings are stored in the database, otherwise they are passed with the request
-			String instanceId
+			String instanceId,
+			boolean includeMeta
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -587,20 +600,20 @@ public class Data extends Application {
 						parentform,
 						fId,
 						table_name,
-						true,		// Read Only
-						getParkey,	// Include parent key if the form is not the top level form (fId is 0)
+						true,				// Read Only
+						getParkey,			// Include parent key if the form is not the top level form (fId is 0)
 						(ssd.include_bad.equals("yes") || ssd.include_bad.equals("only")),
-						true,		// include instance id
-						true,		// Include prikey
-						true,		// include other meta data
-						true,		// include preloads
-						true,		// include instancename
-						true,		// include survey duration
+						includeMeta,		// include instance id
+						includeMeta,		// Include prikey
+						includeMeta,		// include other meta data
+						includeMeta,		// include preloads
+						true,				// include instancename
+						includeMeta,		// include survey duration
 						superUser,
-						false,		// TODO include HXL
+						false,				// TODO include HXL
 						audit,
 						tz,
-						mgmt			// If this is a management request then include the assigned user after prikey
+						mgmt				// If this is a management request then include the assigned user after prikey
 						);
 	
 			}
@@ -814,13 +827,14 @@ public class Data extends Application {
 	
 	/*
 	 * KoboToolBox API version 1 /data
-	 * Get records for an individual survey in JSON format
+	 * Get a single record in JSON format
 	 */
 	private Response getSingleRecord(HttpServletRequest request,
 			String sIdent,
 			String uuid,
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
-			String tz				// Timezone
+			String tz,				// Timezone
+			boolean includeMeta
 			) throws ApplicationException, Exception { 
 
 		Response response;
@@ -873,7 +887,7 @@ public class Data extends Application {
 					true, 		// get property questions
 					false, 		// get soft deleted
 					true, 		// get HRK
-					"external", 		// get external options
+					"external", 	// get external options
 					false, 		// get change history
 					false, 		// get roles
 					true,		// superuser 
@@ -890,7 +904,8 @@ public class Data extends Application {
 					0,
 					null,
 					uuid,
-					sm);
+					sm,
+					includeMeta);
 		
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			

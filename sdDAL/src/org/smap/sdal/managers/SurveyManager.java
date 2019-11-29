@@ -4087,7 +4087,8 @@ public class SurveyManager {
 			int parkey,
 			String hrk,				// Usually either hrk or instanceId would be used to identify the instance
 			String instanceId,
-			SurveyManager sm
+			SurveyManager sm,
+			boolean includeMeta
 			) throws Exception {
 
 		ArrayList<TableColumn> columns = null;
@@ -4125,21 +4126,21 @@ public class SurveyManager {
 					true,		// Read Only
 					false,		// Parent key
 					false,
-					true,		// include instance id
-					true,		// include prikey
-					false,		// include other meta data
-					false,		// include preloads
-					true,		// include instancename
-					false,		// include survey duration
+					true,			// include instance id
+					true,			// include prikey
+					includeMeta,	// include other meta data
+					includeMeta,	// include preloads
+					true,			// include instancename
+					includeMeta,	// include survey duration
 					false,
-					false,		// include HXL
+					false,			// include HXL
 					false,
 					tz,
 					false		// mgmt
 					);
 
 			/*
-			 * Get the lastest instanceid in case this record has been updated
+			 * Get the latest instanceid in case this record has been updated
 			 */
 			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, form.tableName, instanceId);
 			
@@ -4194,6 +4195,7 @@ public class SurveyManager {
 						name = c.displayName;
 						if(name.equals("prikey")) {
 							prikey = rs.getInt(i + 1);
+							value = rs.getString(i + 1);
 						} else if (c.type.equals("geopoint")) {
 							// Add Geometry (assume one geometry type per table)
 							//instance.geometry = parser.parse(rs.getString(i + 1)).getAsJsonObject();
@@ -4239,11 +4241,11 @@ public class SurveyManager {
 							value = rs.getString(i + 1);
 						}
 							
-						if(!name.equals("prikey") && !c.type.equals("begin repeat")) {
+						if(includeMeta && name.equals("prikey")) {
 							instance.values.put(name, value);
-						}
-		
-								
+						} else if(!name.equals("prikey") && !c.type.equals("begin repeat")) {
+							instance.values.put(name, value);
+						}		
 					}
 					
 					/*
@@ -4273,7 +4275,8 @@ public class SurveyManager {
 									prikey,
 									null,
 									null,
-									sm));
+									sm,
+									includeMeta));
 						}
 					}
 						
