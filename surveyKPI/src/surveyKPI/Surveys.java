@@ -91,6 +91,7 @@ public class Surveys extends Application {
 		authorisations1.add(Authorise.VIEW_DATA);
 		authorisations1.add(Authorise.ADMIN);
 		authorisations1.add(Authorise.ENUM);
+		authorisations1.add(Authorise.MANAGE_TASKS);
 		
 		authorisations2.add(Authorise.ANALYST);
 		authorisations2.add(Authorise.ADMIN);

@@ -59,6 +59,7 @@ public class Languages extends Application {
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.MANAGE);
+		authorisations.add(Authorise.MANAGE_TASKS);
 		a = new Authorise(authorisations, null);
 	}
 	
