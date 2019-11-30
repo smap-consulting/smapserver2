@@ -532,7 +532,13 @@ public class NotificationManager {
 			// Localisation
 			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, remoteUser);
 			Locale locale = new Locale(organisation.locale);
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			ResourceBundle localisation;
+			try {
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			} catch(Exception e) {
+				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+			}
 			
 			String tz = "UTC";		// Set default time to UTC
 			
