@@ -172,9 +172,14 @@ public class SubscriberBatch {
 			pstmt = sd.prepareStatement(sqlUpdateStatus);
 			pstmtResultsDB = sd.prepareStatement(sqlResultsDB);
 
-			// Default to english though we could get the locales from a server level setting
+			// Default to English though we could get the locales from a server level setting
 			Locale locale = new Locale("en");
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			ResourceBundle localisation;
+			try {
+				localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			} catch(Exception e) {
+				localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+			}
 			serverName = GeneralUtilityMethods.getSubmissionServer(sd);
 
 			/*
@@ -239,7 +244,12 @@ public class SubscriberBatch {
 									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, ue.getSurveyId());
 									Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 									Locale orgLocale = new Locale(organisation.locale);
-									ResourceBundle orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+									ResourceBundle orgLocalisation;
+									try {
+										orgLocalisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+									} catch(Exception e) {
+										orgLocalisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+									}
 
 									// Get the submitted results as an XML document
 									is = new FileInputStream(uploadFile);
