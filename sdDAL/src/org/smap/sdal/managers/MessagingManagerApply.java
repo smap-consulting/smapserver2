@@ -108,7 +108,12 @@ public class MessagingManagerApply {
 				Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
 				
 				Locale locale = new Locale(organisation.locale);
-				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				ResourceBundle localisation;
+				try {
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				} catch(Exception e) {
+					localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+				}
 				
 				String tz = "UTC";		// Default timezone to UTC
 				if(organisation.timeZone != null) {

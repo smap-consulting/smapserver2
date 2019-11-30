@@ -399,10 +399,7 @@ public class TableManager {
 						.append("instanceid text, ")
 						.append("instancename text,")
 						.append(SmapServerMeta.SCHEDULED_START_NAME).append(" timestamp with time zone");
-
-				if(hasHrk) {
-					sql.append(", _hrk text ");
-				}
+				sql.append(", _hrk text ");
 				
 				// Add preloads
 				ArrayList<MetaItem> meta = template.getSurvey().getMeta();
