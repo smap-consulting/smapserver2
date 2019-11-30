@@ -34,6 +34,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.constants.XLSFormColumns;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Condition;
@@ -130,6 +131,12 @@ public class XLSTemplateUploadManager {
 		// Initialise Function Check array
 		functions.add(new FunctionCheck("count", 1, "count(nodeset)"));
 		functions.add(new FunctionCheck("if", 3, "if(condition, a, b)"));
+		
+		// Initialise question name map with internal names
+		qNameMap.put("_user", -1);
+		qNameMap.put(SmapServerMeta.UPLOAD_TIME_NAME, -1);
+		qNameMap.put("_hrk", -1);
+		qNameMap.put("_version", -1);
 		
 	}
 
