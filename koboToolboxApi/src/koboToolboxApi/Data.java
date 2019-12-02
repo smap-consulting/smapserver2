@@ -510,12 +510,10 @@ public class Data extends Application {
 				if(dd_hrk != null) {
 					
 					StringBuffer parentFilter = new StringBuffer("");
-								
-					boolean hasHrk = GeneralUtilityMethods.hasColumn(cResults, 
-							GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId), 
-							"_hrk");
+						
+					String hrkExpression = GeneralUtilityMethods.getHrk(sd, sId);
 
-					if(hasHrk) {
+					if(hrkExpression != null) {
 						parentFilter.append("(${_hrk} = '").append(dd_hrk).append("')");
 					} else {
 						int pKey = 0;
