@@ -6244,7 +6244,7 @@ public class GeneralUtilityMethods {
 				String name = rs.getString(1);
 				String parent = rs.getString(2);
 				
-				formLinks.add(new FormLink(name, parent, "sub_form", null, null));
+				formLinks.add(new FormLink(name, parent, "sub_form", String.valueOf(sId), null));
 			}
 			
 			// Get linked forms
