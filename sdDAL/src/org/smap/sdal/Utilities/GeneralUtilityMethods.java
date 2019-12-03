@@ -7915,10 +7915,10 @@ public class GeneralUtilityMethods {
 	 */
 	public static void initialiseThread(Connection cResults, String table, int sourceKey, String instanceId) throws SQLException {
 		
-		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ?";
+		String sqlInitThreadCol = "update " + table + " set _thread = instanceid where prikey = ? and _thread is null";
 		PreparedStatement pstmtInitThreadCol = null;
 		
-		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ?";
+		String sqlInitThreadCol2 = "update " + table + " set _thread = instanceid where instanceid = ? and _thread is null";
 		PreparedStatement pstmtInitThreadCol2 = null;
 			
 		try {
