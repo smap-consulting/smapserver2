@@ -7933,10 +7933,12 @@ public class GeneralUtilityMethods {
 			if(sourceKey > 0) {
 				pstmtInitThreadCol = cResults.prepareStatement(sqlInitThreadCol);
 				pstmtInitThreadCol.setInt(1, sourceKey);
+				log.info("Initialise Thread: " + pstmtInitThreadCol.toString());
 				pstmtInitThreadCol.executeUpdate();
 			} else {
 				pstmtInitThreadCol2 = cResults.prepareStatement(sqlInitThreadCol2);
 				pstmtInitThreadCol2.setString(1, instanceId);
+				log.info("Initialise Thread: " + pstmtInitThreadCol2.toString());
 				pstmtInitThreadCol2.executeUpdate();
 			}
 			
@@ -7978,6 +7980,7 @@ public class GeneralUtilityMethods {
 				pstmt.setString(1,  instanceId);
 				pstmt.setString(2,  instanceId);
 				
+				log.info("starting thread: " + pstmt.toString());
 				thread = instanceId;
 			}
 			
