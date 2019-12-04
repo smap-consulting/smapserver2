@@ -543,7 +543,7 @@ public class ActionManager {
 	}
 	
 	/*
-	 * Process an update request that came either from an anonymous form or from the console
+	 * Process an update request that came from the console
 	 * The update is for a Group Survey
 	 */
 	public Response processUpdateGroupSurvey(
@@ -564,16 +564,12 @@ public class ActionManager {
 		ArrayList<Update> updates = gson.fromJson(updateString, type);
 
 		PreparedStatement pstmtUpdate = null;
-		int priority = -1;
 
 		try {
 
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-			int pId = 0;
 
 			/*
 			 * Get the data processing columns
@@ -624,20 +620,12 @@ public class ActionManager {
 			/*
 			 * Process each column
 			 */
-			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
+			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange> ();
 			log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
 				Update u = updates.get(i);
-
-				// Set up storage of changes
-				//String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
-				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
-				if(changes == null) {
-					changes = new ArrayList<DataItemChange> ();
-					changeMap.put(instanceid, changes);
-				}
 				
 				// 1. Escape quotes in update name, though not really necessary due to next step
 				u.name = u.name.replace("'", "''").trim();
@@ -717,16 +705,6 @@ public class ActionManager {
 									+ "have updated this record.");
 				}
 
-				/*
-				 * Apply any required actions
-				 */
-				if (tc.actions != null && tc.actions.size() > 0) {
-					if (priority < 0) {
-						priority = getPriority(cResults, f.tableName, u.prikey);
-					}
-					//TODO applyManagedFormActions(request, sd, tc, oId, sId, pId, managedId, u.prikey, priority, u.value,
-					//		localisation);
-				}
 				
 				/*
 				 * Record the change
@@ -739,25 +717,23 @@ public class ActionManager {
 			 * save change log
 			 */
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
-			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(
-						sd, 
-						cResults, 
-						RecordEventManager.CHANGES, 
-						RecordEventManager.STATUS_SUCCESS, 
-						userIdent, 
-						topLevelForm.tableName, 
-						inst, 
-						gson.toJson(changeMap.get(inst)),
-						null,		// task details
-						null,		// notification details
-						null,		// description
-						sId, 
-						null,
-						0,
-						0);
-			}
-				
+			rem.writeEvent(
+					sd, 
+					cResults, 
+					RecordEventManager.CHANGES, 
+					RecordEventManager.STATUS_SUCCESS, 
+					userIdent, 
+					topLevelForm.tableName, 
+					instanceid, 
+					gson.toJson(changes),
+					null,		// task details
+					null,		// notification details
+					null,		// description
+					sId, 
+					null,
+					0,
+					0);
+
 			cResults.commit();
 			response = Response.ok().build();
 
