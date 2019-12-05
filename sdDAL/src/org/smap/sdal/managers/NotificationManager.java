@@ -489,7 +489,9 @@ public class NotificationManager {
 			String ident,			// Survey Ident
 			String instanceId,
 			int pId,
-			boolean excludeEmpty) throws Exception {
+			boolean excludeEmpty,
+			String updateQuestion,
+			String updateValue) throws Exception {
 		
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
@@ -515,19 +517,23 @@ public class NotificationManager {
 			MessagingManager mm = new MessagingManager();
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			
-			log.info("notifyForSubmission:: " + ue_id);
+			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 			
-			String sqlGetNotifications = "select n.target, n.notify_details, n.filter "
+			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter "
 					+ "from forward n "
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
-					+ "and n.enabled = 'true' "
-					+ "and n.trigger = 'submission'";
-			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications);
+					+ "and n.enabled = 'true'");
 			
-			String sqlUpdateUploadEvent = "update upload_event set notifications_applied = 'true' where ue_id = ?; ";
-			pstmtUpdateUploadEvent = sd.prepareStatement(sqlUpdateUploadEvent);
+			if(updateQuestion == null) {
+				sqlGetNotifications.append(" and n.trigger = 'submission'");
+			} else {
+				sqlGetNotifications.append(" and n.trigger = 'update'");
+				sqlGetNotifications.append(" and n.change_question = ?");
+				sqlGetNotifications.append(" and n.change_value = ?");
+			}
+			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications.toString());
 	
 			// Localisation
 			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, remoteUser);
@@ -543,6 +549,10 @@ public class NotificationManager {
 			String tz = "UTC";		// Set default time to UTC
 			
 			pstmtGetNotifications.setInt(1, sId);
+			if(updateQuestion != null) {
+				pstmtGetNotifications.setString(2, updateQuestion);
+				pstmtGetNotifications.setString(3, updateValue);
+			}
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();
 			while(rsNotifications.next()) {
@@ -621,8 +631,12 @@ public class NotificationManager {
 			/*
 			 * Update upload event to record application of notifications
 			 */
-			pstmtUpdateUploadEvent.setInt(1, ue_id);
-			pstmtUpdateUploadEvent.executeUpdate();
+			if(updateQuestion == null) {
+				String sqlUpdateUploadEvent = "update upload_event set notifications_applied = 'true' where ue_id = ?; ";
+				pstmtUpdateUploadEvent = sd.prepareStatement(sqlUpdateUploadEvent);
+				pstmtUpdateUploadEvent.setInt(1, ue_id);
+				pstmtUpdateUploadEvent.executeUpdate();
+			}
 		} finally {
 			try {if (pstmtGetNotifications != null) {pstmtGetNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdateUploadEvent != null) {pstmtUpdateUploadEvent.close();}} catch (SQLException e) {}

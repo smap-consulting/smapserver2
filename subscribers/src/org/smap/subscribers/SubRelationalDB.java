@@ -303,7 +303,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 	
 	/*
-	 * Apply any changes to assignment status
+	 * Get the assignment ID
 	 */
 	private int getAssignmentId(Connection sd, int ue_id) {
 
@@ -338,7 +338,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	/*
-	 * Apply notifications triggered by a submission
+	 * Apply notifications and tasks triggered by a submission
 	 */
 	private void applySubmissionNotifications(Connection sd, Connection cResults, int ueId, String remoteUser, 
 			String server, String sIdent, boolean excludeEmpty) {
@@ -381,7 +381,10 @@ public class SubRelationalDB extends Subscriber {
 						ident,
 						instanceId,
 						pId,
-						excludeEmpty);	
+						excludeEmpty,
+						null,		// update question
+						null		// update value
+						);	
 
 				// Apply Tasks
 				TaskManager tm = new TaskManager(localisation, tz);
