@@ -8,7 +8,10 @@ public class Notification {
 	public int s_id;						// Deprecate in favour of sIdent
 	public String sIdent;
 	public String filter;
-	public String s_name;				// submission only
+	public String s_name;				// submission / update only
+	public String updateSurvey;
+	public String updateQuestion;		// Update only
+	public String updateValue;
 	public String remote_s_ident;	
 	public boolean enabled;
 	public String remote_s_name;

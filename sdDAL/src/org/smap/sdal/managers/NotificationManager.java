@@ -131,9 +131,9 @@ public class NotificationManager {
 			String sql = "insert into forward(" +
 					" s_id, enabled, " +
 					" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
-					+ "trigger, target, filter, name, tg_id, period) " +
+					+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value) " +
 					" values (?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?); ";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
 	
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			
@@ -155,6 +155,9 @@ public class NotificationManager {
 			pstmt.setString(12, n.name);
 			pstmt.setInt(13, n.tgId);
 			pstmt.setString(14, n.period);
+			pstmt.setString(15, n.updateSurvey);
+			pstmt.setString(16, n.updateQuestion);
+			pstmt.setString(17, n.updateValue);
 			pstmt.executeUpdate();
 	}
 	
