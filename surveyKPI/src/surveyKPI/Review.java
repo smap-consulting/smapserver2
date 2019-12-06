@@ -382,8 +382,9 @@ public class Review extends Application {
 		
 		log.info("===========getReferencedQuestion: " + sId + " : " + language + " : " + qId);
 		
+		String connectionString = "surveyKPI-getReferencedQuestions";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection connectionSD = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
@@ -511,7 +512,7 @@ public class Review extends Application {
 			try {if (pstmtGetQuestion != null) {pstmtGetQuestion.close();}} catch (SQLException e) {}
 			try {if (pstmtGetOption != null) {pstmtGetOption.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-QuestionList", connectionSD);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
 
 		return response;

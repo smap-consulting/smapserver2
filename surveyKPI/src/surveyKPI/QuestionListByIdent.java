@@ -80,11 +80,11 @@ public class QuestionListByIdent extends Application {
 			@QueryParam("exc_ssc") boolean exc_ssc,
 			@QueryParam("inc_meta") boolean inc_meta) { 
 
-	
+		String connectionString = "surveyKPI-getQuestionsNewIdent";
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		int sId = 0;
 		try {
@@ -217,7 +217,7 @@ public class QuestionListByIdent extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-QuestionList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 

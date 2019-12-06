@@ -95,8 +95,9 @@ public class ReviewQuestionsOther extends Application {
 			@PathParam("sId") int sId,
 			@PathParam("language") String language) { 
 		
+		String connectionString = "surveyKPI-getQuestions";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection connectionSD = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
@@ -194,7 +195,7 @@ public class ReviewQuestionsOther extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-QuestionList", connectionSD);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
 
 		return response;
