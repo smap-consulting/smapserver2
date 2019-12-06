@@ -401,7 +401,7 @@ public class QuestionList extends Application {
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connctionString);
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
