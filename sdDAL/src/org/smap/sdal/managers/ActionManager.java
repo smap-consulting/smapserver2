@@ -706,13 +706,11 @@ public class ActionManager {
 							"Update failed: " + "Try refreshing your view of the data as someone may already "
 									+ "have updated this record.");
 				}
-
 				
 				/*
 				 * Record the change
 				 */
 				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
-
 			}
 
 			/*
@@ -726,6 +724,8 @@ public class ActionManager {
 			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, surveyIdent);
 			for (int i = 0; i < updates.size(); i++) {
 				
+				Update u = updates.get(i);
+				
 				nm.notifyForSubmission(
 						sd, 
 						cResults,
@@ -738,9 +738,9 @@ public class ActionManager {
 						surveyIdent,
 						instanceId,
 						pId,
-						null,		// update survey ident
-						null,		// update question
-						null		// update value
+						groupSurvey,		// update survey ident
+						u.name,		// update question
+						u.value		// update value
 						);	
 			}
 			/*
