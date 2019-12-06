@@ -492,7 +492,7 @@ public class NotificationManager {
 			String ident,			// Survey Ident
 			String instanceId,
 			int pId,
-			boolean excludeEmpty,
+			String updateSurvey,
 			String updateQuestion,
 			String updateValue) throws Exception {
 		
@@ -533,8 +533,9 @@ public class NotificationManager {
 				sqlGetNotifications.append(" and n.trigger = 'submission'");
 			} else {
 				sqlGetNotifications.append(" and n.trigger = 'update'");
-				sqlGetNotifications.append(" and n.change_question = ?");
-				sqlGetNotifications.append(" and n.change_value = ?");
+				sqlGetNotifications.append(" and n.update_survey = ?");
+				sqlGetNotifications.append(" and n.update_question = ?");
+				sqlGetNotifications.append(" and n.update_value = ?");
 			}
 			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications.toString());
 	
@@ -553,8 +554,9 @@ public class NotificationManager {
 			
 			pstmtGetNotifications.setInt(1, sId);
 			if(updateQuestion != null) {
-				pstmtGetNotifications.setString(2, updateQuestion);
-				pstmtGetNotifications.setString(3, updateValue);
+				pstmtGetNotifications.setString(2, updateSurvey);
+				pstmtGetNotifications.setString(3, updateQuestion);
+				pstmtGetNotifications.setString(4, updateValue);
 			}
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();

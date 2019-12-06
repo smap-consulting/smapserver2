@@ -552,10 +552,10 @@ public class ActionManager {
 			Connection cResults, 
 			String userIdent,
 			int sId, 
-			String instanceid,
+			String instanceId,
 			String groupSurvey, 
 			String groupForm,
-			String updateString) {
+			String updateString) throws SQLException {
 
 		Response response = null;
 
@@ -563,6 +563,8 @@ public class ActionManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(updateString, type);
 
+		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+		
 		PreparedStatement pstmtUpdate = null;
 
 		try {
@@ -712,7 +714,35 @@ public class ActionManager {
 				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
 
 			}
-			
+
+			/*
+			 * Process update notifications after all the changes have been applied
+			 * This allows the filter to work on the latest record data
+			 */
+			NotificationManager nm = new NotificationManager(localisation);
+			String server = request.getServerName();
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			String urlprefix = "https://" + server + "/";
+			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, surveyIdent);
+			for (int i = 0; i < updates.size(); i++) {
+				
+				nm.notifyForSubmission(
+						sd, 
+						cResults,
+						0, 
+						request.getRemoteUser(), 
+						"https",
+						server,
+						basePath,
+						urlprefix,
+						surveyIdent,
+						instanceId,
+						pId,
+						null,		// update survey ident
+						null,		// update question
+						null		// update value
+						);	
+			}
 			/*
 			 * save change log
 			 */
@@ -724,7 +754,7 @@ public class ActionManager {
 					RecordEventManager.STATUS_SUCCESS, 
 					userIdent, 
 					topLevelForm.tableName, 
-					instanceid, 
+					instanceId, 
 					gson.toJson(changes),
 					null,		// task details
 					null,		// notification details

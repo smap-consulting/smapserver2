@@ -381,7 +381,7 @@ public class SubRelationalDB extends Subscriber {
 						ident,
 						instanceId,
 						pId,
-						excludeEmpty,
+						null,		// update survey ident
 						null,		// update question
 						null		// update value
 						);	
