@@ -3290,7 +3290,8 @@ public class SurveyManager {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident "
+		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
+				+ "s.data_survey, s.oversight_survey "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
@@ -3313,7 +3314,10 @@ public class SurveyManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), rs.getString(3)));
+				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
+						rs.getString(3),
+						rs.getBoolean(4),
+						rs.getBoolean(5)));
 			}
 		} finally {
 			try {
