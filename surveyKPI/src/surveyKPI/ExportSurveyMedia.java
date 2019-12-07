@@ -349,8 +349,6 @@ public class ExportSurveyMedia extends Application {
 	                log.info("Error exporting media files file");
 	                responseVal = Response.serverError().entity("Error exporting media files").build();
 	            }
-					
-				
 			
 			} catch (ApplicationException e) {
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
