@@ -277,7 +277,7 @@ public class NotificationManager {
 		String sql = "select f.id, f.s_id, f.enabled, "
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period "
+				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value "
 				+ "from forward f, survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -472,6 +472,9 @@ public class NotificationManager {
 				n.tg_name = GeneralUtilityMethods.getTaskGroupName(sd, n.tgId);
 			}
 			
+			n.updateSurvey = resultSet.getString(16);
+			n.updateQuestion = resultSet.getString(17);
+			n.updateValue = resultSet.getString(18);
 			notifications.add(n);
 			
 		} 
