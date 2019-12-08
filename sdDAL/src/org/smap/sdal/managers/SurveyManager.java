@@ -3286,7 +3286,11 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Always add the survey corresponding to sId to the group
 	 */
-	public ArrayList<GroupDetails> getGroupDetails(Connection sd, int groupSurveyId, String user, int sId) throws SQLException {
+	public ArrayList<GroupDetails> getGroupDetails(Connection sd, 
+			int groupSurveyId, 
+			String user, 
+			int sId,
+			boolean superUser) throws SQLException {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
@@ -3299,7 +3303,9 @@ public class SurveyManager {
 				+ "and not s.deleted "
 				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)");
 
-		sql.append(GeneralUtilityMethods.getSurveyRBAC());
+		if(!superUser) {
+			sql.append(GeneralUtilityMethods.getSurveyRBAC());
+		}
 		
 		PreparedStatement pstmt = null;
 		try {
@@ -3308,7 +3314,9 @@ public class SurveyManager {
 			pstmt.setInt(2, groupSurveyId);
 			pstmt.setInt(3,  groupSurveyId);
 			pstmt.setInt(4,  sId);
-			pstmt.setString(5, user);	// Second user entry for RBAC
+			if(!superUser) {
+				pstmt.setString(5, user);	// Second user entry for RBAC
+			}
 				
 			log.info("Get group surveys: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();

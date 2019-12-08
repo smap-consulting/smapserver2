@@ -419,7 +419,7 @@ public class OrganisationManager {
 						folderPath + " " +
     					" >> /var/log/subscribers/survey.log 2>&1"});
 				int code = proc.waitFor();				
-	        		
+	        	
 	            if(code != 0) {
 	                log.info("Error saving logo: " + code);
 	            }
