@@ -142,7 +142,9 @@ public class Surveys extends Application {
 					projectId,
 					superUser,
 					groups,
-					true);
+					true,
+					false		// Get oversight and data surveys
+					);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(surveys);
 			response = Response.ok(resp).build();

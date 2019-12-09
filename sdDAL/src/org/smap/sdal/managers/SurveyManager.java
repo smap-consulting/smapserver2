@@ -131,7 +131,8 @@ public class SurveyManager {
 			int projectId,			// Set to 0 to get all surveys regardless of project
 			boolean superUser,
 			boolean onlyGroup,		// Only get surveys that are available to be used as groups
-			boolean getGroupDetails
+			boolean getGroupDetails,
+			boolean onlyDataSurvey	// Only get data surveys (ie no oversight surveys)
 			) throws SQLException {
 
 		ArrayList<Survey> surveys = new ArrayList<Survey>();	// Results of request
@@ -176,6 +177,9 @@ public class SurveyManager {
 		}
 		if(onlyGroup) {
 			sql.append("and s.group_survey_id = 0 ");
+		}
+		if(onlyDataSurvey) {
+			sql.append("and s.data_survey = 'true' ");
 		}
 		sql.append("order BY s.display_name ");
 
