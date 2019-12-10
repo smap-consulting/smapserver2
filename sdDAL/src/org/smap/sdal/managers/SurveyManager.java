@@ -183,6 +183,7 @@ public class SurveyManager {
 		}
 		sql.append("order BY s.display_name ");
 
+		
 		pstmt = sd.prepareStatement(sql.toString());	
 		int idx = 1;
 		pstmt.setString(idx++, user);
