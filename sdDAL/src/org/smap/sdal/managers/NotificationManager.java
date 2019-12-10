@@ -614,6 +614,7 @@ public class NotificationManager {
 					SubmissionMessage subMsg = new SubmissionMessage(
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
+							updateSurvey,
 							pId,
 							instanceId, 
 							nd.from,
@@ -695,6 +696,17 @@ public class NotificationManager {
 				msg.launchedOnly			// launched only
 				);
 		
+		Survey updateSurvey = null;
+		if(msg.update_ident != null) {
+			int oversightId = GeneralUtilityMethods.getSurveyId(sd, msg.update_ident);
+			updateSurvey = sm.getById(sd, cResults, msg.user, oversightId, true, msg.basePath, 
+					msg.instanceId, true, generateBlank, true, false, true, "real", 
+					false, false, true, "geojson",
+					msg.include_references,		// For PDFs follow links to referenced surveys
+					msg.launchedOnly			// launched only
+					);
+		}
+		
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, msg.user, organisation.timeZone);
 		
 		try {
@@ -726,6 +738,17 @@ public class NotificationManager {
 							survey,
 							"none",
 							organisation.id);
+				// Update text with oversight data if it exists
+				if(updateSurvey != null) {
+					tm.createTextOutput(sd,
+							cResults,
+							text,
+							msg.basePath, 
+							msg.user,
+							updateSurvey,
+							"none",
+							organisation.id);
+				}
 				msg.subject = text.get(0);
 				msg.content = text.get(1);
 				
