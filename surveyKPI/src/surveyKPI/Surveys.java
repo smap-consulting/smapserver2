@@ -941,7 +941,7 @@ public class Surveys extends Application {
 						item.dataType = "date";
 					} else if(item.sourceParam.equals("start-geopoint")) {
 						item.type = "geopoint";
-						item.dataType = "property";
+						item.dataType = "geopoint";
 					} else {
 						item.type = "string";
 						item.dataType = "property";

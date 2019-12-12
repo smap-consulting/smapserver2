@@ -7349,7 +7349,7 @@ public class GeneralUtilityMethods {
 		} else if(type.equals("email")) {
 			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name, settings);
 		} else if(type.equals("start-geopoint")) {
-			item = new MetaItem(metaItem, "geopoint", name, type, cleanName(name, true, true, false), "property", true, display_name, settings);
+			item = new MetaItem(metaItem, "geopoint", name, type, cleanName(name, true, true, false), "geopoint", true, display_name, settings);
 		}
 
 		return item;

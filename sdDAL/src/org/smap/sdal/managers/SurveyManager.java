@@ -2607,7 +2607,12 @@ public class SurveyManager {
 						if(mi.isPreload) {			
 							if(GeneralUtilityMethods.hasColumn(cResults, form.tableName, mi.columnName)) {
 								mi.published = true;
-								sql.append(",").append(mi.columnName);				
+								sql.append(",");
+								if(mi.type.equals("geopoint")) {
+									sql.append("ST_AsGeoJSON(").append(mi.columnName).append(", 5) as ").append(mi.columnName);
+								} else {
+									sql.append(mi.columnName);	
+								}
 							} 
 						}
 					}
