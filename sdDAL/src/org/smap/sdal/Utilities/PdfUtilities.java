@@ -122,23 +122,7 @@ public class PdfUtilities {
 		
 		if(value != null && value.trim().length() > 0) {
 			
-			// GeoJson data - add styling
-			value = "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"geometry\":" + 
-					value + 
-					",\"properties\":{";
-			
-			// properties
-			if(markerColor == null) {
-				markerColor = "f00";
-			}
-			value += "\"marker-color\":\"#" + markerColor + "\"";		// Add marker color
-			value += ",";
-			value += "\"stroke\":\"#" + markerColor + "\"";			// Add stroke
-			value += ",";
-			value += "\"fill\":\"#" + markerColor + "\"";			// Add fill
-			
-			value += "}}]}";
-			// End add styling
+			value = createGeoJsonMapValue(value, markerColor, "{\"type\":\"Point\",\"coordinates\":[153.02,-27.44]}");
 			
 			url.append("geojson(");
 
@@ -190,5 +174,53 @@ public class PdfUtilities {
 		} 
 		
 		return img;
+	}
+	
+	private static String createGeoJsonMapValue(String coords, String markerColor, String coordsStartGeopoint) {
+		
+		// GeoJson data - add styling
+		StringBuffer out = new StringBuffer("");
+		out.append("{\"type\":\"FeatureCollection\",\"features\":[");
+		
+		// Add the Geom if it is not null
+		boolean addedGeom = false;
+		if(coords != null) {
+			if(markerColor == null) {
+				markerColor = "f00";
+			}
+			out.append(addGeoJsonFeature(coords, markerColor, null));		
+			addedGeom=true;
+		}
+		// Add the start Geo Point if it is not null
+		if(coordsStartGeopoint != null) {
+			if(addedGeom) {
+				out.append(",");
+			}
+			out.append(addGeoJsonFeature(coordsStartGeopoint, "0f0", "harbor"));	
+		}
+		out.append("]}");
+		
+		return out.toString();
+	}
+	
+	private static String addGeoJsonFeature(String coords, String markerColor, String icon) {
+		
+		StringBuffer out = new StringBuffer("{\"type\":\"Feature\",\"geometry\":");
+		out.append(coords);
+		out.append(",\"properties\":{");
+		
+		// properties
+		out.append("\"marker-color\":\"#").append(markerColor).append("\"");		// Add marker color
+		out.append(",");
+		out.append("\"stroke\":\"#").append(markerColor).append("\"");				// Add stroke
+		out.append(",");
+		out.append("\"fill\":\"#").append(markerColor).append("\"");				// Add fill
+		if(icon != null) {
+			out.append(",");
+			out.append("\"marker-symbol\":\"").append(icon).append("\"");				// Add fill
+		}
+		
+		out.append("}}");
+		return out.toString();
 	}
 }
