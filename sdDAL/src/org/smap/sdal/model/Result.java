@@ -16,6 +16,7 @@ public class Result {
 	//public ArrayList<Result> choices = null;   -- Move to compressed format
 	//public Label label;
 	public String appearance;	// Appearance directives including nopdf
+	public boolean hide = false;
 	
 	public Result (String n, String t, String v, boolean set, int f, int q, int c, String ln, String app) {
 		name = n;

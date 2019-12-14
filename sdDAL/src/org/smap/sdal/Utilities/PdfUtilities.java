@@ -94,6 +94,7 @@ public class PdfUtilities {
 			String map, 
 			String account,
 			String value, 
+			String startGeopointValue,
 			String location, 
 			String zoom,
 			String mapbox_key,
@@ -122,12 +123,7 @@ public class PdfUtilities {
 		
 		if(value != null && value.trim().length() > 0) {
 			
-			value = createGeoJsonMapValue(value, markerColor, "{\"type\":\"Point\",\"coordinates\":[153.02,-27.44]}");
-			
-			url.append("geojson(");
-
-			String jsonValue = value;
-			url.append(URLEncoder.encode(jsonValue, "UTF-8"));
+			url.append(URLEncoder.encode(createGeoJsonMapValue(value, markerColor, startGeopointValue), "UTF-8"));
 			url.append(")/");
 			if(zoom != null && zoom.trim().length() > 0) {
 				url.append(GeneralUtilityMethods.getGeoJsonCentroid(value) + "," + zoom);

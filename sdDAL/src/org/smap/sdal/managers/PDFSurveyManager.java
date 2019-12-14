@@ -470,6 +470,19 @@ public class PDFSurveyManager {
 			int oId) throws IOException, DocumentException {
 		try {
 
+			/*
+			 * Hide any start geopoints if we have a standard geometry in this form
+			 */
+			String startGeopointValue = null;
+			for(int j = 0; j < record.size(); j++) {
+				Result r = record.get(j);
+				if(r.type.equals("geopoint")) {
+					if(!r.name.equals("the_geom")) {
+						startGeopointValue = r.value;
+					}
+				}
+			}
+			
 			for(Result r : record) {
 
 				String value = "";
@@ -558,8 +571,9 @@ public class PDFSurveyManager {
 
 					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 					if(ad != null) {
-						Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, di.location, di.zoom
-								,gv.mapbox_key,
+						Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, 
+								startGeopointValue,
+								di.location, di.zoom,gv.mapbox_key,
 								survey.id,
 								user,
 								di.markerColor,
@@ -776,6 +790,29 @@ public class PDFSurveyManager {
 			depth = repIndexes.length - 1;	
 		}
 
+		/*
+		 * Hide any start geopoints if we have a standard geometry in this form
+		 */
+		int startGeopointIndex = -1;
+		int standardGeomIndex = -1;
+		String startGeopointValue = null;
+		for(int j = 0; j < record.size(); j++) {
+			Result r = record.get(j);
+			if(r.type.equals("geopoint")) {
+				if(r.name.equals("the_geom")) {
+					standardGeomIndex = j;
+				} else {
+					startGeopointIndex = j;
+					startGeopointValue = r.value;
+					startGeopointValue = "{\"type\":\"Point\",\"coordinates\":[153.01108,-27.44594]}";  // dbug
+					r.value = null;
+				}
+			}
+		}
+		
+		/*
+		 * Process
+		 */
 		boolean firstQuestion = true;
 		for(int j = 0; j < record.size(); j++) {
 			Result r = record.get(j);
@@ -833,7 +870,8 @@ public class PDFSurveyManager {
 				
 				if(question != null) {
 					
-					if(includeResult(r, question, appendix, gv, generateBlank)) {
+					if(includeResult(r, question, appendix, gv, generateBlank, 
+							standardGeomIndex, startGeopointIndex, j)) {
 						if(question.type.equals("begin group")) {
 							if(question.isNewPage()) {
 								document.newPage();
@@ -842,7 +880,12 @@ public class PDFSurveyManager {
 							//ignore
 						} else {
 
-							Row row = prepareRow(record, survey, j, gv, length, appendix, parentRecords, generateBlank);
+							Row row = prepareRow(record, survey, j, gv, length, appendix, 
+									parentRecords, 
+									generateBlank,
+									startGeopointValue,
+									standardGeomIndex,
+									startGeopointIndex);
 							PdfPTable newTable = processRow(
 									parser, 
 									row, 
@@ -853,7 +896,8 @@ public class PDFSurveyManager {
 									repIndexes, 
 									gv,
 									remoteUser,
-									oId);
+									oId,
+									startGeopointValue);
 	
 							newTable.setWidthPercentage(100);
 							newTable.setKeepTogether(true);
@@ -906,13 +950,19 @@ public class PDFSurveyManager {
 	private boolean includeResult(Result r, org.smap.sdal.model.Question question, 
 			boolean appendix,
 			GlobalVariables gv,
-			boolean generateBlank) {
+			boolean generateBlank,
+			int standardGeomIndex,
+			int startGeopointIndex,
+			int index) {
 
 		boolean include = true;
 		boolean inMeta = question.inMeta;
 
-		// Don't include the question if it has been marked as not to be included
-		if(!generateBlank && mExcludeEmpty && isSkipped(question, r) ) {
+		if(index == startGeopointIndex && standardGeomIndex >= 0) {
+			// Don't include if the question is a start geopoint and there is a conventional geometry object in this form
+			include = false;
+		} else if(!generateBlank && mExcludeEmpty && isSkipped(question, r) ) {
+			// Don't include the question if it has been marked as not to be included
 			include = false;
 		} else if(question.appearance != null) {
 			if(question.appearance.contains("pdfno")) {
@@ -968,7 +1018,8 @@ public class PDFSurveyManager {
 			int[] repIndexes,
 			GlobalVariables gv,
 			String remoteUser,
-			int oId) throws BadElementException, MalformedURLException, IOException {
+			int oId,
+			String startGeopointValue) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPTable table = new PdfPTable(depth + NUMBER_TABLE_COLS);	// Add a column for each level of repeats so that the repeat number can be shown
 
@@ -986,7 +1037,8 @@ public class PDFSurveyManager {
 		int numberItems = row.items.size();
 		for(DisplayItem di : row.items) {
 
-			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, generateBlank, gv, remoteUser, oId));
+			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, 
+					generateBlank, gv, remoteUser, oId, startGeopointValue));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
 			// Make sure the last cell extends to the end of the table
@@ -1041,7 +1093,10 @@ public class PDFSurveyManager {
 			int recNumber,
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
-			boolean generateBlank) throws SQLException {
+			boolean generateBlank,
+			String startGeopointValue,
+			int standardGeomIndex,
+			int startGeopointIndex) throws SQLException {
 
 		Row row = new Row();
 		row.groupWidth = gv.cols.length;
@@ -1089,7 +1144,11 @@ public class PDFSurveyManager {
 
 
 				if(updateCols == null || isNewPage) {
-					if(includeResult(r, question, appendix, gv, generateBlank)) {
+					if(includeResult(r, question, appendix, gv, 
+							generateBlank,
+							standardGeomIndex,
+							startGeopointIndex,
+							i)) {
 						includeQuestion(row.items, 
 								gv, 
 								i, 
@@ -1416,7 +1475,8 @@ public class PDFSurveyManager {
 			boolean generateBlank,
 			GlobalVariables gv,
 			String remoteUser,
-			int oId) throws BadElementException, MalformedURLException, IOException {
+			int oId,
+			String startGeopointValue) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPCell labelCell = new PdfPCell();
 		PdfPCell valueCell = new PdfPCell();
@@ -1492,7 +1552,10 @@ public class PDFSurveyManager {
 
 		// Set the content of the value cell
 		try {
-			updateValueCell(parser, remoteUser, valueCell, di, generateBlank, basePath, serverRoot, gv, oId);
+			updateValueCell(parser, remoteUser, valueCell, di, 
+					generateBlank, basePath, serverRoot, gv, 
+					oId,
+					startGeopointValue);
 		} catch (Exception e) {
 			log.info("Error updating value cell, continuing: " + basePath + " : " + di.value);
 			log.log(Level.SEVERE, "Exception", e);
@@ -1540,7 +1603,8 @@ public class PDFSurveyManager {
 			String basePath,
 			String serverRoot,
 			GlobalVariables gv,
-			int oId
+			int oId,
+			String startGeopointValue
 			) throws Exception {
 
 		// Questions that append their values to this question
@@ -1584,7 +1648,9 @@ public class PDFSurveyManager {
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
 		
 			Image img = PdfUtilities.getMapImage(sd, di.map, 
-					di.account, di.value, di.location, di.zoom, gv.mapbox_key,
+					di.account, di.value, 
+					startGeopointValue,
+					di.location, di.zoom, gv.mapbox_key,
 					survey.id,
 					user,
 					di.markerColor,
