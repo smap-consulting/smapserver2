@@ -131,7 +131,8 @@ public class SurveyManager {
 			int projectId,			// Set to 0 to get all surveys regardless of project
 			boolean superUser,
 			boolean onlyGroup,		// Only get surveys that are available to be used as groups
-			boolean getGroupDetails
+			boolean getGroupDetails,
+			boolean onlyDataSurvey	// Only get data surveys (ie no oversight surveys)
 			) throws SQLException {
 
 		ArrayList<Survey> surveys = new ArrayList<Survey>();	// Results of request
@@ -147,7 +148,8 @@ public class SurveyManager {
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, p.name, p.id, p.tasks_only,"
-				+ "s.group_survey_id, s.public_link, o.can_submit, s.hide_on_device "
+				+ "s.group_survey_id, s.public_link, o.can_submit, s.hide_on_device,"
+				+ "s.data_survey, s.oversight_survey "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -176,8 +178,12 @@ public class SurveyManager {
 		if(onlyGroup) {
 			sql.append("and s.group_survey_id = 0 ");
 		}
+		if(onlyDataSurvey) {
+			sql.append("and s.data_survey = 'true' ");
+		}
 		sql.append("order BY s.display_name ");
 
+		
 		pstmt = sd.prepareStatement(sql.toString());	
 		int idx = 1;
 		pstmt.setString(idx++, user);
@@ -215,6 +221,8 @@ public class SurveyManager {
 				s.groupSurveyId = resultSet.getInt(13);
 				s.publicLink = resultSet.getString(14);
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
+				s.dataSurvey = resultSet.getBoolean("data_survey");
+				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
 				
 				if(getGroupDetails && s.groupSurveyId > 0) {
 					pstmtGetGroupDetails.setInt(1, s.groupSurveyId);
@@ -391,6 +399,8 @@ public class SurveyManager {
 				+ "s.public_link, "
 				+ "o.e_id,"
 				+ "s.hide_on_device, "
+				+ "s.data_survey, "
+				+ "s.oversight_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
 				+ "s.pdf_template "
@@ -458,14 +468,16 @@ public class SurveyManager {
 				s.publicLink = resultSet.getString(25);
 				s.e_id = resultSet.getInt(26);
 				s.setHideOnDevice(resultSet.getBoolean(27));
-				s.audit_location_data = resultSet.getBoolean(28);
-				s.track_changes = resultSet.getBoolean(29);
+				s.dataSurvey = resultSet.getBoolean(28);
+				s.oversightSurvey = resultSet.getBoolean(29);
+				s.audit_location_data = resultSet.getBoolean(30);
+				s.track_changes = resultSet.getBoolean(31);
 				
 				
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
-					String newName = resultSet.getString(30);
+					String newName = resultSet.getString(32);
 					if(newName != null) {
 						s.pdfTemplateName = newName;
 					} else {
@@ -2595,7 +2607,12 @@ public class SurveyManager {
 						if(mi.isPreload) {			
 							if(GeneralUtilityMethods.hasColumn(cResults, form.tableName, mi.columnName)) {
 								mi.published = true;
-								sql.append(",").append(mi.columnName);				
+								sql.append(",");
+								if(mi.type.equals("geopoint")) {
+									sql.append("ST_AsGeoJSON(").append(mi.columnName).append(", 5) as ").append(mi.columnName);
+								} else {
+									sql.append(mi.columnName);	
+								}
 							} 
 						}
 					}
@@ -3279,31 +3296,46 @@ public class SurveyManager {
 	 * Get the group surveys
 	 * Always add the survey corresponding to sId to the group
 	 */
-	public ArrayList<GroupDetails> getGroupDetails(Connection sd, int groupSurveyId, String user, int sId) throws SQLException {
+	public ArrayList<GroupDetails> getGroupDetails(Connection sd, 
+			int groupSurveyId, 
+			String user, 
+			int sId,
+			boolean superUser) throws SQLException {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
 		
-		String sql = "select distinct s.s_id, s.display_name, s.ident "
+		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
+				+ "s.data_survey, s.oversight_survey "
 				+ "from survey s, users u, user_project up "
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
 				+ "and u.ident = ? "
 				+ "and not s.deleted "
-				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)";
+				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)");
 
+		if(!superUser) {
+			sql.append(GeneralUtilityMethods.getSurveyRBAC());
+		}
+		
 		PreparedStatement pstmt = null;
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1, user);
 			pstmt.setInt(2, groupSurveyId);
 			pstmt.setInt(3,  groupSurveyId);
 			pstmt.setInt(4,  sId);
+			if(!superUser) {
+				pstmt.setString(5, user);	// Second user entry for RBAC
+			}
 				
 			log.info("Get group surveys: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), rs.getString(3)));
+				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
+						rs.getString(3),
+						rs.getBoolean(4),
+						rs.getBoolean(5)));
 			}
 		} finally {
 			try {

@@ -72,6 +72,8 @@ public class Survey {
 	public String projectName;
 	private boolean projectTasksOnly;		// deprecated
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
+	public boolean dataSurvey;
+	public boolean oversightSurvey;
 	public int groupSurveyId;
 	public String groupSurveyDetails;
 	public String publicLink;
@@ -277,10 +279,13 @@ public class Survey {
 				+ "public_link,"
 				+ "pulldata,"
 				+ "hide_on_device,"
+				+ "data_survey,"
+				+ "oversight_survey,"
 				+ "timing_data,"
 				+ "audit_location_data,"
 				+ "track_changes) "
-				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), ?, ?, ?, ?, ?, ?);";		
+				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
+				+ "?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -312,9 +317,11 @@ public class Survey {
 			}
 			pstmt.setString(16, pd);
 			pstmt.setBoolean(17, hideOnDevice);
-			pstmt.setBoolean(18, timing_data);
-			pstmt.setBoolean(19, audit_location_data);
-			pstmt.setBoolean(20, track_changes);
+			pstmt.setBoolean(18, dataSurvey);
+			pstmt.setBoolean(19, oversightSurvey);
+			pstmt.setBoolean(20, timing_data);
+			pstmt.setBoolean(21, audit_location_data);
+			pstmt.setBoolean(22, track_changes);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id

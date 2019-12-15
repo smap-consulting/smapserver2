@@ -115,7 +115,7 @@ public class FormList extends Application {
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
-			surveys = sm.getSurveys(connectionSD, pstmt, user, false, false, 0, superUser, false, false);
+			surveys = sm.getSurveys(connectionSD, pstmt, user, false, false, 0, superUser, false, false, true);
 			
 			// Determine whether or not a manifest identifying media files exists for this survey
 			TranslationManager translationMgr = new TranslationManager();

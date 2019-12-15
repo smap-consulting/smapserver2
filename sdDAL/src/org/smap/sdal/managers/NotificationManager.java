@@ -131,9 +131,9 @@ public class NotificationManager {
 			String sql = "insert into forward(" +
 					" s_id, enabled, " +
 					" remote_s_id, remote_s_name, remote_host, remote_user, remote_password, notify_details, "
-					+ "trigger, target, filter, name, tg_id, period) " +
+					+ "trigger, target, filter, name, tg_id, period, update_survey, update_question, update_value) " +
 					" values (?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?); ";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?); ";
 	
 			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
 			
@@ -155,6 +155,9 @@ public class NotificationManager {
 			pstmt.setString(12, n.name);
 			pstmt.setInt(13, n.tgId);
 			pstmt.setString(14, n.period);
+			pstmt.setString(15, n.updateSurvey);
+			pstmt.setString(16, n.updateQuestion);
+			pstmt.setString(17, n.updateValue);
 			pstmt.executeUpdate();
 	}
 	
@@ -274,7 +277,7 @@ public class NotificationManager {
 		String sql = "select f.id, f.s_id, f.enabled, "
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period "
+				+ "f.tg_id, f.period, f.update_survey, f.update_question, f.update_value "
 				+ "from forward f, survey s, users u, user_project up, project p "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -469,6 +472,9 @@ public class NotificationManager {
 				n.tg_name = GeneralUtilityMethods.getTaskGroupName(sd, n.tgId);
 			}
 			
+			n.updateSurvey = resultSet.getString(16);
+			n.updateQuestion = resultSet.getString(17);
+			n.updateValue = resultSet.getString(18);
 			notifications.add(n);
 			
 		} 
@@ -489,7 +495,9 @@ public class NotificationManager {
 			String ident,			// Survey Ident
 			String instanceId,
 			int pId,
-			boolean excludeEmpty) throws Exception {
+			String updateSurvey,
+			String updateQuestion,
+			String updateValue) throws Exception {
 		
 		/*
 		 * 1. Get notifications that may apply to the passed in upload event.
@@ -515,19 +523,24 @@ public class NotificationManager {
 			MessagingManager mm = new MessagingManager();
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			
-			log.info("notifyForSubmission:: " + ue_id);
+			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 			
-			String sqlGetNotifications = "select n.target, n.notify_details, n.filter "
+			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter "
 					+ "from forward n "
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
 					+ "and n.target != 'document' "
-					+ "and n.enabled = 'true' "
-					+ "and n.trigger = 'submission'";
-			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications);
+					+ "and n.enabled = 'true'");
 			
-			String sqlUpdateUploadEvent = "update upload_event set notifications_applied = 'true' where ue_id = ?; ";
-			pstmtUpdateUploadEvent = sd.prepareStatement(sqlUpdateUploadEvent);
+			if(updateQuestion == null) {
+				sqlGetNotifications.append(" and n.trigger = 'submission'");
+			} else {
+				sqlGetNotifications.append(" and n.trigger = 'console_update'");
+				sqlGetNotifications.append(" and n.update_survey = ?");
+				sqlGetNotifications.append(" and n.update_question = ?");
+				sqlGetNotifications.append(" and n.update_value = ?");
+			}
+			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications.toString());
 	
 			// Localisation
 			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, remoteUser);
@@ -543,6 +556,11 @@ public class NotificationManager {
 			String tz = "UTC";		// Set default time to UTC
 			
 			pstmtGetNotifications.setInt(1, sId);
+			if(updateQuestion != null) {
+				pstmtGetNotifications.setString(2, updateSurvey);
+				pstmtGetNotifications.setString(3, updateQuestion);
+				pstmtGetNotifications.setString(4, updateValue);
+			}
 			log.info("Get notifications:: " + pstmtGetNotifications.toString());
 			rsNotifications = pstmtGetNotifications.executeQuery();
 			while(rsNotifications.next()) {
@@ -596,6 +614,7 @@ public class NotificationManager {
 					SubmissionMessage subMsg = new SubmissionMessage(
 							0,				// Task Id - ignore, only relevant for a reminder
 							ident,			// Survey Ident
+							updateSurvey,
 							pId,
 							instanceId, 
 							nd.from,
@@ -621,8 +640,12 @@ public class NotificationManager {
 			/*
 			 * Update upload event to record application of notifications
 			 */
-			pstmtUpdateUploadEvent.setInt(1, ue_id);
-			pstmtUpdateUploadEvent.executeUpdate();
+			if(updateQuestion == null) {
+				String sqlUpdateUploadEvent = "update upload_event set notifications_applied = 'true' where ue_id = ?; ";
+				pstmtUpdateUploadEvent = sd.prepareStatement(sqlUpdateUploadEvent);
+				pstmtUpdateUploadEvent.setInt(1, ue_id);
+				pstmtUpdateUploadEvent.executeUpdate();
+			}
 		} finally {
 			try {if (pstmtGetNotifications != null) {pstmtGetNotifications.close();}} catch (SQLException e) {}
 			try {if (pstmtUpdateUploadEvent != null) {pstmtUpdateUploadEvent.close();}} catch (SQLException e) {}
@@ -673,6 +696,17 @@ public class NotificationManager {
 				msg.launchedOnly			// launched only
 				);
 		
+		Survey updateSurvey = null;
+		if(msg.update_ident != null) {
+			int oversightId = GeneralUtilityMethods.getSurveyId(sd, msg.update_ident);
+			updateSurvey = sm.getById(sd, cResults, msg.user, oversightId, true, msg.basePath, 
+					msg.instanceId, true, generateBlank, true, false, true, "real", 
+					false, false, true, "geojson",
+					msg.include_references,		// For PDFs follow links to referenced surveys
+					msg.launchedOnly			// launched only
+					);
+		}
+		
 		PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, msg.user, organisation.timeZone);
 		
 		try {
@@ -704,6 +738,17 @@ public class NotificationManager {
 							survey,
 							"none",
 							organisation.id);
+				// Update text with oversight data if it exists
+				if(updateSurvey != null) {
+					tm.createTextOutput(sd,
+							cResults,
+							text,
+							msg.basePath, 
+							msg.user,
+							updateSurvey,
+							"none",
+							organisation.id);
+				}
 				msg.subject = text.get(0);
 				msg.content = text.get(1);
 				

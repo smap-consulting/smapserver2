@@ -103,6 +103,7 @@ public class SurveyResults extends Application {
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 
 				// Delete tables associated with this survey
 				
@@ -124,7 +125,7 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId, superUser);
 				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
 				
 				/*
@@ -253,6 +254,7 @@ public class SurveyResults extends Application {
 				
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				connectionRel = ResultsDataSource.getConnection("surveyKPI-SurveyResults");
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 				
 				// Mark columns as unpublished		
 				String sqlUnpublish = "update question set published = 'false' where f_id in (select f_id from form where s_id = ?)";
@@ -274,7 +276,7 @@ public class SurveyResults extends Application {
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId, superUser);
 				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
 				
 				/*
@@ -381,12 +383,15 @@ public class SurveyResults extends Application {
 				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
+				boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+				
 				/*
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
 				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId);
+				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId, 
+						request.getRemoteUser(), sId, superUser);
 				
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				response = Response.ok(gson.toJson(groups)).build();

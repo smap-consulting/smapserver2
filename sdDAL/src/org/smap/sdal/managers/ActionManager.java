@@ -543,7 +543,7 @@ public class ActionManager {
 	}
 	
 	/*
-	 * Process an update request that came either from an anonymous form or from the console
+	 * Process an update request that came from the console
 	 * The update is for a Group Survey
 	 */
 	public Response processUpdateGroupSurvey(
@@ -552,10 +552,10 @@ public class ActionManager {
 			Connection cResults, 
 			String userIdent,
 			int sId, 
-			String instanceid,
+			String instanceId,
 			String groupSurvey, 
 			String groupForm,
-			String updateString) {
+			String updateString) throws SQLException {
 
 		Response response = null;
 
@@ -563,17 +563,15 @@ public class ActionManager {
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		ArrayList<Update> updates = gson.fromJson(updateString, type);
 
+		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+		
 		PreparedStatement pstmtUpdate = null;
-		int priority = -1;
 
 		try {
 
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, userIdent));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-			int pId = 0;
 
 			/*
 			 * Get the data processing columns
@@ -624,20 +622,12 @@ public class ActionManager {
 			/*
 			 * Process each column
 			 */
-			HashMap<String, ArrayList<DataItemChange>> changeMap = new HashMap<>();
+			ArrayList<DataItemChange> changes = new ArrayList<DataItemChange> ();
 			log.info("Set autocommit false");
 			cResults.setAutoCommit(false);
 			for (int i = 0; i < updates.size(); i++) {
 
 				Update u = updates.get(i);
-
-				// Set up storage of changes
-				//String instanceid = GeneralUtilityMethods.getInstanceId(cResults, f.tableName, u.prikey);
-				ArrayList<DataItemChange> changes = changeMap.get(instanceid);
-				if(changes == null) {
-					changes = new ArrayList<DataItemChange> ();
-					changeMap.put(instanceid, changes);
-				}
 				
 				// 1. Escape quotes in update name, though not really necessary due to next step
 				u.name = u.name.replace("'", "''").trim();
@@ -716,48 +706,64 @@ public class ActionManager {
 							"Update failed: " + "Try refreshing your view of the data as someone may already "
 									+ "have updated this record.");
 				}
-
-				/*
-				 * Apply any required actions
-				 */
-				if (tc.actions != null && tc.actions.size() > 0) {
-					if (priority < 0) {
-						priority = getPriority(cResults, f.tableName, u.prikey);
-					}
-					//TODO applyManagedFormActions(request, sd, tc, oId, sId, pId, managedId, u.prikey, priority, u.value,
-					//		localisation);
-				}
 				
 				/*
 				 * Record the change
 				 */
 				changes.add(new DataItemChange(u.name, u.displayName, tc.type, u.value, u.currentValue));
-
 			}
-			
+
+			/*
+			 * Process update notifications after all the changes have been applied
+			 * This allows the filter to work on the latest record data
+			 */
+			NotificationManager nm = new NotificationManager(localisation);
+			String server = request.getServerName();
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			String urlprefix = "https://" + server + "/";
+			int pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, surveyIdent);
+			for (int i = 0; i < updates.size(); i++) {
+				
+				Update u = updates.get(i);
+				
+				nm.notifyForSubmission(
+						sd, 
+						cResults,
+						0, 
+						request.getRemoteUser(), 
+						"https",
+						server,
+						basePath,
+						urlprefix,
+						surveyIdent,
+						instanceId,
+						pId,
+						groupSurvey,		// update survey ident
+						u.name,		// update question
+						u.value		// update value
+						);	
+			}
 			/*
 			 * save change log
 			 */
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
-			for(String inst : changeMap.keySet()) {
-				rem.writeEvent(
-						sd, 
-						cResults, 
-						RecordEventManager.CHANGES, 
-						RecordEventManager.STATUS_SUCCESS, 
-						userIdent, 
-						topLevelForm.tableName, 
-						inst, 
-						gson.toJson(changeMap.get(inst)),
-						null,		// task details
-						null,		// notification details
-						null,		// description
-						sId, 
-						null,
-						0,
-						0);
-			}
-				
+			rem.writeEvent(
+					sd, 
+					cResults, 
+					RecordEventManager.CHANGES, 
+					RecordEventManager.STATUS_SUCCESS, 
+					userIdent, 
+					topLevelForm.tableName, 
+					instanceId, 
+					gson.toJson(changes),
+					null,		// task details
+					null,		// notification details
+					null,		// description
+					sId, 
+					null,
+					0,
+					0);
+
 			cResults.commit();
 			response = Response.ok().build();
 

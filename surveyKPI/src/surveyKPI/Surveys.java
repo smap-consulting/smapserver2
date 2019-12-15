@@ -142,7 +142,9 @@ public class Surveys extends Application {
 					projectId,
 					superUser,
 					groups,
-					true);
+					true,
+					false		// Get oversight and data surveys
+					);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(surveys);
 			response = Response.ok(resp).build();
@@ -713,6 +715,8 @@ public class Surveys extends Application {
 					+ "key_policy = ?, "
 					+ "exclude_empty = ?, "
 					+ "hide_on_device = ?, "
+					+ "data_survey = ?, "
+					+ "oversight_survey = ?, "
 					+ "audit_location_data = ?, "
 					+ "track_changes = ? ";
 			String sql2 = ",pdf_template = ? ";
@@ -736,13 +740,15 @@ public class Surveys extends Application {
 			pstmt.setString(11, survey.key_policy);
 			pstmt.setBoolean(12, survey.exclude_empty);
 			pstmt.setBoolean(13, survey.getHideOnDevice());
-			pstmt.setBoolean(14, survey.audit_location_data);
-			pstmt.setBoolean(15, survey.track_changes);
+			pstmt.setBoolean(14, survey.dataSurvey);
+			pstmt.setBoolean(15, survey.oversightSurvey);
+			pstmt.setBoolean(16, survey.audit_location_data);
+			pstmt.setBoolean(17, survey.track_changes);
 			if(updatePDFName) {
-				pstmt.setString(16, fileName);
-				pstmt.setInt(17, sId);
+				pstmt.setString(18, fileName);
+				pstmt.setInt(19, sId);
 			} else {
-				pstmt.setInt(16, sId);
+				pstmt.setInt(18, sId);
 			}
 			
 			log.info("Saving survey: " + pstmt.toString());
@@ -935,7 +941,7 @@ public class Surveys extends Application {
 						item.dataType = "date";
 					} else if(item.sourceParam.equals("start-geopoint")) {
 						item.type = "geopoint";
-						item.dataType = "property";
+						item.dataType = "geopoint";
 					} else {
 						item.type = "string";
 						item.dataType = "property";

@@ -414,6 +414,16 @@ public class OrganisationManager {
 				logoItem.write(savedFile);
 				savedFile.setReadable(true);
 				savedFile.setWritable(true);
+				
+				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod -R 777 " + 
+						folderPath + " " +
+    					" >> /var/log/subscribers/survey.log 2>&1"});
+				int code = proc.waitFor();				
+	        	
+	            if(code != 0) {
+	                log.info("Error saving logo: " + code);
+	            }
+	            
 			} catch (Exception e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();

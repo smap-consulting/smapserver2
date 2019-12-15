@@ -93,8 +93,9 @@ public class QuestionList extends Application {
 			@QueryParam("exc_read_only") boolean exc_read_only,
 			@QueryParam("exc_ssc") boolean exc_ssc) { 
 		
+		String connectionString = "surveyKPI-getQuestions";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection connectionSD = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
@@ -222,9 +223,8 @@ public class QuestionList extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-QuestionList", connectionSD);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
-
 
 		return response;
 	}
@@ -244,11 +244,11 @@ public class QuestionList extends Application {
 			@QueryParam("exc_ssc") boolean exc_ssc,
 			@QueryParam("inc_meta") boolean inc_meta) { 
 
-	
+		String connectionString = "surveyKPI-getQuestionsNew";
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -379,7 +379,7 @@ public class QuestionList extends Application {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtSSC != null) {pstmtSSC.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-QuestionList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 
@@ -397,10 +397,11 @@ public class QuestionList extends Application {
 			@PathParam("language") String language,
 			@QueryParam("exc_read_only") boolean exc_read_only) { 
 		
+		String connectionString = "surveyKPI-getQuestionsNewTopForm";
 		Response response = null;
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -468,8 +469,6 @@ public class QuestionList extends Application {
 				questions.add(q);			
 			}
 			
-
-			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();
 				
@@ -478,9 +477,8 @@ public class QuestionList extends Application {
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-QuestionList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
-
 
 		return response;
 	}
@@ -501,8 +499,9 @@ public class QuestionList extends Application {
 			@PathParam("language") String language,
 			@PathParam("form") int fId) { 
 
+		String connectionString = "surveyKPI-getQuestionsFromForm";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-QuestionList");
+		Connection connectionSD = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
@@ -567,7 +566,7 @@ public class QuestionList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetParent != null) {pstmtGetParent.close();	}} catch (SQLException e) {	}
-			SDDataSource.closeConnection("surveyKPI-QuestionList", connectionSD);
+			SDDataSource.closeConnection(connectionString, connectionSD);
 		}
 
 

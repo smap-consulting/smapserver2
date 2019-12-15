@@ -10,6 +10,7 @@ public class SubmissionMessage {
 	public int sId;					// Legacy reference to survey - now use survey_ident
 	public int taskId;
 	public String survey_ident;
+	public String update_ident;
 	public int pId;
 	public String instanceId;
 	public String from;
@@ -31,6 +32,7 @@ public class SubmissionMessage {
 	public SubmissionMessage(
 			int taskId,
 			String survey_ident,
+			String update_ident,
 			int pId, 
 			String instanceId, 
 			String from, 
@@ -51,6 +53,7 @@ public class SubmissionMessage {
 		
 		this.taskId = taskId;
 		this.survey_ident = survey_ident;
+		this.update_ident = update_ident;
 		this.pId = pId;
 		this.instanceId = instanceId;
 		this.from = from;

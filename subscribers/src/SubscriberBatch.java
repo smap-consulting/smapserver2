@@ -442,7 +442,6 @@ public class SubscriberBatch {
 							haveSyncNotifications = true;
 							int nId = rs.getInt(1);
 							int sId = rs.getInt(2);
-							String details = rs.getString(3);
 
 							Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
@@ -949,7 +948,6 @@ public class SubscriberBatch {
 		boolean success = true;
 
 		CloseableHttpClient httpclient = null;
-		ContentType ct = null;
 		HttpResponse response = null;
 		int responseCode = 0;
 		String responseReason = null;
@@ -1080,6 +1078,7 @@ public class SubscriberBatch {
 				SubmissionMessage subMgr = new SubmissionMessage(
 						tId,
 						surveyIdent,
+						null,
 						pId,
 						instanceId, 
 						nd.from,

@@ -94,6 +94,7 @@ public class PdfUtilities {
 			String map, 
 			String account,
 			String value, 
+			String startGeopointValue,
 			String location, 
 			String zoom,
 			String mapbox_key,
@@ -120,33 +121,17 @@ public class PdfUtilities {
 		}
 		url.append("/static/");
 		
-		if(value != null && value.trim().length() > 0) {
+		if((value != null && value.trim().length() > 0) || (startGeopointValue != null && startGeopointValue.trim().length() > 0)) {
 			
-			// GeoJson data - add styling
-			value = "{\"type\":\"FeatureCollection\",\"features\":[{\"type\":\"Feature\",\"geometry\":" + 
-					value + 
-					",\"properties\":{";
-			
-			// properties
-			if(markerColor == null) {
-				markerColor = "f00";
-			}
-			value += "\"marker-color\":\"#" + markerColor + "\"";		// Add marker color
-			value += ",";
-			value += "\"stroke\":\"#" + markerColor + "\"";			// Add stroke
-			value += ",";
-			value += "\"fill\":\"#" + markerColor + "\"";			// Add fill
-			
-			value += "}}]}";
-			// End add styling
-			
-			url.append("geojson(");
-
-			String jsonValue = value;
-			url.append(URLEncoder.encode(jsonValue, "UTF-8"));
-			url.append(")/");
+			url.append("geojson(")
+				.append(URLEncoder.encode(createGeoJsonMapValue(value, markerColor, startGeopointValue), "UTF-8"))
+				.append(")/");
 			if(zoom != null && zoom.trim().length() > 0) {
-				url.append(GeneralUtilityMethods.getGeoJsonCentroid(value) + "," + zoom);
+				String centroidValue = value;
+				if(centroidValue == null) {
+					centroidValue = startGeopointValue;
+				}
+				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
 			} else if(location != null) {
 				url.append(location);
 			} else {
@@ -190,5 +175,53 @@ public class PdfUtilities {
 		} 
 		
 		return img;
+	}
+	
+	private static String createGeoJsonMapValue(String coords, String markerColor, String coordsStartGeopoint) {
+		
+		// GeoJson data - add styling
+		StringBuffer out = new StringBuffer("");
+		out.append("{\"type\":\"FeatureCollection\",\"features\":[");
+		
+		// Add the Geom if it is not null
+		boolean addedGeom = false;
+		if(coords != null) {
+			if(markerColor == null) {
+				markerColor = "f00";
+			}
+			out.append(addGeoJsonFeature(coords, markerColor, null));		
+			addedGeom=true;
+		}
+		// Add the start Geo Point if it is not null
+		if(coordsStartGeopoint != null) {
+			if(addedGeom) {
+				out.append(",");
+			}
+			out.append(addGeoJsonFeature(coordsStartGeopoint, "0f0", "harbor"));	
+		}
+		out.append("]}");
+		
+		return out.toString();
+	}
+	
+	private static String addGeoJsonFeature(String coords, String markerColor, String icon) {
+		
+		StringBuffer out = new StringBuffer("{\"type\":\"Feature\",\"geometry\":");
+		out.append(coords);
+		out.append(",\"properties\":{");
+		
+		// properties
+		out.append("\"marker-color\":\"#").append(markerColor).append("\"");		// Add marker color
+		out.append(",");
+		out.append("\"stroke\":\"#").append(markerColor).append("\"");				// Add stroke
+		out.append(",");
+		out.append("\"fill\":\"#").append(markerColor).append("\"");				// Add fill
+		if(icon != null) {
+			out.append(",");
+			out.append("\"marker-symbol\":\"").append(icon).append("\"");				// Add fill
+		}
+		
+		out.append("}}");
+		return out.toString();
 	}
 }

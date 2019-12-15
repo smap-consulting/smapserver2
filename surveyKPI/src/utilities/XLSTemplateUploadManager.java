@@ -320,12 +320,14 @@ public class XLSTemplateUploadManager {
 
 				survey.instanceNameDefn = XLSUtilities.getTextColumn(row, "instance_name", settingsHeader, lastCellNum, null);
 				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
-				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum);
-				survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum));
+				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum, false);
+				survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum, false));
+				survey.dataSurvey = getBooleanColumn(row, "data_survey", settingsHeader, lastCellNum, true);
+				survey.oversightSurvey = getBooleanColumn(row, "oversight_survey", settingsHeader, lastCellNum, true);
 				
-				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum);
-				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum);
-				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum);
+				survey.timing_data = getBooleanColumn(row, "timing_data", settingsHeader, lastCellNum, false);
+				survey.audit_location_data = getBooleanColumn(row, "audit_location_data", settingsHeader, lastCellNum, false);
+				survey.track_changes = getBooleanColumn(row, "track_changes", settingsHeader, lastCellNum, false);
 
 				survey.hrk = XLSUtilities.getTextColumn(row, "key", settingsHeader, lastCellNum, null);
 				
@@ -738,7 +740,7 @@ public class XLSTemplateUploadManager {
 		q.defaultanswer = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum, null); 
 		
 		// 9. Readonly
-		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum);
+		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum, false);
 		
 		// 10. Appearance
 		q.appearance = XLSUtilities.getTextColumn(row, "appearance", surveyHeader, lastCellNum, null); 
@@ -755,7 +757,7 @@ public class XLSTemplateUploadManager {
 		q.accuracy = XLSUtilities.getTextColumn(row, "body::accuracyThreshold", surveyHeader, lastCellNum, null);
 		
 		// 14. Required
-		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum);		
+		q.required = getBooleanColumn(row, "required", surveyHeader, lastCellNum, false);		
 		
 		// 15. Required Message
 		q.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE, surveyHeader, lastCellNum, null); 
@@ -804,7 +806,7 @@ public class XLSTemplateUploadManager {
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
 			for(String h : columnRoleHeader.keySet()) {
-				if(getBooleanColumn(row, h, surveyHeader, lastCellNum)) {
+				if(getBooleanColumn(row, h, surveyHeader, lastCellNum, false)) {
 					Role r = survey.roles.get(h);
 					if(r != null) {
 						if(r.column_filter_ref == null) {
@@ -1614,13 +1616,13 @@ public class XLSTemplateUploadManager {
 		return out;
 	}
 	
-	private boolean getBooleanColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum) throws ApplicationException {
+	private boolean getBooleanColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, boolean def) throws ApplicationException {
 		String v = XLSUtilities.getTextColumn(row, name, header, lastCellNum, null); 
 		
 		if(v != null) {
 			v = v.trim();
 		} else {
-			return false;
+			return def;
 		}
 		
 		if(v.equalsIgnoreCase("yes") 

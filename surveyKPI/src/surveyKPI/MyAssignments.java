@@ -519,7 +519,8 @@ public class MyAssignments extends Application {
 					0,
 					superUser,
 					false,
-					false);
+					false,
+					true);
 			
 			TranslationManager translationMgr = new TranslationManager();
 

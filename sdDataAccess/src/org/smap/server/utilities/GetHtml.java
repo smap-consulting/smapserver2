@@ -920,6 +920,9 @@ public class GetHtml {
 		// media specific
 		if (q.type.equals("image")) {
 			bodyElement.setAttribute("accept", "image/*");
+			if(q.appearance.contains("new")) {
+				bodyElement.setAttribute("capture", "camera");
+			}
 		} else if (q.type.equals("audio")) {
 			bodyElement.setAttribute("accept", "audio/*");
 		} else if (q.type.equals("video")) {
