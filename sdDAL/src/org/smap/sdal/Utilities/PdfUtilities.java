@@ -121,12 +121,17 @@ public class PdfUtilities {
 		}
 		url.append("/static/");
 		
-		if(value != null && value.trim().length() > 0) {
+		if((value != null && value.trim().length() > 0) || (startGeopointValue != null && startGeopointValue.trim().length() > 0)) {
 			
-			url.append(URLEncoder.encode(createGeoJsonMapValue(value, markerColor, startGeopointValue), "UTF-8"));
-			url.append(")/");
+			url.append("geojson(")
+				.append(URLEncoder.encode(createGeoJsonMapValue(value, markerColor, startGeopointValue), "UTF-8"))
+				.append(")/");
 			if(zoom != null && zoom.trim().length() > 0) {
-				url.append(GeneralUtilityMethods.getGeoJsonCentroid(value) + "," + zoom);
+				String centroidValue = value;
+				if(centroidValue == null) {
+					centroidValue = startGeopointValue;
+				}
+				url.append(GeneralUtilityMethods.getGeoJsonCentroid(centroidValue) + "," + zoom);
 			} else if(location != null) {
 				url.append(location);
 			} else {

@@ -804,7 +804,6 @@ public class PDFSurveyManager {
 				} else {
 					startGeopointIndex = j;
 					startGeopointValue = r.value;
-					startGeopointValue = "{\"type\":\"Point\",\"coordinates\":[153.01108,-27.44594]}";  // dbug
 					r.value = null;
 				}
 			}
@@ -886,6 +885,7 @@ public class PDFSurveyManager {
 									startGeopointValue,
 									standardGeomIndex,
 									startGeopointIndex);
+							
 							PdfPTable newTable = processRow(
 									parser, 
 									row, 
