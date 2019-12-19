@@ -3,8 +3,6 @@
 	<name>surveyMobileAPI-P</name>
 	<comment></comment>
 	<projects>
-		<project>sdDAL-P</project>
-		<project>sdDataAccess-P</project>
 		<project>amazon</project>
 	</projects>
 	<buildSpec>
