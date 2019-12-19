@@ -26,6 +26,14 @@
     </plugins>
   </build>
   <dependencies>
+  
+  		<!-- Local -->
+		<dependency>
+			<groupId>smapserver</groupId>
+			<artifactId>sdDAL</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+		
   		<!-- JAXB -->
   		<!-- Java 9+ only
 		<dependency>
