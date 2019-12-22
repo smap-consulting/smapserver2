@@ -64,18 +64,11 @@
 		    <groupId>com.amazonaws</groupId>
 		    <artifactId>aws-java-sdk-rekognition</artifactId>
 		</dependency>
-
-		<!-- Local -->
+		
 		<dependency>
-			<groupId>smapserver</groupId>
-			<artifactId>sdDAL</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>smapserver</groupId>
-			<artifactId>sdDataAccess</artifactId>
-			<version>1.0.0</version>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.6.1</version>
 		</dependency>
 		
 		<!-- JAXB -->

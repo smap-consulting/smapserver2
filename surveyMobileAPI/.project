@@ -4,6 +4,8 @@
 	<comment></comment>
 	<projects>
 		<project>amazon</project>
+		<project>sdDAL-P</project>
+		<project>sdDataAccess-P</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
