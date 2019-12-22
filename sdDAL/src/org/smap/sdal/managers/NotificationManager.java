@@ -93,6 +93,9 @@ public class NotificationManager {
 				+ "f.name, "
 				+ "f.tg_id,"
 				+ "f.period,"
+				+ "f.update_survey,"
+				+ "f.update_question,"
+				+ "f.update_value,"
 				+ "f.remote_password "
 				+ "from forward f, survey s "
 				+ "where f.s_id = s.s_id "
@@ -316,7 +319,9 @@ public class NotificationManager {
 		String sql = "select f.id, f.s_id, f.enabled, "
 				+ "f.remote_s_id, f.remote_s_name, f.remote_host, f.remote_user,"
 				+ "f.trigger, f.target, s.display_name, f.notify_details, f.filter, f.name,"
-				+ "f.tg_id, f.period, p.name  "
+				+ "f.tg_id, f.period, f.update_survey,"
+				+ "f.update_question, f.update_value,"
+				+ "p.name as project_name  "
 				+ "from forward f, survey s, project p "
 				+ "where s.s_id = f.s_id "
 				+ "and s.p_id = p.id "
@@ -439,42 +444,43 @@ public class NotificationManager {
 		
 		while (resultSet.next()) {								
 
-			String remote_s_id = resultSet.getString(4);
 			Notification n = new Notification();
-			n.id = resultSet.getInt(1);
-			n.s_id = resultSet.getInt(2);
-			n.enabled = resultSet.getBoolean(3);
+			n.id = resultSet.getInt("id");
+			n.s_id = resultSet.getInt("s_id");
+			n.enabled = resultSet.getBoolean("enabled");
+			String remote_s_id = resultSet.getString("remote_s_id");
 			n.remote_s_ident = remote_s_id;
-			n.remote_s_name = resultSet.getString(5);
-			n.remote_host = resultSet.getString(6);
-			n.remote_user = resultSet.getString(7);
-			n.trigger = resultSet.getString(8);
-			n.target = resultSet.getString(9);
-			n.s_name = resultSet.getString(10);
-			String notifyDetailsString = resultSet.getString(11);
+			n.remote_s_name = resultSet.getString("remote_s_name");
+			n.remote_host = resultSet.getString("remote_host");
+			n.remote_user = resultSet.getString("remote_user");
+			n.trigger = resultSet.getString("trigger");
+			n.target = resultSet.getString("target");
+			n.s_name = resultSet.getString("display_name");
+			String notifyDetailsString = resultSet.getString("notify_details");
 			n.notifyDetails = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 			// Temporary - set question name from question id if this is set
 			if(n.notifyDetails.emailQuestionName == null && n.notifyDetails.emailQuestion > 0) {
 				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
 			}
-			n.filter = resultSet.getString(12);
-			n.name = resultSet.getString(13);
-			n.tgId = resultSet.getInt(14);
-			n.period = resultSet.getString(15);
+			n.filter = resultSet.getString("filter");
+			n.name = resultSet.getString("name");
+			n.tgId = resultSet.getInt("tg_id");
+			n.period = resultSet.getString("period");
+			n.updateSurvey = resultSet.getString("update_survey");
+			n.updateQuestion = resultSet.getString("update_question");
+			n.updateValue = resultSet.getString("update_value");
+			
 			if(getPassword) {
-				n.remote_password = resultSet.getString(16);
+				n.remote_password = resultSet.getString("remote_password");
 			}
 			if(getProject) {
-				n.project = resultSet.getString(16);
+				n.project = resultSet.getString("project_name");
 			}
 			
 			if(n.trigger.equals("task_reminder")) {
 				n.tg_name = GeneralUtilityMethods.getTaskGroupName(sd, n.tgId);
 			}
 			
-			n.updateSurvey = resultSet.getString(16);
-			n.updateQuestion = resultSet.getString(17);
-			n.updateValue = resultSet.getString(18);
 			notifications.add(n);
 			
 		} 
