@@ -978,6 +978,7 @@ public class Data extends Application {
 		String tz = "UTC";
 
 		StringBuffer columnSelect = new StringBuffer();
+		StringBuffer groupSelect = new StringBuffer();
 		StringBuffer similarWhere = new StringBuffer();
 		ArrayList<String> groupTypes = new ArrayList<String> ();
 		int groupColumns = 0;
@@ -1124,6 +1125,7 @@ public class Data extends Application {
 
 								if( groupColumns > 0) {
 									columnSelect.append(",");
+									groupSelect.append(",");
 								}
 								similarWhere.append(" and ");
 
@@ -1132,10 +1134,12 @@ public class Data extends Application {
 												|| aSelect[1].equals("soundex"))) {
 									String s = aSelect[1] +"(" + c.getSqlSelect(urlprefix, tz, params) + ")";
 									columnSelect.append(s);
+									groupSelect.append(c.column_name);
 									similarWhere.append(s + " = ?");
 								} else {
 									String s = c.getSqlSelect(urlprefix, tz, params);
 									columnSelect.append(s);
+									groupSelect.append(c.column_name);
 									similarWhere.append(s + " = ?");
 								}
 								groupColumns++;
@@ -1154,7 +1158,7 @@ public class Data extends Application {
 				+ " from " + table_name
 				+ " where prikey >= ? "
 				+ "and _bad = 'false'";
-				String sqlGroup = " group by " + columnSelect.toString();
+				String sqlGroup = " group by " + groupSelect.toString();
 				String sqlHaving = " having count(*) > 1 ";
 
 
@@ -1164,8 +1168,8 @@ public class Data extends Application {
 				int paramCount = 1;			
 				pstmtGetSimilar.setInt(paramCount++, start);
 				
-				rs = pstmtGetSimilar.executeQuery();
 				log.info("Get similar: " + pstmtGetSimilar.toString());
+				rs = pstmtGetSimilar.executeQuery();				
 
 				/*
 				 * For each grouping of similar records get the individual records
