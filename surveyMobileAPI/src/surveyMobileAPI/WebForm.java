@@ -418,7 +418,6 @@ public class WebForm extends Application {
 		 * Also get the google api key
 		 */
 		String basePath = GeneralUtilityMethods.getBasePath(request);
-		requester = "surveyMobileAPI-getWebForm2";
 		TranslationManager translationMgr = new TranslationManager();
 		ServerManager sm = new ServerManager();
 		StringBuffer outputString = new StringBuffer();
