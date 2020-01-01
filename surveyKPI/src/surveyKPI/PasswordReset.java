@@ -88,6 +88,10 @@ public class PasswordReset extends Application {
 				Locale locale = new Locale(loc_code);
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
+				/*
+				 * Check to see if there is a one time password that has more than 50 minutes
+				 * to go until expiry.  If so then a request has been sent within the last 10 mins
+				 */
 				boolean emailSent = UtilityMethodsEmail.hasOnetimePasswordBeenSent(sd, pstmt, email, "3000 seconds");
 				if(emailSent) {
 					// Potential spam
