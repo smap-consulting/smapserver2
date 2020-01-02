@@ -175,7 +175,8 @@ public class JdbcQuestionManager {
 					false,
 					q.getNodeset(),
 					q.getAppearance(false, null),
-					q.getFormId());
+					q.getFormId(),
+					q.getName());
 			if(nodeset == null || nodeset.trim().length() == 0) {
 				// the remaining item list values TODO is there an issue with this??????
 				nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(null, q.getListName());

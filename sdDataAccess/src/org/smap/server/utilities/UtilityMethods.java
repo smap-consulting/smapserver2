@@ -147,7 +147,8 @@ public class UtilityMethods {
 			HashMap<String, String> questionPaths,
 			int f_id,
 			boolean webform,
-			String calledForQuestion) throws Exception {
+			String calledForQuestion,
+			boolean relativePath) throws Exception {
 		
 		if(input == null) {
 			return input;
@@ -186,7 +187,9 @@ public class UtilityMethods {
 			if(searchName.equals("the_geom")) {
 				searchName = f_id + searchName;
 			}
+			
 			String qPath = questionPaths.get(qname);
+			
 			if(qPath == null) {
 				if(qname.equals("the_geom")) {
 					// Try and find any geometry in the survey
@@ -244,7 +247,8 @@ public class UtilityMethods {
     		boolean embedExternalSearch,
     		String nodeset,
     		String appearance,
-    		int f_id) throws Exception {
+    		int f_id,
+    		String qName) throws Exception {
 		
 		String v = nodeset;
 		
@@ -268,7 +272,7 @@ public class UtilityMethods {
 		}		
 		
 		if(convertToXPath) {
-			v = convertAllxlsNames(v, false, questionPaths, f_id, false, "unknown");
+			v = convertAllxlsNames(v, false, questionPaths, f_id, false, qName, true);
 		} else if(convertToXLSName) {
 			v = GeneralUtilityMethods.convertAllXpathNames(v, true);
 		}

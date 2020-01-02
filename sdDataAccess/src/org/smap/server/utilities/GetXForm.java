@@ -562,7 +562,7 @@ public class GetXForm {
 				currentParent.appendChild(instanceId);
 				
 				String instanceNameCalculate = UtilityMethods.convertAllxlsNames(template.getSurvey().getInstanceName(), false,
-						template.getQuestionPaths(), f.getId(), false, "instanceName");
+						template.getQuestionPaths(), f.getId(), false, "instanceName", false);
 				if(instanceNameCalculate != null && instanceNameCalculate.trim().length() > 0) {
 					Element instanceName = outputDoc.createElement("bind");
 					instanceName.setAttribute("nodeset", "/main/meta/instanceName");
@@ -926,7 +926,7 @@ public class GetXForm {
 		String calculate = null;
 		if (q.getName().equals("instanceName")) {
 			calculate = UtilityMethods.convertAllxlsNames(template.getSurvey().getInstanceName(), false,
-					template.getQuestionPaths(), f.getId(), false, q.getName());
+					template.getQuestionPaths(), f.getId(), false, q.getName(), false);
 			if (calculate == null) {
 				// Allow for legacy forms that were loaded before the instance name was
 				// set in the survey table
@@ -1113,7 +1113,7 @@ public class GetXForm {
 			// String nodeset = q.getNodeset(true, false, template.getQuestionPaths(),
 			// embedExternalSearch);
 			String nodeset = UtilityMethods.getNodeset(true, false, template.getQuestionPaths(), embedExternalSearch,
-					q.getNodeset(), q.getAppearance(false, null), q.getFormId());
+					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName());
 			// Add the itemset
 			if (nodeset != null
 					&& (!GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, template.getQuestionPaths()))

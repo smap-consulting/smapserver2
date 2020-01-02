@@ -1344,14 +1344,14 @@ public class SurveyTemplate {
 					String nodeset = null;
 					boolean isExternal = false;
 					try {
-						//nodeset = q.getNodeset(false, true, null, false);
 						nodeset = UtilityMethods.getNodeset(false, 
 								true, 
 								null, 
 								false,
 								q.getNodeset(),
 								q.getAppearance(false, null),
-								q.getFormId());
+								q.getFormId(),
+								q.getName());
 						isExternal = GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, getQuestionPaths()));
 					} catch (Exception e) {
 						
