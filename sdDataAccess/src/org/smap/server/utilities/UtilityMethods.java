@@ -188,7 +188,7 @@ public class UtilityMethods {
 				searchName = f_id + searchName;
 			}
 			
-			String qPath = questionPaths.get(qname);
+			String qPath = questionPaths.get(qname);			
 			
 			if(qPath == null) {
 				if(qname.equals("the_geom")) {
@@ -205,7 +205,55 @@ public class UtilityMethods {
 					throw new Exception("Question path not found for question: " + qname + " in " + input + 
 							" of " + calledForQuestion);
 				}
+			
+			} else if(relativePath && calledForQuestion != null && questionPaths.get(calledForQuestion) != null) {
+
+				/*
+				 * Return relative path if requested
+				 * This is the relative path from the calledFromQuestion to the qPath
+				 * 
+				 * Examples:
+				 *   called from:     /x1/x2/x3/qCalledFrom
+				 *   qPath:           /x1/q
+				 *   relative qPath:  current()/../../../q
+				 *   
+				 *   called from:     /x1/qCalledFrom
+				 *   qPath:           /x1/x2/x3/q
+				 *   relative qPath:  current()/x2/x3/q
+				 */
+				
+				ArrayList<String> relPath = new ArrayList<> ();
+				
+				String cfPath = questionPaths.get(calledForQuestion);
+				
+				// Remove the first slash
+				cfPath = cfPath.substring(1);
+				qPath = qPath.substring(1);
+				
+				String [] cfSteps = cfPath.trim().split("/");
+				String [] qSteps = qPath.trim().split("/");
+				
+				int idx;
+				for(idx = 0; 
+						idx < cfSteps.length 
+						&& idx < qSteps.length
+						&& qSteps[idx].equals(cfSteps[idx]); 
+						idx++) {					
+					relPath.add(qSteps[idx]);
+				}
+				int pathDepth = qSteps.length - idx;
+				
+				StringBuffer path = new StringBuffer("current()");
+				for(int i = 0; i < pathDepth; i++) {
+					path.append("/..");
+				}
+				for(int i = pathDepth + 1; i < qSteps.length; i++) {
+					path.append("/").append(qSteps[i]);
+				}
+				qPath = path.toString();
+				log.info("------------- Relative Path: " + qPath);
 			}
+			
 			output.append(qPath);
 
 			
