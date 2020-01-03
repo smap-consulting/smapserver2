@@ -533,7 +533,6 @@ public class Data extends Application {
 					
 				}
 				
-				log.info("xxxxxxxxxxxxxxxxxxxxx filter: " + ssd.filter);
 				sv = svm.getSurveyView(sd, 
 						cResults, 
 						uId, 

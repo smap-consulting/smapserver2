@@ -644,9 +644,12 @@ public class QueryGenerator {
 					}
 				} else {
 				
-					if(type != null && (type.equals("date") || type.equals("dateTime"))) {
+					if(type != null && type.equals("dateTime")) {
 						colBuf.append("to_char(timezone(?, ");
 						sqlDesc.params.add(new SqlParam("string", tz));
+					} else if(type != null && type.equals("date")) {
+						colBuf.append("to_char(timezone(?, ");
+						sqlDesc.params.add(new SqlParam("string", "UTC"));	// Date timezone always UTC
 					} else if(type.equals("timestamptz")) {
 						colBuf.append("timezone(?, "); 
 						sqlDesc.params.add(new SqlParam("string", tz));

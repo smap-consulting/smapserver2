@@ -116,7 +116,7 @@ public class TableColumn {
 			if(startName != null && endName != null) {
 				selName = "extract(epoch FROM (" + endName + " - " + startName + ")) as "+ column_name;
 			}
-		}  else if(!tz.equals("UTC") && (type.equals("dateTime") || type.equals("date"))) {
+		}  else if(!tz.equals("UTC") && type.equals("dateTime")) {
 			selName = "to_char(timezone(?, " + column_name;
 			params.add(new SqlParam("string", tz));
 			if(type.equals("date")) {
