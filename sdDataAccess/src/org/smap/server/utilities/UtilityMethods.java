@@ -241,7 +241,7 @@ public class UtilityMethods {
 						idx++) {					
 					relPath.add(qSteps[idx]);
 				}
-				int pathDepth = qSteps.length - idx;
+				int pathDepth = cfSteps.length - idx;
 				
 				StringBuffer path = new StringBuffer("current()");
 				for(int i = 0; i < pathDepth; i++) {
