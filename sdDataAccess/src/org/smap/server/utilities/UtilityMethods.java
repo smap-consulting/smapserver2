@@ -219,7 +219,11 @@ public class UtilityMethods {
 				 *   
 				 *   called from:     /x1/qCalledFrom
 				 *   qPath:           /x1/x2/x3/q
-				 *   relative qPath:  current()/x2/x3/q
+				 *   relative qPath:  current()/../x2/x3/q
+				 *   
+				 *   called from:     /x1/qCalledFrom
+				 *   qPath:           /x1/q
+				 *   relative qPath:  current()/../q
 				 */
 				
 				ArrayList<String> relPath = new ArrayList<> ();
@@ -234,11 +238,7 @@ public class UtilityMethods {
 				String [] qSteps = qPath.trim().split("/");
 				
 				int idx;
-				for(idx = 0; 
-						idx < cfSteps.length 
-						&& idx < qSteps.length
-						&& qSteps[idx].equals(cfSteps[idx]); 
-						idx++) {					
+				for(idx = 0; qSteps[idx].equals(cfSteps[idx]); idx++) {					
 					relPath.add(qSteps[idx]);
 				}
 				int pathDepth = cfSteps.length - idx;
@@ -247,7 +247,7 @@ public class UtilityMethods {
 				for(int i = 0; i < pathDepth; i++) {
 					path.append("/..");
 				}
-				for(int i = pathDepth + 1; i < qSteps.length; i++) {
+				for(int i = idx; i < qSteps.length; i++) {
 					path.append("/").append(qSteps[i]);
 				}
 				qPath = path.toString();
