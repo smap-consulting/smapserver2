@@ -27,7 +27,7 @@ public class Project {
 	public boolean tasks_only;
 	public String changed_by;
 	public String changed_ts;
-	public ArrayList<Integer> restrictUsers;
+	public ArrayList<Integer> users;
 	
 	public ProjectLinks links = null;
 }

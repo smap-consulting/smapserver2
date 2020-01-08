@@ -132,7 +132,7 @@ public class ProjectManager {
 	/*
 	 * Create a new project
 	 */
-	public void createProject(
+	public int createProject(
 			Connection sd, 
 			Project p, 
 			int o_id, 
@@ -162,7 +162,7 @@ public class ProjectManager {
 			if(p_id > 0) {
 				// Add the user to the new project by default
 				sql = "insert into user_project (u_id, p_id) " +
-						" values (?, ?);";
+						" values (?, ?)";
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, u_id);
 				pstmt.setInt(2, p_id);
@@ -173,6 +173,52 @@ public class ProjectManager {
 		} finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+		
+		return p_id;
+	}
+	
+	/*
+	 * Create a new project
+	 */
+	public int addUser(
+			Connection sd, 
+			int p_id, 
+			int o_id, 
+			int u_id) throws SQLException {
+		
+		String sqlValid = "select count(*) from users "
+				+ "where id = ? "
+				+ "and o_id = ? "
+				+ "and id not in (select u_id from user_project where p_id = ?)";
+		PreparedStatement pstmtValid = null;
+	
+		String sql = "insert into user_project (u_id, p_id) " +
+				" values (?, ?)";
+		PreparedStatement pstmt = null;
+		try {
+		
+			pstmt = sd.prepareStatement(sql);
+			
+			pstmtValid = sd.prepareStatement(sqlValid);
+			pstmtValid.setInt(1, u_id);
+			pstmtValid.setInt(2, o_id);
+			pstmtValid.setInt(3, p_id);
+			
+			log.info("Is valid: " + pstmtValid.toString());
+			ResultSet rs = pstmtValid.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				pstmt.setInt(1, u_id);
+				pstmt.setInt(2, p_id);
+				log.info("Add user: " + pstmt.toString());
+				pstmt.executeUpdate();
+			}
+			
+		} finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtValid != null) {pstmtValid.close();} } catch (SQLException e) {	}
+		}
+		
+		return p_id;
 	}
 	
 }

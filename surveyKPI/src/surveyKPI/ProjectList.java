@@ -119,8 +119,8 @@ public class ProjectList extends Application {
 		
 		// Authorisation - Access
 		String user = request.getRemoteUser();
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ProjectList");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyKPI-ProjectList");
+		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
@@ -140,7 +140,7 @@ public class ProjectList extends Application {
 					" FROM users u " +  
 					" WHERE u.ident = ?;";				
 						
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
@@ -155,7 +155,7 @@ public class ProjectList extends Application {
 					if(p.id == -1) {
 						
 						// New project
-						pm.createProject(connectionSD, p, o_id, u_id, request.getRemoteUser());
+						p.id = pm.createProject(sd, p, o_id, u_id, request.getRemoteUser());
 						
 					} else {
 						// Existing project
@@ -165,8 +165,9 @@ public class ProjectList extends Application {
 								" FROM project p " +  
 								" WHERE p.id = ? " +
 								" AND p.o_id = ?;";				
-									
-						pstmt = connectionSD.prepareStatement(sql);
+						
+						try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+						pstmt = sd.prepareStatement(sql);
 						pstmt.setInt(1, p.id);
 						pstmt.setInt(2, o_id);
 						log.info("SQL: " + pstmt.toString());
@@ -176,27 +177,44 @@ public class ProjectList extends Application {
 							sql = "update project set " +
 									" name = ?, " + 
 									" description = ?, " + 
-									" tasks_only = ?, " + 
+									//" tasks_only = ?, " + 
 									" changed_by = ?, " + 
 									" changed_ts = now() " + 
 									" where " +
 									" id = ?;";
 						
 							try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-							pstmt = connectionSD.prepareStatement(sql);
+							pstmt = sd.prepareStatement(sql);
 							pstmt.setString(1, p.name);
 							pstmt.setString(2, p.desc);
-							pstmt.setBoolean(3,p.tasks_only);
-							pstmt.setString(4, request.getRemoteUser());
-							pstmt.setInt(5, p.id);
+							//pstmt.setBoolean(3,p.tasks_only);
+							pstmt.setString(3, request.getRemoteUser());
+							pstmt.setInt(4, p.id);
 							
 							log.info("update project: " + pstmt.toString());
 							pstmt.executeUpdate();
+							
+							// Remove users from project
+							sql = "delete from user_project " +
+									" where p_id = ?";
+							try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+							pstmt = sd.prepareStatement(sql);
+							pstmt.setInt(1, p.id);
+							log.info("Delete existing users from project " + pstmt.toString());
+							pstmt.executeUpdate();
+
 						}
 						
 						// Record the project change so that devices can be notified
 						MessagingManager mm = new MessagingManager();
-						mm.projectChange(connectionSD, p.id, o_id);
+						mm.projectChange(sd, p.id, o_id);
+					}
+					
+					// add users from project
+					if(p.users.size() > 0) {
+						for(int uId : p.users) {
+							pm.addUser(sd, p.id, o_id, uId);
+						}
 					}
 				}
 			
@@ -219,7 +237,7 @@ public class ProjectList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-ProjectList", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-ProjectList", sd);
 		}
 		
 		return response;
