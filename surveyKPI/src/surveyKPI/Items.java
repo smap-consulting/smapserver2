@@ -1023,6 +1023,246 @@ public class Items extends Application {
 	}
 	
 	/*
+	 * Get the user locations
+	 */
+	@GET
+	@Path("/user_locations/{p_id}")
+	@Produces("application/json")
+	public String getUserLocations(@Context HttpServletRequest request,
+			@PathParam("p_id") int pId, 
+			@QueryParam("start_key") int start_key,
+			@QueryParam("rec_limit") int rec_limit,
+			@QueryParam("tz") String tz) { 
+		
+		String connectionString = "surveyKPI-Items-User Locations";
+		JSONObject jo = new JSONObject();
+		JSONArray columns = new JSONArray();
+		JSONArray types = new JSONArray();
+		
+		int maxRec = 0;
+		int recCount = 0;	
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);		
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.isValidProject(sd, request.getRemoteUser(), pId);
+		// End Authorisation
+		
+		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Locations " + pId);
+	
+		tz = (tz == null) ? "UTC" : tz;
+		
+		StringBuffer message = new StringBuffer("");
+		
+		if(pId > 0) {
+			
+			PreparedStatement pstmt = null;
+			
+			int totalCount = 0;
+			 
+			try {
+				
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				
+				// Get the users locale
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				
+				JSONObject jTotals = new JSONObject();
+				jo.put("totals", jTotals);
+				jTotals.put("start_key", start_key);
+				
+				// Get the number of records
+				String sql = "select count(*) "
+						+ "from last_refresh lr, users u "
+						+ "where u.o_id = ? "
+						+ "and lr.o_id = ? "
+						+ "and lr.user_ident = u.ident";
+				
+				pstmt = sd.prepareStatement(sql);	
+				pstmt.setInt(1, oId);
+				pstmt.setInt(2, oId);
+				log.info("Get the number of records: " + pstmt.toString());	
+				ResultSet resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					totalCount = resultSet.getInt(1);
+					jTotals.put("total_count", totalCount);
+				}
+				jTotals.put("rec_limit", rec_limit);
+				
+				System.out.println("Record count: " + totalCount);
+				
+				/*
+
+				SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
+				String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, 0);			
+		
+				// Get count of available records
+				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
+				sqlFC.append(whereClause);			
+				
+				// Get the number of filtered records			
+				if(sqlFC.length() > 0) {
+				
+					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
+					pstmt = sd.prepareStatement(sqlFC.toString());
+					
+					int attribIdx = 1;	
+					
+					// Add user and organisation
+					pstmt.setInt(attribIdx++, oId);
+					pstmt.setString(attribIdx++, user);
+
+					pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
+						
+					// dates
+					if(dateId > 0 && dateId < 5) {
+						if(startDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+						}
+						if(endDate != null) {
+							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+						}
+					}
+
+					log.info("Get the number of filtered records for user activity: " + pstmt.toString());
+					resultSet = pstmt.executeQuery();
+					if(resultSet.next()) {
+						jTotals.put("filtered_count", resultSet.getInt(1));
+					} else {
+						jTotals.put("filtered_count", 0);
+					}
+				} else {
+					jTotals.put("filtered_count", totalCount);
+				}
+
+				// Get the prepared statement to retrieve data
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = subMgr.getSubmissionsStatement(sd, rec_limit, start_key, 
+						whereClause,
+						user,
+						oId,
+						request.getRemoteUser(),
+						dateId,
+						startDate,
+						endDate,
+						0);
+				
+				// Request the data
+				log.info("Get Usage Data: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+	
+				JSONArray ja = new JSONArray();
+				while (resultSet.next()) {
+					
+					JSONObject jr = subMgr.getRecord(resultSet, true, true, false, false, null);
+					maxRec = resultSet.getInt("ue_id");	
+					ja.put(jr);
+					recCount++;
+
+				 }
+				
+				/*
+				 * Add columns and types
+				 *
+				columns.put("prikey");
+				columns.put(localisation.getString("a_name"));
+				columns.put(localisation.getString("a_device"));
+				columns.put(localisation.getString("ar_project"));
+				columns.put(localisation.getString("a_ut"));
+				columns.put(localisation.getString("a_l"));
+				columns.put(localisation.getString("a_sn"));
+				columns.put(localisation.getString("a_in"));
+				columns.put(localisation.getString("a_st"));
+				columns.put(localisation.getString("a_et"));
+				columns.put(localisation.getString("a_sched"));
+					
+				types.put("integer");
+				types.put("string");
+				types.put("string");
+				types.put("string");
+				types.put("dateTime");
+				types.put("string");	
+				types.put("string");	
+				types.put("string");	
+				types.put("dateTime");
+				types.put("dateTime");
+				types.put("dateTime");
+				
+				String maxRecordWhere = "";
+				if(whereClause.length() == 0) {
+					maxRecordWhere = " where ue_id < " + maxRec;
+				} else {
+					maxRecordWhere = whereClause + " and ue_id < " + maxRec;
+				}
+				
+				// Determine if there are more records to be returned
+				sql = "select count(*) from upload_event ue " + maxRecordWhere + ";";
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);	
+				
+				// Apply the parameters again
+				int attribIdx = 1;
+				
+				// Add user and organisation
+				pstmt.setInt(attribIdx++, oId);
+				pstmt.setString(attribIdx++, user);
+				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
+			
+				// dates
+				if(dateId > 0 && dateId < 5) {
+					if(startDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
+					}
+					if(endDate != null) {
+						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
+					}
+				}
+				
+				log.info("Check for more records: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					jTotals.put("more_recs", resultSet.getInt(1));
+				}
+				 jTotals.put("max_rec", maxRec);
+				 jTotals.put("returned_count", recCount);
+				 
+				 jo.put("type", "FeatureCollection");
+				 jo.put("features", ja);
+				 jo.put("cols", columns);
+				 jo.put("types", types);
+				 jo.put("formName", "Usage");
+				
+				 */
+			} catch (SQLException e) {
+			    
+				String msg = e.getMessage();
+				if(msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+					// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+				} else {
+					message.append(msg);
+					log.log(Level.SEVERE, message.toString(), e);
+				}
+				
+			} catch (Exception e) {
+				log.log(Level.SEVERE, message.toString(), e);
+				message.append(e.getMessage());
+			} finally {
+				
+				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+				
+				SDDataSource.closeConnection(connectionString, sd);
+			}
+		}
+
+		try {
+			jo.put("message", message);
+		} catch (Exception e) {
+		}
+		return jo.toString();
+	}
+	
+	/*
 	 * Update the bad record status
 	 */
 	@POST

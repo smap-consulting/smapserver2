@@ -161,7 +161,40 @@ public class Dashboard extends Application {
 					+ "where d.ds_user_ident = ? "
 					+ "and d.ds_subject_type = 'user' "
 					+ "and d.ds_u_id in (select id from users where o_id = ?) "
-					+ "order by ds_seq asc;";
+					+ "order by ds_seq asc";
+			
+			String sqlUserLocation = "select "
+					+ "d.ds_id as id,"
+					+ "d.ds_seq as seq,"
+					+ "d.ds_state as state,"
+					+ "d.ds_title as title,"
+					+ "d.ds_s_id as sId,"
+					+ "d.ds_u_id as uId,"
+					+ "d.ds_s_name as sName,"
+					+ "d.ds_type as type,"
+					+ "d.ds_layer_id as layerId,"
+					+ "d.ds_region as region,"
+					+ "d.ds_lang as lang,"
+					+ "d.ds_q_id as qId,"
+					+ "d.ds_date_question_id as dateQuestionId,"
+					+ "d.ds_question as question,"
+					+ "d.ds_fn as fn,"
+					+ "d.ds_table as table, "
+					+ "d.ds_key_words as key_words, "
+					+ "d.ds_q1_function as q1_function, "
+					+ "d.ds_group_question_id as groupQuestionId, "
+					+ "d.ds_group_question_text as groupQuestionText, "
+					+ "d.ds_group_type as groupType, "
+					+ "d.ds_time_group as timeGroup, "
+					+ "d.ds_from_date as fromDate, "
+					+ "d.ds_to_date as toDate, "
+					+ "d.ds_q_is_calc as qId_is_calc, "
+					+ "d.ds_filter as filter, "
+					+ "d.ds_advanced_filter as advanced_filter, "
+					+ "d.ds_subject_type as subject_type "
+					+ "from dashboard_settings d "
+					+ "where d.ds_user_ident = ? "
+					+ "and d.ds_subject_type = 'user_locations' ";
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
@@ -185,6 +218,20 @@ public class Dashboard extends Application {
 			pstmt.setString(1, request.getRemoteUser());
 			pstmt.setInt(2, oId);
 
+			log.info("Get user panels: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			while (resultSet.next()) {				
+				Settings s = getSettings(resultSet, idx++);
+				sArray.add(s);	
+			}
+			resultSet.close();
+			
+			// Add  user location panel
+			try {if (pstmt != null) { pstmt.close();}} catch (SQLException e) {}
+			pstmt = sd.prepareStatement(sqlUserLocation);	
+			pstmt.setString(1, request.getRemoteUser());
+
+			log.info("Get user location panels: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			while (resultSet.next()) {				
 				Settings s = getSettings(resultSet, idx++);
