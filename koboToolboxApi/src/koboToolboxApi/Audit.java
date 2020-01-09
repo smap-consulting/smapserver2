@@ -556,7 +556,6 @@ public class Audit extends Application {
 
 		StringBuffer sql = new StringBuffer("select id, user_ident, "
 				+ "to_char(timezone(?, refresh_time), 'YYYY-MM-DD HH24:MI:SS') as refresh_time, "
-				+ "geo_point, "
 				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
 				+ "refresh_time - device_time as server_ahead "
 				+ "from last_refresh_log "
