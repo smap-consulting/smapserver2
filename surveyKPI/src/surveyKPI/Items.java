@@ -1077,7 +1077,7 @@ public class Items extends Application {
 						+ "from last_refresh lr, users u "
 						+ "where u.o_id = ? "
 						+ "and lr.o_id = ? "
-						+ "and lr.user_ident = u.ident";
+						+ "and lr.user_ident = u.ident ";
 				
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setInt(1, oId);
@@ -1089,137 +1089,69 @@ public class Items extends Application {
 					jTotals.put("total_count", totalCount);
 				}
 				jTotals.put("rec_limit", rec_limit);
-				
-				System.out.println("Record count: " + totalCount);
-				
-				/*
 
-				SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-				String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, 0);			
-		
-				// Get count of available records
-				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
-				sqlFC.append(whereClause);			
+				String sqlData = "select "
+						+ "id,"
+						+ "user_ident, "
+						+ "timezone(?, refresh_time) as refresh_time, "
+						+ "ST_AsGeoJSON(geo_point) as geo_point "
+						+ "from last_refresh "
+						+ "where o_id = ? "
+						+ "order by id desc";
 				
-				// Get the number of filtered records			
-				if(sqlFC.length() > 0) {
-				
-					if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-					pstmt = sd.prepareStatement(sqlFC.toString());
-					
-					int attribIdx = 1;	
-					
-					// Add user and organisation
-					pstmt.setInt(attribIdx++, oId);
-					pstmt.setString(attribIdx++, user);
-
-					pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
-						
-					// dates
-					if(dateId > 0 && dateId < 5) {
-						if(startDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-						}
-						if(endDate != null) {
-							pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
-						}
-					}
-
-					log.info("Get the number of filtered records for user activity: " + pstmt.toString());
-					resultSet = pstmt.executeQuery();
-					if(resultSet.next()) {
-						jTotals.put("filtered_count", resultSet.getInt(1));
-					} else {
-						jTotals.put("filtered_count", 0);
-					}
-				} else {
-					jTotals.put("filtered_count", totalCount);
-				}
-
 				// Get the prepared statement to retrieve data
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = subMgr.getSubmissionsStatement(sd, rec_limit, start_key, 
-						whereClause,
-						user,
-						oId,
-						request.getRemoteUser(),
-						dateId,
-						startDate,
-						endDate,
-						0);
+				pstmt = sd.prepareStatement(sqlData);
+				pstmt.setString(1, tz);
+				pstmt.setInt(2, oId);
 				
 				// Request the data
 				log.info("Get Usage Data: " + pstmt.toString());
 				resultSet = pstmt.executeQuery();
-	
+				
 				JSONArray ja = new JSONArray();
 				while (resultSet.next()) {
 					
-					JSONObject jr = subMgr.getRecord(resultSet, true, true, false, false, null);
-					maxRec = resultSet.getInt("ue_id");	
+					JSONObject jr = new JSONObject();
+					JSONObject jp = new JSONObject();
+					
+					JSONObject jg = null;
+					String geomValue = resultSet.getString("geo_point");	
+					if(geomValue != null) {	
+						jg = new JSONObject(geomValue);
+					}
+					
+					jp.put("prikey", resultSet.getString("id"));
+					jp.put(localisation.getString("mf_u"), resultSet.getString("user_ident"));
+					jp.put(localisation.getString("u_ref_time"), resultSet.getString("refresh_time"));
+					jr.put("type", "Feature");
+					
+					jr.put("geometry", jg);
+					jr.put("properties", jp);
 					ja.put(jr);
+					
+					maxRec = resultSet.getInt("id");	
 					recCount++;
-
 				 }
 				
 				/*
 				 * Add columns and types
-				 *
+				 */
 				columns.put("prikey");
-				columns.put(localisation.getString("a_name"));
-				columns.put(localisation.getString("a_device"));
-				columns.put(localisation.getString("ar_project"));
-				columns.put(localisation.getString("a_ut"));
-				columns.put(localisation.getString("a_l"));
-				columns.put(localisation.getString("a_sn"));
-				columns.put(localisation.getString("a_in"));
-				columns.put(localisation.getString("a_st"));
-				columns.put(localisation.getString("a_et"));
-				columns.put(localisation.getString("a_sched"));
-					
+				columns.put(localisation.getString("mf_u"));
+				columns.put(localisation.getString("u_ref_time"));
+				
 				types.put("integer");
 				types.put("string");
-				types.put("string");
-				types.put("string");
-				types.put("dateTime");
-				types.put("string");	
-				types.put("string");	
-				types.put("string");	
-				types.put("dateTime");
-				types.put("dateTime");
 				types.put("dateTime");
 				
-				String maxRecordWhere = "";
-				if(whereClause.length() == 0) {
-					maxRecordWhere = " where ue_id < " + maxRec;
-				} else {
-					maxRecordWhere = whereClause + " and ue_id < " + maxRec;
-				}
 				
-				// Determine if there are more records to be returned
-				sql = "select count(*) from upload_event ue " + maxRecordWhere + ";";
+				sql = sql + " and lr.id < " + maxRec;
+			
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);	
-				
-				// Apply the parameters again
-				int attribIdx = 1;
-				
-				// Add user and organisation
-				pstmt.setInt(attribIdx++, oId);
-				pstmt.setString(attribIdx++, user);
-				pstmt.setString(attribIdx++, request.getRemoteUser());		// For RBAC
-			
-				// dates
-				if(dateId > 0 && dateId < 5) {
-					if(startDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.startOfDay(startDate, tz));
-					}
-					if(endDate != null) {
-						pstmt.setTimestamp(attribIdx++, GeneralUtilityMethods.endOfDay(endDate, tz));
-					}
-				}
-				
-				log.info("Check for more records: " + pstmt.toString());
+				pstmt.setInt(1, oId);
+				pstmt.setInt(2, oId);
 				resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					jTotals.put("more_recs", resultSet.getInt(1));
@@ -1231,9 +1163,8 @@ public class Items extends Application {
 				 jo.put("features", ja);
 				 jo.put("cols", columns);
 				 jo.put("types", types);
-				 jo.put("formName", "Usage");
+				 jo.put("formName", "User Locations");
 				
-				 */
 			} catch (SQLException e) {
 			    
 				String msg = e.getMessage();
