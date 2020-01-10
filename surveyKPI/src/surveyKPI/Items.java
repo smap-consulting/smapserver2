@@ -46,6 +46,7 @@ import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SubmissionsManager;
+import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
@@ -1028,169 +1029,48 @@ public class Items extends Application {
 	@GET
 	@Path("/user_locations/{p_id}")
 	@Produces("application/json")
-	public String getUserLocations(@Context HttpServletRequest request,
+	public Response getUserLocations(@Context HttpServletRequest request,
 			@PathParam("p_id") int pId, 
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit,
 			@QueryParam("tz") String tz) { 
 		
-		String connectionString = "surveyKPI-Items-User Locations";
-		JSONObject jo = new JSONObject();
-		JSONArray columns = new JSONArray();
-		JSONArray types = new JSONArray();
+		Response response = null;
 		
-		int maxRec = 0;
-		int recCount = 0;	
+		String connectionString = "surveyKPI-Items-User Locations";
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
 		aUpdate.isAuthorised(sd, request.getRemoteUser());
-		aUpdate.isValidProject(sd, request.getRemoteUser(), pId);
+		aUpdate.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
 		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Locations " + pId);
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
-		StringBuffer message = new StringBuffer("");
-		
-		if(pId > 0) {
-			
-			PreparedStatement pstmt = null;
-			
-			int totalCount = 0;
-			 
-			try {
-				
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				
-				// Get the users locale
-				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-				
-				JSONObject jTotals = new JSONObject();
-				jo.put("totals", jTotals);
-				jTotals.put("start_key", start_key);
-				
-				// Get the number of records
-				String sql = "select count(*) "
-						+ "from last_refresh lr, users u "
-						+ "where u.o_id = ? "
-						+ "and lr.o_id = ? "
-						+ "and lr.user_ident = u.ident ";
-				
-				pstmt = sd.prepareStatement(sql);	
-				pstmt.setInt(1, oId);
-				pstmt.setInt(2, oId);
-				log.info("Get the number of records: " + pstmt.toString());	
-				ResultSet resultSet = pstmt.executeQuery();
-				if(resultSet.next()) {
-					totalCount = resultSet.getInt(1);
-					jTotals.put("total_count", totalCount);
-				}
-				jTotals.put("rec_limit", rec_limit);
-
-				String sqlData = "select "
-						+ "id,"
-						+ "user_ident, "
-						+ "timezone(?, refresh_time) as refresh_time, "
-						+ "ST_AsGeoJSON(geo_point) as geo_point "
-						+ "from last_refresh "
-						+ "where o_id = ? "
-						+ "order by id desc";
-				
-				// Get the prepared statement to retrieve data
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sqlData);
-				pstmt.setString(1, tz);
-				pstmt.setInt(2, oId);
-				
-				// Request the data
-				log.info("Get Usage Data: " + pstmt.toString());
-				resultSet = pstmt.executeQuery();
-				
-				JSONArray ja = new JSONArray();
-				while (resultSet.next()) {
-					
-					JSONObject jr = new JSONObject();
-					JSONObject jp = new JSONObject();
-					
-					JSONObject jg = null;
-					String geomValue = resultSet.getString("geo_point");	
-					if(geomValue != null) {	
-						jg = new JSONObject(geomValue);
-					}
-					
-					jp.put("prikey", resultSet.getString("id"));
-					jp.put(localisation.getString("mf_u"), resultSet.getString("user_ident"));
-					jp.put(localisation.getString("u_ref_time"), resultSet.getString("refresh_time"));
-					jr.put("type", "Feature");
-					
-					jr.put("geometry", jg);
-					jr.put("properties", jp);
-					ja.put(jr);
-					
-					maxRec = resultSet.getInt("id");	
-					recCount++;
-				 }
-				
-				/*
-				 * Add columns and types
-				 */
-				columns.put("prikey");
-				columns.put(localisation.getString("mf_u"));
-				columns.put(localisation.getString("u_ref_time"));
-				
-				types.put("integer");
-				types.put("string");
-				types.put("dateTime");
-				
-				
-				sql = sql + " and lr.id < " + maxRec;
-			
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);	
-				pstmt.setInt(1, oId);
-				pstmt.setInt(2, oId);
-				resultSet = pstmt.executeQuery();
-				if(resultSet.next()) {
-					jTotals.put("more_recs", resultSet.getInt(1));
-				}
-				 jTotals.put("max_rec", maxRec);
-				 jTotals.put("returned_count", recCount);
-				 
-				 jo.put("type", "FeatureCollection");
-				 jo.put("features", ja);
-				 jo.put("cols", columns);
-				 jo.put("types", types);
-				 jo.put("formName", "User Locations");
-				
-			} catch (SQLException e) {
-			    
-				String msg = e.getMessage();
-				if(msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
-					// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
-				} else {
-					message.append(msg);
-					log.log(Level.SEVERE, message.toString(), e);
-				}
-				
-			} catch (Exception e) {
-				log.log(Level.SEVERE, message.toString(), e);
-				message.append(e.getMessage());
-			} finally {
-				
-				try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-				
-				SDDataSource.closeConnection(connectionString, sd);
-			}
-		}
-
+		// Get the users locale
 		try {
-			jo.put("message", message);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	
+			UserLocationManager ulm = new UserLocationManager(localisation, tz);
+			response = Response.ok(ulm.getUserLocations(sd, 
+					pId,
+					start_key,
+					rec_limit,
+					request.getRemoteUser(),
+					true
+					)).build();
 		} catch (Exception e) {
+			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
-		return jo.toString();
+		
+		return response;
+
 	}
 	
 	/*

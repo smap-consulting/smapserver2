@@ -21,11 +21,16 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import managers.AuditManager;
+import managers.DataManager;
 import model.DataEndPoint;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -48,6 +53,8 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.io.IOUtils;
+import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -57,6 +64,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
+import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
@@ -64,71 +72,62 @@ import org.smap.sdal.model.TableColumn;
 /*
  * Provides access to audit views on the surveys
  */
-@Path("/v1/audit")
-public class Audit extends Application {
+@Path("/v1/users")
+public class Users extends Application {
 	
 	Authorise a = null;
-	Authorise aSuper = null;
-	Authorise aAdmin = null;
 
 	private static Logger log =
-			Logger.getLogger(Audit.class.getName());
+			Logger.getLogger(Users.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
 	// Tell class loader about the root classes.  (needed as tomcat6 does not support servlet 3)
 	public Set<Class<?>> getClasses() {
 		Set<Class<?>> s = new HashSet<Class<?>>();
-		s.add(Audit.class);
+		s.add(Users.class);
 		return s;
 	}
 
-	public Audit() {
+	public Users() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
-		authorisations.add(Authorise.VIEW_DATA);
 		authorisations.add(Authorise.ADMIN);
-		authorisations.add(Authorise.MANAGE);
 		a = new Authorise(authorisations, null);
-
-		ArrayList<String> authorisationsSuper = new ArrayList<String> ();	
-		authorisationsSuper.add(Authorise.ANALYST);
-		authorisationsSuper.add(Authorise.VIEW_DATA);
-		authorisationsSuper.add(Authorise.ADMIN);
-		aSuper = new Authorise(authorisationsSuper, null);
-
-		ArrayList<String> authorisationsAdmin = new ArrayList<String> ();	
-		authorisationsAdmin.add(Authorise.ADMIN);
-		aAdmin = new Authorise(authorisationsSuper, null);
 	}
 
 	/*
 	 * Returns a list of audit end points
 	 */
 	@GET
+	@Path("/locations")
 	@Produces("application/json")
-	public Response getAudit(@Context HttpServletRequest request) { 
+	public Response getAudit(@Context HttpServletRequest request,
+			@QueryParam("tz") String tz) { 
 
 		Response response = null;
-		String connectionString = "API - getAudit";
+		String connectionString = "API - getUserLocations";
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aSuper.isAuthorised(sd, request.getRemoteUser());
+		a.isAuthorised(sd, request.getRemoteUser());
 		
-
+		tz = (tz == null) ? "UTC" : tz;
+		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			AuditManager am = new AuditManager(localisation);
+			UserLocationManager ulm = new UserLocationManager(localisation, tz);
+			response = Response.ok(ulm.getUserLocations(sd, 
+					0,
+					0,
+					0,
+					request.getRemoteUser(),
+					false
+					)).build();
 			
-			ArrayList<DataEndPoint> data = am.getDataEndPoints(sd, request, false);
-
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			String resp = gson.toJson(data);
-			response = Response.ok(resp).build();
 		} catch (SQLException e) {
 			e.printStackTrace();
 			response = Response.serverError().build();
@@ -440,199 +439,6 @@ public class Audit extends Application {
 
 		//return response;
 
-	}
-	
-	/*
-	 * API version 1 /audit
-	 * Get the original audit log file as a csv file
-	 */
-	@GET
-	@Produces("text/csv")
-	@Path("/log/{sIdent}/{instanceid}")
-	public Response getAuditLogFile(@Context HttpServletRequest request,
-			@PathParam("sIdent") String sIdent,
-			@PathParam("instanceid") String instanceId,				// Primary key to start from
-			@Context HttpServletResponse servletResponse
-			) throws ApplicationException, Exception { 
-		
-		Response response = null;
-		String connectionString = "Audit API - Get Log File";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}	
-		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation
-		
-		Connection cResults = ResultsDataSource.getConnection(connectionString);
-		PreparedStatement pstmt = null;	
-		String rawAudit = null;
-		String fileName = "error.csv";
-		try {
-			
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			String tablename = GeneralUtilityMethods.getMainResultsTable(sd, cResults, sId);
-			fileName = GeneralUtilityMethods.getSurveyName(sd, sId) + 
-					"_" + localisation.getString("audit") + ".csv";
-			
-			if(GeneralUtilityMethods.hasColumn(cResults, tablename, AuditData.AUDIT_RAW_COLUMN_NAME)) {
-				// Get the raw audit data
-				StringBuffer sql = new StringBuffer("select ").append(AuditData.AUDIT_RAW_COLUMN_NAME);
-				sql.append(" from ").append(tablename);
-				sql.append(" where instanceid = ?");
-								
-				pstmt = cResults.prepareStatement(sql.toString());
-				pstmt.setString(1, instanceId);
-				
-				ResultSet rs = pstmt.executeQuery();
-	
-				if(rs.next()) {
-					rawAudit = rs.getString(1);
-				} else {
-					rawAudit = localisation.getString("mf_nf");
-				}
-			} else {
-				rawAudit = localisation.getString("audit_na");
-			}
-			if(rawAudit == null) {
-				rawAudit = localisation.getString("audit_na");
-			}
-			response = Response.ok(rawAudit).build();
-			
-		} catch (Exception e) { 
-			log.log(Level.SEVERE, e.getMessage(), e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} finally {
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-
-			SDDataSource.closeConnection(connectionString, sd);
-			ResultsDataSource.closeConnection(connectionString, cResults);
-		}
-		
-		servletResponse.setHeader("Content-type",  "text/csv; charset=UTF-8");
-		servletResponse.setHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-		
-		return response;
-				
-	}
-	
-	/*
-	 * API version 1 /audit
-	 * Get refresh records 
-	 */
-	@GET
-	@Produces("application/json")
-	@Path("/refresh/log")
-	public void getrefreshRecords(@Context HttpServletRequest request,
-			@Context HttpServletResponse response,
-			@QueryParam("user") String uIdent,
-			@QueryParam("start") int start,				// Primary key to start from
-			@QueryParam("limit") int limit,				// Number of records to return
-			@QueryParam("tz") String tz					// Timezone
-			) throws ApplicationException, Exception { 
-		
-		// Authorisation - Access
-		String connectionString = "Audit API - Get refresh records";
-		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
-
-		// End Authorisation
-
-		StringBuffer sql = new StringBuffer("select id, user_ident, "
-				+ "to_char(timezone(?, refresh_time), 'YYYY-MM-DD HH24:MI:SS') as refresh_time, "
-				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
-				+ "refresh_time - device_time as server_ahead "
-				+ "from last_refresh_log "
-				+ "where o_id = ?");
-		
-		if(uIdent != null) {
-			sql.append(" and user_ident = ?");
-		}
-		if(start > 0) {
-			sql.append(" and id <= ?");
-		}
-		sql.append(" order by id desc");
-		if(limit > 0) {
-			sql.append(" limit ?");
-		}
-		PreparedStatement pstmt = null;
-		
-		tz = (tz == null) ? "UTC" : tz;
-
-		PrintWriter outWriter = null;
-		try {
-			
-			response.setContentType("application/json; charset=UTF-8");
-			response.setCharacterEncoding("UTF-8");
-			outWriter = response.getWriter();
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
-				throw new ApplicationException(localisation.getString("susp_api"));
-			}
-			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			pstmt = sd.prepareStatement(sql.toString());
-			int idx = 1;
-			pstmt.setString(idx++,  tz);
-			pstmt.setString(idx++,  tz);
-			pstmt.setInt(idx++, oId);
-			if(uIdent != null) {
-				pstmt.setString(idx++, uIdent);;
-			}
-			if(start > 0) {
-				pstmt.setInt(idx++, start);	
-			}
-			if(limit > 0) {
-				pstmt.setInt(idx++, limit);	
-			}
-		
-
-			outWriter.print("[");
-			
-			log.info("AuditAPI refresh data: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			int count = 0;
-			while(rs.next()) {
-				if(count++ > 0) {
-					outWriter.print(",");
-				}
-				JSONObject jo = new JSONObject();
-				jo.put("id", rs.getInt("id"));
-				jo.put("user", rs.getString("user_ident"));
-				jo.put("refresh_time", rs.getString("refresh_time"));
-				jo.put("device_time", rs.getString("device_time"));
-				jo.put("server_ahead", rs.getString("server_ahead"));
-				
-				outWriter.print(jo.toString());
-			}
-			
-			outWriter.print("]");
-		
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			outWriter.print(e.getMessage());
-		} finally {
-
-			outWriter.flush(); 
-			outWriter.close();
-			
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-		
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-		
 	}
 
 }
