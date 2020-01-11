@@ -102,14 +102,15 @@ public class UserLocationManager {
 						+ "from last_refresh lr, users u "
 						+ "where u.o_id = ? "
 						+ "and lr.o_id = ? "
-						+ "and lr.geo_point != null "
+						+ "and lr.geo_point is not null "
+						+ "and (st_x(geo_point) != 0 or st_y(geo_point) != 0) "
 						+ "and lr.user_ident = u.ident ");
 
 				if(pId > 0) {
 					sqlCount.append(" and lr.user_ident in "
 							+ "(select ident from users ux, user_project upx "
 							+ "where ux.id = upx.u_id "
-							+ "and upx.p_id = ?)");
+							+ "and upx.p_id = ?) ");
 				}
 				
 				pstmt = sd.prepareStatement(sqlCount.toString());	
@@ -137,7 +138,8 @@ public class UserLocationManager {
 						+ "ST_AsGeoJSON(lr.geo_point) as geo_point "
 						+ "from last_refresh lr, users u "
 						+ "where u.o_id = ? "
-						+ "and lr.geo_point != null "
+						+ "and lr.geo_point is not null "
+						+ "and (st_x(geo_point) != 0 or st_y(geo_point) != 0) "
 						+ "and lr.o_id = ? "
 						+ "and lr.user_ident = u.ident ");
 
@@ -145,12 +147,12 @@ public class UserLocationManager {
 					sqlData.append(" and lr.user_ident in "
 							+ "(select ident from users ux, user_project upx "
 							+ "where ux.id = upx.u_id "
-							+ "and upx.p_id = ?)");
+							+ "and upx.p_id = ?) ");
 				}
 				if(start_key > 0) {
 					sqlData.append(" and lr.id < ").append(start_key);
 				}
-				sqlData.append("order by lr.id desc");
+				sqlData.append(" order by lr.id desc");
 
 				if(rec_limit > 0) {
 					sqlData.append(" limit ").append(rec_limit);
@@ -191,17 +193,17 @@ public class UserLocationManager {
 						Timestamp now = new Timestamp(new java.util.Date().getTime());
 						
 						// Set an integer value that can be used to colour the output depending on time since refresh
-						long v = (now.getTime() - refreshWhen.getTime()) / 3600;
+						long v = (now.getTime() - refreshWhen.getTime()) / 3600000;
 						if(v > 4) {
-							jp.put("value", 0);
+							jp.put("value", 0);	// More than 4 hours
 						} else if(v > 3) {
-							jp.put("value", 1);
+							jp.put("value", 1);	// More than 3 hours
 						} else if(v > 2) {
-							jp.put("value", 2);
+							jp.put("value", 2);	// More than 2 hours
 						} else if(v > 1) {
-							jp.put("value", 3);
+							jp.put("value", 3);	// More than 1 hour
 						} else {
-							jp.put("value", 4);
+							jp.put("value", 4);	// Less than 1 hour
 						}
 								
 					}
