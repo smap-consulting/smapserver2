@@ -102,6 +102,7 @@ public class UserLocationManager {
 						+ "from last_refresh lr, users u "
 						+ "where u.o_id = ? "
 						+ "and lr.o_id = ? "
+						+ "and lr.geo_point != null "
 						+ "and lr.user_ident = u.ident ");
 
 				if(pId > 0) {
@@ -136,6 +137,7 @@ public class UserLocationManager {
 						+ "ST_AsGeoJSON(lr.geo_point) as geo_point "
 						+ "from last_refresh lr, users u "
 						+ "where u.o_id = ? "
+						+ "and lr.geo_point != null "
 						+ "and lr.o_id = ? "
 						+ "and lr.user_ident = u.ident ");
 
@@ -187,7 +189,8 @@ public class UserLocationManager {
 						
 						Timestamp refreshWhen = resultSet.getTimestamp("utc_time");
 						Timestamp now = new Timestamp(new java.util.Date().getTime());
-						System.out.println("ddddd: " + (now.getTime() - refreshWhen.getTime()));
+						
+						// Set an integer value that can be used to colour the output depending on time since refresh
 						long v = (now.getTime() - refreshWhen.getTime()) / 3600;
 						if(v > 4) {
 							jp.put("value", 0);
