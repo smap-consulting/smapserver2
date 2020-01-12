@@ -72,8 +72,8 @@ public class Survey {
 	public String projectName;
 	private boolean projectTasksOnly;		// deprecated
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
-	public boolean dataSurvey;
-	public boolean oversightSurvey;
+	public boolean dataSurvey = true;
+	public boolean oversightSurvey = true;
 	public int groupSurveyId;
 	public String groupSurveyDetails;
 	public String publicLink;
