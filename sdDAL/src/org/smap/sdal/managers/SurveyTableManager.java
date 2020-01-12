@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Form;
@@ -498,6 +499,9 @@ public class SurveyTableManager {
 				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			} else {
 				linked_sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
+					throw new ApplicationException("Cannot link to external survey: " + sIdent + " as it is in a different organisation");
+				}
 			}
 			if(linked_sId == 0) {
 				throw new ApplicationException("Error: Survey with identifier " + sIdent + " was not found");

@@ -554,7 +554,11 @@ public class WebForm extends Application {
 			log.info("userevent: " + userIdent + " : webForm : " + formIdent);
 
 		} catch (Exception e) {
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			StringBuffer sb = new StringBuffer("");
+			sb.append("<html>").append("<head></head>").append("<body>");
+			sb.append("<h1>").append(e.getMessage()).append("</h1>");
+			sb.append("</body>").append("</html>");
+			response = Response.status(Status.OK).entity(sb.toString()).build();
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 
@@ -1168,68 +1172,6 @@ public class WebForm extends Application {
 		output.append("</span>");
 		output.append("</div>");
 		output.append("</noscript>");
-
-		return output.toString();
-	}
-
-	/*
-	 * Escape quotes
-	 */
-	private String escapeQuotes(String input) {
-		StringBuffer output = new StringBuffer("");
-		String txt;
-
-		Pattern pattern = Pattern.compile("<value>.*<\\/value>");
-		Pattern patternOutput = Pattern.compile("<output.*\\/>");
-		java.util.regex.Matcher matcher = pattern.matcher(input);
-		int start = 0;
-		while (matcher.find()) {
-
-			String matched = matcher.group();
-
-			// Add any text before the match
-			int startOfGroup = matcher.start();
-			txt = input.substring(start, startOfGroup);
-			output.append(txt);
-			start = startOfGroup;
-
-			/*
-			 * Add the matched section inside a value Escape all quotes except those inside
-			 * an output
-			 */
-			java.util.regex.Matcher matcherOutput = patternOutput.matcher(matched); // Skip over output definitions
-			while (matcherOutput.find()) {
-
-				String matchedOutput = matcherOutput.group();
-
-				// Add text up to the output escaping quotes
-				int startOfOutputGroup = matcherOutput.start();
-				txt = input.substring(start, start + startOfOutputGroup).replaceAll("\"", "&quot;");
-				output.append(txt);
-
-				// Add the matched output
-				output.append(matchedOutput);
-
-				start = start + matcherOutput.end();
-
-			}
-
-			// Get the remainder of the string inside the value element
-			if (start < input.length()) {
-				txt = input.substring(start, matcher.end()).replaceAll("\"", "&quot;");
-				output.append(txt);
-			}
-
-			// Reset the start
-			start = matcher.end();
-
-		}
-
-		// Get the remainder of the string outside of the value element
-		if (start < input.length()) {
-			txt = input.substring(start);
-			output.append(txt);
-		}
 
 		return output.toString();
 	}

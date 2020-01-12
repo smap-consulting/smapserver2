@@ -16,6 +16,7 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Form;
@@ -196,6 +197,10 @@ public class ExternalFileManager {
 				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			} else {
 				linked_sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
+					log.info("---------------------------- Authorisation exception");
+					throw new ApplicationException("Cannot link to external survey: " + sIdent + " as it is in a different organisation");
+				}
 			}
 
 			// 2. Determine whether or not the file needs to be regenerated

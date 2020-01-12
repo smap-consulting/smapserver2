@@ -8774,5 +8774,40 @@ public class GeneralUtilityMethods {
 		return count;
 	}
 	
+	public static boolean inSameOrganisation(Connection sd, int sId1, int sId2) throws SQLException {
+		String sql = "SELECT p.o_id " +
+				" from project p, survey s " +  
+				" where p.id = s.p_id " +
+				" and s.s_id = ? ";
+		PreparedStatement pstmt = null;
+		
+		int oId1 = 0;
+		int oId2 = 0;
+		boolean same = false;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			
+			pstmt.setInt(1, sId1);			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				oId1 = rs.getInt(1);
+			}
+			pstmt.setInt(1, sId2);			
+			rs = pstmt.executeQuery();
+			if(rs.next()) {
+				oId2 = rs.getInt(1);
+			}
+			
+			if(oId1 > 0 && oId1 == oId2) {
+				same = true;
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return same;
+	}
+	
 }
 
