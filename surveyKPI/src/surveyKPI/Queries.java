@@ -105,9 +105,7 @@ public class Queries extends Application {
 			@QueryParam("published") boolean published,	// Include queries not owned by user but accessible (TODO)
 			@Context HttpServletRequest request
 			) throws IOException {
-		
-		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-		
+	
 		Response response = null;
 		Connection sd = SDDataSource.getConnection("surveyKPI-get query");
 		
@@ -143,8 +141,6 @@ public class Queries extends Application {
 	public Response saveQuery(
 			@FormParam("query") String queryString,
 			@Context HttpServletRequest request) {
-		
-		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 		
 		Response response = null;
 		Connection sd = SDDataSource.getConnection("surveyKPI-save query");

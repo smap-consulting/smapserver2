@@ -550,10 +550,15 @@ public class Audit extends Application {
 		StringBuffer sql = new StringBuffer("select id, user_ident, "
 				+ "to_char(timezone(?, refresh_time), 'YYYY-MM-DD HH24:MI:SS') as refresh_time, "
 				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
-				+ "refresh_time - device_time as server_ahead "
-				+ "from last_refresh_log "
-				+ "where o_id = ?");
+				+ "refresh_time - device_time as server_ahead ");
 		
+		boolean locationServer = GeneralUtilityMethods.isLocationServer(request.getRemoteHost());
+		if(locationServer) {
+			sql.append(",ST_AsGeoJSON(geo_point) as geo_point ");
+			sql.append(",ST_x(geo_point) as lon ");
+			sql.append(",ST_Y(geo_point) as lat ");
+		} 
+		sql.append("from last_refresh_log ").append("where o_id = ?");
 		if(uIdent != null) {
 			sql.append(" and user_ident = ?");
 		}
@@ -614,6 +619,17 @@ public class Audit extends Application {
 				jo.put("refresh_time", rs.getString("refresh_time"));
 				jo.put("device_time", rs.getString("device_time"));
 				jo.put("server_ahead", rs.getString("server_ahead"));
+				
+				if(locationServer) {
+					JSONObject jg = null;
+					String geomValue = rs.getString("geo_point");	
+					if(geomValue != null) {	
+						jg = new JSONObject(geomValue);
+					}
+					
+					jo.put("lon", rs.getDouble("lon"));
+					jo.put("lat", rs.getDouble("lat"));
+				}
 				
 				outWriter.print(jo.toString());
 			}

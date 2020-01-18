@@ -866,8 +866,6 @@ public class UploadFiles extends Application {
 
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
 
-		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
-
 		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
@@ -1012,8 +1010,6 @@ public class UploadFiles extends Application {
 		Response response = null;
 
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
-
-		//GeneralUtilityMethods.assertBusinessServer(request.getServerName());
 
 		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);

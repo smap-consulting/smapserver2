@@ -279,6 +279,18 @@ public class GeneralUtilityMethods {
 		
 		return businessServer;
 	}
+	
+	static public boolean isLocationServer(String host) {
+
+		boolean locationServer = false;
+		if(host.contains("kontrolid") || host.equals("localhost")
+				|| host.equals("::1")) {
+			locationServer = true;
+		}
+		log.info("++++++++++++++++ Is location Server Host: " + host);
+		
+		return locationServer;
+	}
 
 	/*
 	 * Throw a 404 exception if this is not a self registration server
