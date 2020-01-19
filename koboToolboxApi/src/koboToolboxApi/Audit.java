@@ -537,6 +537,7 @@ public class Audit extends Application {
 			@QueryParam("user") String uIdent,
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
+			@QueryParam("geojson") String geojson,
 			@QueryParam("tz") String tz					// Timezone
 			) throws ApplicationException, Exception { 
 		
@@ -552,7 +553,7 @@ public class Audit extends Application {
 				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
 				+ "refresh_time - device_time as server_ahead ");
 		
-		boolean locationServer = GeneralUtilityMethods.isLocationServer(request.getRemoteHost());
+		boolean locationServer = GeneralUtilityMethods.isLocationServer(request.getServerName());
 		if(locationServer) {
 			sql.append(",ST_AsGeoJSON(geo_point) as geo_point ");
 			sql.append(",ST_x(geo_point) as lon ");
@@ -573,6 +574,11 @@ public class Audit extends Application {
 		
 		tz = (tz == null) ? "UTC" : tz;
 
+		boolean isGeoJson=false;
+		if(geojson != null && (geojson.equals("yes") || geojson.equals("true"))) {
+			isGeoJson = true;
+		}
+		
 		PrintWriter outWriter = null;
 		try {
 			
@@ -603,38 +609,64 @@ public class Audit extends Application {
 				pstmt.setInt(idx++, limit);	
 			}
 		
-
+			if(isGeoJson) {
+				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
+				outWriter.print("\"features\":");						// Features
+			}
+			
 			outWriter.print("[");
 			
 			log.info("AuditAPI refresh data: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			int count = 0;
+			
+			JSONObject jr = null;
+			JSONObject jp = null;
+			JSONObject jf = null;
+			
 			while(rs.next()) {
 				if(count++ > 0) {
 					outWriter.print(",");
 				}
-				JSONObject jo = new JSONObject();
-				jo.put("id", rs.getInt("id"));
-				jo.put("user", rs.getString("user_ident"));
-				jo.put("refresh_time", rs.getString("refresh_time"));
-				jo.put("device_time", rs.getString("device_time"));
-				jo.put("server_ahead", rs.getString("server_ahead"));
 				
-				if(locationServer) {
-					JSONObject jg = null;
-					String geomValue = rs.getString("geo_point");	
-					if(geomValue != null) {	
-						jg = new JSONObject(geomValue);
-					}
-					
-					jo.put("lon", rs.getDouble("lon"));
-					jo.put("lat", rs.getDouble("lat"));
+				jr = new JSONObject();
+				
+				if(isGeoJson) {
+					jr.put("type", "Feature");
+					jp = new JSONObject();
+					jr.put("properties", jp);
+					jf = jp;
+				} else {
+					jf = jr;
 				}
 				
-				outWriter.print(jo.toString());
+				jf.put("id", rs.getInt("id"));
+				jf.put("user", rs.getString("user_ident"));
+				jf.put("refresh_time", rs.getString("refresh_time"));
+				jf.put("device_time", rs.getString("device_time"));
+				jf.put("server_ahead", rs.getString("server_ahead"));
+				
+				if(locationServer) {
+					if(isGeoJson) {
+						String geomValue = rs.getString("geo_point");	
+						if(geomValue != null) {	
+							jf.put("the_geom", new JSONObject(geomValue));
+						}
+					} else {
+						
+						jf.put("lon", rs.getDouble("lon"));
+						jf.put("lat", rs.getDouble("lat"));
+					}
+				}
+				
+				outWriter.print(jf.toString());
 			}
 			
 			outWriter.print("]");
+			
+			if(isGeoJson) {				// TODO bbox										
+				outWriter.print("}");	// close
+			}
 		
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);

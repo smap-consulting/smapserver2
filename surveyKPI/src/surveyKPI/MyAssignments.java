@@ -665,7 +665,8 @@ public class MyAssignments extends Application {
 			/*
 			 * Log the request
 			 */
-			GeneralUtilityMethods.recordRefresh(sd, oId, userName, lat, lon, deviceTime);
+			GeneralUtilityMethods.recordRefresh(sd, oId, userName, 
+					lat, lon, deviceTime, request.getServerName());
 			
 			/*
 			 * Return the response

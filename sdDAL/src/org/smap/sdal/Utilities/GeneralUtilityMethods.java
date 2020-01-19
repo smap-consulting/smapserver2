@@ -284,7 +284,7 @@ public class GeneralUtilityMethods {
 
 		boolean locationServer = false;
 		if(host.contains("kontrolid") || host.equals("localhost")
-				|| host.equals("::1")) {
+				|| host.equals("ubuntu1804.smap.com.au")) {
 			locationServer = true;
 		}
 		log.info("++++++++++++++++ Is location Server Host: " + host);
@@ -8277,7 +8277,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Log a refresh
 	 */
-	static public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, long deviceTime) throws SQLException {
+	static public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, 
+			long deviceTime, String hostname) throws SQLException {
 
 		String sql = "update last_refresh "
 				+ "set refresh_time = now(), "
@@ -8291,8 +8292,8 @@ public class GeneralUtilityMethods {
 				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?)";
 		
 		String sqlInsertLog = "insert into last_refresh_log "
-				+ "(o_id, user_ident, refresh_time, device_time) "
-				+ "values(?, ?, now(), ?)";
+				+ "(o_id, user_ident, refresh_time, device_time, geo_point) "
+				+ "values(?, ?, now(), ?, ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
 		
 		PreparedStatement pstmt = null;
 
@@ -8324,6 +8325,14 @@ public class GeneralUtilityMethods {
 				pstmt.setInt(1, oId);
 				pstmt.setString(2, user);
 				pstmt.setTimestamp(3,  deviceTimeStamp);
+				if(GeneralUtilityMethods.isLocationServer(hostname)) {
+					log.info("Is location server setting location");
+					pstmt.setDouble(4, lon);
+					pstmt.setDouble(5, lat);
+				} else {
+					pstmt.setDouble(4, 0.0);
+					pstmt.setDouble(5, 0.0);
+				}
 				pstmt.executeUpdate();
 				
 			} finally {
