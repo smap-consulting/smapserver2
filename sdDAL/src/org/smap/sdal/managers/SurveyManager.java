@@ -69,6 +69,7 @@ import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
@@ -3473,13 +3474,15 @@ public class SurveyManager {
 	/*
 	 * Get the group Questions
 	 */
-	public HashMap<String, String> getGroupQuestions(Connection sd, int groupSurveyId) throws SQLException {
+	public HashMap<String, QuestionForm> getGroupQuestions(Connection sd, int groupSurveyId) throws SQLException {
 		
-		HashMap<String, String> groupQuestions = new HashMap<> ();
+		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 		
-		String sql = "select qname, column_name from question where f_id in "
+		String sql = "select q.qname, q.column_name, f.name from question q, form f "
+				+ "where q.f_id = f.f_id "
+				+ "and (q.f_id in "
 				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ? and deleted = 'false')) or "
-				+ "f_id in (select f_id from form where s_id = ?)";
+				+ "q.f_id in (select f_id from form where s_id = ?))";
 
 		PreparedStatement pstmt = null;
 		try {
@@ -3490,7 +3493,8 @@ public class SurveyManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				groupQuestions.put(rs.getString(1), rs.getString(2));
+				QuestionForm qt = new QuestionForm(rs.getString(2), rs.getString(3));
+				groupQuestions.put(rs.getString(2), qt);
 			}
 		} finally {
 			try {
