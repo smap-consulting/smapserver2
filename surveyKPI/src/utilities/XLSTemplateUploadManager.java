@@ -48,6 +48,7 @@ import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.ServerCalculation;
@@ -86,8 +87,8 @@ public class XLSTemplateUploadManager {
 	HashMap<String, Integer> columnRoleHeader = null;
 	HashMap<String, Integer> rowRoleHeader = null;
 	
-	HashMap<String, String> questionNames;	// Mapping between original name and truncated name
-	HashMap<String, String> optionNames;		// Mapping between original name and truncated name
+	HashMap<String, QuestionForm> questionNames;	// Mapping between question name and truncated name
+	HashMap<String, String> optionNames;			// Mapping between option name and truncated name
 	boolean merge;
 
 	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
@@ -150,7 +151,7 @@ public class XLSTemplateUploadManager {
 			InputStream inputStream, 
 			String displayName,
 			int p_id,
-			HashMap<String, String> questionNames,
+			HashMap<String, QuestionForm> questionNames,
 			HashMap<String, String> optionNames,
 			boolean merge,
 			int existingVersion) throws Exception {
@@ -437,7 +438,7 @@ public class XLSTemplateUploadManager {
 			}
 		}
 
-		o.published = false;		// Default to unpublised TODO work out when this can be set to published
+		o.published = false;		// Default to unpublished TODO work out when this can be set to published
 		validateOption(o, rowNumChoices);
 
 		return o;
@@ -481,6 +482,12 @@ public class XLSTemplateUploadManager {
 						if(name.startsWith("label::")) {	 // Only check the question label for languages, any others will be assumed to be errors
 							String [] sArray = name.split("::");
 							if(sArray.length > 0) {
+								if(sArray.length == 1) {
+									String msg = localisation.getString("tu_lnm");
+									msg = msg.replace("%s1", name);
+									msg = msg.replace("%s2", name);
+									throw new ApplicationException(msg);
+								}
 								String exists = langMap.get(sArray[1]);
 								if(exists == null) {
 									langMap.put(sArray[1], sArray[1]);
@@ -700,9 +707,9 @@ public class XLSTemplateUploadManager {
 		getLabels(row, lastCellNum, surveyHeader, q.labels, q.type, false);	
 		
 		if(merge) {
-			String n = questionNames.get(q.name);
-			if(n != null) {
-				q.columnName = n;
+			QuestionForm qt = questionNames.get(q.name);
+			if(qt != null) {
+				q.columnName = qt.columnName;
 			} else {
 				q.columnName = GeneralUtilityMethods.cleanName(q.name, true, true, true);
 			}
