@@ -57,8 +57,11 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.CustomReportItem;
+import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.LQAS;
+import org.smap.sdal.model.Question;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
 import org.smap.server.utilities.PutXForm;
@@ -580,15 +583,15 @@ public class UploadFiles extends Application {
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			
 			HashMap<String, String> groupForms = null;		// Maps form names to table names - When merging to an existing survey
-			HashMap<String, String> questionNames = null;	// Maps unabbreviated question names to abbreviated question names
+			HashMap<String, QuestionForm> questionNames = null;	// Maps unabbreviated question names to abbreviated question names
 			HashMap<String, String> optionNames = null;		// Maps unabbreviated option names to abbreviated option names
-			int existingVersion = 1;							// Make the version of a survey that replaces an existing survey one greater
+			int existingVersion = 1;						// Make the version of a survey that replaces an existing survey one greater
 			boolean merge = false;							// Set true if an existing survey is to be replaced or this survey is to be merged with an existing survey
 			
 			if(surveyId > 0) {
 				
 				// Hack.  Because the client is sending surveyId's instead of idents we need to get the latest
-				// survey id o we risk updating an old version
+				// survey id or we risk updating an old version
 				surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
 				
 				merge = true;
@@ -665,10 +668,30 @@ public class UploadFiles extends Application {
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
 					s.groupSurveyId = surveyId;
+					
 				} else {
 					// Set the group survey id to the same value as the original survey
 					s.groupSurveyId = existingSurvey.groupSurveyId;
 					s.publicLink = existingSurvey.publicLink;
+				}
+
+				/*
+				 * Validate that the survey is compatible with any groups that it
+				 * has been added to
+				 */
+				for(Form f : s.forms) {
+					for(Question q : f.questions) {
+						QuestionForm qt = questionNames.get(q.name);
+						if(qt != null) {
+							if(!qt.formName.equals(f.name)) {
+								String msg = localisation.getString("tu_gq");
+								msg = msg.replace("%s1", q.name);
+								msg = msg.replace("%s2", f.name);
+								msg = msg.replace("%s3", qt.formName);
+								throw new ApplicationException(msg);
+							}
+						}
+					}
 				}
 			}
 			
@@ -686,11 +709,11 @@ public class UploadFiles extends Application {
 						true, 					// get property questions
 						false, 					// get soft deleted
 						false, 					// get HRK
-						"internal", 					// Get External options
+						"internal", 			// Get External options
 						false, 					// get change history
 						true, 					// get roles
 						superUser, 
-						null	,					// geom format
+						null	,				// geom format
 						false,					// Include child surveys
 						false					// launched only
 						);
