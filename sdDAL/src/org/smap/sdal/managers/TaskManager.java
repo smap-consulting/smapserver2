@@ -2521,6 +2521,11 @@ public class TaskManager {
 			String initial_data,
 			int show_dist) throws SQLException {
 		
+		// If the initial data source is not a survey then there is nothing to update
+		if(initial_data_source == null || !initial_data_source.equals("survey")) {
+			targetInstanceId = null;
+		}
+				
 		pstmt.setInt(1, pId);
 		pstmt.setString(2,  pName);
 		pstmt.setInt(3,  tgId);
