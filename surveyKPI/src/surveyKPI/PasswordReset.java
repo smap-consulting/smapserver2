@@ -38,6 +38,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 
@@ -117,8 +118,8 @@ public class PasswordReset extends Application {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser());
 					
 					PeopleManager pm = new PeopleManager(localisation);
-					String emailKey = pm.getEmailKey(sd, 0, email);
-					if(emailKey == null) {
+					SubscriptionStatus subStatus = pm.getEmailKey(sd, 0, email);
+					if(subStatus.unsubscribed) {
 						// Person has unsubscribed
 						String msg = localisation.getString("email_us");
 						msg = msg.replaceFirst("%s1", email);
@@ -136,7 +137,7 @@ public class PasswordReset extends Application {
 					    		idents, null, null, null, null, emailServer, 
 					    		request.getScheme(),
 					    		request.getServerName(),
-					    		emailKey,
+					    		subStatus.emailKey,
 					    		localisation,
 					    		null);
 					    response = Response.ok().build();

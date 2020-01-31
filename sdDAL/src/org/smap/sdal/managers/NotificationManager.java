@@ -24,6 +24,7 @@ import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
@@ -888,11 +889,10 @@ public class NotificationManager {
 								EmailManager em = new EmailManager();
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(emails);
-								String emailKey = null;
 								
-								for(InternetAddress ia : emailArray) {								
-									emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
-									if(emailKey == null) {
+								for(InternetAddress ia : emailArray) {	
+									SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());				
+									if(subStatus.unsubscribed) {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
 										em.sendEmail(
@@ -912,7 +912,7 @@ public class NotificationManager {
 												emailServer,
 												msg.scheme,
 												msg.server,
-												emailKey,
+												subStatus.emailKey,
 												localisation,
 												organisation.server_description);
 									}
@@ -1235,11 +1235,10 @@ public class NotificationManager {
 								EmailManager em = new EmailManager();
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(emails);
-								String emailKey = null;
 								
-								for(InternetAddress ia : emailArray) {								
-									emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
-									if(emailKey == null) {
+								for(InternetAddress ia : emailArray) {		
+									SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());						
+									if(subStatus.unsubscribed) {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
 										em.sendEmail(
@@ -1259,7 +1258,7 @@ public class NotificationManager {
 												emailServer,
 												msg.scheme,
 												msg.server,
-												emailKey,
+												subStatus.emailKey,
 												localisation,
 												organisation.server_description);
 									}

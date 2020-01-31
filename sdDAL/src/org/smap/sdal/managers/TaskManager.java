@@ -45,6 +45,7 @@ import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskAddressSettings;
 import org.smap.sdal.model.TaskAssignmentPair;
@@ -3198,11 +3199,10 @@ public class TaskManager {
 								EmailManager em = new EmailManager();
 								PeopleManager peopleMgr = new PeopleManager(localisation);
 								InternetAddress[] emailArray = InternetAddress.parse(msg.email);
-								String emailKey = null;
 								
-								for(InternetAddress ia : emailArray) {							
-									emailKey = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
-									if(emailKey == null) {
+								for(InternetAddress ia : emailArray) {	
+									SubscriptionStatus subStatus = peopleMgr.getEmailKey(sd, organisation.id, ia.getAddress());							
+									if(subStatus.unsubscribed) {
 										unsubscribed = true;
 										setAssignmentStatus(sd, msg.aId, "unsubscribed");
 									} else {
@@ -3224,7 +3224,7 @@ public class TaskManager {
 												emailServer,
 												scheme,
 												server,
-												emailKey,
+												subStatus.emailKey,
 												localisation,
 												organisation.server_description);
 										setAssignmentStatus(sd, msg.aId, "accepted");

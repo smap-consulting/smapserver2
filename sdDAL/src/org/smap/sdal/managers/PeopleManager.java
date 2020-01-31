@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.model.SubscriptionStatus;
 
 /*****************************************************************************
 
@@ -49,7 +50,7 @@ public class PeopleManager {
 	 * If the person is already unsubscribed then return null
 	 * organisation id is recorded in the people table but unsubscription applies across the whole server
 	 */
-	public String getEmailKey(Connection sd, 
+	public SubscriptionStatus getEmailKey(Connection sd, 
 			int oId,
 			String email) throws SQLException {
 		
@@ -63,7 +64,7 @@ public class PeopleManager {
 				+ "values(?, ?, 'false', ?)";
 		PreparedStatement pstmtCreate = null;
 		
-		String key = null;
+		SubscriptionStatus subStatus = new SubscriptionStatus();
 		try {
 			if(email != null) {
 				email = email.toLowerCase();
@@ -73,17 +74,17 @@ public class PeopleManager {
 				
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
-					boolean unsubscribed = rs.getBoolean(1);
-					if(!unsubscribed) {
-						key = rs.getString(2);
+					subStatus.unsubscribed = rs.getBoolean(1);
+					if(!subStatus.unsubscribed) {
+						subStatus.emailKey = rs.getString(2);
 					}
 				} else {
 					// Create a key for this email and save it in the people table
-					key = UUID.randomUUID().toString();
+					subStatus.emailKey = UUID.randomUUID().toString();
 					pstmtCreate = sd.prepareStatement(sqlCreate);
 					pstmtCreate.setInt(1,  oId);
 					pstmtCreate.setString(2, email);
-					pstmtCreate.setString(3, key);
+					pstmtCreate.setString(3, subStatus.emailKey);
 					pstmtCreate.executeUpdate();
 				}
 			}
@@ -93,7 +94,7 @@ public class PeopleManager {
 			try {if (pstmtCreate != null) {pstmtCreate.close();} } catch (SQLException e) {	}
 		}
 		
-		return key;
+		return subStatus;
 
 	}
 	

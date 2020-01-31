@@ -27,6 +27,7 @@ import org.smap.sdal.model.UserMessage;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.ProjectMessage;
 import org.smap.sdal.model.SubmissionMessage;
+import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -203,6 +204,7 @@ public class MessagingManagerApply {
 				} else {
 					// Assume a direct email to be processed immediately
 
+					log.info("+++++++++ opt in +++++++++ Direct Email");
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, null);
 					if (isValidEmail(topic) && 
 							emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
@@ -216,12 +218,12 @@ public class MessagingManagerApply {
 							PeopleManager pm = new PeopleManager(localisation);
 							EmailManager em = new EmailManager();
 							InternetAddress[] emailArray = InternetAddress.parse(topic);
-							String emailKey = null;
+							SubscriptionStatus subStatus = null;
 							for(InternetAddress ia : emailArray) {
 								
-								emailKey = pm.getEmailKey(sd, o_id, ia.getAddress());
+								subStatus = pm.getEmailKey(sd, o_id, ia.getAddress());
 								
-								if(emailKey == null) {
+								if(subStatus.unsubscribed) {
 									unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 								} else {
 									em.sendEmail(
@@ -241,7 +243,7 @@ public class MessagingManagerApply {
 											emailServer, 
 											"https", 
 											serverName, 
-											emailKey,
+											subStatus.emailKey,
 											localisation,
 											organisation.server_description);
 								}

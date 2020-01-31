@@ -20,6 +20,7 @@ import org.smap.sdal.model.GroupSurvey;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
+import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -405,15 +406,15 @@ public class UserManager {
 
 		// Before creating the user check that email is available if it has been requested
 		EmailServer emailServer = null;
-		String emailKey = null;
+		SubscriptionStatus subStatus = null;
 		if(u.sendEmail) {
 			emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
 			if(emailServer.smtpHost == null) {
 				throw new Exception(localisation.getString("email_ne2"));
 			}
 			PeopleManager pm = new PeopleManager(localisation);
-			emailKey = pm.getEmailKey(sd, o_id, u.email);
-			if(emailKey == null) {
+			subStatus = pm.getEmailKey(sd, o_id, u.email);
+			if(subStatus.unsubscribed) {
 				// Person has unsubscribed
 				String msg = localisation.getString("email_us");
 				msg = msg.replaceFirst("%s1", u.email);
@@ -477,7 +478,7 @@ public class UserManager {
 						emailServer,
 						scheme,
 						serverName,
-						emailKey,
+						subStatus.emailKey,
 						localisation,
 						organisation.server_description);
 

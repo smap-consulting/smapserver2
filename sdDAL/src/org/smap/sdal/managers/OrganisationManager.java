@@ -24,6 +24,7 @@ import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SensitiveData;
+import org.smap.sdal.model.SubscriptionStatus;
 import org.smap.sdal.model.WebformOptions;
 
 import com.google.gson.Gson;
@@ -174,15 +175,15 @@ public class OrganisationManager {
 					|| originalOrg.can_sms != o.can_sms) {
 				
 				EmailServer emailServer = null;
-				String emailKey = null;
+				SubscriptionStatus subStatus = null;
 				
 				if(originalOrg.admin_email != null) {
 					emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
 					if(emailServer.smtpHost != null) {
 						
 						PeopleManager pm = new PeopleManager(localisation);
-						emailKey = pm.getEmailKey(sd, o.id, originalOrg.getAdminEmail());
-						if(emailKey == null) {
+						subStatus = pm.getEmailKey(sd, o.id, originalOrg.getAdminEmail());
+						if(subStatus.unsubscribed) {
 							// Person has unsubscribed
 							String msg = localisation.getString("email_us");
 							msg = msg.replaceFirst("%s1", originalOrg.getAdminEmail());
@@ -233,7 +234,7 @@ public class OrganisationManager {
 										emailServer,
 										scheme,
 										serverName,
-										emailKey,
+										subStatus.emailKey,
 										localisation,
 										originalOrg.server_description);
 							} catch(Exception e) {
