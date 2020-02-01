@@ -192,27 +192,58 @@ public class MessagingManager {
 					from = pendingMsg.from;
 				}
 				EmailManager em = new EmailManager();
-				em.sendEmail(
-						email, 
-						null, 
-						"optin", 
-						localisation.getString("c_opt_in_subject"), 
-						localisation.getString("c_opt_in_content"),
-						from,		
-						null, 
-						null, 
-						null, 
-						null,		// doc url 
-						null,		// file path
-						null,		// file name
-						adminEmail, 
-						emailServer,
-						pendingMsg.scheme,
-						pendingMsg.server,
-						emailKey,
-						localisation,
-						null		// Server description
-						);
+				try {
+					em.sendEmail(
+							email, 
+							null, 
+							"subscribe", 
+							localisation.getString("c_opt_in_subject"), 
+							localisation.getString("c_opt_in_content"),
+							from,		
+							null, 
+							null, 
+							null, 
+							null,		// doc url 
+							null,		// file path
+							null,		// file name
+							adminEmail, 
+							emailServer,
+							pendingMsg.scheme,
+							pendingMsg.server,
+							emailKey,
+							localisation,
+							null		// Server description
+							);
+					
+					// Record that the opt in message has been sent
+					String sqlDone = "update opted_in_sent "
+							+ "set opted_in_sent = now(),"
+							+ "opted_in_status = 'success' "
+							+ "where o_id = ? "
+							+ "and email = ? ";
+					try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+					pstmt = sd.prepareStatement(sqlDone);
+					pstmt.setInt(1, oId);
+					pstmt.setString(2, email);
+					log.info("Record opt in sent: " + pstmt.toString());
+					pstmt.executeUpdate();
+					
+				} catch (Exception e) {
+					// Record that the opt in message has not been sent
+					String sqlDone = "update opted_in_sent "
+							+ "set opted_in_sent = now(),"
+							+ "opted_in_status = 'error', "
+							+ "opted_in_status_msg = ?, "
+							+ "where o_id = ? "
+							+ "and email = ? ";
+					try {if (pstmt != null) {	pstmt.close();}} catch (SQLException ex) {}
+					pstmt = sd.prepareStatement(sqlDone);
+					pstmt.setString(1, e.getMessage());
+					pstmt.setInt(2, oId);
+					pstmt.setString(3, email);
+					log.info("Record opt in send fail: " + pstmt.toString());
+					pstmt.executeUpdate();
+				}
 			}
 			
 		} finally {

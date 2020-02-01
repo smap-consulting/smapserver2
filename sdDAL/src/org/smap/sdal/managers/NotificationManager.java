@@ -978,7 +978,7 @@ public class NotificationManager {
 							}
 						}
 						
-						// Write the combined list back into the emails field, if something foes wrong this is the 
+						// Write the combined list back into the emails field, if something goes wrong this is the 
 						// list of numbers that we attempted to contact
 						msg.emails = smsList;
 						
