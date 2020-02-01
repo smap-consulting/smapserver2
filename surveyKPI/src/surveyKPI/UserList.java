@@ -486,7 +486,7 @@ public class UserList extends Application {
 					}
 					
 					// Record the user change so that devices can be notified
-					MessagingManager mm = new MessagingManager();
+					MessagingManager mm = new MessagingManager(localisation);
 					mm.userChange(sd, u.ident);
 				}
 

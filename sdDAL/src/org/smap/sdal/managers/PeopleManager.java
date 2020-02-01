@@ -40,9 +40,10 @@ public class PeopleManager {
 			 Logger.getLogger(PeopleManager.class.getName());
 	
 	ResourceBundle localisation = null;
+	private String tz;
 	
 	public PeopleManager(ResourceBundle l) {
-		localisation = l;
+		localisation = l;	
 	}
 	
 	/*
@@ -54,23 +55,25 @@ public class PeopleManager {
 			int oId,
 			String email) throws SQLException {
 		
-		String sql = "select unsubscribed, uuid "
+		String sql = "select unsubscribed, uuid, opted_in, opted_in_sent "
 				+ "from people "
-				+ "where email = ?";
+				+ "where o_id = ? "
+				+ "and email = ? ";
 		PreparedStatement pstmt = null;
 		
 		String sqlCreate = "insert into people "
-				+ "(o_id, email, unsubscribed, uuid) "
-				+ "values(?, ?, 'false', ?)";
+				+ "(o_id, email, unsubscribed, uuid, opted_in) "
+				+ "values(?, ?, 'false', ?, 'false')";
 		PreparedStatement pstmtCreate = null;
 		
 		SubscriptionStatus subStatus = new SubscriptionStatus();
 		try {
 			if(email != null) {
 				email = email.toLowerCase();
-				
 				pstmt = sd.prepareStatement(sql);	
-				pstmt.setString(1, email);
+				
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, email);
 				
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
@@ -78,6 +81,8 @@ public class PeopleManager {
 					if(!subStatus.unsubscribed) {
 						subStatus.emailKey = rs.getString(2);
 					}
+					subStatus.optedIn = rs.getBoolean(3);
+					subStatus.optedInSent = rs.getTimestamp(4);
 				} else {
 					// Create a key for this email and save it in the people table
 					subStatus.emailKey = UUID.randomUUID().toString();

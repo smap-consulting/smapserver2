@@ -579,7 +579,7 @@ public class NotificationList extends Application {
 					scheme,
 					serverName,
 					basePath);
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 			
 			response = Response.ok().build();

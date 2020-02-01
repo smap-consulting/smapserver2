@@ -3,11 +3,16 @@ package org.smap.sdal.managers;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.OrgResourceMessage;
 import org.smap.sdal.model.ProjectMessage;
+import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.SurveyMessage;
 import org.smap.sdal.model.TaskMessage;
 import org.smap.sdal.model.UserMessage;
@@ -41,6 +46,11 @@ public class MessagingManager {
 	private static Logger log = Logger.getLogger(MessagingManager.class.getName());
 
 	LogManager lm = new LogManager(); // Application log
+	private ResourceBundle localisation;
+	
+	public MessagingManager(ResourceBundle l) {
+		localisation = l;
+	}
 
 	/*
 	 * Create a message resulting from a change to a task
@@ -129,7 +139,86 @@ public class MessagingManager {
 		}
 	}
 	
-	
+	/*
+	 * Save a message as pending
+	 */
+	public void saveToPending(Connection sd, int oId, String email, String topic, 
+			SubmissionMessage msg,
+			Timestamp optInSent,
+			String adminEmail,
+			EmailServer emailServer,
+			String emailKey) throws Exception {
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		/*
+		 *Copy message to a new object so we don't affect processing of the original message
+		 *which may have multiple email addresses
+		 */
+		SubmissionMessage pendingMsg = new SubmissionMessage(msg);
+		
+		/*
+		 * There is only one email address associated with this message
+		 * Remove all others
+		 */
+		pendingMsg.emails = new ArrayList<>();
+		pendingMsg.emails.add(email);	// Set email list to one entry only
+		pendingMsg.clearEmailQuestions();
+		
+		String sql = "insert into pending_message" 
+				+ "(o_id, email, topic, data, created_time) "
+				+ "values(?, ?, ?, ?, now())";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			/*
+			 * Write the modified message to pending
+			 */
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, email);
+			pstmt.setString(3, topic);
+			pstmt.setString(4, gson.toJson(pendingMsg));
+			log.info("Add pending message: " + pstmt.toString());
+			pstmt.executeUpdate();		
+			
+			/*
+			 * Send opt in email if one has not been sent
+			 */
+			if(optInSent == null) {
+				String from = "Smap";
+				if(pendingMsg.from != null && msg.from.trim().length() > 0) {
+					from = pendingMsg.from;
+				}
+				EmailManager em = new EmailManager();
+				em.sendEmail(
+						email, 
+						null, 
+						"optin", 
+						localisation.getString("c_opt_in_subject"), 
+						localisation.getString("c_opt_in_content"),
+						from,		
+						null, 
+						null, 
+						null, 
+						null,		// doc url 
+						null,		// file path
+						null,		// file name
+						adminEmail, 
+						emailServer,
+						pendingMsg.scheme,
+						pendingMsg.server,
+						emailKey,
+						localisation,
+						null		// Server description
+						);
+			}
+			
+		} finally {
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
+		}
+	}
 	
 
 }

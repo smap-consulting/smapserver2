@@ -237,7 +237,7 @@ public class Survey {
 			GeneralUtilityMethods.setPublished(sd, cRel, id);
 			
 			// Notify devices
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, id, 0);
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
 			GeneralUtilityMethods.updateFormDependencies(sd, id);

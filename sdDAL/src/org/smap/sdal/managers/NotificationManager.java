@@ -527,7 +527,7 @@ public class NotificationManager {
 		try {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, sId);
 			
 			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
@@ -669,7 +669,8 @@ public class NotificationManager {
 			Organisation organisation,
 			String tz,
 			SubmissionMessage msg,
-			int messageId) throws Exception {
+			int messageId,
+			String topic) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
@@ -688,6 +689,7 @@ public class NotificationManager {
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?, 'submission'); ";
 		
+		MessagingManager mm = new MessagingManager(localisation);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		int surveyId;
 		if(msg.survey_ident != null) {
@@ -895,26 +897,38 @@ public class NotificationManager {
 									if(subStatus.unsubscribed) {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
-										em.sendEmail(
-												ia.getAddress(), 
-												null, 
-												"notify", 
-												subject, 
-												content,
-												from,		
-												null, 
-												null, 
-												null, 
-												docURL, 
-												filePath,
-												filename,
-												organisation.getAdminEmail(), 
-												emailServer,
-												msg.scheme,
-												msg.server,
-												subStatus.emailKey,
-												localisation,
-												organisation.server_description);
+										if(subStatus.optedIn) {
+											em.sendEmail(
+													ia.getAddress(), 
+													null, 
+													"notify", 
+													subject, 
+													content,
+													from,		
+													null, 
+													null, 
+													null, 
+													docURL, 
+													filePath,
+													filename,
+													organisation.getAdminEmail(), 
+													emailServer,
+													msg.scheme,
+													msg.server,
+													subStatus.emailKey,
+													localisation,
+													organisation.server_description);
+										} else {
+											/*
+											 * User needs to opt in before email can be sent
+											 * Move message to pending messages and send opt in message if needed
+											 */ 
+											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg, 
+													subStatus.optedInSent,
+													organisation.getAdminEmail(),
+													emailServer,
+													subStatus.emailKey);
+										}
 									}
 								}
 							} catch(Exception e) {

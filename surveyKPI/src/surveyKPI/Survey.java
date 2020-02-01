@@ -851,6 +851,9 @@ public class Survey extends Application {
 		PreparedStatement pstmt = null;
 		try {
 
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Get Forms and row counts in this survey
 			 */
@@ -870,7 +873,7 @@ public class Survey extends Application {
 			}
 
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 
 			response = Response.ok().build();
@@ -905,14 +908,14 @@ public class Survey extends Application {
 		Response response = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 
 		PreparedStatement pstmt = null;
@@ -927,7 +930,7 @@ public class Survey extends Application {
 				String sql = "update survey set model = ? where s_id = ?;";		
 
 
-				pstmt = connectionSD.prepareStatement(sql);	
+				pstmt = sd.prepareStatement(sql);	
 				pstmt.setString(1, model);
 				pstmt.setInt(2, sId);
 				int count = pstmt.executeUpdate();
@@ -947,7 +950,7 @@ public class Survey extends Application {
 
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
-				SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
+				SDDataSource.closeConnection("surveyKPI-Survey", sd);
 
 			}
 		}
@@ -970,25 +973,29 @@ public class Survey extends Application {
 		Response response = null;
 
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-Survey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-Survey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 
 		PreparedStatement pstmt = null;
 		try {
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String sql = null;
 			if(text_id != null) {
 				// Survey level media
 				sql = "delete FROM translation t " +
 						" where t.s_id = ? " +
 						" and t.text_id = ? "; 
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				pstmt.setString(2, text_id);
 			} else 	if(oId == -1) {
@@ -998,7 +1005,7 @@ public class Survey extends Application {
 						" and (t.type = 'image' or t.type = 'video' or t.type = 'audio') " +
 						" and t.text_id in (select q.qtext_id from question q " + 
 						" where q.q_id = ?); "; 
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, qId);
 
@@ -1009,7 +1016,7 @@ public class Survey extends Application {
 						" and (t.type = 'image' or t.type = 'video' or t.type = 'audio') " +
 						" and t.text_id in (select o.label_id from option o " + 
 						" where o.o_id = ?); "; 
-				pstmt = connectionSD.prepareStatement(sql);
+				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, sId);
 				pstmt.setInt(2, oId);
 			}
@@ -1024,8 +1031,8 @@ public class Survey extends Application {
 			}
 
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
-			mm.surveyChange(connectionSD, sId, 0);
+			MessagingManager mm = new MessagingManager(localisation);
+			mm.surveyChange(sd, sId, 0);
 
 			response = Response.ok().build();
 
@@ -1036,7 +1043,7 @@ public class Survey extends Application {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
-			SDDataSource.closeConnection("surveyKPI-Survey", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-Survey", sd);
 
 		}
 
@@ -1177,7 +1184,7 @@ public class Survey extends Application {
 				}
 				
 				// Record the message so that devices can be notified
-				MessagingManager mm = new MessagingManager();
+				MessagingManager mm = new MessagingManager(localisation);
 				mm.surveyChange(sd, sId, 0);
 
 			} catch (SQLException e) {

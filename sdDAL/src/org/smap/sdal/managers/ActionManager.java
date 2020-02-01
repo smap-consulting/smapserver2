@@ -226,7 +226,7 @@ public class ActionManager {
 			msg += " " + link;
 		}
 
-		MessagingManager mm = new MessagingManager();
+		MessagingManager mm = new MessagingManager(localisation);
 		if (topic != null) {
 			mm.createMessage(sd, oId, topic, msg, null);
 		} else {

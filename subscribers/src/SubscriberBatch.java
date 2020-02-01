@@ -1052,7 +1052,6 @@ public class SubscriberBatch {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
-			MessagingManager mm = new MessagingManager();
 			
 			ResultSet rs = pstmt.executeQuery();
 			int idx = 0;
@@ -1096,6 +1095,14 @@ public class SubscriberBatch {
 						"https",
 						serverName,
 						basePath);
+				
+				ResourceBundle localisation = locMap.get(nId);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+				}
+				MessagingManager mm = new MessagingManager(localisation);
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
 				
 				// record the sending of the notification
@@ -1104,13 +1111,6 @@ public class SubscriberBatch {
 				pstmtSent.executeUpdate();
 				
 				// Write to the log
-				ResourceBundle localisation = locMap.get(nId);
-				if(localisation == null) {
-					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-					Locale orgLocale = new Locale(organisation.locale);
-					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-				}
-				
 				String logMessage = "Reminder sent for: " + nId;
 				if(localisation != null) {
 					logMessage = localisation.getString("lm_reminder");

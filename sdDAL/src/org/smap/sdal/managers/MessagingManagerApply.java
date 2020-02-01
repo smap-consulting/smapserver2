@@ -169,7 +169,8 @@ public class MessagingManagerApply {
 							organisation, 
 							tz,
 							msg,
-							id); 
+							id,
+							topic); 
 					
 				} else if(topic.equals("reminder")) {
 					// Use SubmissionMessage structure - this may change

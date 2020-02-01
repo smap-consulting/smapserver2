@@ -73,6 +73,35 @@ public class SubmissionMessage {
 		this.basePath = basePath;
 	}
 	
+	// copy constructor
+	public SubmissionMessage(SubmissionMessage orig) {
+		this.sId = orig.sId;
+		this.taskId = orig.taskId;
+		this.survey_ident = orig.survey_ident;
+		this.update_ident = orig.update_ident;
+		this.pId = orig.pId;
+		this.instanceId = orig.instanceId;
+		this.from = orig.from;
+		this.subject = orig.subject;
+		this.content = orig.content;
+		this.attach = orig.attach;
+		this.include_references = orig.include_references;
+		this.launchedOnly = orig.launchedOnly;
+		this.emailQuestion = orig.emailQuestion;
+		this.emailQuestionName = orig.emailQuestionName;
+		this.emailMeta = orig.emailMeta;
+		
+		if(emails != null) {
+			this.emails = new ArrayList<>(orig.emails);
+		}
+		
+		this.target = orig.target;
+		this.user = orig.user;
+		this.scheme = orig.scheme;
+		this.server = orig.server;
+		this.basePath = orig.basePath;
+	}
+	
 	public boolean emailQuestionSet() {
 		boolean set = false;
 		if(emailQuestionName != null) {
@@ -95,5 +124,11 @@ public class SubmissionMessage {
 		}
 		
 		return name;
+	}
+	
+	public void clearEmailQuestions() {
+		emailQuestionName = null;
+		emailQuestion = 0;
+		emailMeta = null;
 	}
 }

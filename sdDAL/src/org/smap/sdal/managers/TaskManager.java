@@ -838,7 +838,7 @@ public class TaskManager {
 
 		// Create a notification to alert the new user of the change to the task details
 		for(String user : userIdents.keySet()) {
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.userChange(sd, user);
 		}	
 
@@ -1748,7 +1748,7 @@ public class TaskManager {
 				if(asd.assignee > 0) {
 					// Create a notification to alert the new user of the change to the task details
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, asd.assignee);
-					MessagingManager mm = new MessagingManager();
+					MessagingManager mm = new MessagingManager(localisation);
 					mm.userChange(sd, userIdent);
 				}
 				
@@ -1914,7 +1914,7 @@ public class TaskManager {
 
 
 			// Notify currently assigned users that are being modified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			if(hasAssignments && !emailAction) {				
 				pstmtGetUsers = sd.prepareStatement(sqlGetAssignedUsers + whereAssignmentsSql + ")");
 				pstmtGetUsers.setInt(1, pId);
@@ -2143,7 +2143,7 @@ public class TaskManager {
 			pstmt.executeUpdate();
 
 			// Create a notification of the change
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.taskChange(sd, taskId);
 
 		} finally {
@@ -2183,7 +2183,7 @@ public class TaskManager {
 			pstmtUsers.executeUpdate();
 
 			// Notify users whose task has been deleted
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
 			pstmtGetUsers.setInt(1, tgId);
 			log.info("Get task users: " + pstmtGetUsers.toString());
@@ -2360,7 +2360,7 @@ public class TaskManager {
 			pstmtUsers.executeUpdate();
 			
 			// 2. Notify users whose task has been deleted
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			pstmtGetUsers = sd.prepareStatement(sqlGetUsers);
 			pstmtGetUsers.setInt(1, assignmentId);
 			log.info("Get task users: " + pstmtGetUsers.toString());
@@ -2880,7 +2880,7 @@ public class TaskManager {
 					assign_auto);
 			
 			// Notify the user of their new assignment		
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.userChange(sd, userIdent);	
 
 		} else if(roleId > 0) {		// Assign all users with the current role
@@ -2909,7 +2909,7 @@ public class TaskManager {
 				
 				// Notify the user of their new assignment
 				
-				MessagingManager mm = new MessagingManager();
+				MessagingManager mm = new MessagingManager(localisation);
 				mm.userChange(sd, userIdent);	
 			}
 			if(count == 0) {
@@ -2966,7 +2966,7 @@ public class TaskManager {
 					
 					// Update the assignment with the link to the action
 					setAssignmentLink(sd, aId, link);
-					MessagingManager mm = new MessagingManager();
+					MessagingManager mm = new MessagingManager(localisation);
 					if(autosendEmails) {
 						// Create a submission message (The task may or may not have come from a submission)
 						int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);

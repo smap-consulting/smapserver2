@@ -114,7 +114,7 @@ public class Admin extends Application {
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			projects = pm.getProjects(sd, request.getRemoteUser(), all, links, urlprefix);
 				
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(projects);
 			response = Response.ok(resp).build();
 				
@@ -174,7 +174,7 @@ public class Admin extends Application {
 		PreparedStatement pstmtEE = null;
 		
 		HashMap<String, SubmissionMessage> sentMessages = new HashMap<>();
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		String sqlMsg = "select data "
 				+ "from message "
 				+ "where topic = 'submission' "

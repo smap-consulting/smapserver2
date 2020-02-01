@@ -128,6 +128,9 @@ public class ProjectList extends Application {
 		
 		PreparedStatement pstmt = null;
 		try {	
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			String sql = null;
 			int o_id;
 			int u_id;
@@ -206,7 +209,7 @@ public class ProjectList extends Application {
 						}
 						
 						// Record the project change so that devices can be notified
-						MessagingManager mm = new MessagingManager();
+						MessagingManager mm = new MessagingManager(localisation);
 						mm.projectChange(sd, p.id, o_id);
 					}
 					

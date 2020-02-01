@@ -535,7 +535,7 @@ public class AllAssignments extends Application {
 				// Create a notification for the updated user
 				if(as.user_id > 0) {
 					String userIdent = GeneralUtilityMethods.getUserIdent(sd, as.user_id);
-					MessagingManager mm = new MessagingManager();
+					MessagingManager mm = new MessagingManager(localisation);
 					mm.userChange(sd, userIdent);
 				}
 			}

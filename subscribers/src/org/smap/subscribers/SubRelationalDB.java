@@ -993,7 +993,7 @@ public class SubRelationalDB extends Subscriber {
 		String sql = "delete from linked_forms where linked_s_id = ?";
 		PreparedStatement pstmt = null;
 
-		MessagingManager mm = new MessagingManager();
+		MessagingManager mm = new MessagingManager(localisation);
 
 		try {
 			// Create a notification message for any forms that link to this one

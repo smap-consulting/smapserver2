@@ -224,7 +224,7 @@ public class UploadFiles extends Application {
 						}
 
 						// Create a message so that devices are notified of the change
-						MessagingManager mm = new MessagingManager();
+						MessagingManager mm = new MessagingManager(localisation);
 						if(sId > 0) {
 							mm.surveyChange(sd, sId, 0);
 						} else {

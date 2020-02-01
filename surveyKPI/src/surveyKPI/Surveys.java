@@ -391,7 +391,7 @@ public class Surveys extends Application {
 					);
 			
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 			
 			String resp = gson.toJson(survey);
@@ -438,6 +438,9 @@ public class Surveys extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			/*
 			 * Parse the request
 			 */
@@ -454,7 +457,7 @@ public class Surveys extends Application {
 			pstmt.executeUpdate();	
 
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 			
 			response = Response.ok().build();
@@ -816,7 +819,7 @@ public class Surveys extends Application {
 			}
 			
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 		
 			response = Response.ok(fileName).build();
@@ -978,7 +981,7 @@ public class Surveys extends Application {
 			sd.setAutoCommit(true);
 			
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 		
 			response = Response.ok().build();
@@ -1092,7 +1095,7 @@ public class Surveys extends Application {
 			sd.setAutoCommit(true);
 			
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 			
 			response = Response.ok().build();
@@ -1143,7 +1146,8 @@ public class Surveys extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
-			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			/*
 			 * Lock the survey
 			 * update version number of survey and get the new version
@@ -1222,7 +1226,7 @@ public class Surveys extends Application {
 			sd.setAutoCommit(true);
 			
 			// Record the message so that devices can be notified
-			MessagingManager mm = new MessagingManager();
+			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
 		
 			response = Response.ok().build();
