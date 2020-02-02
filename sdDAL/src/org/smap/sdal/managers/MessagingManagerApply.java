@@ -183,7 +183,8 @@ public class MessagingManagerApply {
 							organisation, 
 							tz,
 							msg,
-							id); 
+							id,
+							topic); 
 					
 				} else if(topic.equals("email_task")) {
 					TaskManager tm = new TaskManager(localisation, tz);
@@ -320,6 +321,123 @@ public class MessagingManagerApply {
 
 	}
 
+	/*
+	 * Send pending email messages
+	 */
+	public void applyPendingEmailMessages(Connection sd, Connection cResults, String serverName, String basePath) {
+
+		ResultSet rs = null;
+		PreparedStatement pstmtGetMessages = null;
+		PreparedStatement pstmtConfirm = null;
+
+		String sqlGetMessages = "select pm.id, "
+				+ "pm.o_id, "
+				+ "pm.topic, "
+				+ "pm.description, "
+				+ "pm.data "
+				+ "from pending_message pm, people p "
+				+ "where pm.email = p.email "
+				+ "and pm.o_id = p.o_id "
+				+ "and p.unsubscribed = false "
+				+ "and pm.processed_time is null";
+
+		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
+
+		try {
+
+			pstmtGetMessages = sd.prepareStatement(sqlGetMessages);
+			pstmtConfirm = sd.prepareStatement(sqlConfirm);
+
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			rs = pstmtGetMessages.executeQuery();
+			while (rs.next()) {
+
+				int id = rs.getInt(1);
+				int o_id = rs.getInt(2);
+				String topic = rs.getString(3);
+				String description = rs.getString(4);
+				String data = rs.getString(5);
+				
+				// Localisation
+				Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
+				
+				Locale locale = new Locale(organisation.locale);
+				ResourceBundle localisation;
+				try {
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+				} catch(Exception e) {
+					localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", locale);
+				}
+				
+				String tz = "UTC";		// Default timezone to UTC
+				if(organisation.timeZone != null) {
+					tz = organisation.timeZone;
+				}
+				
+				log.info("++++++ Pending Message: " + topic + " " + description + " : " + data );
+
+				String status = "success";
+				
+				/*
+				 * Record that the message is being processed
+				 * After this point it will not be processed again even if it fails unless there is manual intervention
+				 */
+				pstmtConfirm.setString(1, "Sending");
+				pstmtConfirm.setInt(2, id);
+				pstmtConfirm.executeUpdate();
+				
+				if(topic.equals("submission")) {
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
+			
+					NotificationManager nm = new NotificationManager(localisation);
+					nm.processSubmissionNotification(
+							sd, 
+							cResults, 
+							organisation, 
+							tz,
+							msg,
+							id,
+							topic); 
+					
+				} else if(topic.equals("reminder")) {
+					// Use SubmissionMessage structure - this may change
+					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
+			
+					NotificationManager nm = new NotificationManager(localisation);
+					nm.processReminderNotification(
+							sd, 
+							cResults, 
+							organisation, 
+							tz,
+							msg,
+							id,
+							topic); 
+					
+				} else {
+					// Assume a direct email to be processed immediately
+
+					log.info("+++++++++ opt in send pending +++++++++ Unknown topic: " + topic);
+					status = "error";
+					
+				}
+				
+				pstmtConfirm.setString(1, status);
+				pstmtConfirm.setInt(2, id);
+				log.info(pstmtConfirm.toString());
+				pstmtConfirm.executeUpdate();
+
+			}
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+		} finally {
+			try {if (pstmtGetMessages != null) {	pstmtGetMessages.close();}} catch (Exception e) {	}
+			try {if (pstmtConfirm != null) {	pstmtConfirm.close();}} catch (Exception e) {}
+		}
+
+	}
+	
 	/*
 	 * Validate an email
 	 */

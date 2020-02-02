@@ -1101,14 +1101,15 @@ public class NotificationManager {
 			Organisation organisation,
 			String tz,
 			SubmissionMessage msg,
-			int messageId) throws Exception {
+			int messageId,
+			String topic) throws Exception {
 		
 		String logContent = null;
 		
 		boolean writeToMonitor = true;
 		
 		HashMap<String, String> sentEndPoints = new HashMap<> ();
-
+		MessagingManager mm = new MessagingManager(localisation);
 		PreparedStatement pstmtGetSMSUrl = null;
 		
 		PreparedStatement pstmtNotificationLog = null;
@@ -1255,26 +1256,38 @@ public class NotificationManager {
 									if(subStatus.unsubscribed) {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
-										em.sendEmail(
-												ia.getAddress(), 
-												null, 
-												"notify", 
-												subject, 
-												content,
-												from,		
-												null, 
-												null, 
-												null, 
-												null, 
-												null,
-												null,
-												organisation.getAdminEmail(), 
-												emailServer,
-												msg.scheme,
-												msg.server,
-												subStatus.emailKey,
-												localisation,
-												organisation.server_description);
+										if(subStatus.optedIn) {
+											em.sendEmail(
+													ia.getAddress(), 
+													null, 
+													"notify", 
+													subject, 
+													content,
+													from,		
+													null, 
+													null, 
+													null, 
+													null, 
+													null,
+													null,
+													organisation.getAdminEmail(), 
+													emailServer,
+													msg.scheme,
+													msg.server,
+													subStatus.emailKey,
+													localisation,
+													organisation.server_description);
+										} else {
+											/*
+											 * User needs to opt in before email can be sent
+											 * Move message to pending messages and send opt in message if needed
+											 */ 
+											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg, 
+													subStatus.optedInSent,
+													organisation.getAdminEmail(),
+													emailServer,
+													subStatus.emailKey);
+										}
 									}
 								}
 							} catch(Exception e) {
