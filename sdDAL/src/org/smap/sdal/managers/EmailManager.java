@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.activation.FileDataSource;
+import javax.mail.AuthenticationFailedException;
 import javax.mail.BodyPart;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -318,9 +319,12 @@ public class EmailManager {
 			log.info("Sending email from: " + sender);
 			Transport.send(msg);
 
+		} catch(AuthenticationFailedException ae) { 
+			throw new Exception(localisation.getString("email_cs") + ":  " + localisation.getString("ae"));
 		} catch(MessagingException me) {
 			log.log(Level.SEVERE, "Messaging Exception", me);
-			throw new Exception(localisation.getString("email_cs") + "  " + me.getMessage());
+			String msg = me.getMessage();
+			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 		}
 
 
