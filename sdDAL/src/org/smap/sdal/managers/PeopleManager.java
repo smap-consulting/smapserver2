@@ -83,6 +83,10 @@ public class PeopleManager {
 				} else {
 					// Create a key for this email and save it in the people table
 					subStatus.emailKey = UUID.randomUUID().toString();
+					subStatus.unsubscribed = false;
+					subStatus.optedIn = false;
+					subStatus.optedInSent = null;
+					
 					pstmtCreate = sd.prepareStatement(sqlCreate);
 					pstmtCreate.setInt(1,  oId);
 					pstmtCreate.setString(2, email);
@@ -226,6 +230,7 @@ public class PeopleManager {
 		
 		String sql = "update people "
 				+ "set unsubscribed = false,"
+				+ "opted_in = true "
 				+ "when_subscribed = now() "
 				+ "where uuid = ? ";
 		PreparedStatement pstmt = null;
