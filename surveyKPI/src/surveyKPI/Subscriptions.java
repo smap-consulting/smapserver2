@@ -148,11 +148,11 @@ public class Subscriptions extends Application {
 				    String subject = localisation.getString("c_s");
 				    String sender = "subscribe";
 				    EmailManager em = new EmailManager();
-					em.sendEmail(email, key, "subscribe", subject, null, sender, null, null, 
+					em.sendEmail(email, null, "subscribe", subject, null, sender, null, null, 
 				    		null, null, null, null, null, emailServer, 
 				    		request.getScheme(),
 				    		request.getServerName(),
-				    		null,
+				    		key,	// email key
 				    		localisation,
 				    		null);
 				    response = Response.ok().build();

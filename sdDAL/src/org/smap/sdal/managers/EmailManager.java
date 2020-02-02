@@ -70,7 +70,7 @@ public class EmailManager {
 	// Send an email
 	public void sendEmail( 
 			String email, 
-			String uuid, 
+			String password_uuid, 
 			String type, 
 			String subject,
 			String content,
@@ -177,7 +177,7 @@ public class EmailManager {
 				txtMessage.append(" " + scheme + "://");
 				txtMessage.append(serverName);
 				txtMessage.append("/resetPassword.html?token=");
-				txtMessage.append(uuid);
+				txtMessage.append(password_uuid);
 				txtMessage.append(" ");
 				txtMessage.append(localisation.getString("email_rp"));
 				txtMessage.append("\n\n");
@@ -211,7 +211,7 @@ public class EmailManager {
 				txtMessage.append(" " + scheme + "://");
 				txtMessage.append(serverName);
 				txtMessage.append("/resetPassword.html?token=");
-				txtMessage.append(uuid);
+				txtMessage.append(password_uuid);
 				txtMessage.append("\n\n");
 				txtMessage.append(localisation.getString("email_un"));
 				txtMessage.append(": ");
@@ -243,12 +243,29 @@ public class EmailManager {
 					txtMessage.append(docURL);
 				}
 
-			} else if(type.equals("subscribe")) {
+			} else if(type.equals("subscribe")) {	// Email initiated by user
 				txtMessage.append(localisation.getString("c_goto"));
 				txtMessage.append(" " + scheme + "://");
 				txtMessage.append(serverName);
 				txtMessage.append("/subscriptions.html?subscribe=yes&token=");
-				txtMessage.append(uuid);
+				txtMessage.append(emailKey);
+				txtMessage.append(" ");
+				txtMessage.append(localisation.getString("email_s"));
+				txtMessage.append("\n\n");
+				txtMessage.append(localisation.getString("email_dnr"));
+				txtMessage.append(" ");
+				txtMessage.append(adminEmail);
+				txtMessage.append(".");
+
+			} else if(type.equals("optin")) {	// Email initiated by somone else
+				String m = localisation.getString("c_opt_in_content"); 
+				m = m.replace("%s1", serverName);
+				txtMessage.append(m).append("\n");
+				txtMessage.append(localisation.getString("c_goto"));
+				txtMessage.append(" " + scheme + "://");
+				txtMessage.append(serverName);
+				txtMessage.append("/subscriptions.html?subscribe=yes&token=");
+				txtMessage.append(emailKey);
 				txtMessage.append(" ");
 				txtMessage.append(localisation.getString("email_s"));
 				txtMessage.append("\n\n");
@@ -279,6 +296,8 @@ public class EmailManager {
 				txtMessage.append(emailKey);
 			}
 
+			System.out.println(txtMessage.toString());		// debug
+			
 			BodyPart messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setText(txtMessage.toString());
 			Multipart multipart = new MimeMultipart();

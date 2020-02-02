@@ -196,9 +196,9 @@ public class MessagingManager {
 					em.sendEmail(
 							email, 
 							null, 
-							"subscribe", 
+							"optin", 
 							localisation.getString("c_opt_in_subject"), 
-							localisation.getString("c_opt_in_content"),
+							null,
 							from,		
 							null, 
 							null, 
@@ -230,10 +230,10 @@ public class MessagingManager {
 					
 				} catch (Exception e) {
 					// Record that the opt in message has not been sent
-					String sqlDone = "update opted_in_sent "
+					String sqlDone = "update people "
 							+ "set opted_in_sent = now(),"
 							+ "opted_in_status = 'error', "
-							+ "opted_in_status_msg = ?, "
+							+ "opted_in_status_msg = ? "
 							+ "where o_id = ? "
 							+ "and email = ? ";
 					try {if (pstmt != null) {	pstmt.close();}} catch (SQLException ex) {}

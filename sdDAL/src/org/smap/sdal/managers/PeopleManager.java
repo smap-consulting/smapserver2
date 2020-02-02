@@ -40,7 +40,6 @@ public class PeopleManager {
 			 Logger.getLogger(PeopleManager.class.getName());
 	
 	ResourceBundle localisation = null;
-	private String tz;
 	
 	public PeopleManager(ResourceBundle l) {
 		localisation = l;	
@@ -78,9 +77,7 @@ public class PeopleManager {
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					subStatus.unsubscribed = rs.getBoolean(1);
-					if(!subStatus.unsubscribed) {
-						subStatus.emailKey = rs.getString(2);
-					}
+					subStatus.emailKey = rs.getString(2);
 					subStatus.optedIn = rs.getBoolean(3);
 					subStatus.optedInSent = rs.getTimestamp(4);
 				} else {
