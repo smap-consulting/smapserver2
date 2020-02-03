@@ -504,6 +504,134 @@ public class EventList extends Application {
 	}
 
 
+	/*
+	 * Get the individual optin events
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/optin")
+	public String getOptinEvents(@Context HttpServletRequest request, 
+			@QueryParam("hide_errors") boolean hideErrors,
+			@QueryParam("hide_success") boolean hideSuccess,
+			@QueryParam("start_key") int start_key,
+			@QueryParam("rec_limit") int rec_limit) {
+		
+		String user = request.getRemoteUser();
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		a.isAuthorised(sd, user);
+		// End Authorisation
+		
+		if(rec_limit == 0) {
+			rec_limit = 200;	// Default for number of records to return
+		}
+		String filter = "";
+		if(start_key > 0) {
+			filter = " and p.id < ? ";
+		}
+		
+		JSONObject jo = new JSONObject();
+
+		PreparedStatement pstmt = null;
+		ResultSet resultSet = null;
+		try {
+			// Record limiting
+			JSONObject jTotals = new JSONObject();
+			jo.put("totals", jTotals);
+			jTotals.put("start_key", start_key);
+			jTotals.put("rec_limit", rec_limit);
+			jTotals.put("more_recs", 0);	// Default
+			
+			String sql = null;
+			String projSurveySelect = "";
+				
+			sql = "SELECT n.id, n.status, n.notify_details, n.status_details, n.event_time, n.message_id, type " +
+					"from notification_log n, users u " +
+					"where u.ident = ? " +
+					"and u.o_id = n.o_id " +
+					filter +
+					projSurveySelect +
+					" ORDER BY n.id desc";
+		
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, user);
+			int argIdx = 2;
+			if(start_key > 0) {
+				pstmt.setInt(argIdx++, start_key);
+			}
+			
+			log.info("Events List: " + pstmt.toString());
+
+			 resultSet = pstmt.executeQuery();
+			 JSONArray ja = new JSONArray();	
+			 int countRecords = 0;
+			 int maxRec = 0;
+			 while (resultSet.next()) {
+				 String status = resultSet.getString("status");
+				 if(
+						 (status != null && !hideSuccess && status.toLowerCase().equals("success")) ||
+						 (status != null && !hideErrors && status.toLowerCase().equals("error")) 
+						
+						 ) {
+					
+					
+					// Only return max limit
+					if(countRecords++ >= rec_limit) {
+						// We have at least one more record than we want to return
+						jTotals.put("more_recs", 1);	// Ideally we should record the number of records still to be returned
+						countRecords--;					// Set to the number of records actually returned
+						break;
+					}
+					
+					JSONObject jr = new JSONObject();
+					jr.put("type", "Feature");
+					
+					// Add the properties
+					JSONObject jp = new JSONObject();
+					jp.put("id", resultSet.getInt("id")); 
+					jp.put("notify_details", resultSet.getString("notify_details"));
+					jp.put("status", resultSet.getString("status"));
+					jp.put("status_details", resultSet.getString("status_details"));
+					jp.put("event_time", resultSet.getString("event_time"));
+					jp.put("message_id", resultSet.getString("message_id"));
+					jp.put("type", resultSet.getString("type"));
+					jr.put("properties", jp);
+					ja.put(jr);
+					
+					maxRec = resultSet.getInt("id");
+				 }
+				 
+				 jTotals.put("max_rec", maxRec);
+				 jTotals.put("returned_count", countRecords);
+				 String eventTime = resultSet.getString("event_time");
+				 String aEventTime [] = eventTime.split(" ");
+				 jTotals.put("to_date", aEventTime[0]);
+				 if(countRecords == 1) {	 
+					 if(aEventTime.length > 1) {
+						 jTotals.put("from_date", aEventTime[0]);
+					 }
+				 }
+				 
+				 jo.put("type", "FeatureCollection");
+				 jo.put("features", ja);
+			 }
+			 
+
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "SQL Exception", e);
+		} catch (JSONException e) {
+			log.log(Level.SEVERE, "JSON Exception", e);
+		} finally {
+			
+			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection("surveyKPI-EventList", sd);
+		}
+		
+		return jo.toString();
+	}
+	
 	private class StatusTotal {
 		String key;
 		String dest;
@@ -526,9 +654,10 @@ public class EventList extends Application {
 			@QueryParam("hide_success") boolean hideSuccess
 			) {
 		
+		String connectionString = "EventList - Get Notification Totals";
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		// End Authorisation
 		
@@ -586,7 +715,76 @@ public class EventList extends Application {
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return jo.toString();
+	}
+	
+	// Get totals for notifications
+	@GET
+	@Produces("application/json")
+	@Path("/optin/totals")
+	public String getOptinTotals(@Context HttpServletRequest request, 
+			@QueryParam("hide_errors") boolean hideErrors,
+			@QueryParam("hide_success") boolean hideSuccess
+			) {
+		
+		String connectionString = "EventList - Get Optin Totals";
+		String user = request.getRemoteUser();
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, user);
+		// End Authorisation
+		
+		HashMap<String,StatusTotal> sList = new HashMap<String,StatusTotal> ();
+		JSONObject jo = new JSONObject();
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			if(!hideSuccess) {
+				addOptinTotals("success", user, pstmt, sd,	sList); 
+			}
+			if(!hideErrors) {
+				addOptinTotals("error", user, pstmt, sd, sList); 
+			}
+			
+			
+			ArrayList<String> totals = new ArrayList<String> ();
+			for (String uniqueTotal : sList.keySet()) {
+				totals.add(uniqueTotal);
+			}
+			
+			// Create JSON array
+			JSONArray ja = new JSONArray();	
+			StatusTotal st = sList.get("optin");
+			
+			JSONObject jr = new JSONObject();
+			jr.put("type", "Feature");
+					
+			// Add the properties
+			JSONObject jp = new JSONObject();
+			jp.put("key", "optin");
+			if(!hideSuccess) {
+				jp.put("success", st.success);
+			}
+			if(!hideErrors) {
+				jp.put("errors", st.errors);
+			}
+			jr.put("properties", jp);
+			ja.put(jr);
+				 
+			jo.put("type", "FeatureCollection");
+			jo.put("features", ja);
+
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return jo.toString();
@@ -1005,7 +1203,7 @@ public class EventList extends Application {
 			pstmt.setInt(3, pId);
 		}
 
-		log.info("Event totals: " + pstmt.toString());
+		log.info("Notification totals: " + pstmt.toString());
 		ResultSet resultSet = pstmt.executeQuery();
 		if (resultSet.next()) {
 			int count = resultSet.getInt(1);
@@ -1015,6 +1213,46 @@ public class EventList extends Application {
 				st = new StatusTotal();
 				sList.put("notifications", st);
 				st.key = "notifications";
+			 }
+			 if(status.equals("success")) {
+				 st.success = count;
+			 } else if(status.equals("error")) {
+				 st.errors = count;
+			 } 
+		 }
+	}
+	
+	private void addOptinTotals(String status, 
+			String user,
+			PreparedStatement pstmt, 
+			Connection sd,
+			HashMap<String,StatusTotal> sList) throws SQLException {
+		
+		String sql = null;
+			
+		sql = "SELECT count(*) "
+				+ "from people p, users u "
+				+ "where u.ident = ? "
+				+ "and p.o_id = u.o_id "
+				+ "and p.opted_in_status = ? "
+				+ "and not p.unsubscribed "
+				+ "and not opted_in ";
+
+		try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		pstmt = sd.prepareStatement(sql);
+		pstmt.setString(1, user);			
+		pstmt.setString(2, status);
+
+		log.info("Optin totals: " + pstmt.toString());
+		ResultSet resultSet = pstmt.executeQuery();
+		if (resultSet.next()) {
+			int count = resultSet.getInt(1);
+			 
+			StatusTotal st = sList.get("optin");			
+			if(st == null) {
+				st = new StatusTotal();
+				sList.put("optin", st);
+				st.key = "optin";
 			 }
 			 if(status.equals("success")) {
 				 st.success = count;
