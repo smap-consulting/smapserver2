@@ -230,7 +230,7 @@ public class PeopleManager {
 		
 		String sql = "update people "
 				+ "set unsubscribed = false,"
-				+ "opted_in = true "
+				+ "opted_in = true, "
 				+ "when_subscribed = now() "
 				+ "where uuid = ? ";
 		PreparedStatement pstmt = null;

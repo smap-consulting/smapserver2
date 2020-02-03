@@ -70,6 +70,7 @@ public class MessageProcessor {
 					// Apply messages
 					MessagingManagerApply mma = new MessagingManagerApply();
 					mma.applyOutbound(sd, cResults, serverName, basePath);
+					mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
 					
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
