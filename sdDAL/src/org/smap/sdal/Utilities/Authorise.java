@@ -512,18 +512,11 @@ public class Authorise {
 		int count = 0;
 		boolean sqlError = false;
 		
-		/*
-		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
-		 *    that it has been soft deleted and exists
-		 * 2) Make sure survey is in a project that the user has access to
-		 */
-
 		StringBuffer sql = new StringBuffer("select count(*) from message where id = ? and o_id in "
 				+ "( select o.id from organisation o, users u "
 				+ "where o.id = u.o_id "
 				+ "and u.ident = ?)");
-				
-		
+						
 		try {		
 					
 			pstmt = conn.prepareStatement(sql.toString());
@@ -550,9 +543,66 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Message validation failed for: " + user + " survey was: " + messageId);
+ 			log.info("Message validation failed for: " + user + " message id was: " + messageId);
  			
  			SDDataSource.closeConnection("isValidMessage", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();	 
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
+	 * Verify that the user is in the same organisation as the optin
+	 */
+	public boolean isValidOptin(Connection conn, String user, int id)
+			throws ServerException, AuthorisationException, NotFoundException {
+		
+		String connectionString = "Is valid Opt In Id";
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		StringBuffer sql = new StringBuffer("select count(*) from people where id = ? and o_id in "
+				+ "( select o.id from organisation o, users u "
+				+ "where o.id = u.o_id "
+				+ "and u.ident = ?)");
+					
+		try {		
+					
+			pstmt = conn.prepareStatement(sql.toString());
+			pstmt.setInt(1, id);
+			pstmt.setString(2, user);
+			
+			log.info("IsValidOptin: " + pstmt.toString());
+			
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("optin validation failed for: " + user + " opt in id was: " + id);
+ 			
+ 			SDDataSource.closeConnection(connectionString, conn);
 			
 			if(sqlError) {
 				throw new ServerException();

@@ -113,6 +113,57 @@ public class EventList extends Application {
 		return response;
 	}
 	
+	/*
+	 * Retry an optin message
+	 */
+	@GET
+	@Path("/retry/optin/{id}")
+	public Response retry(@Context HttpServletRequest request,
+			@PathParam("id") int id
+			) {
+		
+		Response response = null;
+		
+		String user = request.getRemoteUser();
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-EventList - retry");
+		a.isAuthorised(sd, user);
+		if(id != 0) {
+			a.isValidOptin(sd, request.getRemoteUser(), id);
+		}
+		
+		String sqlNot = "delete from notification_log where message_id = ?";
+		PreparedStatement pstmtNot = null;
+		
+		String sqlMsg = "update message set processed_time = null where id = ?";
+		PreparedStatement pstmtMsg = null;
+		
+		try {
+			
+			// Delete notification
+			pstmtNot = sd.prepareStatement(sqlNot);
+			pstmtNot.setInt(1,messageId);
+			pstmtNot.executeUpdate();
+			
+			// Set message as unprocessed
+			pstmtMsg = sd.prepareStatement(sqlMsg);
+			pstmtMsg.setInt(1,messageId);
+			pstmtMsg.executeUpdate();
+			
+			
+		} catch (SQLException e) {
+				
+			log.log(Level.SEVERE, "SQL Exception", e);
+		
+		} finally {
+			try {if (pstmtNot != null) {pstmtNot.close();}} catch (SQLException e) {}
+			try {if (pstmtMsg != null) {pstmtMsg.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection("surveyKPI-EventList - retry", sd);
+		}
+		
+		return response;
+	}
+	
 	// Respond with JSON 
 	@GET
 	@Produces("application/json")
@@ -372,9 +423,11 @@ public class EventList extends Application {
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit) {
 		
+		String connectionString = "surveyKPI - EventList - noifications";
+		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		// End Authorisation
 		
@@ -431,7 +484,7 @@ public class EventList extends Application {
 				pstmt.setInt(argIdx++, projectId);
 			}
 			
-			log.info("Events List: " + pstmt.toString());
+			log.info("Notification Events List: " + pstmt.toString());
 
 			 resultSet = pstmt.executeQuery();
 			 JSONArray ja = new JSONArray();	
@@ -497,7 +550,7 @@ public class EventList extends Application {
 			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return jo.toString();
@@ -516,9 +569,10 @@ public class EventList extends Application {
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit) {
 		
+		String connectionString = "surveyKPI - EventList - Optin";
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-EventList");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		// End Authorisation
 		
@@ -541,17 +595,17 @@ public class EventList extends Application {
 			jTotals.put("start_key", start_key);
 			jTotals.put("rec_limit", rec_limit);
 			jTotals.put("more_recs", 0);	// Default
-			
-			String sql = null;
-			String projSurveySelect = "";
 				
-			sql = "SELECT n.id, n.status, n.notify_details, n.status_details, n.event_time, n.message_id, type " +
-					"from notification_log n, users u " +
-					"where u.ident = ? " +
-					"and u.o_id = n.o_id " +
-					filter +
-					projSurveySelect +
-					" ORDER BY n.id desc";
+			String sql = "select p.id, "
+					+ "p.opted_in_status as status, "
+					+ "p.email, "
+					+ "p.opted_in_status_msg as status_details, "
+					+ "p.opted_in_sent as event_time "
+					+ "from people p, users u "
+					+ "where u.ident = ? "
+					+ "and u.o_id = p.o_id "
+					+ filter
+					+ " order by p.id desc";
 		
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
@@ -560,7 +614,7 @@ public class EventList extends Application {
 				pstmt.setInt(argIdx++, start_key);
 			}
 			
-			log.info("Events List: " + pstmt.toString());
+			log.info("Optin Events List: " + pstmt.toString());
 
 			 resultSet = pstmt.executeQuery();
 			 JSONArray ja = new JSONArray();	
@@ -573,7 +627,6 @@ public class EventList extends Application {
 						 (status != null && !hideErrors && status.toLowerCase().equals("error")) 
 						
 						 ) {
-					
 					
 					// Only return max limit
 					if(countRecords++ >= rec_limit) {
@@ -589,13 +642,12 @@ public class EventList extends Application {
 					// Add the properties
 					JSONObject jp = new JSONObject();
 					jp.put("id", resultSet.getInt("id")); 
-					jp.put("notify_details", resultSet.getString("notify_details"));
+					jp.put("email", resultSet.getString("email"));
 					jp.put("status", resultSet.getString("status"));
 					jp.put("status_details", resultSet.getString("status_details"));
 					jp.put("event_time", resultSet.getString("event_time"));
-					jp.put("message_id", resultSet.getString("message_id"));
-					jp.put("type", resultSet.getString("type"));
 					jr.put("properties", jp);
+					
 					ja.put(jr);
 					
 					maxRec = resultSet.getInt("id");
@@ -617,16 +669,14 @@ public class EventList extends Application {
 			 }
 			 
 
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Exception", e);
-		} catch (JSONException e) {
-			log.log(Level.SEVERE, "JSON Exception", e);
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
 		} finally {
 			
 			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return jo.toString();
