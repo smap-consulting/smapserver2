@@ -117,48 +117,44 @@ public class EventList extends Application {
 	 * Retry an optin message
 	 */
 	@GET
-	@Path("/retry/optin/{id}")
+	@Path("/optin_retry/{id}")
 	public Response retry(@Context HttpServletRequest request,
 			@PathParam("id") int id
 			) {
 		
 		Response response = null;
 		
-		String user = request.getRemoteUser();
+		String connectionString = "surveyKPI-EventList - retry";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-EventList - retry");
-		a.isAuthorised(sd, user);
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
 		if(id != 0) {
 			a.isValidOptin(sd, request.getRemoteUser(), id);
 		}
 		
-		String sqlNot = "delete from notification_log where message_id = ?";
-		PreparedStatement pstmtNot = null;
-		
-		String sqlMsg = "update message set processed_time = null where id = ?";
-		PreparedStatement pstmtMsg = null;
+		String sql = "update people "
+				+ "set opted_in_sent = null, "
+				+ "opted_in_status = null, "
+				+ "opted_in_status_msg = null "
+				+ "where o_id = (select o_id from users where ident = ?) "
+				+ "and id = ?";
+		PreparedStatement pstmt = null;
 		
 		try {
 			
 			// Delete notification
-			pstmtNot = sd.prepareStatement(sqlNot);
-			pstmtNot.setInt(1,messageId);
-			pstmtNot.executeUpdate();
-			
-			// Set message as unprocessed
-			pstmtMsg = sd.prepareStatement(sqlMsg);
-			pstmtMsg.setInt(1,messageId);
-			pstmtMsg.executeUpdate();
-			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,request.getRemoteUser());
+			pstmt.setInt(2, id);
+			pstmt.executeUpdate();
 			
 		} catch (SQLException e) {
 				
 			log.log(Level.SEVERE, "SQL Exception", e);
 		
 		} finally {
-			try {if (pstmtNot != null) {pstmtNot.close();}} catch (SQLException e) {}
-			try {if (pstmtMsg != null) {pstmtMsg.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-EventList - retry", sd);
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -600,7 +596,8 @@ public class EventList extends Application {
 					+ "p.opted_in_status as status, "
 					+ "p.email, "
 					+ "p.opted_in_status_msg as status_details, "
-					+ "p.opted_in_sent as event_time "
+					+ "p.opted_in_sent as event_time, "
+					+ "p.opted_in_count "
 					+ "from people p, users u "
 					+ "where u.ident = ? "
 					+ "and u.o_id = p.o_id "
@@ -646,6 +643,7 @@ public class EventList extends Application {
 					jp.put("status", resultSet.getString("status"));
 					jp.put("status_details", resultSet.getString("status_details"));
 					jp.put("event_time", resultSet.getString("event_time"));
+					jp.put("opted_in_count", resultSet.getString("opted_in_count"));
 					jr.put("properties", jp);
 					
 					ja.put(jr);
@@ -656,11 +654,13 @@ public class EventList extends Application {
 				 jTotals.put("max_rec", maxRec);
 				 jTotals.put("returned_count", countRecords);
 				 String eventTime = resultSet.getString("event_time");
-				 String aEventTime [] = eventTime.split(" ");
-				 jTotals.put("to_date", aEventTime[0]);
-				 if(countRecords == 1) {	 
-					 if(aEventTime.length > 1) {
-						 jTotals.put("from_date", aEventTime[0]);
+				 if(eventTime != null) {
+					 String aEventTime [] = eventTime.split(" ");
+					 jTotals.put("to_date", aEventTime[0]);
+					 if(countRecords == 1) {	 
+						 if(aEventTime.length > 1) {
+							 jTotals.put("from_date", aEventTime[0]);
+						 }
 					 }
 				 }
 				 
