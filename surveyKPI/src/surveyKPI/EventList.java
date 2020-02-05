@@ -34,12 +34,18 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Organisation;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -132,21 +138,38 @@ public class EventList extends Application {
 			a.isValidOptin(sd, request.getRemoteUser(), id);
 		}
 		
-		String sql = "update people "
-				+ "set opted_in_sent = null, "
-				+ "opted_in_status = null, "
-				+ "opted_in_status_msg = null "
-				+ "where o_id = (select o_id from users where ident = ?) "
+		String sql = "select email, uuid from people "
+				+ "where o_id = ? "
 				+ "and id = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
 			
-			// Delete notification
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
+
+			MessagingManager mm = new MessagingManager(localisation);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+			EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, request.getRemoteUser());
+			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1,request.getRemoteUser());
+			pstmt.setInt(1, oId);
 			pstmt.setInt(2, id);
-			pstmt.executeUpdate();
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				mm.sendOptinEmail(sd, 
+						oId, 
+						rs.getString(1),  		// email
+						organisation.getAdminEmail(), 
+						emailServer, 
+						rs.getString(2),		// email key 
+						"https", request.getRemoteHost());
+			}
+			
+			
+		
 			
 		} catch (SQLException e) {
 				
@@ -582,9 +605,20 @@ public class EventList extends Application {
 		
 		JSONObject jo = new JSONObject();
 
+		String sqlPending = "select count(*) from pending_message "
+				+ "where o_id = ? "
+				+ "and email = ? ";
+		PreparedStatement pstmtPending = null;
+		ResultSet rsPending = null;
+		
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		try {
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			pstmtPending = sd.prepareStatement(sqlPending);
+			pstmtPending.setInt(1, oId);
+			
 			// Record limiting
 			JSONObject jTotals = new JSONObject();
 			jo.put("totals", jTotals);
@@ -598,14 +632,13 @@ public class EventList extends Application {
 					+ "p.opted_in_status_msg as status_details, "
 					+ "p.opted_in_sent as event_time, "
 					+ "p.opted_in_count "
-					+ "from people p, users u "
-					+ "where u.ident = ? "
-					+ "and u.o_id = p.o_id "
+					+ "from people p "
+					+ "where p.o_id = ? "
 					+ filter
 					+ " order by p.id desc";
 		
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setString(1, user);
+			pstmt.setInt(1, oId);
 			int argIdx = 2;
 			if(start_key > 0) {
 				pstmt.setInt(argIdx++, start_key);
@@ -639,13 +672,23 @@ public class EventList extends Application {
 					// Add the properties
 					JSONObject jp = new JSONObject();
 					jp.put("id", resultSet.getInt("id")); 
-					jp.put("email", resultSet.getString("email"));
+					
+					String email = resultSet.getString("email");
+					jp.put("email", email);
 					jp.put("status", resultSet.getString("status"));
 					jp.put("status_details", resultSet.getString("status_details"));
 					jp.put("event_time", resultSet.getString("event_time"));
-					jp.put("opted_in_count", resultSet.getString("opted_in_count"));
-					jr.put("properties", jp);
+					jp.put("opted_in_count", resultSet.getString("opted_in_count"));				
 					
+					pstmtPending.setString(2, email);
+					rsPending = pstmtPending.executeQuery();
+					int count = 0;
+					if(rsPending.next()) {
+						count = rsPending.getInt(1);
+					}
+					jp.put("pending_count", count);
+					
+					jr.put("properties", jp);
 					ja.put(jr);
 					
 					maxRec = resultSet.getInt("id");
@@ -675,6 +718,7 @@ public class EventList extends Application {
 			
 			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtPending != null) {pstmtPending.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 		}

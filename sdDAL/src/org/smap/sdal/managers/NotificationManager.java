@@ -670,7 +670,8 @@ public class NotificationManager {
 			String tz,
 			SubmissionMessage msg,
 			int messageId,
-			String topic) throws Exception {
+			String topic,
+			boolean createPending) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
@@ -927,7 +928,10 @@ public class NotificationManager {
 													subStatus.optedInSent,
 													organisation.getAdminEmail(),
 													emailServer,
-													subStatus.emailKey);
+													subStatus.emailKey,
+													createPending,
+													msg.scheme,
+													msg.server);
 										}
 									}
 								}
@@ -1102,7 +1106,8 @@ public class NotificationManager {
 			String tz,
 			SubmissionMessage msg,
 			int messageId,
-			String topic) throws Exception {
+			String topic,
+			boolean createPending) throws Exception {
 		
 		String logContent = null;
 		
@@ -1286,7 +1291,10 @@ public class NotificationManager {
 													subStatus.optedInSent,
 													organisation.getAdminEmail(),
 													emailServer,
-													subStatus.emailKey);
+													subStatus.emailKey,
+													createPending,
+													msg.scheme,
+													msg.server);
 										}
 									}
 								}

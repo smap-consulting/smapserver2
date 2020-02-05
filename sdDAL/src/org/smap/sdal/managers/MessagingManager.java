@@ -147,7 +147,10 @@ public class MessagingManager {
 			Timestamp optInSent,
 			String adminEmail,
 			EmailServer emailServer,
-			String emailKey) throws Exception {
+			String emailKey,
+			boolean createPending,
+			String scheme,
+			String server) throws Exception {
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -175,20 +178,22 @@ public class MessagingManager {
 			/*
 			 * Write the modified message to pending
 			 */
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setString(2, email);
-			pstmt.setString(3, topic);
-			pstmt.setString(4, gson.toJson(pendingMsg));
-			log.info("Add pending message: " + pstmt.toString());
-			pstmt.executeUpdate();		
+			if(createPending) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, email);
+				pstmt.setString(3, topic);
+				pstmt.setString(4, gson.toJson(pendingMsg));
+				log.info("Add pending message: " + pstmt.toString());
+				pstmt.executeUpdate();	
+			}
 			
 			/*
 			 * Send opt in email if one has not been sent
 			 */
 			if(optInSent == null) {
-				sendOptionEmail(sd, oId, email, pendingMsg, 
-						adminEmail, emailServer, emailKey);
+				sendOptinEmail(sd, oId, email, 
+						adminEmail, emailServer, emailKey, scheme, server);
 			}
 			
 		} finally {
@@ -196,19 +201,18 @@ public class MessagingManager {
 		}
 	}
 	
-	public void sendOptionEmail(
+	public void sendOptinEmail(
 			Connection sd, 
 			int oId, 
 			String email, 
-			SubmissionMessage pendingMsg,
 			String adminEmail,
 			EmailServer emailServer,
-			String emailKey) throws SQLException {
+			String emailKey,
+			String scheme,
+			String server) throws SQLException {
 		
-		String from = "Smap";
-		if(pendingMsg.from != null && pendingMsg.from.trim().length() > 0) {
-			from = pendingMsg.from;
-		}
+		String from = emailServer.smtpHost;
+		
 		EmailManager em = new EmailManager();
 		
 		PreparedStatement pstmt = null;
@@ -228,8 +232,8 @@ public class MessagingManager {
 					null,		// file name
 					adminEmail, 
 					emailServer,
-					pendingMsg.scheme,
-					pendingMsg.server,
+					scheme,
+					server,
 					emailKey,
 					localisation,
 					null		// Server description
@@ -258,6 +262,7 @@ public class MessagingManager {
 					+ "where o_id = ? "
 					+ "and email = ? ";
 			
+			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException ex) {}
 			pstmt = sd.prepareStatement(sqlDone);
 			pstmt.setString(1, e.getMessage());
 			pstmt.setInt(2, oId);

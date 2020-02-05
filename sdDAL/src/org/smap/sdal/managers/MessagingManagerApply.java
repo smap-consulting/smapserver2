@@ -170,7 +170,9 @@ public class MessagingManagerApply {
 							tz,
 							msg,
 							id,
-							topic); 
+							topic,
+							true		// create pending if needed
+							); 
 					
 				} else if(topic.equals("reminder")) {
 					// Use SubmissionMessage structure - this may change
@@ -184,7 +186,9 @@ public class MessagingManagerApply {
 							tz,
 							msg,
 							id,
-							topic); 
+							topic,
+							true		// create pending if needed
+							); 
 					
 				} else if(topic.equals("email_task")) {
 					TaskManager tm = new TaskManager(localisation, tz);
@@ -339,6 +343,7 @@ public class MessagingManagerApply {
 				+ "where pm.email = p.email "
 				+ "and pm.o_id = p.o_id "
 				+ "and p.unsubscribed = false "
+				+ "and p.opted_in = true "
 				+ "and pm.processed_time is null";
 
 		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
@@ -398,7 +403,9 @@ public class MessagingManagerApply {
 							tz,
 							msg,
 							id,
-							topic); 
+							topic,
+							false		// Do not create pending
+							); 
 					
 				} else if(topic.equals("reminder")) {
 					// Use SubmissionMessage structure - this may change
@@ -412,7 +419,9 @@ public class MessagingManagerApply {
 							tz,
 							msg,
 							id,
-							topic); 
+							topic,
+							false		// Do not create pending
+							); 
 					
 				} else {
 					// Assume a direct email to be processed immediately
