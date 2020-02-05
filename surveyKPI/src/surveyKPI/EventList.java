@@ -165,7 +165,9 @@ public class EventList extends Application {
 						organisation.getAdminEmail(), 
 						emailServer, 
 						rs.getString(2),		// email key 
-						"https", request.getRemoteHost());
+						"https", 
+						request.getServerName()
+						);
 			}
 			
 			
@@ -607,7 +609,8 @@ public class EventList extends Application {
 
 		String sqlPending = "select count(*) from pending_message "
 				+ "where o_id = ? "
-				+ "and email = ? ";
+				+ "and email = ? "
+				+ "and processed_time is null";
 		PreparedStatement pstmtPending = null;
 		ResultSet rsPending = null;
 		
@@ -634,6 +637,7 @@ public class EventList extends Application {
 					+ "p.opted_in_count "
 					+ "from people p "
 					+ "where p.o_id = ? "
+					+ "and not p.opted_in "
 					+ filter
 					+ " order by p.id desc";
 		
