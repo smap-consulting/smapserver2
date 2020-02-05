@@ -408,7 +408,7 @@ public class TaskManager {
 		if(statusList.size() > 0) {	
 			sql.append(sqlStatus);
 		} else {
-			sql.append("and (a.status is null or a.status != 'deleted') ");	// default
+			sql.append(" and (a.status is null or a.status != 'deleted') ");	// default
 		}
 		
 		// Add order by

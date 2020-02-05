@@ -193,17 +193,20 @@ public class UserLocationManager {
 						Timestamp now = new Timestamp(new java.util.Date().getTime());
 						
 						// Set an integer value that can be used to colour the output depending on time since refresh
-						long v = (now.getTime() - refreshWhen.getTime()) / 3600000;
-						if(v > 4) {
-							jp.put("value", 0);	// More than 4 hours
-						} else if(v > 3) {
-							jp.put("value", 1);	// More than 3 hours
-						} else if(v > 2) {
-							jp.put("value", 2);	// More than 2 hours
-						} else if(v > 1) {
-							jp.put("value", 3);	// More than 1 hour
-						} else {
-							jp.put("value", 4);	// Less than 1 hour
+						// Based on requirements for half hour intervals get a count of the number of half hours since the last refresh
+						long v = (now.getTime() - refreshWhen.getTime()) / 1800000;
+						
+						log.info("---------------------------- v is: " + v);
+						log.info("    now: " + now.getTime());
+						log.info("   refreshWhen: " + now.getTime());
+						if(v >= 4) {
+							jp.put("value", 4);	// More than 120 mins - red
+						} else if(v >= 3) {
+							jp.put("value", 3);	// More than 90 mins - orange
+						} else if(v >= 2) {
+							jp.put("value", 2);	// More than 60 mins - yellow
+						} else{
+							jp.put("value", 1);	// Less than 1 hour - green
 						}
 								
 					}
