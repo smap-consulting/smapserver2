@@ -932,12 +932,14 @@ public class SurveyManager {
 			OptionList optionList = new OptionList ();
 
 			boolean external = false;
-			if(getExternalOptions.equals("external")) {
-				external = true;
-			} else if(getExternalOptions.equals("internal")) {
-				external = false;
-			} else if(getExternalOptions.equals("real")) {
-				external = GeneralUtilityMethods.listHasExternalChoices(sd, s.id, listId);
+			if(getExternalOptions != null) {
+				if(getExternalOptions.equals("external")) {
+					external = true;
+				} else if(getExternalOptions.equals("internal")) {
+					external = false;
+				} else if(getExternalOptions.equals("real")) {
+					external = GeneralUtilityMethods.listHasExternalChoices(sd, s.id, listId);
+				}
 			}
 
 			// Get external options if required
