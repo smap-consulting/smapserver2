@@ -1614,7 +1614,6 @@ public class SurveyManager {
 					String sqlUpdateRepeat = "update form set repeats = ? "
 							+ "where s_id = ? "
 							+ "and parentquestion = ?";
-					//+ "and (trim(both from repeats) = ? or repeats is null);";
 					pstmtUpdateRepeat = sd.prepareStatement(sqlUpdateRepeat);
 
 					pstmtUpdateRepeat.setString(1, ci.property.newVal);
@@ -1647,7 +1646,6 @@ public class SurveyManager {
 					if(ci.property.prop.equals("type")) {
 						if(ci.property.newVal.equals("note")) {
 							setReadonly = true;
-							ci.property.newVal = "string";
 						} else if(ci.property.newVal.equals("calculate")) {
 							ci.property.newVal = "string";
 							ci.property.setVisible = true;
