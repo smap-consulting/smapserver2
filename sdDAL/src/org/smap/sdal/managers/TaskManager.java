@@ -827,7 +827,8 @@ public class TaskManager {
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
-			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, oId, autosendEmails, remoteUser);
+			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, 
+					oId, autosendEmails, remoteUser, urlPrefix);
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.assignee_ident != null) {
 					userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -1457,7 +1458,7 @@ public class TaskManager {
 	/*
 	 * Create a new task
 	 */
-	public void writeTask(
+	public HashMap<String, String> writeTask(
 			Connection sd, 
 			Connection cResults,
 			int tgId,
@@ -1466,9 +1467,12 @@ public class TaskManager {
 			boolean updateResources,
 			int oId,
 			boolean autosendEmails,
-			String remoteUser
+			String remoteUser,
+			String urlprefix
 			) throws Exception {
 
+		HashMap<String, String> links = new HashMap<>();
+		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtInsert = null;
 
@@ -1773,6 +1777,36 @@ public class TaskManager {
 					}
 				}
 			}
+			
+			/*
+			 * Get the link to the task to return to the calling program
+			 */
+			TaskListGeoJson t = getTasks(
+					sd, 
+					urlprefix,
+					0,		// Organisation id 
+					0, 		// task group id
+					taskId,
+					0,		// Assignment id
+					true, 
+					0,		// userId 
+					null, 
+					null,	// period 
+					0,		// start 
+					0,		// limit
+					null,	// sort
+					null);	// sort direction
+			
+			if(t != null && t.features.size() > 0) {
+				TaskProperties tp = t.features.get(0).properties;
+				links.put("webform", GeneralUtilityMethods.getWebformLink(
+						urlprefix, 
+						tp.survey_ident, 
+						tsd.initial_data_source,
+						tp.a_id,
+						tp.id,
+						tp.update_id));
+			}
 
 		} finally {
 			if(pstmt != null) try {pstmt.close(); } catch(SQLException e) {};
@@ -1781,6 +1815,8 @@ public class TaskManager {
 			if(pstmtGetAssigneeId != null) try {pstmtGetAssigneeId.close(); } catch(SQLException e) {};
 			if(pstmtHasLocationTrigger != null) try {pstmtHasLocationTrigger.close(); } catch(SQLException e) {};
 		}
+		
+		return links;
 
 	}
 

@@ -23,6 +23,7 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -402,8 +403,19 @@ public class Tasks extends Application {
 			
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), false, oId, true, request.getRemoteUser());
-			response = Response.ok().build();
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			HashMap<String, String> links = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
+					false, 
+					oId, 
+					true, 
+					request.getRemoteUser(),
+					urlprefix);
+			
+			HashMap<String, HashMap<String, String>> resp = new HashMap<> ();
+			if(links != null) {
+				resp.put("links", links);
+			}
+			response = Response.ok(gson.toJson(resp)).build();
 		
 		} catch (Exception e) {
 			log.log(Level.SEVERE,e.getMessage(), e);
