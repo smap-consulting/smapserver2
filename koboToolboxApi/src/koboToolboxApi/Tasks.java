@@ -49,6 +49,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.CreateTaskResp;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskGroup;
@@ -404,17 +405,13 @@ public class Tasks extends Application {
 			TaskServerDefn tsd = tm.convertTaskFeature(tf);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
-			HashMap<String, String> links = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
+			CreateTaskResp resp = tm.writeTask(sd, cResults, tp.tg_id, tsd, request.getServerName(), 
 					false, 
 					oId, 
 					true, 
 					request.getRemoteUser(),
 					urlprefix);
 			
-			HashMap<String, HashMap<String, String>> resp = new HashMap<> ();
-			if(links != null) {
-				resp.put("links", links);
-			}
 			response = Response.ok(gson.toJson(resp)).build();
 		
 		} catch (Exception e) {

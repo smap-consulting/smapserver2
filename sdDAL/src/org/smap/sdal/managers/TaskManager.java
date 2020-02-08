@@ -29,6 +29,7 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.AuditItem;
+import org.smap.sdal.model.CreateTaskResp;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
@@ -1459,7 +1460,7 @@ public class TaskManager {
 	/*
 	 * Create a new task
 	 */
-	public HashMap<String, String> writeTask(
+	public CreateTaskResp writeTask(
 			Connection sd, 
 			Connection cResults,
 			int tgId,
@@ -1472,7 +1473,7 @@ public class TaskManager {
 			String urlprefix
 			) throws Exception {
 
-		HashMap<String, String> links = new HashMap<>();
+		CreateTaskResp resp = new CreateTaskResp();
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtInsert = null;
@@ -1799,14 +1800,15 @@ public class TaskManager {
 					null);	// sort direction
 			
 			if(t != null && t.features.size() > 0) {
-				TaskProperties tp = t.features.get(0).properties;
-				links.put("webform", GeneralUtilityMethods.getWebformLink(
+				resp = new CreateTaskResp();
+				resp.task = t.features.get(0).properties;
+				resp.links.put("webform", GeneralUtilityMethods.getWebformLink(
 						urlprefix, 
-						tp.survey_ident, 
+						resp.task.survey_ident, 
 						tsd.initial_data_source,
-						tp.a_id,
-						tp.id,
-						tp.update_id));
+						resp.task.a_id,
+						resp.task.id,
+						resp.task.update_id));
 			}
 
 		} finally {
@@ -1817,7 +1819,7 @@ public class TaskManager {
 			if(pstmtHasLocationTrigger != null) try {pstmtHasLocationTrigger.close(); } catch(SQLException e) {};
 		}
 		
-		return links;
+		return resp;
 
 	}
 
