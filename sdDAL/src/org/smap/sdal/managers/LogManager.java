@@ -69,6 +69,7 @@ public class LogManager {
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
 	public static String TASK_REJECT = "reject task";
+	public static String OPTIN = "optin";
 	
 	/*
 	 * Write a log entry that includes the survey id

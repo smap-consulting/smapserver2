@@ -252,6 +252,10 @@ public class MessagingManager {
 			log.info("Record opt in sent: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
+			String note = localisation.getString("optin_sent");
+			note = note.replace("%s1", email);
+			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			
 		} catch (Exception e) {
 			// Record that the opt in message has not been sent
 			String sqlDone = "update people "
@@ -269,6 +273,15 @@ public class MessagingManager {
 			pstmt.setString(3, email);
 			log.info("Record opt in send fail: " + pstmt.toString());
 			pstmt.executeUpdate();
+			
+			String note = localisation.getString("optin_failed");
+			note = note.replace("%s1", email);
+			String err_msg = e.getMessage();
+			if(err_msg == null) {
+				err_msg = "";
+			}
+			note = note.replace("%s2", err_msg);
+			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
 		} finally {
 			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException ex) {}
 		}

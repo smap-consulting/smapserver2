@@ -258,7 +258,7 @@ public class EmailManager {
 				txtMessage.append(adminEmail);
 				txtMessage.append(".");
 
-			} else if(type.equals("optin")) {	// Email initiated by somone else
+			} else if(type.equals("optin")) {	
 				String m = localisation.getString("c_opt_in_content"); 
 				m = m.replace("%s1", serverName);
 				txtMessage.append(m).append("\n");
