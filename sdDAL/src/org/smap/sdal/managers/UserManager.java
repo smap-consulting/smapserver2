@@ -736,6 +736,9 @@ public class UserManager {
 				for(int j = 0; j < u.groups.size(); j++) {
 					UserGroup g = u.groups.get(j);
 					
+					if(g.id == Authorise.OWNER_ID) {
+						continue;	// Owner id not managed via this service
+					}
 					// Only insert security groups that the user is authorised to insert
 					if(isServerOwner 
 							|| (isOrgUser && g.id != Authorise.ENTERPRISE_ID && g.id != Authorise.OWNER_ID)
