@@ -39,6 +39,8 @@ public class PeopleManager {
 	private static Logger log =
 			 Logger.getLogger(PeopleManager.class.getName());
 	
+	LogManager lm = new LogManager();		// Application log
+	
 	ResourceBundle localisation = null;
 	
 	public PeopleManager(ResourceBundle l) {
@@ -213,6 +215,14 @@ public class PeopleManager {
 			if(count == 0) {
 				throw new ApplicationException(localisation.getString("c_ns"));
 			}
+			
+			/*
+			 * Log the event
+			 */
+			int oId = getOrganisationFromSubscriberKey(sd,key);
+			String note = localisation.getString("optin_unsubscribed");
+			note = note.replace("%s1", note);
+			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -244,11 +254,45 @@ public class PeopleManager {
 				throw new ApplicationException(localisation.getString("c_error"));
 			}
 
+			/*
+			 * Log the event
+			 */
+			int oId = getOrganisationFromSubscriberKey(sd,key);
+			String note = localisation.getString("optin_subscribed");
+			note = note.replace("%s1", note);
+			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 		
 		return key;
+
+	}
+	
+	/*
+	 * Subscribe the user based on the key
+	 */
+	public int getOrganisationFromSubscriberKey(Connection sd, 
+			String key) throws SQLException, ApplicationException {
+		
+		int oId = 0;
+		String sql = "select o_id from people "
+				+ "where uuid = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, key);	
+			ResultSet rs = pstmt.executeQuery();
+			oId = rs.getInt(1);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+		return oId;
 
 	}
 
