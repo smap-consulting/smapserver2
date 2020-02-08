@@ -177,6 +177,7 @@ public class Surveys extends Application {
 	public Response getSurveyDetails(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
 			@QueryParam("get_changes") boolean getChangeHistory,
+			@QueryParam("get_soft_deleted") String stringGetSoftDeleted,
 			@QueryParam("tz") String tz
 			) { 
 		
@@ -197,6 +198,13 @@ public class Surveys extends Application {
 		// Get the base path
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
+		boolean getSoftDeleted = true;		// Boolean
+		if(stringGetSoftDeleted != null) {
+			if(stringGetSoftDeleted.equals("no") || stringGetSoftDeleted.equals("false")) {
+				getSoftDeleted = false;
+			}
+		}
+		
 		Response response = null;
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
 		
@@ -207,13 +215,13 @@ public class Surveys extends Application {
 			
 			SurveyManager sm = new SurveyManager(localisation, tz);
 			survey = sm.getById(sd, cResults,  request.getRemoteUser(), sId, 
-					true, 
+					true, 		// Get full details
 					basePath, 
-					null, 
-					false, 
-					false, 
-					true, 
-					true,
+					null, 		// instance id
+					false, 		// get results
+					false, 		// Generate dummy values
+					true, 		// Get property type questions
+					getSoftDeleted,	
 					false,
 					"internal",
 					getChangeHistory,

@@ -8572,17 +8572,19 @@ public class GeneralUtilityMethods {
 				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
 				+ "order by prikey desc limit 1";
 
-		try {
-			pstmt = cResults.prepareStatement(sql);
-
-			pstmt.setString(1, instanceId);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				latestInstanceId = rs.getString(1);
+		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
+			try {
+				pstmt = cResults.prepareStatement(sql);
+	
+				pstmt.setString(1, instanceId);
+				ResultSet rs = pstmt.executeQuery();
+				if(rs.next()) {
+					latestInstanceId = rs.getString(1);
+				}
+	
+			} finally {
+				try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 			}
-
-		} finally {
-			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 		}
 		
 		if(latestInstanceId == null) {
