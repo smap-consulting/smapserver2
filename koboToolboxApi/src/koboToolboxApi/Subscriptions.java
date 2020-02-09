@@ -21,6 +21,8 @@ import javax.servlet.http.HttpServletRequest;
 import model.LogItem;
 import model.LogItemDt;
 import model.LogsDt;
+import model.SubItemDt;
+import model.SubsDt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -31,6 +33,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -50,153 +54,93 @@ import org.smap.sdal.Utilities.SDDataSource;
 /*
  * Provides access to collected data
  */
-@Path("/v1/log")
-public class Log extends Application {
+@Path("/v1/subscriptions")
+public class Subscriptions extends Application {
 	
 	Authorise a = null;
 	
 	private static Logger log =
-			 Logger.getLogger(Log.class.getName());
+			 Logger.getLogger(Subscriptions.class.getName());
 	
-	public Log() {
+	public Subscriptions() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
 	}
 	
 	
 	/*
-	 * DataTables API version 1 /log
-	 * Get log entries
+	 * Get subscription entries
 	 */
 	@GET
 	@Path("/dt")
 	@Produces("application/json")
 	public Response getDataTableRecords(@Context HttpServletRequest request,
-			@QueryParam("draw") int draw,
-			@QueryParam("start") int start,
-			@QueryParam("length") int length,
-			@QueryParam("mgmt") boolean mgmt,
-			@QueryParam("sort") String sort,			// Column Name to sort on
-			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
+			@QueryParam("draw") int draw
 			) { 
 		
-		String connectionString = "API - get logs";
+		String connectionString = "API - get subscriptions";
 		Response response = null;
 		String user = request.getRemoteUser();
-		LogsDt logs = new LogsDt();
-		logs.draw = draw;
+		SubsDt subs = new SubsDt();
+		subs.draw = draw;
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		//if(sId > 0) {
-		//	a.isValidSurvey(sd, user, sId, false);
-		//}
-		// End Authorisation
-		
-		
-		String sqlTotal = "select count(*) from log where o_id = ?";
-		PreparedStatement pstmtTotal = null;
 		
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
-
-		if(dirn == null) {
-			dirn = "desc";
-		} else {
-			dirn = dirn.replace("'", "''");
-		}
-		if(sort == null) {
-			sort = "id";
-		}
-		if(dirn.equals("desc") && start == 0) {
-			start = Integer.MAX_VALUE;
-		}
 		
 		try {
 	
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-			
-			/*
-			 * Get total log entries
-			 */
-			pstmtTotal = sd.prepareStatement(sqlTotal);
-			pstmtTotal.setInt(1, oId);
-			rs = pstmtTotal.executeQuery();
-			if(rs.next()) {
-				logs.recordsTotal = rs.getInt(1);
-				logs.recordsFiltered = rs.getInt(1);
-			}
-			rs.close();
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);			
 			
 			// Get the data
-			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note "
-					+ "from log l "
-					+ "left outer join survey s "
-					+ "on s.s_id = l.s_id ";
+			String sql = "select id, email, unsubscribed, opted_in "
+					+ "from people "
+					+ "where o_id = ? "
+					+ "order by email asc";
 			
-			String sqlSelect = "where ";
-			if(dirn.equals("asc")) {
-				sqlSelect += "l.id > ? ";
-			} else {
-				sqlSelect += "l.id < ? ";
-			}
-			
-			sqlSelect += "and l.o_id = ? ";
-			
-			String sqlOrder = "order by l." + sort + " " + dirn +" limit 10000";
-			
-			pstmt = sd.prepareStatement(sql + sqlSelect + sqlOrder);
+			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;
-			pstmt.setInt(paramCount++, start);	
 			pstmt.setInt(paramCount++, oId);
 			
 			log.info("Get data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 				
-			int index = 0;	
 			while (rs.next()) {
 					
-				if(length > 0 && index >= length) {
-					break;
-				}
-				index++;
-					
-				LogItemDt li = new LogItemDt();
+				SubItemDt item = new SubItemDt();
 
-				li.id = rs.getInt("id");
-				li.log_time = rs.getTimestamp("log_time");
-				li.sId = rs.getInt("s_id");
-				String displayName = rs.getString("display_name");
-				if(displayName != null) {
-					li.sName = displayName;
+				item.id = rs.getInt("id");
+				item.email = rs.getString("email");
+				
+				/*
+				 * Get status
+				 */
+				String status = "x";
+				boolean unsubscribed = rs.getBoolean("unsubscribed");
+				boolean optedin = rs.getBoolean("opted_in");
+				if(unsubscribed) {
+					status = localisation.getString("c_unsubscribed");
+				} else if(optedin) {
+					status = localisation.getString("c_s2");
 				} else {
-					if(li.sId > 0) {
-						li.sName = li.sId + " (erased)";
-					} else {
-						li.sName = "";
-					}
+					status = localisation.getString("c_pending");
 				}
-				li.userIdent = rs.getString("user_ident");
-				if(li.userIdent == null) {
-					li.userIdent = "";
-				}
-				li.event = rs.getString("event");
-				if(li.event == null) {
-					li.event = "";
-				}
-				li.note = rs.getString("note");
-				if(li.note == null) {
-					li.note = "";
-				}
+				item.status = status;
+			
 						
-				logs.data.add(li);
+				subs.data.add(item);
 			}
 						
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			response = Response.ok(gson.toJson(logs)).build();
+			response = Response.ok(gson.toJson(subs)).build();
 			
 	
 		} catch (Exception e) {
@@ -205,7 +149,7 @@ public class Log extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtTotal != null) {pstmtTotal.close();	}} catch (SQLException e) {	}
+			
 					
 			SDDataSource.closeConnection(connectionString, sd);
 		}
