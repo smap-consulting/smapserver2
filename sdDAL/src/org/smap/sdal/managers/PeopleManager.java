@@ -286,7 +286,9 @@ public class PeopleManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, key);	
 			ResultSet rs = pstmt.executeQuery();
-			oId = rs.getInt(1);
+			if(rs.next()) {
+				oId = rs.getInt(1);
+			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
