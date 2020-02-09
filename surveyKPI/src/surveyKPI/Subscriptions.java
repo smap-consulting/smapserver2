@@ -119,10 +119,10 @@ public class Subscriptions extends Application {
 			@FormParam("email") String email) { 
 		
 		Response response = null;
+		String connectionString = "SurveyKPI - Post Subscribe";
 		
-		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		
-		PreparedStatement pstmt = null;
 		try {
 			
 			// Localisation
@@ -176,7 +176,7 @@ public class Subscriptions extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-Register", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;

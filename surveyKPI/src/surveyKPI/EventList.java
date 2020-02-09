@@ -638,6 +638,7 @@ public class EventList extends Application {
 					+ "from people p "
 					+ "where p.o_id = ? "
 					+ "and not p.opted_in "
+					+ "and not p.unsubscribed "
 					+ filter
 					+ " order by p.id desc";
 		
