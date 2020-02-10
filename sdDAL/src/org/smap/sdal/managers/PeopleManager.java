@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.model.People;
 import org.smap.sdal.model.SubscriptionStatus;
 
 /*****************************************************************************
@@ -219,10 +220,10 @@ public class PeopleManager {
 			/*
 			 * Log the event
 			 */
-			int oId = getOrganisationFromSubscriberKey(sd,key);
+			People person = getOrganisationFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_unsubscribed");
-			note = note.replace("%s1", note);
-			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			note = note.replace("%s1", person.email);
+			lm.writeLogOrganisation(sd, person.oId, null, LogManager.OPTIN, note);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -257,10 +258,10 @@ public class PeopleManager {
 			/*
 			 * Log the event
 			 */
-			int oId = getOrganisationFromSubscriberKey(sd,key);
+			People person = getOrganisationFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_subscribed");
-			note = note.replace("%s1", note);
-			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			note = note.replace("%s1", person.email);
+			lm.writeLogOrganisation(sd, person.oId, null, LogManager.OPTIN, note);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -273,11 +274,12 @@ public class PeopleManager {
 	/*
 	 * Subscribe the user based on the key
 	 */
-	public int getOrganisationFromSubscriberKey(Connection sd, 
+	public People getOrganisationFromSubscriberKey(Connection sd, 
 			String key) throws SQLException, ApplicationException {
 		
-		int oId = 0;
-		String sql = "select o_id from people "
+		People person = new People();
+		
+		String sql = "select o_id, email from people "
 				+ "where uuid = ?";
 		PreparedStatement pstmt = null;
 		
@@ -287,14 +289,15 @@ public class PeopleManager {
 			pstmt.setString(1, key);	
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				oId = rs.getInt(1);
+				person.oId = rs.getInt(1);
+				person.email = rs.getString(2);
 			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 		
-		return oId;
+		return person;
 
 	}
 
