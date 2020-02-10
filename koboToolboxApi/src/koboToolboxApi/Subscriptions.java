@@ -75,7 +75,7 @@ public class Subscriptions extends Application {
 	@GET
 	@Path("/dt")
 	@Produces("application/json")
-	public Response getDataTableRecords(@Context HttpServletRequest request,
+	public Response getSubscriptions(@Context HttpServletRequest request,
 			@QueryParam("draw") int draw
 			) { 
 		
@@ -101,7 +101,7 @@ public class Subscriptions extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);			
 			
 			// Get the data
-			String sql = "select id, email, unsubscribed, opted_in "
+			String sql = "select id, email, unsubscribed, opted_in, opted_in_sent "
 					+ "from people "
 					+ "where o_id = ? "
 					+ "order by email asc";
@@ -123,20 +123,28 @@ public class Subscriptions extends Application {
 				/*
 				 * Get status
 				 */
-				String status = "x";
+				String status = "";
+				boolean include = false;
 				boolean unsubscribed = rs.getBoolean("unsubscribed");
 				boolean optedin = rs.getBoolean("opted_in");
 				if(unsubscribed) {
+					include = true;
 					status = localisation.getString("c_unsubscribed");
 				} else if(optedin) {
+					include = true;
 					status = localisation.getString("c_s2");
 				} else {
 					status = localisation.getString("c_pending");
+					String optedInSent = rs.getString("opted_in_sent");
+					if(optedInSent != null) {
+						include = true;
+					}
 				}
 				item.status = status;
-			
-						
-				subs.data.add(item);
+				
+				if(include) {
+					subs.data.add(item);
+				}
 			}
 						
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
