@@ -65,7 +65,56 @@ public class Log extends Application {
 		a = new Authorise(authorisations, null);
 	}
 	
-	
+	@GET
+	@Produces("application/json")
+	public Response getLogs(@Context HttpServletRequest request,
+			@QueryParam("start") int start,
+			@QueryParam("length") int length,
+			@QueryParam("sort") String sort,			// Column Name to sort on
+			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
+			) { 
+		
+		String connectionString = "API - get logs";
+		Response response = null;
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		if(dirn == null) {
+			dirn = "desc";
+		} else {
+			dirn = dirn.replace("'", "''");
+		}
+		if(sort == null) {
+			sort = "id";
+		}
+		if(dirn.equals("desc") && start == 0) {
+			start = Integer.MAX_VALUE;
+		}
+		
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+		
+			ArrayList<LogItemDt> logs = getLogEntries(sd, oId, dirn, start, sort, length);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
 	/*
 	 * DataTables API version 1 /log
 	 * Get log entries
@@ -73,16 +122,15 @@ public class Log extends Application {
 	@GET
 	@Path("/dt")
 	@Produces("application/json")
-	public Response getDataTableRecords(@Context HttpServletRequest request,
+	public Response getDataTableLogs(@Context HttpServletRequest request,
 			@QueryParam("draw") int draw,
 			@QueryParam("start") int start,
 			@QueryParam("length") int length,
-			@QueryParam("mgmt") boolean mgmt,
 			@QueryParam("sort") String sort,			// Column Name to sort on
 			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
 			) { 
 		
-		String connectionString = "API - get logs";
+		String connectionString = "API - get logs - DataTable";
 		Response response = null;
 		String user = request.getRemoteUser();
 		LogsDt logs = new LogsDt();
@@ -91,11 +139,6 @@ public class Log extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		//if(sId > 0) {
-		//	a.isValidSurvey(sd, user, sId, false);
-		//}
-		// End Authorisation
-		
 		
 		String sqlTotal = "select count(*) from log where o_id = ?";
 		PreparedStatement pstmtTotal = null;
@@ -131,7 +174,44 @@ public class Log extends Application {
 			}
 			rs.close();
 			
-			// Get the data
+			logs.data = getLogEntries(sd, oId, dirn, start, sort, length);
+						
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			try {if (pstmtTotal != null) {pstmtTotal.close();	}} catch (SQLException e) {	}
+					
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
+	
+	/*
+	 * Get the data
+	 */
+	private ArrayList<LogItemDt> getLogEntries(
+			Connection sd, 
+			int oId,
+			String dirn,
+			int start,
+			String sort,
+			int length) throws SQLException {
+		
+		ArrayList<LogItemDt> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
 			String sql = "select l.id, l.log_time, l.s_id, s.display_name, l.user_ident, l.event, l.note "
 					+ "from log l "
 					+ "left outer join survey s "
@@ -146,7 +226,7 @@ public class Log extends Application {
 			
 			sqlSelect += "and l.o_id = ? ";
 			
-			String sqlOrder = "order by l." + sort + " " + dirn +" limit 10000";
+			String sqlOrder = "order by l." + sort + " " + dirn + " limit 10000";
 			
 			pstmt = sd.prepareStatement(sql + sqlSelect + sqlOrder);
 			int paramCount = 1;
@@ -165,7 +245,7 @@ public class Log extends Application {
 				index++;
 					
 				LogItemDt li = new LogItemDt();
-
+	
 				li.id = rs.getInt("id");
 				li.log_time = rs.getTimestamp("log_time");
 				li.sId = rs.getInt("s_id");
@@ -192,26 +272,14 @@ public class Log extends Application {
 					li.note = "";
 				}
 						
-				logs.data.add(li);
+				items.add(li);
 			}
-						
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			response = Response.ok(gson.toJson(logs)).build();
-			
-	
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().build();
 		} finally {
-			
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtTotal != null) {pstmtTotal.close();	}} catch (SQLException e) {	}
-					
-			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
-		return response;
-		
+		return items;
 	}
 
 }
