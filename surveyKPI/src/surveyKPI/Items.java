@@ -1041,8 +1041,8 @@ public class Items extends Application {
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
-		aUpdate.isAuthorised(sd, request.getRemoteUser());
-		aUpdate.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
 		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Locations " + pId);
