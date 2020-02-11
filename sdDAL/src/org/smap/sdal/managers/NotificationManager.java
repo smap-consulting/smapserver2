@@ -173,41 +173,46 @@ public class NotificationManager {
 			
 		String sql = null;
 		if(n.update_password) {
-			sql = "update forward set " +
-					" s_id = ?, " +
-					" enabled = ?, " +
-					" remote_s_id = ?, " +
-					" remote_s_name = ?, " +
-					" remote_host = ?, " +
-					" remote_user = ?, " +
-					" notify_details = ?, " +
-					" trigger = ?, " +
-					" target = ?, " +
-					" filter = ?, " +
-					" name = ?, " +
-					" tg_id = ?, " +
-					" period = ?, " +
-					" remote_password = ? " +
-					" where id = ?; ";
+			sql = "update forward set "
+					+ "s_id = ?, "
+					+ "enabled = ?, "
+					+ "remote_s_id = ?, "
+					+ "remote_s_name = ?, "
+					+ "remote_host = ?, "
+					+ "remote_user = ?, "
+					+ "notify_details = ?, "
+					+ "trigger = ?, "
+					+ "target = ?, "
+					+ "filter = ?, "
+					+ "name = ?, "
+					+ "tg_id = ?, "
+					+ "period = ?, "
+					+ "update_survey = ?, "
+					+ "update_question = ?, "
+					+ "update_value = ?, "
+					+ "remote_password = ? "
+					+ "where id = ?";
 		} else {
-			sql = "update forward set " +
-					" s_id = ?, " +
-					" enabled = ?, " +
-					" remote_s_id = ?, " +
-					" remote_s_name = ?, " +
-					" remote_host = ?, " +
-					" remote_user = ?, " +
-					" notify_details = ?, " +
-					" trigger = ?, " +
-					" target = ?, " +
-					" filter = ?, " +
-					" name = ?, " +
-					" tg_id = ?, " +
-					" period = ? " +
-					" where id = ?; ";
+			sql = "update forward set "
+					+ "s_id = ?, "
+					+ "enabled = ?, "
+					+ "remote_s_id = ?, "
+					+ "remote_s_name = ?, "
+					+ "remote_host = ?, "
+					+ "remote_user = ?, "
+					+ "notify_details = ?, "
+					+ "trigger = ?, "
+					+ "target = ?, "
+					+ "filter = ?, "
+					+ "name = ?, "
+					+ "tg_id = ?, "
+					+ "period = ?, "
+					+ "update_survey = ?, "
+					+ "update_question = ?, "
+					+ "update_value = ? "
+					+ "where id = ?";
 		}
 			
-
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String notifyDetails = gson.toJson(n.notifyDetails);
 		
@@ -226,11 +231,14 @@ public class NotificationManager {
 		pstmt.setString(11, n.name);
 		pstmt.setInt(12, n.tgId);
 		pstmt.setString(13, n.period);
+		pstmt.setString(14, n.updateSurvey);
+		pstmt.setString(15, n.updateQuestion);
+		pstmt.setString(16, n.updateValue);
 		if(n.update_password) {
-			pstmt.setString(14, n.remote_password);
-			pstmt.setInt(15, n.id);
+			pstmt.setString(17, n.remote_password);
+			pstmt.setInt(18, n.id);
 		} else {
-			pstmt.setInt(14, n.id);
+			pstmt.setInt(17, n.id);
 		}
 
 		log.info("Update Forward: " + pstmt.toString());
