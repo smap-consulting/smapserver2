@@ -318,9 +318,10 @@ public class GetFile extends Application {
 		
 		int oId = 0;
 		Response r = null;
+		String connectionString = "Get Organisation File";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("Get Organisation File");	
+		Connection connectionSD = SDDataSource.getConnection(connectionString);	
 		if (isTemporaryUser) {
 			a.isValidTemporaryUser(connectionSD, user);
 		}
@@ -349,7 +350,7 @@ public class GetFile extends Application {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
-			SDDataSource.closeConnection("Get Organisation File", connectionSD);	
+			SDDataSource.closeConnection(connectionString, connectionSD);	
 		}
 		
 		return r;

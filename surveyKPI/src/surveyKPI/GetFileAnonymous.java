@@ -79,9 +79,10 @@ public class GetFileAnonymous extends Application {
 			
 		int oId = 0;
 		Response r = null;
+		String connectionString = "Get File for anonymous user";
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("Get Organisation File");	
+		Connection connectionSD = SDDataSource.getConnection(connectionString);	
 		a.isValidTemporaryUser(connectionSD, user);
 		a.isAuthorised(connectionSD, user);		
 		try {		
@@ -103,7 +104,7 @@ public class GetFileAnonymous extends Application {
 			log.info("Error getting file:" + e.getMessage());
 			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
-			SDDataSource.closeConnection("Get Organisation File", connectionSD);	
+			SDDataSource.closeConnection(connectionString, connectionSD);	
 		}
 		
 		return r;
