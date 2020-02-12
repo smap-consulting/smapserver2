@@ -182,8 +182,9 @@ public class XLSXAdminReportsResourceUsage {
 				int sIndex = 0;
 				for(Survey s : surveys) {
 					
-					if(sIndex > 0) {
+					if(sIndex++ > 0) {
 						colNumber = 0;
+						row = dataSheet.createRow(rowNumber++);	
 						
 						cell = row.createCell(colNumber++);	// Resource
 						cell.setCellValue(mi.name);
