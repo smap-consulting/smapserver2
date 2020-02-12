@@ -8905,6 +8905,7 @@ public class GeneralUtilityMethods {
 				+ "from project p, translation t, survey s "
 				+ "where s.p_id = p.id "
 				+ "and s.s_id = t.s_id "
+				+ "and not s.deleted "
 				+ "and p.o_id = ? "
 				+ "and (t.type = 'image' or t.type = 'video' or t.type = 'audio')"			
 				+ "and t.value = ?";
@@ -8913,6 +8914,7 @@ public class GeneralUtilityMethods {
 		String sqlSurveyResources = "select distinct s.display_name, s.blocked, p.name "
 				+ "from project p, survey s "
 				+ "where s.p_id = p.id "
+				+ "and not s.deleted "
 				+ "and p.o_id = ? "
 				+ "and s.manifest like ?";			
 		PreparedStatement pstmtSurveyResouces = null;
