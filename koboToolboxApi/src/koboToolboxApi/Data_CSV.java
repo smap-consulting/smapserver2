@@ -158,7 +158,7 @@ public class Data_CSV extends Application {
 	}
 
 	/*
-	 * KoboToolBox API version 1 /data
+	 * API version 1 /data
 	 */
 	@GET
 	@Produces("text/csv")
@@ -183,8 +183,9 @@ public class Data_CSV extends Application {
 			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate columns
 			) throws ApplicationException, Exception {
 
+		String connectionString = "Api - get data records csv";
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("koboToolboxApi - get data records csv");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -207,7 +208,7 @@ public class Data_CSV extends Application {
 		String language = "none";
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "API CSV view");
 
-		Connection cResults = ResultsDataSource.getConnection("koboToolboxApi - get data records csv");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 
 		String sqlGetManagedId = "select managed_id from survey where s_id = ?";
 		PreparedStatement pstmtGetManagedId = null;
@@ -262,6 +263,7 @@ public class Data_CSV extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
@@ -546,8 +548,8 @@ public class Data_CSV extends Application {
 				try {if (pstmtGetForm != null) {	pstmtGetForm.close();}} catch (SQLException e) {}
 				try {if (pstmtGetManagedId != null) {pstmtGetManagedId.close();}} catch (SQLException e) {}
 
-				ResultsDataSource.closeConnection("koboToolboxApi - get data records csv", cResults);
-				SDDataSource.closeConnection("koboToolboxApi - get data records csv", sd);
+				ResultsDataSource.closeConnection(connectionString, cResults);
+				SDDataSource.closeConnection(connectionString, sd);
 			}
 
 		}

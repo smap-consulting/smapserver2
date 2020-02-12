@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 public class DataEndPoint {
 	
-	// Kobo
 	public int id;
 	public String id_string;
 	public String title;
