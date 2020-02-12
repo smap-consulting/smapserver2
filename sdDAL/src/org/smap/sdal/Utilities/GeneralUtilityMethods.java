@@ -8832,5 +8832,127 @@ public class GeneralUtilityMethods {
 		return same;
 	}
 	
+	/*
+	 * Get users of an organisational resource
+	 */
+	public static ArrayList<String> getResourceUsers(Connection sd, String fileName, int oId) throws SQLException {
+		
+		ArrayList<String> users = new ArrayList<String> ();
+		
+		String sqlQuestionResources = "select distinct u.ident "
+				+ "from users u, user_project up, user_group ug, project p, translation t, survey s "
+				+ "where u.id = up.u_id "
+				+ "and u.id = ug.u_id "
+				+ "and up.p_id = p.id "
+				+ "and s.p_id = p.id "
+				+ "and s.s_id = t.s_id "
+				+ "and p.o_id = ? "
+				+ "and not u.temporary "
+				+ "and ug.g_id = 3 "		// enum
+				+ "and (t.type = 'image' or t.type = 'video' or t.type = 'audio')"			
+				+ "and t.value = ?";
+		PreparedStatement pstmtQuestionResouces = null;
+		
+		String sqlSurveyResources = "select distinct u.ident "
+				+ "from users u, user_project up, user_group ug, project p, survey s "
+				+ "where u.id = up.u_id "
+				+ "and u.id = ug.u_id "
+				+ "and up.p_id = p.id "
+				+ "and s.p_id = p.id "
+				+ "and p.o_id = ? "
+				+ "and not u.temporary "
+				+ "and ug.g_id = 3 "		// enum
+				+ "and s.manifest like ?";			
+		PreparedStatement pstmtSurveyResouces = null;
+		
+		try {
+			// Question level
+			pstmtQuestionResouces = sd.prepareStatement(sqlQuestionResources);
+			pstmtQuestionResouces.setInt(1, oId);
+			pstmtQuestionResouces.setString(2, fileName);
+			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
+			ResultSet rs = pstmtQuestionResouces.executeQuery();
+			while(rs.next()) {
+				users.add(rs.getString(1));
+			}
+			
+			// Survey level
+			pstmtSurveyResouces = sd.prepareStatement(sqlSurveyResources);
+			pstmtSurveyResouces.setInt(1, oId);
+			String modName = fileName.replace("_", "!_").replace("%", "!%").replace("!", "!!");
+			pstmtSurveyResouces.setString(2, "%" + modName + "%");
+			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
+			rs = pstmtSurveyResouces.executeQuery();
+			while(rs.next()) {
+				users.add(rs.getString(1));
+			}
+		} finally {
+			try {if (pstmtQuestionResouces != null) {	pstmtQuestionResouces.close();}} catch (SQLException e) {}
+			try {if (pstmtSurveyResouces != null) {	pstmtSurveyResouces.close();}} catch (SQLException e) {}
+		}
+		
+		return users;
+	}
+	
+	/*
+	 * Get Surveys linked to an organisational resource
+	 */
+	public static ArrayList<Survey> getResourceSurveys(Connection sd, String fileName, int oId) throws SQLException {
+		
+		ArrayList<Survey> surveys = new ArrayList<> ();
+		
+		String sqlQuestionResources = "select distinct s.display_name, s.blocked, p.name "
+				+ "from project p, translation t, survey s "
+				+ "where s.p_id = p.id "
+				+ "and s.s_id = t.s_id "
+				+ "and p.o_id = ? "
+				+ "and (t.type = 'image' or t.type = 'video' or t.type = 'audio')"			
+				+ "and t.value = ?";
+		PreparedStatement pstmtQuestionResouces = null;
+		
+		String sqlSurveyResources = "select distinct s.display_name, s.blocked, p.name "
+				+ "from project p, survey s "
+				+ "where s.p_id = p.id "
+				+ "and p.o_id = ? "
+				+ "and s.manifest like ?";			
+		PreparedStatement pstmtSurveyResouces = null;
+		
+		try {
+			// Question level
+			pstmtQuestionResouces = sd.prepareStatement(sqlQuestionResources);
+			pstmtQuestionResouces.setInt(1, oId);
+			pstmtQuestionResouces.setString(2, fileName);
+			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
+			ResultSet rs = pstmtQuestionResouces.executeQuery();
+			while(rs.next()) {
+				Survey s = new Survey();
+				s.displayName = rs.getString(1);
+				s.blocked = rs.getBoolean(2);
+				s.projectName = rs.getString(3);
+				surveys.add(s);
+			}
+			
+			// Survey level
+			pstmtSurveyResouces = sd.prepareStatement(sqlSurveyResources);
+			pstmtSurveyResouces.setInt(1, oId);
+			String modName = fileName.replace("_", "!_").replace("%", "!%").replace("!", "!!");
+			pstmtSurveyResouces.setString(2, "%" + modName + "%");
+			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
+			rs = pstmtSurveyResouces.executeQuery();
+			while(rs.next()) {
+				Survey s = new Survey();
+				s.displayName = rs.getString(1);
+				s.blocked = rs.getBoolean(2);
+				s.projectName = rs.getString(3);
+				surveys.add(s);
+			}
+		} finally {
+			try {if (pstmtQuestionResouces != null) {	pstmtQuestionResouces.close();}} catch (SQLException e) {}
+			try {if (pstmtSurveyResouces != null) {	pstmtSurveyResouces.close();}} catch (SQLException e) {}
+		}
+		
+		return surveys;
+	}
+	
 }
 

@@ -305,7 +305,7 @@ public class MessagingManagerApply {
 			
 			// Get a list of users impacted by  resource changes
 			for(String fileName : changedResources.keySet()) {
-				ArrayList<String> users = getResourceUsers(sd, fileName, changedResources.get(fileName).orgId);
+				ArrayList<String> users = GeneralUtilityMethods.getResourceUsers(sd, fileName, changedResources.get(fileName).orgId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
 				}				
@@ -529,67 +529,7 @@ public class MessagingManagerApply {
 		return users;
 	}
 	
-	/*
-	 * Get users of an organisational resource
-	 */
-	ArrayList<String> getResourceUsers(Connection sd, String fileName, int oId) throws SQLException {
-		
-		ArrayList<String> users = new ArrayList<String> ();
-		
-		String sqlQuestionResources = "select distinct u.ident "
-				+ "from users u, user_project up, user_group ug, project p, translation t, survey s "
-				+ "where u.id = up.u_id "
-				+ "and u.id = ug.u_id "
-				+ "and up.p_id = p.id "
-				+ "and s.p_id = p.id "
-				+ "and s.s_id = t.s_id "
-				+ "and p.o_id = ? "
-				+ "and not u.temporary "
-				+ "and ug.g_id = 3 "		// enum
-				+ "and (t.type = 'image' or t.type = 'video' or t.type = 'audio')"			
-				+ "and t.value = ?";
-		PreparedStatement pstmtQuestionResouces = null;
-		
-		String sqlSurveyResources = "select distinct u.ident "
-				+ "from users u, user_project up, user_group ug, project p, survey s "
-				+ "where u.id = up.u_id "
-				+ "and u.id = ug.u_id "
-				+ "and up.p_id = p.id "
-				+ "and s.p_id = p.id "
-				+ "and p.o_id = ? "
-				+ "and not u.temporary "
-				+ "and ug.g_id = 3 "		// enum
-				+ "and s.manifest like ?";			
-		PreparedStatement pstmtSurveyResouces = null;
-		
-		try {
-			// Question level
-			pstmtQuestionResouces = sd.prepareStatement(sqlQuestionResources);
-			pstmtQuestionResouces.setInt(1, oId);
-			pstmtQuestionResouces.setString(2, fileName);
-			log.info("Get question level resource users: " + pstmtQuestionResouces.toString());
-			ResultSet rs = pstmtQuestionResouces.executeQuery();
-			while(rs.next()) {
-				users.add(rs.getString(1));
-			}
-			
-			// Survey level
-			pstmtSurveyResouces = sd.prepareStatement(sqlSurveyResources);
-			pstmtSurveyResouces.setInt(1, oId);
-			String modName = fileName.replace("_", "!_").replace("%", "!%").replace("!", "!!");
-			pstmtSurveyResouces.setString(2, "%" + modName + "%");
-			log.info("Get survey level resource users: " + pstmtSurveyResouces.toString());
-			rs = pstmtSurveyResouces.executeQuery();
-			while(rs.next()) {
-				users.add(rs.getString(1));
-			}
-		} finally {
-			try {if (pstmtQuestionResouces != null) {	pstmtQuestionResouces.close();}} catch (SQLException e) {}
-			try {if (pstmtSurveyResouces != null) {	pstmtSurveyResouces.close();}} catch (SQLException e) {}
-		}
-		
-		return users;
-	}
+
 	
 	
 	/*
