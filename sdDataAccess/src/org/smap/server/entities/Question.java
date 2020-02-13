@@ -33,8 +33,13 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapQuestionTypes;
+import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.SetValue;
 import org.smap.server.utilities.UtilityMethods;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import JdbcManagers.JdbcOptionManager;
 
@@ -74,6 +79,8 @@ public class Question {
 	private String qtext_id;
 	
 	private String defaultAnswer;
+	
+	public ArrayList<SetValue> setValues;
 
 	private String info;			// hint
 	
@@ -114,8 +121,6 @@ public class Question {
 	private String nodeset_value;
 	
 	private String nodeset_label;
-	
-	private String cascade_instance;
 	
 	private int f_id;
 	
@@ -255,6 +260,10 @@ public class Question {
 	public boolean isCompressed() {
 		return compressed;
 	}
+	
+	public boolean hasSetValue() {
+		return setValues !=null && setValues.size() > 0;
+	}
 
 	/*
 	 * Get the relevance
@@ -387,6 +396,17 @@ public class Question {
 	
 	public String getIntent() {
 		return intent;
+	}
+	
+	public ArrayList<SetValue> getSetValues() {		
+		return setValues;
+	}
+	
+	public String getSetValueArrayAsString(Gson gson) {
+		if(setValues == null) {
+			return null;
+		}
+		return gson.toJson(setValues);
 	}
 	
 	/*
@@ -599,6 +619,14 @@ public class Question {
 	// use only when loading from xform
 	public void setPath(String v) {
 		path = v;
+	}
+	
+	public void setSetValue(Gson gson, String v) {
+		if(v == null) {
+			setValues = null;
+		} else {
+			setValues = gson.fromJson(v, new TypeToken<ArrayList<SetValue>>() {}.getType());
+		}
 	}
 	
 	/*

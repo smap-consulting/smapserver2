@@ -743,8 +743,17 @@ public class XLSTemplateUploadManager {
 			q.repeatCount = XLSUtilities.getTextColumn(row, "repeat_count", surveyHeader, lastCellNum, null);  
 		}
 		
-		// 8. Default
-		q.defaultanswer = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum, null); 
+		// 8. Default handles both dynamic and static defaults
+		String def = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum, null); 
+		def = GeneralUtilityMethods.cleanXlsNames(def);
+		ArrayList<String> xlsNames = GeneralUtilityMethods.getXlsNames(def);
+		if(xlsNames.size() > 0) {
+			// Dynamic Default
+			q.defaultanswer = null;
+			q.addSetValue("odk-instance-first-load", def);
+		} else {
+			q.defaultanswer = def;
+		}
 		
 		// 9. Readonly
 		q.readonly = getBooleanColumn(row, "readonly", surveyHeader, lastCellNum, false);

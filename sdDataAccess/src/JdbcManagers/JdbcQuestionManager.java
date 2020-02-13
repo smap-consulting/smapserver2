@@ -37,6 +37,9 @@ import org.smap.server.utilities.GetXForm;
 import org.smap.server.utilities.UtilityMethods;
 import org.w3c.dom.Element;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 public class JdbcQuestionManager {
 
 	private static Logger log =
@@ -76,11 +79,12 @@ public class JdbcQuestionManager {
 			+ "accuracy,"
 			+ "dataType,"
 			+ "compressed,"
-			+ "intent"
+			+ "intent,"
+			+ "set_value"
 			+ ") "
 			+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtGetBySurveyId;
 	PreparedStatement pstmtGetByFormId;
@@ -117,7 +121,8 @@ public class JdbcQuestionManager {
 			+ "accuracy,"
 			+ "dataType,"
 			+ "compressed,"
-			+ "intent "
+			+ "intent,"
+			+ "set_value "
 			+ "from question where soft_deleted = 'false' and ";
 	String sqlGetBySurveyId = "f_id in (select f_id from form where s_id = ?)"
 			+ " order by f_id, seq";
@@ -141,6 +146,8 @@ public class JdbcQuestionManager {
 	 * Write to the database
 	 */
 	public void write(Question q, String xFormRoot) throws Exception {
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
 		pstmt.setInt(1, q.getFormId());
 		pstmt.setInt(2, q.getSeq());
 		pstmt.setString(3, q.getName());
@@ -205,6 +212,7 @@ public class JdbcQuestionManager {
 			pstmt.setBoolean(31, false);
 		}
 		pstmt.setString(32, q.getIntent());
+		pstmt.setString(33, q.getSetValueArrayAsString(gson));
 		
 		pstmt.executeUpdate();
 		
@@ -242,6 +250,8 @@ public class JdbcQuestionManager {
 	
 	private List<Question> getQuestionList(PreparedStatement pstmtGet, 
 			List <Form> forms) throws SQLException {
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		ArrayList <Question> questions = new ArrayList<Question> ();
 		Stack<String> paths = new Stack<String>();
@@ -283,6 +293,7 @@ public class JdbcQuestionManager {
 			q.setDataType(rs.getString(31));
 			q.setCompressed(rs.getBoolean(32));
 			q.setIntent(rs.getString(33));
+			q.setSetValue(gson, rs.getString(34));
 		
 			/*
 			 * If the list id exists then set the list name
