@@ -801,10 +801,14 @@ public class CsvTableManager {
 			int idx = 0;
 			while(rsx.next()) {
 				String value = rsx.getString(value_column);
-				if(choiceMap.get(value) == null) {		// Only add unique values
-					choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
-					choiceMap.put(value, value);
+				if(value != null) {
+					value = value.trim();
+					if(choiceMap.get(value) == null) {		// Only add unique values
+						choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
+						choiceMap.put(value, value);
+					}
 				}
+				
 			}	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);

@@ -21,8 +21,6 @@ package surveyMobileAPI;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
@@ -56,15 +54,11 @@ import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyTableManager;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.SelectChoice;
 
 import com.google.gson.Gson;
