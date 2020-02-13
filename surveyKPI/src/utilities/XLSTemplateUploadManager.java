@@ -52,6 +52,7 @@ import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilterRef;
 import org.smap.sdal.model.ServerCalculation;
+import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
@@ -747,10 +748,10 @@ public class XLSTemplateUploadManager {
 		String def = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum, null); 
 		def = GeneralUtilityMethods.cleanXlsNames(def);
 		ArrayList<String> xlsNames = GeneralUtilityMethods.getXlsNames(def);
-		if(xlsNames.size() > 0) {
-			// Dynamic Default
+		if(GeneralUtilityMethods.isSetValue(def)) {
+			// Set Value
 			q.defaultanswer = null;
-			q.addSetValue("odk-instance-first-load", def);
+			q.addSetValue(SetValue.START, def);
 		} else {
 			q.defaultanswer = def;
 		}

@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.itextpdf.text.BaseColor;
 
 /*
@@ -208,5 +209,16 @@ public class Question {
 			return null;
 		}
 		return gson.toJson(setValues);
+	}
+	
+	/*
+	 * Set the set value from a string
+	 */
+	public void setSetValue(Gson gson, String v) {
+		if(v == null) {
+			setValues = null;
+		} else {
+			setValues = gson.fromJson(v, new TypeToken<ArrayList<SetValue>>() {}.getType());
+		}
 	}
 }
