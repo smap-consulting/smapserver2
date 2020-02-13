@@ -925,7 +925,7 @@ public class CsvTableManager {
 			for(String r : records) {
 				String[] data = parser.parseLine(r);
 				for(int i = 0; i < data.length && i < headerSize; i++) {
-					pstmt.setString(i + 1, data[i]);
+					pstmt.setString(i + 1, data[i].trim());
 				}
 				pstmt.executeUpdate();
 				if(idx++ == 0) {
