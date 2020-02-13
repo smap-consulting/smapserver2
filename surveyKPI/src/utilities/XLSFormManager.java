@@ -49,6 +49,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.ServerCalculation;
+import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumnMarkup;
@@ -262,8 +263,20 @@ public class XLSFormManager {
 					value = "";
 				}
 			
-			} else if(type == COL_DEFAULT) {				
-				value = q.defaultanswer;		
+			} else if(type == COL_DEFAULT) {
+				if(q.defaultanswer == null || q.defaultanswer.trim().length() == 0) {
+					// set value
+					if(q.setValues != null) {
+						for(SetValue sv : q.setValues) {
+							if(sv.event.equals(SetValue.START)) {
+								value = sv.value;
+								break;
+							}
+						}
+					}
+				} else {
+					value = q.defaultanswer;
+				}
 
 			} else if(type == COL_READONLY) {				
 				value = q.readonly ? "yes" : "no";		

@@ -7271,6 +7271,29 @@ public class GeneralUtilityMethods {
 
 		return output;
 	}
+	
+	/*
+	 * Return true if the default value is a calculated type
+	 */
+	public static boolean isSetValue(String def) throws Exception {
+		boolean resp = false;
+		
+		if(def != null) {
+			def = def.trim();
+
+			// Check for names inside curly backets
+			def = GeneralUtilityMethods.cleanXlsNames(def);
+			ArrayList<String> xlsNames = getXlsNames(def);
+			
+			if(xlsNames.size() > 0) {
+				resp = true;
+			} else if(def.equals("now()")) {
+				resp = true;
+			}
+		}
+		
+		return resp;
+	}
 
 	/*
 	 * Remove leading or trailing whitespace around question names

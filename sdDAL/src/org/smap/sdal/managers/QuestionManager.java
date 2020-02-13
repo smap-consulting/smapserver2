@@ -1794,7 +1794,8 @@ public class QuestionManager {
 				+ "q.l_id,"
 				+ "q.intent, "
 				+ "st.name as style_name, "
-				+ "q.server_calculate "
+				+ "q.server_calculate,"
+				+ "q.set_value "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "left outer join style st on q.style_id = st.id "
@@ -1889,6 +1890,8 @@ public class QuestionManager {
 				if(serverCalculation != null) {
 					q.server_calculation = gson.fromJson(serverCalculation, ServerCalculation.class);
 				}
+				
+				q.setSetValue(gson, rsGetQuestions.getString(37));				
 				
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);

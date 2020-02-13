@@ -727,11 +727,12 @@ public class Survey {
 				+ "display_name,"
 				+ "intent,"
 				+ "style_id,"
-				+ "server_calculate"
+				+ "server_calculate,"
+				+ "set_value"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			
@@ -846,7 +847,8 @@ public class Survey {
 				serverCalculation = gson.toJson(q.server_calculation);
 			}
 			pstmt.setString(33,  serverCalculation);
-
+			pstmt.setString(34, q.getSetValueArrayAsString(gson));
+				
 			pstmt.executeUpdate();
 			
 			ResultSet rs = pstmt.getGeneratedKeys();

@@ -7,6 +7,8 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.itextpdf.text.BaseColor;
 
 /*
@@ -32,6 +34,7 @@ public class Question {
 	public int sourceFormId;		// The id as stored in the database for the form
 	public int sourceFormIndex;		// Used when the source form in an move is new
 	public String defaultanswer;
+	public ArrayList<SetValue> setValues;
 	public String appearance;
 	public String app_choices;
 	public ArrayList<KeyValueSimp>  paramArray;
@@ -188,4 +191,34 @@ public class Question {
 		return (type.startsWith("select") || type.equals("rank"));
 	}
 	
+	/*
+	 * Add a set value
+	 */
+	public void addSetValue(String event, String value) {
+		if(setValues == null) {
+			setValues = new ArrayList<> ();
+		}
+		setValues.add(new SetValue(event, value));
+	}
+	
+	/*
+	 * Get set values as String
+	 */
+	public String getSetValueArrayAsString(Gson gson) {
+		if(setValues == null) {
+			return null;
+		}
+		return gson.toJson(setValues);
+	}
+	
+	/*
+	 * Set the set value from a string
+	 */
+	public void setSetValue(Gson gson, String v) {
+		if(v == null) {
+			setValues = null;
+		} else {
+			setValues = gson.fromJson(v, new TypeToken<ArrayList<SetValue>>() {}.getType());
+		}
+	}
 }

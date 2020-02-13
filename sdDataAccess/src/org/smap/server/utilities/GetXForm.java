@@ -50,6 +50,7 @@ import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
+import org.smap.sdal.model.SetValue;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.Option;
 import org.smap.server.entities.Question;
@@ -730,7 +731,8 @@ public class GetXForm {
 					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
 					currentParent.appendChild(questionElement);
 					
-
+					// Add set values
+					populateSetValueQuestion(outputDoc, f, q, f.getPath(null), false, currentParent);
 				}
 
 			} else if (location == BODY) {
@@ -960,6 +962,43 @@ public class GetXForm {
 		}
 
 		return questionElement;
+	}
+	
+	/*
+	 * Populate set value elements
+	 */
+	public void populateSetValueQuestion(Document outputXML, Form f, 
+			Question q, String parentXPath, boolean count,
+			Element currentParent)
+			throws Exception {
+
+		Element questionElement = null;
+		
+		if(q.setValues != null && q.setValues.size() > 0) {
+			for(SetValue sv : q.setValues) {
+				questionElement = outputXML.createElement("setvalue");
+				questionElement.setAttribute("event", sv.event);
+				
+				// Add reference
+				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), q.getName());
+				if (q.getType().equals("begin repeat") && count) {
+					reference += "_count"; // Reference is to the calculate question for this form
+				}
+				questionElement.setAttribute("ref", reference);
+				
+				// Add Value
+				String value = UtilityMethods.convertAllxlsNames(sv.value, false, template.getQuestionPaths(), q.getFormId(), false, q.getName(), false);
+				if (value != null && value.trim().length() > 0) {
+					Survey s = template.getSurvey();
+					value = GeneralUtilityMethods.removeSelfReferences(value, s.getIdent());
+					questionElement.setAttribute("value", value);
+					
+					currentParent.appendChild(questionElement);
+				}
+			
+			}
+		}
+
 	}
 
 	/*
