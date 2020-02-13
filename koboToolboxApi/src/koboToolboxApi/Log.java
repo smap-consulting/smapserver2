@@ -18,7 +18,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import model.LogItem;
 import model.LogItemDt;
 import model.LogsDt;
 
@@ -30,14 +29,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -70,6 +66,7 @@ public class Log extends Application {
 	public Response getLogs(@Context HttpServletRequest request,
 			@QueryParam("start") int start,
 			@QueryParam("length") int length,
+			@QueryParam("limit") int limit,
 			@QueryParam("sort") String sort,			// Column Name to sort on
 			@QueryParam("dirn") String dirn				// Sort direction, asc || desc
 			) { 
@@ -93,8 +90,12 @@ public class Log extends Application {
 			start = Integer.MAX_VALUE;
 		}
 		
+		// Limit overrides length which is retained for backwards compatability
+		if(limit > 0) {
+			length = limit;
+		}
+		
 		PreparedStatement pstmt = null;
-		ResultSet rs = null;
 		
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
