@@ -807,8 +807,7 @@ public class CsvTableManager {
 						choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
 						choiceMap.put(value, value);
 					}
-				}
-				
+				}			
 			}	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
