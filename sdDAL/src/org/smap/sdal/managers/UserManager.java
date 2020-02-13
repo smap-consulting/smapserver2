@@ -480,7 +480,8 @@ public class UserManager {
 						serverName,
 						subStatus.emailKey,
 						localisation,
-						organisation.server_description);
+						organisation.server_description,
+						organisation.name);
 
 			}
 			

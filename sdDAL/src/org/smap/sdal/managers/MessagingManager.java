@@ -236,7 +236,8 @@ public class MessagingManager {
 					server,
 					emailKey,
 					localisation,
-					null		// Server description
+					null,		// Server description
+					GeneralUtilityMethods.getOrganisationName(sd, oId)
 					);
 			
 			// Record that the opt in message has been sent

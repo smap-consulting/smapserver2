@@ -236,7 +236,8 @@ public class OrganisationManager {
 										serverName,
 										subStatus.emailKey,
 										localisation,
-										originalOrg.server_description);
+										originalOrg.server_description,
+										originalOrg.name);
 							} catch(Exception e) {
 								lm.writeLogOrganisation(sd, o.id, userIdent, LogManager.ORGANISATION_UPDATE, e.getMessage());
 							}

@@ -926,7 +926,8 @@ public class NotificationManager {
 													msg.server,
 													subStatus.emailKey,
 													localisation,
-													organisation.server_description);
+													organisation.server_description,
+													organisation.name);
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
@@ -1289,7 +1290,8 @@ public class NotificationManager {
 													msg.server,
 													subStatus.emailKey,
 													localisation,
-													organisation.server_description);
+													organisation.server_description,
+													organisation.name);
 										} else {
 											/*
 											 * User needs to opt in before email can be sent

@@ -3264,7 +3264,8 @@ public class TaskManager {
 												server,
 												subStatus.emailKey,
 												localisation,
-												organisation.server_description);
+												organisation.server_description,
+												organisation.name);
 										setAssignmentStatus(sd, msg.aId, "accepted");
 									}
 								}

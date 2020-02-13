@@ -88,7 +88,8 @@ public class EmailManager {
 			String serverName,
 			String emailKey,
 			ResourceBundle localisation,
-			String serverDescription) throws Exception  {
+			String serverDescription,
+			String organisationName) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -260,7 +261,7 @@ public class EmailManager {
 
 			} else if(type.equals("optin")) {	
 				String m = localisation.getString("c_opt_in_content"); 
-				m = m.replace("%s1", serverName);
+				m = m.replace("%s1", organisationName + " (" + serverName + ")");
 				txtMessage.append(m).append("\n");
 				txtMessage.append(localisation.getString("c_goto"));
 				txtMessage.append(" " + scheme + "://");

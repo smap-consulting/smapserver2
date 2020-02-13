@@ -139,6 +139,7 @@ public class PasswordReset extends Application {
 					    		request.getServerName(),
 					    		subStatus.emailKey,
 					    		localisation,
+					    		null,
 					    		null);
 					    response = Response.ok().build();
 					} else {

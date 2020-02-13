@@ -51,7 +51,6 @@ public class PeopleManager {
 	/*
 	 * Get an email key for this user that can be used to unsubscribe
 	 * If the person is already unsubscribed then return null
-	 * organisation id is recorded in the people table but unsubscription applies across the whole server
 	 */
 	public SubscriptionStatus getEmailKey(Connection sd, 
 			int oId,
