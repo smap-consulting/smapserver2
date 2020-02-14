@@ -258,6 +258,7 @@ public class Lookup extends Application{
 					stm.initData(pstmt, "choices", null, null,
 							selectionString, arguments, whereColumns, tz);
 					
+					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
 					HashMap<String, String> line = null;
 					int idx = 0;
 					results = new ArrayList<SelectChoice> ();
@@ -270,8 +271,15 @@ public class Lookup extends Application{
 							}
 							lOutput.append(line.get(l.trim()));
 						}
-						SelectChoice choice = new SelectChoice(line.get(valueColumn), lOutput.toString(), idx++);
-						results.add(choice);
+						String value = line.get(valueColumn);
+						if(value != null) {
+							value = value.trim();
+							if(choiceMap.get(value) == null) {		// Only add unique values
+								SelectChoice choice = new SelectChoice(value, lOutput.toString(), idx++);
+								choiceMap.put(value, value);
+								results.add(choice);
+							}
+						}
 					}
 				} else {
 					// Get data from a csv file
