@@ -82,6 +82,7 @@ public class GetXForm {
 	private ArrayList<String> gPaths;
 	private boolean embedExternalSearch = false;
 	private boolean gInTableList = false;
+	private boolean gLastSaved = false;
 	private boolean modelInstanceOnly = false;
 	private boolean isWebForms = false;
 	private boolean useNodesets = false;
@@ -238,13 +239,13 @@ public class GetXForm {
 		Element instanceElement = outputDoc.createElement("instance");
 		parent.appendChild(instanceElement);
 		populateInstance(sd, outputDoc, instanceElement);
-
-		// Add a last saved instance  <instance id="last-saved" src="jr://instance/last-saved"/>
-		if(!isWebForms) {
-			Element lastSavedElement = outputDoc.createElement("instance");
-			lastSavedElement.setAttribute("id", "last-saved");
-			lastSavedElement.setAttribute("src", "jr://instance/last-saved");
-			parent.appendChild(lastSavedElement);
+		
+		// Add the instance element if last saved is used
+		if(gLastSaved && !isWebForms) {
+			Element lsElement = outputDoc.createElement("instance");
+			lsElement.setAttribute("id", "__last-saved");
+			lsElement.setAttribute("src", "jr://instance/last-saved");
+			parent.appendChild(lsElement);
 		}
 		
 		if (template.hasCascade()) {
@@ -629,6 +630,11 @@ public class GetXForm {
 			Element questionElement = null;
 			String qType = q.getType();
 
+			// Add a marker of this survey uses "last saved"
+			if(q.hasLastSaved()) {
+				gLastSaved = true;
+			}
+			
 			// Add a marker if this is a table list group
 			if (qType.equals("begin group")) {
 				if (q.isTableList) {
@@ -809,6 +815,7 @@ public class GetXForm {
 				}
 			}
 		}
+		
 	}
 
 	/*
@@ -987,12 +994,19 @@ public class GetXForm {
 				questionElement.setAttribute("ref", reference);
 				
 				// Add Value
-				String value = UtilityMethods.convertAllxlsNames(sv.value, false, template.getQuestionPaths(), q.getFormId(), false, q.getName(), false);
-				if (value != null && value.trim().length() > 0) {
-					Survey s = template.getSurvey();
-					value = GeneralUtilityMethods.removeSelfReferences(value, s.getIdent());
-					questionElement.setAttribute("value", value);
-					
+				if(sv.value != null) {
+					String value = null;
+					if(sv.value.contains("last-saved#")) {
+						value = "instance('__last-saved')" + reference;
+					} else {
+						value = UtilityMethods.convertAllxlsNames(sv.value, false, template.getQuestionPaths(), q.getFormId(), false, q.getName(), false);
+						if (value != null && value.trim().length() > 0) {
+							Survey s = template.getSurvey();
+							value = GeneralUtilityMethods.removeSelfReferences(value, s.getIdent());
+							
+						}
+					}
+					questionElement.setAttribute("value", value);				
 					currentParent.appendChild(questionElement);
 				}
 			

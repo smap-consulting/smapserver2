@@ -264,6 +264,19 @@ public class Question {
 	public boolean hasSetValue() {
 		return setValues !=null && setValues.size() > 0;
 	}
+	
+	public boolean hasLastSaved() {
+		boolean resp = false;
+		if(setValues !=null && setValues.size() > 0) {
+			for(SetValue sv : setValues) {
+				if(sv.value.contains("last-saved#")) {
+					resp = true;
+					break;
+				}
+			}
+		}
+		return resp;
+	}
 
 	/*
 	 * Get the relevance
