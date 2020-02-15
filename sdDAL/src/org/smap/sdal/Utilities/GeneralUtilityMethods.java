@@ -76,6 +76,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.ServerCalculation;
+import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlFragParam;
 import org.smap.sdal.model.SqlParam;
@@ -8977,6 +8978,110 @@ public class GeneralUtilityMethods {
 		}
 		
 		return surveys;
+	}
+	
+	/*
+	 * Remove an item from the set of set values
+	 */
+	public static void removeFromSetValue(Connection sd, int qId, SetValue item) throws SQLException {
+		
+		String sql = "select set_value "
+				+ " from question "
+				+ " where q_id = ? ";
+		
+		String sqlUpdate = "update question "
+				+ "set set_value = ? "
+				+ "where q_id = ?";
+		PreparedStatement pstmt = null;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			
+			pstmt.setInt(1, qId);			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String sValue = rs.getString(1);
+				if(sValue != null) {
+					ArrayList<SetValue> setValues = gson.fromJson(sValue, new TypeToken<ArrayList<SetValue>>() {}.getType());
+					for(SetValue sv : setValues) {
+						if(sv.event.equals(item.event)) {
+							setValues.remove(sv);
+							break;
+						}
+					}
+					if(setValues.size() > 0) {
+						sValue = gson.toJson(setValues);
+					} else {
+						sValue = null;
+					}
+					if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+					pstmt = sd.prepareStatement(sqlUpdate);
+					pstmt.setString(1, sValue);
+					pstmt.setInt(2, qId);	
+					pstmt.executeUpdate();
+				}
+				
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+	}
+	
+	public static void addToSetValue(Connection sd, int qId, SetValue item) throws SQLException {
+		
+		String sql = "select set_value "
+				+ " from question "
+				+ " where q_id = ? ";
+		
+		String sqlUpdate = "update question "
+				+ "set set_value = ? "
+				+ "where q_id = ?";
+		PreparedStatement pstmt = null;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+		try {
+			ArrayList<SetValue> setValues = null;
+			
+			pstmt = sd.prepareStatement(sql);			
+			pstmt.setInt(1, qId);			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String sValue = rs.getString(1);
+				if(sValue != null) {
+					setValues = gson.fromJson(sValue, new TypeToken<ArrayList<SetValue>>() {}.getType());
+				} else {
+					setValues = new ArrayList <> ();
+				}
+				
+				// remove the old value
+				if(setValues.size() > 0) {
+					for(SetValue sv : setValues) {
+						if(sv.event.equals(item.event)) {
+							setValues.remove(sv);
+							break;
+						}
+					}
+				} 
+				setValues.add(item);
+				sValue = gson.toJson(setValues);
+				
+				if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+				pstmt = sd.prepareStatement(sqlUpdate);
+				pstmt.setString(1, sValue);
+				pstmt.setInt(2, qId);	
+				pstmt.executeUpdate();
+
+				
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
 	}
 	
 }

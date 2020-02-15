@@ -215,7 +215,7 @@ public class Question {
 	 * Set the set value from a string
 	 */
 	public void setSetValue(Gson gson, String v) {
-		if(v == null) {
+		if(v == null || v.trim().length() == 0) {
 			setValues = null;
 		} else {
 			setValues = gson.fromJson(v, new TypeToken<ArrayList<SetValue>>() {}.getType());

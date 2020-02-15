@@ -22,6 +22,7 @@ import org.smap.sdal.model.Option;
 import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.ServerCalculation;
+import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.Survey;
 
 import com.google.gson.Gson;
@@ -96,9 +97,10 @@ public class QuestionManager {
 				+ "nodeset_label,"
 				+ "display_name,"
 				+ "compressed,"
-				+ "intent"
+				+ "intent,"
+				+ "set_value"
 				+ ") " 
-				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmtUpdateSeq = null;
 		String sqlUpdateSeq = "update question set seq = seq + 1 where f_id = ? and seq >= ?;";
@@ -204,6 +206,16 @@ public class QuestionManager {
 						infotextId = q.fId + "_question_" + columnName + ":hint";
 					}
 				}
+				
+				// If the question has a default that should be in setValue then move it there
+				String def = GeneralUtilityMethods.cleanXlsNames(q.defaultanswer);
+				if(GeneralUtilityMethods.isSetValue(def)) {
+					// Set Value
+					q.defaultanswer = null;
+					q.addSetValue(SetValue.START, def);
+				} else {
+					q.defaultanswer = def;
+				}
 
 				pstmtInsertQuestion.setInt(1, q.fId );
 				pstmtInsertQuestion.setInt(2, q.l_id);
@@ -265,7 +277,8 @@ public class QuestionManager {
 					pstmtInsertQuestion.setBoolean(28, false);
 				}
 				pstmtInsertQuestion.setString(29, q.intent);
-
+				pstmtInsertQuestion.setString(30, q.getSetValueArrayAsString(gson));
+				
 				log.info("Insert question: " + pstmtInsertQuestion.toString());
 				pstmtInsertQuestion.executeUpdate();
 

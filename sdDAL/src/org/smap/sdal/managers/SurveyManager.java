@@ -74,6 +74,7 @@ import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.ServerSideCalculate;
+import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
@@ -1701,6 +1702,18 @@ public class SurveyManager {
 							ci.property.newVal = "0";
 						}
 
+					} else if(ci.property.prop.equals("defaultanswer")) {
+						// Split into default answer and set_value
+						// If the question has a default that should be in setValue then move it there
+						String def = GeneralUtilityMethods.cleanXlsNames(ci.property.newVal);
+						if(GeneralUtilityMethods.isSetValue(def)) {
+							// Set Value		
+							GeneralUtilityMethods.addToSetValue(sd, ci.property.qId, new SetValue(SetValue.START, def));
+							ci.property.newVal = "";
+						} else {
+							GeneralUtilityMethods.removeFromSetValue(sd, ci.property.qId, new SetValue(SetValue.START, ""));
+						}
+						
 					}
 
 					if(ci.property.prop.equals("relevant") || ci.property.prop.equals("constraint") 
@@ -1926,7 +1939,7 @@ public class SurveyManager {
 									ci.property.visibleValue = true;
 									ci.property.sourceValue = null;
 								}
-							}
+							} 
 						}
 
 						if(ci.property.setVisible) {
@@ -1936,7 +1949,7 @@ public class SurveyManager {
 							log.info("Update dependent properties: " + pstmtDependent.toString());
 							pstmtDependent.executeUpdate();
 						}
-
+						
 						if(setReadonly) {
 							pstmtReadonly.setInt(1, ci.property.qId);
 							log.info("Update readonly status for note type: " + pstmtReadonly.toString());
@@ -3066,7 +3079,6 @@ public class SurveyManager {
 
 		String manifest = null;
 		boolean changed = false;
-		QuestionManager qm = new QuestionManager(localisation);
 
 		PreparedStatement pstmtGet = null;
 		String sqlGet = "select manifest from survey "
@@ -3110,10 +3122,6 @@ public class SurveyManager {
 				pstmtUpdate.executeUpdate();
 			}
 
-			//GeneralUtilityMethods.updateSelfCalcsManifest(sd, sId);
-
-
-
 		} catch(Exception e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
@@ -3156,128 +3164,6 @@ public class SurveyManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 			if(pstmtClear != null) try {pstmtClear.close();} catch(Exception e) {}
 		}
-	}
-
-	/*
-	 * Get the questions for a survey
-	 */
-	public ArrayList<Question> getQuestionsForSurvey(Connection sd, int sId, 
-			boolean getPropertyTypeQuestions) throws Exception {
-
-		ArrayList<Question> questions = new ArrayList<Question> ();
-
-		// SQL to get the questions belonging to a form
-		ResultSet rsGetQuestions = null;
-		String sqlGetQuestions = "select q.q_id, "
-				+ "q.qname, "
-				+ "q.qtype, "
-				+ "q.qtext_id, "
-				+ "q.infotext_id, "
-				+ "q.source, " 
-				+ "q.calculate, "
-				+ "q.seq, " 
-				+ "q.defaultanswer, "
-				+ "q.appearance, "
-				+ "q.parameters, "
-				+ "q.qconstraint, "
-				+ "q.constraint_msg, "
-				+ "q.required_msg, "
-				+ "q.nodeset, "
-				+ "q.relevant, "
-				+ "q.visible, "
-				+ "q.readonly, "
-				+ "q.mandatory, "
-				+ "q.published, "
-				+ "q.column_name, "
-				+ "q.source_param, "
-				+ "q.soft_deleted, "
-				+ "q.autoplay,"
-				+ "q.accuracy,"
-				+ "q.l_id,"
-				+ "q.intent "
-				+ "from question q,form f "
-				+ "where q.f_id = f.f_id "
-				+ "and f.s_id = ? "
-				+ "order by q.f_id, q.seq asc;";
-		PreparedStatement pstmtGetQuestions = sd.prepareStatement(sqlGetQuestions);
-
-		/*
-		 * Get the questions for this form
-		 */
-		try {
-			pstmtGetQuestions.setInt(1, sId);
-			log.info("Get questions for survey: " + pstmtGetQuestions.toString());
-			rsGetQuestions = pstmtGetQuestions.executeQuery();
-
-			boolean inMeta = false;				// Set true if the question is in the meta group
-			while (rsGetQuestions.next()) {
-				Question q = new Question();
-
-				q.id = rsGetQuestions.getInt(1);
-				q.name = rsGetQuestions.getString(2);
-				q.type = rsGetQuestions.getString(3);
-				q.text_id = rsGetQuestions.getString(4);
-				q.hint_id = rsGetQuestions.getString(5);
-				q.source = rsGetQuestions.getString(6);
-				q.calculation = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(7), true);
-				q.seq = rsGetQuestions.getInt(8);
-				q.defaultanswer = rsGetQuestions.getString(9);
-				q.appearance = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(10), true);
-				q.paramArray = GeneralUtilityMethods.convertParametersToArray(rsGetQuestions.getString(11));
-				q.parameters = rsGetQuestions.getString(11);		// For online editor - deprecate
-
-				q.constraint = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(12), true);
-				q.constraint_msg = rsGetQuestions.getString(13);
-				q.required_msg = rsGetQuestions.getString(14);
-				q.choice_filter = GeneralUtilityMethods.getChoiceFilterFromNodeset(rsGetQuestions.getString(15), true);
-
-				q.relevant = GeneralUtilityMethods.convertAllXpathNames(rsGetQuestions.getString(16), true);
-				q.visible = rsGetQuestions.getBoolean(17);
-				q.readonly = rsGetQuestions.getBoolean(18);
-				q.required = rsGetQuestions.getBoolean(19);
-				q.published = rsGetQuestions.getBoolean(20);
-				q.columnName = rsGetQuestions.getString(21);
-				q.source_param = rsGetQuestions.getString(22);
-				q.soft_deleted = rsGetQuestions.getBoolean(23);
-				q.autoplay = rsGetQuestions.getString(24);
-				q.accuracy = rsGetQuestions.getString(25);
-				q.l_id = rsGetQuestions.getInt(26);
-				q.intent = rsGetQuestions.getString(27);
-				if(q.autoplay == null) {
-					q.autoplay = "none";
-				}
-
-				// Set an indicator if this is a property type question (_device etc)
-				q.propertyType = GeneralUtilityMethods.isPropertyType(q.source_param, q.name);
-
-				// Discard property type questions if they have not been asked for
-				if(q.propertyType && !getPropertyTypeQuestions) {
-					continue;
-				}
-
-
-				// Track if this question is in the meta group
-				if(q.name.equals("meta")) {
-					inMeta = true;
-				} else if(q.name.equals("meta_groupEnd")) {
-					inMeta = false;
-				}
-				q.inMeta = inMeta;
-
-				// If the survey was loaded from xls it will not have a list name
-				if(q.list_name == null || q.list_name.trim().length() == 0) {
-					q.list_name = q.name;
-				}
-
-
-				questions.add(q);
-			}
-		} finally {
-			// Close statements
-			try { if (pstmtGetQuestions != null) {pstmtGetQuestions.close();}} catch (SQLException e) {}
-		}
-
-		return questions;
 	}
 
 	public String fillStringTemplate(Survey s, String in) {

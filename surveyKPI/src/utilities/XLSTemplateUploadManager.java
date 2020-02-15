@@ -747,7 +747,6 @@ public class XLSTemplateUploadManager {
 		// 8. Default handles both dynamic and static defaults
 		String def = XLSUtilities.getTextColumn(row, "default", surveyHeader, lastCellNum, null); 
 		def = GeneralUtilityMethods.cleanXlsNames(def);
-		ArrayList<String> xlsNames = GeneralUtilityMethods.getXlsNames(def);
 		if(GeneralUtilityMethods.isSetValue(def)) {
 			// Set Value
 			q.defaultanswer = null;
