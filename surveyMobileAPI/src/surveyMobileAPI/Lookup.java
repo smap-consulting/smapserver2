@@ -114,6 +114,7 @@ public class Lookup extends Application{
 			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
 		} catch (Exception e) {
 		}
+		
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		Connection cResults = null;
