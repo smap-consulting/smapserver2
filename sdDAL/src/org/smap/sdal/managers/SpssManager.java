@@ -82,7 +82,8 @@ public class SpssManager {
 			survey = sm.getById(connectionSD, null, remoteUser, sId, true, null, null, 
 					false, false, true, false, false, "real", false, false, superUser, null,
 					false,		// Do not follow links to child surveys
-					false		// launched only
+					false,		// launched only
+					false		// Don't merge set value into default values
 					);
 			int languageIdx = GeneralUtilityMethods.getLanguageIdx(survey, language);
 			

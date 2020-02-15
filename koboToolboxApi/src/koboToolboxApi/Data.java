@@ -890,7 +890,8 @@ public class Data extends Application {
 					true,		// superuser 
 					null, 		// geomformat
 					false, 		// reference surveys
-					false		// only get launched
+					false,		// only get launched
+					false		// Don't merge set value into default values
 					);
 			
 			ArrayList<Instance> instances = sm.getInstances(

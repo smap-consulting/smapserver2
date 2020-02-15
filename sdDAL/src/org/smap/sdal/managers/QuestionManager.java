@@ -1749,7 +1749,8 @@ public class QuestionManager {
 			String tableName,
 			String basePath,
 			int oId,
-			Survey s) throws Exception {
+			Survey s,
+			boolean mergeDefaultSetValue) throws Exception {
 		
 		ArrayList<Question> questions = new ArrayList<Question> ();
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -1891,7 +1892,13 @@ public class QuestionManager {
 					q.server_calculation = gson.fromJson(serverCalculation, ServerCalculation.class);
 				}
 				
-				q.setSetValue(gson, rsGetQuestions.getString(37));				
+				q.setSetValue(gson, rsGetQuestions.getString(37));
+				if(mergeDefaultSetValue) {
+					// Add any set values that set the default value into the default field
+					if(q.defaultanswer == null || q.defaultanswer.trim().length() == 0) {
+						q.defaultanswer = q.getDefaultSetValue();
+					}
+				}
 				
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);

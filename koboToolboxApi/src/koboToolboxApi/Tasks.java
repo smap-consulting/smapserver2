@@ -375,7 +375,9 @@ public class Tasks extends Application {
 				
 				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), tp.form_id, 
 						false, null, null, false, false, 
-						false, false, false, null, false, false, false, null, false, false);
+						false, false, false, null, false, false, false, null, false, false,
+						false		// Don't merge set value into default values
+					);
 				
 				// Create a task group based on the survey
 				tp.tg_id = tm.createTaskGroup(sd, s.displayName, 

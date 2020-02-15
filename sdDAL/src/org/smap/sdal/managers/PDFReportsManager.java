@@ -179,7 +179,8 @@ public class PDFReportsManager {
 						instanceId, true, false, true, false, true, "real", 
 						false, false, true, "geojson",
 						false,			// Don't get child surveys
-						false			// launched only
+						false,			// launched only
+						false		// Don't merge set value into default values
 						);				
 				PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, username, tz);
 				

@@ -382,7 +382,8 @@ public class SurveyManager {
 			boolean superUser,
 			String geomFormat,
 			boolean referenceSurveys,					// follow links to child surveys
-			boolean onlyGetLaunched		// Use with referenceSuveys to restrict results to those created by launching another form
+			boolean onlyGetLaunched,			// Use with referenceSuveys to restrict results to those created by launching another form
+			boolean mergeDefaultSetValue			// Add set value of type START to default for online editor
 			) throws SQLException, Exception {
 
 		Survey s = null;	// Survey to return
@@ -495,7 +496,8 @@ public class SurveyManager {
 						getSoftDeleted,
 						getHrk,
 						getChangeHistory,
-						getRoles);			// Add forms, questions, options
+						getRoles,
+						mergeDefaultSetValue);			// Add forms, questions, options
 				
 				
 				if(getResults) {								// Add results
@@ -778,7 +780,8 @@ public class SurveyManager {
 			boolean getSoftDeleted,
 			boolean getHrk,
 			boolean getChangeHistory,
-			boolean getRoles) throws Exception {
+			boolean getRoles,
+			boolean mergeDefaultSetValue) throws Exception {
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
@@ -888,7 +891,8 @@ public class SurveyManager {
 					f.tableName,
 					basePath,
 					oId,
-					s);
+					s,
+					mergeDefaultSetValue);
 
 			s.forms.add(f);
 		} 
@@ -2881,7 +2885,8 @@ public class SurveyManager {
 						superUser,
 						geomFormat,
 						referencedSurveys,					// follow links to child surveys
-						onlyGetLaunched		// Use with referenceSuveys to restrict results to those created by launching another form
+						onlyGetLaunched,  		// Use with referenceSuveys to restrict results to those created by launching another form
+						false					// Don't need to merge setValues
 					);
 				
 				

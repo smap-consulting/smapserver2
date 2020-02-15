@@ -149,7 +149,8 @@ public class CreatePDF extends Application {
 					superUser, 
 					"geojson",
 					referenceSurveys,
-					onlyGetLaunched);
+					onlyGetLaunched,
+					false);	       // Don't merge set values into default value
 			PDFSurveyManager pm = new PDFSurveyManager(localisation, sd, cResults, survey, request.getRemoteUser(), tz);
 			
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";

@@ -204,7 +204,9 @@ public class XFormData {
 								null, 		// Table name only required for HRK
 								basePath, 
 								0,			// Organisation Id - only required to get labels 
-								null);		// Survey - only required to get labels 
+								null,		// Survey - only required to get labels 
+								false		// Don't merge setValues into default
+								);		
 						
 						for(Question q : questions) {
 							if(debug) {			// debug

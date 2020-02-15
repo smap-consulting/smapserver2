@@ -221,4 +221,17 @@ public class Question {
 			setValues = gson.fromJson(v, new TypeToken<ArrayList<SetValue>>() {}.getType());
 		}
 	}
+	
+	public String getDefaultSetValue() {
+		String def = null;
+		if(setValues != null && setValues.size() > 0) {
+			for(SetValue sv : setValues) {
+				if(sv.event.equals(SetValue.START)) {
+					def = sv.value;
+					break;
+				}
+			}
+		}
+		return def;
+	}
 }

@@ -135,7 +135,8 @@ public class ExportLQAS extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			// Get the survey details
 			survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, false, basePath, null, false, false, 
-					false, false, false, "real", false, false, superUser, null, false, false);
+					false, false, false, "real", false, false, superUser, null, false, false,
+				    false);		// Don't merge set values into default value
 			
 			/*
 			 * Get the LQAS definition to apply to this survey

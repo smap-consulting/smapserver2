@@ -114,7 +114,8 @@ public class CreateXLSForm extends Application {
 					superUser, 
 					null,		// Geometry format
 					false,		// include child surveys
-					false		// only get launched
+					false,		// only get launched
+					false		// Don't merge set values into default value
 					);
 			
 			// Set file name

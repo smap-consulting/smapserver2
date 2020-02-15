@@ -1030,7 +1030,8 @@ public class TaskManager {
 							true, 		// Set super user true so that roles are ignored
 							"geojson",
 							false,		// Do not test in child surveys (at least not yet)
-							false		// launched only
+							false,		// launched only
+							false		// Don't merge set value into default values
 							);	
 				}
 
@@ -1097,7 +1098,8 @@ public class TaskManager {
 									true,		// superuser 
 									null, 		// geomformat
 									false, 		// reference surveys
-									false		// only get launched
+									false,		// only get launched
+									false		// Don't merge set value into default values
 									);
 						}
 						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
@@ -3148,7 +3150,8 @@ public class TaskManager {
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				false,		// Do not include child surveys (at least not yet)
-				false		// launched only
+				false,		// launched only
+				false		// Don't merge set value into default values
 				);
 		
 		try {

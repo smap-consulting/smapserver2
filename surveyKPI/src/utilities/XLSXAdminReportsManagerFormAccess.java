@@ -137,9 +137,10 @@ public class XLSXAdminReportsManagerFormAccess {
 					false, 		// get changed history
 					true, 		// get roles
 					true, 		// Pretend to be super user
-					null	,		// geom format
+					null,		// geom format
 					false,		// Child surveys
-					false		// launched only
+					false,		// launched only
+					false		// Don't merge set values into default value
 					);
 			/*
 			 * Write the form overview

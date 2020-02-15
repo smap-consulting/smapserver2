@@ -608,7 +608,8 @@ public class UploadFiles extends Application {
 						false, basePath, null, false, false, false, 
 						false, false, null, false, false, superUser, null, 
 						false,
-						false		// launched only
+						false,		// launched only
+						false		// Don't merge set values into default value
 						);
 				displayName = existingSurvey.displayName;
 				existingVersion = existingSurvey.version;
@@ -715,7 +716,8 @@ public class UploadFiles extends Application {
 						superUser, 
 						null	,				// geom format
 						false,					// Include child surveys
-						false					// launched only
+						false,					// launched only
+						false		// Don't merge set values into default value
 						);
 			}
 			

@@ -595,7 +595,8 @@ public class NotificationManager {
 						true, 			// pretend to be super user
 						"geojson",
 						false,			// Do not follow links to child surveys
-						false	// launched only
+						false,	// launched only
+						false		// Don't merge set value into default values
 						);	
 				
 				/*
@@ -711,7 +712,8 @@ public class NotificationManager {
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				msg.include_references,	// For PDFs follow links to referenced surveys
-				msg.launchedOnly			// launched only
+				msg.launchedOnly,			// launched only
+				false		// Don't merge set value into default values
 				);
 		
 		Survey updateSurvey = null;
@@ -721,7 +723,8 @@ public class NotificationManager {
 					msg.instanceId, true, generateBlank, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,		// For PDFs follow links to referenced surveys
-					msg.launchedOnly			// launched only
+					msg.launchedOnly,			// launched only
+					false		// Don't merge set value into default values
 					);
 		}
 		

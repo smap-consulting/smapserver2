@@ -229,7 +229,8 @@ public class Surveys extends Application {
 					superUser,
 					null,
 					false,		// Do not include child surveys
-					false		// launched only
+					false,		// launched only
+					true		// merge setValues into default value
 					);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(survey);
@@ -313,7 +314,8 @@ public class Surveys extends Application {
 					basePath, null, false, false, true, true, false,
 					"internal", false, false, true, null,
 					false,		// Do not include child surveys
-					false		// launched only
+					false,		// launched only
+					true		// Merge set values into default value
 					);
 			log.info("userevent: " + request.getRemoteUser() + " : create empty survey : " + name + " in project " + projectId);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -395,7 +397,8 @@ public class Surveys extends Application {
 					basePath, null, false, false, true, true, false,
 					"internal", false, false, true, null,
 					false,		// Do not include child surveys
-					false		// launched only
+					false,		// launched only
+					true		// Merge default values into set value
 					);
 			
 			// Record the message so that devices can be notified

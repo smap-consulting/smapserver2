@@ -177,7 +177,8 @@ public class AllAssignments extends Application {
 						basePath, 
 						null, false, false, false, false, false, "real", false, false, superUser, "geojson",
 						false,		// child surveys
-						false		// onlyGetLaunched
+						false,		// onlyGetLaunched
+						false       // Don't merge set values into default value
 						);	
 			}
 			

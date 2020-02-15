@@ -248,7 +248,8 @@ public class Admin extends Application {
 							true, 			// pretend to be super user
 							"geojson",
 							false,			// Do not follow links to child surveys
-							false	// launched only
+							false,	// launched only
+							false		// Don't merge set value into default values
 							);	
 					
 					String filter = rsNot.getString(1);
