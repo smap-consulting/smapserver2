@@ -19,42 +19,23 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.managers.BillingManager;
 import org.smap.sdal.managers.CsvTableManager;
-import org.smap.sdal.model.BillLineItem;
-import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.CsvTable;
-import org.smap.sdal.model.Enterprise;
-import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.RateDetail;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import utilities.XLSBillingManager;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
