@@ -1,0 +1,153 @@
+package surveyKPI;
+
+/*
+This file is part of SMAP.
+
+SMAP is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+SMAP is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
+
+*/
+
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.core.Application;
+import javax.ws.rs.core.Context;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.EmailManager;
+import org.smap.sdal.managers.NotificationManager;
+import org.smap.sdal.managers.PeopleManager;
+import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Notification;
+import org.smap.sdal.model.People;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
+import java.lang.reflect.Type;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+/*
+ * Manage subscribers
+ * This is closely related to the subscribers service
+ */
+@Path("/people")
+public class PeopleSvc extends Application {
+
+	private static Logger log =
+			 Logger.getLogger(PeopleSvc.class.getName());
+	
+	Authorise a = null;	
+	
+	public PeopleSvc() {
+		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.ADMIN);
+		a = new Authorise(authorisations, null);		
+	}
+
+	/*
+	 * Add a person
+	 */
+	@Path("/add")
+	@POST
+	public Response addPerson(@Context HttpServletRequest request,
+			@FormParam("person") String personString) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-Survey - add notification";
+		
+		Type type = new TypeToken<Notification>(){}.getType();
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		People person = gson.fromJson(personString, type);
+		
+		log.info("Add Person:========== " + personString);
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		PreparedStatement pstmt = null;
+		
+		try {	
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			PeopleManager pm = new PeopleManager(localisation);
+ 
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			pm.addPerson(sd, oId, person);
+			
+			response = Response.ok().build();
+			
+		} catch (SQLException e) {
+			String msg = e.getMessage();
+			if(msg.contains("forwarddest")) {	// Unique key
+				response = Response.serverError().entity("Duplicate forwarding address").build();
+			} else {
+				response = Response.serverError().entity("SQL Error").build();
+				log.log(Level.SEVERE,"SQL Exception", e);
+			}
+		} catch (AuthorisationException e) {
+			log.info("Authorisation Exception");
+		    response = Response.serverError().entity("Not authorised").build();
+		} catch (ApplicationException e) {
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			log.info(msg);
+			if(msg == null) {
+				msg = "System Error";
+			}
+			if(msg != null && !msg.contains("forwarded to itself")) {
+				msg = "System Error";
+				log.log(Level.SEVERE,"Error", e);
+			}
+		    response = Response.serverError().entity(msg).build();
+		} finally {
+			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
+
+}
+

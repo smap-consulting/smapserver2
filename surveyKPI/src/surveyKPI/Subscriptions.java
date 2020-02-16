@@ -29,33 +29,21 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.smap.notifications.interfaces.EmitNotifications;
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
-import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.PeopleManager;
-import org.smap.sdal.managers.ProjectManager;
-import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.Project;
-import org.smap.sdal.model.User;
-import org.smap.sdal.model.UserGroup;
-
-import com.google.gson.Gson;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
- * Returns a list of all projects that are in the same organisation as the user making the request
+ * Manage subscribers
+ * This is closely related to the People service
  */
 @Path("/subscriptions")
 public class Subscriptions extends Application {

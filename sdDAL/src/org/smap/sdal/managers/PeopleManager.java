@@ -271,7 +271,7 @@ public class PeopleManager {
 	}
 	
 	/*
-	 * Subscribe the user based on the key
+	 * Get the organisation and email from the key
 	 */
 	public People getOrganisationFromSubscriberKey(Connection sd, 
 			String key) throws SQLException, ApplicationException {
@@ -300,6 +300,22 @@ public class PeopleManager {
 
 	}
 
+	public void addPerson(Connection sd, int oId, People person) {
+		
+		String sql = "insert into people "
+				+ "(o_id, email, name) "
+				+ "values(?, ?, ?)";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
 }
 
 
