@@ -9,4 +9,5 @@ public class SubItemDt {
 	public String email;
 	public String name;
 	public String status;
+	public String status_loc;
 }

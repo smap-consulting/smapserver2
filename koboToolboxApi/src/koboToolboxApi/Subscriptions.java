@@ -127,21 +127,29 @@ public class Subscriptions extends Application {
 				 * Get status
 				 */
 				String status = "";
+				String status_loc = "";
 				boolean unsubscribed = rs.getBoolean("unsubscribed");
 				boolean optedin = rs.getBoolean("opted_in");
 				if(unsubscribed) {
-					status = localisation.getString("c_unsubscribed");
+					status = "unsubscribed";
+					status_loc = localisation.getString("c_unsubscribed");
 				} else if(optedin) {
-					status = localisation.getString("c_s2");
+					status = "subscribed";
+					status_loc = localisation.getString("c_s2");
 				} else {
 					String optedInSent = rs.getString("opted_in_sent");
 					if(optedInSent != null) {
-						status = localisation.getString("c_pending");
+						status = "pending";
+						status_loc = localisation.getString("c_pending");
 					} else {
-						status = localisation.getString("c_new");
+						status = "new";
+						status_loc = localisation.getString("c_new");
 					}
 				}
 				item.status = status;
+				if(dt) {
+					item.status_loc = status_loc;
+				}
 				
 				data.add(item);
 			}
