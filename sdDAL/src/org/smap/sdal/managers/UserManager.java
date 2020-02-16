@@ -1433,6 +1433,11 @@ public class UserManager {
 					+ "and u.o_id = ?";					
 			pstmtHardDelete = sd.prepareStatement(sqlHardDelete);	
 			
+			// Perform a hard delete of the user from all organisations. only organisational administrators should be able to call this
+			String sqlHardDeleteAll = "delete from users u "  
+					+ "where u.id = ? ";				
+			pstmtHardDeleteAll = sd.prepareStatement(sqlHardDeleteAll);	
+			
 			// Get the user ident to use in deleting dependent records
 			String sqlGetIdent = "select u.ident "
 					+ "from users u "
@@ -1463,12 +1468,6 @@ public class UserManager {
 			 */
 			if(organisationList.size() <= 1) {
 				// Only one organisation so perform a Hard delete
-				
-				// Perform a hard delete of the user from all organisations. only organisational administrators should be able to call this
-				String sqlHardDeleteAll = "delete from users u "  
-						+ "where u.id = ? ";				
-				pstmtHardDeleteAll = sd.prepareStatement(sqlHardDeleteAll);	
-				
 				hardDelete(sd, 
 						pstmtHardDelete, 
 						localisation,
