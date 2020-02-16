@@ -73,17 +73,15 @@ public class Subscriptions extends Application {
 	 * Get subscription entries
 	 */
 	@GET
-	@Path("/dt")
 	@Produces("application/json")
 	public Response getSubscriptions(@Context HttpServletRequest request,
-			@QueryParam("draw") int draw
+			@QueryParam("dt") boolean dt
 			) { 
 		
 		String connectionString = "API - get subscriptions";
 		Response response = null;
 		String user = request.getRemoteUser();
-		SubsDt subs = new SubsDt();
-		subs.draw = draw;
+		ArrayList<SubItemDt> data = new ArrayList<> ();
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -101,7 +99,8 @@ public class Subscriptions extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);			
 			
 			// Get the data
-			String sql = "select id, email, unsubscribed, opted_in, opted_in_sent "
+			String sql = "select id, email, unsubscribed, opted_in, opted_in_sent,"
+					+ "name "
 					+ "from people "
 					+ "where o_id = ? "
 					+ "order by email asc";
@@ -119,36 +118,43 @@ public class Subscriptions extends Application {
 
 				item.id = rs.getInt("id");
 				item.email = rs.getString("email");
+				item.name = rs.getString("name");
+				if(item.name == null) {
+					item.name = "";
+				}
 				
 				/*
 				 * Get status
 				 */
 				String status = "";
-				boolean include = false;
 				boolean unsubscribed = rs.getBoolean("unsubscribed");
 				boolean optedin = rs.getBoolean("opted_in");
 				if(unsubscribed) {
-					include = true;
 					status = localisation.getString("c_unsubscribed");
 				} else if(optedin) {
-					include = true;
 					status = localisation.getString("c_s2");
 				} else {
-					status = localisation.getString("c_pending");
 					String optedInSent = rs.getString("opted_in_sent");
 					if(optedInSent != null) {
-						include = true;
+						status = localisation.getString("c_pending");
+					} else {
+						status = localisation.getString("c_new");
 					}
 				}
 				item.status = status;
 				
-				if(include) {
-					subs.data.add(item);
-				}
+				data.add(item);
 			}
 						
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-			response = Response.ok(gson.toJson(subs)).build();
+			
+			if(dt) {
+				SubsDt subs = new SubsDt();
+				subs.data = data;
+				response = Response.ok(gson.toJson(subs)).build();
+			} else {
+				response = Response.ok(gson.toJson(data)).build();
+			}
 			
 	
 		} catch (Exception e) {

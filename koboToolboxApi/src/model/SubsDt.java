@@ -6,8 +6,5 @@ import java.util.ArrayList;
  */
 public class SubsDt {
 	
-	public int draw;
-	public int recordsTotal;
-	public int recordsFiltered;
-	public ArrayList<SubItemDt> data = new ArrayList<> ();
+	public ArrayList<SubItemDt> data = null;
 }
