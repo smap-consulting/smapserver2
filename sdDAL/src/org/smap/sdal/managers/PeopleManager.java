@@ -311,7 +311,7 @@ public class PeopleManager {
 	/*
 	 * Add a person
 	 */
-	public void addPerson(Connection sd, int oId, People person) {
+	public void addPerson(Connection sd, int oId, People person) throws SQLException, ApplicationException {
 		
 		String sql = "insert into people "
 				+ "(o_id, email, name) "
@@ -320,9 +320,45 @@ public class PeopleManager {
 		PreparedStatement pstmt = null;
 		
 		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2,  person.email);
+			pstmt.setString(3, person.name);
+			log.info("Add person: " + pstmt.toString());
+			pstmt.executeUpdate();
+		
+		} catch(Exception e) {
+			String msg = e.getMessage();
+			if(msg != null && msg.contains("duplicate key value violates unique constraint")) {
+				throw new ApplicationException(localisation.getString("subs_dup_email"));
+			} else {
+				throw e;
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+	
+	/*
+	 * Update a person details
+	 */
+	public void updatePerson(Connection sd, People person) throws SQLException {
+		
+		String sql = "update people "
+				+ "set email = ?,"
+				+ "name = ?"
+				+ "where id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  person.email);
+			pstmt.setString(2, person.name);	
+			pstmt.setInt(3, person.id);
 			
-			
-
+			log.info("Update person: " + pstmt.toString());
+			pstmt.executeUpdate();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}

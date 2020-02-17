@@ -76,7 +76,6 @@ public class PeopleSvc extends Application {
 	/*
 	 * Add a person
 	 */
-	@Path("/add")
 	@POST
 	public Response addPerson(@Context HttpServletRequest request,
 			@FormParam("person") String personString) { 
@@ -84,22 +83,18 @@ public class PeopleSvc extends Application {
 		Response response = null;
 		String connectionString = "surveyKPI-Survey - add notification";
 		
-		Type type = new TypeToken<Notification>(){}.getType();
+		Type type = new TypeToken<People>(){}.getType();
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		People person = gson.fromJson(personString, type);
 		
 		log.info("Add Person:========== " + personString);
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
 		a.isAuthorised(sd, request.getRemoteUser());
+		if(person.id > 0) {
+			a.isValidOptin(sd, request.getRemoteUser(), person.id);
+		}
 		// End Authorisation
-		
-		PreparedStatement pstmt = null;
 		
 		try {	
 			// Localisation			
@@ -109,7 +104,11 @@ public class PeopleSvc extends Application {
 			PeopleManager pm = new PeopleManager(localisation);
  
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			pm.addPerson(sd, oId, person);
+			if(person.id <= 0) {
+				pm.addPerson(sd, oId, person);
+			} else {
+				pm.updatePerson(sd, person);
+			}
 			
 			response = Response.ok().build();
 			
@@ -130,14 +129,8 @@ public class PeopleSvc extends Application {
 			if(msg == null) {
 				msg = "System Error";
 			}
-			if(msg != null && !msg.contains("forwarded to itself")) {
-				msg = "System Error";
-				log.log(Level.SEVERE,"Error", e);
-			}
 		    response = Response.serverError().entity(msg).build();
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 			

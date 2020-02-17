@@ -37,7 +37,7 @@ public class AuthorisationException extends WebApplicationException {
 	}
 	
 	public AuthorisationException(String message, String system) {
-	        super(Response.status(Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE, system)
+	        super(Response.status(Status.FORBIDDEN).header(HttpHeaders.WWW_AUTHENTICATE, system)
 	                .entity(message).build());
 	}
 }
