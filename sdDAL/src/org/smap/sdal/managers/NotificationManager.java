@@ -909,7 +909,7 @@ public class NotificationManager {
 									if(subStatus.unsubscribed) {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
-										if(subStatus.optedIn) {
+										if(subStatus.optedIn || !organisation.send_optin) {
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 
@@ -1273,7 +1273,7 @@ public class NotificationManager {
 									if(subStatus.unsubscribed) {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
-										if(subStatus.optedIn) {
+										if(subStatus.optedIn || !organisation.send_optin) {
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 

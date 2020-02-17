@@ -36,6 +36,7 @@ public class Organisation {
 	public boolean can_submit = true;
 	public boolean email_task = false;
 	public boolean can_sms = false;
+	public boolean send_optin = true;
 	public String changed_by;
 	public String changed_ts;
 	public String admin_email;

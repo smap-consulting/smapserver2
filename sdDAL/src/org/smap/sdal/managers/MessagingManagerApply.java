@@ -344,7 +344,7 @@ public class MessagingManagerApply {
 				+ "where pm.email = p.email "
 				+ "and pm.o_id = p.o_id "
 				+ "and p.unsubscribed = false "
-				+ "and p.opted_in = true "
+				+ "and (p.opted_in = true or p.o_id in (select id from organisation where not send_optin) "
 				+ "and pm.processed_time is null";
 
 		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
