@@ -16,7 +16,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
-*/
+ */
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.FormParam;
@@ -30,8 +30,10 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.ServerException;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.PeopleManager;
@@ -56,8 +58,8 @@ import java.util.logging.Logger;
 public class Subscriptions extends Application {
 
 	private static Logger log =
-			 Logger.getLogger(Subscriptions.class.getName());
-	
+			Logger.getLogger(Subscriptions.class.getName());
+
 	/*
 	 * Unsubscribe
 	 */
@@ -66,16 +68,16 @@ public class Subscriptions extends Application {
 	public Response unsubscribe(
 			@Context HttpServletRequest request,
 			@PathParam("token") String token) { 
-		
+
 		Response response = null;
-		
+
 		log.info("Unsubscribing user: " + token);
-		
+
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
-		
+
 		PreparedStatement pstmt = null;
 		try {
-			
+
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -84,12 +86,12 @@ public class Subscriptions extends Application {
 			} 
 			Locale locale = new Locale(loc_code);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
-			
+
 			PeopleManager pm = new PeopleManager(localisation);
 			pm.unsubscribe(sd, token);
-			
+
 			response = Response.ok().build();	
-				
+
 		} catch(ApplicationException e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} catch(Exception e) {
@@ -98,10 +100,10 @@ public class Subscriptions extends Application {
 		} finally {
 			SDDataSource.closeConnection("surveyKPI-Register", sd);
 		}
-		
+
 		return response;
 	}
-	
+
 
 	/*
 	 * Subscribe Step 1
@@ -112,21 +114,15 @@ public class Subscriptions extends Application {
 	public Response subscribe(
 			@Context HttpServletRequest request,
 			@FormParam("email") String email,
-			@FormParam("oId") int oId) { 
-		
+			@FormParam("oId") int oId) {
+
 		Response response = null;
 		String connectionString = "SurveyKPI - Post Subscribe";
-		
+
 		Connection sd = SDDataSource.getConnection(connectionString);
-		
-		// Start authorisation
-		// An email must already exist for that organisation
-		Authorise a = new Authorise(null, null);
-		a.subscriptionExists(sd, oId, email);
-		// End authorisation
-		
+
 		try {
-			
+
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -135,44 +131,48 @@ public class Subscriptions extends Application {
 			} 
 			Locale locale = new Locale(loc_code);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
-			
-			PeopleManager pm = new PeopleManager(localisation);
-			String key = pm.getSubscriptionKey(sd, oId, email);
-			
-			if(key != null) {
-				// Update succeeded
-				log.info("Sending email");
-				
-				EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser());
-				
-				if(emailServer.smtpHost != null) {
-				    
-				    String subject = localisation.getString("c_s");
-				    String sender = "subscribe";
-				    EmailManager em = new EmailManager();
-					em.sendEmail(email, null, "subscribe", subject, null, sender, null, null, 
-				    		null, null, null, null, null, emailServer, 
-				    		request.getScheme(),
-				    		request.getServerName(),
-				    		key,	// email key
-				    		localisation,
-				    		null,
-				    		null);
-				    response = Response.ok().build();
+
+			if(subscriptionExists(sd, oId, email)) {
+				PeopleManager pm = new PeopleManager(localisation);
+				String key = pm.getSubscriptionKey(sd, oId, email);
+
+				if(key != null) {
+					// Update succeeded
+					log.info("Sending email");
+
+					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser());
+
+					if(emailServer.smtpHost != null) {
+
+						String subject = localisation.getString("c_s");
+						String sender = "subscribe";
+						EmailManager em = new EmailManager();
+						em.sendEmail(email, null, "subscribe", subject, null, sender, null, null, 
+								null, null, null, null, null, emailServer, 
+								request.getScheme(),
+								request.getServerName(),
+								key,	// email key
+								localisation,
+								null,
+								null);
+						response = Response.ok().build();
+					} else {
+						String msg = "Error password reset.  Email not enabled on this server.";
+						log.info(msg);
+						msg = localisation.getString("email_ne");
+						response = Response.status(Status.NOT_FOUND).entity(msg).build();
+					}
 				} else {
-					String msg = "Error password reset.  Email not enabled on this server.";
+					// email was not found 
+					String msg = localisation.getString("email_nf") + " :" + email;
 					log.info(msg);
-					msg = localisation.getString("email_ne");
 					response = Response.status(Status.NOT_FOUND).entity(msg).build();
 				}
+				response = Response.ok().build();	
 			} else {
-				// email was not found 
-				String msg = localisation.getString("email_nf") + " :" + email;
-				log.info(msg);
-				response = Response.status(Status.NOT_FOUND).entity(msg).build();
+				response = Response.serverError().entity(localisation.getString("subs_no_org")).build();
 			}
-			response = Response.ok().build();	
-				
+
 		} catch(ApplicationException e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} catch(Exception e) {
@@ -181,10 +181,10 @@ public class Subscriptions extends Application {
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
+
 		return response;
 	}
-	
+
 	/*
 	 * Subscribe step 2
 	 * Confirm the subscription by submitting a token
@@ -194,17 +194,17 @@ public class Subscriptions extends Application {
 	public Response subscribeStep2(
 			@Context HttpServletRequest request,
 			@PathParam("token") String token) { 
-		
+
 		Response response = null;
-		
+
 		log.info("Subscribing user: " + token);
 		String connectionString = "surveyKPI-Subscribe Step 2";
-		
+
 		Connection sd = SDDataSource.getConnection(connectionString);
-		
+
 		PreparedStatement pstmt = null;
 		try {
-			
+
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -213,12 +213,12 @@ public class Subscriptions extends Application {
 			} 
 			Locale locale = new Locale(loc_code);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
-			
+
 			PeopleManager pm = new PeopleManager(localisation);
 			pm.subscribeStep2(sd, token);
-			
+
 			response = Response.ok().build();	
-				
+
 		} catch(ApplicationException e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} catch(Exception e) {
@@ -227,10 +227,10 @@ public class Subscriptions extends Application {
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
+
 		return response;
 	}
-	
+
 	/*
 	 * Validate an email when doing a self subscription
 	 */
@@ -239,17 +239,17 @@ public class Subscriptions extends Application {
 	public Response validateEmail(
 			@Context HttpServletRequest request,
 			@PathParam("email") String email) { 
-		
+
 		Response response = null;
-		
+
 		log.info("Validating email: " + email);
 		String connectionString = "surveyKPI-Subscribe Validate Email";
-		
+
 		Connection sd = SDDataSource.getConnection(connectionString);
-		
+
 		PreparedStatement pstmt = null;
 		try {
-			
+
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -258,22 +258,55 @@ public class Subscriptions extends Application {
 			} 
 			Locale locale = new Locale(loc_code);
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
-			
+
 			PeopleManager pm = new PeopleManager(localisation);
 			ArrayList<OrganisationLite> oList = pm.getUnsubOrganisationsFromEmail(sd, email);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
 			response = Response.ok(gson.toJson(oList)).build();	
-				
+
 		} catch(Exception e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
-		
+
 		return response;
 	}
 
+	/*
+	 * Verify that the subscription is valid
+	 */
+	public boolean subscriptionExists(Connection sd, int oId, String email) {
+
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+
+		String sql = "select count(*) from people where o_id = ? and email = ?";
+
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, email);
+			log.info("Subscription Exists: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+			}
+		}
+
+		return count > 0;
+	}
 }
 

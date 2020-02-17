@@ -1378,55 +1378,6 @@ public class Authorise {
 	}
 	
 	/*
-	 * Verify that the subscription is valid
-	 */
-	public boolean subscriptionExists(Connection conn, int oId, String email) {
-		ResultSet resultSet = null;
-		PreparedStatement pstmt = null;
-		int count = 0;
-		boolean sqlError = false;
-
-		String sql = "select count(*) from people where o_id = ? and email = ?";
-		
-		try {
-			pstmt = conn.prepareStatement(sql);
-			pstmt.setInt(1, oId);
-			pstmt.setString(2, email);
-			log.info("Subscription Exists: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-			resultSet.next();
-			
-			count = resultSet.getInt(1);
-		} catch (Exception e) {
-			log.log(Level.SEVERE,"Error in Authorisation", e);
-			sqlError = true;
-		} finally {
-			// Close the result set and prepared statement
-			try{
-				if(resultSet != null) {resultSet.close();};
-				if(pstmt != null) {pstmt.close();};
-			} catch (Exception ex) {
-				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
-			}
-		}
-		
- 		if(count == 0) {
- 			log.info("Security: Subscription exists validation failed for organisation: " 
- 					+ oId + " and email " + email);
- 			
- 			SDDataSource.closeConnection("isValidOrganisation", conn);
-			
-			if(sqlError) {
-				throw new ServerException();
-			} else {
-				throw new AuthorisationException();
-			}
-		} 
- 		
-		return true;
-	}
-	
-	/*
 	 * Verify that the user is a member of the same enterpise as the organisation
 	 */
 	public boolean isOrganisationInEnterprise(Connection conn, String user, int oId) {
