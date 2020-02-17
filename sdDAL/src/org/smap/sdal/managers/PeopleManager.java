@@ -4,11 +4,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.model.OrganisationLite;
 import org.smap.sdal.model.People;
 import org.smap.sdal.model.SubscriptionStatus;
 
@@ -109,35 +111,37 @@ public class PeopleManager {
 	/*
 	 * Get key that can be used to subscribe to emails
 	 */
-	public String getSubscriptionKey(Connection sd, String email) throws SQLException, ApplicationException {
+	public String getSubscriptionKey(Connection sd, int oId, String email) throws SQLException, ApplicationException {
 		
 		String sqlRegulate = "select count(*) "
 				+ "from people "
 				+ "where email = ? "
+				+ "and o_id = ? "
 				+ "and unsubscribed "
 				+ "and (when_requested_subscribe + interval '1 day') > timestamp 'now' ";
 		PreparedStatement pstmtRegulate = null;
 		
 		String sql = "select unsubscribed, uuid "
 				+ "from people "
-				+ "where email = ?";
+				+ "where email = ? "
+				+ "and o_id = ? ";
 		PreparedStatement pstmt = null;
 		
 		// Create an entry with the user initially unsubscribed
 		String sqlCreate = "insert into people "
 				+ "(o_id, email, unsubscribed, uuid, when_requested_subscribe) "
-				+ "values(0, ?, 'true', ?, now())";
+				+ "values(?, ?, 'true', ?, now())";
 		PreparedStatement pstmtCreate = null;
 		
 		String sqlUpdate = "update people set "
 				+ "uuid = ?, "
 				+ "when_requested_subscribe = now() "
-				+ "where email = ?";		
+				+ "where email = ? "
+				+ "and o_id = ? ";		
 		PreparedStatement pstmtUpdate = null;
 		
 		String key = null;
-		try {
-			
+		try {			
 			
 			if(email != null) {
 				
@@ -146,6 +150,7 @@ public class PeopleManager {
 				// Make sure no subscribe requests have been made in the last 24 hours
 				pstmtRegulate = sd.prepareStatement(sqlRegulate);
 				pstmtRegulate.setString(1, email);
+				pstmtRegulate.setInt(2, oId);
 				log.info("Check for aleady sent subscription request: " + pstmtRegulate.toString());
 				ResultSet rs = pstmtRegulate.executeQuery();
 				if(rs.next() && rs.getInt(1) > 0) {
@@ -158,6 +163,7 @@ public class PeopleManager {
 				 */
 				pstmt = sd.prepareStatement(sql);	
 				pstmt.setString(1, email);
+				pstmt.setInt(2, oId);
 				
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
@@ -169,6 +175,7 @@ public class PeopleManager {
 						pstmtUpdate = sd.prepareStatement(sqlUpdate);				
 						pstmtUpdate.setString(1, key);
 						pstmtUpdate.setString(2, email);
+						pstmtUpdate.setInt(3, oId);
 						pstmtUpdate.executeUpdate();
 					} else {
 						throw new ApplicationException(localisation.getString("c_as"));
@@ -177,8 +184,9 @@ public class PeopleManager {
 					// Create a key for this email and save it in the people table
 					key = UUID.randomUUID().toString();
 					pstmtCreate = sd.prepareStatement(sqlCreate);
-					pstmtCreate.setString(1, email);
-					pstmtCreate.setString(2, key);
+					pstmtCreate.setInt(1, oId);
+					pstmtCreate.setString(2, email);
+					pstmtCreate.setString(3, key);
 					pstmtCreate.executeUpdate();
 				}
 			}
@@ -300,6 +308,9 @@ public class PeopleManager {
 
 	}
 
+	/*
+	 * Add a person
+	 */
 	public void addPerson(Connection sd, int oId, People person) {
 		
 		String sql = "insert into people "
@@ -315,6 +326,33 @@ public class PeopleManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+	}
+	
+	/*
+	 * Get all organisations where the specified email is unsubscribed
+	 */
+	public ArrayList<OrganisationLite> getUnsubOrganisationsFromEmail(Connection sd, String email) throws SQLException {
+		
+		String sql = "select o.id, o.name from people p, organisation o "
+				+ "where p.o_id = o.id "
+				+ "and p.email = ?"
+				+ "and p.unsubscribed";
+		
+		PreparedStatement pstmt = null;
+		
+		ArrayList<OrganisationLite> oList = new ArrayList<> ();
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, email);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				oList.add(new OrganisationLite(rs.getInt(1), rs.getString(2)));
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		return oList;
 	}
 }
 

@@ -30,12 +30,19 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.OrganisationLite;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -104,12 +111,19 @@ public class Subscriptions extends Application {
 	@Path("/subscribe")
 	public Response subscribe(
 			@Context HttpServletRequest request,
-			@FormParam("email") String email) { 
+			@FormParam("email") String email,
+			@FormParam("oId") int oId) { 
 		
 		Response response = null;
 		String connectionString = "SurveyKPI - Post Subscribe";
 		
 		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		// Start authorisation
+		// An email must already exist for that organisation
+		Authorise a = new Authorise(null, null);
+		a.subscriptionExists(sd, oId, email);
+		// End authorisation
 		
 		try {
 			
@@ -123,7 +137,7 @@ public class Subscriptions extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			PeopleManager pm = new PeopleManager(localisation);
-			String key = pm.getSubscriptionKey(sd, email);
+			String key = pm.getSubscriptionKey(sd, oId, email);
 			
 			if(key != null) {
 				// Update succeeded
@@ -207,6 +221,50 @@ public class Subscriptions extends Application {
 				
 		} catch(ApplicationException e) {
 			response = Response.serverError().entity(e.getMessage()).build();
+		} catch(Exception e) {
+			response = Response.serverError().entity(e.getMessage()).build();
+			log.log(Level.SEVERE,"Error", e);
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Validate an email when doing a self subscription
+	 */
+	@GET
+	@Path("/validateEmail/{email}")
+	public Response validateEmail(
+			@Context HttpServletRequest request,
+			@PathParam("email") String email) { 
+		
+		Response response = null;
+		
+		log.info("Validating email: " + email);
+		String connectionString = "surveyKPI-Subscribe Validate Email";
+		
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		PreparedStatement pstmt = null;
+		try {
+			
+			// Localisation
+			String hostname = request.getServerName();
+			String loc_code = "en";
+			if(hostname.contains("kontrolid")) {
+				loc_code = "es";
+			} 
+			Locale locale = new Locale(loc_code);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
+			
+			PeopleManager pm = new PeopleManager(localisation);
+			ArrayList<OrganisationLite> oList = pm.getUnsubOrganisationsFromEmail(sd, email);
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+			response = Response.ok(gson.toJson(oList)).build();	
+				
 		} catch(Exception e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);

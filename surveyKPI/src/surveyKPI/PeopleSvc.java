@@ -124,8 +124,6 @@ public class PeopleSvc extends Application {
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
 		    response = Response.serverError().entity("Not authorised").build();
-		} catch (ApplicationException e) {
-		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
 			String msg = e.getMessage();
 			log.info(msg);
