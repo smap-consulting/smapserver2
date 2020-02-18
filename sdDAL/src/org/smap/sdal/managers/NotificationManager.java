@@ -937,6 +937,7 @@ public class NotificationManager {
 											 * Move message to pending messages and send opt in message if needed
 											 */ 
 											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg, 
+													null,
 													subStatus.optedInSent,
 													organisation.getAdminEmail(),
 													emailServer,
@@ -1300,7 +1301,8 @@ public class NotificationManager {
 											 * User needs to opt in before email can be sent
 											 * Move message to pending messages and send opt in message if needed
 											 */ 
-											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg, 
+											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, msg,
+													null,
 													subStatus.optedInSent,
 													organisation.getAdminEmail(),
 													emailServer,

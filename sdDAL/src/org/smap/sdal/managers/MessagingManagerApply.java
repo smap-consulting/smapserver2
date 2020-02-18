@@ -204,7 +204,9 @@ public class MessagingManagerApply {
 							msg.user,
 							basePath,
 							"https",
-							serverName); 
+							serverName,
+							topic,
+							true);		// create pending if needed
 					
 					
 				} else {
@@ -344,7 +346,7 @@ public class MessagingManagerApply {
 				+ "where pm.email = p.email "
 				+ "and pm.o_id = p.o_id "
 				+ "and p.unsubscribed = false "
-				+ "and (p.opted_in = true or p.o_id in (select id from organisation where not send_optin) "
+				+ "and (p.opted_in = true or p.o_id in (select id from organisation where not send_optin)) "
 				+ "and pm.processed_time is null";
 
 		String sqlConfirm = "update pending_message set processed_time = now(), status = ? where id = ?; ";
@@ -424,8 +426,26 @@ public class MessagingManagerApply {
 							false		// Do not create pending
 							); 
 					
+				} else if(topic.equals("email_task")) {
+					TaskManager tm = new TaskManager(localisation, tz);
+
+					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
+						
+					tm.emailTask(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							msg.user,
+							basePath,
+							"https",
+							serverName,
+							topic,
+							false);		// Do not create pending
+					
+					
 				} else {
-					// Assume a direct email to be processed immediately
 
 					log.info("+++++++++ opt in send pending +++++++++ Unknown topic: " + topic);
 					status = "error";

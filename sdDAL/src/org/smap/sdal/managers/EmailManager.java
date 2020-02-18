@@ -297,8 +297,6 @@ public class EmailManager {
 				txtMessage.append("/subscriptions.html?token=");
 				txtMessage.append(emailKey);
 			}
-
-			System.out.println(txtMessage.toString());		// debug
 			
 			BodyPart messageBodyPart = new MimeBodyPart();
 			messageBodyPart.setText(txtMessage.toString());

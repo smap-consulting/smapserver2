@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.OrgResourceMessage;
 import org.smap.sdal.model.ProjectMessage;
 import org.smap.sdal.model.SubmissionMessage;
@@ -144,6 +145,7 @@ public class MessagingManager {
 	 */
 	public void saveToPending(Connection sd, int oId, String email, String topic, 
 			SubmissionMessage msg,
+			EmailTaskMessage tMsg,
 			Timestamp optInSent,
 			String adminEmail,
 			EmailServer emailServer,
@@ -154,19 +156,27 @@ public class MessagingManager {
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
-		/*
-		 *Copy message to a new object so we don't affect processing of the original message
-		 *which may have multiple email addresses
-		 */
-		SubmissionMessage pendingMsg = new SubmissionMessage(msg);
-		
-		/*
-		 * There is only one email address associated with this message
-		 * Remove all others
-		 */
-		pendingMsg.emails = new ArrayList<>();
-		pendingMsg.emails.add(email);	// Set email list to one entry only
-		pendingMsg.clearEmailQuestions();
+		String msgString = null;
+	
+		if(msg != null) {
+			/*
+			 *Copy message to a new object so we don't affect processing of the original message
+			 *which may have multiple email addresses
+			 */
+			SubmissionMessage pendingMsg = new SubmissionMessage(msg);
+			
+			/*
+			 * There is only one email address associated with this message
+			 * Remove all others
+			 */
+			pendingMsg.emails = new ArrayList<>();
+			pendingMsg.emails.add(email);	// Set email list to one entry only
+			pendingMsg.clearEmailQuestions();
+			
+			msgString = gson.toJson(pendingMsg);
+		} else {
+			msgString = gson.toJson(tMsg);		// Only one email in a task message
+		}
 		
 		String sql = "insert into pending_message" 
 				+ "(o_id, email, topic, data, created_time) "
@@ -183,7 +193,7 @@ public class MessagingManager {
 				pstmt.setInt(1, oId);
 				pstmt.setString(2, email);
 				pstmt.setString(3, topic);
-				pstmt.setString(4, gson.toJson(pendingMsg));
+				pstmt.setString(4, msgString);
 				log.info("Add pending message: " + pstmt.toString());
 				pstmt.executeUpdate();	
 			}

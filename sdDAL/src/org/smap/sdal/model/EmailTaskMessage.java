@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.util.ArrayList;
+
 public class EmailTaskMessage {
 	public int sId;
 	public int pId;
@@ -42,4 +44,5 @@ public class EmailTaskMessage {
 		this.user = user;
 		this.actionLink = actionLink;
 	}
+	
 }

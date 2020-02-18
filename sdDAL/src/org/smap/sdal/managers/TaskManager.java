@@ -3117,13 +3117,16 @@ public class TaskManager {
 			String user,
 			String basePath,
 			String scheme,
-			String server) throws Exception {
+			String server,
+			String topic,
+			boolean createPending) throws Exception {
 		
 		String docURL = null;
 		String filePath = null;
 		String filename = "instance";
 		
 		boolean writeToMonitor = true;
+		MessagingManager mm = new MessagingManager(localisation);
 		
 		PreparedStatement pstmtNotificationLog = null;
 		String sqlNotificationLog = "insert into notification_log " +
@@ -3247,29 +3250,46 @@ public class TaskManager {
 										unsubscribed = true;
 										setAssignmentStatus(sd, msg.aId, "unsubscribed");
 									} else {
-										log.info("Send email: " + msg.email + " : " + docURL);
-										em.sendEmail(
-												ia.getAddress(), 
-												null, 
-												"notify", 
-												subject, 
-												content,
-												from,		
-												null, 
-												null, 
-												null, 
-												docURL, 
-												filePath,
-												filename,
-												organisation.getAdminEmail(), 
-												emailServer,
-												scheme,
-												server,
-												subStatus.emailKey,
-												localisation,
-												organisation.server_description,
-												organisation.name);
-										setAssignmentStatus(sd, msg.aId, "accepted");
+										if(subStatus.optedIn || !organisation.send_optin) {
+											log.info("Send email: " + msg.email + " : " + docURL);
+											em.sendEmail(
+													ia.getAddress(), 
+													null, 
+													"notify", 
+													subject, 
+													content,
+													from,		
+													null, 
+													null, 
+													null, 
+													docURL, 
+													filePath,
+													filename,
+													organisation.getAdminEmail(), 
+													emailServer,
+													scheme,
+													server,
+													subStatus.emailKey,
+													localisation,
+													organisation.server_description,
+													organisation.name);
+											setAssignmentStatus(sd, msg.aId, "accepted");
+										
+										} else {
+											/*
+											 * User needs to opt in before email can be sent
+											 * Move message to pending messages and send opt in message if needed
+											 */ 
+											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, null, 
+													msg, 
+													subStatus.optedInSent,
+													organisation.getAdminEmail(),
+													emailServer,
+													subStatus.emailKey,
+													createPending,
+													scheme,
+													server);
+										}
 									}
 								}
 							} catch(Exception e) {
