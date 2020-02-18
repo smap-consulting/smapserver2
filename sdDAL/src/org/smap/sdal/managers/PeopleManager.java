@@ -56,7 +56,7 @@ public class PeopleManager {
 	 */
 	public SubscriptionStatus getEmailKey(Connection sd, 
 			int oId,
-			String email) throws SQLException {
+			String email) throws SQLException, ApplicationException {
 		
 		String sql = "select unsubscribed, uuid, opted_in, opted_in_sent "
 				+ "from people "
@@ -84,6 +84,11 @@ public class PeopleManager {
 					subStatus.emailKey = rs.getString(2);
 					subStatus.optedIn = rs.getBoolean(3);
 					subStatus.optedInSent = rs.getTimestamp(4);
+					
+					// If the subscription key was not already set then get one now
+					if(subStatus.emailKey == null) {
+						subStatus.emailKey = getSubscriptionKey(sd, oId, email);
+					}
 				} else {
 					// Create a key for this email and save it in the people table
 					subStatus.emailKey = UUID.randomUUID().toString();
@@ -97,6 +102,7 @@ public class PeopleManager {
 					pstmtCreate.setString(3, subStatus.emailKey);
 					pstmtCreate.executeUpdate();
 				}
+				
 			}
 
 		} finally {
@@ -168,18 +174,14 @@ public class PeopleManager {
 				rs = pstmt.executeQuery();
 				if(rs.next()) {
 					// We already have an entry for this email
-					boolean unsubscribed = rs.getBoolean(1);
-					if(unsubscribed) {
-						// Create a new key and update the people table
-						key = UUID.randomUUID().toString();
-						pstmtUpdate = sd.prepareStatement(sqlUpdate);				
-						pstmtUpdate.setString(1, key);
-						pstmtUpdate.setString(2, email);
-						pstmtUpdate.setInt(3, oId);
-						pstmtUpdate.executeUpdate();
-					} else {
-						throw new ApplicationException(localisation.getString("c_as"));
-					}
+					// Create a new key and update the people table
+					key = UUID.randomUUID().toString();
+					pstmtUpdate = sd.prepareStatement(sqlUpdate);				
+					pstmtUpdate.setString(1, key);
+					pstmtUpdate.setString(2, email);
+					pstmtUpdate.setInt(3, oId);
+					pstmtUpdate.executeUpdate();
+					
 				} else {
 					// Create a key for this email and save it in the people table
 					key = UUID.randomUUID().toString();

@@ -80,7 +80,7 @@ public class OrganisationManager {
 			FileItem mainLogoItem,
 			String serverName,
 			String scheme
-			) throws SQLException {
+			) throws SQLException, ApplicationException {
 		
 		String sql = "update organisation set " +
 				" name = ?, " + 
