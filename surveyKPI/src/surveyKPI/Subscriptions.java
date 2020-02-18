@@ -30,10 +30,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.ServerException;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.PeopleManager;
@@ -75,7 +72,6 @@ public class Subscriptions extends Application {
 
 		Connection sd = SDDataSource.getConnection("surveyKPI-Register");
 
-		PreparedStatement pstmt = null;
 		try {
 
 			// Localisation
@@ -202,7 +198,6 @@ public class Subscriptions extends Application {
 
 		Connection sd = SDDataSource.getConnection(connectionString);
 
-		PreparedStatement pstmt = null;
 		try {
 
 			// Localisation
