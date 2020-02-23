@@ -44,16 +44,15 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
@@ -62,7 +61,6 @@ import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.UploadEvent;
 
 import JdbcManagers.JdbcUploadEventManager;
-import exceptions.SurveyBlockedException;
 
 class SaveDetails {
 	String fileName = null;
@@ -91,7 +89,7 @@ public class XFormData {
 	}
 
 	public void loadMultiPartMime(HttpServletRequest request, String user, String updateInstanceId, String deviceId)
-			throws SurveyBlockedException, MissingSurveyException, IOException, FileUploadException,
+			throws ApplicationException, MissingSurveyException, IOException, FileUploadException,
 			MissingTemplateException, AuthorisationException, Exception {
 
 		log.info("loadMultiPartMime()");
@@ -296,19 +294,22 @@ public class XFormData {
 			log.info("####################### End of Saving everything to disk ##############################");
 
 			if (survey.getDeleted()) {
-				String reason = survey.displayName + " has been deleted";
+				String reason = localisation.getString("submit_deleted");
+				reason = reason.replace("%s1", survey.displayName);
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
-				throw new NotFoundException();
+				throw new ApplicationException("deleted::" + survey.displayName);
 			}
 			if (survey.getBlocked()) { // Throw an exception if the survey has been blocked form accepting any more
 										// submssions
-				String reason = survey.displayName + " has been blocked";
+				String reason = localisation.getString("submit_blocked");
+				reason = reason.replace("%s1", survey.displayName);
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
-				throw new SurveyBlockedException();
+
+				throw new ApplicationException("blocked::" + survey.displayName);
 			}
 
 			log.info("###### submitted by: " + request.getRemoteUser());

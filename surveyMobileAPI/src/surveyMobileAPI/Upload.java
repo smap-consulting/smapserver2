@@ -53,8 +53,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.AssignmentDetails;
 import org.smap.server.entities.MissingTemplateException;
 
-import exceptions.SurveyBlockedException;
-
 
 /*
  * Accept submitted surveys
@@ -215,7 +213,7 @@ public class Upload extends Application {
 					.type("text/xml")
 					.header(OPEN_ROSA_VERSION_HEADER, OPEN_ROSA_VERSION).build();
 					
-		} catch (SurveyBlockedException e) {
+		} catch (ApplicationException e) {
 			log.info(getErrorMessage(key, e.getMessage()));
 			response = Response.status(Status.FORBIDDEN).entity(getErrorMessage(key, e.getMessage())).build();
 		} catch (AuthorisationException e) {
