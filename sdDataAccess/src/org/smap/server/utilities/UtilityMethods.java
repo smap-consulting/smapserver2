@@ -238,6 +238,8 @@ public class UtilityMethods {
 				String [] qSteps = qPath.trim().split("/");
 				
 				int idx;
+				log.info("xxxxx: " + cfPath + " : " + qPath);
+				
 				for(idx = 0; qSteps[idx].equals(cfSteps[idx]); idx++) {					
 					relPath.add(qSteps[idx]);
 				}

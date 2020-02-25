@@ -557,6 +557,11 @@ public class WebForm extends Application {
 			StringBuffer sb = new StringBuffer("");
 			sb.append("<html>").append("<head></head>").append("<body>");
 			sb.append("<h1>").append(e.getMessage()).append("</h1>");
+			String msg = e.getMessage();
+			if(msg != null && msg.contains("ERROR: column") && msg.contains("does not exist")) {
+				sb.append("<h2>").append(localisation.getString("msg_no_col")).append("</h2>");
+			}
+			
 			sb.append("</body>").append("</html>");
 			response = Response.status(Status.OK).entity(sb.toString()).build();
 			log.log(Level.SEVERE, e.getMessage(), e);

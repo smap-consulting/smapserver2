@@ -302,7 +302,7 @@ public class XFormData {
 				throw new ApplicationException("deleted::" + survey.displayName);
 			}
 			if (survey.getBlocked()) { // Throw an exception if the survey has been blocked form accepting any more
-										// submssions
+										// submissions
 				String reason = localisation.getString("submit_blocked");
 				reason = reason.replace("%s1", survey.displayName);
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
