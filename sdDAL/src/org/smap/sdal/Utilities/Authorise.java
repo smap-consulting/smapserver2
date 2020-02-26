@@ -1541,4 +1541,63 @@ public class Authorise {
  		
 		return true;
 	}
+	
+	/*
+	 * Verify that the user is entitled to access this mailout id
+	 */
+	public boolean isValidMailout(Connection conn, String user, int mailoutId) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		String sql = "select count(*) from mailout m, users u, user_project up, project p, survey s "
+				+ "where u.id = up.u_id "
+				+ "and p.id = up.p_id "
+				+ "and p.id = s.p_id "
+				+ "and m.survey_ident = s.ident "
+				+ "and m.id = ? ";
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setInt(1, mailoutId);
+			pstmt.setString(2, user);
+			
+			log.info("Is valid mailout id: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+			
+			if(count == 0) {
+				log.info("Validation of mailout failed: " + pstmt.toString());
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Mailout validation failed for: " + user + " survey was: " + mailoutId);
+ 			
+ 			SDDataSource.closeConnection("isValidTask", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
 }

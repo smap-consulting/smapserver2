@@ -124,7 +124,7 @@ public class MailoutSvc extends Application {
 	}
 
 	/*
-	 * Add a person
+	 * Add a new mailout campaign
 	 */
 	@POST
 	public Response addMailout(@Context HttpServletRequest request,
@@ -141,9 +141,9 @@ public class MailoutSvc extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		if(mailout.id > 0) {
-			// a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
-			// Validate survey
+			a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
 		}
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, false);
 		// End Authorisation
 		
 		try {	
