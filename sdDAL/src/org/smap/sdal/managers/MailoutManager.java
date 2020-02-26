@@ -104,7 +104,7 @@ public class MailoutManager {
 		} catch(Exception e) {
 			String msg = e.getMessage();
 			if(msg != null && msg.contains("duplicate key value violates unique constraint")) {
-				throw new ApplicationException(localisation.getString("subs_dup_email"));
+				throw new ApplicationException(localisation.getString("msg_dup_name"));
 			} else {
 				throw e;
 			}
