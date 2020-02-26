@@ -24,6 +24,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -36,11 +37,15 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
+import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.PeopleManager;
+import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.People;
+import org.smap.sdal.model.Project;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -58,41 +63,86 @@ import java.util.logging.Logger;
  * Manage subscribers
  * This is closely related to the subscribers service
  */
-@Path("/people")
-public class PeopleSvc extends Application {
+@Path("/mailout")
+public class MailoutSvc extends Application {
 
 	private static Logger log =
-			 Logger.getLogger(PeopleSvc.class.getName());
+			 Logger.getLogger(MailoutSvc.class.getName());
 	
 	Authorise a = null;	
 	
-	public PeopleSvc() {
+	public MailoutSvc() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);		
+	}
+	
+	/*
+	 * Get a list of mailouts
+	 */
+	@GET
+	@Path("/{survey}")
+	@Produces("application/json")
+	public Response getMailouts(@Context HttpServletRequest request,
+			@PathParam("survey") String surveyIdent
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-Mailout List";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
+		// End Authorisation
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			MailoutManager mm = new MailoutManager(localisation);
+						
+			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent); 
+				
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(mailouts);
+			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+		    response = Response.serverError().build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
 	}
 
 	/*
 	 * Add a person
 	 */
 	@POST
-	public Response addPerson(@Context HttpServletRequest request,
-			@FormParam("person") String personString) { 
+	public Response addMailout(@Context HttpServletRequest request,
+			@FormParam("mailout") String mailoutString) { 
 		
 		Response response = null;
-		String connectionString = "surveyKPI-Survey - add person";
+		String connectionString = "surveyKPI-Survey - add mailout";
 		
-		Type type = new TypeToken<People>(){}.getType();
+		Type type = new TypeToken<Mailout>(){}.getType();
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		People person = gson.fromJson(personString, type);
-		
-		log.info("Add Person:========== " + personString);
+		Mailout mailout = gson.fromJson(mailoutString, type);
+	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		if(person.id > 0) {
-			a.isValidOptin(sd, request.getRemoteUser(), person.id);
+		if(mailout.id > 0) {
+			// a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
+			// Validate survey
 		}
 		// End Authorisation
 		
@@ -101,28 +151,16 @@ public class PeopleSvc extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			PeopleManager pm = new PeopleManager(localisation);
+			MailoutManager mm = new MailoutManager(localisation);
  
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			if(person.id <= 0) {
-				pm.addPerson(sd, oId, person);
+			if(mailout.id <= 0) {
+				mm.addMailout(sd, mailout);
 			} else {
-				pm.updatePerson(sd, person);
+				//mm.updateMailout(sd, mailout);
 			}
 			
 			response = Response.ok().build();
 			
-		} catch (SQLException e) {
-			String msg = e.getMessage();
-			if(msg.contains("forwarddest")) {	// Unique key
-				response = Response.serverError().entity("Duplicate forwarding address").build();
-			} else {
-				response = Response.serverError().entity("SQL Error").build();
-				log.log(Level.SEVERE,"SQL Exception", e);
-			}
-		} catch (AuthorisationException e) {
-			log.info("Authorisation Exception");
-		    response = Response.serverError().entity("Not authorised").build();
 		} catch (Exception e) {
 			String msg = e.getMessage();
 			log.info(msg);
