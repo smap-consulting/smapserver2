@@ -18,8 +18,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import model.SubItemDt;
-import model.SubsDt;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -36,6 +34,7 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -44,21 +43,25 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.model.MailoutPerson;
+import org.smap.sdal.model.MailoutPersonDt;
 
 /*
- * Provides access to people identified by emails (subscribers)
+ * Provides access to collected data
  */
-@Path("/v1/subscriptions")
-public class Subscriptions extends Application {
+@Path("/v1/mailout")
+public class MailoutApi extends Application {
 	
 	Authorise a = null;
 	
 	private static Logger log =
-			 Logger.getLogger(Subscriptions.class.getName());
+			 Logger.getLogger(MailoutApi.class.getName());
 	
-	public Subscriptions() {
+	public MailoutApi() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.ANALYST);
 		a = new Authorise(authorisations, null);
 	}
 	
@@ -68,18 +71,22 @@ public class Subscriptions extends Application {
 	 */
 	@GET
 	@Produces("application/json")
+	@Path("/{mailoutId}")
 	public Response getSubscriptions(@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId,
 			@QueryParam("dt") boolean dt
 			) { 
 		
-		String connectionString = "API - get subscriptions";
+		String connectionString = "API - get emails in mailout";
 		Response response = null;
 		String user = request.getRemoteUser();
-		ArrayList<SubItemDt> data = new ArrayList<> ();
+		ArrayList<MailoutPerson> data = new ArrayList<> ();
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End authorisation
 		
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
@@ -88,72 +95,52 @@ public class Subscriptions extends Application {
 	
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);			
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			// Get the data
-			String sql = "select id, email, unsubscribed, opted_in, opted_in_sent,"
-					+ "name "
-					+ "from people "
-					+ "where o_id = ? "
-					+ "order by email asc";
+			String sql = "select mp.id, p.email, p.name, mp.status "
+					+ "from people p, mailout_people mp "
+					+ "where mp.m_id = ? "
+					+ "order by p.email asc";
 			
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;
-			pstmt.setInt(paramCount++, oId);
+			pstmt.setInt(paramCount++, mailoutId);
 			
-			log.info("Get subscriptions: " + pstmt.toString());
+			log.info("Get mailout emails: " + pstmt.toString());
 			rs = pstmt.executeQuery();
-				
+			
+			String loc_new = localisation.getString("c_new");
+			String loc_sent = localisation.getString("c_sent");
+			String loc_unsub = localisation.getString("c_unsubscribed");
 			while (rs.next()) {
-					
-				SubItemDt item = new SubItemDt();
-
-				item.id = rs.getInt("id");
-				item.email = rs.getString("email");
-				item.name = rs.getString("name");
-				if(item.name == null) {
-					item.name = "";
-				}
 				
-				/*
-				 * Get status
-				 */
-				String status = "";
-				String status_loc = "";
-				boolean unsubscribed = rs.getBoolean("unsubscribed");
-				boolean optedin = rs.getBoolean("opted_in");
-				if(unsubscribed) {
-					status = "unsubscribed";
-					status_loc = localisation.getString("c_unsubscribed");
-				} else if(optedin) {
-					status = "subscribed";
-					status_loc = localisation.getString("c_s2");
+				MailoutPerson mp = new MailoutPerson(
+						rs.getInt("id"), 
+						rs.getString("email"), 
+						rs.getString("name"),
+						rs.getString("status"));
+				
+				if(mp.status == null) {
+					mp.status_loc = loc_new;
+				} else if(mp.status.equals(MailoutManager.STATUS_SENT)) {
+					mp.status_loc = loc_sent;
+				} else if(mp.status.equals(MailoutManager.STATUS_UNSUBSCRIBED)) {
+					mp.status_loc = loc_unsub;
 				} else {
-					String optedInSent = rs.getString("opted_in_sent");
-					if(optedInSent != null) {
-						status = "pending";
-						status_loc = localisation.getString("c_pending");
-					} else {
-						status = "new";
-						status_loc = localisation.getString("c_new");
-					}
-				}
-				item.status = status;
-				if(dt) {
-					item.status_loc = status_loc;
+					mp.status_loc = loc_new;
 				}
 				
-				data.add(item);
+				data.add(mp);
+				
 			}
 						
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			if(dt) {
-				SubsDt subs = new SubsDt();
-				subs.data = data;
-				response = Response.ok(gson.toJson(subs)).build();
+				MailoutPersonDt mpDt = new MailoutPersonDt();
+				mpDt.data = data;
+				response = Response.ok(gson.toJson(mpDt)).build();
 			} else {
 				response = Response.ok(gson.toJson(data)).build();
 			}

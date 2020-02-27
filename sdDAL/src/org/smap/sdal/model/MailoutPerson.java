@@ -6,6 +6,7 @@ public class MailoutPerson {
 	public String email;
 	public String name;
 	public String status;
+	public String status_loc;		// Localisd name of status
 	
 	public MailoutPerson(int id, String email, String name, String status) {
 		this.id = id;
