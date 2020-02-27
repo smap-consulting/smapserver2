@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.net.URL;
+import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -303,36 +304,7 @@ public class XLSUtilities {
 
 		return header;
 	}
-
-	/*
-	 * Get the value of a cell at the specified column
-	 */
-	public static String getColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws ApplicationException {
-
-		Integer cellIndex;
-		int idx;
-		String value = null;
-
-		cellIndex = header.get(name);
-		if(cellIndex != null) {
-			idx = cellIndex;
-			if(idx <= lastCellNum) {
-				Cell c = row.getCell(idx);
-				if(c != null) {
-					value = getCellValue(c);
-
-
-				}
-			}
-		} 
-
-		if(value == null) {		// Set to default value if null
-			value = def;
-		}
-
-		return value;
-	}
-
+	
 	/*
 	 * Get the text value of a cell and return null if the cell is empty
 	 */
@@ -677,5 +649,103 @@ public class XLSUtilities {
 
 	}
     
+	/*
+	 * Get a hashmap of column name and column index
+	 */
+    public static  HashMap<String, Integer> getHeader(Row row, int lastCellNum) {
+		HashMap<String, Integer> header = new HashMap<String, Integer> ();
+		
+		Cell cell = null;
+		String name = null;
+		
+        for(int i = 0; i <= lastCellNum; i++) {
+            cell = row.getCell(i);
+            if(cell != null) {
+                name = cell.getStringCellValue();
+                if(name != null && name.trim().length() > 0) {
+                	name = name.toLowerCase();
+                    header.put(name, i);
+                }
+            }
+        }
+            
+		return header;
+	}
+	
+	/*
+	 * Get the value of a cell at the specified column
+	 */
+	public static  String getColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws Exception {
+		
+		Integer cellIndex;
+		int idx;
+		String value = null;
+		double dValue = 0.0;
+		Date dateValue = null;
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
+	
+		cellIndex = header.get(name);
+		if(cellIndex != null) {
+			idx = cellIndex;
+			if(idx <= lastCellNum) {
+				Cell c = row.getCell(idx);
+				if(c != null) {
+					if(c.getCellType() == CellType.NUMERIC || c.getCellType() == CellType.FORMULA) {
+						if (HSSFDateUtil.isCellDateFormatted(c)) {
+							dateValue = c.getDateCellValue();
+							value = dateFormat.format(dateValue);
+						} else {
+							dValue = c.getNumericCellValue();
+							value = String.valueOf(dValue);
+							if(value != null && value.endsWith(".0")) {
+								value = value.substring(0, value.lastIndexOf('.'));
+							}
+						}
+					} else if(c.getCellType() == CellType.STRING) {
+						value = c.getStringCellValue();
+					} else {
+						value = null;
+					}
+
+				}
+			}
+		} 
+
+		if(value == null) {		// Set to default value if null
+			value = def;
+		}
+		
+		return value;
+	}
+	
+	/*
+	 * Get the timestamp value of a cell at the specified column
+	 */
+	public static Timestamp getDateColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws Exception {
+		
+		Integer cellIndex;
+		int idx;
+		Timestamp tsValue = null;
+	
+		cellIndex = header.get(name);
+		if(cellIndex != null) {
+			idx = cellIndex;
+			if(idx <= lastCellNum) {
+				Cell c = row.getCell(idx);
+				if(c != null) {
+					log.info("Get date column: " + name);
+					if(c.getCellType() == CellType.NUMERIC) {
+						if (HSSFDateUtil.isCellDateFormatted(c)) {
+							tsValue = new Timestamp(c.getDateCellValue().getTime());
+						} 
+					} 
+				}
+			}
+		} else {
+			throw new Exception("Column " + name + " not found");
+		}
+		
+		return tsValue;
+	}
 	
 }

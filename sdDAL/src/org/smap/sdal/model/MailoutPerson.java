@@ -13,4 +13,12 @@ public class MailoutPerson {
 		this.name = name;
 		this.status = status;
 	}
+	
+	public MailoutPerson(String email, String name) {
+		this.id = -1;
+		this.email = email;
+		this.name = name;
+		this.status = null;
+		
+	}
 }

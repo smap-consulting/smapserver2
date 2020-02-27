@@ -233,31 +233,31 @@ public class XLSTaskManager {
 					int lastCellNum = row.getLastCellNum();
 
 					if(needHeader) {
-						header = getHeader(row, lastCellNum);
+						header = XLSUtilities.getHeader(row, lastCellNum);
 						needHeader = false;
 					} else {
-						String tg_name = getColumn(row, "tg_name", header, lastCellNum, null);
-						String form_name = getColumn(row, "form", header, lastCellNum, null);
-						String assignee_ident = getColumn(row, "assignee_ident", header, lastCellNum, null);
-						String email = getColumn(row, "email", header, lastCellNum, null);
+						String tg_name = XLSUtilities.getColumn(row, "tg_name", header, lastCellNum, null);
+						String form_name = XLSUtilities.getColumn(row, "form", header, lastCellNum, null);
+						String assignee_ident = XLSUtilities.getColumn(row, "assignee_ident", header, lastCellNum, null);
+						String email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
 
 						if(form_name != null && form_name.trim().length() > 0) {
 
 							currentTask = new TaskServerDefn();
 							currentTask.tg_name = tg_name;
 							currentTask.survey_name = form_name;
-							currentTask.name = getColumn(row, "name", header, lastCellNum, "");
-							currentTask.location_trigger = getColumn(row, "location_trigger", header, lastCellNum, null);
-							currentTask.location_group = getColumn(row, "location_group", header, lastCellNum, null);
-							currentTask.location_name = getColumn(row, "location_name", header, lastCellNum, null);
-							currentTask.lat = Double.valueOf(getColumn(row, "lat", header, lastCellNum, "0") );
-							currentTask.lon = Double.valueOf(getColumn(row, "lon", header, lastCellNum, "0") );
-							currentTask.guidance = getColumn(row, "guidance", header, lastCellNum, null);
+							currentTask.name = XLSUtilities.getColumn(row, "name", header, lastCellNum, "");
+							currentTask.location_trigger = XLSUtilities.getColumn(row, "location_trigger", header, lastCellNum, null);
+							currentTask.location_group = XLSUtilities.getColumn(row, "location_group", header, lastCellNum, null);
+							currentTask.location_name = XLSUtilities.getColumn(row, "location_name", header, lastCellNum, null);
+							currentTask.lat = Double.valueOf(XLSUtilities.getColumn(row, "lat", header, lastCellNum, "0") );
+							currentTask.lon = Double.valueOf(XLSUtilities.getColumn(row, "lon", header, lastCellNum, "0") );
+							currentTask.guidance = XLSUtilities.getColumn(row, "guidance", header, lastCellNum, null);
 							currentTask.from = getGmtDate(row, "from", header, lastCellNum, timeZoneId, gmtZoneId);
 							currentTask.to = getGmtDate(row, "to", header, lastCellNum, timeZoneId, gmtZoneId);
 
 							// Get from value
-							String repValue = getColumn(row, "repeat", header, lastCellNum, null);
+							String repValue = XLSUtilities.getColumn(row, "repeat", header, lastCellNum, null);
 							if(repValue != null && repValue.equals("true")) {
 								currentTask.repeat = true;
 							} else {
@@ -268,8 +268,8 @@ public class XLSTaskManager {
 							AssignmentServerDefn currentAssignment = new AssignmentServerDefn();
 							currentAssignment.assignee_ident = assignee_ident;
 							currentAssignment.email = email;
-							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
-							currentAssignment.status = getColumn(row, "status", header, lastCellNum, null);
+							currentAssignment.assignee_name = XLSUtilities.getColumn(row, "assignee_name", header, lastCellNum, null);
+							currentAssignment.status = XLSUtilities.getColumn(row, "status", header, lastCellNum, null);
 							
 							currentTask.assignments.add(currentAssignment);
 
@@ -280,8 +280,8 @@ public class XLSTaskManager {
 							AssignmentServerDefn currentAssignment = new AssignmentServerDefn();
 							currentAssignment.assignee_ident = assignee_ident;
 							currentAssignment.email = email;
-							currentAssignment.assignee_name = getColumn(row, "assignee_name", header, lastCellNum, null);
-							currentAssignment.status = getColumn(row, "status", header, lastCellNum, null);
+							currentAssignment.assignee_name = XLSUtilities.getColumn(row, "assignee_name", header, lastCellNum, null);
+							currentAssignment.status = XLSUtilities.getColumn(row, "status", header, lastCellNum, null);
 							if(currentTask == null) {
 								String msg = localisation.getString("t_no_task");
 								msg = msg.replaceAll("%s1", String.valueOf(j));
@@ -299,7 +299,6 @@ public class XLSTaskManager {
 
 		return tl;
 
-
 	}
 	
 	/*
@@ -309,8 +308,8 @@ public class XLSTaskManager {
 		
 		Timestamp result = null;
 		
-		if(getDateColumn(row, name, header, lastCellNum, null) != null) {
-			LocalDateTime localDate = getDateColumn(row, name, header, lastCellNum, null).toLocalDateTime();
+		if(XLSUtilities.getDateColumn(row, name, header, lastCellNum, null) != null) {
+			LocalDateTime localDate = XLSUtilities.getDateColumn(row, name, header, lastCellNum, null).toLocalDateTime();
 			ZonedDateTime localZoned = ZonedDateTime.of(localDate, timeZoneId);
 			ZonedDateTime gmtZoned = localZoned.withZoneSameInstant(gmtZoneId);
 			result = Timestamp.valueOf(gmtZoned.toLocalDateTime());
@@ -376,21 +375,21 @@ public class XLSTaskManager {
                         int lastCellNum = row.getLastCellNum();
                         
 	                    	if(needHeader) {
-	                    		header = getHeader(row, lastCellNum);
+	                    		header = XLSUtilities.getHeader(row, lastCellNum);
 	                    		needHeader = false;
 	                    	} else {
 	                    		Location t = new Location();
 	                    		t.group = group;
 	                    		t.type = "nfc";
 	                    		try {
-	                    			t.uid = getColumn(row, "uid", header, lastCellNum, null);
-	                    			t.name = getColumn(row, "name", header, lastCellNum, null);
+	                    			t.uid = XLSUtilities.getColumn(row, "uid", header, lastCellNum, null);
+	                    			t.name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
 	                    			if(t.name == null) {
-	                    				t.name = getColumn(row, "tagname", header, lastCellNum, null);	// try legacy name
+	                    				t.name = XLSUtilities.getColumn(row, "tagname", header, lastCellNum, null);	// try legacy name
 	                    			}
 	                    			
-	                    			String lat = getColumn(row, "lat", header, lastCellNum, "0.0");
-	                    			String lon = getColumn(row, "lon", header, lastCellNum, "0.0");
+	                    			String lat = XLSUtilities.getColumn(row, "lat", header, lastCellNum, "0.0");
+	                    			String lon = XLSUtilities.getColumn(row, "lon", header, lastCellNum, "0.0");
 	                    			try {
 		                    			t.lat = Double.parseDouble(lat);
 		                    			t.lon = Double.parseDouble(lon);
@@ -460,104 +459,7 @@ public class XLSTaskManager {
 	}
 
 	
-	/*
-	 * Get a hashmap of column name and column index
-	 */
-	private HashMap<String, Integer> getHeader(Row row, int lastCellNum) {
-		HashMap<String, Integer> header = new HashMap<String, Integer> ();
-		
-		Cell cell = null;
-		String name = null;
-		
-        for(int i = 0; i <= lastCellNum; i++) {
-            cell = row.getCell(i);
-            if(cell != null) {
-                name = cell.getStringCellValue();
-                if(name != null && name.trim().length() > 0) {
-                	name = name.toLowerCase();
-                    header.put(name, i);
-                }
-            }
-        }
-            
-		return header;
-	}
-	
-	/*
-	 * Get the value of a cell at the specified column
-	 */
-	private String getColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws Exception {
-		
-		Integer cellIndex;
-		int idx;
-		String value = null;
-		double dValue = 0.0;
-		Date dateValue = null;
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
-	
-		cellIndex = header.get(name);
-		if(cellIndex != null) {
-			idx = cellIndex;
-			if(idx <= lastCellNum) {
-				Cell c = row.getCell(idx);
-				if(c != null) {
-					if(c.getCellType() == CellType.NUMERIC || c.getCellType() == CellType.FORMULA) {
-						if (HSSFDateUtil.isCellDateFormatted(c)) {
-							dateValue = c.getDateCellValue();
-							value = dateFormat.format(dateValue);
-						} else {
-							dValue = c.getNumericCellValue();
-							value = String.valueOf(dValue);
-							if(value != null && value.endsWith(".0")) {
-								value = value.substring(0, value.lastIndexOf('.'));
-							}
-						}
-					} else if(c.getCellType() == CellType.STRING) {
-						value = c.getStringCellValue();
-					} else {
-						value = null;
-					}
 
-				}
-			}
-		} 
-
-		if(value == null) {		// Set to default value if null
-			value = def;
-		}
-		
-		return value;
-	}
-	
-	/*
-	 * Get the timestamp value of a cell at the specified column
-	 */
-	private Timestamp getDateColumn(Row row, String name, HashMap<String, Integer> header, int lastCellNum, String def) throws Exception {
-		
-		Integer cellIndex;
-		int idx;
-		Timestamp tsValue = null;
-	
-		cellIndex = header.get(name);
-		if(cellIndex != null) {
-			idx = cellIndex;
-			if(idx <= lastCellNum) {
-				Cell c = row.getCell(idx);
-				if(c != null) {
-					log.info("Get date column: " + name);
-					if(c.getCellType() == CellType.NUMERIC) {
-						if (HSSFDateUtil.isCellDateFormatted(c)) {
-							tsValue = new Timestamp(c.getDateCellValue().getTime());
-						} 
-					} 
-				}
-			}
-		} else {
-			throw new Exception("Column " + name + " not found");
-		}
-		
-		return tsValue;
-	}
 	
 	/*
 	 * Get the columns for the tasks sheet

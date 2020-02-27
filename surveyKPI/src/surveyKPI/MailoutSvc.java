@@ -30,23 +30,41 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.TaskListGeoJson;
+import org.smap.sdal.model.TaskServerDefn;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
 import utilities.XLSMailoutManager;
+import utilities.XLSTaskManager;
+
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -224,8 +242,6 @@ public class MailoutSvc extends Application {
 			
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
-			String urlprefix = request.getScheme() + "://" + request.getServerName();
-			
 			ArrayList<MailoutPerson> mop = mm.getMailoutPeople(
 					sd, 
 					mailoutId);	
@@ -243,6 +259,123 @@ public class MailoutSvc extends Application {
 			
 		}
 		return Response.ok("").build();
+	}
+	
+	/*
+	 * Import mailout emails from an xls file
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/xls/{mailoutId}")
+	public Response uploadTasks(
+			@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId
+			) throws IOException {
+		
+		Response response = null;
+		boolean clear = false;
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
+
+		log.info("userevent: " + request.getRemoteUser() + " : upload mailout emails from xls file for mailout id: " + mailoutId);
+
+		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB TODO handle this with exception and redirect to an error page
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		Connection sd = null; 
+		Connection cResults = null;
+		String fileName = null;
+		String filetype = null;
+		FileItem file = null;
+
+		String requester = "Mailouts - Mailout Emails Upload";
+		
+		try {
+			
+			sd = SDDataSource.getConnection(requester);
+			cResults = ResultsDataSource.getConnection(requester);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";	// Set default for timezone
+			
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				// Get form parameters
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+					if(item.getFieldName().equals("mp_clear")) {
+						clear = Boolean.valueOf(item.getString());
+					}
+					
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					fileName = item.getName();
+					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
+						filetype = "xlsx";
+					} else if(fileName.endsWith("xls")) {
+						filetype = "xls";
+					} else {
+						log.info("unknown file type for item: " + fileName);
+						continue;	
+					}
+					
+					file = item;
+				}
+			}
+	
+			if(file != null && mailoutId > 0) {
+				// Authorisation - Access
+				a.isAuthorised(sd, request.getRemoteUser());
+				if(mailoutId > 0) {
+					a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+				} else {
+					throw new AuthorisationException("no mailout id");
+				}
+				// End authorisation
+
+				// Process xls file
+				XLSMailoutManager xmm = new XLSMailoutManager();
+				ArrayList<MailoutPerson> mop = xmm.getXLSMailoutList(filetype, file.getInputStream(), localisation, tz);	
+						
+				// Save mailout emails to the database
+				MailoutManager mm = new MailoutManager(localisation);
+				
+				if(clear) {
+					mm.deleteUnsentEmails(sd, mailoutId);
+				}
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				
+				mm.writeEmails(sd, oId, mop, mailoutId);
+				
+					
+			}
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+	
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, sd);
+			
+		}
+		
+		return response;
+		
 	}
 
 }

@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -52,6 +53,10 @@ public class MailoutManager {
 		localisation = l;	
 	}
 
+	public static String STATUS_NEW = "new";
+	public static String STATUS_SENT = "sent";
+	public static String STATUS_UNSUBSCRIBED = "unsubscribed";
+	
 	/*
 	 * Get mailouts for a survey
 	 */
@@ -173,8 +178,7 @@ public class MailoutManager {
 						rs.getInt("id"),
 						rs.getString("email"), 
 						rs.getString("name"),
-						rs.getString("status")));
-				
+						rs.getString("status")));			
 			}
 		
 		} finally {
@@ -182,6 +186,90 @@ public class MailoutManager {
 		}
 		
 		return mp;
+	}
+	
+	public void deleteUnsentEmails(Connection sd, int mailoutId) throws SQLException {
+		
+		String sql = "delete from mailout_people "
+				+ "where m_id = ? "
+				+ "and status = ? ";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, mailoutId);
+			pstmt.setString(2, STATUS_NEW);
+			log.info("Delete unsent: " + pstmt.toString());
+			pstmt.executeUpdate();	
+		
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
+	
+public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, int mailoutId) throws Exception {
+		
+		String sqlGetPerson = "select id from people "
+				+ "where o_id = ? "
+				+ "and email = ? ";		
+		PreparedStatement pstmtGetPerson = null;
+		
+		String sqlAddPerson = "insert into people "
+				+ "(o_id, email, name) "
+				+ "values(?, ?, ?)";		
+		PreparedStatement pstmtAddPerson = null;
+		
+		String sqlAddMailoutPerson = "insert into mailout_people "
+				+ "(p_id, m_id, status) "
+				+ "values(?, ?, 'new') ";
+		PreparedStatement pstmtAddMailoutPerson = null;
+		
+		try {
+			pstmtGetPerson = sd.prepareStatement(sqlGetPerson);
+			pstmtGetPerson.setInt(1, oId);
+			
+			pstmtAddPerson = sd.prepareStatement(sqlAddPerson, Statement.RETURN_GENERATED_KEYS);
+			pstmtAddPerson.setInt(1, oId);
+			
+			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson);
+			
+			for(MailoutPerson person : mop) {
+				
+				int personId = 0;
+				
+				// 1. Get person details
+				pstmtGetPerson.setString(2, person.email);
+				ResultSet rs = pstmtGetPerson.executeQuery();
+				if(rs.next()) {
+					personId = rs.getInt(1);
+				} else {
+					
+					// 2. Add person to people table if they do not exist
+					pstmtAddPerson.setString(2, person.email);
+					pstmtAddPerson.setString(3, person.name);
+					pstmtAddPerson.executeUpdate();
+					ResultSet rsKeys = pstmtAddPerson.getGeneratedKeys();
+					if(rsKeys.next()) {
+						personId = rsKeys.getInt(1);
+					} else {
+						throw new Exception("Failed to get id of person");
+					}
+				}
+				
+				// Write the entry into the mailout person table
+				pstmtAddMailoutPerson.setInt(1, personId);
+				pstmtAddMailoutPerson.setInt(2, mailoutId);
+				
+				pstmtAddMailoutPerson.executeUpdate();
+			}
+			
+	
+		} finally {
+			try {if (pstmtGetPerson != null) {pstmtGetPerson.close();} } catch (SQLException e) {	}
+			try {if (pstmtAddPerson != null) {pstmtAddPerson.close();} } catch (SQLException e) {	}
+			try {if (pstmtAddMailoutPerson != null) {pstmtAddMailoutPerson.close();} } catch (SQLException e) {	}
+		}
 	}
 	
 }

@@ -19,9 +19,11 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
@@ -29,7 +31,10 @@ import java.util.logging.Logger;
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.MailoutPerson;
+import org.smap.sdal.model.TaskServerDefn;
 
 
 
@@ -46,8 +51,6 @@ public class XLSMailoutManager {
 	private class Column {
 		String name;
 		String human_name;
-		boolean isAssignment;
-
 		
 		public Column(ResourceBundle localisation, int col, String n, boolean a) {
 			name = n;
@@ -98,7 +101,7 @@ public class XLSMailoutManager {
 	public void createXLSFile(OutputStream outputStream, ArrayList<MailoutPerson> mop, ResourceBundle localisation, 
 			String tz) throws IOException {
 		
-		Sheet mailoutSheet = wb.createSheet("tasks");
+		Sheet mailoutSheet = wb.createSheet("mailouts");
 		Sheet settingsSheet = wb.createSheet("settings");
 		mailoutSheet.createFreezePane(5, 1);	// Freeze header row and first 5 columns
 		
@@ -145,7 +148,7 @@ public class XLSMailoutManager {
 			CellStyle headerStyle = styles.get("header_tasks");
             Cell cell = headerRow.createCell(i);
             cell.setCellStyle(headerStyle);
-            cell.setCellValue(col.name);
+            cell.setCellValue(col.human_name);
         }
 	}
 	
@@ -162,12 +165,9 @@ public class XLSMailoutManager {
 		
 		DataFormat format = wb.createDataFormat();
 		CellStyle styleTimestamp = wb.createCellStyle();
-		ZoneId timeZoneId = ZoneId.of(tz);
-		ZoneId gmtZoneId = ZoneId.of("GMT");
 		
 		styleTimestamp.setDataFormat(format.getFormat("yyyy-mm-dd h:mm"));	
 		
-		int currentTask = -1;
 		for(MailoutPerson person : mop)  {
 			
 			Row row = sheet.createRow(rowNumber++);
@@ -189,5 +189,110 @@ public class XLSMailoutManager {
 		v.setCellValue(tz);
 	}
 
+	/*
+	 * Create a mailout list from an XLS file
+	 */
+	public ArrayList<MailoutPerson> getXLSMailoutList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
 
+		Sheet sheet = null;
+		Sheet settingsSheet = null;
+		Row row = null;
+		int lastRowNum = 0;
+		ArrayList<MailoutPerson> mailouts = new ArrayList<MailoutPerson> ();
+
+		HashMap<String, Integer> header = null;
+
+		if(type != null && type.equals("xls")) {
+			wb = new HSSFWorkbook(inputStream);
+		} else {
+			wb = new XSSFWorkbook(inputStream);
+		}
+
+		/*
+		 * Get the task sheet settings
+		 */
+		settingsSheet = wb.getSheet("settings");
+		if(settingsSheet.getPhysicalNumberOfRows() > 0) {
+			int lastSettingsRow = settingsSheet.getLastRowNum();
+			for(int j = 0; j <= lastSettingsRow; j++) {
+				row = settingsSheet.getRow(j);
+
+				if(row != null) {         	
+					int lastCellNum = row.getLastCellNum();
+					if(lastCellNum > 0) {
+						Cell c = row.getCell(0);
+						String k = c.getStringCellValue();
+						if(k != null && k.trim().toLowerCase().equals("time zone:")) {
+							c = row.getCell(1);
+							tz = c.getStringCellValue();
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		ZoneId timeZoneId = ZoneId.of(tz);
+		ZoneId gmtZoneId = ZoneId.of("GMT");
+
+		sheet = wb.getSheet("mailouts");
+		if(sheet == null) {
+			throw new ApplicationException("No worksheet called mailouts");
+		}
+		if(sheet.getPhysicalNumberOfRows() > 0) {
+
+			lastRowNum = sheet.getLastRowNum();
+			boolean needHeader = true;
+
+			for(int j = 0; j <= lastRowNum; j++) {
+
+				row = sheet.getRow(j);
+				if(row != null) {
+
+					int lastCellNum = row.getLastCellNum();
+
+					if(needHeader) {
+						header = getHeader(row, lastCellNum);
+						needHeader = false;
+					} else {
+						String email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
+						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
+
+						mailouts.add(new MailoutPerson(email, name));
+				
+
+					}
+
+				}
+
+			}
+		}
+
+		return mailouts;
+
+
+	}
+
+	/*
+	 * Get a hashmap of column name and column index
+	 */
+	private HashMap<String, Integer> getHeader(Row row, int lastCellNum) {
+		HashMap<String, Integer> header = new HashMap<String, Integer> ();
+		
+		Cell cell = null;
+		String name = null;
+		
+        for(int i = 0; i <= lastCellNum; i++) {
+            cell = row.getCell(i);
+            if(cell != null) {
+                name = cell.getStringCellValue();
+                if(name != null && name.trim().length() > 0) {
+                	name = name.toLowerCase();
+                    header.put(name, i);
+                }
+            }
+        }
+            
+		return header;
+	}
 }
