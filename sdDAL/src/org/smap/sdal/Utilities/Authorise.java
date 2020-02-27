@@ -1556,7 +1556,8 @@ public class Authorise {
 				+ "and p.id = up.p_id "
 				+ "and p.id = s.p_id "
 				+ "and m.survey_ident = s.ident "
-				+ "and m.id = ? ";
+				+ "and m.id = ? "
+				+ "and u.ident = ? ";
 		
 		try {
 			pstmt = conn.prepareStatement(sql);

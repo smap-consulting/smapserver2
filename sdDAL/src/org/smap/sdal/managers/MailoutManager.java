@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.model.Mailout;
+import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.OrganisationLite;
 import org.smap.sdal.model.People;
 import org.smap.sdal.model.SubscriptionStatus;
@@ -83,6 +84,7 @@ public class MailoutManager {
 		
 		return mailouts;
 	}
+	
 	/*
 	 * Add a mailout
 	 */
@@ -113,6 +115,74 @@ public class MailoutManager {
 		}
 	}
 	
+	/*
+	 * Get mailouts Details
+	 */
+	public Mailout getMailoutDetails(Connection sd, int mailoutId) throws SQLException {
+		
+		Mailout mailout = null;
+		
+		String sql = "select survey_ident, name "
+				+ "from mailout "
+				+ "where id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, mailoutId);
+			log.info("Get mailout details: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				mailout = new Mailout(
+						mailoutId,
+						rs.getString("survey_ident"), 
+						rs.getString("name"));
+				
+			}
+		
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+		return mailout;
+	}
+	
+	/*
+	 * Get mailouts Details
+	 */
+	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId) throws SQLException {
+		
+		ArrayList<MailoutPerson> mp = new ArrayList<> ();
+		
+		String sql = "select mp.id, p.name, p.email, mp.status "
+				+ "from mailout_people mp, people p "
+				+ "where p.id = mp.p_id "
+				+ "and mp.m_id = ? "
+				+ "order by p.email asc ";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, mailoutId);
+			log.info("Get mailout people: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				mp.add(new MailoutPerson(
+						rs.getInt("id"),
+						rs.getString("email"), 
+						rs.getString("name"),
+						rs.getString("status")));
+				
+			}
+		
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+		return mp;
+	}
 	
 }
 

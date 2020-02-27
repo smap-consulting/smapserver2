@@ -19,38 +19,31 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.MailoutManager;
-import org.smap.sdal.managers.NotificationManager;
-import org.smap.sdal.managers.PeopleManager;
-import org.smap.sdal.managers.ProjectManager;
-import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Mailout;
-import org.smap.sdal.model.Notification;
-import org.smap.sdal.model.People;
-import org.smap.sdal.model.Project;
-
+import org.smap.sdal.model.MailoutPerson;
+import org.smap.sdal.model.Organisation;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import utilities.XLSMailoutManager;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
@@ -176,6 +169,80 @@ public class MailoutSvc extends Application {
 
 		return response;
 
+	}
+	
+	/*
+	 * Export mailout emails
+	 */
+	@GET
+	@Path ("/xls/{mailoutId}")
+	@Produces("application/x-download")
+	public Response getXLSTasksService (@Context HttpServletRequest request, 
+			@Context HttpServletResponse response,
+			@PathParam("mailoutId") int mailoutId,
+			@QueryParam("tz") String tz,
+			@QueryParam("filetype") String filetype,
+			@QueryParam("inc_status") String incStatus) throws Exception {
+
+		String connectionString = "Download Mailout Emails";
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		// Authorisation - Access
+
+		a.isAuthorised(sd, request.getRemoteUser());		
+		if(mailoutId > 0) {
+			a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		} else {
+			throw new AuthorisationException("no mailout id");
+		}
+		// End Authorisation 
+		
+		String basePath = GeneralUtilityMethods.getBasePath(request);
+		
+		// Set file type to "xlsx" unless "xls" has been specified
+		if(filetype == null || !filetype.equals("xls")) {
+			filetype = "xlsx";
+		}
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		log.info("Exporting tasks with timzone: " + tz);
+		
+		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			MailoutManager mm = new MailoutManager(localisation);
+			
+			String filename = null;
+			Mailout mo = mm.getMailoutDetails(sd, mailoutId);		// Get the mailout name
+			filename = mo.name + "." + filetype;
+			
+			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
+			
+			String urlprefix = request.getScheme() + "://" + request.getServerName();
+			
+			ArrayList<MailoutPerson> mop = mm.getMailoutPeople(
+					sd, 
+					mailoutId);	
+			
+			// Create Mailout XLS File
+			XLSMailoutManager xmo = new XLSMailoutManager(filetype, request.getScheme(), request.getServerName());
+			xmo.createXLSFile(response.getOutputStream(), mop, localisation, tz);
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);	
+			
+		}
+		return Response.ok("").build();
 	}
 
 }

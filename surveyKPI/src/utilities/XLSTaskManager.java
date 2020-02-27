@@ -43,7 +43,6 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
