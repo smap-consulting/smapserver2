@@ -644,7 +644,7 @@ public class Tasks extends Application {
 		} finally {
 	
 			SDDataSource.closeConnection(requester, sd);
-			ResultsDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
 			
 		}
 		

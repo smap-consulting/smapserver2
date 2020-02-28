@@ -56,6 +56,7 @@ public class MailoutManager {
 	public static String STATUS_NEW = "new";
 	public static String STATUS_SENT = "sent";
 	public static String STATUS_UNSUBSCRIBED = "unsubscribed";
+	public static String STATUS_PENDING = "pending";
 	
 	/*
 	 * Get mailouts for a survey
@@ -271,6 +272,31 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			try {if (pstmtAddMailoutPerson != null) {pstmtAddMailoutPerson.close();} } catch (SQLException e) {	}
 		}
 	}
+
+/*
+ * Send emails for a mailout
+ */
+public void sendEmails(Connection sd, int mailoutId) throws SQLException {
+	
+	String sql = "update mailout_people set status = '" + MailoutManager.STATUS_PENDING +"'  "
+			+ "where m_id = ? "
+			+ "and status = '" + MailoutManager.STATUS_NEW +"'";
+	
+	PreparedStatement pstmt = null;
+	
+	try {
+		pstmt = sd.prepareStatement(sql);
+		pstmt.setInt(1, mailoutId);
+		log.info("Send unsent: " + pstmt.toString());
+		pstmt.executeUpdate();
+		
+	
+	} finally {
+		try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+	}
+	
+	return;
+}
 	
 }
 

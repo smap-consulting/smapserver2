@@ -79,7 +79,6 @@ public class MailoutApi extends Application {
 		
 		String connectionString = "API - get emails in mailout";
 		Response response = null;
-		String user = request.getRemoteUser();
 		ArrayList<MailoutPerson> data = new ArrayList<> ();
 		
 		// Authorisation - Access
@@ -113,6 +112,8 @@ public class MailoutApi extends Application {
 			String loc_new = localisation.getString("c_new");
 			String loc_sent = localisation.getString("c_sent");
 			String loc_unsub = localisation.getString("c_unsubscribed");
+			String loc_pending = localisation.getString("c_pending");
+			
 			while (rs.next()) {
 				
 				MailoutPerson mp = new MailoutPerson(
@@ -127,7 +128,9 @@ public class MailoutApi extends Application {
 					mp.status_loc = loc_sent;
 				} else if(mp.status.equals(MailoutManager.STATUS_UNSUBSCRIBED)) {
 					mp.status_loc = loc_unsub;
-				} else {
+				} else if(mp.status.equals(MailoutManager.STATUS_PENDING)) {
+					mp.status_loc = loc_pending;
+				}else {
 					mp.status_loc = loc_new;
 				}
 				

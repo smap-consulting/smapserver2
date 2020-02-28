@@ -257,7 +257,7 @@ public class MailoutSvc extends Application {
 	@POST
 	@Produces("application/json")
 	@Path("/xls/{mailoutId}")
-	public Response uploadTasks(
+	public Response uploadEmails(
 			@Context HttpServletRequest request,
 			@PathParam("mailoutId") int mailoutId
 			) throws IOException {
@@ -273,7 +273,6 @@ public class MailoutSvc extends Application {
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		Connection sd = null; 
-		Connection cResults = null;
 		String fileName = null;
 		String filetype = null;
 		FileItem file = null;
@@ -283,7 +282,6 @@ public class MailoutSvc extends Application {
 		try {
 			
 			sd = SDDataSource.getConnection(requester);
-			cResults = ResultsDataSource.getConnection(requester);
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
@@ -360,12 +358,52 @@ public class MailoutSvc extends Application {
 		} finally {
 	
 			SDDataSource.closeConnection(requester, sd);
-			ResultsDataSource.closeConnection(requester, sd);
 			
 		}
 		
 		return response;
 		
+	}
+	
+	/*
+	 * Send any unsent emails
+	 */
+	@GET
+	@Path("/send/{mailoutId}")
+	public Response sendMailouts(@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-Send Emails";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End Authorisation
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			MailoutManager mm = new MailoutManager(localisation);
+			mm.sendEmails(sd, mailoutId); 
+				
+			response = Response.ok("").build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+		    response = Response.serverError().build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
 	}
 
 }
