@@ -20,6 +20,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
+import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.OrgResourceMessage;
 import org.smap.sdal.model.SurveyMessage;
 import org.smap.sdal.model.TaskMessage;
@@ -196,6 +197,26 @@ public class MessagingManagerApply {
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
 						
 					tm.emailTask(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							msg.user,
+							basePath,
+							"https",
+							serverName,
+							topic,
+							true);		// create pending if needed
+					
+					
+				} else if(topic.equals("mailout")) {
+					
+					MailoutManager mm = new MailoutManager(localisation);
+					
+					MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
+						
+					mm.emailMailout(
 							sd, 
 							cResults, 
 							organisation, 

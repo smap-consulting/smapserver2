@@ -13,7 +13,7 @@ public class MailoutMessage {
 	public String from;
 	public String subject;
 	public String content;
-	public ArrayList<String> emails;
+	public String email;
 	public String target;
 	public String user;
 	public String scheme;
@@ -27,7 +27,7 @@ public class MailoutMessage {
 			String from, 
 			String subject, 
 			String content, 
-			ArrayList<String> emails,
+			String email,
 			String target,
 			String user,
 			String scheme,
@@ -40,7 +40,7 @@ public class MailoutMessage {
 		this.from = from;
 		this.subject = subject;
 		this.content = content;
-		this.emails = emails;
+		this.email = email;
 		this.target = target;
 		this.user = user;
 		this.scheme = scheme;
@@ -55,12 +55,8 @@ public class MailoutMessage {
 		this.pId = orig.pId;
 		this.from = orig.from;
 		this.subject = orig.subject;
-		this.content = orig.content;
-		
-		if(emails != null) {
-			this.emails = new ArrayList<>(orig.emails);
-		}
-		
+		this.content = orig.content;		
+		this.email = email;		
 		this.target = orig.target;
 		this.user = orig.user;
 		this.scheme = orig.scheme;

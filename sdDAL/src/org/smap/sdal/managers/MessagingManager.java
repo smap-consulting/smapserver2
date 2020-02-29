@@ -11,6 +11,7 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
+import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.OrgResourceMessage;
 import org.smap.sdal.model.ProjectMessage;
 import org.smap.sdal.model.SubmissionMessage;
@@ -146,6 +147,7 @@ public class MessagingManager {
 	public void saveToPending(Connection sd, int oId, String email, String topic, 
 			SubmissionMessage msg,
 			EmailTaskMessage tMsg,
+			MailoutMessage moMsg,
 			Timestamp optInSent,
 			String adminEmail,
 			EmailServer emailServer,
@@ -160,8 +162,8 @@ public class MessagingManager {
 	
 		if(msg != null) {
 			/*
-			 *Copy message to a new object so we don't affect processing of the original message
-			 *which may have multiple email addresses
+			 * Copy message to a new object so we don't affect processing of the original message
+			 * which may have multiple email addresses
 			 */
 			SubmissionMessage pendingMsg = new SubmissionMessage(msg);
 			
@@ -174,8 +176,10 @@ public class MessagingManager {
 			pendingMsg.clearEmailQuestions();
 			
 			msgString = gson.toJson(pendingMsg);
-		} else {
+		} else if (tMsg != null) {
 			msgString = gson.toJson(tMsg);		// Only one email in a task message
+		} else if (moMsg != null) {
+			msgString = gson.toJson(moMsg);		// Only one email in a mailout message message
 		}
 		
 		String sql = "insert into pending_message" 

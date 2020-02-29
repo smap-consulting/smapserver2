@@ -1173,11 +1173,7 @@ public class SubscriberBatch {
 				int oId = rs.getInt("o_id");
 				String surveyIdent = rs.getString("survey_ident");
 				int pId = rs.getInt("p_id");
-				
-				ArrayList<String> emails = new ArrayList<> ();
-				String email = rs.getString("email");
-				emails.add(email);
-				
+				String email = rs.getString("email");			
 				
 				// Send the Mailout Message
 				MailoutMessage msg = new MailoutMessage(
@@ -1187,7 +1183,7 @@ public class SubscriberBatch {
 						"from",
 						"subject", 
 						"content",
-						emails,
+						email,
 						"target",
 						"user",
 						"https",
