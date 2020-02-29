@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
@@ -58,6 +59,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
@@ -410,6 +412,8 @@ public class SubscriberBatch {
 			 */
 			if(subscriberType.equals("upload")) {
 				applyReminderNotifications(sd, cResults, basePath, serverName);
+				sendMailouts(sd, basePath, serverName);
+				
 			} else if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, localisation, basePath);
@@ -1101,6 +1105,7 @@ public class SubscriberBatch {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
 					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					locMap.put(nId, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
 				mm.createMessage(sd, oId, "reminder", "", gson.toJson(subMgr));
@@ -1124,6 +1129,92 @@ public class SubscriberBatch {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
+			
+		}
+	}
+	
+	/*
+	 * Send pending Mailouts
+	 */
+	private void sendMailouts(Connection sd, String basePath, String serverName) {
+
+		// Sql to get mailouts
+		String sql = "select mp.id, p.o_id, m.survey_ident, p.id as p_id, ppl.email "
+				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
+				+ "where mp.m_id = m.id "
+				+ "and mp.p_id = ppl.id "
+				+ "and m.survey_ident = s.ident "
+				+ "and s.p_id = p.id "
+				+ "and mp.status = '" + MailoutManager.STATUS_PENDING + "' "
+				+ "and mp.processed is null ";
+		PreparedStatement pstmt = null;
+		
+		// Sql to record a mailout being sent
+		String sqlSent = "update mailout_people set processed = now() where id = ?";
+		PreparedStatement pstmtSent = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmtSent = sd.prepareStatement(sqlSent);
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			HashMap<String, ResourceBundle> locMap = new HashMap<> ();
+			
+			sd.setAutoCommit(false);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				
+				int id = rs.getInt("id");
+				int oId = rs.getInt("o_id");
+				String surveyIdent = rs.getString("survey_ident");
+				int pId = rs.getInt("p_id");
+				
+				ArrayList<String> emails = new ArrayList<> ();
+				String email = rs.getString("email");
+				emails.add(email);
+				
+				
+				// Send the Mailout Message
+				MailoutMessage msg = new MailoutMessage(
+						id,
+						surveyIdent,
+						pId,
+						"from",
+						"subject", 
+						"content",
+						emails,
+						"target",
+						"user",
+						"https",
+						serverName,
+						basePath);
+				
+				ResourceBundle localisation = locMap.get(surveyIdent);
+				if(localisation == null) {
+					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+					Locale orgLocale = new Locale(organisation.locale);
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					locMap.put(surveyIdent, localisation);
+				}
+				MessagingManager mm = new MessagingManager(localisation);
+				mm.createMessage(sd, oId, "mailout", "", gson.toJson(msg));
+				
+				// record the sending of the notification
+				pstmtSent.setInt(1, id);
+				pstmtSent.executeUpdate();
+				
+				// Write to the log
+				sd.commit();
+			}
+			sd.setAutoCommit(true);
+
+		} catch (Exception e) {
+			try {sd.setAutoCommit(true);} catch (Exception ex) {}
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

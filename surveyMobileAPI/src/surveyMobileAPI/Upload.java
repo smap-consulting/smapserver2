@@ -209,7 +209,7 @@ public class Upload extends Application {
 			log.info("Info: Upload finished ---------------- " + instanceId + " ------------");
 			
 			response = Response.created(uriInfo.getBaseUri()).status(HttpServletResponse.SC_CREATED)
-					.entity(RESPONSE_MSG1 + 	"<message>Upload Success</message>" + RESPONSE_MSG2)
+					.entity(RESPONSE_MSG1 + "<message>" + localisation.getString("c_success") +"</message>" + RESPONSE_MSG2)
 					.type("text/xml")
 					.header(OPEN_ROSA_VERSION_HEADER, OPEN_ROSA_VERSION).build();
 					
