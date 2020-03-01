@@ -326,7 +326,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			String topic,
 			boolean createPending) throws Exception {
 		
-		String docURL = null;
+		String docURL = "/webForm" + msg.actionLink;
 		String filePath = null;
 		String filename = "instance";
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
@@ -358,15 +358,12 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
 			// Notification log
-			ArrayList<String> unsubscribedList  = null;
 			String error_details = null;
 			String notify_details = null;
 			String status = null;
 			boolean unsubscribed = false;
 			
-			if(organisation.email_task) {
-				
-				//docURL = "/webForm" + msg.actionLink;
+			if(organisation.email_task) {		// Organisation is pernitted to do mailouts
 					
 				/*
 				 * Send document to target
@@ -468,7 +465,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 							} catch(Exception e) {
 								status = "error";
 								error_details = e.getMessage();
-								setMailoutStatus(sd, msg.mpId, "error", error_details);
+								
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
@@ -490,6 +487,11 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 				status = "error";
 				error_details = localisation.getString("susp_email_task");
 				log.log(Level.SEVERE, "Error: notification services suspended");
+			}
+			
+			// Update pending message
+			if(status != null && status.equals("error")) {
+				setMailoutStatus(sd, msg.mpId, "error", error_details);
 			}
 			
 			// Write log message

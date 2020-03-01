@@ -48,6 +48,7 @@ import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -58,6 +59,7 @@ import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.Notification;
@@ -1140,7 +1142,8 @@ public class SubscriberBatch {
 	/*
 	 * Send pending Mailouts
 	 */
-	private void sendMailouts(Connection sd, String basePath, String serverName) {
+	private void sendMailouts(Connection sd, String basePath, 
+			String serverName) {
 
 		// Sql to get mailouts
 		String sql = "select mp.id, p.o_id, m.survey_ident, p.id as p_id, ppl.email "
@@ -1153,7 +1156,7 @@ public class SubscriberBatch {
 				+ "and mp.processed is null ";
 		PreparedStatement pstmt = null;
 		
-		// Sql to record a mailout being sent
+		// SQL to record a mailout being sent
 		String sqlSent = "update mailout_people set processed = now() where id = ?";
 		PreparedStatement pstmtSent = null;
 		
@@ -1175,6 +1178,16 @@ public class SubscriberBatch {
 				int pId = rs.getInt("p_id");
 				String email = rs.getString("email");			
 				
+				ResourceBundle localisation = locMap.get(surveyIdent);
+				
+				// Create an action to complete the mailed out form
+				ActionManager am = new ActionManager(localisation, "UTC");
+				Action action = new Action("task");
+				action.surveyIdent = surveyIdent;
+				action.pId = pId;
+				
+				String link = am.getLink(sd, action, oId, true);
+				
 				// Send the Mailout Message
 				MailoutMessage msg = new MailoutMessage(
 						id,
@@ -1184,13 +1197,13 @@ public class SubscriberBatch {
 						"subject", 
 						"content",
 						email,
-						"target",
+						"email",
 						"user",
 						"https",
 						serverName,
-						basePath);
+						basePath,
+						link);
 				
-				ResourceBundle localisation = locMap.get(surveyIdent);
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);

@@ -1,11 +1,5 @@
 package org.smap.sdal.model;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.ArrayList;
-
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-
 public class MailoutMessage {
 	public int mpId;
 	public String survey_ident;
@@ -19,6 +13,7 @@ public class MailoutMessage {
 	public String scheme;
 	public String server;
 	public String basePath;
+	public String actionLink;
 	
 	public MailoutMessage(
 			int mpId,
@@ -32,7 +27,8 @@ public class MailoutMessage {
 			String user,
 			String scheme,
 			String server,
-			String basePath) {
+			String basePath,
+			String link) {
 		
 		this.mpId = mpId;
 		this.survey_ident = survey_ident;
@@ -46,6 +42,7 @@ public class MailoutMessage {
 		this.scheme = scheme;
 		this.server = server;
 		this.basePath = basePath;
+		this.actionLink = link;
 	}
 	
 	// copy constructor
@@ -56,11 +53,12 @@ public class MailoutMessage {
 		this.from = orig.from;
 		this.subject = orig.subject;
 		this.content = orig.content;		
-		this.email = email;		
+		this.email = orig.email;		
 		this.target = orig.target;
 		this.user = orig.user;
 		this.scheme = orig.scheme;
 		this.server = orig.server;
 		this.basePath = orig.basePath;
+		this.actionLink = orig.actionLink;
 	}
 }
