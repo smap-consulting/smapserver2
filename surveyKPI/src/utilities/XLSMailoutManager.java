@@ -32,9 +32,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.MailoutPerson;
-import org.smap.sdal.model.TaskServerDefn;
 
 
 
@@ -50,10 +48,11 @@ public class XLSMailoutManager {
 	
 	private class Column {
 		String name;
-		String human_name;
+		 CellStyle style;
 		
-		public Column(ResourceBundle localisation, int col, String n, boolean a) {
-			name = n;
+		public Column(ResourceBundle localisation, int col, String name, boolean a, CellStyle style) {
+			this.name = name;
+			this.style = style;
 		}
 		
 		// Return the width of this column
@@ -107,8 +106,8 @@ public class XLSMailoutManager {
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
-		ArrayList<Column> cols = getColumnList(localisation);
-		createHeader(cols, mailoutSheet, styles);	
+		ArrayList<Column> cols = getColumnList(localisation, styles);
+		createHeader(cols, mailoutSheet);	
 		processMailoutListForXLS(mop, mailoutSheet, settingsSheet, styles, cols, tz);
 		
 		wb.write(outputStream);
@@ -118,15 +117,15 @@ public class XLSMailoutManager {
 	/*
 	 * Get the columns for the Mailout People sheet
 	 */
-	private ArrayList<Column> getColumnList(ResourceBundle localisation) {
+	private ArrayList<Column> getColumnList(ResourceBundle localisation, Map<String, CellStyle> styles) {
 		
 		ArrayList<Column> cols = new ArrayList<Column> ();
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "email", false));
-		cols.add(new Column(localisation, colNumber++, "name", false));
-		cols.add(new Column(localisation, colNumber++, "status", false));
+		cols.add(new Column(localisation, colNumber++, "email", false, styles.get("header_tasks")));
+		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks")));
+		cols.add(new Column(localisation, colNumber++, "status", false, styles.get("group")));	// Ignore on upload
 		
 		return cols;
 	}
@@ -135,7 +134,7 @@ public class XLSMailoutManager {
 	/*
 	 * Create a header row and set column widths
 	 */
-	private void createHeader(ArrayList<Column> cols, Sheet sheet, Map<String, CellStyle> styles) {
+	private void createHeader(ArrayList<Column> cols, Sheet sheet) {
 		// Set column widths
 		for(int i = 0; i < cols.size(); i++) {
 			sheet.setColumnWidth(i, cols.get(i).getWidth());
@@ -145,10 +144,9 @@ public class XLSMailoutManager {
 		for(int i = 0; i < cols.size(); i++) {
 			Column col = cols.get(i);
 			
-			CellStyle headerStyle = styles.get("header_tasks");
             Cell cell = headerRow.createCell(i);
-            cell.setCellStyle(headerStyle);
-            cell.setCellValue(col.human_name);
+            cell.setCellStyle(col.style);
+            cell.setCellValue(col.name);
         }
 	}
 	
