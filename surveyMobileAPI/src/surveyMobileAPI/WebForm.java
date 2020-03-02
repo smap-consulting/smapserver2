@@ -379,6 +379,8 @@ public class WebForm extends Application {
 				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, null, false,true);
 			}
 		
+		} catch (AuthorisationException e) {
+			response = getMessagePage(false, "mo_na");
 		} catch (Exception e) {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
@@ -1179,6 +1181,7 @@ public class WebForm extends Application {
 	
 	/*
 	 * Get the response as either HTML or JSON
+	 * Deprecate this and replace with getMessagePage
 	 */
 	private Response getErrorPage(HttpServletRequest request, Locale locale, String message) {
 
@@ -1238,4 +1241,81 @@ public class WebForm extends Application {
 		return response;
 	}
 
+	private Response getMessagePage(boolean success, String msg) {
+		Response response = null;
+
+		StringBuffer output = new StringBuffer();
+		
+		// Generate the page
+		try {
+
+			output.append("<!doctype html>");
+			output.append("<html class='no-js' lang='en'>");
+			output.append("<head>");
+			output.append("<meta name='keywords' content='' />");
+			output.append("<meta name='description' content='' />");
+			output.append("<meta http-equiv='content-type' content='text/html; charset=utf-8' />");
+			output.append("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+			output.append("<title class='lang' data-lang='c_msg'></title>");
+			output.append("<link rel='shortcut icon' href='/favicon.ico' />");
+			output.append("<link rel='stylesheet' href='/css/normalize.css' />");
+			output.append("<link href='/css/bootstrap.v4.min.css' rel='stylesheet'>");
+			output.append("<link href='/font-awesome/css/font-awesome.css' rel='stylesheet'>");
+
+			output.append("<script src='/js/libs/modernizr.js'></script>");
+			output.append("<script data-main='/js/msg' src='/js/libs/require.js'></script>");
+
+			output.append("<style>");
+
+			output.append(
+				".failed {"
+					+ "color: red;"
+					+ "text-align: center;"
+					+ "margin-top: 100px;"
+					+ "margin-bottom: 50px;"
+					+ "font-size: 86px;"
+				+ "}"
+				+ ".msg {"
+					+ "text-align: center;"
+					+ "margin-top: 50px;"
+					+ "margin-bottom: 100px;"
+				+ "}"
+				);
+			
+			output.append("</style>");
+			output.append("</head>");
+			output.append("<body>");
+
+			// Add icon
+			output.append("<h1 class='");
+			if(success) {
+				output.append("success");
+			} else {
+				output.append("failed");
+			}
+			output.append("'><i class='fa ");
+			if(success) {
+				output.append("fa-tick");
+			} else {
+				output.append("fa-times");
+			}
+			output.append("'></i></h1>");
+
+			// Add msg
+			output.append("<h1 class='msg lang' data-lang='");
+			output.append(msg);
+			output.append("'></h1>");
+
+			output.append("</body>");
+			output.append("</html>");
+			
+			response = Response.status(Status.OK).entity(output.toString()).build();
+
+		} catch (Exception e) {
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+
+		return response;
+	}
 }
