@@ -97,9 +97,10 @@ public class MailoutApi extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			// Get the data
-			String sql = "select mp.id, p.email, p.name, mp.status "
+			String sql = "select mp.id, p.email, p.name, mp.status, mp.status_details "
 					+ "from people p, mailout_people mp "
-					+ "where mp.m_id = ? "
+					+ "where mp.p_id = p.id "
+					+ "and mp.m_id = ? "
 					+ "order by p.email asc";
 			
 			pstmt = sd.prepareStatement(sql);
@@ -113,6 +114,7 @@ public class MailoutApi extends Application {
 			String loc_sent = localisation.getString("c_sent");
 			String loc_unsub = localisation.getString("c_unsubscribed");
 			String loc_pending = localisation.getString("c_pending");
+			String loc_error = localisation.getString("c_error");
 			
 			while (rs.next()) {
 				
@@ -120,7 +122,8 @@ public class MailoutApi extends Application {
 						rs.getInt("id"), 
 						rs.getString("email"), 
 						rs.getString("name"),
-						rs.getString("status"));
+						rs.getString("status"),
+						rs.getString("status_details"));
 				
 				if(mp.status == null) {
 					mp.status_loc = loc_new;
@@ -130,7 +133,9 @@ public class MailoutApi extends Application {
 					mp.status_loc = loc_unsub;
 				} else if(mp.status.equals(MailoutManager.STATUS_PENDING)) {
 					mp.status_loc = loc_pending;
-				}else {
+				} else if(mp.status.equals(MailoutManager.STATUS_ERROR)) {
+					mp.status_loc = loc_error;
+				} else {
 					mp.status_loc = loc_new;
 				}
 				

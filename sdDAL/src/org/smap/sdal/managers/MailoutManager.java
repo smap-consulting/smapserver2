@@ -238,6 +238,12 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 				+ "values(?, ?, 'new') ";
 		PreparedStatement pstmtAddMailoutPerson = null;
 		
+		String sqlMailoutExists = "select count(*) "
+				+ "from mailout_people "
+				+ "where p_id = ? "
+				+ "and m_id = ? ";
+		PreparedStatement pstmtMailoutExists = null;
+		
 		try {
 			pstmtGetPerson = sd.prepareStatement(sqlGetPerson);
 			pstmtGetPerson.setInt(1, oId);
@@ -246,6 +252,9 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			pstmtAddPerson.setInt(1, oId);
 			
 			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson);
+			
+			pstmtMailoutExists = sd.prepareStatement(sqlMailoutExists);
+			pstmtMailoutExists.setInt(2, mailoutId);
 			
 			for(MailoutPerson person : mop) {
 				
@@ -270,11 +279,18 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 					}
 				}
 				
-				// Write the entry into the mailout person table
-				pstmtAddMailoutPerson.setInt(1, personId);
-				pstmtAddMailoutPerson.setInt(2, mailoutId);
-				
-				pstmtAddMailoutPerson.executeUpdate();
+				// Check to see if this person is already in the mailout
+				pstmtMailoutExists.setInt(1, personId);
+				ResultSet rsExists = pstmtMailoutExists.executeQuery();
+				if(rsExists.next() && rsExists.getInt(1) > 0) {
+					//  skip
+				} else {
+					// Write the entry into the mailout person table
+					pstmtAddMailoutPerson.setInt(1, personId);
+					pstmtAddMailoutPerson.setInt(2, mailoutId);
+					
+					pstmtAddMailoutPerson.executeUpdate();
+				}
 			}
 			
 	
@@ -282,6 +298,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			try {if (pstmtGetPerson != null) {pstmtGetPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtAddPerson != null) {pstmtAddPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtAddMailoutPerson != null) {pstmtAddMailoutPerson.close();} } catch (SQLException e) {	}
+			try {if (pstmtMailoutExists != null) {pstmtMailoutExists.close();} } catch (SQLException e) {	}
 		}
 	}
 
