@@ -104,7 +104,9 @@ public class MailoutManager {
 	/*
 	 * Add a mailout
 	 */
-	public void addMailout(Connection sd, Mailout mailout) throws SQLException, ApplicationException {
+	public int addMailout(Connection sd, Mailout mailout) throws SQLException, ApplicationException {
+		
+		int mailoutId = 0;
 		
 		String sql = "insert into mailout "
 				+ "(survey_ident, name, created, modified) "
@@ -113,11 +115,16 @@ public class MailoutManager {
 		PreparedStatement pstmt = null;
 		
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1,  mailout.survey_ident);
 			pstmt.setString(2, mailout.name);
 			log.info("Add mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
+			
+			ResultSet rsKeys = pstmt.getGeneratedKeys();
+			if(rsKeys.next()) {
+				mailoutId = rsKeys.getInt(1);
+			} 
 		
 		} catch(Exception e) {
 			String msg = e.getMessage();
@@ -129,6 +136,8 @@ public class MailoutManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+		
+		return mailoutId;
 	}
 	
 	/*

@@ -369,7 +369,7 @@ public class WebForm extends Application {
 					message = localisation.getString("wf_fnf");
 				}
 				response = getErrorPage(request, locale, message);
-			} else if(!a.action.equals("task")) {
+			} else if(!a.action.equals("task") && !a.action.equals("mailout")) {
 				throw new Exception("Invalid action type: " + a.action);
 			} else {
 

@@ -154,12 +154,12 @@ public class MailoutSvc extends Application {
 			MailoutManager mm = new MailoutManager(localisation);
  
 			if(mailout.id <= 0) {
-				mm.addMailout(sd, mailout);
+				mailout.id = mm.addMailout(sd, mailout);
 			} else {
 				//mm.updateMailout(sd, mailout);
 			}
 			
-			response = Response.ok().build();
+			response = Response.ok(gson.toJson(mailout)).build();
 			
 		} catch (Exception e) {
 			String msg = e.getMessage();

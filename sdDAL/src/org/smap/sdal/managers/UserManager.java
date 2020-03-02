@@ -14,6 +14,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Alert;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.GroupSurvey;
@@ -907,6 +908,36 @@ public class UserManager {
 		} finally {	
 			try {pstmt.close();} catch(Exception e) {}
 		}
+	}
+	
+	public Action getActionDetails(Connection sd, String userIdent) throws SQLException {
+		
+		Action action = null;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		
+		String sql = "select action_details "
+				+ "from users "
+				+ "where ident = ? "
+				+ "and temporary ";
+		PreparedStatement pstmt = null;
+		
+		try {	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  userIdent);	
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String actionString = rs.getString(1);
+				if(actionString != null) {
+					action = gson.fromJson(actionString, Action.class);
+				}
+			}
+			
+		} finally {	
+			try {pstmt.close();} catch(Exception e) {}
+		}
+		
+		return action;
 	}
 
 	/*

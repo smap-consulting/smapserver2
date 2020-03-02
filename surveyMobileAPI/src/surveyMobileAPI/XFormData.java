@@ -53,6 +53,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
@@ -394,6 +395,15 @@ public class XFormData {
 					if(!rsRepeating.getBoolean(1)) {
 						log.info("Deleting temporary user");
 						UserManager um = new UserManager(localisation);
+						um.deleteSingleSubmissionTemporaryUser(sd, user);
+					}
+				}
+			} else {
+				// If this is for a temporary user then process the Action Details
+				UserManager um = new UserManager(localisation);
+				Action action = um.getActionDetails(sd, user);
+				if(action != null) {
+					if(action.single) {
 						um.deleteSingleSubmissionTemporaryUser(sd, user);
 					}
 				}

@@ -15,6 +15,7 @@ public class Action {
 	public String notify_type;
 	public String notify_person;
 	public String link;
+	public boolean single = false;	// Set to true to only allow a single submission
 	public ArrayList<Role> roles = null;
 	
 	// Attributes specific to an action type
@@ -36,6 +37,9 @@ public class Action {
 	public String reportType;
 	public String filename;
 	public Transform transform;
+	
+	// Attibuts for mailouts
+	public int mailoutPersonId;
 	
 	// General parameters
 	public ArrayList<KeyValueSimp> parameters = null;

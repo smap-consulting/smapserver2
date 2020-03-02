@@ -1188,9 +1188,11 @@ public class SubscriberBatch {
 				
 				// Create an action to complete the mailed out form
 				ActionManager am = new ActionManager(localisation, "UTC");
-				Action action = new Action("task");
+				Action action = new Action("mailout");
 				action.surveyIdent = surveyIdent;
 				action.pId = pId;
+				action.single = true;
+				action.mailoutPersonId = id;
 				
 				String link = am.getLink(sd, action, oId, true);
 				

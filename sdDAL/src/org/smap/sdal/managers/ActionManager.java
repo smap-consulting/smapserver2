@@ -254,8 +254,8 @@ public class ActionManager {
 		p.id = a.pId;
 		u.projects.add(p);
 
-		// If the action is a task then add enum access
-		if(a.action.equals("task")) {
+		// If the action is a task or mailout then add enum access
+		if(a.action.equals("task") || a.action.equals("mailout")) {
 			u.groups = new ArrayList<UserGroup> ();
 			u.groups.add(new UserGroup(Authorise.ENUM_ID, Authorise.ENUM));
 		}
