@@ -1106,7 +1106,11 @@ public class SubscriberBatch {
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
-					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+					}
 					locMap.put(nId, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
@@ -1169,7 +1173,7 @@ public class SubscriberBatch {
 			HashMap<String, ResourceBundle> locMap = new HashMap<> ();
 			
 			sd.setAutoCommit(false);
-			log.info("sql: " + pstmt.toString());
+
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				
@@ -1209,7 +1213,11 @@ public class SubscriberBatch {
 				if(localisation == null) {
 					Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 					Locale orgLocale = new Locale(organisation.locale);
-					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					try {
+						localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+					} catch(Exception e) {
+						localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+					}
 					locMap.put(surveyIdent, localisation);
 				}
 				MessagingManager mm = new MessagingManager(localisation);
@@ -1217,6 +1225,7 @@ public class SubscriberBatch {
 				
 				// record the sending of the notification
 				pstmtSent.setInt(1, id);
+				log.info("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
 				
 				// Write to the log
@@ -1225,6 +1234,7 @@ public class SubscriberBatch {
 			sd.setAutoCommit(true);
 
 		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 			try {sd.setAutoCommit(true);} catch (Exception ex) {}
 		} finally {
 

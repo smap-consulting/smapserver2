@@ -20,13 +20,11 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
-import org.smap.sdal.model.Survey;
 
 /*****************************************************************************
 
@@ -328,11 +326,15 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 	/*
 	 * Send emails for a mailout
 	 */
-	public void sendEmails(Connection sd, int mailoutId) throws SQLException {
+	public void sendEmails(Connection sd, int mailoutId, boolean retry) throws SQLException {
 		
-		String sql = "update mailout_people set status = '" + MailoutManager.STATUS_PENDING +"'  "
+		String sql = "update mailout_people set status_details = null, "
+				+ "processed = null, "
+				+ "status = '" + MailoutManager.STATUS_PENDING +"'  "
 				+ "where m_id = ? "
-				+ "and status = '" + MailoutManager.STATUS_NEW +"'";
+				+ "and status = '" + 
+						(retry ? MailoutManager.STATUS_ERROR : MailoutManager.STATUS_NEW)
+						+ "'";
 		
 		PreparedStatement pstmt = null;
 		
@@ -525,7 +527,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 				}
 			} else {
 				status = "error";
-				error_details = localisation.getString("susp_email_task");
+				error_details = localisation.getString("susp_email_tasks");
 				log.log(Level.SEVERE, "Error: notification services suspended");
 			}
 			

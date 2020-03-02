@@ -28,13 +28,11 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignFromSurvey;
 import org.smap.sdal.model.AssignmentServerDefn;
-import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.CreateTaskResp;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.EmailTaskMessage;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.KeyValueTask;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.Location;
@@ -3316,7 +3314,7 @@ public class TaskManager {
 				}
 			} else {
 				status = "error";
-				error_details = localisation.getString("susp_email_task");
+				error_details = localisation.getString("susp_email_tasks");
 				log.log(Level.SEVERE, "Error: notification services suspended");
 			}
 			

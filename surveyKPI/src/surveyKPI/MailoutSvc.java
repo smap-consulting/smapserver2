@@ -37,7 +37,6 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.MailoutManager;
@@ -369,7 +368,8 @@ public class MailoutSvc extends Application {
 	@GET
 	@Path("/send/{mailoutId}")
 	public Response sendMailouts(@Context HttpServletRequest request,
-			@PathParam("mailoutId") int mailoutId
+			@PathParam("mailoutId") int mailoutId,
+			@QueryParam("retry") boolean retry
 			) { 
 
 		Response response = null;
@@ -387,7 +387,7 @@ public class MailoutSvc extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
 			MailoutManager mm = new MailoutManager(localisation);
-			mm.sendEmails(sd, mailoutId); 
+			mm.sendEmails(sd, mailoutId, retry); 
 				
 			response = Response.ok("").build();
 				
