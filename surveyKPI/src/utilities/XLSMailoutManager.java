@@ -71,6 +71,8 @@ public class XLSMailoutManager {
 				value = person.name;
 			} else if(name.equals("status")) {
 				value = person.status;
+			} else if(name.equals("status_details")) {
+				value = person.status_details;
 			} 
 			
 			if(value == null) {
@@ -126,6 +128,7 @@ public class XLSMailoutManager {
 		cols.add(new Column(localisation, colNumber++, "email", false, styles.get("header_tasks")));
 		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks")));
 		cols.add(new Column(localisation, colNumber++, "status", false, styles.get("group")));	// Ignore on upload
+		cols.add(new Column(localisation, colNumber++, "status_details", false, styles.get("group")));	// Ignore on upload
 		
 		return cols;
 	}

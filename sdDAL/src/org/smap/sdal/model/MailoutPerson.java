@@ -15,6 +15,10 @@ public class MailoutPerson {
 		this.name = name;
 		this.status = status;
 		this.status_details = status_details;
+		
+		if(this.status_details == null) {
+			this.status_details = "";		// For datatables
+		}
 	}
 	
 	public MailoutPerson(String email, String name) {

@@ -1169,9 +1169,11 @@ public class SubscriberBatch {
 			HashMap<String, ResourceBundle> locMap = new HashMap<> ();
 			
 			sd.setAutoCommit(false);
+			log.info("sql: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				
+				log.info("----- Sending mailout");
 				int id = rs.getInt("id");
 				int oId = rs.getInt("o_id");
 				String surveyIdent = rs.getString("survey_ident");
