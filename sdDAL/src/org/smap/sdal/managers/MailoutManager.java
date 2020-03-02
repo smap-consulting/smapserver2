@@ -171,9 +171,9 @@ public class MailoutManager {
 	 */
 	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId) throws SQLException {
 		
-		ArrayList<MailoutPerson> mp = new ArrayList<> ();
+		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
-		String sql = "select mp.id, p.name, p.email, mp.status "
+		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details "
 				+ "from mailout_people mp, people p "
 				+ "where p.id = mp.p_id "
 				+ "and mp.m_id = ? "
@@ -181,24 +181,47 @@ public class MailoutManager {
 		
 		PreparedStatement pstmt = null;
 		
+		String loc_new = localisation.getString("c_new");
+		String loc_sent = localisation.getString("c_sent");
+		String loc_unsub = localisation.getString("c_unsubscribed");
+		String loc_pending = localisation.getString("c_pending");
+		String loc_error = localisation.getString("c_error");
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, mailoutId);
 			log.info("Get mailout people: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				mp.add(new MailoutPerson(
+				MailoutPerson mp = new MailoutPerson(
 						rs.getInt("id"),
 						rs.getString("email"), 
 						rs.getString("name"),
-						rs.getString("status")));			
+						rs.getString("status"),
+						rs.getString("status_details"));	
+				
+				if(mp.status == null) {
+					mp.status_loc = loc_new;
+				} else if(mp.status.equals(MailoutManager.STATUS_SENT)) {
+					mp.status_loc = loc_sent;
+				} else if(mp.status.equals(MailoutManager.STATUS_UNSUBSCRIBED)) {
+					mp.status_loc = loc_unsub;
+				} else if(mp.status.equals(MailoutManager.STATUS_PENDING)) {
+					mp.status_loc = loc_pending;
+				} else if(mp.status.equals(MailoutManager.STATUS_ERROR)) {
+					mp.status_loc = loc_error;
+				} else {
+					mp.status_loc = loc_new;
+				}
+				
+				mpList.add(mp);
 			}
 		
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 		
-		return mp;
+		return mpList;
 	}
 	
 	public void deleteUnsentEmails(Connection sd, int mailoutId) throws SQLException {

@@ -87,62 +87,14 @@ public class MailoutApi extends Application {
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End authorisation
 		
-		PreparedStatement pstmt = null;
-		ResultSet rs = null;
-		
 		try {
 	
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
-			// Get the data
-			String sql = "select mp.id, p.email, p.name, mp.status, mp.status_details "
-					+ "from people p, mailout_people mp "
-					+ "where mp.p_id = p.id "
-					+ "and mp.m_id = ? "
-					+ "order by p.email asc";
-			
-			pstmt = sd.prepareStatement(sql);
-			int paramCount = 1;
-			pstmt.setInt(paramCount++, mailoutId);
-			
-			log.info("Get mailout emails: " + pstmt.toString());
-			rs = pstmt.executeQuery();
-			
-			String loc_new = localisation.getString("c_new");
-			String loc_sent = localisation.getString("c_sent");
-			String loc_unsub = localisation.getString("c_unsubscribed");
-			String loc_pending = localisation.getString("c_pending");
-			String loc_error = localisation.getString("c_error");
-			
-			while (rs.next()) {
-				
-				MailoutPerson mp = new MailoutPerson(
-						rs.getInt("id"), 
-						rs.getString("email"), 
-						rs.getString("name"),
-						rs.getString("status"),
-						rs.getString("status_details"));
-				
-				if(mp.status == null) {
-					mp.status_loc = loc_new;
-				} else if(mp.status.equals(MailoutManager.STATUS_SENT)) {
-					mp.status_loc = loc_sent;
-				} else if(mp.status.equals(MailoutManager.STATUS_UNSUBSCRIBED)) {
-					mp.status_loc = loc_unsub;
-				} else if(mp.status.equals(MailoutManager.STATUS_PENDING)) {
-					mp.status_loc = loc_pending;
-				} else if(mp.status.equals(MailoutManager.STATUS_ERROR)) {
-					mp.status_loc = loc_error;
-				} else {
-					mp.status_loc = loc_new;
-				}
-				
-				data.add(mp);
-				
-			}
-						
+			MailoutManager mm = new MailoutManager(localisation);
+			data = mm.getMailoutPeople(sd, mailoutId);			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			if(dt) {
@@ -158,9 +110,6 @@ public class MailoutApi extends Application {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			
 					
 			SDDataSource.closeConnection(connectionString, sd);
 		}
