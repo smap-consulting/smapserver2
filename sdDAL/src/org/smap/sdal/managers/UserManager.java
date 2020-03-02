@@ -892,21 +892,34 @@ public class UserManager {
 
 	}
 	
-	public void deleteSingleSubmissionTemporaryUser(Connection sd, String userIdent) throws SQLException {
+	public void deleteSingleSubmissionTemporaryUser(Connection sd, String userIdent, String status) throws SQLException {
 		
 		String sql = "delete from users where ident = ? "
 				+ "and temporary "
 				+ "and single_submission ";
 		PreparedStatement pstmt = null;
 		
-		try {	
+		String sqlArchive = "insert into temp_users_final "
+				+ "(ident, status, created) values (?, ?, now()) ";			
+		PreparedStatement pstmtArchive = null;
+		
+		try {
+			// No need for consistency between these
+			
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1,  userIdent);	
 			log.info("Deleting single submisison user: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
+			pstmtArchive = sd.prepareStatement(sqlArchive);
+			pstmtArchive.setString(1,  userIdent);	
+			pstmtArchive.setString(2, status);
+			log.info("Archiving single submisison user: " + pstmt.toString());
+			pstmtArchive.executeUpdate();
+			
 		} finally {	
 			try {pstmt.close();} catch(Exception e) {}
+			try {pstmtArchive.close();} catch(Exception e) {}
 		}
 	}
 	

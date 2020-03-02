@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.QuestionManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
@@ -337,10 +338,17 @@ public class XFormData {
 					masterDeviceId = masterDeviceId.substring(11);
 				}
 			}
+			
+			// Get the action if it exists
+			UserManager um = new UserManager(localisation);
+			Action action = um.getActionDetails(sd, user);
 
 			// Write the upload event
 			UploadEvent ue = new UploadEvent();
 			ue.setUserName(user);
+			if(action != null && action.email != null) {
+				ue.setUserName(action.email);
+			}
 			ue.setFormStatus(form_status);
 			ue.setServerName(serverName);
 			ue.setSurveyId(survey.id);
@@ -379,7 +387,7 @@ public class XFormData {
 			}
 			
 			/*
-			 * If the upload was for a temporary user 
+			 * Process temporary user uploads 
 			 * who can only submit one result then delete that temporary user
 			 */
 			if(assignmentId > 0) {
@@ -394,20 +402,21 @@ public class XFormData {
 				if(rsRepeating.next()) {
 					if(!rsRepeating.getBoolean(1)) {
 						log.info("Deleting temporary user");
-						UserManager um = new UserManager(localisation);
-						um.deleteSingleSubmissionTemporaryUser(sd, user);
+						um.deleteSingleSubmissionTemporaryUser(sd, user, "complete");
 					}
 				}
-			} else {
+			} else if(action != null) {
 				// If this is for a temporary user then process the Action Details
-				UserManager um = new UserManager(localisation);
-				Action action = um.getActionDetails(sd, user);
-				if(action != null) {
-					if(action.single) {
-						um.deleteSingleSubmissionTemporaryUser(sd, user);
-					}
+				if(action.single) {
+					um.deleteSingleSubmissionTemporaryUser(sd, user, "complete");
+				}
+				if(action.mailoutPersonId > 0) {
+					MailoutManager mm = new MailoutManager(localisation);
+					mm.setMailoutStatus(sd, action.mailoutPersonId, 
+							MailoutManager.STATUS_COMPLETE, null);
 				}
 			}
+
 			
 			log.info("userevent: " + user + " : upload results : " + si.getDisplayName());
 		} finally {

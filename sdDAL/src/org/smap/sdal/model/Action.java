@@ -11,11 +11,12 @@ public class Action {
 			Logger.getLogger(EmailManager.class.getName());
 	
 	public String name;
-	public String action;		// respond (managed forms) || report || task
+	public String action;		// respond (managed forms) || report || task || mailout
 	public String notify_type;
 	public String notify_person;
 	public String link;
 	public boolean single = false;	// Set to true to only allow a single submission
+	public String email;
 	public ArrayList<Role> roles = null;
 	
 	// Attributes specific to an action type

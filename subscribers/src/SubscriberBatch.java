@@ -1193,6 +1193,7 @@ public class SubscriberBatch {
 				action.pId = pId;
 				action.single = true;
 				action.mailoutPersonId = id;
+				action.email = email;
 				
 				String link = am.getLink(sd, action, oId, true);
 				
