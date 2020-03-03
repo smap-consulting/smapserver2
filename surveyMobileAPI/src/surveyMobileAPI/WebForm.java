@@ -250,7 +250,8 @@ public class WebForm extends Application {
 
 		mimeType = "json";
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, taskKey, callback, false, false);
+		return getWebform(request, formIdent, datakey, datakeyvalue, 
+				assignmentId, taskKey, callback, false, false, false);
 	}
 
 	/*
@@ -280,7 +281,7 @@ public class WebForm extends Application {
 		isTemporaryUser = false;
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback,
-				false, true);
+				false, true, false);
 	}
 
 	/*
@@ -315,7 +316,7 @@ public class WebForm extends Application {
 		isTemporaryUser = true;
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
-				true);
+				true, false);
 	}
 
 	/*
@@ -374,7 +375,12 @@ public class WebForm extends Application {
 				// 3. Get webform
 				userIdent = ident;
 				isTemporaryUser = true;
-				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, null, false,true);
+				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
+						null, 
+						false,
+						true, 
+						true		// Close after saving
+						);
 			}
 		
 		} catch (AuthorisationException e) {
@@ -393,9 +399,13 @@ public class WebForm extends Application {
 	 * Get the response as either HTML or JSON
 	 */
 	private Response getWebform(HttpServletRequest request, String formIdent, String datakey,
-			String datakeyvalue, int assignmentId, 
-			int taskKey, String callback, boolean simplifyMedia,
-			boolean isWebForm) {
+			String datakeyvalue, 
+			int assignmentId, 
+			int taskKey, 
+			String callback, 
+			boolean simplifyMedia,
+			boolean isWebForm,
+			boolean single) {
 
 		Response response = null;
 
@@ -407,7 +417,6 @@ public class WebForm extends Application {
 		String accessKey = null;
 		String requester = "surveyMobileAPI-getWebForm";
 		boolean superUser = false;
-
 		
 		/*
 		 * Get the media manifest so we can set the url's of media files used the form
@@ -541,7 +550,7 @@ public class WebForm extends Application {
 				}
 			} else {
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
-						survey.surveyClass, orgId, accessKey, superUser));
+						survey.surveyClass, orgId, accessKey, superUser, single));
 			}
 			
 			String respString = outputString.toString();
@@ -570,7 +579,9 @@ public class WebForm extends Application {
 	 * Add the HTML
 	 */
 	private StringBuffer addDocument(HttpServletRequest request, String instanceXML,
-			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, boolean superUser)
+			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, 
+			boolean superUser,
+			boolean single)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -587,7 +598,8 @@ public class WebForm extends Application {
 		output.append(">\n");
 
 		output.append(
-				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, accessKey));
+				addHead(request, instanceXML, dataToEditId, assignmentId, surveyClass, 
+						accessKey, single));
 		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser));
 
 		output.append("</html>\n");
@@ -598,7 +610,7 @@ public class WebForm extends Application {
 	 * Add the head section
 	 */
 	private StringBuffer addHead(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String surveyClass, String accessKey)
+			int assignmentId, String surveyClass, String accessKey, boolean single)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -661,7 +673,7 @@ public class WebForm extends Application {
 
 		output.append("<script src='/js/libs/modernizr.js'></script>");
 		//output.append("<script src='/js/libs/textile.js'></script>");		in browser markdown - don't currently use
-		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey));
+		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey, single));
 		// Add the google API key
 		output.append("<script>");
 		output.append("window.smapConfig = {};");
@@ -680,7 +692,7 @@ public class WebForm extends Application {
 	 * Add the data
 	 */
 	private StringBuffer addData(HttpServletRequest request, String instanceXML, String dataToEditId,
-			int assignmentId, String accessKey)
+			int assignmentId, String accessKey, boolean single)
 			throws TransformerFactoryConfigurationError, Exception {
 
 		StringBuffer output = new StringBuffer();
@@ -720,7 +732,10 @@ public class WebForm extends Application {
 			output.append("surveyData.assignmentId='");
 			output.append(assignmentId);
 			output.append("';\n");
-
+		}
+		
+		if(single) {
+			output.append("surveyData.closeAfterSending = true;\n");
 		}
 
 		// Add access key for authentication
