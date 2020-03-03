@@ -593,6 +593,28 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 		}
 	}
 	
+	/*
+	 * Delete a mailout
+	 */
+	public void deleteMailout(Connection sd, int mailoutId) throws SQLException {
+		
+		String sql = "delete from mailout where id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, mailoutId);
+			log.info("Delete Mailout: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+		return;
+	}
 }
 
 

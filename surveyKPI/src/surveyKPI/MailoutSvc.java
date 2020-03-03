@@ -20,6 +20,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -160,6 +161,51 @@ public class MailoutSvc extends Application {
 			}
 			
 			response = Response.ok(gson.toJson(mailout)).build();
+			
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			log.info(msg);
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    response = Response.serverError().entity(msg).build();
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
+	
+	/*
+	 * Delete a mailout campaign
+	 */
+	@DELETE
+	public Response addMailout(@Context HttpServletRequest request,
+			@FormParam("mailoutId") int mailoutId) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-Survey - add mailout";
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(mailoutId > 0) {
+			a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		}
+		// End Authorisation
+		
+		try {	
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			MailoutManager mm = new MailoutManager(localisation);	
+			mm.deleteMailout(sd, mailoutId);
+			
+			response = Response.ok("").build();
 			
 		} catch (Exception e) {
 			String msg = e.getMessage();
