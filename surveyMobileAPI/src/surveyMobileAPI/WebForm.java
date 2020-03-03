@@ -365,9 +365,10 @@ public class WebForm extends Application {
 						message = "mo_ss";
 					}
 				} 
-				response = getMessagePage(success, message);
+				response = getMessagePage(success, message, null);
 			} else if(!a.action.equals("task") && !a.action.equals("mailout")) {
-				throw new Exception("Invalid action type: " + a.action);
+				response = getMessagePage(false, "mo_se", "Invalid action type: " + a.action);
+				throw new Exception();
 			} else {
 
 				// 3. Get webform
@@ -377,9 +378,9 @@ public class WebForm extends Application {
 			}
 		
 		} catch (AuthorisationException e) {
-			response = getMessagePage(false, "mo_na");
+			response = getMessagePage(false, "mo_na", null);
 		} catch (Exception e) {
-			response = Response.serverError().entity(e.getMessage()).build();
+			response = getMessagePage(false, "mo_se", e.getMessage());
 		} finally {
 			SDDataSource.closeConnection(requester, sd);
 		}
@@ -1176,7 +1177,7 @@ public class WebForm extends Application {
 		return output.toString();
 	}
 
-	private Response getMessagePage(boolean success, String msg) {
+	private Response getMessagePage(boolean success, String msg, String systemError) {
 		Response response = null;
 
 		StringBuffer output = new StringBuffer();
@@ -1220,7 +1221,16 @@ public class WebForm extends Application {
 				+ ".msg {"
 					+ "text-align: center;"
 					+ "margin-top: 50px;"
-					+ "margin-bottom: 100px;"
+					+ "margin-bottom: 50px;"
+				+ "}"
+				+ ".system_msg {"
+					+ "text-align: center;"
+					+ "border-style: solid;"
+					+ "border-width: 1px;"
+					+ "margin-top: 50px;"
+					+ "margin-bottom: 50px;"
+					+ "margin-left: 100px;"
+					+ "margin-right: 100px;"
 				+ "}"
 				);
 			
@@ -1247,6 +1257,12 @@ public class WebForm extends Application {
 			output.append("<h1 class='msg lang' data-lang='");
 			output.append(msg);
 			output.append("'></h1>");
+			
+			if(systemError != null) {
+				output.append("<p class='system_msg'>");
+				output.append(systemError);
+				output.append("</p>");
+			}
 
 			output.append("</body>");
 			output.append("</html>");
