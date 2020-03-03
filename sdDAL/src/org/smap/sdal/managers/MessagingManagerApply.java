@@ -465,6 +465,24 @@ public class MessagingManagerApply {
 							false);		// Do not create pending
 					
 					
+				} else if(topic.equals("mailout")) {
+					MailoutManager mm = new MailoutManager(localisation);
+
+					MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
+						
+					mm.emailMailout(
+							sd, 
+							cResults, 
+							organisation, 
+							msg,
+							id,
+							msg.user,
+							basePath,
+							"https",
+							serverName,
+							topic,
+							false);		// Do not create pending	
+					
 				} else {
 
 					log.info("+++++++++ opt in send pending +++++++++ Unknown topic: " + topic);
