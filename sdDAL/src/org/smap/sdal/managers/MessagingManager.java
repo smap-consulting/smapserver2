@@ -156,7 +156,7 @@ public class MessagingManager {
 			String scheme,
 			String server) throws Exception {
 		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		String msgString = null;
 	
@@ -223,7 +223,7 @@ public class MessagingManager {
 			EmailServer emailServer,
 			String emailKey,
 			String scheme,
-			String server) throws SQLException {
+			String server) throws Exception {
 		
 		String from = emailServer.smtpHost;
 		
@@ -297,6 +297,8 @@ public class MessagingManager {
 			}
 			note = note.replace("%s2", err_msg);
 			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			
+			throw e;
 		} finally {
 			try {if (pstmt != null) {	pstmt.close();}} catch (SQLException ex) {}
 		}

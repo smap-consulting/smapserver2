@@ -170,10 +170,7 @@ public class EventList extends Application {
 						);
 			}
 			
-			
-		
-			
-		} catch (SQLException e) {
+		} catch (Exception e) {
 				
 			log.log(Level.SEVERE, "SQL Exception", e);
 		

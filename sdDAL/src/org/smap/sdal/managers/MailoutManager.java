@@ -20,11 +20,13 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.InstanceMeta;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
+import org.smap.sdal.model.Survey;
 
 /*****************************************************************************
 
@@ -76,7 +78,7 @@ public class MailoutManager {
 		
 		ArrayList<Mailout> mailouts = new ArrayList<> ();
 		
-		String sql = "select id, survey_ident, name "
+		String sql = "select id, survey_ident, name, subject, content "
 				+ "from mailout "
 				+ "where survey_ident = ?";
 		
@@ -91,7 +93,9 @@ public class MailoutManager {
 				mailouts.add(new Mailout(
 						rs.getInt("id"),
 						rs.getString("survey_ident"), 
-						rs.getString("name")));
+						rs.getString("name"),
+						rs.getString("subject"),
+						rs.getString("content")));
 				
 			}
 		
@@ -110,8 +114,8 @@ public class MailoutManager {
 		int mailoutId = 0;
 		
 		String sql = "insert into mailout "
-				+ "(survey_ident, name, created, modified) "
-				+ "values(?, ?, now(), now())";
+				+ "(survey_ident, name, subject, content, created, modified) "
+				+ "values(?, ?, ?, ?, now(), now())";
 		
 		PreparedStatement pstmt = null;
 		
@@ -119,6 +123,8 @@ public class MailoutManager {
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1,  mailout.survey_ident);
 			pstmt.setString(2, mailout.name);
+			pstmt.setString(3, mailout.subject);
+			pstmt.setString(4, mailout.content);
 			log.info("Add mailout: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -142,13 +148,51 @@ public class MailoutManager {
 	}
 	
 	/*
+	 * Add a mailout
+	 */
+	public void updateMailout(Connection sd, Mailout mailout) throws SQLException, ApplicationException {
+		
+		String sql = "update mailout "
+				+ "set survey_ident = ?, "
+				+ "name = ?,"
+				+ "subject = ?, "
+				+ "content = ?, "
+				+ "modified = now() "
+				+ "where id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  mailout.survey_ident);
+			pstmt.setString(2, mailout.name);
+			pstmt.setString(3, mailout.subject);
+			pstmt.setString(4, mailout.content);
+			pstmt.setInt(5, mailout.id);
+			log.info("Update mailout: " + pstmt.toString());
+			pstmt.executeUpdate();
+		
+		} catch(Exception e) {
+			String msg = e.getMessage();
+			if(msg != null && msg.contains("duplicate key value violates unique constraint")) {
+				throw new ApplicationException(localisation.getString("msg_dup_name"));
+			} else {
+				throw e;
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+	}
+	
+	/*
 	 * Get mailouts Details
 	 */
 	public Mailout getMailoutDetails(Connection sd, int mailoutId) throws SQLException {
 		
 		Mailout mailout = null;
 		
-		String sql = "select survey_ident, name "
+		String sql = "select survey_ident, name, subject, content "
 				+ "from mailout "
 				+ "where id = ?";
 		
@@ -163,7 +207,9 @@ public class MailoutManager {
 				mailout = new Mailout(
 						mailoutId,
 						rs.getString("survey_ident"), 
-						rs.getString("name"));
+						rs.getString("name"),
+						rs.getString("subject"),
+						rs.getString("content"));
 				
 			}
 		
@@ -442,7 +488,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 								if(server != null && server.contains("smap")) {
 									subject = "Smap ";
 								}
-								subject += localisation.getString("c_notify");
+								subject += localisation.getString("ar_survey");
 							}
 							
 							String from = "smap";
@@ -456,7 +502,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 								content = organisation.default_email_content;
 							}
 							
-							notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
+							notify_details = "Sending mailout email to: " + msg.email + " containing link " + docURL;
 							
 							log.info("+++ emailing mailout to: " + msg.email + " docUrl: " + docURL + 
 									" from: " + from + 
@@ -497,7 +543,6 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 													localisation,
 													organisation.server_description,
 													organisation.name);
-											setMailoutStatus(sd, msg.mpId, STATUS_SENT, null);
 										
 										} else {
 											/*
@@ -515,6 +560,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 													scheme,
 													server);
 										}
+										setMailoutStatus(sd, msg.mpId, STATUS_SENT, null);
 									}
 								}
 							} catch(Exception e) {
@@ -615,6 +661,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 		
 		return;
 	}
+	
 }
 
 

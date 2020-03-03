@@ -125,7 +125,7 @@ public class MailoutSvc extends Application {
 	}
 
 	/*
-	 * Add a new mailout campaign
+	 * Add or update a mailout campaign
 	 */
 	@POST
 	public Response addMailout(@Context HttpServletRequest request,
@@ -157,7 +157,7 @@ public class MailoutSvc extends Application {
 			if(mailout.id <= 0) {
 				mailout.id = mm.addMailout(sd, mailout);
 			} else {
-				//mm.updateMailout(sd, mailout);
+				mm.updateMailout(sd, mailout);
 			}
 			
 			response = Response.ok(gson.toJson(mailout)).build();

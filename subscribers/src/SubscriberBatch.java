@@ -1150,7 +1150,15 @@ public class SubscriberBatch {
 			String serverName) {
 
 		// Sql to get mailouts
-		String sql = "select mp.id, p.o_id, m.survey_ident, p.id as p_id, ppl.email "
+		String sql = "select "
+				+ "mp.id, "
+				+ "p.o_id, "
+				+ "m.survey_ident, "
+				+ "p.id as p_id, "
+				+ "ppl.email, "
+				+ "ppl.name, "
+				+ "m.content, "
+				+ "m.subject "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -1182,8 +1190,17 @@ public class SubscriberBatch {
 				int oId = rs.getInt("o_id");
 				String surveyIdent = rs.getString("survey_ident");
 				int pId = rs.getInt("p_id");
-				String email = rs.getString("email");			
+				String email = rs.getString("email");	
+				String name = rs.getString("name");
+				String content = rs.getString("content");
+				String subject = rs.getString("subject");
 				
+				// Add user name to content
+				if(content == null) {
+					content = "Mailout";
+				} else {
+					content = content.replaceAll("\\$\\{name\\}", name);
+				}
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
 				// Create an action to complete the mailed out form
@@ -1203,8 +1220,8 @@ public class SubscriberBatch {
 						surveyIdent,
 						pId,
 						"from",
-						"subject", 
-						"content",
+						subject, 
+						content,
 						email,
 						"email",
 						"user",
