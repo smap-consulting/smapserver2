@@ -402,13 +402,13 @@ public class XFormData {
 				if(rsRepeating.next()) {
 					if(!rsRepeating.getBoolean(1)) {
 						log.info("Deleting temporary user");
-						um.deleteSingleSubmissionTemporaryUser(sd, user, "complete");
+						um.deleteSingleSubmissionTemporaryUser(sd, user, UserManager.STATUS_COMPLETE);
 					}
 				}
 			} else if(action != null) {
 				// If this is for a temporary user then process the Action Details
 				if(action.single) {
-					um.deleteSingleSubmissionTemporaryUser(sd, user, "complete");
+					um.deleteSingleSubmissionTemporaryUser(sd, user, UserManager.STATUS_COMPLETE);
 				}
 				if(action.mailoutPersonId > 0) {
 					MailoutManager mm = new MailoutManager(localisation);

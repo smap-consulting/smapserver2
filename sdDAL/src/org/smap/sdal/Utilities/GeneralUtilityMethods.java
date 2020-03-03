@@ -86,6 +86,7 @@ import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnMarkup;
 import org.smap.sdal.model.TableUpdateStatus;
 import org.smap.sdal.model.TaskFeature;
+import org.smap.sdal.model.TempUserFinal;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 
@@ -9086,5 +9087,31 @@ public class GeneralUtilityMethods {
 		}
 	}
 	
+	public static TempUserFinal getTempUserFinal(Connection sd, String userIdent) throws SQLException {
+		
+		TempUserFinal tuf = null;
+		
+		String sql = "SELECT status, created " +
+				" from temp_users_final "
+				+ "where ident = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, userIdent);
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				tuf = new TempUserFinal(userIdent, 
+						rs.getString("status"),
+						rs.getTimestamp("created"));
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return tuf;
+	}
 }
 

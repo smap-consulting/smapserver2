@@ -60,6 +60,8 @@ public class UserManager {
 	
 	private ResourceBundle localisation;
 	
+	public static String STATUS_COMPLETE = "complete";
+	
 	public UserManager(ResourceBundle l) {
 		localisation = l;
 	}
