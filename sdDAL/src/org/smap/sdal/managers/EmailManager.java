@@ -1,7 +1,6 @@
 package org.smap.sdal.managers;
 
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;

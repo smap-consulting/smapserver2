@@ -23,9 +23,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -46,6 +43,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
+import org.smap.sdal.model.MailoutPersonTotals;
 
 /*
  * Provides access to collected data
@@ -94,7 +92,8 @@ public class MailoutApi extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			MailoutManager mm = new MailoutManager(localisation);
-			data = mm.getMailoutPeople(sd, mailoutId);			
+			data = mm.getMailoutPeople(sd, mailoutId);				
+			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			if(dt) {
@@ -104,6 +103,53 @@ public class MailoutApi extends Application {
 			} else {
 				response = Response.ok(gson.toJson(data)).build();
 			}
+			
+	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+					
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
+	
+	/*
+	 * Get subscription totals
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/{mailoutId}/totals")
+	public Response getSubscriptionTotals(@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId
+			) { 
+		
+		String connectionString = "API - get emails in mailout";
+		Response response = null;
+		MailoutPersonTotals totals = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End authorisation
+		
+		try {
+	
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
+			
+			MailoutManager mm = new MailoutManager(localisation);
+			totals = mm.getMailoutPeopleTotals(sd,mailoutId);		
+			
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			
+			response = Response.ok(gson.toJson(totals)).build();
+	
 			
 	
 		} catch (Exception e) {

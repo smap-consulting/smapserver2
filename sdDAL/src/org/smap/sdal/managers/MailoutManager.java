@@ -20,13 +20,12 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.InstanceMeta;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MailoutPerson;
+import org.smap.sdal.model.MailoutPersonTotals;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
-import org.smap.sdal.model.Survey;
 
 /*****************************************************************************
 
@@ -279,6 +278,47 @@ public class MailoutManager {
 		}
 		
 		return mpList;
+	}
+	
+	/*
+	 * Get mailouts Detail Totals
+	 */
+	public MailoutPersonTotals getMailoutPeopleTotals(Connection sd, int mailoutId) throws SQLException {
+		
+		MailoutPersonTotals totals = new MailoutPersonTotals();
+		
+		totals.complete = getTotal(sd, mailoutId, " and status = 'complete' ");
+		totals.error = getTotal(sd, mailoutId, " and status = 'error' ");
+		totals.unsent = getTotal(sd, mailoutId, " and status = 'new' ");
+		totals.sent = getTotal(sd, mailoutId, " and status = 'sent' ");
+		totals.unsubscribed = getTotal(sd, mailoutId, " and status = 'unsubscribed' ");
+		totals.pending = getTotal(sd, mailoutId, " and status = 'pending' ");
+		
+		return totals;
+	}
+	
+	private int getTotal(Connection sd, int mailoutId, String filter) throws SQLException {
+		
+		String sqlTotal = "select count(*) "
+				+ "from mailout_people "
+				+ "where  m_id = ? ";
+		
+		int total = 0;
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sqlTotal + filter);
+			pstmt.setInt(1, mailoutId);
+			rs = pstmt.executeQuery();
+			if(rs.next()) {
+				total = rs.getInt(1);
+			}	
+		} finally {
+			try {if (rs != null) {rs.close();} } catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		return total;
 	}
 	
 	public void deleteUnsentEmails(Connection sd, int mailoutId) throws SQLException {
