@@ -467,7 +467,10 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			String topic,
 			boolean createPending) throws Exception {
 		
-		String docURL = "/webForm" + msg.actionLink;
+		String docURL = null;
+		if(msg.actionLink != null) {
+			docURL = "/webForm" + msg.actionLink;
+		}
 		String filePath = null;
 		String filename = "instance";
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);

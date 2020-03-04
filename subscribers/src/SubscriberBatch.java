@@ -1179,8 +1179,6 @@ public class SubscriberBatch {
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			HashMap<String, ResourceBundle> locMap = new HashMap<> ();
-			
-			sd.setAutoCommit(false);
 
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
@@ -1195,12 +1193,6 @@ public class SubscriberBatch {
 				String content = rs.getString("content");
 				String subject = rs.getString("subject");
 				
-				// Add user name to content
-				if(content == null) {
-					content = "Mailout";
-				} else {
-					content = content.replaceAll("\\$\\{name\\}", name);
-				}
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
 				// Create an action to complete the mailed out form
@@ -1213,6 +1205,18 @@ public class SubscriberBatch {
 				action.email = email;
 				
 				String link = am.getLink(sd, action, oId, true);
+				
+				// Add user name to content
+				if(content == null) {
+					content = "Mailout";
+				} else {
+					content = content.replaceAll("\\$\\{name\\}", name);
+					if(content.contains("${url}")) {
+						String url = "https://" + serverName + "/webForm" + link;
+						content = content.replaceAll("\\$\\{url\\}", url);
+						link = null;	// Default link replaced
+					}
+				}
 				
 				// Send the Mailout Message
 				MailoutMessage msg = new MailoutMessage(
@@ -1248,14 +1252,11 @@ public class SubscriberBatch {
 				log.info("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
 				
-				// Write to the log
-				sd.commit();
 			}
 			sd.setAutoCommit(true);
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-			try {sd.setAutoCommit(true);} catch (Exception ex) {}
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
