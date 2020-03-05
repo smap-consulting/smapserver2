@@ -364,6 +364,9 @@ public class WebForm extends Application {
 					if(tuf.status.equals(UserManager.STATUS_COMPLETE)) {
 						success = true;
 						message = "mo_ss";
+					} else if(tuf.status.equals(UserManager.STATUS_EXPIRED)) {
+						success = false;
+						message = "mo_exp";
 					}
 				} 
 				response = getMessagePage(success, message, null);
