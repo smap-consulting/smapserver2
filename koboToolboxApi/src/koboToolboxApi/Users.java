@@ -29,6 +29,7 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -65,6 +66,7 @@ public class Users extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
+		authorisations.add(Authorise.VIEW_DATA);
 		a = new Authorise(authorisations, null);
 	}
 
@@ -75,6 +77,7 @@ public class Users extends Application {
 	@Path("/locations")
 	@Produces("application/json")
 	public Response getUserLocation(@Context HttpServletRequest request,
+			@QueryParam("project") int pId,				// Project Id
 			@QueryParam("tz") String tz) { 
 
 		Response response = null;
@@ -93,7 +96,7 @@ public class Users extends Application {
 			
 			UserLocationManager ulm = new UserLocationManager(localisation, tz);
 			response = Response.ok(ulm.getUserLocations(sd, 
-					0,
+					pId,
 					0,
 					0,
 					request.getRemoteUser(),
