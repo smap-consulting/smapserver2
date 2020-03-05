@@ -9,4 +9,5 @@ public class MailoutPersonTotals {
 	public int unsubscribed;
 	public int pending;
 	public int sent;
+	public int expired;
 }

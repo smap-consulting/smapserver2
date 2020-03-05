@@ -297,6 +297,7 @@ public class MailoutManager {
 		totals.sent = getTotal(sd, mailoutId, " and status = 'sent' ");
 		totals.unsubscribed = getTotal(sd, mailoutId, " and status = 'unsubscribed' ");
 		totals.pending = getTotal(sd, mailoutId, " and status = 'pending' ");
+		totals.expired = getTotal(sd, mailoutId, " and status = 'expired' ");
 		
 		return totals;
 	}
