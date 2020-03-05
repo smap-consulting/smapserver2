@@ -650,7 +650,7 @@ public class WebForm extends Application {
 			if(options.paper_background_color != null && options.paper_background_color.trim().length() > 0) {
 				output.append(".paper {background-color: " + options.paper_background_color + "}");
 			}
-			output.append(".form-footer .enketo-power {right: " + options.footer_horizontal_offset + "px}");
+			output.append(".form-footer .enketo-power {position:absolute; right: " + options.footer_horizontal_offset + "px}");
 
 			output.append("</style>");
 		}
