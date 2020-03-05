@@ -61,8 +61,7 @@ public class MailoutApi extends Application {
 		authorisations.add(Authorise.ADMIN);
 		authorisations.add(Authorise.ANALYST);
 		a = new Authorise(authorisations, null);
-	}
-	
+	}	
 	
 	/*
 	 * Get subscription entries

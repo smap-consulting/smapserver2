@@ -37,7 +37,6 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -47,18 +46,17 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.managers.TaskManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MailoutMessage;
@@ -415,6 +413,7 @@ public class SubscriberBatch {
 			if(subscriberType.equals("upload")) {
 				applyReminderNotifications(sd, cResults, basePath, serverName);
 				sendMailouts(sd, basePath, serverName);
+				expireTemporaryUsers(localisation, sd);
 				
 			} else if(subscriberType.equals("forward")) {
 				// Erase any templates that were deleted more than a set time ago
@@ -1056,7 +1055,7 @@ public class SubscriberBatch {
 			pstmt = sd.prepareStatement(sql);
 			pstmtSent = sd.prepareStatement(sqlSent);
 			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			HashMap<Integer, ResourceBundle> locMap = new HashMap<> ();
 			
 			ResultSet rs = pstmt.executeQuery();
@@ -1262,6 +1261,50 @@ public class SubscriberBatch {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtSent != null) {pstmtSent.close();}} catch (SQLException e) {}
 			
+		}
+	}
+	
+	private void expireTemporaryUsers(ResourceBundle localisation, Connection sd) throws SQLException {
+		
+		int interval = 30;	// Expire by after 30 days
+		String sql = "select ident, action_details, o_id from users "
+				+ "where temporary "
+				+ "and single_submission "
+				+ "and (created < now() - interval '" + interval + " days') "
+				+ "limit 100";  // Apply progressively incase a large number expire simulataneously
+		
+		PreparedStatement pstmt = null;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		MailoutManager mm = new MailoutManager(localisation);
+		UserManager um = new UserManager(localisation);
+		TaskManager tm = new TaskManager(localisation, null);
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String userIdent = rs.getString("ident");
+				Action action = gson.fromJson(rs.getString("action_details"), Action.class);
+				int oId = rs.getInt("o_id");
+				
+				// Record the expiry of this action
+				if(action.assignmentId > 0) {
+					// Assignment
+					tm.setTaskStatusCancelled(sd, action.assignmentId);
+				} else if(action.mailoutPersonId > 0) {
+					// Mailout
+					mm.setMailoutStatus(sd, action.mailoutPersonId, 
+							MailoutManager.STATUS_EXPIRED, null);
+				}
+				
+				um.deleteSingleSubmissionTemporaryUser(sd, userIdent, UserManager.STATUS_EXPIRED);
+				String modIdent = action.email != null ? action.email : userIdent;			
+				lm.writeLogOrganisation(sd, oId, modIdent, LogManager.EXPIRED, localisation.getString("msg_expired"));
+				
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 	}
 

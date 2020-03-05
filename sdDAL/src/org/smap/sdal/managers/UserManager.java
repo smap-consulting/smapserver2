@@ -61,6 +61,7 @@ public class UserManager {
 	private ResourceBundle localisation;
 	
 	public static String STATUS_COMPLETE = "complete";
+	public static String STATUS_EXPIRED = "expired";
 	
 	public UserManager(ResourceBundle l) {
 		localisation = l;
@@ -916,7 +917,6 @@ public class UserManager {
 			pstmtArchive = sd.prepareStatement(sqlArchive);
 			pstmtArchive.setString(1,  userIdent);	
 			pstmtArchive.setString(2, status);
-			log.info("Archiving single submisison user: " + pstmt.toString());
 			pstmtArchive.executeUpdate();
 			
 		} finally {	

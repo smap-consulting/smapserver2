@@ -69,6 +69,7 @@ public class MailoutManager {
 	public static String STATUS_PENDING = "pending";
 	public static String STATUS_ERROR = "error";
 	public static String STATUS_COMPLETE = "complete";
+	public static String STATUS_EXPIRED = "expired";
 	
 	/*
 	 * Get mailouts for a survey
@@ -240,6 +241,7 @@ public class MailoutManager {
 		String loc_pending = localisation.getString("c_pending");
 		String loc_error = localisation.getString("c_error");
 		String loc_complete = localisation.getString("c_complete");
+		String loc_expired = localisation.getString("c_expired");
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -266,7 +268,9 @@ public class MailoutManager {
 					mp.status_loc = loc_error;
 				} else if(mp.status.equals(MailoutManager.STATUS_COMPLETE)) {
 					mp.status_loc = loc_complete;
-				}else {
+				} else if(mp.status.equals(MailoutManager.STATUS_EXPIRED)) {
+					mp.status_loc = loc_expired;
+				} else {
 					mp.status_loc = loc_new;
 				}
 				

@@ -3636,5 +3636,33 @@ public class TaskManager {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
 	}
+	
+	public void setTaskStatusCancelled(Connection sd, int assignmentId) throws SQLException {
+
+		PreparedStatement pstmt = null;
+
+		String sql = "update assignments set status = 'cancelled', cancelled_date = now() "
+				+ "where id = ? ";
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			
+			if(assignmentId > 0) {
+				pstmt.setInt(1, assignmentId);
+				log.info("Updating assignment status: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+		
+			}
+
+
+		} finally {
+
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+
+
+		}
+	}
 }
 
