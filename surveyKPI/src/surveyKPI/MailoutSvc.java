@@ -78,51 +78,6 @@ public class MailoutSvc extends Application {
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);		
 	}
-	
-	/*
-	 * Get a list of mailouts
-	 */
-	@GET
-	@Path("/{survey}")
-	@Produces("application/json")
-	public Response getMailouts(@Context HttpServletRequest request,
-			@PathParam("survey") String surveyIdent
-			) { 
-
-		Response response = null;
-		String connectionString = "surveyKPI-Mailout List";
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
-		// End Authorisation
-		
-		try {
-			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-						
-			MailoutManager mm = new MailoutManager(localisation);
-						
-			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent); 
-				
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(mailouts);
-			response = Response.ok(resp).build();
-				
-		} catch (Exception e) {
-			
-			log.log(Level.SEVERE,"Error: ", e);
-		    response = Response.serverError().build();
-		    
-		} finally {
-			
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-
-		return response;
-	}
 
 	/*
 	 * Add or update a mailout campaign

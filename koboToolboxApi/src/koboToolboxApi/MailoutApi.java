@@ -41,12 +41,13 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
 import org.smap.sdal.model.MailoutPersonTotals;
 
 /*
- * Provides access to collected data
+ * Provides access to mailouts
  */
 @Path("/v1/mailout")
 public class MailoutApi extends Application {
@@ -64,7 +65,52 @@ public class MailoutApi extends Application {
 	}	
 	
 	/*
-	 * Get subscription entries
+	 * Get a list of mailouts
+	 */
+	@GET
+	@Path("/{survey}")
+	@Produces("application/json")
+	public Response getMailouts(@Context HttpServletRequest request,
+			@PathParam("survey") String surveyIdent
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-Mailout List";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, true);
+		// End Authorisation
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			MailoutManager mm = new MailoutManager(localisation);
+						
+			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent); 
+				
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(mailouts);
+			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+		    response = Response.serverError().build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get a list of emails in a mailout
 	 */
 	@GET
 	@Produces("application/json")
