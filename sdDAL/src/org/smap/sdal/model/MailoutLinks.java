@@ -18,7 +18,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-public class ProjectLinks {
-	public String task_groups;
-	public String surveys;
+public class MailoutLinks {
+	public String emails;
 }

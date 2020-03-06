@@ -512,7 +512,7 @@ public class MyAssignments extends Application {
 			 * Get the complete list of forms accessible by this user
 			 */
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(sd, pstmt,
+			ArrayList<org.smap.sdal.model.Survey> surveys = sm.getSurveys(sd,
 					userName,
 					false, 
 					false, 
@@ -520,7 +520,9 @@ public class MyAssignments extends Application {
 					superUser,
 					false,
 					false,
-					true);
+					true,
+					false,	// get links
+					null);
 			
 			TranslationManager translationMgr = new TranslationManager();
 

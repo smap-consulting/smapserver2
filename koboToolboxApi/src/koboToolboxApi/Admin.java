@@ -18,6 +18,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 import javax.servlet.http.HttpServletRequest;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -38,6 +39,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -87,7 +89,6 @@ public class Admin extends Application {
 	}
 
 	/*
-	 * API version 1 /
 	 * Get projects
 	 */
 	@GET
@@ -117,6 +118,63 @@ public class Admin extends Application {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(projects);
 			response = Response.ok(resp).build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+		    response = Response.serverError().build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get surveys
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/surveys/{project}")
+	public Response getSurveys(@Context HttpServletRequest request,
+			@PathParam("project") int projectId,
+			@QueryParam("links") boolean links,			// If set include links to other data that uses the survey as a key
+			@QueryParam("tz") String tz					// Timezone
+			) { 
+		
+		Response response = null;
+		String connectionString = "kobotoolboxapi-getSurveys";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		ArrayList<Survey> surveys = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			SurveyManager sm = new SurveyManager(localisation, tz);
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			surveys = sm.getSurveys(sd, 
+					request.getRemoteUser(), 
+					false, 
+					true, 
+					projectId, 
+					false, 
+					false, 	// only group
+					true,   // Get group details
+					false,	// Only data
+					links,
+					urlprefix
+					);
+				
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			response = Response.ok(gson.toJson(surveys)).build();
 				
 		} catch (Exception e) {
 			

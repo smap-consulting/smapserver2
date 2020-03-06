@@ -71,7 +71,8 @@ public class MailoutApi extends Application {
 	@Path("/{survey}")
 	@Produces("application/json")
 	public Response getMailouts(@Context HttpServletRequest request,
-			@PathParam("survey") String surveyIdent
+			@PathParam("survey") String surveyIdent,
+			@QueryParam("links") boolean links
 			) { 
 
 		Response response = null;
@@ -89,8 +90,9 @@ public class MailoutApi extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
 			MailoutManager mm = new MailoutManager(localisation);
-						
-			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent); 
+				
+			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
+			ArrayList<Mailout> mailouts = mm.getMailouts(sd, surveyIdent, links, urlprefix); 
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mailouts);

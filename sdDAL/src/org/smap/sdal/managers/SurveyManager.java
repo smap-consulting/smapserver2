@@ -39,7 +39,6 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -51,7 +50,6 @@ import org.smap.sdal.model.ChangeLog;
 import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Form;
-import org.smap.sdal.model.Geometry;
 import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Label;
@@ -78,13 +76,13 @@ import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveyLinks;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnMarkup;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 public class SurveyManager {
@@ -126,7 +124,7 @@ public class SurveyManager {
 			+ "where o.l_id = ? "
 			+ "order by o.seq";
 	
-	public ArrayList<Survey> getSurveys(Connection sd, PreparedStatement pstmt,
+	public ArrayList<Survey> getSurveys(Connection sd,
 			String user, 
 			boolean getDeleted, 
 			boolean getBlocked,
@@ -134,11 +132,12 @@ public class SurveyManager {
 			boolean superUser,
 			boolean onlyGroup,		// Only get surveys that are available to be used as groups
 			boolean getGroupDetails,
-			boolean onlyDataSurvey	// Only get data surveys (ie no oversight surveys)
+			boolean onlyDataSurvey,	// Only get data surveys (ie no oversight surveys)
+			boolean links,			// Return links to other services
+			String urlprefix
 			) throws SQLException {
 
 		ArrayList<Survey> surveys = new ArrayList<Survey>();	// Results of request
-
 
 		StringBuffer sqlGetGroupDetails = new StringBuffer("select p.name, s.display_name "
 				+ "from survey s, project p "
@@ -185,20 +184,23 @@ public class SurveyManager {
 		}
 		sql.append("order BY s.display_name ");
 
+		PreparedStatement pstmt = null;
 		
 		pstmt = sd.prepareStatement(sql.toString());	
-		int idx = 1;
-		pstmt.setString(idx++, user);
-		if(!superUser) {
-			pstmt.setString(idx++, user);	// Second user entry for RBAC
-		}
-		if(projectId != 0) {
-			pstmt.setInt(idx++, projectId);
-		}
-		log.info("Get surveys: " + pstmt.toString());
-		resultSet = pstmt.executeQuery();
-
+		
 		try {
+			
+			int idx = 1;
+			pstmt.setString(idx++, user);
+			if(!superUser) {
+				pstmt.setString(idx++, user);	// Second user entry for RBAC
+			}
+			if(projectId != 0) {
+				pstmt.setInt(idx++, projectId);
+			}
+			log.info("Get surveys: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			
 			pstmtGetGroupDetails = sd.prepareStatement(sqlGetGroupDetails.toString());
 			
 			while (resultSet.next()) {						
@@ -233,10 +235,16 @@ public class SurveyManager {
 						s.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
 					}
 				}
+				
+				if(links) {
+					s.links = new SurveyLinks();
+					s.links.mailouts = urlprefix + "api/v1/mailout/" + s.ident + "?links=true";
+				}
 	
 				surveys.add(s);
 			} 
 		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception r) {}}
 			if(pstmtGetGroupDetails != null) {try{pstmtGetGroupDetails.close();}catch(Exception r) {}}
 		}
 		return surveys;

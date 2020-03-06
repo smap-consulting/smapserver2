@@ -125,7 +125,6 @@ public class Surveys extends Application {
 		ArrayList<org.smap.sdal.model.Survey> surveys = null;
 		
 		Response response = null;
-		PreparedStatement pstmt = null;
 		
 		try {
 			// Get the users locale
@@ -135,7 +134,7 @@ public class Surveys extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			
-			surveys = sm.getSurveys(sd, pstmt,
+			surveys = sm.getSurveys(sd,
 					request.getRemoteUser(), 
 					getDeleted, 
 					getBlocked, 
@@ -143,7 +142,9 @@ public class Surveys extends Application {
 					superUser,
 					groups,
 					true,
-					false		// Get oversight and data surveys
+					false,		// Get oversight and data surveys
+					false,		// Get links
+					null
 					);
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(surveys);
@@ -157,8 +158,6 @@ public class Surveys extends Application {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
 			

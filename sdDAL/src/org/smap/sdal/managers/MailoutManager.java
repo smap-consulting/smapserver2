@@ -10,7 +10,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -20,11 +19,10 @@ import javax.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Mailout;
+import org.smap.sdal.model.MailoutLinks;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonTotals;
@@ -33,7 +31,6 @@ import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
 
@@ -82,7 +79,10 @@ public class MailoutManager {
 	/*
 	 * Get mailouts for a survey
 	 */
-	public ArrayList<Mailout> getMailouts(Connection sd, String surveyIdent) throws SQLException {
+	public ArrayList<Mailout> getMailouts(Connection sd, 
+			String surveyIdent,
+			boolean links,
+			String urlprefix) throws SQLException {
 		
 		ArrayList<Mailout> mailouts = new ArrayList<> ();
 		
@@ -98,13 +98,18 @@ public class MailoutManager {
 			log.info("Get mailouts: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				mailouts.add(new Mailout(
+				Mailout mo = new Mailout(
 						rs.getInt("id"),
 						rs.getString("survey_ident"), 
 						rs.getString("name"),
 						rs.getString("subject"),
-						rs.getString("content")));
+						rs.getString("content"));
 				
+				if(links) {
+					mo.links = new MailoutLinks();
+					mo.links.emails = urlprefix + "api/v1/mailout/" + mo.id + "/emails?links=true";
+				}
+				mailouts.add(mo);			
 			}
 		
 		} finally {

@@ -8,6 +8,8 @@ public class Mailout {
 	public String subject;
 	public String content;
 	
+	public MailoutLinks links;
+	
 	public Mailout(int id, String surveyIdent, String name, String subject, String content) {
 		this.id = id;
 		this.survey_ident = surveyIdent;

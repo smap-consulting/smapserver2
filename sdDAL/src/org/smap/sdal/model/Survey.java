@@ -78,6 +78,8 @@ public class Survey {
 	public String groupSurveyDetails;
 	public String publicLink;
 	
+	public SurveyLinks links;
+	
 	// Getters
 	public int getId() {return id;}; 
 	public int getPId() {return p_id;};
