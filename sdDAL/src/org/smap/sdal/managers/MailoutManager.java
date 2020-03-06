@@ -10,6 +10,7 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,13 +20,19 @@ import javax.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonTotals;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
 
@@ -148,7 +155,7 @@ public class MailoutManager {
 	}
 	
 	/*
-	 * Add a mailout
+	 * Update a mailout
 	 */
 	public void updateMailout(Connection sd, Mailout mailout) throws SQLException, ApplicationException {
 		
@@ -221,13 +228,14 @@ public class MailoutManager {
 	}
 	
 	/*
-	 * Get mailouts Details
+	 * Get People in a mailout
 	 */
 	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId) throws SQLException {
 		
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
-		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details "
+		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details, "
+				+ "mp.initial_data "
 				+ "from mailout_people mp, people p "
 				+ "where p.id = mp.p_id "
 				+ "and mp.m_id = ? "
@@ -243,6 +251,8 @@ public class MailoutManager {
 		String loc_complete = localisation.getString("c_complete");
 		String loc_expired = localisation.getString("c_expired");
 		
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, mailoutId);
@@ -255,6 +265,10 @@ public class MailoutManager {
 						rs.getString("name"),
 						rs.getString("status"),
 						rs.getString("status_details"));	
+				String initialData = rs.getString("initial_data");
+				if(initialData != null) {
+					mp.initialData = gson.fromJson(initialData, new TypeToken<HashMap<String, String>>() {}.getType());
+				}
 				
 				if(mp.status == null) {
 					mp.status_loc = loc_new;
@@ -359,8 +373,8 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 		PreparedStatement pstmtAddPerson = null;
 		
 		String sqlAddMailoutPerson = "insert into mailout_people "
-				+ "(p_id, m_id, status) "
-				+ "values(?, ?, 'new') ";
+				+ "(p_id, m_id, status, initial_data) "
+				+ "values(?, ?, 'new', ?) ";
 		PreparedStatement pstmtAddMailoutPerson = null;
 		
 		String sqlMailoutExists = "select count(*) "
@@ -380,6 +394,8 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			
 			pstmtMailoutExists = sd.prepareStatement(sqlMailoutExists);
 			pstmtMailoutExists.setInt(2, mailoutId);
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
 			for(MailoutPerson person : mop) {
 				
@@ -413,6 +429,12 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 					// Write the entry into the mailout person table
 					pstmtAddMailoutPerson.setInt(1, personId);
 					pstmtAddMailoutPerson.setInt(2, mailoutId);
+					
+					String initialData = null;
+					if(person.initialData != null) {
+						initialData = gson.toJson(person.initialData);
+					}
+					pstmtAddMailoutPerson.setString(3, initialData);
 					
 					pstmtAddMailoutPerson.executeUpdate();
 				}

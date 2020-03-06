@@ -59,6 +59,7 @@ import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignmentDetails;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -251,7 +252,7 @@ public class WebForm extends Application {
 		mimeType = "json";
 		isTemporaryUser = false;
 		return getWebform(request, formIdent, datakey, datakeyvalue, 
-				assignmentId, taskKey, callback, false, false, false);
+				assignmentId, taskKey, callback, false, false, false, null);
 	}
 
 	/*
@@ -281,7 +282,7 @@ public class WebForm extends Application {
 		isTemporaryUser = false;
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback,
-				false, true, false);
+				false, true, false, null);
 	}
 
 	/*
@@ -316,7 +317,7 @@ public class WebForm extends Application {
 		isTemporaryUser = true;
 		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
-				true, false);
+				true, false, null);
 	}
 
 	/*
@@ -372,7 +373,6 @@ public class WebForm extends Application {
 				response = getMessagePage(success, message, null);
 			} else if(!a.action.equals("task") && !a.action.equals("mailout")) {
 				response = getMessagePage(false, "mo_se", "Invalid action type: " + a.action);
-				throw new Exception();
 			} else {
 
 				// 3. Get webform
@@ -382,7 +382,8 @@ public class WebForm extends Application {
 						null, 
 						false,
 						true, 
-						true		// Close after saving
+						true,			// Close after saving
+						a.initialData
 						);
 			}
 		
@@ -408,7 +409,8 @@ public class WebForm extends Application {
 			String callback, 
 			boolean simplifyMedia,
 			boolean isWebForm,
-			boolean single) {
+			boolean single,
+			ArrayList<KeyValueSimp> initialData) {
 
 		Response response = null;
 
@@ -447,8 +449,10 @@ public class WebForm extends Application {
 			
 			if (isTemporaryUser) {
 				a.isValidTemporaryUser(sd, userIdent);
+			} else {
+				a.isAuthorised(sd, userIdent);
 			}
-			a.isAuthorised(sd, userIdent);
+			
 			SurveyManager surveyManager = new SurveyManager(localisation, "UTC");
 			survey = surveyManager.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
@@ -503,7 +507,7 @@ public class WebForm extends Application {
 			String instanceXML = null;
 			String instanceStrToEditId = null;
 			
-			if ((datakey != null && datakeyvalue != null) || taskKey > 0) {
+			if ((datakey != null && datakeyvalue != null) || taskKey > 0 || initialData != null) {
 				log.info("Adding initial data");
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);

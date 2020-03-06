@@ -1,6 +1,7 @@
 package org.smap.sdal.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -18,6 +19,7 @@ public class Action {
 	public boolean single = false;	// Set to true to only allow a single submission
 	public String email;
 	public ArrayList<Role> roles = null;
+	public HashMap<String, String> initialData;
 	
 	// Attributes specific to an action type
 	public int sId;

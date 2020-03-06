@@ -73,7 +73,9 @@ public class XLSMailoutManager {
 				value = person.status;
 			} else if(name.equals("status_details")) {
 				value = person.status_details;
-			} 
+			} else if(person.initialData != null) {
+				value = person.initialData.get(name);			
+			}
 			
 			if(value == null) {
 				value = "";
@@ -109,6 +111,7 @@ public class XLSMailoutManager {
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
 		ArrayList<Column> cols = getColumnList(localisation, styles);
+		addInitialDataColumns(localisation, cols, mop, styles);
 		createHeader(cols, mailoutSheet);	
 		processMailoutListForXLS(mop, mailoutSheet, settingsSheet, styles, cols, tz);
 		
@@ -137,20 +140,52 @@ public class XLSMailoutManager {
 	/*
 	 * Create a header row and set column widths
 	 */
-	private void createHeader(ArrayList<Column> cols, Sheet sheet) {
+	private void createHeader(
+			ArrayList<Column> cols, 
+			Sheet sheet) {
+		
 		// Set column widths
 		for(int i = 0; i < cols.size(); i++) {
 			sheet.setColumnWidth(i, cols.get(i).getWidth());
 		}
-				
+		
 		Row headerRow = sheet.createRow(0);
-		for(int i = 0; i < cols.size(); i++) {
-			Column col = cols.get(i);
+		int colIdx = 0;
+		for(Column col : cols) {
 			
-            Cell cell = headerRow.createCell(i);
+            Cell cell = headerRow.createCell(colIdx++);
             cell.setCellStyle(col.style);
             cell.setCellValue(col.name);
         }
+	}
+	
+	/*
+	 * Add columns for initial data
+	 */
+	private void addInitialDataColumns(
+			ResourceBundle localisation,
+			ArrayList<Column> cols, 
+			ArrayList<MailoutPerson> mop,
+			Map<String, CellStyle> styles) {
+		
+		HashMap<String, String> colsAdded = new HashMap<> ();
+		
+		int colIdx = 0;
+		for(Column col : cols) { 
+            colsAdded.put(col.name, col.name);
+        }
+		
+		// Add initial data columns
+		for(MailoutPerson person : mop) {
+			if(person.initialData != null) {
+				for(String idn : person.initialData.keySet()) {
+					if(colsAdded.get(idn) == null) {
+						colsAdded.put(idn,  idn);	
+						cols.add(new Column(localisation, colIdx++, idn, false, styles.get("good")));
+					}
+				}
+			}
+		}
 	}
 	
 	/*
@@ -202,6 +237,7 @@ public class XLSMailoutManager {
 		ArrayList<MailoutPerson> mailouts = new ArrayList<MailoutPerson> ();
 
 		HashMap<String, Integer> header = null;
+		ArrayList<String> idc = new ArrayList<> ();		// Initial data columns
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
@@ -238,7 +274,7 @@ public class XLSMailoutManager {
 
 		sheet = wb.getSheet("mailouts");
 		if(sheet == null) {
-			throw new ApplicationException("No worksheet called mailouts");
+			throw new ApplicationException(localisation.getString("mo_nws"));
 		}
 		if(sheet.getPhysicalNumberOfRows() > 0) {
 
@@ -254,12 +290,24 @@ public class XLSMailoutManager {
 
 					if(needHeader) {
 						header = getHeader(row, lastCellNum);
+						idc = getInitialDataColumns(row, lastCellNum);
 						needHeader = false;
 					} else {
 						String email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
 						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
 
-						mailouts.add(new MailoutPerson(email, name));
+						// Get the initial data
+						HashMap<String, String> initialData = null;
+						for(String colname : idc) {
+							String value = XLSUtilities.getColumn(row, colname, header, lastCellNum, null);
+							if(value != null && value.trim().length() > 0) {
+								if(initialData == null) {
+									initialData = new HashMap <> ();
+								}
+								initialData.put(colname, value);
+							}
+						}
+						mailouts.add(new MailoutPerson(email, name, initialData));
 				
 
 					}
@@ -278,7 +326,7 @@ public class XLSMailoutManager {
 	 * Get a hashmap of column name and column index
 	 */
 	private HashMap<String, Integer> getHeader(Row row, int lastCellNum) {
-		HashMap<String, Integer> header = new HashMap<String, Integer> ();
+		HashMap<String, Integer> header = new HashMap<> ();
 		
 		Cell cell = null;
 		String name = null;
@@ -295,5 +343,32 @@ public class XLSMailoutManager {
         }
             
 		return header;
+	}
+	
+	/*
+	 * Get an array list of initial data columns
+	 */
+	private ArrayList<String> getInitialDataColumns(Row row, int lastCellNum) {
+		
+		ArrayList<String> idx = new ArrayList<> ();
+		
+		Cell cell = null;
+		String name = null;
+		
+        for(int i = 0; i <= lastCellNum; i++) {
+            cell = row.getCell(i);
+            if(cell != null) {
+                name = cell.getStringCellValue();
+                if(name != null && name.trim().length() > 0) {
+                	name = name.toLowerCase();
+                	if(!name.equals("email") && !name.equals("name") &&
+                			!name.equals("status") && !name.equals("status_details")) {
+	                    idx.add(name);
+                	}
+                }
+            }
+        }
+            
+		return idx;
 	}
 }
