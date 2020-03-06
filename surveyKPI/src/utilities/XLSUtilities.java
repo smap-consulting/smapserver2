@@ -645,7 +645,7 @@ public class XLSUtilities {
 			}
 		});
 
-		fd.initialize(true, new InstanceInitializationFactory());
+		fd.initialize(false, new InstanceInitializationFactory());
 
 	}
     

@@ -33,6 +33,5 @@
 			<attribute name="maven.pomderived" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="libs/javarosa-libraries-2016-04-21.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
