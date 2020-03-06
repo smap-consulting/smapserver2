@@ -59,6 +59,7 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutMessage;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
@@ -1207,7 +1208,7 @@ public class SubscriberBatch {
 				action.email = email;
 				
 				if(initialData != null) {
-					action.initialData = gson.fromJson(initialData, new TypeToken<HashMap<String, String>>() {}.getType());
+					action.initialData = gson.fromJson(initialData, Instance.class);
 				}
 				
 				String link = am.getLink(sd, action, oId, true);

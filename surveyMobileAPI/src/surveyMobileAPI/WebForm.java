@@ -59,6 +59,7 @@ import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.AssignmentDetails;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
@@ -410,7 +411,7 @@ public class WebForm extends Application {
 			boolean simplifyMedia,
 			boolean isWebForm,
 			boolean single,
-			HashMap<String, String> initialData) {
+			Instance initialData) {
 
 		Response response = null;
 
@@ -512,7 +513,7 @@ public class WebForm extends Application {
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
-						isWebForm, taskKey, urlprefix);
+						isWebForm, taskKey, urlprefix, initialData);
 				instanceStrToEditId = xForm.getInstanceId();
 				gRecordCounts = xForm.getRecordCounts();
 			} 
@@ -1162,7 +1163,7 @@ public class WebForm extends Application {
 
 			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
-					false, taskKey, urlprefix);
+					false, taskKey, urlprefix, null);
 
 			SurveyData surveyData = new SurveyData();
 			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");

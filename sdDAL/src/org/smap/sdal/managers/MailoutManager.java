@@ -22,6 +22,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutMessage;
@@ -267,7 +268,7 @@ public class MailoutManager {
 						rs.getString("status_details"));	
 				String initialData = rs.getString("initial_data");
 				if(initialData != null) {
-					mp.initialData = gson.fromJson(initialData, new TypeToken<HashMap<String, String>>() {}.getType());
+					mp.initialData = gson.fromJson(initialData, Instance.class);
 				}
 				
 				if(mp.status == null) {

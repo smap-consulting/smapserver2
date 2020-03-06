@@ -1482,7 +1482,8 @@ public class GetXForm {
 	public String getInstanceXml(int sId, String templateName, SurveyTemplate template, String key, String keyval,
 			int priKey, boolean simplifyMedia, 
 			boolean isWebForms, int taskKey,
-			String urlprefix) 
+			String urlprefix,
+			Instance initialData) 
 			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
 
 		this.isWebForms = isWebForms;
@@ -1551,6 +1552,10 @@ public class GetXForm {
 				TaskManager tm = new TaskManager(localisation, tz);
 				Instance instance = tm.getInstance(sd, taskKey);
 				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix, true);
+			} else if(initialData != null) {
+				hasData = true;
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true);
+
 			}
 
 			// Write the survey to a string and return it to the calling program

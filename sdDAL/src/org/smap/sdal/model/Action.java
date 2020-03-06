@@ -19,7 +19,7 @@ public class Action {
 	public boolean single = false;	// Set to true to only allow a single submission
 	public String email;
 	public ArrayList<Role> roles = null;
-	public HashMap<String, String> initialData;
+	public Instance initialData;
 	
 	// Attributes specific to an action type
 	public int sId;

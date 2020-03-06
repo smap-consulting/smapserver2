@@ -128,7 +128,12 @@ public class InstanceXML extends Application{
 			
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
-			String instanceXML = xForm.getInstanceXml(survey.id, templateName, template, key, keyval, priKey, false, false, taskKey, urlprefix);	
+			String instanceXML = xForm.getInstanceXml(survey.id, 
+					templateName, 
+					template, 
+					key, 
+					keyval, 
+					priKey, false, false, taskKey, urlprefix, null);	
 			
 			response = Response.ok(instanceXML).build();
 		

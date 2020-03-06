@@ -32,6 +32,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutPerson;
 
 
@@ -73,8 +74,8 @@ public class XLSMailoutManager {
 				value = person.status;
 			} else if(name.equals("status_details")) {
 				value = person.status_details;
-			} else if(person.initialData != null) {
-				value = person.initialData.get(name);			
+			} else if(person.initialData != null && person.initialData.values != null) {
+				value = person.initialData.values.get(name);			
 			}
 			
 			if(value == null) {
@@ -177,8 +178,8 @@ public class XLSMailoutManager {
 		
 		// Add initial data columns
 		for(MailoutPerson person : mop) {
-			if(person.initialData != null) {
-				for(String idn : person.initialData.keySet()) {
+			if(person.initialData != null && person.initialData.values != null) {
+				for(String idn : person.initialData.values.keySet()) {
 					if(colsAdded.get(idn) == null) {
 						colsAdded.put(idn,  idn);	
 						cols.add(new Column(localisation, colIdx++, idn, false, styles.get("good")));
@@ -297,17 +298,17 @@ public class XLSMailoutManager {
 						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
 
 						// Get the initial data
-						HashMap<String, String> initialData = null;
+						Instance instance = null;
 						for(String colname : idc) {
 							String value = XLSUtilities.getColumn(row, colname, header, lastCellNum, null);
 							if(value != null && value.trim().length() > 0) {
-								if(initialData == null) {
-									initialData = new HashMap <> ();
+								if(instance == null) {
+									instance = new Instance();
 								}
-								initialData.put(colname, value);
+								instance.values.put(colname, value);
 							}
 						}
-						mailouts.add(new MailoutPerson(email, name, initialData));
+						mailouts.add(new MailoutPerson(email, name, instance));
 				
 
 					}
