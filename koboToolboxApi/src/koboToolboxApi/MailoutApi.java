@@ -91,7 +91,7 @@ public class MailoutApi extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			MailoutManager mm = new MailoutManager(localisation);
-			data = mm.getMailoutPeople(sd, mailoutId, dt);				
+			data = mm.getMailoutPeople(sd, mailoutId);				
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			

@@ -309,8 +309,6 @@ public class XLSMailoutManager {
 							}
 						}
 						mailouts.add(new MailoutPerson(email, name, instance));
-				
-
 					}
 
 				}

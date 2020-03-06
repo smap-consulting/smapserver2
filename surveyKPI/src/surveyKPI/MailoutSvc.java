@@ -277,8 +277,7 @@ public class MailoutSvc extends Application {
 			
 			ArrayList<MailoutPerson> mop = mm.getMailoutPeople(
 					sd, 
-					mailoutId,
-					false);	
+					mailoutId);	
 			
 			// Create Mailout XLS File
 			XLSMailoutManager xmo = new XLSMailoutManager(filetype, request.getScheme(), request.getServerName());
