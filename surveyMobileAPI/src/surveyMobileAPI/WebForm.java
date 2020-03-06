@@ -410,7 +410,7 @@ public class WebForm extends Application {
 			boolean simplifyMedia,
 			boolean isWebForm,
 			boolean single,
-			ArrayList<KeyValueSimp> initialData) {
+			HashMap<String, String> initialData) {
 
 		Response response = null;
 

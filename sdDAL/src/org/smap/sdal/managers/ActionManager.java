@@ -272,7 +272,6 @@ public class ActionManager {
 	
 	public String updateLink(Connection sd, Action a, int oId, String userIdent, String remoteUser, boolean superUser) throws Exception {
 
-
 		String sql = "update users set action_details = ? where temporary = true and ident = ?";
 		PreparedStatement pstmt = null;
 		

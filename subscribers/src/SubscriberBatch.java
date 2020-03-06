@@ -80,6 +80,7 @@ import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import JdbcManagers.JdbcUploadEventManager;
 
@@ -1157,7 +1158,8 @@ public class SubscriberBatch {
 				+ "ppl.email, "
 				+ "ppl.name, "
 				+ "m.content, "
-				+ "m.subject "
+				+ "m.subject,"
+				+ "mp.initial_data "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -1191,6 +1193,7 @@ public class SubscriberBatch {
 				String name = rs.getString("name");
 				String content = rs.getString("content");
 				String subject = rs.getString("subject");
+				String initialData = rs.getString("initial_data");
 				
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
@@ -1202,6 +1205,10 @@ public class SubscriberBatch {
 				action.single = true;
 				action.mailoutPersonId = id;
 				action.email = email;
+				
+				if(initialData != null) {
+					action.initialData = gson.fromJson(initialData, new TypeToken<HashMap<String, String>>() {}.getType());
+				}
 				
 				String link = am.getLink(sd, action, oId, true);
 				
