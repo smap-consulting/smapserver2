@@ -68,7 +68,7 @@ public class MailoutApi extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/{mailoutId}")
+	@Path("/{mailoutId}/emails")
 	public Response getSubscriptions(@Context HttpServletRequest request,
 			@PathParam("mailoutId") int mailoutId,
 			@QueryParam("dt") boolean dt
@@ -91,7 +91,7 @@ public class MailoutApi extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
 			
 			MailoutManager mm = new MailoutManager(localisation);
-			data = mm.getMailoutPeople(sd, mailoutId);				
+			data = mm.getMailoutPeople(sd, mailoutId, dt);				
 			
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
@@ -121,7 +121,7 @@ public class MailoutApi extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/{mailoutId}/totals")
+	@Path("/{mailoutId}/emails/totals")
 	public Response getSubscriptionTotals(@Context HttpServletRequest request,
 			@PathParam("mailoutId") int mailoutId
 			) { 

@@ -231,7 +231,7 @@ public class MailoutManager {
 	/*
 	 * Get People in a mailout
 	 */
-	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId) throws SQLException {
+	public ArrayList<MailoutPerson> getMailoutPeople(Connection sd, int mailoutId, boolean dt) throws SQLException {
 		
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
@@ -267,8 +267,12 @@ public class MailoutManager {
 						rs.getString("status"),
 						rs.getString("status_details"));	
 				String initialData = rs.getString("initial_data");
-				if(initialData != null) {
+				if(!dt && initialData != null) {
 					mp.initialData = gson.fromJson(initialData, Instance.class);
+				} else if(initialData != null ){
+					mp.initial_data = initialData;
+				} else {
+					mp.initial_data = null;
 				}
 				
 				if(mp.status == null) {

@@ -11,6 +11,7 @@ public class MailoutPerson {
 	public String status_details;
 	
 	public Instance initialData;
+	public String initial_data;		// JSON version of initial data
 	
 	public MailoutPerson(int id, String email, String name, String status, String status_details) {
 		this.id = id;
