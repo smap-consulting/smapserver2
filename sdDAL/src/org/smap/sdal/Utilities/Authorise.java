@@ -1587,14 +1587,14 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Mailout validation failed for: " + user + " survey was: " + mailoutId);
+ 			log.info("Mailout validation failed for: " + user + " mailout id was: " + mailoutId);
  			
  			SDDataSource.closeConnection("isValidTask", conn);
 			
 			if(sqlError) {
 				throw new ServerException();
 			} else {
-				throw new AuthorisationException();
+				throw new AuthorisationException("Invalid Mailout Id");
 			}
 		} 
  		
