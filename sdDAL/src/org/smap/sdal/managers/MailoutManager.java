@@ -440,8 +440,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 					if(person.initialData != null) {
 						initialData = gson.toJson(person.initialData);
 					}
-					pstmtAddMailoutPerson.setString(3, initialData);
-					
+					pstmtAddMailoutPerson.setString(3, initialData);				
 					pstmtAddMailoutPerson.executeUpdate();
 				}
 			}

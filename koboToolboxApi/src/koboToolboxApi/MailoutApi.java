@@ -23,9 +23,12 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -41,6 +44,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
@@ -112,8 +120,8 @@ public class MailoutApi extends Application {
 			response = Response.ok(gson.toJson(mailout)).build();
 			
 		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error: ", e);
 			String msg = e.getMessage();
-			log.info(msg);
 			if(msg == null) {
 				msg = "System Error";
 			}
@@ -163,7 +171,11 @@ public class MailoutApi extends Application {
 		} catch (Exception e) {
 			
 			log.log(Level.SEVERE,"Error: ", e);
-		    response = Response.serverError().build();
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
 		    
 		} finally {
 			
@@ -215,8 +227,12 @@ public class MailoutApi extends Application {
 			
 	
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
 		} finally {
 					
 			SDDataSource.closeConnection(connectionString, sd);
@@ -257,16 +273,77 @@ public class MailoutApi extends Application {
 			
 			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
-			response = Response.ok(gson.toJson(totals)).build();
-	
-			
+			response = Response.ok(gson.toJson(totals)).build();			
 	
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().build();
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
 		} finally {
 					
 			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+		
+	}
+	
+	/*
+	 * Add a mailout email
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/{mailoutId}/email")
+	public Response uploadEmails(
+			@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId,
+			@FormParam("email") String emailString) { 
+		
+		Response response = null;
+		String connectionString = "api/v1/mailout - add email";
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		MailoutPerson mailoutPerson = null;
+		try {
+			mailoutPerson = gson.fromJson(emailString, MailoutPerson.class);
+		} catch (Exception e) {
+			throw new SystemException("JSON Error: " + e.getMessage());
+		}
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End Authorisation
+		
+		try {
+			
+			sd = SDDataSource.getConnection(connectionString);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	
+			// Save mailout emails to the database
+			MailoutManager mm = new MailoutManager(localisation);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
+			ArrayList<MailoutPerson> mop = new ArrayList<MailoutPerson> ();
+			mop.add(mailoutPerson);
+			mm.writeEmails(sd, oId, mop, mailoutId);	
+			
+			
+		} catch(Exception e) {
+			log.log(Level.SEVERE,"Error: ", e);
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    throw new SystemException(msg);
+		} finally {
+	
+			SDDataSource.closeConnection(connectionString, sd);
+			
 		}
 		
 		return response;
