@@ -44,13 +44,8 @@ import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.Organisation;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import utilities.XLSMailoutManager;
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -83,11 +78,11 @@ public class MailoutSvc extends Application {
 	 * Delete a mailout campaign
 	 */
 	@DELETE
-	public Response addMailout(@Context HttpServletRequest request,
+	public Response deleteMailout(@Context HttpServletRequest request,
 			@FormParam("mailoutId") int mailoutId) { 
 		
 		Response response = null;
-		String connectionString = "surveyKPI-Survey - add mailout";
+		String connectionString = "surveyKPI-Survey - delete mailout";
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
