@@ -44,6 +44,7 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
@@ -76,11 +77,15 @@ public class MailoutApi extends Application {
 			@FormParam("mailout") String mailoutString) { 
 		
 		Response response = null;
-		String connectionString = "surveyKPI-Survey - add mailout";
-		
-		Type type = new TypeToken<Mailout>(){}.getType();
+		String connectionString = "api/v1/mailout - add mailout";
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		Mailout mailout = gson.fromJson(mailoutString, type);
+		
+		Mailout mailout = null;
+		try {
+			mailout = gson.fromJson(mailoutString, Mailout.class);
+		} catch (Exception e) {
+			throw new SystemException("JSON Error: " + e.getMessage());
+		}
 	
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
@@ -112,15 +117,13 @@ public class MailoutApi extends Application {
 			if(msg == null) {
 				msg = "System Error";
 			}
-		    response = Response.serverError().entity(msg).build();
-		} finally {
-			
-			SDDataSource.closeConnection(connectionString, sd);
-			
+		    throw new SystemException(msg);
+		    
+		} finally {			
+			SDDataSource.closeConnection(connectionString, sd);			
 		}
 
 		return response;
-
 	}
 	
 	/*

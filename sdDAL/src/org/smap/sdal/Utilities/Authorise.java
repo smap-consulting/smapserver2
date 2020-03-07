@@ -494,7 +494,7 @@ public class Authorise {
 			if(sqlError) {
 				throw new ServerException();
 			} else {
-				throw new AuthorisationException();	 
+				throw new AuthorisationException("Survey validation failed for: " + user + " survey was: " + sIdent);	 
 			}
 		} 
  		
