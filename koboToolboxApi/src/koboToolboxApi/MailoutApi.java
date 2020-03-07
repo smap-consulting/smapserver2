@@ -21,7 +21,9 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -29,7 +31,9 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -63,6 +67,61 @@ public class MailoutApi extends Application {
 		authorisations.add(Authorise.ANALYST);
 		a = new Authorise(authorisations, null);
 	}	
+	
+	/*
+	 * Add or update a mailout campaign
+	 */
+	@POST
+	public Response addUpdateMailout(@Context HttpServletRequest request,
+			@FormParam("mailout") String mailoutString) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-Survey - add mailout";
+		
+		Type type = new TypeToken<Mailout>(){}.getType();
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Mailout mailout = gson.fromJson(mailoutString, type);
+	
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(mailout.id > 0) {
+			a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
+		}
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, false);
+		// End Authorisation
+		
+		try {	
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			MailoutManager mm = new MailoutManager(localisation);
+ 
+			if(mailout.id <= 0) {
+				mailout.id = mm.addMailout(sd, mailout);
+			} else {
+				mm.updateMailout(sd, mailout);
+			}
+			
+			response = Response.ok(gson.toJson(mailout)).build();
+			
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			log.info(msg);
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    response = Response.serverError().entity(msg).build();
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
 	
 	/*
 	 * Get a list of mailouts

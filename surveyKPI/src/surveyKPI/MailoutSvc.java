@@ -78,61 +78,6 @@ public class MailoutSvc extends Application {
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);		
 	}
-
-	/*
-	 * Add or update a mailout campaign
-	 */
-	@POST
-	public Response addMailout(@Context HttpServletRequest request,
-			@FormParam("mailout") String mailoutString) { 
-		
-		Response response = null;
-		String connectionString = "surveyKPI-Survey - add mailout";
-		
-		Type type = new TypeToken<Mailout>(){}.getType();
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		Mailout mailout = gson.fromJson(mailoutString, type);
-	
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
-		if(mailout.id > 0) {
-			a.isValidMailout(sd, request.getRemoteUser(), mailout.id);
-		}
-		a.isValidSurveyIdent(sd, request.getRemoteUser(), mailout.survey_ident, false, false);
-		// End Authorisation
-		
-		try {	
-			// Localisation			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			MailoutManager mm = new MailoutManager(localisation);
- 
-			if(mailout.id <= 0) {
-				mailout.id = mm.addMailout(sd, mailout);
-			} else {
-				mm.updateMailout(sd, mailout);
-			}
-			
-			response = Response.ok(gson.toJson(mailout)).build();
-			
-		} catch (Exception e) {
-			String msg = e.getMessage();
-			log.info(msg);
-			if(msg == null) {
-				msg = "System Error";
-			}
-		    response = Response.serverError().entity(msg).build();
-		} finally {
-			
-			SDDataSource.closeConnection(connectionString, sd);
-			
-		}
-
-		return response;
-
-	}
 	
 	/*
 	 * Delete a mailout campaign
