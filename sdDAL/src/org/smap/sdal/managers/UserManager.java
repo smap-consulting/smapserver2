@@ -906,6 +906,12 @@ public class UserManager {
 				+ "(ident, status, created) values (?, ?, now()) ";			
 		PreparedStatement pstmtArchive = null;
 		
+		String sqlArchiveUpdate = "update temp_users_final "
+				+ " set status = ?, "
+				+ "created = now() "
+				+ "where ident = ? ";			
+		PreparedStatement pstmtArchiveUpdate = null;
+		
 		try {
 			// No need for consistency between these
 			
@@ -914,14 +920,28 @@ public class UserManager {
 			log.info("Deleting single submisison user: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
-			pstmtArchive = sd.prepareStatement(sqlArchive);
-			pstmtArchive.setString(1,  userIdent);	
-			pstmtArchive.setString(2, status);
-			pstmtArchive.executeUpdate();
+			/*
+			 * Write the archive record
+			 * First try updating an existing record
+			 */
+			pstmtArchiveUpdate = sd.prepareStatement(sqlArchiveUpdate);
+			pstmtArchiveUpdate.setString(1, status);
+			pstmtArchiveUpdate.setString(2,  userIdent);
+			
+			int count = pstmtArchiveUpdate.executeUpdate();
+			
+			// Insert a new entry if none were updated
+			if(count == 0) {		
+				pstmtArchive = sd.prepareStatement(sqlArchive);
+				pstmtArchive.setString(1,  userIdent);	
+				pstmtArchive.setString(2, status);
+				pstmtArchive.executeUpdate();
+			}
 			
 		} finally {	
 			try {pstmt.close();} catch(Exception e) {}
 			try {pstmtArchive.close();} catch(Exception e) {}
+			try {pstmtArchiveUpdate.close();} catch(Exception e) {}
 		}
 	}
 	
