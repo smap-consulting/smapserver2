@@ -48,6 +48,7 @@ import javax.ws.rs.core.Response;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -119,6 +120,8 @@ public class MailoutApi extends Application {
 			
 			response = Response.ok(gson.toJson(mailout)).build();
 			
+		} catch(ApplicationException e) {
+			throw new SystemException(e.getMessage());
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error: ", e);
 			String msg = e.getMessage();

@@ -20,6 +20,10 @@ public class MailoutPerson {
 		this.status = status;
 		this.status_details = status_details;
 		
+		if(this.name == null) {
+			this.name = "";		// For datatables
+		}
+		
 		if(this.status_details == null) {
 			this.status_details = "";		// For datatables
 		}
