@@ -58,7 +58,7 @@ public class Survey {
 	public HashMap<String, Role> roles = new HashMap<> ();
 	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
-	public int managed_id;
+	//public int managed_id;
 	public int version;			// Default to 1
 	public boolean loadedFromXLS;
 	public ArrayList<Pulldata> pulldata;
@@ -68,7 +68,7 @@ public class Survey {
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;
-	public String autoUpdates;
+	//public String autoUpdates;
 	public String projectName;
 	private boolean projectTasksOnly;		// deprecated
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
@@ -203,7 +203,7 @@ public class Survey {
 	public void setDeleted(boolean v) { deleted = v;};
 	public void setBlocked(boolean v) { blocked = v;};
 	public void setHasManifest(boolean v) { hasManifest = v;};
-	public void setManagedId(int v) { managed_id = v;};
+	//public void setManagedId(int v) { managed_id = v;};
 	public void setVersion(int v) { version = v;};
 	public void setLoadedFromXLS(boolean v) { loadedFromXLS = v;};
 	public void setProjectName(String v) { projectName = v;};

@@ -6569,7 +6569,10 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Update the survey version
+	 * Update the auto updates, this is used to apply updates to data after it has 
+	 * been submitted to the server
+	 * 
+	 * Deprecated - this is part of the no longer used managed forms service
 	 */
 	public static void setAutoUpdates(Connection sd, int sId, int managedId, ArrayList<AutoUpdate> autoUpdates)
 			throws SQLException {
@@ -7094,6 +7097,22 @@ public class GeneralUtilityMethods {
 				if(px.length == 2) {
 					out.add(new KeyValueSimp(px[0].trim(), px[1].trim()));
 				}
+			}
+		}
+		
+		return out;
+	}
+	
+	/*
+	 * Convert Parameters to a HashMap
+	 */
+	public static HashMap<String, String> convertParametersToHashMap(String in) {
+		HashMap<String, String> out = new HashMap<> ();
+
+		if(in != null) {
+			ArrayList<KeyValueSimp> pArray = convertParametersToArray(in);
+			for(KeyValueSimp kv : pArray) {
+				out.put(kv.k, kv.v);
 			}
 		}
 		

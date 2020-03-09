@@ -62,7 +62,9 @@ import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -193,8 +195,13 @@ public class SubRelationalDB extends Subscriber {
 				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, remoteUser, id);
 			}
 			
-			if(survey.autoUpdates != null && survey.managed_id > 0) {
-				applyAutoUpdates(server, remoteUser);
+			/*
+			 * Apply auto updates
+			 */
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+			ArrayList<AutoUpdate> autoUpdates = getAutoUpdates(sd, cResults, gson, survey);
+			if(autoUpdates != null) {
+				applyAutoUpdates(sd, cResults, server, remoteUser, autoUpdates);
 			}
 			se.setStatus("success");			
 
@@ -413,75 +420,116 @@ public class SubRelationalDB extends Subscriber {
 	}
 	
 	/*
+	 * Get auto updates for this survey
+	 */
+	private ArrayList<AutoUpdate> getAutoUpdates(Connection sd, 
+			Connection cResults, 
+			Gson gson, 
+			Survey survey) throws SQLException {
+		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();	
+		SurveyManager sm = new SurveyManager(localisation, tz);
+		
+		// Get the group survey id
+		int groupSurveyId = 0;
+		if(survey.groupSurveyId == 0) {
+			groupSurveyId = survey.id;
+		} else {
+			groupSurveyId = GeneralUtilityMethods.getLatestSurveyId(sd, survey.groupSurveyId);
+		}
+		
+		HashMap<String, QuestionForm> groupQuestions = sm.getGroupQuestions(sd, 
+				groupSurveyId, 
+				" q.parameters like '%source=%'");
+		
+		for(String q : groupQuestions.keySet()) {
+			System.out.println("------------ " + q);
+			QuestionForm qf = groupQuestions.get(q);
+			if(qf.parameters != null) {
+				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
+				if(params.get("source") != null) {
+					String refColumn = params.get("source").trim();
+					// Remove ${} syntax if the source has that
+					if(refColumn.startsWith("$") && refColumn.length() > 3) {
+						refColumn = refColumn.substring(2, refColumn.length() -1);
+					}
+					
+					if(GeneralUtilityMethods.hasColumn(cResults, qf.tableName, refColumn)) {
+				
+						HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
+								groupSurveyId, 
+								" q.column_name = '" + refColumn + "'");
+						
+						QuestionForm refQf = refQuestionMap.get(refColumn);
+						if(refQf.qType != null && refQf.qType.equals("image")) {
+							AutoUpdate au = new AutoUpdate("imagelabel");
+							au.labelColType = "text";
+							au.sourceColName = refColumn;
+							au.targetColName = qf.columnName;
+							au.tableName = qf.tableName;
+							autoUpdates.add(au);
+						}
+					}
+				}
+			}
+		}
+		
+		return autoUpdates;
+	}
+	
+	/*
 	 * Apply auto update changes
 	 */
-	private void applyAutoUpdates(String server, String remoteUser) {
-
-		HashMap<Integer, ArrayList<AutoUpdate>> updates = null;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		Type type = new TypeToken<HashMap<Integer, ArrayList<AutoUpdate>>>(){}.getType();
-
+	private void applyAutoUpdates(
+			Connection sd,
+			Connection cResults,
+			String server, 
+			String remoteUser, 
+			ArrayList<AutoUpdate> updates) {
+		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 
-		Connection sd = null;
-		Connection cResults = null;
-
 		try {
-			Class.forName(dbClass);	 
-			sd = DriverManager.getConnection(databaseMeta, user, password);
-			cResults = DriverManager.getConnection(database, user, password);
 
 			ImageProcessing ip = new ImageProcessing();
-		
-			// 1.  Get the details of managed forms and each image question that needs to be processed
-			updates = gson.fromJson(survey.autoUpdates, type);
 			
-			// 2. For each managed form get the list of questions
-			for(Integer mfId : updates.keySet()) {
-				ArrayList<AutoUpdate> updateItems = updates.get(mfId);
-				
-				// 3. For each update item get the records that are null and need updating
-				for(AutoUpdate item : updateItems) {
+			// For each update item get the records that are null and need updating
+			for(AutoUpdate item : updates) {
 					
-					if(GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.sourceColName) &&
-							GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.targetColName)) {
+				if(GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.sourceColName) &&
+						GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.targetColName)) {
 						
-						String sql = "select prikey," + item.sourceColName + " from " + item.tableName + " where " +
-								item.targetColName + " is null and " + item.sourceColName + " is not null";
-						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-						pstmt = cResults.prepareStatement(sql);
+					String sql = "select prikey," + item.sourceColName + " from " + item.tableName + " where " +
+							item.targetColName + " is null and " + item.sourceColName + " is not null";
+					if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+					pstmt = cResults.prepareStatement(sql);
 						
-						String sqlUpdate = "update " + item.tableName + " set " +
-								item.targetColName + " = ? where prikey = ?";
-						if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
-						pstmtUpdate = cResults.prepareStatement(sqlUpdate);
+					String sqlUpdate = "update " + item.tableName + " set " +
+							item.targetColName + " = ? where prikey = ?";
+					if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
+					pstmtUpdate = cResults.prepareStatement(sqlUpdate);
 						
-						log.info("Get auto updates: " + pstmt.toString());						
-						ResultSet rs = pstmt.executeQuery();
-						while (rs.next()) {
-							int prikey = rs.getInt(1);
-							String source = rs.getString(2);
-							if(source.trim().startsWith("attachments")) {
-								if(item.type.equals("imagelabel")) {
-									String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
-									// TODO set sId to correct survey
-									lm.writeLog(sd, 0, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
-									// 4. Write labels to database
-									pstmtUpdate.setString(1, labels);
-									pstmtUpdate.setInt(2, prikey);
-									log.info("Update with labels: " + pstmtUpdate.toString());
-									pstmtUpdate.executeUpdate();
-								} else {
-									log.info("Error: cannot perform auto update for update type: " + item.type);
-								}
+					log.info("Get auto updates: " + pstmt.toString());						
+					ResultSet rs = pstmt.executeQuery();
+					while (rs.next()) {
+						int prikey = rs.getInt(1);
+						String source = rs.getString(2);
+						if(source.trim().startsWith("attachments")) {
+							if(item.type.equals("imagelabel")) {
+								String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
+								lm.writeLog(sd, 0, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
+								
+								// Write labels to database
+								pstmtUpdate.setString(1, labels);
+								pstmtUpdate.setInt(2, prikey);
+								log.info("Update with labels: " + pstmtUpdate.toString());
+								pstmtUpdate.executeUpdate();
+							} else {
+								log.info("Error: cannot perform auto update for update type: " + item.type);
 							}
 						}
 						
-					} else {
-						log.info("Error: cannot perform auto update for: " + item.tableName + " : " 
-								+ item.sourceColName + " : " + item.targetColName);
-					}
+					} 
 					
 				}
 			}

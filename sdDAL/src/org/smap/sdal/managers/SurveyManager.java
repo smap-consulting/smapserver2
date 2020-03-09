@@ -147,8 +147,9 @@ public class SurveyManager {
 		
 		ResultSet resultSet = null;
 		StringBuffer sql = new StringBuffer("");
-		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
-				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, p.name, p.id, p.tasks_only,"
+		sql.append("select distinct s.s_id, s.display_name, s.deleted, s.blocked, "
+				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
+				+ "p.tasks_only,"
 				+ "s.group_survey_id, s.public_link, o.can_submit, s.hide_on_device,"
 				+ "s.data_survey, s.oversight_survey "
 				+ "from survey s, users u, user_project up, project p, organisation o "
@@ -206,24 +207,22 @@ public class SurveyManager {
 			while (resultSet.next()) {						
 	
 				Survey s = new Survey();
-				s.setId(resultSet.getInt(1));
-				//s.setName(resultSet.getString(2));
-				s.setDisplayName(resultSet.getString(3));
-				s.setDeleted(resultSet.getBoolean(4));
+				s.setId(resultSet.getInt("s_id"));
+				s.setDisplayName(resultSet.getString("display_name"));
+				s.setDeleted(resultSet.getBoolean("deleted"));
 				
-				boolean surveyBlocked = resultSet.getBoolean(5);
+				boolean surveyBlocked = resultSet.getBoolean("blocked");
 				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
 				s.setBlocked(surveyBlocked || !orgCanSubmit);
 				
-				s.setIdent(resultSet.getString(6));
-				s.setManagedId(resultSet.getInt(7));
-				s.setVersion(resultSet.getInt(8));
-				s.setLoadedFromXLS(resultSet.getBoolean(9));
-				s.setProjectName(resultSet.getString(10));
-				s.setProjectId(resultSet.getInt(11));
-				s.setProjectTasksOnly(resultSet.getBoolean(12));
-				s.groupSurveyId = resultSet.getInt(13);
-				s.publicLink = resultSet.getString(14);
+				s.setIdent(resultSet.getString("ident"));
+				s.setVersion(resultSet.getInt("version"));
+				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
+				s.setProjectName(resultSet.getString("project_name"));
+				s.setProjectId(resultSet.getInt("project_id"));
+				s.setProjectTasksOnly(resultSet.getBoolean("tasks_only"));
+				s.groupSurveyId = resultSet.getInt("group_survey_id");
+				s.publicLink = resultSet.getString("public_link");
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
@@ -262,7 +261,7 @@ public class SurveyManager {
 		PreparedStatement pstmt = null;
 		StringBuffer sql = new StringBuffer("");
 		sql.append("select distinct s.s_id, s.name, s.display_name, s.deleted, s.blocked, "
-				+ "s.ident, s.managed_id, s.version, s.loaded_from_xls, o.can_submit "
+				+ "s.ident, s.version, s.loaded_from_xls, o.can_submit "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -299,19 +298,18 @@ public class SurveyManager {
 			while (resultSet.next()) {						
 
 				Survey s = new Survey();
-				s.setId(resultSet.getInt(1));
-				//s.setName(resultSet.getString(2));
-				s.setDisplayName(resultSet.getString(3));
-				s.setDeleted(resultSet.getBoolean(4));
+				s.setId(resultSet.getInt("s_id"));
+				s.setDisplayName(resultSet.getString("display_name"));
+				s.setDeleted(resultSet.getBoolean("deleted"));
 				
-				boolean surveyBlocked = resultSet.getBoolean(5);
+				boolean surveyBlocked = resultSet.getBoolean("blocked");
 				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
 				s.setBlocked(surveyBlocked || !orgCanSubmit);
 				
-				s.setIdent(resultSet.getString(6));
-				s.setManagedId(resultSet.getInt(7));
-				s.setVersion(resultSet.getInt(8));
-				s.setLoadedFromXLS(resultSet.getBoolean(9));
+				s.setIdent(resultSet.getString("ident"));
+				//s.setManagedId(resultSet.getInt(7));
+				s.setVersion(resultSet.getInt("version"));
+				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
 
 				pstmtGetForms.setInt(1, s.id);
 				ResultSet rsForms = pstmtGetForms.executeQuery();
@@ -1115,21 +1113,20 @@ public class SurveyManager {
 		Survey s = null;	// Survey to return
 		ResultSet resultSet = null;
 		String sql = "select s.p_id, s.s_id, s.blocked, s.class, s.deleted, "
-				+ "s.display_name, s.key_policy, s.auto_updates, "
-				+ "s.managed_id,"
+				+ "s.display_name, s.key_policy, "
 				+ "s.ident,"
 				+ "s.version,"
 				+ "s.meta,"
 				+ "p.o_id,"
 				+ "o.e_id,"
-				+ "o.can_submit "
+				+ "o.can_submit,"
+				+ "s.group_survey_id "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
 				+ "where s.ident = ? "
 				+ "and s.p_id = p.id "
 				+ "and p.o_id = o.id";
-
 
 		PreparedStatement pstmt = null;
 		try {
@@ -1141,30 +1138,29 @@ public class SurveyManager {
 
 			if (resultSet.next()) {						
 				s = new Survey();
-				s.setProjectId(resultSet.getInt(1));
-				s.setId(resultSet.getInt(2));
+				s.setProjectId(resultSet.getInt("p_id"));
+				s.setId(resultSet.getInt("s_id"));
 				
-				boolean surveyBlocked = resultSet.getBoolean(3);
+				boolean surveyBlocked = resultSet.getBoolean("blocked");
 				boolean orgCanSubmit = resultSet.getBoolean("can_submit");				
 				s.setBlocked(surveyBlocked || !orgCanSubmit);
 				
-				s.surveyClass = resultSet.getString(4);
-				s.deleted = resultSet.getBoolean(5);
-				s.displayName = resultSet.getString(6);
-				s.key_policy = resultSet.getString(7);
-				s.autoUpdates = resultSet.getString(8);
-				s.managed_id = resultSet.getInt(9);
-				s.ident = resultSet.getString(10);
-				s.version = resultSet.getInt(11);
-				String meta = resultSet.getString(12);
+				s.surveyClass = resultSet.getString("class");
+				s.deleted = resultSet.getBoolean("deleted");
+				s.displayName = resultSet.getString("display_name");
+				s.key_policy = resultSet.getString("key_policy");
+				s.ident = resultSet.getString("ident");
+				s.version = resultSet.getInt("version");
+				String meta = resultSet.getString("meta");
 				if(meta != null) {
 					s.meta = new Gson().fromJson(meta, 
 							new TypeToken<ArrayList<MetaItem>>(){}.getType()); 
 				} else {
 					getLegacyMeta();
 				}
-				s.o_id = resultSet.getInt(13);
-				s.e_id = resultSet.getInt(14);
+				s.o_id = resultSet.getInt("o_id");
+				s.e_id = resultSet.getInt("e_id");
+				s.groupSurveyId = resultSet.getInt("group_survey_id");
 				
 			}
 		} catch (SQLException e) {
@@ -3373,16 +3369,23 @@ public class SurveyManager {
 	/*
 	 * Get the group Questions
 	 */
-	public HashMap<String, QuestionForm> getGroupQuestions(Connection sd, int groupSurveyId) throws SQLException {
+	public HashMap<String, QuestionForm> getGroupQuestions(Connection sd, 
+			int groupSurveyId,
+			String filter) throws SQLException {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 		
-		String sql = "select q.qname, q.column_name, f.name from question q, form f "
+		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype "
+				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and (q.f_id in "
 				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ? and deleted = 'false')) or "
 				+ "q.f_id in (select f_id from form where s_id = ?))";
 
+		if(filter != null) {
+			sql += " and " + filter;
+		}
+		
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -3392,16 +3395,17 @@ public class SurveyManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				QuestionForm qt = new QuestionForm(rs.getString(2), rs.getString(3));
-				groupQuestions.put(rs.getString(2), qt);
+				QuestionForm qt = new QuestionForm(
+						rs.getString("qname"), 
+						rs.getString("column_name"),
+						rs.getString("name"),
+						rs.getString("table_name"),
+						rs.getString("parameters"),
+						rs.getString("qtype"));
+				groupQuestions.put(rs.getString("column_name"), qt);
 			}
 		} finally {
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 		
 		return groupQuestions;
