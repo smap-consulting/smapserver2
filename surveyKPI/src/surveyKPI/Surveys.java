@@ -883,7 +883,25 @@ public class Surveys extends Application {
 		// End Authorisation
 		
 		MetaItem item  = new Gson().fromJson(metaString, MetaItem.class);
+		if(item.columnName == null) {
+			item.columnName = GeneralUtilityMethods.cleanName(item.name, true, true, false);
+		}
 		item.isPreload = true;
+		if(item.type == null) {
+			if(item.sourceParam.equals("start") || item.sourceParam.equals("end")) {
+				item.type = "dateTime";
+				item.dataType = "timestamp";
+			} else if(item.sourceParam.equals("today")) {
+				item.type = "date";
+				item.dataType = "date";
+			} else if(item.sourceParam.equals("start-geopoint")) {
+				item.type = "geopoint";
+				item.dataType = "geopoint";
+			} else {
+				item.type = "string";
+				item.dataType = "property";
+			}
+		}
 		
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtChangeLog = null;
@@ -939,27 +957,10 @@ public class Surveys extends Application {
 					break;
 				} 
 			}
+			
 			if(!replace) {
-				item.id = id;
-				if(item.columnName == null) {
-					item.columnName = GeneralUtilityMethods.cleanName(item.name, true, true, false);
-				}
+				item.id = id;			
 				preloads.add(item);
-				if(item.type == null) {
-					if(item.sourceParam.equals("start") || item.sourceParam.equals("end")) {
-						item.type = "dateTime";
-						item.dataType = "timestamp";
-					} else if(item.sourceParam.equals("today")) {
-						item.type = "date";
-						item.dataType = "date";
-					} else if(item.sourceParam.equals("start-geopoint")) {
-						item.type = "geopoint";
-						item.dataType = "geopoint";
-					} else {
-						item.type = "string";
-						item.dataType = "property";
-					}
-				}
 			}
 			GeneralUtilityMethods.setPreloads(sd, sId, preloads);
 			
