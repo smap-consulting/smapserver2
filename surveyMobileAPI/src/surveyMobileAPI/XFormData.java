@@ -117,6 +117,8 @@ public class XFormData {
 		Connection sd = null;
 		PreparedStatement pstmtIsRepeating = null;
 		ResultSet rsRepeating = null;
+		
+		PreparedStatement pstmt = null;
 
 		try {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
@@ -390,22 +392,7 @@ public class XFormData {
 			 * Process temporary user uploads 
 			 * who can only submit one result then delete that temporary user
 			 */
-			if(assignmentId > 0) {
-				String sqlIsRepeating = "select repeat from tasks "
-						+ "where id = (select task_id from assignments where id = ?);";
-				
-				pstmtIsRepeating = sd.prepareStatement(sqlIsRepeating);
-				pstmtIsRepeating.setInt(1, assignmentId);
-				log.info("Is repeating: " + pstmtIsRepeating.toString());
-				rsRepeating = pstmtIsRepeating.executeQuery();
-				
-				if(rsRepeating.next()) {
-					if(!rsRepeating.getBoolean(1)) {
-						log.info("Deleting temporary user");
-						um.deleteSingleSubmissionTemporaryUser(sd, user, UserManager.STATUS_COMPLETE);
-					}
-				}
-			} else if(action != null) {
+			if(action != null) {
 				// If this is for a temporary user then process the Action Details
 				if(action.single) {
 					um.deleteSingleSubmissionTemporaryUser(sd, user, UserManager.STATUS_COMPLETE);
@@ -416,12 +403,23 @@ public class XFormData {
 							MailoutManager.STATUS_COMPLETE, null);
 				}
 			}
-
+			
+			// If assignment Id is known then set the status now so that
+			// when a webform refreshes it will immediately get the updated status
+			if(assignmentId > 0) {
+				String sql = "update assignments set status = 'submitted', completed_date = now() "
+						+ "where id = ? ";
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1,  assignmentId);
+				pstmt.executeUpdate();
+			}
 			
 			log.info("userevent: " + user + " : upload results : " + si.getDisplayName());
+
 		} finally {
 			try {if (rsRepeating != null) {rsRepeating.close();}} catch (SQLException e) {}
 			try {if (pstmtIsRepeating != null) {pstmtIsRepeating.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);
 		}
 	}

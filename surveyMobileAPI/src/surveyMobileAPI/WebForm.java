@@ -55,6 +55,7 @@ import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
@@ -271,6 +272,8 @@ public class WebForm extends Application {
 			@QueryParam("debug") String d,
 			@QueryParam("callback") String callback) throws IOException {
 
+		Response response = null;
+		
 		mimeType = "html";
 		if (callback != null) {
 			// I guess they really want JSONP
@@ -281,9 +284,42 @@ public class WebForm extends Application {
 
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
-				taskKey, callback,
-				false, true, false, null);
+		
+		/*
+		 * Check to see if the assignment is already complete
+		 */
+		if(assignmentId > 0) {
+			
+			String requester = "WebForm - getFormHtml";
+			Connection sd = SDDataSource.getConnection(requester);
+
+			String status = null;
+			try {
+				status = GeneralUtilityMethods.getAssignmentCompletionStatus(sd, assignmentId);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				SDDataSource.closeConnection(requester, sd);
+			}
+
+			if(status.equals(TaskManager.STATUS_T_SUBMITTED)) {
+				response = getMessagePage(true, "mo_ss", null);
+			} else if(status.equals(TaskManager.STATUS_T_DELETED)
+					|| status.equals(TaskManager.STATUS_T_CANCELLED)) {
+				response = getMessagePage(false, "mo_del", null);
+			} else {
+				log.info("Unknown status: " + status);
+			}
+			
+		}
+		
+		if(response == null) {
+			response = getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+					taskKey, callback,
+					false, true, false, null);
+		}
+		
+		return response;
 	}
 
 	/*

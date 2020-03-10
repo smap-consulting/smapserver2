@@ -1353,6 +1353,45 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the assignment completion status 
+	 * If the assignment is intended to persist then "persist" is returned
+	 * Otherwise the assignment status is returned
+	 */
+	static public String getAssignmentCompletionStatus(Connection sd, int assignmentId) throws SQLException {
+
+		String status = "";
+	
+		String sql = "select status, t.repeat " 
+				+ " from assignments a, tasks t " 
+				+ "where a.id = ? "
+				+ "and a.task_id = t.id";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, assignmentId);
+			ResultSet rs = pstmt.executeQuery();
+			log.info("Getting assignment completion status: " + pstmt.toString());
+			if (rs.next()) {
+				boolean repeat = rs.getBoolean("repeat");
+				if(repeat) {
+					status = "repeat";
+				} else {
+					status = rs.getString("status");				
+				}
+				
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return status;
+	}
+	
+	/*
 	 * Get the task project name from its id
 	 */
 	static public String getProjectName(Connection sd, int id) throws SQLException {
