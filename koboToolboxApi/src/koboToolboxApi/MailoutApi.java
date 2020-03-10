@@ -39,6 +39,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -48,7 +49,6 @@ import org.smap.sdal.Utilities.SystemException;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.model.Action;
-import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
@@ -371,7 +371,11 @@ public class MailoutApi extends Application {
 				pstmtSent.setString(1,mailoutPerson.url);
 				pstmtSent.setInt(2, mailoutPersonId);
 				pstmtSent.executeUpdate();
+				
+				response = Response.status(Status.OK).entity(gson.toJson(mailoutPerson)).build();
 					
+			} else {
+				response = Response.status(Status.OK).entity("{}").build();
 			}
 			
 			
