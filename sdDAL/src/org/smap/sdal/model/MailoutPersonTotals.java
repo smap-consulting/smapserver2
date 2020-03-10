@@ -10,4 +10,5 @@ public class MailoutPersonTotals {
 	public int pending;
 	public int sent;
 	public int expired;
+	public int manual;
 }

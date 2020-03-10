@@ -257,6 +257,7 @@ public class MailoutManager {
 		String loc_error = localisation.getString("c_error");
 		String loc_complete = localisation.getString("c_complete");
 		String loc_expired = localisation.getString("c_expired");
+		String loc_manual = localisation.getString("c_manual");
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
@@ -293,8 +294,10 @@ public class MailoutManager {
 					mp.status_loc = loc_complete;
 				} else if(mp.status.equals(MailoutManager.STATUS_EXPIRED)) {
 					mp.status_loc = loc_expired;
+				} else if(mp.status.equals(MailoutManager.STATUS_MANUAL)) {
+					mp.status_loc = loc_manual;
 				} else {
-					mp.status_loc = loc_new;
+					mp.status_loc = mp.status;
 				}
 				
 				mpList.add(mp);
@@ -321,6 +324,7 @@ public class MailoutManager {
 		totals.unsubscribed = getTotal(sd, mailoutId, " and status = 'unsubscribed' ");
 		totals.pending = getTotal(sd, mailoutId, " and status = 'pending' ");
 		totals.expired = getTotal(sd, mailoutId, " and status = 'expired' ");
+		totals.manual = getTotal(sd, mailoutId, " and status = 'manual' ");
 		
 		return totals;
 	}
