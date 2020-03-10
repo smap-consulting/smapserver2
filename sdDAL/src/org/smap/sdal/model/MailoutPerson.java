@@ -9,16 +9,23 @@ public class MailoutPerson {
 	public String status;
 	public String status_loc;		// Localised name of status
 	public String status_details;
+	public String link;
 	
 	public Instance initialData;
 	public String initial_data;		// JSON version of initial data
 	
-	public MailoutPerson(int id, String email, String name, String status, String status_details) {
+	public MailoutPerson(int id, String email, 
+			String name, 
+			String status, 
+			String status_details,
+			String link) {
+		
 		this.id = id;
 		this.email = email;
 		this.name = name;
 		this.status = status;
 		this.status_details = status_details;
+		this.link = link;
 		
 		if(this.name == null) {
 			this.name = "";		// For datatables
@@ -26,6 +33,10 @@ public class MailoutPerson {
 		
 		if(this.status_details == null) {
 			this.status_details = "";		// For datatables
+		}
+		
+		if(this.link == null) {
+			this.link = "";		// For datatables
 		}
 	}
 	

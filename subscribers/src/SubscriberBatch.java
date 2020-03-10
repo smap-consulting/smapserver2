@@ -81,8 +81,6 @@ import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import JdbcManagers.JdbcUploadEventManager;
 
 /*****************************************************************************
@@ -1171,7 +1169,7 @@ public class SubscriberBatch {
 		PreparedStatement pstmt = null;
 		
 		// SQL to record a mailout being sent
-		String sqlSent = "update mailout_people set processed = now() where id = ?";
+		String sqlSent = "update mailout_people set processed = now(), link = ? where id = ?";
 		PreparedStatement pstmtSent = null;
 		
 		try {
@@ -1255,7 +1253,8 @@ public class SubscriberBatch {
 				mm.createMessage(sd, oId, "mailout", "", gson.toJson(msg));
 				
 				// record the sending of the notification
-				pstmtSent.setInt(1, id);
+				pstmtSent.setString(1, link);
+				pstmtSent.setInt(2, id);
 				log.info("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
 				

@@ -45,6 +45,7 @@ import javax.xml.transform.TransformerFactoryConfigurationError;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
@@ -233,6 +234,8 @@ public class WebForm extends Application {
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("callback") String callback) throws IOException {
 
+		Response response;
+		
 		log.info("Requesting json");
 
 		String requester = "WebForm - getFormJson";
@@ -253,8 +256,10 @@ public class WebForm extends Application {
 
 		mimeType = "json";
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, 
+		response = getWebform(request, formIdent, datakey, datakeyvalue, 
 				assignmentId, taskKey, callback, false, false, false, null);
+		
+		return response;
 	}
 
 	/*
@@ -306,7 +311,7 @@ public class WebForm extends Application {
 				response = getMessagePage(true, "mo_ss", null);
 			} else if(status.equals(TaskManager.STATUS_T_DELETED)
 					|| status.equals(TaskManager.STATUS_T_CANCELLED)) {
-				response = getMessagePage(false, "mo_del", null);
+				response = getMessagePage(false, "mo_del_done", null);
 			} else {
 				log.info("Unknown status: " + status);
 			}
@@ -314,9 +319,13 @@ public class WebForm extends Application {
 		}
 		
 		if(response == null) {
-			response = getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
-					taskKey, callback,
-					false, true, false, null);
+			try {
+				response = getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+						taskKey, callback,
+						false, true, false, null);
+			} catch (BlockedException e) {
+				response = getMessagePage(false, "mo_blocked", null);
+			}
 		}
 		
 		return response;
@@ -415,13 +424,17 @@ public class WebForm extends Application {
 				// 3. Get webform
 				userIdent = ident;
 				isTemporaryUser = true;
-				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
-						null, 
-						false,
-						true, 
-						true,			// Close after saving
-						a.initialData
-						);
+				try {
+					response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
+							null, 
+							false,
+							true, 
+							true,			// Close after saving
+							a.initialData
+							);
+				} catch (BlockedException e) {
+					response = getMessagePage(false, "mo_blocked", null);
+				}
 			}
 		
 		} catch (AuthorisationException e) {

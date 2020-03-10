@@ -241,7 +241,7 @@ public class MailoutManager {
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
 		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details, "
-				+ "mp.initial_data "
+				+ "mp.initial_data, mp.link "
 				+ "from mailout_people mp, people p "
 				+ "where p.id = mp.p_id "
 				+ "and mp.m_id = ? "
@@ -270,7 +270,8 @@ public class MailoutManager {
 						rs.getString("email"), 
 						rs.getString("name"),
 						rs.getString("status"),
-						rs.getString("status_details"));	
+						rs.getString("status_details"),
+						rs.getString("link"));	
 				String initialData = rs.getString("initial_data");
 				if(initialData != null) {
 					mp.initialData = gson.fromJson(initialData, Instance.class);

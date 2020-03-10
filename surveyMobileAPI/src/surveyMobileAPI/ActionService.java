@@ -225,6 +225,9 @@ public class ActionService extends Application {
 
 		StringBuffer output = new StringBuffer();
 
+		if(a.sId == 0) {
+			a.sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
+		}
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey s = sm.getById(sd, cResults, uIdent, a.sId, false, null, null, false, false, false, false, false, null,
 				false, false, false, null,
