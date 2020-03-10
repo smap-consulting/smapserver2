@@ -285,7 +285,7 @@ public class MailoutSvc extends Application {
 				}
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				
-				mm.writeEmails(sd, oId, mop, mailoutId);
+				mm.writeEmails(sd, oId, mop, mailoutId, "new");
 				
 					
 			}

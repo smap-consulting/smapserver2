@@ -1,7 +1,5 @@
 package org.smap.sdal.model;
 
-import java.util.HashMap;
-
 public class MailoutPerson {
 	public int id;
 	public String email;
@@ -9,7 +7,7 @@ public class MailoutPerson {
 	public String status;
 	public String status_loc;		// Localised name of status
 	public String status_details;
-	public String link;
+	public String url;
 	
 	public Instance initialData;
 	public String initial_data;		// JSON version of initial data
@@ -18,14 +16,14 @@ public class MailoutPerson {
 			String name, 
 			String status, 
 			String status_details,
-			String link) {
+			String url) {
 		
 		this.id = id;
 		this.email = email;
 		this.name = name;
 		this.status = status;
 		this.status_details = status_details;
-		this.link = link;
+		this.url = url;
 		
 		if(this.name == null) {
 			this.name = "";		// For datatables
@@ -35,8 +33,8 @@ public class MailoutPerson {
 			this.status_details = "";		// For datatables
 		}
 		
-		if(this.link == null) {
-			this.link = "";		// For datatables
+		if(this.url == null) {
+			this.url = "";		// For datatables
 		}
 	}
 	

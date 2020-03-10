@@ -75,6 +75,7 @@ public class MailoutManager {
 	public static String STATUS_ERROR = "error";
 	public static String STATUS_COMPLETE = "complete";
 	public static String STATUS_EXPIRED = "expired";
+	public static String STATUS_MANUAL = "manual";
 	
 	/*
 	 * Get mailouts for a survey
@@ -272,6 +273,7 @@ public class MailoutManager {
 						rs.getString("status"),
 						rs.getString("status_details"),
 						rs.getString("link"));	
+				
 				String initialData = rs.getString("initial_data");
 				if(initialData != null) {
 					mp.initialData = gson.fromJson(initialData, Instance.class);
@@ -367,7 +369,13 @@ public class MailoutManager {
 		}
 	}
 	
-public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, int mailoutId) throws Exception {
+	public int writeEmails(Connection sd, 
+		int oId, 
+		ArrayList<MailoutPerson> mop, 
+		int mailoutId,
+		String status) throws Exception {
+		
+		int mpId = 0;
 		
 		String sqlGetPerson = "select id from people "
 				+ "where o_id = ? "
@@ -381,7 +389,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 		
 		String sqlAddMailoutPerson = "insert into mailout_people "
 				+ "(p_id, m_id, status, initial_data) "
-				+ "values(?, ?, 'new', ?) ";
+				+ "values(?, ?, ?, ?) ";
 		PreparedStatement pstmtAddMailoutPerson = null;
 		
 		String sqlMailoutExists = "select count(*) "
@@ -397,13 +405,14 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			pstmtAddPerson = sd.prepareStatement(sqlAddPerson, Statement.RETURN_GENERATED_KEYS);
 			pstmtAddPerson.setInt(1, oId);
 			
-			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson);
+			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson, Statement.RETURN_GENERATED_KEYS);
 			
 			pstmtMailoutExists = sd.prepareStatement(sqlMailoutExists);
 			pstmtMailoutExists.setInt(2, mailoutId);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
+			int index = 0;
 			for(MailoutPerson person : mop) {
 				
 				int personId = 0;
@@ -436,16 +445,26 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 					// Write the entry into the mailout person table
 					pstmtAddMailoutPerson.setInt(1, personId);
 					pstmtAddMailoutPerson.setInt(2, mailoutId);
+					pstmtAddMailoutPerson.setString(3, status);
 					
 					String initialData = null;
 					if(person.initialData != null) {
 						initialData = gson.toJson(person.initialData);
 					}
-					pstmtAddMailoutPerson.setString(3, initialData);				
+					pstmtAddMailoutPerson.setString(4, initialData);				
 					pstmtAddMailoutPerson.executeUpdate();
+					
+					if(index++ == 0) {
+						// Only get the Id of the first create mailout person
+						// This will only be used when the requestor is only asking
+						// for a single mailout to be created
+						ResultSet rsKeys = pstmtAddMailoutPerson.getGeneratedKeys();
+						if(rsKeys.next()) {
+							mpId = rsKeys.getInt(1);
+						} 
+					}
 				}
-			}
-			
+			}		
 	
 		} finally {
 			try {if (pstmtGetPerson != null) {pstmtGetPerson.close();} } catch (SQLException e) {	}
@@ -453,6 +472,8 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			try {if (pstmtAddMailoutPerson != null) {pstmtAddMailoutPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtMailoutExists != null) {pstmtMailoutExists.close();} } catch (SQLException e) {	}
 		}
+		
+		return mpId;
 	}
 
 	/*

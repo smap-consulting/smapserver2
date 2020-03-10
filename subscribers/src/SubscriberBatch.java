@@ -1253,7 +1253,7 @@ public class SubscriberBatch {
 				mm.createMessage(sd, oId, "mailout", "", gson.toJson(msg));
 				
 				// record the sending of the notification
-				pstmtSent.setString(1, link);
+				pstmtSent.setString(1, "https://" + serverName + "/webForm" + link);
 				pstmtSent.setInt(2, id);
 				log.info("Record sending of message: " + pstmtSent.toString());
 				pstmtSent.executeUpdate();
@@ -1273,7 +1273,7 @@ public class SubscriberBatch {
 	
 	private void expireTemporaryUsers(ResourceBundle localisation, Connection sd) throws SQLException {
 		
-		int interval = 30;	// Expire by after 30 days
+		int interval = 30;	// Expire after 30 days
 		String sql = "select ident, action_details, o_id from users "
 				+ "where temporary "
 				+ "and single_submission "
