@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.UUID;
@@ -217,13 +218,30 @@ public class PeopleManager {
 				+ "and not unsubscribed";
 		PreparedStatement pstmt = null;
 		
+		String sqlMailout = "update mailout_people "
+				+ "set status = '" + MailoutManager.STATUS_UNSUBSCRIBED + "' "
+				+ "where p_id = ?";
+		PreparedStatement pstmtMailout = null;
+		
 		try {
 			
-			pstmt = sd.prepareStatement(sql);	
+			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);	
 			pstmt.setString(1, key);			
 			int count = pstmt.executeUpdate();
 			if(count == 0) {
 				throw new ApplicationException(localisation.getString("c_ns"));
+			}
+			
+			// Update mailouts
+			int personId = 0;
+			ResultSet rsKeys = pstmt.getGeneratedKeys();
+			if(rsKeys.next()) {
+				personId = rsKeys.getInt(1);
+			} 
+			if(personId > 0) {
+				pstmtMailout = sd.prepareStatement(sqlMailout);
+				pstmtMailout.setInt(1, personId);
+				pstmtMailout.executeUpdate();			
 			}
 			
 			/*
@@ -236,6 +254,7 @@ public class PeopleManager {
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtMailout != null) {pstmtMailout.close();} } catch (SQLException e) {	}
 		}
 		
 		return key;
