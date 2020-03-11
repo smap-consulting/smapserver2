@@ -431,6 +431,7 @@ public class MailoutManager {
 					// 2. Add person to people table if they do not exist
 					pstmtAddPerson.setString(2, person.email);
 					pstmtAddPerson.setString(3, person.name);
+					log.info("Add person to people: " + pstmtAddPerson.toString());
 					pstmtAddPerson.executeUpdate();
 					ResultSet rsKeys = pstmtAddPerson.getGeneratedKeys();
 					if(rsKeys.next()) {
@@ -455,7 +456,8 @@ public class MailoutManager {
 					if(person.initialData != null) {
 						initialData = gson.toJson(person.initialData);
 					}
-					pstmtAddMailoutPerson.setString(4, initialData);				
+					pstmtAddMailoutPerson.setString(4, initialData);	
+					log.info("Add person to mailout table: " + pstmtAddMailoutPerson.toString());
 					pstmtAddMailoutPerson.executeUpdate();
 					
 					if(index++ == 0) {
