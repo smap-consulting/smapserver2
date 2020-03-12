@@ -22,7 +22,6 @@ package surveyMobileAPI;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -52,7 +51,6 @@ import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -60,9 +58,7 @@ import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
-import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -518,7 +514,7 @@ public class WebForm extends Application {
 			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access																			
 			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
 			if(!isTemporaryUser && taskKey > 0) {
-				a.isValidTask(sd, request.getRemoteUser(), taskKey);
+				a.isValidTask(sd, userIdent, taskKey);
 			}
 			
 			// End Authorisation
@@ -534,7 +530,7 @@ public class WebForm extends Application {
 				
 				// Get the organisation specific options
 				OrganisationManager om = new OrganisationManager(localisation);
-				options = om.getWebform(sd, request.getRemoteUser());
+				options = om.getWebform(sd, userIdent);
 				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "WebForm", e);
@@ -560,7 +556,7 @@ public class WebForm extends Application {
 			if ((datakey != null && datakeyvalue != null) || taskKey > 0 || initialData != null) {
 				log.info("Adding initial data");
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
+				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm, taskKey, urlprefix, initialData);
 				instanceStrToEditId = xForm.getInstanceId();
