@@ -381,7 +381,7 @@ public class MailoutManager {
 		
 		int mpId = 0;
 		
-		String sqlGetPerson = "select id from people "
+		String sqlGetPerson = "select id, name from people "
 				+ "where o_id = ? "
 				+ "and email = ? ";		
 		PreparedStatement pstmtGetPerson = null;
@@ -390,6 +390,11 @@ public class MailoutManager {
 				+ "(o_id, email, name) "
 				+ "values(?, ?, ?)";		
 		PreparedStatement pstmtAddPerson = null;
+		
+		String sqlUpdatePerson = "update people "
+				+ "set name = ? "
+				+ "where id = ? ";	
+		PreparedStatement pstmtUpdatePerson = null;
 		
 		String sqlAddMailoutPerson = "insert into mailout_people "
 				+ "(p_id, m_id, status, initial_data) "
@@ -409,6 +414,8 @@ public class MailoutManager {
 			pstmtAddPerson = sd.prepareStatement(sqlAddPerson, Statement.RETURN_GENERATED_KEYS);
 			pstmtAddPerson.setInt(1, oId);
 			
+			pstmtUpdatePerson = sd.prepareStatement(sqlUpdatePerson);
+			
 			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson, Statement.RETURN_GENERATED_KEYS);
 			
 			pstmtMailoutExists = sd.prepareStatement(sqlMailoutExists);
@@ -420,12 +427,23 @@ public class MailoutManager {
 			for(MailoutPerson person : mop) {
 				
 				int personId = 0;
+				String personName = null;
 				
 				// 1. Get person details
 				pstmtGetPerson.setString(2, person.email);
 				ResultSet rs = pstmtGetPerson.executeQuery();
 				if(rs.next()) {
-					personId = rs.getInt(1);
+					personId = rs.getInt("id");
+					personName = rs.getString("name");
+					
+					// If the existing person's Name is empty (probably a legacy person) then update the name
+					if(personName == null || personName.trim().length() == 0) {
+						pstmtUpdatePerson.setString(1, person.name);
+						pstmtUpdatePerson.setInt(2, personId);
+						
+						pstmtUpdatePerson.executeUpdate();
+					}
+					
 				} else {
 					
 					// 2. Add person to people table if they do not exist
@@ -475,6 +493,7 @@ public class MailoutManager {
 		} finally {
 			try {if (pstmtGetPerson != null) {pstmtGetPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtAddPerson != null) {pstmtAddPerson.close();} } catch (SQLException e) {	}
+			try {if (pstmtUpdatePerson != null) {pstmtUpdatePerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtAddMailoutPerson != null) {pstmtAddMailoutPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtMailoutExists != null) {pstmtMailoutExists.close();} } catch (SQLException e) {	}
 		}
