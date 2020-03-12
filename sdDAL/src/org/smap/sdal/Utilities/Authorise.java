@@ -1472,14 +1472,14 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Task validation failed for: " + user + " survey was: " + tId);
+ 			log.info("Task validation failed for: " + user + " task was: " + tId);
  			
  			SDDataSource.closeConnection("isValidTask", conn);
 			
 			if(sqlError) {
 				throw new ServerException();
 			} else {
-				throw new AuthorisationException();
+				throw new AuthorisationException("Task validation failed for: " + user + " task was: " + tId);
 			}
 		} 
  		
