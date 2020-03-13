@@ -195,7 +195,8 @@ public class MyAssignments extends Application {
 		// End Authorisation
 			
 		PreparedStatement pstmtSetDeleted = null;
-		PreparedStatement pstmtSetUpdated = null;
+		PreparedStatement pstmtSetUpdatedRejected = null;
+		PreparedStatement pstmtSetUpdatedNotRejected = null;
 		PreparedStatement pstmtEvents = null;
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
@@ -205,7 +206,8 @@ public class MyAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
-			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
+			pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
+			pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
 			pstmtEvents = getPreparedStatementEvents(sd);
 			
 			int taskId = GeneralUtilityMethods.getTaskId(sd, as.assignment_id);
@@ -214,7 +216,8 @@ public class MyAssignments extends Application {
 					cResults,
 					localisation, 
 					pstmtSetDeleted, 
-					pstmtSetUpdated, 
+					pstmtSetUpdatedRejected,
+					pstmtSetUpdatedNotRejected,
 					pstmtEvents,
 					gson,
 					request.getRemoteUser(),
@@ -227,7 +230,8 @@ public class MyAssignments extends Application {
 			response = Response.serverError().build();
 		} finally {
 			try {if ( pstmtSetDeleted != null ) { pstmtSetDeleted.close(); }} catch (Exception e) {}
-			try {if ( pstmtSetUpdated != null ) { pstmtSetUpdated.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetUpdatedRejected != null ) { pstmtSetUpdatedRejected.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetUpdatedNotRejected != null ) { pstmtSetUpdatedNotRejected.close(); }} catch (Exception e) {}
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
@@ -443,6 +447,7 @@ public class MyAssignments extends Application {
 			/*
 			 * If there is still room for tasks then add new tasks where the task group allows auto selection
 			 */
+			log.info("ft_number_tasks: " + ft_number_tasks);
 			if(ft_number_tasks > 0) {
 				TaskManager tm = new TaskManager(localisation, tz);
 				int uId = GeneralUtilityMethods.getUserId(sd, userName);
@@ -749,7 +754,8 @@ public class MyAssignments extends Application {
 		// TODO that the status is valid (A different range of status values depending on the role of the user)
 
 		PreparedStatement pstmtSetDeleted = null;
-		PreparedStatement pstmtSetUpdated = null;		
+		PreparedStatement pstmtSetUpdatedRejected = null;	
+		PreparedStatement pstmtSetUpdatedNotRejected = null;
 		PreparedStatement pstmtTasks = null;		
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
@@ -766,7 +772,8 @@ public class MyAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			pstmtSetDeleted = getPreparedStatementSetDeleted(sd);
-			pstmtSetUpdated = getPreparedStatementSetUpdated(sd);
+			pstmtSetUpdatedRejected = getPreparedStatementSetUpdatedRejected(sd);
+			pstmtSetUpdatedNotRejected = getPreparedStatementSetUpdatedNotRejected(sd);
 			pstmtEvents = getPreparedStatementEvents(sd);
 			
 			String sqlUpdateId = "update tasks set update_id = ? "
@@ -792,7 +799,8 @@ public class MyAssignments extends Application {
 							cResults,
 							localisation, 
 							pstmtSetDeleted, 
-							pstmtSetUpdated, 
+							pstmtSetUpdatedRejected,
+							pstmtSetUpdatedNotRejected,
 							pstmtEvents,
 							gson,
 							userName,
@@ -894,7 +902,8 @@ public class MyAssignments extends Application {
 			}
 			
 			try {if ( pstmtSetDeleted != null ) { pstmtSetDeleted.close(); }} catch (Exception e) {}
-			try {if ( pstmtSetUpdated != null ) { pstmtSetUpdated.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetUpdatedRejected != null ) { pstmtSetUpdatedRejected.close(); }} catch (Exception e) {}
+			try {if ( pstmtSetUpdatedNotRejected != null ) { pstmtSetUpdatedNotRejected.close(); }} catch (Exception e) {}
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
@@ -921,11 +930,27 @@ public class MyAssignments extends Application {
 	}
 	
 	// Get a prepared statement to update the status of an assignment
-	private PreparedStatement getPreparedStatementSetUpdated(Connection sd) throws SQLException {
+	private PreparedStatement getPreparedStatementSetUpdatedRejected(Connection sd) throws SQLException {
 
 		/*
-		 * The assignment status can be updated by a user if it is an auto allocate
-		 * task and the current status is new
+		 * The assignment status can be set to rejected if the task is assigned to the user
+		 */
+		String sql = "update assignments a "
+				+ "set status = ?, "
+				+ "comment = ?,"
+				+ "assignee = ?,"
+				+ "assignee_name = (select name from users where id = ?) "
+				+ "where a.id = ? "
+				+ "and a.assignee = ?";
+		PreparedStatement pstmt = sd.prepareStatement(sql);
+		return pstmt;
+	}
+	
+	// Get a prepared statement to update the status of an assignment to anything oth than rejected
+	private PreparedStatement getPreparedStatementSetUpdatedNotRejected(Connection sd) throws SQLException {
+
+		/*
+		 * The assignment status can be updated by a user if it is an auto allocate task and the current status is new
 		 * or the task is assigned to the user
 		 */
 		String sql = "update assignments a "
@@ -959,7 +984,8 @@ public class MyAssignments extends Application {
 			Connection cResults,
 			ResourceBundle localisation,
 			PreparedStatement pstmtSetDeleted, 
-			PreparedStatement pstmtSetUpdated,
+			PreparedStatement pstmtSetUpdatedRejected,
+			PreparedStatement pstmtSetUpdatedNotRejected,
 			PreparedStatement pstmtEvents,
 			Gson gson,
 			String userName,
@@ -976,39 +1002,50 @@ public class MyAssignments extends Application {
 		 *   hence update the server status to "deleted"
 		 */
 		if(status.equals(TaskManager.STATUS_T_CANCELLED)) {
-			log.info("Assignment:" + assignmentId + " acknowledge cancel");
 			pstmtSetDeleted.setInt(1, assignmentId);
 			pstmtSetDeleted.setString(2, userName);
-			log.info("update assignments: " + pstmtSetDeleted.toString());
+			log.info("Assignment:" + assignmentId + " acknowledge cancel - update assignments to deleted: " + pstmtSetDeleted.toString());
 			pstmtSetDeleted.executeUpdate();
 		} else {
 
 			int uId = GeneralUtilityMethods.getUserId(sd, userName);
 			
 			// Apply update making sure the assignment was made to the updating user
-			pstmtSetUpdated.setString(1, status);
-			pstmtSetUpdated.setString(2, comment);
-			pstmtSetUpdated.setInt(3, uId);
-			pstmtSetUpdated.setInt(4, uId);
-			pstmtSetUpdated.setInt(5, assignmentId);		// To get name
-			pstmtSetUpdated.setInt(6, uId);
-			log.info("update assignments: " + pstmtSetUpdated.toString());
-			pstmtSetUpdated.executeUpdate();
+			if(status.equals(TaskManager.STATUS_T_REJECTED)) {
+				pstmtSetUpdatedRejected.setString(1, status);
+				pstmtSetUpdatedRejected.setString(2, comment);
+				pstmtSetUpdatedRejected.setInt(3, uId);
+				pstmtSetUpdatedRejected.setInt(4, uId);
+				pstmtSetUpdatedRejected.setInt(5, assignmentId);		// To get name
+				pstmtSetUpdatedRejected.setInt(6, uId);
+				log.info("update assignments rejected: " + pstmtSetUpdatedRejected.toString());
+				pstmtSetUpdatedRejected.executeUpdate();
+				
+				// Potentially rejection of an unassigned  task 
+				// Record rejection just for this user so the task is not re-downloaded
+				updateTaskRejected(sd, assignmentId, userName);
+				
+			} else {
+				pstmtSetUpdatedNotRejected.setString(1, status);
+				pstmtSetUpdatedNotRejected.setString(2, comment);
+				pstmtSetUpdatedNotRejected.setInt(3, uId);
+				pstmtSetUpdatedNotRejected.setInt(4, uId);
+				pstmtSetUpdatedNotRejected.setInt(5, assignmentId);		// To get name
+				pstmtSetUpdatedNotRejected.setInt(6, uId);
+				log.info("update assignments excluding rejected: " + pstmtSetUpdatedNotRejected.toString());
+				pstmtSetUpdatedNotRejected.executeUpdate();
+			}
 			
 			if(status.equals(TaskManager.STATUS_T_SUBMITTED)) {
 				// Cancel other assignments if complete_all is not set for the task
 				tm.cancelOtherAssignments(sd, cResults, assignmentId);
 			}
 		}
-		if(comment != null && comment.length() > 0) {
+		if(status.equals(TaskManager.STATUS_T_REJECTED) && comment != null && comment.length() > 0) {
 			// Get the oId here this should be a pretty rare event
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
 					assignmentId + ": " + comment );
-		}
-		if(status.equals(TaskManager.STATUS_T_REJECTED)) {
-			// Potentially rejection of an unassigned  task
-			updateTaskRejected(sd, assignmentId, userName);
 		}
 		
 		/*
