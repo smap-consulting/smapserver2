@@ -506,18 +506,28 @@ public class MailoutManager {
 	 */
 	public void sendEmails(Connection sd, int mailoutId, boolean retry) throws SQLException {
 		
-		String sql = "update mailout_people set status_details = null, "
+		StringBuffer sql = new StringBuffer("update mailout_people set status_details = null, "
 				+ "processed = null, "
 				+ "status = '" + MailoutManager.STATUS_PENDING +"'  "
-				+ "where m_id = ? "
-				+ "and status = '" + 
-						(retry ? MailoutManager.STATUS_ERROR : MailoutManager.STATUS_NEW)
-						+ "'";
+				+ "where m_id = ? ");
+		
+		if(retry) {
+			sql.append("and (status = '");
+			sql.append(MailoutManager.STATUS_ERROR);
+			sql.append("' or status = '");
+			sql.append(MailoutManager.STATUS_UNSUBSCRIBED);
+			sql.append("')");
+		} else {
+			sql.append("and status = '");
+			sql.append(MailoutManager.STATUS_NEW);
+			sql.append("'");
+		}
+				
 		
 		PreparedStatement pstmt = null;
 		
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, mailoutId);
 			log.info("Send unsent: " + pstmt.toString());
 			pstmt.executeUpdate();
