@@ -652,7 +652,10 @@ public class MailoutManager {
 										unsubscribed = true;
 										setMailoutStatus(sd, msg.mpId, STATUS_UNSUBSCRIBED, null);
 									} else {
-										if(subStatus.optedIn || !organisation.send_optin) {
+										if(subStatus.optedIn || !organisation.send_optin 
+												|| subStatus.optedInSent == null	// First mailout is the optin
+												) {
+											
 											log.info("Send email: " + msg.email + " : " + docURL);
 											em.sendEmail(
 													ia.getAddress(), 
@@ -675,11 +678,18 @@ public class MailoutManager {
 													localisation,
 													organisation.server_description,
 													organisation.name);
+											
+											if(subStatus.optedInSent == null) {
+												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 
+														organisation.getAdminEmail(), emailServer, 
+														subStatus.emailKey, scheme, server,
+														false);		// Do not sent the email just record it as having been done
+											}
 										
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
-											 * Move message to pending messages and send opt in message if needed
+											 * Move message to pending
 											 */ 
 											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, null, 
 													null,

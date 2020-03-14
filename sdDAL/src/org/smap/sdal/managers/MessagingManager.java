@@ -209,7 +209,7 @@ public class MessagingManager {
 			 */
 			if(optInSent == null) {
 				sendOptinEmail(sd, oId, email, 
-						adminEmail, emailServer, emailKey, scheme, server);
+						adminEmail, emailServer, emailKey, scheme, server, true);
 			}
 			
 		} finally {
@@ -225,7 +225,8 @@ public class MessagingManager {
 			EmailServer emailServer,
 			String emailKey,
 			String scheme,
-			String server) throws Exception {
+			String server,
+			boolean sendEmail) throws Exception {
 		
 		String from = emailServer.smtpHost;
 		
@@ -233,28 +234,30 @@ public class MessagingManager {
 		
 		PreparedStatement pstmt = null;
 		try {
-			em.sendEmail(
-					email, 
-					null, 
-					"optin", 
-					localisation.getString("c_opt_in_subject"), 
-					null,
-					from,		
-					null, 
-					null, 
-					null, 
-					null,		// doc url 
-					null,		// file path
-					null,		// file name
-					adminEmail, 
-					emailServer,
-					scheme,
-					server,
-					emailKey,
-					localisation,
-					null,		// Server description
-					GeneralUtilityMethods.getOrganisationName(sd, oId)
-					);
+			if(sendEmail) {		// Sometimes a specific opt in email is not required
+				em.sendEmail(
+						email, 
+						null, 
+						"optin", 
+						localisation.getString("c_opt_in_subject"), 
+						null,
+						from,		
+						null, 
+						null, 
+						null, 
+						null,		// doc url 
+						null,		// file path
+						null,		// file name
+						adminEmail, 
+						emailServer,
+						scheme,
+						server,
+						emailKey,
+						localisation,
+						null,		// Server description
+						GeneralUtilityMethods.getOrganisationName(sd, oId)
+						);
+			}
 			
 			// Record that the opt in message has been sent
 			String sqlDone = "update people "

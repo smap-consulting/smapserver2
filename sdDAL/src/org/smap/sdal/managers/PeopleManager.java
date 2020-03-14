@@ -247,7 +247,7 @@ public class PeopleManager {
 			/*
 			 * Log the event
 			 */
-			People person = getOrganisationFromSubscriberKey(sd,key);
+			People person = getPersonFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_unsubscribed");
 			note = note.replace("%s1", person.email);
 			lm.writeLogOrganisation(sd, person.oId, null, LogManager.OPTIN, note);
@@ -286,7 +286,7 @@ public class PeopleManager {
 			/*
 			 * Log the event
 			 */
-			People person = getOrganisationFromSubscriberKey(sd,key);
+			People person = getPersonFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_subscribed");
 			note = note.replace("%s1", person.email);
 			lm.writeLogOrganisation(sd, person.oId, null, LogManager.OPTIN, note);
@@ -300,9 +300,49 @@ public class PeopleManager {
 	}
 	
 	/*
-	 * Get the organisation and email from the key
+	 * Subscribe the user based on their email and organisation
+	 * They can only be subscribed if opted in is false
 	 */
-	public People getOrganisationFromSubscriberKey(Connection sd, 
+	public void subscribeEmail(Connection sd, 
+			String email, int oId) throws SQLException, ApplicationException {
+		
+		String sql = "update people "
+				+ "set unsubscribed = false,"
+				+ "opted_in = true, "
+				+ "when_subscribed = now() "
+				+ "where email = ? "
+				+ "and o_id = ? "
+				+ "and opted_in = false";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, email);	
+			pstmt.setInt(2,  oId);
+			int count = pstmt.executeUpdate();
+			if(count == 0) {
+				throw new ApplicationException(localisation.getString("c_error"));
+			}
+
+			/*
+			 * Log the event
+			 */
+			String note = localisation.getString("optin_subscribed");
+			note = note.replace("%s1", email);
+			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+		
+
+	}
+	
+	/*
+	 * Get the Person from the key
+	 */
+	public People getPersonFromSubscriberKey(Connection sd, 
 			String key) throws SQLException, ApplicationException {
 		
 		People person = new People();

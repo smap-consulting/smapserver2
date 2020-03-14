@@ -52,6 +52,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
@@ -252,7 +253,7 @@ public class WebForm extends Application {
 
 		mimeType = "json";
 		isTemporaryUser = false;
-		response = getWebform(request, formIdent, datakey, datakeyvalue, 
+		response = getWebform(request, "none", null, formIdent, datakey, datakeyvalue, 
 				assignmentId, taskKey, callback, false, false, false, null);
 		
 		return response;
@@ -316,7 +317,8 @@ public class WebForm extends Application {
 		
 		if(response == null) {
 			try {
-				response = getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+				response = getWebform(request, "none", null, 
+						formIdent, datakey, datakeyvalue, assignmentId, 
 						taskKey, callback,
 						false, true, false, null);
 			} catch (BlockedException e) {
@@ -357,7 +359,7 @@ public class WebForm extends Application {
 		
 		userIdent = tempUser;
 		isTemporaryUser = true;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
 				true, false, null);
 	}
@@ -421,13 +423,15 @@ public class WebForm extends Application {
 				userIdent = ident;
 				isTemporaryUser = true;
 				try {
-					response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
+					response = getWebform(request, a.action, a.email, 
+							a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
 							null, 
 							false,
 							true, 
 							true,			// Close after saving
 							a.initialData
 							);
+					
 				} catch (BlockedException e) {
 					response = getMessagePage(false, "mo_blocked", null);
 				}
@@ -448,7 +452,11 @@ public class WebForm extends Application {
 	/*
 	 * Get the response as either HTML or JSON
 	 */
-	private Response getWebform(HttpServletRequest request, String formIdent, String datakey,
+	private Response getWebform(HttpServletRequest request, 
+			String action, 
+			String email,
+			String formIdent, 
+			String datakey,
 			String datakeyvalue, 
 			int assignmentId, 
 			int taskKey, 
@@ -531,6 +539,12 @@ public class WebForm extends Application {
 				// Get the organisation specific options
 				OrganisationManager om = new OrganisationManager(localisation);
 				options = om.getWebform(sd, userIdent);
+				
+				// If this request is for a mailout then opt in
+				if(action.equals("mailout")) {
+					PeopleManager pm = new PeopleManager(localisation);
+					pm.subscribeEmail(sd, email, orgId);
+				}
 				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "WebForm", e);
