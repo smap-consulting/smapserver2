@@ -118,7 +118,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	@Override
-	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
+	public void upload(SurveyInstance instance, InputStream is, String submittingUser, 
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
 			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
@@ -172,7 +172,7 @@ public class SubRelationalDB extends Subscriber {
 
 			int assignmentId = getAssignmentId(sd, ue_id);
 			
-			writeAllTableContent(sd, cResults, instance, remoteUser, server, device, 
+			writeAllTableContent(sd, cResults, instance, submittingUser, server, device, 
 					formStatus, updateId, uploadTime, surveyNotes, 
 					locationTrigger, assignmentId);
 			
@@ -183,18 +183,18 @@ public class SubRelationalDB extends Subscriber {
 			ForeignKeyManager fkm = new ForeignKeyManager();
 			fkm.apply(sd, cResults);
 			
-			applySubmissionNotifications(sd, cResults, ue_id, remoteUser, server, survey.ident, survey.exclude_empty);
+			applySubmissionNotifications(sd, cResults, ue_id, submittingUser, server, survey.ident, survey.exclude_empty);
 			
 			if(assignmentId > 0) {
 				String id = updateId;
 				if(id == null) {
 					id = instance.getUuid();
 				}
-				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, remoteUser, id);
+				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, id);
 			}
 			
 			if(survey.autoUpdates != null && survey.managed_id > 0) {
-				applyAutoUpdates(server, remoteUser);
+				applyAutoUpdates(server, submittingUser);
 			}
 			se.setStatus("success");			
 
@@ -235,7 +235,6 @@ public class SubRelationalDB extends Subscriber {
 	 * Apply any changes to assignment status
 	 */
 	private void applyAssignmentStatus(Connection sd, Connection cResults, int assignmentId, int ue_id, 
-			String remoteUser,
 			String updateId) {
 
 		PreparedStatement pstmt = null;
@@ -340,7 +339,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Apply notifications and tasks triggered by a submission
 	 */
-	private void applySubmissionNotifications(Connection sd, Connection cResults, int ueId, String remoteUser, 
+	private void applySubmissionNotifications(Connection sd, Connection cResults, int ueId, String submittingUser, 
 			String server, String sIdent, boolean excludeEmpty) {
 
 		PreparedStatement pstmtGetUploadEvent = null;
@@ -373,7 +372,7 @@ public class SubRelationalDB extends Subscriber {
 						sd, 
 						cResults,
 						ueId, 
-						remoteUser, 
+						submittingUser, 
 						"https",
 						server,
 						gBasePath,
@@ -396,7 +395,7 @@ public class SubRelationalDB extends Subscriber {
 						instanceId,
 						pId,
 						pName,
-						remoteUser
+						submittingUser
 						);
 				
 			}

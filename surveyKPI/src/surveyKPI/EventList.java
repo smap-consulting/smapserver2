@@ -78,10 +78,11 @@ public class EventList extends Application {
 			) {
 		
 		Response response = null;
+		String connectionString = "surveyKPI-EventList - retry";
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-EventList - retry");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		if(messageId != 0) {
 			a.isValidMessage(sd, request.getRemoteUser(), messageId);
@@ -113,7 +114,7 @@ public class EventList extends Application {
 		} finally {
 			try {if (pstmtNot != null) {pstmtNot.close();}} catch (SQLException e) {}
 			try {if (pstmtMsg != null) {pstmtMsg.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyKPI-EventList - retry", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -130,7 +131,7 @@ public class EventList extends Application {
 		
 		Response response = null;
 		
-		String connectionString = "surveyKPI-EventList - retry";
+		String connectionString = "surveyKPI-optin - retry";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());

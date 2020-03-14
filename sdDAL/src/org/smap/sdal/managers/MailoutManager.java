@@ -680,12 +680,14 @@ public class MailoutManager {
 													subStatus.emailKey,
 													createPending,
 													scheme,
-													server);
+													server,
+													messageId);
 										}
 										setMailoutStatus(sd, msg.mpId, STATUS_SENT, null);
 									}
 								}
 							} catch(Exception e) {
+								log.log(Level.SEVERE, e.getMessage(),e);
 								status = "error";
 								error_details = e.getMessage();
 								

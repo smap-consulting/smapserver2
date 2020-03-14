@@ -154,7 +154,8 @@ public class MessagingManager {
 			String emailKey,
 			boolean createPending,
 			String scheme,
-			String server) throws Exception {
+			String server,
+			int messageId) throws Exception {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -183,8 +184,8 @@ public class MessagingManager {
 		}
 		
 		String sql = "insert into pending_message" 
-				+ "(o_id, email, topic, data, created_time) "
-				+ "values(?, ?, ?, ?, now())";
+				+ "(o_id, email, topic, data, message_id, created_time) "
+				+ "values(?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -198,6 +199,7 @@ public class MessagingManager {
 				pstmt.setString(2, email);
 				pstmt.setString(3, topic);
 				pstmt.setString(4, msgString);
+				pstmt.setInt(5, messageId);
 				log.info("Add pending message: " + pstmt.toString());
 				pstmt.executeUpdate();	
 			}
