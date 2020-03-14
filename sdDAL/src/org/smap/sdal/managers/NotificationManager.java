@@ -832,9 +832,10 @@ public class NotificationManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						ArrayList<String> emailList = null;
-						log.info("Email question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
+							String emailQuestionName = msg.getEmailQuestionName(sd);
+							log.info("Email question: " + emailQuestionName);
+							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
 						} else {
 							emailList = new ArrayList<String> ();
 						}
