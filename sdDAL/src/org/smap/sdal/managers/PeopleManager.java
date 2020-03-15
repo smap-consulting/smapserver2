@@ -312,7 +312,7 @@ public class PeopleManager {
 				+ "when_subscribed = now() "
 				+ "where email = ? "
 				+ "and o_id = ? "
-				+ "and not opted_in = true";
+				+ "and (opted_in is null or opted_in = false)";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -320,17 +320,17 @@ public class PeopleManager {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, email);	
 			pstmt.setInt(2,  oId);
+			log.info("Subscribe for email: " + pstmt.toString());
 			int count = pstmt.executeUpdate();
-			if(count == 0) {
-				throw new ApplicationException(localisation.getString("c_error"));
-			}
-
+			
 			/*
 			 * Log the event
 			 */
-			String note = localisation.getString("optin_subscribed");
-			note = note.replace("%s1", email);
-			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			if(count > 0) {
+				String note = localisation.getString("optin_subscribed");
+				note = note.replace("%s1", email);
+				lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}

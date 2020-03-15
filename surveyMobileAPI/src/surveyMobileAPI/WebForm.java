@@ -545,6 +545,9 @@ public class WebForm extends Application {
 				if(action.equals("mailout")) {
 					PeopleManager pm = new PeopleManager(localisation);
 					pm.subscribeEmail(sd, email, orgId);
+					
+					String note = localisation.getString("mo_submitted");
+					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, note);
 				}
 				
 			} catch (Exception e) {
