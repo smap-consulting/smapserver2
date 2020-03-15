@@ -250,7 +250,7 @@ public class PeopleManager {
 			People person = getPersonFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_unsubscribed");
 			note = note.replace("%s1", person.email);
-			lm.writeLogOrganisation(sd, person.oId, null, LogManager.OPTIN, note);
+			lm.writeLogOrganisation(sd, person.oId, person.email, LogManager.OPTIN, note);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -289,7 +289,7 @@ public class PeopleManager {
 			People person = getPersonFromSubscriberKey(sd,key);
 			String note = localisation.getString("optin_subscribed");
 			note = note.replace("%s1", person.email);
-			lm.writeLogOrganisation(sd, person.oId, null, LogManager.OPTIN, note);
+			lm.writeLogOrganisation(sd, person.oId, person.email, LogManager.OPTIN, note);
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -312,7 +312,7 @@ public class PeopleManager {
 				+ "when_subscribed = now() "
 				+ "where email = ? "
 				+ "and o_id = ? "
-				+ "and opted_in = false";
+				+ "and not opted_in = true";
 		PreparedStatement pstmt = null;
 		
 		try {

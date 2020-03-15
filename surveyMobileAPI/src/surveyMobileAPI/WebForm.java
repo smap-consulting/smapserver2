@@ -540,6 +540,7 @@ public class WebForm extends Application {
 				OrganisationManager om = new OrganisationManager(localisation);
 				options = om.getWebform(sd, userIdent);
 				
+				log.info("++++++ Action: " + action);
 				// If this request is for a mailout then opt in
 				if(action.equals("mailout")) {
 					PeopleManager pm = new PeopleManager(localisation);

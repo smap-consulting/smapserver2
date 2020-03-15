@@ -417,9 +417,11 @@ public class MessagingManagerApply {
 				pstmtConfirm.setInt(2, id);
 				pstmtConfirm.executeUpdate();
 				
+				String email = null;
 				if(topic.equals("submission")) {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-			
+					email = msg.user;
+					
 					NotificationManager nm = new NotificationManager(localisation);
 					nm.processSubmissionNotification(
 							sd, 
@@ -435,7 +437,8 @@ public class MessagingManagerApply {
 				} else if(topic.equals("reminder")) {
 					// Use SubmissionMessage structure - this may change
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-			
+					email = msg.user;
+					
 					NotificationManager nm = new NotificationManager(localisation);
 					nm.processReminderNotification(
 							sd, 
@@ -449,10 +452,10 @@ public class MessagingManagerApply {
 							); 
 					
 				} else if(topic.equals("email_task")) {
-					TaskManager tm = new TaskManager(localisation, tz);
-
+					TaskManager tm = new TaskManager(localisation, tz);				
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
-						
+					email = msg.user;
+					
 					tm.emailTask(
 							sd, 
 							cResults, 
@@ -471,7 +474,8 @@ public class MessagingManagerApply {
 					MailoutManager mm = new MailoutManager(localisation);
 
 					MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
-						
+					email = msg.email;
+					
 					mm.emailMailout(
 							sd, 
 							cResults, 
@@ -496,6 +500,10 @@ public class MessagingManagerApply {
 				pstmtConfirm.setInt(2, id);
 				log.info(pstmtConfirm.toString());
 				pstmtConfirm.executeUpdate();
+
+				String note = localisation.getString("mo_pending_sent");
+				note = note.replace("%s1", topic);
+				lm.writeLogOrganisation(sd, organisation.id, email, LogManager.OPTIN, note);
 
 			}
 

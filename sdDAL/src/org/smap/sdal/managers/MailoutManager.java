@@ -657,6 +657,10 @@ public class MailoutManager {
 												) {
 											
 											log.info("Send email: " + msg.email + " : " + docURL);
+											String note = localisation.getString("mo_sent");
+											note = note.replace("%s1", msg.survey_ident);
+											lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.MAILOUT, note);
+
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 
@@ -683,7 +687,8 @@ public class MailoutManager {
 												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 
 														organisation.getAdminEmail(), emailServer, 
 														subStatus.emailKey, scheme, server,
-														false);		// Do not sent the email just record it as having been done
+														false);		// Do not sent the optin email just record it as having been done
+												
 											}
 										
 										} else {
@@ -702,6 +707,11 @@ public class MailoutManager {
 													scheme,
 													server,
 													messageId);
+											
+											String note = localisation.getString("mo_pending_saved");
+											note = note.replace("%s1", msg.survey_ident);
+											lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.MAILOUT, note);
+
 										}
 										setMailoutStatus(sd, msg.mpId, STATUS_SENT, null);
 									}

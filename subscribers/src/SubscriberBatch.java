@@ -1143,7 +1143,7 @@ public class SubscriberBatch {
 	}
 	
 	/*
-	 * Send pending Mailouts
+	 * Send Mailouts
 	 */
 	private void sendMailouts(Connection sd, String basePath, 
 			String serverName) {
