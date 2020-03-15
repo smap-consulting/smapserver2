@@ -545,9 +545,9 @@ public class WebForm extends Application {
 				if(action.equals("mailout")) {
 					PeopleManager pm = new PeopleManager(localisation);
 					pm.subscribeEmail(sd, email, orgId);
-					
-					String note = localisation.getString("mo_submitted");
-					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, note);
+					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"));
+				} else 	if(action.equals("task")) {
+					lm.writeLog(sd, survey.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"));
 				}
 				
 			} catch (Exception e) {

@@ -656,10 +656,12 @@ public class MailoutManager {
 												|| subStatus.optedInSent == null	// First mailout is the optin
 												) {
 											
-											log.info("Send email: " + msg.email + " : " + docURL);
-											String note = localisation.getString("mo_sent");
-											note = note.replace("%s1", msg.survey_ident);
-											lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.MAILOUT, note);
+											log.info("Send email: " + msg.email + " : " + docURL);									
+											lm.writeLog(sd, 
+													GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
+													ia.getAddress(), 
+													LogManager.MAILOUT, 
+													localisation.getString("mo_sent"));
 
 											em.sendEmail(
 													ia.getAddress(), 

@@ -7,10 +7,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -2068,7 +2064,6 @@ public class TaskManager {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				if(!GeneralUtilityMethods.emailTaskBlocked(sd, oId)) {			
 					
-					String urlprefix = "https://" + request.getServerName() + "/";					
 					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 					
 					// 1. Get tasks and loop
@@ -2965,6 +2960,16 @@ public class TaskManager {
 			TaskManager tm = new TaskManager(localisation, tz);
 			TaskEmailDetails ted = tm.getEmailDetails(sd, tgId);
 			
+			// Add the task name to the email subject
+			if(ted.subject == null) {
+				ted.subject = "";
+			}
+			ted.subject = ted.subject.trim();
+			if(ted.subject.length() > 0) {
+				ted.subject += " - ";
+			}
+			ted.subject += task_name;
+			
 			// Create an action this should be (mostly) identical for all emails
 			ActionManager am = new ActionManager(localisation, tz);
 			Action action = new Action("task");
@@ -3131,20 +3136,6 @@ public class TaskManager {
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?, 'task'); ";
 		
-		// Time Zone
-		int utcOffset = 0;	
-		LocalDateTime dt = LocalDateTime.now();
-		if(organisation.timeZone != null) {
-			try {
-				ZoneId zone = ZoneId.of(organisation.timeZone);
-			    ZonedDateTime zdt = dt.atZone(zone);
-			    ZoneOffset offset = zdt.getOffset();
-			    utcOffset = offset.getTotalSeconds() / 60;
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
-		
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
@@ -3160,7 +3151,6 @@ public class TaskManager {
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
 			
 			// Notification log
-			ArrayList<String> unsubscribedList  = null;
 			String error_details = null;
 			String notify_details = null;
 			String status = null;
@@ -3272,7 +3262,13 @@ public class TaskManager {
 													organisation.server_description,
 													organisation.name);
 											setAssignmentStatus(sd, msg.aId, "accepted");
-										
+											
+											lm.writeLog(sd, 
+													survey.id, 
+													ia.getAddress(), 
+													LogManager.EMAIL_TASK, 
+													localisation.getString("mo_sent"));
+
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
