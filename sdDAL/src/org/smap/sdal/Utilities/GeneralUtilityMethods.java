@@ -3443,13 +3443,26 @@ public class GeneralUtilityMethods {
 	 * Get the answer for a specific question and a specific instance
 	 */
 	public static String getResponseMetaValue(Connection sd, Connection results, int sId, String metaName,
-			String instanceId) throws SQLException {
+			String instanceId) throws Exception {
 
 		PreparedStatement pstmtResults = null;
 
 		String value = null;
 		try {
 			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+			// Add dummy meta items for reserved system columns
+			if(metaName.equals("_user")) {
+				preloads.add(new MetaItem(MetaItem.INITIAL_ID,
+						null, 		
+						metaName, 
+						null, 	
+						metaName, 
+						null,
+						true,
+						null,
+						null));
+			}
+					
 			for(MetaItem item : preloads) {
 				if(item.name.equals(metaName)) {
 					Form f = getTopLevelForm(sd, sId);
