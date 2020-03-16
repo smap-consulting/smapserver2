@@ -44,7 +44,7 @@ public class ProjectManager {
 			Connection sd, 
 			String user,
 			boolean all,			// If true get all projects in user organisation, otherwise just ones they are in
-			boolean links,		// If true include links to other data that uses the project id as a key
+			boolean links,			// If true include links to other data that uses the project id as a key
 			String urlprefix		// Url prefix for links
 			) throws ApplicationException, SQLException {
 		

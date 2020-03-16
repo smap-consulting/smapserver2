@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
@@ -26,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -46,6 +48,8 @@ import org.smap.sdal.model.Project;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
+import utilities.XLSProjectsManager;
 
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -383,6 +387,56 @@ public class ProjectList extends Application {
 		return response;
 	}
 	
+	/*
+	 * Export projects
+	 */
+	@GET
+	@Path ("/xls")
+	@Produces("application/x-download")
+	public Response getXLSTasksService (@Context HttpServletRequest request, 
+			@QueryParam("tz") String tz,
+			@Context HttpServletResponse response
+		) throws Exception {
 
+		String connectionString = "Download Projects";
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		// Authorisation - Access
+
+		a.isAuthorised(sd, request.getRemoteUser());		
+		// End Authorisation 
+		
+		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String filename = null;
+			filename = localisation.getString("ar_project") + ".xlsx";			
+			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
+			
+			ProjectManager pm = new ProjectManager();
+			ArrayList<Project> projects = pm.getProjects(sd, request.getRemoteUser(), 
+					true	,	// always get all projects in organisation
+					false, 		// Don't get links
+					null		// Dn't need url prefix
+					);
+			
+			// Create Project XLS File
+			XLSProjectsManager xp = new XLSProjectsManager(request.getScheme(), request.getServerName());
+			xp.createXLSFile(response.getOutputStream(), projects, localisation, tz);
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);	
+			
+		}
+		return Response.ok("").build();
+	}
+	
 }
 
