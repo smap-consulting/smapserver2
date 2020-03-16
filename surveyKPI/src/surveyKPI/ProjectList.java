@@ -26,6 +26,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -33,15 +34,21 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.ServerManager;
+import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 
@@ -49,11 +56,15 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import utilities.XLSMailoutManager;
 import utilities.XLSProjectsManager;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -88,11 +99,16 @@ public class ProjectList extends Application {
 		ArrayList<Project> projects = null;
 		
 		try {
-			ProjectManager pm = new ProjectManager();
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ProjectManager pm = new ProjectManager(localisation);
 			projects = pm.getProjects(sd, request.getRemoteUser(), 
-					true	,	// always get all projects in organisation
-					false, 	// Don't get links
-					null		// Dn't need url prefix
+					true,		// always get all projects in organisation
+					false, 		// Don't get links
+					null,		// Don't need url prefix
+					false		// Don't just want empty projects
 					);
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -154,7 +170,7 @@ public class ProjectList extends Application {
 				o_id = resultSet.getInt(1);
 				u_id = resultSet.getInt(2);
 				
-				ProjectManager pm = new ProjectManager();
+				ProjectManager pm = new ProjectManager(localisation);
 				
 				for(int i = 0; i < pArray.size(); i++) {
 					Project p = pArray.get(i);
@@ -269,99 +285,23 @@ public class ProjectList extends Application {
 		Type type = new TypeToken<ArrayList<Project>>(){}.getType();		
 		ArrayList<Project> pArray = new Gson().fromJson(projects, type);
 		
-		PreparedStatement pstmt = null;
 		try {	
-			String sql = null;
-			int o_id;
-			ResultSet resultSet = null;
-			sd.setAutoCommit(false);
+			cResults = ResultsDataSource.getConnection(connectionString);
 			
 			// Localisation
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				
-			for(int i = 0; i < pArray.size(); i++) {
-				Project p = pArray.get(i);
-				
-				a.projectInUsersOrganisation(sd, request.getRemoteUser(), p.id);		// Authorise deletion of this project
-				
-				String project_name = GeneralUtilityMethods.getProjectName(sd, p.id);
-				/*
-				 * Ensure that there are no undeleted surveys in this project
-				 * Don't count hidden surveys which have been replaced
-				 */
-				sql = "select count(*) "
-						+ " from survey s " 
-						+ " where s.p_id = ? "
-						+ "and s.hidden = false";
-				
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, p.id);
-				log.info("Check for undeleted surveys: " + pstmt.toString());
-				resultSet = pstmt.executeQuery();
-				if(resultSet.next()) {
-					int count = resultSet.getInt(1);
-					if(count > 0) {
-						String msg = localisation.getString("msg_undel_proj").replace("%s1", String.valueOf(p.id));
-						throw new Exception(msg);
-					}
-				} else {
-					throw new Exception("Error getting survey count");
-				}			
-				
-				// Erase any hidden forms 
-				ServerManager sm = new ServerManager();
-				sql = "select s_id, ident, display_name "
-						+ " from survey s " 
-						+ " where s.p_id = ? "
-						+ "and s.hidden = true";
-				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, p.id);
-				cResults = ResultsDataSource.getConnection(connectionString);
-				String basePath = GeneralUtilityMethods.getBasePath(request);
-				
-				ResultSet rs = pstmt.executeQuery();
-				while(rs.next()) {
-					int sId = rs.getInt(1);
-					String ident = rs.getString(2);
-					String displayName = rs.getString(3);
-					sm.deleteSurvey(		// Delete the replaced survey
-							sd, 
-							cResults,
-							request.getRemoteUser(),
-							p.id,
-							sId,
-							ident,
-							displayName,
-							basePath,
-							true,
-							"yes");
-				}
-				
-				// Delete the project
-				sql = "delete from project p " 
-						+ "where p.id = ? "
-						+ "and p.o_id = ?";			// Ensure the project is in the same organisation as the administrator doing the editing
-					
-				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, p.id);
-				pstmt.setInt(2, o_id);
-				log.info("Delete project: " + pstmt.toString());
-				pstmt.executeUpdate();
 
-				String msg = localisation.getString("msg_del_proj");
-				msg = msg.replace("%s1", project_name);
-				lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.DELETE, 
-						msg);
-			}
-		
-			response = Response.ok().build();
-			
+			sd.setAutoCommit(false);			
+			ProjectManager pm = new ProjectManager(localisation);			
+			pm.deleteProjects(sd, cResults,
+					a,
+					pArray, 
+					request.getRemoteUser(),
+					GeneralUtilityMethods.getBasePath(request));		
 			sd.commit();
+			
+			response = Response.ok().build();
 				
 		} catch (SQLException e) {
 			String state = e.getSQLState();
@@ -374,11 +314,9 @@ public class ProjectList extends Application {
 			log.info(ex.getMessage());
 			response = Response.serverError().entity(ex.getMessage()).build();
 			
-			try{	sd.rollback();} catch(Exception e2) {}
+			try{sd.rollback();} catch(Exception e2) {}
 			
 		} finally {
-			
-			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
@@ -416,11 +354,12 @@ public class ProjectList extends Application {
 			filename = localisation.getString("ar_project") + ".xlsx";			
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
-			ProjectManager pm = new ProjectManager();
+			ProjectManager pm = new ProjectManager(localisation);
 			ArrayList<Project> projects = pm.getProjects(sd, request.getRemoteUser(), 
 					true	,	// always get all projects in organisation
 					false, 		// Don't get links
-					null		// Dn't need url prefix
+					null,		// Don't need url prefix
+					false		// Don't just want empty projects
 					);
 			
 			// Create Project XLS File
@@ -436,6 +375,136 @@ public class ProjectList extends Application {
 			
 		}
 		return Response.ok("").build();
+	}
+	
+	/*
+	 * Import projects from an xls file
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/xls")
+	public Response uploadEmails(
+			@Context HttpServletRequest request
+			) throws IOException {
+		
+		Response response = null;
+		boolean clear = false;
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
+
+		log.info("userevent: " + request.getRemoteUser() + " : import projects ");
+
+		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB TODO handle this with exception and redirect to an error page
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		Connection cResults = null;
+		String fileName = null;
+		String filetype = null;
+		FileItem file = null;
+		String requester = "Projects - Projects Upload";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation	
+		
+
+		
+		try {
+			cResults = ResultsDataSource.getConnection(requester);
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";	// Set default for timezone
+			
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				// Get form parameters
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+					if(item.getFieldName().equals("file_clear")) {
+						clear = Boolean.valueOf(item.getString());
+					}
+					
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					fileName = item.getName();
+					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
+						filetype = "xlsx";
+					} else if(fileName.endsWith("xls")) {
+						filetype = "xls";
+					} else {
+						log.info("unknown file type for item: " + fileName);
+						continue;	
+					}
+					
+					file = item;
+				}
+			}
+	
+			if(file != null) {
+				// Authorisation - Access
+				a.isAuthorised(sd, request.getRemoteUser());
+				
+				// End authorisation
+
+				// Process xls file
+				XLSProjectsManager xpm = new XLSProjectsManager();
+				ArrayList<Project> projects = xpm.getXLSProjectList(filetype, file.getInputStream(), localisation, tz);	
+						
+				// Save mailout emails to the database
+				ProjectManager pm = new ProjectManager(localisation);
+				
+				if(clear) {
+
+					ArrayList<Project> emptyProjects = pm.getProjects(sd, 
+							request.getRemoteUser(), true, false, null, true);
+					
+					if(emptyProjects.size() > 0) {
+						sd.setAutoCommit(false);
+						pm.deleteProjects(sd, cResults,
+								a,
+								emptyProjects, 
+								request.getRemoteUser(),
+								GeneralUtilityMethods.getBasePath(request));		
+						sd.commit();
+						sd.setAutoCommit(true);
+					}
+				}
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
+				pm.writeProjects(sd, projects, oId, request.getRemoteUser());
+					
+			}
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+			try {if(!sd.getAutoCommit()) { sd.rollback();}} catch(Exception e) {}
+		} finally {
+			
+			try {if(!sd.getAutoCommit()) { sd.setAutoCommit(true);}} catch(Exception e) {}
+			
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+			
+		}
+		
+		return response;
+		
 	}
 	
 }

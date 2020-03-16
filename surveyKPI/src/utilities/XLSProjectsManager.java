@@ -200,14 +200,14 @@ public class XLSProjectsManager {
 	}
 
 	/*
-	 * Create a mailout list from an XLS file
+	 * Create a project list from an XLS file
 	 */
-	public ArrayList<MailoutPerson> getXLSMailoutList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
+	public ArrayList<Project> getXLSProjectList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
 
 		Sheet sheet = null;
 		Row row = null;
 		int lastRowNum = 0;
-		ArrayList<MailoutPerson> mailouts = new ArrayList<MailoutPerson> ();
+		ArrayList<Project> projects = new ArrayList<Project> ();
 
 		HashMap<String, Integer> header = null;
 		ArrayList<String> idc = new ArrayList<> ();		// Initial data columns
@@ -220,7 +220,7 @@ public class XLSProjectsManager {
 
 		sheet = wb.getSheetAt(0);
 		if(sheet == null) {
-			throw new ApplicationException(localisation.getString("mo_nws"));
+			throw new ApplicationException(localisation.getString("fup_nws"));
 		}
 		if(sheet.getPhysicalNumberOfRows() > 0) {
 
@@ -239,35 +239,27 @@ public class XLSProjectsManager {
 						idc = getInitialDataColumns(row, lastCellNum);
 						needHeader = false;
 					} else {
-						String email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
 						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
+						String desc = XLSUtilities.getColumn(row, "desc", header, lastCellNum, null);
 
-						// validate email
-						if(email == null || email.trim().length() == 0) {
-							String msg = localisation.getString("mo_enf");
+						// validate project name
+						if(name == null || name.trim().length() == 0) {
+							String msg = localisation.getString("fup_pnm");
 							msg = msg.replace("%s1", String.valueOf(j));
 							throw new ApplicationException(msg);
 						}
-						// Get the initial data
-						Instance instance = null;
-						for(String colname : idc) {
-							String value = XLSUtilities.getColumn(row, colname, header, lastCellNum, null);
-							if(value != null && value.trim().length() > 0) {
-								if(instance == null) {
-									instance = new Instance();
-								}
-								instance.values.put(colname, value);
-							}
-						}
-						mailouts.add(new MailoutPerson(email, name, instance));
+						
+						Project p = new Project();
+						p.name = name;
+						p.desc = desc;
+						projects.add(p);
 					}
-
 				}
 
 			}
 		}
 
-		return mailouts;
+		return projects;
 
 
 	}
