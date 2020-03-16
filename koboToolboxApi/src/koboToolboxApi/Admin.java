@@ -111,9 +111,12 @@ public class Admin extends Application {
 		ArrayList<Project> projects = null;
 		
 		try {
-			ProjectManager pm = new ProjectManager();
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ProjectManager pm = new ProjectManager(localisation);
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			projects = pm.getProjects(sd, request.getRemoteUser(), all, links, urlprefix);
+			projects = pm.getProjects(sd, request.getRemoteUser(), all, links, urlprefix, false);
 				
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(projects);

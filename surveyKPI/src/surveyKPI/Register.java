@@ -162,7 +162,7 @@ public class Register extends Application {
 					localisation);			 
 
 			 // 3. Create a default project
-			ProjectManager pm = new ProjectManager();
+			ProjectManager pm = new ProjectManager(localisation);
 			Project p = new Project();
 			p.name = "default";
 			p.desc = "Default Project - Created on registration";
