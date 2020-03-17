@@ -271,6 +271,7 @@ public class ExchangeManager {
 								dirPath,
 								files,
 								incMedia);
+						
 					} catch(Exception e) {
 						// Ignore errors if the only problem is that the tables have not been created yet
 						if(e.getMessage() != null) {
@@ -616,6 +617,10 @@ public class ExchangeManager {
 		try {
 			pstmt = connectionResults.prepareStatement(sql.toString());
 			log.info("Get data: " + pstmt.toString());
+			
+			sd.setAutoCommit(false);		// page the results to reduce memory usage
+			pstmt.setFetchSize(100);	
+			
 			resultSet = pstmt.executeQuery();
 			
 			int rowIndex = 1;
@@ -721,7 +726,9 @@ public class ExchangeManager {
 				
 			}
 			
+			
 		} finally {
+			sd.setAutoCommit(true);
 			if(resultSet != null) try {resultSet.close();} catch(Exception e) {};
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
@@ -738,11 +745,7 @@ public class ExchangeManager {
 			Sheet sheet, 
 			Map<String, CellStyle> styles) throws IOException {
 		
-		CreationHelper createHelper = wb.getCreationHelper();
-		
-		
-		CellStyle style = styles.get("default");
-		
+		CellStyle style = styles.get("default");		
 			
         Cell cell = row.createCell(idx);        
 		cell.setCellStyle(style);

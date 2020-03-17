@@ -596,7 +596,7 @@ public class MailoutManager {
 			String status = null;
 			boolean unsubscribed = false;
 			
-			if(organisation.email_task) {		// Organisation is pernitted to do mailouts
+			if(organisation.email_task) {		// Organisation is permitted to do mailouts
 					
 				/*
 				 * Send document to target
