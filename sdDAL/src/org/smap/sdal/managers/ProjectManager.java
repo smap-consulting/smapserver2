@@ -62,7 +62,8 @@ public class ProjectManager {
 			boolean all,			// If true get all projects in user organisation, otherwise just ones they are in
 			boolean links,			// If true include links to other data that uses the project id as a key
 			String urlprefix,		// Url prefix for links
-			boolean emptyOnly
+			boolean emptyOnly,
+			boolean importedOnly
 			) throws ApplicationException, SQLException {
 		
 		PreparedStatement pstmt = null;
@@ -90,7 +91,10 @@ public class ProjectManager {
 				if(emptyOnly) {
 					sql.append("and p.id not in "
 							+ " (select p_id from survey " 
-							+ " where s.hidden = false) ");
+							+ " where hidden = false) ");
+				}
+				if(importedOnly) {
+					sql.append("and p.imported ");
 				}
 				sql.append("order by p.name asc");
 				
@@ -232,9 +236,9 @@ public class ProjectManager {
 			ArrayList<Project> pArray, 
 			String remoteUser,
 			String basePath) throws Exception {
+
+		PreparedStatement pstmt = null;
 		
-		PreparedStatement pstmt = null
-				;
 		try {	
 			String sql = null;
 			ResultSet resultSet = null;
@@ -322,37 +326,62 @@ public class ProjectManager {
 		} finally {	
 			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
 		}
+		
 	}
 	
 	/*
 	 * Write a list of projects
 	 */
-	public void writeProjects(
+	public ArrayList<String> writeProjects(
 			Connection sd, 
 			ArrayList<Project> projects, 
 			int o_id, 
-			String userIdent) throws SQLException {
+			String userIdent,
+			boolean imported) throws SQLException {
 		
-		String sql = "insert into project (name, description, o_id, changed_by, changed_ts) " +
-				" values (?, ?, ?, ?, now());";
+		ArrayList<String> added = new ArrayList<String> ();
 		
+		String sql = "insert into project (name, description, o_id, changed_by, changed_ts, imported) " +
+				" values (?, ?, ?, ?, now(), ?);";		
 		PreparedStatement pstmt = null;
+		
+		String sqlExists = "select count(*) from project where name = ? and o_id = ?";
+		PreparedStatement pstmtExists = null;
+		
+		ResultSet rs = null;
+		
 		try {
 		
+			// Prepare insert
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(3, o_id);
 			pstmt.setString(4, userIdent);
+			pstmt.setBoolean(5, imported);
+			
+			// Prepare exists check
+			pstmtExists = sd.prepareStatement(sqlExists);
+			pstmtExists.setInt(2,  o_id);
 			
 			for(Project p : projects) {
-				pstmt.setString(1, p.name);
-				pstmt.setString(2, p.desc);
-				pstmt.executeUpdate();
+				pstmtExists.setString(1,  p.name);
+				if(rs != null) {
+					rs.close();
+				}
+				rs = pstmtExists.executeQuery();
+				if(!rs.next() || rs.getInt(1) == 0) {
+					pstmt.setString(1, p.name);
+					pstmt.setString(2, p.desc);
+					pstmt.executeUpdate();
+					
+					added.add(p.name);
+				}
 			}
 
 		} finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtExists != null) {pstmtExists.close();} } catch (SQLException e) {	}
 		}
-		
+		return added;
 	}
 	
 }

@@ -53,6 +53,7 @@ public class LogManager {
 	public static String TASK_REJECT = "reject task";
 	public static String OPTIN = "optin";
 	public static String EXPIRED = "expired";
+	public static String PROJECT = "project";
 	
 	/*
 	 * Write a log entry that includes the survey id

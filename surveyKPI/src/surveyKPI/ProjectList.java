@@ -26,7 +26,6 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -37,18 +36,14 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.ProjectManager;
-import org.smap.sdal.managers.ServerManager;
-import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 
@@ -56,7 +51,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import utilities.XLSMailoutManager;
 import utilities.XLSProjectsManager;
 
 import java.io.IOException;
@@ -108,7 +102,8 @@ public class ProjectList extends Application {
 					true,		// always get all projects in organisation
 					false, 		// Don't get links
 					null,		// Don't need url prefix
-					false		// Don't just want empty projects
+					false,		// Don't just want empty projects
+					false		// Don't just want imported projects
 					);
 				
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -356,10 +351,11 @@ public class ProjectList extends Application {
 			
 			ProjectManager pm = new ProjectManager(localisation);
 			ArrayList<Project> projects = pm.getProjects(sd, request.getRemoteUser(), 
-					true	,	// always get all projects in organisation
+					true,		// always get all projects in organisation
 					false, 		// Don't get links
 					null,		// Don't need url prefix
-					false		// Don't just want empty projects
+					false,		// Don't just want empty projects
+					false		// Don't just want imported projects
 					);
 			
 			// Create Project XLS File
@@ -469,10 +465,12 @@ public class ProjectList extends Application {
 				// Save mailout emails to the database
 				ProjectManager pm = new ProjectManager(localisation);
 				
+				ArrayList<Project> emptyProjects = null;
+				
 				if(clear) {
 
-					ArrayList<Project> emptyProjects = pm.getProjects(sd, 
-							request.getRemoteUser(), true, false, null, true);
+					emptyProjects = pm.getProjects(sd, 
+							request.getRemoteUser(), true, false, null, true, true);
 					
 					if(emptyProjects.size() > 0) {
 						sd.setAutoCommit(false);
@@ -486,8 +484,24 @@ public class ProjectList extends Application {
 					}
 				}
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
-				pm.writeProjects(sd, projects, oId, request.getRemoteUser());
+				ArrayList<String> added = pm.writeProjects(sd, projects, oId, request.getRemoteUser(), true);
 					
+				String note = localisation.getString("p_import");
+				if(emptyProjects == null) {
+					note = note.replaceFirst("%s1", "0");
+				} else {
+					note = note.replaceFirst("%s1", String.valueOf(emptyProjects.size()));
+				}
+				
+				note = note.replaceFirst("%s2", String.valueOf(projects.size()));
+				note = note.replaceFirst("%s3", String.valueOf(added.size()));
+				note = note.replaceFirst("%s4", added.toString());
+				lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), 
+						LogManager.PROJECT, note);
+				
+				response = Response.ok(note).build();
+			} else {
+				response = Response.serverError().entity("File not found").build();
 			}
 			
 		} catch(Exception ex) {
