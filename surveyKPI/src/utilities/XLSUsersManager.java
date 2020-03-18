@@ -21,6 +21,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,8 +33,10 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.User;
+import org.smap.sdal.model.UserGroup;
 
 public class XLSUsersManager {
 	
@@ -47,10 +51,13 @@ public class XLSUsersManager {
 	private class Column {
 		String name;
 		 CellStyle style;
+		 boolean isSecurityGroup = false;
 		
-		public Column(ResourceBundle localisation, int col, String name, boolean a, CellStyle style) {
+		public Column(ResourceBundle localisation, int col, String name, boolean a, 
+				CellStyle style, boolean sec) {
 			this.name = name;
 			this.style = style;
+			this.isSecurityGroup = sec;
 		}
 		
 		// Return the width of this column
@@ -67,12 +74,25 @@ public class XLSUsersManager {
 				value = user.ident;
 			} else if(name.equals("name")) {
 				value = user.name;
-			} 
+			} else if(name.equals("email")) {
+				value = user.email;
+			} else if(isSecurityGroup) {
+				value = getGroupValue(user.groups, name);
+			}
 			
 			if(value == null) {
 				value = "";
 			}
 			return value;
+		}
+		
+		private String getGroupValue(ArrayList<UserGroup> groups, String in) {
+			for(UserGroup ug : groups) {
+				if(ug.name.equals(in)) {
+					return "yes";
+				}
+			}
+			return null;
 		}
 	}
 
@@ -90,14 +110,15 @@ public class XLSUsersManager {
 	/*
 	 * Write a user list to an XLS file
 	 */
-	public void createXLSFile(OutputStream outputStream, ArrayList<User> users, 
-			ResourceBundle localisation, String tz) throws IOException {
+	public void createXLSFile(Connection sd, OutputStream outputStream, ArrayList<User> users, 
+			ResourceBundle localisation, String tz) throws IOException, SQLException {
 		
 		Sheet userSheet = wb.createSheet(localisation.getString("mf_u"));
+		userSheet.createFreezePane(3, 1);
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
-		ArrayList<Column> cols = getColumnList(localisation, styles);
+		ArrayList<Column> cols = getColumnList(sd, localisation, styles);
 		createHeader(cols, userSheet);	
 		processUserListForXLS(users, userSheet, styles, cols, tz);
 		
@@ -108,14 +129,21 @@ public class XLSUsersManager {
 	/*
 	 * Get the columns for the Users worksheet
 	 */
-	private ArrayList<Column> getColumnList(ResourceBundle localisation, Map<String, CellStyle> styles) {
+	private ArrayList<Column> getColumnList(Connection sd, ResourceBundle localisation, Map<String, CellStyle> styles) throws SQLException {
 		
 		ArrayList<Column> cols = new ArrayList<Column> ();
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "ident", false, styles.get("header_tasks")));
-		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks")));
+		cols.add(new Column(localisation, colNumber++, "ident", false, styles.get("header_tasks"), false));
+		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks"), false));
+		cols.add(new Column(localisation, colNumber++, "email", false, styles.get("header_tasks"), false));
+		
+		// Security Groups
+		ArrayList<UserGroup> groups = GeneralUtilityMethods.getSecurityGroups(sd);
+		for(UserGroup ug : groups) {
+			cols.add(new Column(localisation, colNumber++, ug.name, false, styles.get("header_assignments"), true));
+		}
 		
 		return cols;
 	}

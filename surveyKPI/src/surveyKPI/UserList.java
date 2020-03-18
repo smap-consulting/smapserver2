@@ -643,7 +643,7 @@ public class UserList extends Application {
 			
 			// Create User XLS File
 			XLSUsersManager xu = new XLSUsersManager(request.getScheme(), request.getServerName());
-			xu.createXLSFile(response.getOutputStream(), users, localisation, tz);
+			xu.createXLSFile(sd, response.getOutputStream(), users, localisation, tz);
 			
 		}  catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
