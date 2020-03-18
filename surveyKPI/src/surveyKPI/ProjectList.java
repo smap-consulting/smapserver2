@@ -326,12 +326,12 @@ public class ProjectList extends Application {
 	@GET
 	@Path ("/xls")
 	@Produces("application/x-download")
-	public Response getXLSTasksService (@Context HttpServletRequest request, 
+	public Response exportProjects(@Context HttpServletRequest request, 
 			@QueryParam("tz") String tz,
 			@Context HttpServletResponse response
 		) throws Exception {
 
-		String connectionString = "Download Projects";
+		String connectionString = "Export Projects";
 		Connection sd = SDDataSource.getConnection(connectionString);	
 		// Authorisation - Access
 
@@ -379,7 +379,7 @@ public class ProjectList extends Application {
 	@POST
 	@Produces("application/json")
 	@Path("/xls")
-	public Response uploadEmails(
+	public Response importProjects(
 			@Context HttpServletRequest request
 			) throws IOException {
 		

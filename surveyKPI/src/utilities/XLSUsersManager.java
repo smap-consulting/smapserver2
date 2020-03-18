@@ -32,10 +32,9 @@ import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.User;
 
-
-
-public class XLSProjectsManager {
+public class XLSUsersManager {
 	
 	private static Logger log =
 			 Logger.getLogger(SurveyInfo.class.getName());
@@ -61,17 +60,13 @@ public class XLSProjectsManager {
 		}
 		
 		// Get a value for this column from the provided properties object
-		public String getValue(Project project) {
+		public String getValue(User user) {
 			String value = null;
 			
-			if(name.equals("name")) {
-				value = project.name;
-			} else if(name.equals("desc")) {
-				value = project.desc;
-			} else if(name.equals("changed_by")) {
-				value = project.changed_by;
-			} else if(name.equals("changed_when")) {
-				value = project.changed_ts;
+			if(name.equals("ident")) {
+				value = user.ident;
+			} else if(name.equals("name")) {
+				value = user.name;
 			} 
 			
 			if(value == null) {
@@ -81,11 +76,11 @@ public class XLSProjectsManager {
 		}
 	}
 
-	public XLSProjectsManager() {
+	public XLSUsersManager() {
 
 	}
 	
-	public XLSProjectsManager(String scheme, String serverName) {
+	public XLSUsersManager(String scheme, String serverName) {
 		
 		wb = new XSSFWorkbook();
 		this.scheme = scheme;
@@ -93,26 +88,25 @@ public class XLSProjectsManager {
 	}
 	
 	/*
-	 * Write a project list to an XLS file
+	 * Write a user list to an XLS file
 	 */
-	public void createXLSFile(OutputStream outputStream, ArrayList<Project> projects, 
+	public void createXLSFile(OutputStream outputStream, ArrayList<User> users, 
 			ResourceBundle localisation, String tz) throws IOException {
 		
-		Sheet projectSheet = wb.createSheet(localisation.getString("ar_project"));
+		Sheet userSheet = wb.createSheet(localisation.getString("mf_u"));
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
 		ArrayList<Column> cols = getColumnList(localisation, styles);
-		addInitialDataColumns(localisation, cols, projects, styles);
-		createHeader(cols, projectSheet);	
-		processProjectListForXLS(projects, projectSheet, styles, cols, tz);
+		createHeader(cols, userSheet);	
+		processUserListForXLS(users, userSheet, styles, cols, tz);
 		
 		wb.write(outputStream);
 		outputStream.close();
 	}
 	
 	/*
-	 * Get the columns for the Project Psheet
+	 * Get the columns for the Users worksheet
 	 */
 	private ArrayList<Column> getColumnList(ResourceBundle localisation, Map<String, CellStyle> styles) {
 		
@@ -120,10 +114,8 @@ public class XLSProjectsManager {
 		
 		int colNumber = 0;
 	
+		cols.add(new Column(localisation, colNumber++, "ident", false, styles.get("header_tasks")));
 		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks")));
-		cols.add(new Column(localisation, colNumber++, "desc", false, styles.get("header_tasks")));
-		cols.add(new Column(localisation, colNumber++, "changed_by", false, styles.get("group")));		// Ignore on upload
-		cols.add(new Column(localisation, colNumber++, "changed_when", false, styles.get("group")));	// Ignore on upload
 		
 		return cols;
 	}
@@ -152,27 +144,10 @@ public class XLSProjectsManager {
 	}
 	
 	/*
-	 * Add columns for initial data
-	 */
-	private void addInitialDataColumns(
-			ResourceBundle localisation,
-			ArrayList<Column> cols, 
-			ArrayList<Project> projects,
-			Map<String, CellStyle> styles) {
-		
-		HashMap<String, String> colsAdded = new HashMap<> ();
-		
-		for(Column col : cols) { 
-            colsAdded.put(col.name, col.name);
-        }
-		
-	}
-	
-	/*
 	 * Convert a project list to XLS
 	 */
-	private void processProjectListForXLS(
-			ArrayList<Project> projects, 
+	private void processUserListForXLS(
+			ArrayList<User> users, 
 			Sheet sheet,
 			Map<String, CellStyle> styles,
 			ArrayList<Column> cols,
@@ -183,14 +158,13 @@ public class XLSProjectsManager {
 		
 		styleTimestamp.setDataFormat(format.getFormat("yyyy-mm-dd h:mm"));	
 		
-		for(Project project : projects)  {
+		for(User user : users)  {
 			
 			Row row = sheet.createRow(rowNumber++);
 			for(int i = 0; i < cols.size(); i++) {
 				Column col = cols.get(i);	
 				Cell cell = row.createCell(i);
-				cell.setCellValue(col.getValue(project));
-				
+				cell.setCellValue(col.getValue(user));			
 	        }	
 		}
 		
@@ -207,6 +181,7 @@ public class XLSProjectsManager {
 		ArrayList<Project> projects = new ArrayList<Project> ();
 
 		HashMap<String, Integer> header = null;
+		ArrayList<String> idc = new ArrayList<> ();		// Initial data columns
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
@@ -232,6 +207,7 @@ public class XLSProjectsManager {
 
 					if(needHeader) {
 						header = getHeader(row, lastCellNum);
+						idc = getInitialDataColumns(row, lastCellNum);
 						needHeader = false;
 					} else {
 						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
@@ -280,5 +256,32 @@ public class XLSProjectsManager {
         }
             
 		return header;
+	}
+	
+	/*
+	 * Get an array list of initial data columns
+	 */
+	private ArrayList<String> getInitialDataColumns(Row row, int lastCellNum) {
+		
+		ArrayList<String> idx = new ArrayList<> ();
+		
+		Cell cell = null;
+		String name = null;
+		
+        for(int i = 0; i <= lastCellNum; i++) {
+            cell = row.getCell(i);
+            if(cell != null) {
+                name = cell.getStringCellValue();
+                if(name != null && name.trim().length() > 0) {
+                	name = name.toLowerCase();
+                	if(!name.equals("email") && !name.equals("name") &&
+                			!name.equals("status") && !name.equals("status_details")) {
+	                    idx.add(name);
+                	}
+                }
+            }
+        }
+            
+		return idx;
 	}
 }

@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
@@ -36,11 +37,14 @@ import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.SurveyTableManager;
+import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Project;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -48,6 +52,9 @@ import org.smap.sdal.model.UserSimple;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+
+import utilities.XLSProjectsManager;
+import utilities.XLSUsersManager;
 
 import java.lang.reflect.Type;
 import java.sql.*;
@@ -118,7 +125,6 @@ public class UserList extends Application {
 		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		ArrayList<User> users = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
@@ -131,7 +137,7 @@ public class UserList extends Application {
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 			
 			UserManager um = new UserManager(localisation);
-			users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
+			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -528,7 +534,7 @@ public class UserList extends Application {
 	 */
 	@DELETE
 	@Consumes("application/json")
-	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) { 
+	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) {
 		
 		Response response = null;
 		String requestName = "surveyKPI - delUser";
@@ -599,6 +605,56 @@ public class UserList extends Application {
 		return response;
 	}
 	
+	/*
+	 * Export users
+	 */
+	@GET
+	@Path ("/xls")
+	@Produces("application/x-download")
+	public Response exportUsers(@Context HttpServletRequest request, 
+			@QueryParam("tz") String tz,
+			@Context HttpServletResponse response
+		) throws Exception {
+
+		String connectionString = "Export users";
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		
+		// Authorisation - Access
+		a.isAuthorised(sd, request.getRemoteUser());		
+		// End Authorisation 
+		
+		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String filename = null;
+			filename = localisation.getString("mf_u") + ".xlsx";			
+			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
+			
+			UserManager um = new UserManager(localisation);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
+
+			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
+			
+			// Create User XLS File
+			XLSUsersManager xu = new XLSUsersManager(request.getScheme(), request.getServerName());
+			xu.createXLSFile(response.getOutputStream(), users, localisation, tz);
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);	
+			
+		}
+		return Response.ok("").build();
+	}
 
 	
 	private String getGroups(ArrayList<UserGroup> groups) {
@@ -633,6 +689,7 @@ public class UserList extends Application {
 		}
 		return g.toString();
 	}
+	
 
 }
 
