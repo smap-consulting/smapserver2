@@ -1353,6 +1353,45 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the assignment completion status 
+	 * If the assignment is intended to persist then "persist" is returned
+	 * Otherwise the assignment status is returned
+	 */
+	static public String getAssignmentCompletionStatus(Connection sd, int assignmentId) throws SQLException {
+
+		String status = "";
+	
+		String sql = "select status, t.repeat " 
+				+ " from assignments a, tasks t " 
+				+ "where a.id = ? "
+				+ "and a.task_id = t.id";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, assignmentId);
+			ResultSet rs = pstmt.executeQuery();
+			log.info("Getting assignment completion status: " + pstmt.toString());
+			if (rs.next()) {
+				boolean repeat = rs.getBoolean("repeat");
+				if(repeat) {
+					status = "repeat";
+				} else {
+					status = rs.getString("status");				
+				}
+				
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+		return status;
+	}
+	
+	/*
 	 * Get the task project name from its id
 	 */
 	static public String getProjectName(Connection sd, int id) throws SQLException {
@@ -3404,13 +3443,26 @@ public class GeneralUtilityMethods {
 	 * Get the answer for a specific question and a specific instance
 	 */
 	public static String getResponseMetaValue(Connection sd, Connection results, int sId, String metaName,
-			String instanceId) throws SQLException {
+			String instanceId) throws Exception {
 
 		PreparedStatement pstmtResults = null;
 
 		String value = null;
 		try {
 			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+			// Add dummy meta items for reserved system columns
+			if(metaName.equals("_user")) {
+				preloads.add(new MetaItem(MetaItem.INITIAL_ID,
+						null, 		
+						metaName, 
+						null, 	
+						metaName, 
+						null,
+						true,
+						null,
+						null));
+			}
+					
 			for(MetaItem item : preloads) {
 				if(item.name.equals(metaName)) {
 					Form f = getTopLevelForm(sd, sId);

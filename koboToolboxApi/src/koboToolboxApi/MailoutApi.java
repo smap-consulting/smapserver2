@@ -21,14 +21,9 @@ import javax.servlet.http.HttpServletRequest;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
-import java.io.IOException;
-import java.lang.reflect.Type;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -44,16 +39,16 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.SystemException;
+import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.MailoutManager;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Mailout;
 import org.smap.sdal.model.MailoutPerson;
 import org.smap.sdal.model.MailoutPersonDt;
@@ -119,6 +114,8 @@ public class MailoutApi extends Application {
 			
 			response = Response.ok(gson.toJson(mailout)).build();
 			
+		} catch(ApplicationException e) {
+			throw new SystemException(e.getMessage());
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error: ", e);
 			String msg = e.getMessage();
@@ -300,10 +297,13 @@ public class MailoutApi extends Application {
 	public Response uploadEmails(
 			@Context HttpServletRequest request,
 			@PathParam("mailoutId") int mailoutId,
-			@FormParam("email") String emailString) { 
+			@FormParam("email") String emailString,
+			@FormParam("action") String action  // send || manual || none
+			) { 
 		
 		Response response = null;
 		String connectionString = "api/v1/mailout - add email";
+		String url = "";
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		MailoutPerson mailoutPerson = null;
@@ -319,6 +319,19 @@ public class MailoutApi extends Application {
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End Authorisation
 		
+		// Convert action into an initial status
+		String initialStatus = MailoutManager.STATUS_NEW;
+		if(action != null) {
+			if(action.equals("manual")) {
+				initialStatus = MailoutManager.STATUS_MANUAL;
+			} else if(action.equals("email")) {
+				initialStatus = MailoutManager.STATUS_PENDING;
+			}
+		}
+		
+		String sqlUrl = "update mailout_people set link = ? where id = ?";
+		PreparedStatement pstmtSent = null;
+		
 		try {
 			
 			sd = SDDataSource.getConnection(connectionString);
@@ -330,7 +343,40 @@ public class MailoutApi extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
 			ArrayList<MailoutPerson> mop = new ArrayList<MailoutPerson> ();
 			mop.add(mailoutPerson);
-			mm.writeEmails(sd, oId, mop, mailoutId);	
+			int mailoutPersonId = mm.writeEmails(sd, oId, mop, mailoutId, initialStatus);
+			
+			if(action != null && action.equals("manual")) {
+				
+				Mailout mo = mm.getMailoutDetails(sd, mailoutId);
+				
+				// Create an action to complete the form
+				ActionManager am = new ActionManager(localisation, "UTC");
+				Action a = new Action("mailout");
+				a.surveyIdent = mo.survey_ident;
+				a.pId = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, mo.survey_ident);
+				a.single = true;
+				a.mailoutPersonId = mailoutPersonId;
+				a.email = mailoutPerson.email;
+				
+				if(mailoutPerson.initialData != null) {
+					a.initialData = mailoutPerson.initialData;
+				}
+				
+				mailoutPerson.id = mailoutPersonId;
+				mailoutPerson.url = "https://" + request.getServerName() 
+						+ "/webForm" + am.getLink(sd, a, oId, true);
+				
+				// Write the URL to the mailout
+				pstmtSent = sd.prepareStatement(sqlUrl);
+				pstmtSent.setString(1,mailoutPerson.url);
+				pstmtSent.setInt(2, mailoutPersonId);
+				pstmtSent.executeUpdate();
+				
+				response = Response.status(Status.OK).entity(gson.toJson(mailoutPerson)).build();
+					
+			} else {
+				response = Response.status(Status.OK).entity("{}").build();
+			}
 			
 			
 		} catch(Exception e) {
@@ -342,6 +388,7 @@ public class MailoutApi extends Application {
 		    throw new SystemException(msg);
 		} finally {
 	
+			if(pstmtSent != null) try {pstmtSent.close();}catch(Exception e) {}
 			SDDataSource.closeConnection(connectionString, sd);
 			
 		}

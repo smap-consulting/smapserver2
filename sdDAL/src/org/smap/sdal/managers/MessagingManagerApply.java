@@ -361,7 +361,8 @@ public class MessagingManagerApply {
 				+ "pm.o_id, "
 				+ "pm.topic, "
 				+ "pm.description, "
-				+ "pm.data "
+				+ "pm.data,"
+				+ "pm.message_id "
 				+ "from pending_message pm, people p "
 				+ "where pm.email = p.email "
 				+ "and pm.o_id = p.o_id "
@@ -386,6 +387,7 @@ public class MessagingManagerApply {
 				String topic = rs.getString(3);
 				String description = rs.getString(4);
 				String data = rs.getString(5);
+				int messageId = rs.getInt(6);
 				
 				// Localisation
 				Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, o_id);
@@ -415,9 +417,11 @@ public class MessagingManagerApply {
 				pstmtConfirm.setInt(2, id);
 				pstmtConfirm.executeUpdate();
 				
+				String email = null;
 				if(topic.equals("submission")) {
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-			
+					email = msg.user;
+					
 					NotificationManager nm = new NotificationManager(localisation);
 					nm.processSubmissionNotification(
 							sd, 
@@ -425,7 +429,7 @@ public class MessagingManagerApply {
 							organisation, 
 							tz,
 							msg,
-							id,
+							messageId,
 							topic,
 							false		// Do not create pending
 							); 
@@ -433,7 +437,8 @@ public class MessagingManagerApply {
 				} else if(topic.equals("reminder")) {
 					// Use SubmissionMessage structure - this may change
 					SubmissionMessage msg = gson.fromJson(data, SubmissionMessage.class);
-			
+					email = msg.user;
+					
 					NotificationManager nm = new NotificationManager(localisation);
 					nm.processReminderNotification(
 							sd, 
@@ -441,22 +446,22 @@ public class MessagingManagerApply {
 							organisation, 
 							tz,
 							msg,
-							id,
+							messageId,
 							topic,
 							false		// Do not create pending
 							); 
 					
 				} else if(topic.equals("email_task")) {
-					TaskManager tm = new TaskManager(localisation, tz);
-
+					TaskManager tm = new TaskManager(localisation, tz);				
 					EmailTaskMessage msg = gson.fromJson(data, EmailTaskMessage.class);	
-						
+					email = msg.user;
+					
 					tm.emailTask(
 							sd, 
 							cResults, 
 							organisation, 
 							msg,
-							id,
+							messageId,
 							msg.user,
 							basePath,
 							"https",
@@ -469,7 +474,8 @@ public class MessagingManagerApply {
 					MailoutManager mm = new MailoutManager(localisation);
 
 					MailoutMessage msg = gson.fromJson(data, MailoutMessage.class);	
-						
+					email = msg.email;
+					
 					mm.emailMailout(
 							sd, 
 							cResults, 
@@ -494,6 +500,10 @@ public class MessagingManagerApply {
 				pstmtConfirm.setInt(2, id);
 				log.info(pstmtConfirm.toString());
 				pstmtConfirm.executeUpdate();
+
+				String note = localisation.getString("mo_pending_sent");
+				note = note.replace("%s1", topic);
+				lm.writeLogOrganisation(sd, organisation.id, email, LogManager.OPTIN, note);
 
 			}
 

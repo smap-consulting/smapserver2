@@ -22,7 +22,6 @@ package surveyMobileAPI;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,22 +44,22 @@ import javax.xml.transform.TransformerFactoryConfigurationError;
 import org.smap.model.SurveyTemplate;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
+import org.smap.sdal.Utilities.BlockedException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.JsonAuthorisationException;
 import org.smap.sdal.Utilities.NotFoundException;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
-import org.smap.sdal.model.AssignmentDetails;
 import org.smap.sdal.model.Instance;
-import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
@@ -232,6 +231,8 @@ public class WebForm extends Application {
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("callback") String callback) throws IOException {
 
+		Response response;
+		
 		log.info("Requesting json");
 
 		String requester = "WebForm - getFormJson";
@@ -252,8 +253,10 @@ public class WebForm extends Application {
 
 		mimeType = "json";
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, 
+		response = getWebform(request, "none", null, formIdent, datakey, datakeyvalue, 
 				assignmentId, taskKey, callback, false, false, false, null);
+		
+		return response;
 	}
 
 	/*
@@ -271,6 +274,8 @@ public class WebForm extends Application {
 			@QueryParam("debug") String d,
 			@QueryParam("callback") String callback) throws IOException {
 
+		Response response = null;
+		
 		mimeType = "html";
 		if (callback != null) {
 			// I guess they really want JSONP
@@ -281,9 +286,47 @@ public class WebForm extends Application {
 
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
-				taskKey, callback,
-				false, true, false, null);
+		
+		/*
+		 * Check to see if the assignment is already complete
+		 */
+		if(assignmentId > 0) {
+			
+			String requester = "WebForm - getFormHtml";
+			Connection sd = SDDataSource.getConnection(requester);
+
+			String status = null;
+			try {
+				status = GeneralUtilityMethods.getAssignmentCompletionStatus(sd, assignmentId);
+			} catch (SQLException e) {
+				e.printStackTrace();
+			} finally {
+				SDDataSource.closeConnection(requester, sd);
+			}
+
+			if(status.equals(TaskManager.STATUS_T_SUBMITTED)) {
+				response = getMessagePage(true, "mo_ss", null);
+			} else if(status.equals(TaskManager.STATUS_T_DELETED)
+					|| status.equals(TaskManager.STATUS_T_CANCELLED)) {
+				response = getMessagePage(false, "mo_del_done", null);
+			} else {
+				log.info("Unknown status: " + status);
+			}
+			
+		}
+		
+		if(response == null) {
+			try {
+				response = getWebform(request, "none", null, 
+						formIdent, datakey, datakeyvalue, assignmentId, 
+						taskKey, callback,
+						false, true, false, null);
+			} catch (BlockedException e) {
+				response = getMessagePage(false, "mo_blocked", null);
+			}
+		}
+		
+		return response;
 	}
 
 	/*
@@ -316,7 +359,7 @@ public class WebForm extends Application {
 		
 		userIdent = tempUser;
 		isTemporaryUser = true;
-		return getWebform(request, formIdent, datakey, datakeyvalue, assignmentId, 
+		return getWebform(request, "none", null, formIdent, datakey, datakeyvalue, assignmentId, 
 				taskKey, callback, false,
 				true, false, null);
 	}
@@ -379,13 +422,19 @@ public class WebForm extends Application {
 				// 3. Get webform
 				userIdent = ident;
 				isTemporaryUser = true;
-				response = getWebform(request, a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
-						null, 
-						false,
-						true, 
-						true,			// Close after saving
-						a.initialData
-						);
+				try {
+					response = getWebform(request, a.action, a.email, 
+							a.surveyIdent, a.datakey, a.datakeyvalue, a.assignmentId, a.taskKey, 
+							null, 
+							false,
+							true, 
+							true,			// Close after saving
+							a.initialData
+							);
+					
+				} catch (BlockedException e) {
+					response = getMessagePage(false, "mo_blocked", null);
+				}
 			}
 		
 		} catch (AuthorisationException e) {
@@ -403,7 +452,11 @@ public class WebForm extends Application {
 	/*
 	 * Get the response as either HTML or JSON
 	 */
-	private Response getWebform(HttpServletRequest request, String formIdent, String datakey,
+	private Response getWebform(HttpServletRequest request, 
+			String action, 
+			String email,
+			String formIdent, 
+			String datakey,
 			String datakeyvalue, 
 			int assignmentId, 
 			int taskKey, 
@@ -469,7 +522,7 @@ public class WebForm extends Application {
 			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access																			
 			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
 			if(!isTemporaryUser && taskKey > 0) {
-				a.isValidTask(sd, request.getRemoteUser(), taskKey);
+				a.isValidTask(sd, userIdent, taskKey);
 			}
 			
 			// End Authorisation
@@ -485,7 +538,17 @@ public class WebForm extends Application {
 				
 				// Get the organisation specific options
 				OrganisationManager om = new OrganisationManager(localisation);
-				options = om.getWebform(sd, request.getRemoteUser());
+				options = om.getWebform(sd, userIdent);
+				
+				log.info("++++++ Action: " + action);
+				// If this request is for a mailout then opt in
+				if(action.equals("mailout")) {
+					PeopleManager pm = new PeopleManager(localisation);
+					pm.subscribeEmail(sd, email, orgId);
+					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"));
+				} else 	if(action.equals("task")) {
+					lm.writeLog(sd, survey.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"));
+				}
 				
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "WebForm", e);
@@ -511,7 +574,7 @@ public class WebForm extends Application {
 			if ((datakey != null && datakeyvalue != null) || taskKey > 0 || initialData != null) {
 				log.info("Adding initial data");
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-				GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
+				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
 						isWebForm, taskKey, urlprefix, initialData);
 				instanceStrToEditId = xForm.getInstanceId();

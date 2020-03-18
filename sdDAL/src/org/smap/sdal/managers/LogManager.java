@@ -39,6 +39,7 @@ public class LogManager {
 	public static String CREATE = "create";
 	public static String DELETE = "delete";
 	public static String EMAIL = "email";
+	public static String EMAIL_TASK = "email task";
 	public static String ERASE = "erase";
 	public static String ERROR = "error";
 	public static String NOTIFICATION = "notification";

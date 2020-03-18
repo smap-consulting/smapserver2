@@ -75,6 +75,7 @@ public class MailoutManager {
 	public static String STATUS_ERROR = "error";
 	public static String STATUS_COMPLETE = "complete";
 	public static String STATUS_EXPIRED = "expired";
+	public static String STATUS_MANUAL = "manual";
 	
 	/*
 	 * Get mailouts for a survey
@@ -241,7 +242,7 @@ public class MailoutManager {
 		ArrayList<MailoutPerson> mpList = new ArrayList<> ();
 		
 		String sql = "select mp.id, p.name, p.email, mp.status, mp.status_details, "
-				+ "mp.initial_data "
+				+ "mp.initial_data, mp.link "
 				+ "from mailout_people mp, people p "
 				+ "where p.id = mp.p_id "
 				+ "and mp.m_id = ? "
@@ -256,6 +257,7 @@ public class MailoutManager {
 		String loc_error = localisation.getString("c_error");
 		String loc_complete = localisation.getString("c_complete");
 		String loc_expired = localisation.getString("c_expired");
+		String loc_manual = localisation.getString("c_manual");
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 
@@ -270,7 +272,9 @@ public class MailoutManager {
 						rs.getString("email"), 
 						rs.getString("name"),
 						rs.getString("status"),
-						rs.getString("status_details"));	
+						rs.getString("status_details"),
+						rs.getString("link"));	
+				
 				String initialData = rs.getString("initial_data");
 				if(initialData != null) {
 					mp.initialData = gson.fromJson(initialData, Instance.class);
@@ -290,8 +294,10 @@ public class MailoutManager {
 					mp.status_loc = loc_complete;
 				} else if(mp.status.equals(MailoutManager.STATUS_EXPIRED)) {
 					mp.status_loc = loc_expired;
+				} else if(mp.status.equals(MailoutManager.STATUS_MANUAL)) {
+					mp.status_loc = loc_manual;
 				} else {
-					mp.status_loc = loc_new;
+					mp.status_loc = mp.status;
 				}
 				
 				mpList.add(mp);
@@ -318,6 +324,7 @@ public class MailoutManager {
 		totals.unsubscribed = getTotal(sd, mailoutId, " and status = 'unsubscribed' ");
 		totals.pending = getTotal(sd, mailoutId, " and status = 'pending' ");
 		totals.expired = getTotal(sd, mailoutId, " and status = 'expired' ");
+		totals.manual = getTotal(sd, mailoutId, " and status = 'manual' ");
 		
 		return totals;
 	}
@@ -366,9 +373,15 @@ public class MailoutManager {
 		}
 	}
 	
-public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, int mailoutId) throws Exception {
+	public int writeEmails(Connection sd, 
+		int oId, 
+		ArrayList<MailoutPerson> mop, 
+		int mailoutId,
+		String status) throws Exception {
 		
-		String sqlGetPerson = "select id from people "
+		int mpId = 0;
+		
+		String sqlGetPerson = "select id, name from people "
 				+ "where o_id = ? "
 				+ "and email = ? ";		
 		PreparedStatement pstmtGetPerson = null;
@@ -378,9 +391,14 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 				+ "values(?, ?, ?)";		
 		PreparedStatement pstmtAddPerson = null;
 		
+		String sqlUpdatePerson = "update people "
+				+ "set name = ? "
+				+ "where id = ? ";	
+		PreparedStatement pstmtUpdatePerson = null;
+		
 		String sqlAddMailoutPerson = "insert into mailout_people "
 				+ "(p_id, m_id, status, initial_data) "
-				+ "values(?, ?, 'new', ?) ";
+				+ "values(?, ?, ?, ?) ";
 		PreparedStatement pstmtAddMailoutPerson = null;
 		
 		String sqlMailoutExists = "select count(*) "
@@ -396,27 +414,42 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			pstmtAddPerson = sd.prepareStatement(sqlAddPerson, Statement.RETURN_GENERATED_KEYS);
 			pstmtAddPerson.setInt(1, oId);
 			
-			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson);
+			pstmtUpdatePerson = sd.prepareStatement(sqlUpdatePerson);
+			
+			pstmtAddMailoutPerson = sd.prepareStatement(sqlAddMailoutPerson, Statement.RETURN_GENERATED_KEYS);
 			
 			pstmtMailoutExists = sd.prepareStatement(sqlMailoutExists);
 			pstmtMailoutExists.setInt(2, mailoutId);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			
+			int index = 0;
 			for(MailoutPerson person : mop) {
 				
 				int personId = 0;
+				String personName = null;
 				
 				// 1. Get person details
 				pstmtGetPerson.setString(2, person.email);
 				ResultSet rs = pstmtGetPerson.executeQuery();
 				if(rs.next()) {
-					personId = rs.getInt(1);
+					personId = rs.getInt("id");
+					personName = rs.getString("name");
+					
+					// If the existing person's Name is empty (probably a legacy person) then update the name
+					if(personName == null || personName.trim().length() == 0) {
+						pstmtUpdatePerson.setString(1, person.name);
+						pstmtUpdatePerson.setInt(2, personId);
+						
+						pstmtUpdatePerson.executeUpdate();
+					}
+					
 				} else {
 					
 					// 2. Add person to people table if they do not exist
 					pstmtAddPerson.setString(2, person.email);
 					pstmtAddPerson.setString(3, person.name);
+					log.info("Add person to people: " + pstmtAddPerson.toString());
 					pstmtAddPerson.executeUpdate();
 					ResultSet rsKeys = pstmtAddPerson.getGeneratedKeys();
 					if(rsKeys.next()) {
@@ -435,23 +468,37 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 					// Write the entry into the mailout person table
 					pstmtAddMailoutPerson.setInt(1, personId);
 					pstmtAddMailoutPerson.setInt(2, mailoutId);
+					pstmtAddMailoutPerson.setString(3, status);
 					
 					String initialData = null;
 					if(person.initialData != null) {
 						initialData = gson.toJson(person.initialData);
 					}
-					pstmtAddMailoutPerson.setString(3, initialData);				
+					pstmtAddMailoutPerson.setString(4, initialData);	
+					log.info("Add person to mailout table: " + pstmtAddMailoutPerson.toString());
 					pstmtAddMailoutPerson.executeUpdate();
+					
+					if(index++ == 0) {
+						// Only get the Id of the first create mailout person
+						// This will only be used when the requestor is only asking
+						// for a single mailout to be created
+						ResultSet rsKeys = pstmtAddMailoutPerson.getGeneratedKeys();
+						if(rsKeys.next()) {
+							mpId = rsKeys.getInt(1);
+						} 
+					}
 				}
-			}
-			
+			}		
 	
 		} finally {
 			try {if (pstmtGetPerson != null) {pstmtGetPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtAddPerson != null) {pstmtAddPerson.close();} } catch (SQLException e) {	}
+			try {if (pstmtUpdatePerson != null) {pstmtUpdatePerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtAddMailoutPerson != null) {pstmtAddMailoutPerson.close();} } catch (SQLException e) {	}
 			try {if (pstmtMailoutExists != null) {pstmtMailoutExists.close();} } catch (SQLException e) {	}
 		}
+		
+		return mpId;
 	}
 
 	/*
@@ -459,18 +506,28 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 	 */
 	public void sendEmails(Connection sd, int mailoutId, boolean retry) throws SQLException {
 		
-		String sql = "update mailout_people set status_details = null, "
+		StringBuffer sql = new StringBuffer("update mailout_people set status_details = null, "
 				+ "processed = null, "
 				+ "status = '" + MailoutManager.STATUS_PENDING +"'  "
-				+ "where m_id = ? "
-				+ "and status = '" + 
-						(retry ? MailoutManager.STATUS_ERROR : MailoutManager.STATUS_NEW)
-						+ "'";
+				+ "where m_id = ? ");
+		
+		if(retry) {
+			sql.append("and (status = '");
+			sql.append(MailoutManager.STATUS_ERROR);
+			sql.append("' or status = '");
+			sql.append(MailoutManager.STATUS_UNSUBSCRIBED);
+			sql.append("')");
+		} else {
+			sql.append("and status = '");
+			sql.append(MailoutManager.STATUS_NEW);
+			sql.append("'");
+		}
+				
 		
 		PreparedStatement pstmt = null;
 		
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, mailoutId);
 			log.info("Send unsent: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -539,7 +596,7 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 			String status = null;
 			boolean unsubscribed = false;
 			
-			if(organisation.email_task) {		// Organisation is pernitted to do mailouts
+			if(organisation.email_task) {		// Organisation is permitted to do mailouts
 					
 				/*
 				 * Send document to target
@@ -595,8 +652,17 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 										unsubscribed = true;
 										setMailoutStatus(sd, msg.mpId, STATUS_UNSUBSCRIBED, null);
 									} else {
-										if(subStatus.optedIn || !organisation.send_optin) {
-											log.info("Send email: " + msg.email + " : " + docURL);
+										if(subStatus.optedIn || !organisation.send_optin 
+												|| subStatus.optedInSent == null	// First mailout is the optin
+												) {
+											
+											log.info("Send email: " + msg.email + " : " + docURL);									
+											lm.writeLog(sd, 
+													GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident), 
+													ia.getAddress(), 
+													LogManager.MAILOUT, 
+													localisation.getString("mo_sent"));
+
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 
@@ -618,11 +684,19 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 													localisation,
 													organisation.server_description,
 													organisation.name);
+											
+											if(subStatus.optedInSent == null) {
+												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 
+														organisation.getAdminEmail(), emailServer, 
+														subStatus.emailKey, scheme, server,
+														false);		// Do not sent the optin email just record it as having been done
+												
+											}
 										
 										} else {
 											/*
 											 * User needs to opt in before email can be sent
-											 * Move message to pending messages and send opt in message if needed
+											 * Move message to pending
 											 */ 
 											mm.saveToPending(sd, organisation.id, ia.getAddress(), topic, null, 
 													null,
@@ -633,12 +707,19 @@ public void writeEmails(Connection sd, int oId, ArrayList<MailoutPerson> mop, in
 													subStatus.emailKey,
 													createPending,
 													scheme,
-													server);
+													server,
+													messageId);
+											
+											String note = localisation.getString("mo_pending_saved");
+											note = note.replace("%s1", msg.survey_ident);
+											lm.writeLogOrganisation(sd, organisation.id, ia.getAddress(), LogManager.MAILOUT, note);
+
 										}
 										setMailoutStatus(sd, msg.mpId, STATUS_SENT, null);
 									}
 								}
 							} catch(Exception e) {
+								log.log(Level.SEVERE, e.getMessage(),e);
 								status = "error";
 								error_details = e.getMessage();
 								

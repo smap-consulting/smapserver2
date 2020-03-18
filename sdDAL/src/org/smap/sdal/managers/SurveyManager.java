@@ -397,7 +397,7 @@ public class SurveyManager {
 		ResultSet resultSet = null;
 		StringBuffer sql = new StringBuffer();
 		sql.append("select s.s_id, s.name, s.ident, s.display_name, s.deleted, s.blocked, p.name, p.id,"
-				+ "s.def_lang, s.task_file, s.timing_data, u.o_id, s.class,"
+				+ "s.def_lang, s.task_file, s.timing_data, o.id, s.class,"
 				+ "s.instance_name, s.hrk, s.based_on, s.created, s.loaded_from_xls,"
 				+ "s.pulldata, "
 				+ "s.version, "
@@ -412,27 +412,41 @@ public class SurveyManager {
 				+ "s.oversight_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
-				+ "s.pdf_template "
-				+ "from survey s, users u, user_project up, project p, organisation o "
+				+ "s.pdf_template ");
+				
+		String userIdentifiedSql = "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
 				+ "and s.p_id = up.p_id "
 				+ "and u.o_id = o.id "
 				+ "and u.ident = ? "
-				+ "and s.s_id = ? ");
+				+ "and s.s_id = ? ";
+		
+		String anonUserSql = "from survey s, project p, organisation o "
+				+ "where s.p_id = p.id "
+				+ "and p.o_id = o.id "
+				+ "and s.s_id = ? ";
 
-		if(!superUser) {
+		if(user != null) {
+			sql.append(userIdentifiedSql);
+		} else {
+			sql.append(anonUserSql);
+		}
+		if(!superUser && user != null) {
 			sql.append(GeneralUtilityMethods.getSurveyRBAC());	// Add RBAC
 		}
 
 		PreparedStatement pstmt = null;
 
 		try {
-			pstmt = sd.prepareStatement(sql.toString());	 			
-			pstmt.setString(1, user);
-			pstmt.setInt(2, sId);
-			if(!superUser) {
-				pstmt.setString(3, user);		// RBAC check
+			pstmt = sd.prepareStatement(sql.toString());	 
+			int idx = 1;
+			if(user != null) {
+				pstmt.setString(idx++, user);
+			}
+			pstmt.setInt(idx++, sId);
+			if(!superUser && user != null) {
+				pstmt.setString(idx++, user);		// RBAC check
 			}
 
 			log.info("Get Survey info: " + pstmt.toString());

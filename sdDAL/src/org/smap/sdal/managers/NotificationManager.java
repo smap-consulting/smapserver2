@@ -502,7 +502,7 @@ public class NotificationManager {
 			Connection sd, 
 			Connection cResults,
 			int ue_id,
-			String remoteUser,
+			String submittingUser,
 			String scheme,
 			String serverName,
 			String basePath,
@@ -558,7 +558,7 @@ public class NotificationManager {
 			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications.toString());
 	
 			// Localisation
-			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, remoteUser);
+			Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
 			Locale locale = new Locale(organisation.locale);
 			
 			ResourceBundle localisation;
@@ -589,7 +589,13 @@ public class NotificationManager {
 				 * Get survey details
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
-				Survey survey = sm.getById(sd, cResults, remoteUser, sId, true, basePath, 
+				Survey survey = sm.getById(
+						sd, 
+						cResults, 
+						null, 		// User is not used as the notification permission is not dependent on the submitting user
+						sId, 
+						true, 
+						basePath, 
 						instanceId, true, false, true, false, true, "real", 
 						false, false, 
 						true, 			// pretend to be super user
@@ -644,7 +650,7 @@ public class NotificationManager {
 							nd.emailMeta,
 							nd.emails,
 							target,
-							remoteUser,
+							submittingUser,
 							scheme,
 							serverName,
 							basePath);
@@ -708,7 +714,7 @@ public class NotificationManager {
 			surveyId = msg.sId;		// A legacy message
 		}
 		
-		Survey survey = sm.getById(sd, cResults, msg.user, surveyId, true, msg.basePath, 
+		Survey survey = sm.getById(sd, cResults, null, surveyId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				msg.include_references,	// For PDFs follow links to referenced surveys
@@ -719,7 +725,7 @@ public class NotificationManager {
 		Survey updateSurvey = null;
 		if(msg.update_ident != null) {
 			int oversightId = GeneralUtilityMethods.getSurveyId(sd, msg.update_ident);
-			updateSurvey = sm.getById(sd, cResults, msg.user, oversightId, true, msg.basePath, 
+			updateSurvey = sm.getById(sd, cResults, null, oversightId, true, msg.basePath, 
 					msg.instanceId, true, generateBlank, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,		// For PDFs follow links to referenced surveys
@@ -826,9 +832,10 @@ public class NotificationManager {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
 						ArrayList<String> emailList = null;
-						log.info("Email question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
-							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, msg.getEmailQuestionName(sd), msg.instanceId);
+							String emailQuestionName = msg.getEmailQuestionName(sd);
+							log.info("Email question: " + emailQuestionName);
+							emailList = GeneralUtilityMethods.getResponseForEmailQuestion(sd, cResults, surveyId, emailQuestionName, msg.instanceId);
 						} else {
 							emailList = new ArrayList<String> ();
 						}
@@ -945,7 +952,8 @@ public class NotificationManager {
 													subStatus.emailKey,
 													createPending,
 													msg.scheme,
-													msg.server);
+													msg.server,
+													messageId);
 										}
 									}
 								}
@@ -1311,7 +1319,8 @@ public class NotificationManager {
 													subStatus.emailKey,
 													createPending,
 													msg.scheme,
-													msg.server);
+													msg.server,
+													messageId);
 										}
 									}
 								}

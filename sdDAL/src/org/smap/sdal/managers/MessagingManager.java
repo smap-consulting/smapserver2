@@ -154,7 +154,8 @@ public class MessagingManager {
 			String emailKey,
 			boolean createPending,
 			String scheme,
-			String server) throws Exception {
+			String server,
+			int messageId) throws Exception {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
@@ -183,8 +184,8 @@ public class MessagingManager {
 		}
 		
 		String sql = "insert into pending_message" 
-				+ "(o_id, email, topic, data, created_time) "
-				+ "values(?, ?, ?, ?, now())";
+				+ "(o_id, email, topic, data, message_id, created_time) "
+				+ "values(?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -198,6 +199,7 @@ public class MessagingManager {
 				pstmt.setString(2, email);
 				pstmt.setString(3, topic);
 				pstmt.setString(4, msgString);
+				pstmt.setInt(5, messageId);
 				log.info("Add pending message: " + pstmt.toString());
 				pstmt.executeUpdate();	
 			}
@@ -207,7 +209,7 @@ public class MessagingManager {
 			 */
 			if(optInSent == null) {
 				sendOptinEmail(sd, oId, email, 
-						adminEmail, emailServer, emailKey, scheme, server);
+						adminEmail, emailServer, emailKey, scheme, server, true);
 			}
 			
 		} finally {
@@ -223,7 +225,8 @@ public class MessagingManager {
 			EmailServer emailServer,
 			String emailKey,
 			String scheme,
-			String server) throws Exception {
+			String server,
+			boolean sendEmail) throws Exception {
 		
 		String from = emailServer.smtpHost;
 		
@@ -231,28 +234,30 @@ public class MessagingManager {
 		
 		PreparedStatement pstmt = null;
 		try {
-			em.sendEmail(
-					email, 
-					null, 
-					"optin", 
-					localisation.getString("c_opt_in_subject"), 
-					null,
-					from,		
-					null, 
-					null, 
-					null, 
-					null,		// doc url 
-					null,		// file path
-					null,		// file name
-					adminEmail, 
-					emailServer,
-					scheme,
-					server,
-					emailKey,
-					localisation,
-					null,		// Server description
-					GeneralUtilityMethods.getOrganisationName(sd, oId)
-					);
+			if(sendEmail) {		// Sometimes a specific opt in email is not required
+				em.sendEmail(
+						email, 
+						null, 
+						"optin", 
+						localisation.getString("c_opt_in_subject"), 
+						null,
+						from,		
+						null, 
+						null, 
+						null, 
+						null,		// doc url 
+						null,		// file path
+						null,		// file name
+						adminEmail, 
+						emailServer,
+						scheme,
+						server,
+						emailKey,
+						localisation,
+						null,		// Server description
+						GeneralUtilityMethods.getOrganisationName(sd, oId)
+						);
+			}
 			
 			// Record that the opt in message has been sent
 			String sqlDone = "update people "
@@ -269,7 +274,7 @@ public class MessagingManager {
 			
 			String note = localisation.getString("optin_sent");
 			note = note.replace("%s1", email);
-			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			lm.writeLogOrganisation(sd, oId, email, LogManager.OPTIN, note);
 			
 		} catch (Exception e) {
 			// Record that the opt in message has not been sent
