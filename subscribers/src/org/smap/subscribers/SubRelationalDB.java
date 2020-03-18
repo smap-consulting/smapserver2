@@ -46,6 +46,7 @@ import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
+import org.smap.notifications.interfaces.AudioProcessing;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -104,7 +105,7 @@ public class SubRelationalDB extends Subscriber {
 	String gAuditFilePath = null;
 	
 	private Survey survey = null;
-
+	
 	/**
 	 * @param args
 	 */
@@ -201,7 +202,7 @@ public class SubRelationalDB extends Subscriber {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			ArrayList<AutoUpdate> autoUpdates = getAutoUpdates(sd, cResults, gson, survey);
 			if(autoUpdates != null) {
-				applyAutoUpdates(sd, cResults, server, remoteUser, autoUpdates);
+				applyAutoUpdates(sd, cResults, server, submittingUser, autoUpdates);
 			}
 			se.setStatus("success");			
 
@@ -441,14 +442,13 @@ public class SubRelationalDB extends Subscriber {
 				" q.parameters like '%source=%'");
 		
 		for(String q : groupQuestions.keySet()) {
-			System.out.println("------------ " + q);
 			QuestionForm qf = groupQuestions.get(q);
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				if(params.get("source") != null) {
-					String refColumn = params.get("source").trim();
-					// Remove ${} syntax if the source has that
-					if(refColumn.startsWith("$") && refColumn.length() > 3) {
+					
+					String refColumn = params.get("source").trim();					
+					if(refColumn.startsWith("$") && refColumn.length() > 3) {	// Remove ${} syntax if the source has that
 						refColumn = refColumn.substring(2, refColumn.length() -1);
 					}
 					
@@ -459,14 +459,25 @@ public class SubRelationalDB extends Subscriber {
 								" q.column_name = '" + refColumn + "'");
 						
 						QuestionForm refQf = refQuestionMap.get(refColumn);
-						if(refQf.qType != null && refQf.qType.equals("image")) {
-							AutoUpdate au = new AutoUpdate("imagelabel");
+						
+						if(refQf.qType != null 
+								&& (refQf.qType.equals("image")
+										|| refQf.qType.equals("audio"))) {
+							
+							String updateType = null;
+							if(refQf.qType.equals("image")) {
+								updateType = AutoUpdate.AUTO_UPDATE_IMAGE;
+							} else if(refQf.qType.equals("audio")) {
+								updateType = AutoUpdate.AUTO_UPDATE_AUDIO;
+							}
+							
+							AutoUpdate au = new AutoUpdate(updateType);
 							au.labelColType = "text";
 							au.sourceColName = refColumn;
 							au.targetColName = qf.columnName;
 							au.tableName = qf.tableName;
 							autoUpdates.add(au);
-						}
+						} 
 					}
 				}
 			}
@@ -491,6 +502,7 @@ public class SubRelationalDB extends Subscriber {
 		try {
 
 			ImageProcessing ip = new ImageProcessing();
+			AudioProcessing ap = new AudioProcessing();
 			
 			// For each update item get the records that are null and need updating
 			for(AutoUpdate item : updates) {
@@ -514,12 +526,21 @@ public class SubRelationalDB extends Subscriber {
 						int prikey = rs.getInt(1);
 						String source = rs.getString(2);
 						if(source.trim().startsWith("attachments")) {
-							if(item.type.equals("imagelabel")) {
+							if(item.type.equals(AutoUpdate.AUTO_UPDATE_IMAGE)) {
 								String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
 								lm.writeLog(sd, 0, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
 								
 								// Write labels to database
 								pstmtUpdate.setString(1, labels);
+								pstmtUpdate.setInt(2, prikey);
+								log.info("Update with labels: " + pstmtUpdate.toString());
+								pstmtUpdate.executeUpdate();
+							} else if(item.type.equals(AutoUpdate.AUTO_UPDATE_AUDIO)) {
+								String  transcript = ap.getTranscript(server, remoteUser, "/smap/" + source, item.labelColType);
+								lm.writeLog(sd, 0, remoteUser, LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
+								
+								// Write labels to database
+								pstmtUpdate.setString(1, transcript);
 								pstmtUpdate.setInt(2, prikey);
 								log.info("Update with labels: " + pstmtUpdate.toString());
 								pstmtUpdate.executeUpdate();
@@ -534,8 +555,6 @@ public class SubRelationalDB extends Subscriber {
 			}
 			
 
-		} catch (SQLException e) {
-			e.printStackTrace();
 		} catch (Exception e) {
 			e.printStackTrace();
 		} finally {
