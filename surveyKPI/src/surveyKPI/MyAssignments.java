@@ -934,6 +934,7 @@ public class MyAssignments extends Application {
 
 		/*
 		 * The assignment status can be set to rejected if the task is assigned to the user
+		 * and the task is currently accepted
 		 */
 		String sql = "update assignments a "
 				+ "set status = ?, "
@@ -941,7 +942,8 @@ public class MyAssignments extends Application {
 				+ "assignee = ?,"
 				+ "assignee_name = (select name from users where id = ?) "
 				+ "where a.id = ? "
-				+ "and a.assignee = ?";
+				+ "and a.assignee = ? "
+				+ "and status == 'accepted' ";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}
