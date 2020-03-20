@@ -427,8 +427,8 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, password, created) " +
-				" values (?, ?, ?, ?, ?, md5(?), now());";
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, password, created) " +
+				" values (?, ?, ?, ?, ?, ?, md5(?), now());";
 
 		PreparedStatement pstmt = null;
 
@@ -440,7 +440,8 @@ public class UserManager {
 			pstmt.setString(3, u.name);
 			pstmt.setString(4, u.email);
 			pstmt.setInt(5, o_id);
-			pstmt.setString(6, pwdString);
+			pstmt.setBoolean(6,u.imported);
+			pstmt.setString(7, pwdString);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 

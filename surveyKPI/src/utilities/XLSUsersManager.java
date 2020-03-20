@@ -22,6 +22,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -213,69 +215,107 @@ public class XLSUsersManager {
 	/*
 	 * Create a user list from an XLS file
 	 */
-	public ArrayList<User> getXLSUsersList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
+	public ArrayList<User> getXLSUsersList(Connection sd, String type, InputStream inputStream, ResourceBundle localisation, 
+			String tz, int oId) throws Exception {
 
 		Sheet sheet = null;
 		Row row = null;
 		int lastRowNum = 0;
 		ArrayList<User> users = new ArrayList<User> ();
 
-		HashMap<String, Integer> header = null;
-
-		if(type != null && type.equals("xls")) {
-			wb = new HSSFWorkbook(inputStream);
-		} else {
-			wb = new XSSFWorkbook(inputStream);
-		}
-
-		sheet = wb.getSheetAt(0);
-		if(sheet == null) {
-			throw new ApplicationException(localisation.getString("fup_nws"));
-		}
-		if(sheet.getPhysicalNumberOfRows() > 0) {
-
-			lastRowNum = sheet.getLastRowNum();
-			boolean needHeader = true;
-
-			for(int j = 0; j <= lastRowNum; j++) {
-
-				row = sheet.getRow(j);
-				if(row != null) {
-
-					int lastCellNum = row.getLastCellNum();
-
-					if(needHeader) {
-						header = getHeader(row, lastCellNum);
-						needHeader = false;
-					} else {
-						String ident = XLSUtilities.getColumn(row, "ident", header, lastCellNum, null);
-						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
-						String email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
-						
-						// Get security groups  TODO
-						// Get Projects TODO
-						
-						User u = new User();
-						u.ident = ident;
-						u.name = name;
-						u.email = email;
-						users.add(u);
-						
-						// validate
-						if(ident == null || ident.trim().length() == 0) {
-							String msg = localisation.getString("fup_uim");
-							msg = msg.replace("%s1", String.valueOf(j));
-							throw new ApplicationException(msg);
-						}
-						if(name == null || name.trim().length() == 0) {
-							String msg = localisation.getString("fup_unm");
-							msg = msg.replace("%s1", String.valueOf(j));
-							throw new ApplicationException(msg);
+		// SQL to validate projects
+		PreparedStatement pstmt = null;
+		String sql = "select id from project where o_id = ? and name = ?";
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			
+			HashMap<String, Integer> header = null;
+	
+			if(type != null && type.equals("xls")) {
+				wb = new HSSFWorkbook(inputStream);
+			} else {
+				wb = new XSSFWorkbook(inputStream);
+			}
+	
+			sheet = wb.getSheetAt(0);
+			if(sheet == null) {
+				throw new ApplicationException(localisation.getString("fup_nws"));
+			}
+			if(sheet.getPhysicalNumberOfRows() > 0) {
+	
+				lastRowNum = sheet.getLastRowNum();
+				boolean needHeader = true;
+	
+				for(int j = 0; j <= lastRowNum; j++) {
+	
+					row = sheet.getRow(j);
+					if(row != null) {
+	
+						int lastCellNum = row.getLastCellNum();
+	
+						if(needHeader) {
+							header = getHeader(row, lastCellNum);
+							needHeader = false;
+						} else {
+							
+							User u = new User();
+							
+							u.imported = true;
+							u.o_id = oId;
+							u.ident = XLSUtilities.getColumn(row, "ident", header, lastCellNum, null);
+							u.name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
+							u.email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
+							
+							
+							// Get security groups  TODO
+							
+							// Get Projects
+							String projectString = XLSUtilities.getColumn(row, "projects", header, lastCellNum, null);
+							if(projectString != null && projectString.trim().length() > 0) {
+								String [] pArray = projectString.split(";");
+								u.projects = new ArrayList<Project> ();
+								for(int i = 0; i < pArray.length; i++) {
+									Project p = new Project();
+									p.name = pArray[i].trim();
+									u.projects.add(p);
+								}
+							}
+							
+							// validate
+							if(u.ident == null || u.ident.trim().length() == 0) {
+								String msg = localisation.getString("fup_uim");
+								msg = msg.replace("%s1", String.valueOf(j));
+								throw new ApplicationException(msg);
+							}
+							if(u.name == null || u.name.trim().length() == 0) {
+								String msg = localisation.getString("fup_unm");
+								msg = msg.replace("%s1", String.valueOf(j));
+								throw new ApplicationException(msg);
+							}
+							// Validate projects and set project id
+							for(Project p : u.projects) {
+								pstmt.setString(2, p.name);
+								ResultSet rs = pstmt.executeQuery();
+								if(rs.next()) {
+									p.id = rs.getInt(1);
+								} else {
+									String msg = localisation.getString("fup_inv_p");
+									msg = msg.replace("%s1", p.name);
+									msg = msg.replace("%s2", String.valueOf(j));
+									throw new ApplicationException(msg);
+								}
+							}
+							
+							users.add(u);
 						}
 					}
 				}
 
 			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 		}
 
 		return users;

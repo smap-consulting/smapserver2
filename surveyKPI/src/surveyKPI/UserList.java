@@ -746,29 +746,6 @@ public class UserList extends Application {
 				// Authorisation - Access
 				a.isAuthorised(sd, request.getRemoteUser());			
 				// End authorisation
-
-				// Process xls file
-				XLSUsersManager xum = new XLSUsersManager();
-				ArrayList<User> users = xum.getXLSUsersList(filetype, file.getInputStream(), localisation, tz);	
-						
-				// Save users the database
-				UserManager um = new UserManager(localisation);
-				
-				ArrayList<UserSimple> emptyUsers = null;
-				String basePath = GeneralUtilityMethods.getBasePath(request);
-				
-				if(clear) {
-
-					int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-					emptyUsers = um.getUserListSimple(sd, oId, true, false, null, true);
-					
-					if(emptyUsers.size() > 0) {
-						sd.setAutoCommit(false);
-						for(UserSimple us : emptyUsers) {
-							um.deleteUser(sd, request.getRemoteUser(), basePath, us.id, oId, true);
-						}
-					}
-				}
 				
 				/*
 				 * Get the organisation and name of the user making the request
@@ -783,14 +760,36 @@ public class UserList extends Application {
 				ResultSet resultSet = pstmt.executeQuery();
 				if(resultSet.next()) {
 					int oId = resultSet.getInt(1);
-					String adminName = resultSet.getString(2);		
+					String adminName = resultSet.getString(2);	
 				
 					String scheme = request.getScheme();
 					String serverName = request.getServerName();
 					ArrayList<String> added = new ArrayList<> ();
 					
+					// Process xls file
+					XLSUsersManager xum = new XLSUsersManager();
+					ArrayList<User> users = xum.getXLSUsersList(sd, filetype, file.getInputStream(), localisation, tz, oId);	
+							
+					// Save users the database
+					UserManager um = new UserManager(localisation);
+					
+					ArrayList<UserSimple> emptyUsers = null;
+					String basePath = GeneralUtilityMethods.getBasePath(request);
+					
+					if(clear) {
+						
+						emptyUsers = um.getUserListSimple(sd, oId, true, false, null, true);
+						
+						if(emptyUsers.size() > 0) {
+							for(UserSimple us : emptyUsers) {
+								um.deleteUser(sd, request.getRemoteUser(), basePath, us.id, oId, true);
+							}
+						}
+					}
+					
 					for(User u : users) {
 						try {
+							
 							um.createUser(sd, u, oId, 
 									false, false, false, false, 
 									request.getRemoteUser(), scheme, serverName, adminName, localisation);

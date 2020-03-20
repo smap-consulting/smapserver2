@@ -195,7 +195,6 @@ public class ProjectList extends Application {
 							sql = "update project set " +
 									" name = ?, " + 
 									" description = ?, " + 
-									//" tasks_only = ?, " + 
 									" changed_by = ?, " + 
 									" changed_ts = now() " + 
 									" where " +

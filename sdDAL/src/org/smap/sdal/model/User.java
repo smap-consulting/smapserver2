@@ -52,6 +52,7 @@ public class User {
 	public ArrayList<Role> roles;
 	public ArrayList<Organisation> orgs;
 	public ArrayList<GroupSurvey> groupSurveys;
+	public boolean imported;
 	public boolean keepProjects;
 	public boolean sendEmail;
 	public boolean delSig;
