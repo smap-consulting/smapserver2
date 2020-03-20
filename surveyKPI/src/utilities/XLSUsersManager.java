@@ -78,6 +78,15 @@ public class XLSUsersManager {
 				value = user.email;
 			} else if(isSecurityGroup) {
 				value = getGroupValue(user.groups, name);
+			} else if(name.equals("projects")) {
+				StringBuffer sb = new StringBuffer("");
+				for(Project p : user.projects) {
+					if(sb.length() > 0) {
+						sb.append("; ");
+					}
+					sb.append(p.name);
+				}
+				value = sb.toString();
 			}
 			
 			if(value == null) {
@@ -145,6 +154,9 @@ public class XLSUsersManager {
 			cols.add(new Column(localisation, colNumber++, ug.name, false, styles.get("header_assignments"), true));
 		}
 		
+		cols.add(new Column(localisation, colNumber++, "projects", false, styles.get("header_tasks"), false));
+
+		
 		return cols;
 	}
 	
@@ -199,17 +211,16 @@ public class XLSUsersManager {
 	}
 
 	/*
-	 * Create a project list from an XLS file
+	 * Create a user list from an XLS file
 	 */
-	public ArrayList<Project> getXLSProjectList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
+	public ArrayList<User> getXLSUsersList(String type, InputStream inputStream, ResourceBundle localisation, String tz) throws Exception {
 
 		Sheet sheet = null;
 		Row row = null;
 		int lastRowNum = 0;
-		ArrayList<Project> projects = new ArrayList<Project> ();
+		ArrayList<User> users = new ArrayList<User> ();
 
 		HashMap<String, Integer> header = null;
-		ArrayList<String> idc = new ArrayList<> ();		// Initial data columns
 
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);
@@ -235,30 +246,39 @@ public class XLSUsersManager {
 
 					if(needHeader) {
 						header = getHeader(row, lastCellNum);
-						idc = getInitialDataColumns(row, lastCellNum);
 						needHeader = false;
 					} else {
+						String ident = XLSUtilities.getColumn(row, "ident", header, lastCellNum, null);
 						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
-						String desc = XLSUtilities.getColumn(row, "desc", header, lastCellNum, null);
-
-						// validate project name
-						if(name == null || name.trim().length() == 0) {
-							String msg = localisation.getString("fup_pnm");
+						String email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
+						
+						// Get security groups  TODO
+						// Get Projects TODO
+						
+						User u = new User();
+						u.ident = ident;
+						u.name = name;
+						u.email = email;
+						users.add(u);
+						
+						// validate
+						if(ident == null || ident.trim().length() == 0) {
+							String msg = localisation.getString("fup_uim");
 							msg = msg.replace("%s1", String.valueOf(j));
 							throw new ApplicationException(msg);
 						}
-						
-						Project p = new Project();
-						p.name = name;
-						p.desc = desc;
-						projects.add(p);
+						if(name == null || name.trim().length() == 0) {
+							String msg = localisation.getString("fup_unm");
+							msg = msg.replace("%s1", String.valueOf(j));
+							throw new ApplicationException(msg);
+						}
 					}
 				}
 
 			}
 		}
 
-		return projects;
+		return users;
 
 
 	}
@@ -284,32 +304,5 @@ public class XLSUsersManager {
         }
             
 		return header;
-	}
-	
-	/*
-	 * Get an array list of initial data columns
-	 */
-	private ArrayList<String> getInitialDataColumns(Row row, int lastCellNum) {
-		
-		ArrayList<String> idx = new ArrayList<> ();
-		
-		Cell cell = null;
-		String name = null;
-		
-        for(int i = 0; i <= lastCellNum; i++) {
-            cell = row.getCell(i);
-            if(cell != null) {
-                name = cell.getStringCellValue();
-                if(name != null && name.trim().length() > 0) {
-                	name = name.toLowerCase();
-                	if(!name.equals("email") && !name.equals("name") &&
-                			!name.equals("status") && !name.equals("status_details")) {
-	                    idx.add(name);
-                	}
-                }
-            }
-        }
-            
-		return idx;
 	}
 }

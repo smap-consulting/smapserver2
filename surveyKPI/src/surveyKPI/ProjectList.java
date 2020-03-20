@@ -462,7 +462,7 @@ public class ProjectList extends Application {
 				XLSProjectsManager xpm = new XLSProjectsManager();
 				ArrayList<Project> projects = xpm.getXLSProjectList(filetype, file.getInputStream(), localisation, tz);	
 						
-				// Save mailout emails to the database
+				// Save projects to the database
 				ProjectManager pm = new ProjectManager(localisation);
 				
 				ArrayList<Project> emptyProjects = null;
