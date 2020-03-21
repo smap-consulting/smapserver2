@@ -571,21 +571,7 @@ public class MailoutManager {
 		String sqlNotificationLog = "insert into notification_log " +
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?, 'mailout'); ";
-		
-		// Time Zone
-		int utcOffset = 0;	
-		LocalDateTime dt = LocalDateTime.now();
-		if(organisation.timeZone != null) {
-			try {
-				ZoneId zone = ZoneId.of(organisation.timeZone);
-			    ZonedDateTime zdt = dt.atZone(zone);
-			    ZoneOffset offset = zdt.getOffset();
-			    utcOffset = offset.getTotalSeconds() / 60;
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			}
-		}
-		
+
 		try {
 			
 			pstmtNotificationLog = sd.prepareStatement(sqlNotificationLog);
