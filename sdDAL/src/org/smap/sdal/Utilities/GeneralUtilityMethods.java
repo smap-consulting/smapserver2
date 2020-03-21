@@ -7854,6 +7854,7 @@ public class GeneralUtilityMethods {
 		u.ident = tempUserId;
 		u.email = email;
 		u.name = assignee_name;
+		
 
 		// Only allow access to the project used by this task
 		u.projects = new ArrayList<Project> ();

@@ -34,5 +34,5 @@ public class AssignFromSurvey {
 	public TaskEmailDetails emailDetails;
 	public boolean complete_all;
 	public boolean assign_auto;			// Allow users to assign themselves to unassigned tasks
-	public boolean repeat;				// Task can repeat
+	public boolean repeat = false;				// Task can repeat
 }

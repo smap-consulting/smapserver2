@@ -240,6 +240,7 @@ public class ActionManager {
 		String tempUserId = null;
 		String link = null;
 
+		log.info("###### getLink: action single is: " + a.single);
 		UserManager um = new UserManager(localisation);
 		tempUserId = "u" + String.valueOf(UUID.randomUUID());
 		User u = new User();

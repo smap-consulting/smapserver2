@@ -511,6 +511,8 @@ public class UserManager {
 			User u, 
 			int o_id) throws Exception {
 
+		log.info("############# Creating temporary user");
+		
 		int u_id = -1;
 		String sql = "insert into users "
 				+ "(ident, o_id, email, name, temporary, action_details, single_submission, created) "
