@@ -266,10 +266,20 @@ public class XLSUsersManager {
 							u.o_id = oId;
 							u.ident = XLSUtilities.getColumn(row, "ident", header, lastCellNum, null);
 							u.name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
-							u.email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);
+							u.email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);							
 							
-							
-							// Get security groups  TODO
+							// Get security groups
+							ArrayList<UserGroup> groups = GeneralUtilityMethods.getSecurityGroups(sd);
+							u.groups = new ArrayList<UserGroup> ();
+							for(UserGroup ug : groups) {
+								String v = XLSUtilities.getColumn(row, ug.name, header, lastCellNum, null);	
+								if(v != null) {
+									v = v.trim().toLowerCase();
+									if(v.equals("yes") || v.equals("1") || v.equals("true")) {
+										u.groups.add(ug);
+									}
+								}
+							}						
 							
 							// Get Projects
 							String projectString = XLSUtilities.getColumn(row, "projects", header, lastCellNum, null);

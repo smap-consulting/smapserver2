@@ -750,9 +750,9 @@ public class UserList extends Application {
 				/*
 				 * Get the organisation and name of the user making the request
 				 */
-				String sql = "SELECT u.o_id, u.name " +
-						" FROM users u " +  
-						" WHERE u.ident = ?";				
+				String sql = "select u.o_id, u.name "
+						+ "from users u " 
+						+ "where u.ident = ?";				
 							
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, request.getRemoteUser());
