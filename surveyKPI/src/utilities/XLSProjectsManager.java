@@ -64,7 +64,7 @@ public class XLSProjectsManager {
 		public String getValue(Project project) {
 			String value = null;
 			
-			if(name.equals("name")) {
+			if(name.equals("project_name")) {
 				value = project.name;
 			} else if(name.equals("desc")) {
 				value = project.desc;
@@ -120,7 +120,7 @@ public class XLSProjectsManager {
 		
 		int colNumber = 0;
 	
-		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks")));
+		cols.add(new Column(localisation, colNumber++, "project_name", false, styles.get("header_tasks")));
 		cols.add(new Column(localisation, colNumber++, "desc", false, styles.get("header_tasks")));
 		cols.add(new Column(localisation, colNumber++, "changed_by", false, styles.get("group")));		// Ignore on upload
 		cols.add(new Column(localisation, colNumber++, "changed_when", false, styles.get("group")));	// Ignore on upload
@@ -234,7 +234,7 @@ public class XLSProjectsManager {
 						header = getHeader(row, lastCellNum);
 						needHeader = false;
 					} else {
-						String name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
+						String name = XLSUtilities.getColumn(row, "project_name", header, lastCellNum, null);
 						String desc = XLSUtilities.getColumn(row, "desc", header, lastCellNum, null);
 
 						// validate project name
