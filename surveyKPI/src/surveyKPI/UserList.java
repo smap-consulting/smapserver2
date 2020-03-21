@@ -45,10 +45,8 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.Project;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -57,7 +55,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import utilities.XLSProjectsManager;
 import utilities.XLSUsersManager;
 
 import java.io.IOException;

@@ -90,6 +90,8 @@ public class XLSUsersManager {
 					sb.append(p.name);
 				}
 				value = sb.toString();
+			} else if(name.equals("password")) {
+				value = "";
 			}
 			
 			if(value == null) {
@@ -150,6 +152,7 @@ public class XLSUsersManager {
 		cols.add(new Column(localisation, colNumber++, "ident", false, styles.get("header_tasks"), false));
 		cols.add(new Column(localisation, colNumber++, "name", false, styles.get("header_tasks"), false));
 		cols.add(new Column(localisation, colNumber++, "email", false, styles.get("header_tasks"), false));
+		cols.add(new Column(localisation, colNumber++, "password", false, styles.get("header_tasks"), false));
 		
 		// Security Groups
 		ArrayList<UserGroup> groups = GeneralUtilityMethods.getSecurityGroups(sd);
@@ -267,7 +270,8 @@ public class XLSUsersManager {
 							u.o_id = oId;
 							u.ident = XLSUtilities.getColumn(row, "ident", header, lastCellNum, null);
 							u.name = XLSUtilities.getColumn(row, "name", header, lastCellNum, null);
-							u.email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);							
+							u.email = XLSUtilities.getColumn(row, "email", header, lastCellNum, null);	
+							u.password = XLSUtilities.getColumn(row, "password", header, lastCellNum, null);	
 							
 							// Get security groups
 							ArrayList<UserGroup> groups = GeneralUtilityMethods.getSecurityGroups(sd);
