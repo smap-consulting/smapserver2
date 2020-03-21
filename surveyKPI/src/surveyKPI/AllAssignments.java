@@ -523,7 +523,9 @@ public class AllAssignments extends Application {
 										request.getRemoteUser(),
 										false,
 										as.complete_all,
-										as.assign_auto); 
+										as.assign_auto,
+										as.repeat
+										); 
 								
 							}
 

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.poi.xssf.usermodel.*;
@@ -283,9 +284,9 @@ public class XLSUsersManager {
 							
 							// Get Projects
 							String projectString = XLSUtilities.getColumn(row, "projects", header, lastCellNum, null);
+							u.projects = new ArrayList<Project> ();
 							if(projectString != null && projectString.trim().length() > 0) {
 								String [] pArray = projectString.split(";");
-								u.projects = new ArrayList<Project> ();
 								for(int i = 0; i < pArray.length; i++) {
 									Project p = new Project();
 									p.name = pArray[i].trim();
@@ -324,6 +325,13 @@ public class XLSUsersManager {
 				}
 
 			}
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			String msg = e.getMessage();
+			if (msg == null) {
+				msg = localisation.getString("c_error");
+			}
+			throw new ApplicationException(msg);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
 		}
