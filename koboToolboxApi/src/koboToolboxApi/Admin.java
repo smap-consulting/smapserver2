@@ -303,7 +303,7 @@ public class Admin extends Application {
 					countNots++;	
 					// Test the filter
 					SurveyManager sm = new SurveyManager(localisation, "UTC");
-					Survey survey = sm.getById(sd, cResults, userName, sId, true, basePath, 
+					Survey survey = sm.getById(sd, cResults, userName, false, sId, true, basePath, 
 							instanceId, true, false, true, false, true, "real", 
 							false, false, 
 							true, 			// pretend to be super user
@@ -350,6 +350,7 @@ public class Admin extends Application {
 									cResults,
 									ueId, 
 									userName, 
+									false,
 									"https",
 									server,
 									basePath,

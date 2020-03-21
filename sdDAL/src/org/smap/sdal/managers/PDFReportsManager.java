@@ -75,6 +75,7 @@ public class PDFReportsManager {
 			Connection sd,
 			Connection cResults,
 			String username,
+			boolean temporaryUser,
 			HttpServletRequest request,
 			HttpServletResponse response,
 			int sId, 
@@ -175,7 +176,7 @@ public class PDFReportsManager {
 				name = escapedName + rs.getString("prikey") + ".pdf";					// Add the primary key to guarantee uniqueness
 
 				// Write the pdf to a temporary file
-	 			Survey survey = sm.getById(sd, cResults, username, sId, true, basePath, 
+	 			Survey survey = sm.getById(sd, cResults, username, temporaryUser, sId, true, basePath, 
 						instanceId, true, false, true, false, true, "real", 
 						false, false, true, "geojson",
 						false,			// Don't get child surveys

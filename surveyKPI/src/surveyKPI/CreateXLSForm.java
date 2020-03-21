@@ -100,7 +100,7 @@ public class CreateXLSForm extends Application {
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
 			
 			// Get the survey details
-			survey = sm.getById(sd, cResults, request.getRemoteUser(), 
+			survey = sm.getById(sd, cResults, request.getRemoteUser(), false,
 					sId, true, basePath, 
 					null, 		// instanceId
 					false, 		// get results

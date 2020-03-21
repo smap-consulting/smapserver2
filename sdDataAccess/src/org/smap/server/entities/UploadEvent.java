@@ -50,6 +50,8 @@ public class UploadEvent implements Serializable {
 	
 	private String userName;
 	
+	private boolean temporaryUser;
+	
 	private String fileName;
 	
 	private String surveyName;
@@ -125,6 +127,10 @@ public class UploadEvent implements Serializable {
 	
 	public String getUserName() {
 		return userName;
+	}
+	
+	public boolean getTemporaryUser() {
+		return temporaryUser;
 	}
 	
 	public String getFileName() {
@@ -244,6 +250,10 @@ public class UploadEvent implements Serializable {
 	
 	public void setUserName(String name) {
 		this.userName = name;
+	}
+	
+	public void setTemporaryUser(boolean v) {
+		this.temporaryUser = v;
 	}
 	
 	public void setFileName(String name) {

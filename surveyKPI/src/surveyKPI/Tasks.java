@@ -606,7 +606,8 @@ public class Tasks extends Application {
 						true, 		// update resources
 						oId, 
 						false, 
-						request.getRemoteUser());
+						request.getRemoteUser(),
+						false);
 				
 				/*
 				 * Get the tasks out of the database

@@ -172,7 +172,7 @@ public class AllAssignments extends Application {
 			org.smap.sdal.model.Survey survey = null;
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			if(sId > 0) {
-				survey = sm.getById(sd, cResults, request.getRemoteUser(), sId, 
+				survey = sm.getById(sd, cResults, request.getRemoteUser(), false, sId, 
 						true, 		// full
 						basePath, 
 						null, false, false, false, false, false, "real", false, false, superUser, "geojson",
@@ -521,6 +521,7 @@ public class AllAssignments extends Application {
 										instanceId,
 										false,
 										request.getRemoteUser(),
+										false,
 										as.complete_all,
 										as.assign_auto); 
 								

@@ -119,6 +119,7 @@ public class SubRelationalDB extends Subscriber {
 
 	@Override
 	public void upload(SurveyInstance instance, InputStream is, String submittingUser, 
+			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
 			String surveyNotes, String locationTrigger, String auditFilePath, ResourceBundle l, Survey survey)  {
@@ -347,13 +348,14 @@ public class SubRelationalDB extends Subscriber {
 		String ident = null;		// The survey ident
 		String instanceId = null;	// The submitted instance identifier
 		int pId = 0;				// The project containing the survey
+		boolean temporaryUser;
 
 		try {
 
 			/*
 			 * Get details from the upload event
 			 */
-			String sqlGetUploadEvent = "select ue.ident, ue.instanceid, ue.p_id " +
+			String sqlGetUploadEvent = "select ue.ident, ue.instanceid, ue.p_id, ue.temporary_user " +
 					" from upload_event ue " +
 					" where ue.ue_id = ?;";
 			pstmtGetUploadEvent = sd.prepareStatement(sqlGetUploadEvent);
@@ -363,6 +365,7 @@ public class SubRelationalDB extends Subscriber {
 				ident = rs.getString(1);
 				instanceId = rs.getString(2);
 				pId = rs.getInt(3);
+				temporaryUser = rs.getBoolean(4);
 				String pName = GeneralUtilityMethods.getProjectName(sd, pId);
 				
 				// Apply notifications
@@ -372,7 +375,8 @@ public class SubRelationalDB extends Subscriber {
 						sd, 
 						cResults,
 						ueId, 
-						submittingUser, 
+						submittingUser,
+						temporaryUser,
 						"https",
 						server,
 						gBasePath,
@@ -395,7 +399,8 @@ public class SubRelationalDB extends Subscriber {
 						instanceId,
 						pId,
 						pName,
-						submittingUser
+						submittingUser,
+						temporaryUser
 						);
 				
 			}

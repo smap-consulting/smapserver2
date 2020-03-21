@@ -373,7 +373,7 @@ public class Tasks extends Application {
 			SurveyManager sm = new SurveyManager(localisation, tz);
 			if(tp.tg_id <= 0) {
 				
-				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), tp.form_id, 
+				Survey s = sm.getById(sd, cResults, request.getRemoteUser(), false, tp.form_id, 
 						false, null, null, false, false, 
 						false, false, false, null, false, false, false, null, false, false,
 						false		// Don't merge set value into default values
@@ -412,6 +412,7 @@ public class Tasks extends Application {
 					oId, 
 					true, 
 					request.getRemoteUser(),
+					false,
 					urlprefix);
 			
 			response = Response.ok(gson.toJson(resp)).build();

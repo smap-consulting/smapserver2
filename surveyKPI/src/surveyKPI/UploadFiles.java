@@ -604,7 +604,7 @@ public class UploadFiles extends Application {
 				action = "add";
 			} else if(action.equals("replace")) {
 				
-				existingSurvey = sm.getById(sd, cResults, user, surveyId, 
+				existingSurvey = sm.getById(sd, cResults, user, false, surveyId, 
 						false, basePath, null, false, false, false, 
 						false, false, null, false, false, superUser, null, 
 						false,
@@ -703,7 +703,7 @@ public class UploadFiles extends Application {
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
 			} else {
 				int sId = model.writeDatabase();
-				s = sm.getById(sd, cResults, user, sId, true, basePath, 
+				s = sm.getById(sd, cResults, user, false, sId, true, basePath, 
 						null,					// instance id 
 						false, 					// get results
 						false, 					// generate dummy values

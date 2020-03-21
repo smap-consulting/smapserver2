@@ -14,6 +14,7 @@ public class EmailTaskMessage {
 	public String email;
 	public String target;
 	public String user;
+	public boolean temporaryUser;
 	public String actionLink;
 
 	
@@ -29,6 +30,7 @@ public class EmailTaskMessage {
 			String email,
 			String target,
 			String user,
+			boolean temporaryUser,
 			String actionLink) {
 		
 		this.sId = sId;
@@ -42,6 +44,7 @@ public class EmailTaskMessage {
 		this.email = email;
 		this.target = target;
 		this.user = user;
+		this.temporaryUser = temporaryUser;
 		this.actionLink = actionLink;
 	}
 	

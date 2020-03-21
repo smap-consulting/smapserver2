@@ -818,13 +818,14 @@ public class TaskManager {
 			boolean updateResources,
 			int oId,
 			boolean autosendEmails,
-			String remoteUser) throws Exception {
+			String remoteUser,
+			boolean temporaryUser) throws Exception {
 
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
 			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, 
-					oId, autosendEmails, remoteUser, urlPrefix);
+					oId, autosendEmails, remoteUser, temporaryUser, urlPrefix);
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.assignee_ident != null) {
 					userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -997,7 +998,8 @@ public class TaskManager {
 			String instanceId,
 			int pId,
 			String pName,
-			String remoteUser) throws Exception {
+			String remoteUser,
+			boolean temporaryUser) throws Exception {
 
 		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all, assign_auto from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
@@ -1017,7 +1019,7 @@ public class TaskManager {
 				
 				if(survey == null) {
 					// Get the forms - this is required by the test filter
-					survey = sm.getById(sd, cResults, remoteUser, source_s_id, true, "", 
+					survey = sm.getById(sd, cResults, remoteUser, temporaryUser, source_s_id, true, "", 
 							instanceId, false, false, true, false, true, "real", 
 							false, 
 							false, 
@@ -1077,7 +1079,10 @@ public class TaskManager {
 						if(as.prepopulate) {
 							// Get the source survey definition so we can get the source data
 							sourceSurvey = sm.getById(
-									sd, cResults, remoteUser, source_s_id, 
+									sd, cResults, 
+									remoteUser, 
+									temporaryUser, 
+									source_s_id, 
 									true, 		// full
 									null, 		// basepath
 									null, 		// instance id
@@ -1097,7 +1102,7 @@ public class TaskManager {
 									);
 						}
 						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
-								target_s_ident, tid, instanceId, true, remoteUser, complete_all,
+								target_s_ident, tid, instanceId, true, remoteUser, temporaryUser, complete_all,
 								assign_auto);  // Write to the database
 					}
 				}
@@ -1129,6 +1134,7 @@ public class TaskManager {
 			String updateId,
 			boolean autosendEmails,
 			String remoteUser,
+			boolean temporaryUser,
 			boolean complete_all,
 			boolean assign_auto
 			) throws Exception {
@@ -1329,6 +1335,7 @@ public class TaskManager {
 						updateId,
 						autosendEmails,
 						remoteUser,
+						temporaryUser,
 						initialDataSource,
 						updateId,
 						title,
@@ -1466,6 +1473,7 @@ public class TaskManager {
 			int oId,
 			boolean autosendEmails,
 			String remoteUser,
+			boolean temporaryUser,
 			String urlprefix
 			) throws Exception {
 
@@ -1693,6 +1701,7 @@ public class TaskManager {
 							targetSurveyIdent,
 							autosendEmails,
 							remoteUser,
+							temporaryUser,
 							tsd.initial_data_source,
 							tsd.update_id,
 							tsd.name,
@@ -1737,6 +1746,7 @@ public class TaskManager {
 							null,
 							autosendEmails,
 							remoteUser,
+							temporaryUser,
 							tsd.initial_data_source,
 							tsd.update_id,
 							tsd.name,
@@ -2108,6 +2118,7 @@ public class TaskManager {
 								email,			
 								"email",
 								request.getRemoteUser(),
+								false,		// Not a temporary user if request.getRemoteUser() works
 								actionLink);
 						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));					
 					}
@@ -2799,6 +2810,7 @@ public class TaskManager {
 			String targetSurveyIdent,
 			boolean autosendEmails,
 			String remoteUser,
+			boolean temporaryUser,
 			String initialDataSource,
 			String update_id,
 			String task_name,
@@ -2859,6 +2871,7 @@ public class TaskManager {
 						null,
 						autosendEmails,
 						remoteUser,
+						temporaryUser,
 						initialDataSource,
 						update_id,
 						task_name,
@@ -2894,6 +2907,7 @@ public class TaskManager {
 			String targetInstanceId,
 			boolean autosendEmails,
 			String remoteUser,			// For autosend of emails
+			boolean temporaryUser,
 			String initialDataSource,
 			String update_id,
 			String task_name,
@@ -3025,6 +3039,7 @@ public class TaskManager {
 								email,			
 								"email",
 								remoteUser,
+								temporaryUser,
 								link);
 						mm.createMessage(sd, oId, "email_task", "", gson.toJson(taskMsg));
 					}
@@ -3138,7 +3153,7 @@ public class TaskManager {
 		
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
-		Survey survey = sm.getById(sd, cResults, msg.user, msg.sId, true, basePath, 
+		Survey survey = sm.getById(sd, cResults, msg.user, msg.temporaryUser, msg.sId, true, basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				false,		// Do not include child surveys (at least not yet)

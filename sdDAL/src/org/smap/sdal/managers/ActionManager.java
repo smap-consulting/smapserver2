@@ -730,6 +730,7 @@ public class ActionManager {
 						cResults,
 						0, 
 						request.getRemoteUser(), 
+						false,
 						"https",
 						server,
 						basePath,

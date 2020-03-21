@@ -200,6 +200,7 @@ public class ActionServiceKPI extends Application {
 				prm.getReport(sd, 
 						cResults, 
 						userIdent, 
+						false,
 						request, 
 						response, 
 						a.sId, 

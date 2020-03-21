@@ -134,6 +134,7 @@ public class CreatePDF extends Application {
 					sd, 
 					cResults, 
 					request.getRemoteUser(), 
+					false,
 					sId, 
 					true, 
 					basePath, 

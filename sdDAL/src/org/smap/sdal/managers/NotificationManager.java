@@ -503,6 +503,7 @@ public class NotificationManager {
 			Connection cResults,
 			int ue_id,
 			String submittingUser,
+			boolean temporaryUser,
 			String scheme,
 			String serverName,
 			String basePath,
@@ -592,7 +593,8 @@ public class NotificationManager {
 				Survey survey = sm.getById(
 						sd, 
 						cResults, 
-						null, 		// User is not used as the notification permission is not dependent on the submitting user
+						submittingUser,
+						temporaryUser,
 						sId, 
 						true, 
 						basePath, 
@@ -714,7 +716,7 @@ public class NotificationManager {
 			surveyId = msg.sId;		// A legacy message
 		}
 		
-		Survey survey = sm.getById(sd, cResults, null, surveyId, true, msg.basePath, 
+		Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
 				msg.instanceId, true, generateBlank, true, false, true, "real", 
 				false, false, true, "geojson",
 				msg.include_references,	// For PDFs follow links to referenced surveys
@@ -725,7 +727,7 @@ public class NotificationManager {
 		Survey updateSurvey = null;
 		if(msg.update_ident != null) {
 			int oversightId = GeneralUtilityMethods.getSurveyId(sd, msg.update_ident);
-			updateSurvey = sm.getById(sd, cResults, null, oversightId, true, msg.basePath, 
+			updateSurvey = sm.getById(sd, cResults, null, false, oversightId, true, msg.basePath, 
 					msg.instanceId, true, generateBlank, true, false, true, "real", 
 					false, false, true, "geojson",
 					msg.include_references,		// For PDFs follow links to referenced surveys

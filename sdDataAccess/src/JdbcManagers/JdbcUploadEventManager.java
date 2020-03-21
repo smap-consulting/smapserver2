@@ -63,10 +63,11 @@ public class JdbcUploadEventManager {
 			+ "start_time,"
 			+ "end_time,"
 			+ "instance_name,"
-			+ "scheduled_start) "
+			+ "scheduled_start,"
+			+ "temporary_user) "
 			+ "values (nextval('ue_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-			+ ", ?, ?, ?, ?, ?, ?);";
+			+ ", ?, ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtUnprocessed = null;
 	String sqlGet = "select "
@@ -92,7 +93,8 @@ public class JdbcUploadEventManager {
 			+ "ue.assignment_id,"
 			+ "ue.survey_notes,"
 			+ "ue.location_trigger,"
-			+ "ue.audit_file_path "
+			+ "ue.audit_file_path,"
+			+ "ue.temporary_user "
 			+ "from upload_event ue "
 				+ "where ue.status = 'success' "
 				+ "and ue.s_id is not null "
@@ -149,6 +151,7 @@ public class JdbcUploadEventManager {
 		pstmt.setTimestamp(25, ue.getEnd());
 		pstmt.setString(26, ue.getInstanceName());
 		pstmt.setTimestamp(27, ue.getScheduledStart());
+		pstmt.setBoolean(28, ue.getTemporaryUser());
 	
 		pstmt.executeUpdate();
 	}
@@ -211,6 +214,7 @@ public class JdbcUploadEventManager {
 			ue.setSurveyNotes(rs.getString(21));
 			ue.setLocationTrigger(rs.getString(22));
 			ue.setAuditFilePath(rs.getString(23));
+			ue.setTemporaryUser(rs.getBoolean(24));
 			
 			ueList.add(ue);
 		}

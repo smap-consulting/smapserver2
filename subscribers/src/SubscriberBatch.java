@@ -301,6 +301,7 @@ public class SubscriberBatch {
 										s.upload(instance, 
 												is3, 
 												ue.getUserName(), 
+												ue.getTemporaryUser(),
 												ue.getServerName(), 
 												ue.getImei(), 
 												se,
