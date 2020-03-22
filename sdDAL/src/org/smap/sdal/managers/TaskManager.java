@@ -1001,7 +1001,7 @@ public class TaskManager {
 			String remoteUser,
 			boolean temporaryUser) throws Exception {
 
-		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all, assign_auto, repeat from task_group where source_s_id = ?;";
+		String sqlGetRules = "select tg_id, name, rule, address_params, target_s_id, complete_all, assign_auto from task_group where source_s_id = ?;";
 		PreparedStatement pstmtGetRules = null;
 
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
@@ -1044,7 +1044,6 @@ public class TaskManager {
 					String target_s_ident = GeneralUtilityMethods.getSurveyIdent(sd, target_s_id);
 					boolean complete_all = rs.getBoolean(6);
 					boolean assign_auto = rs.getBoolean(7);
-					boolean repeat = rs.getBoolean(8);
 					
 					log.info("Assign Survey String: " + rs.getString(3));
 					log.info("userevent: matching rule: " + as.task_group_name + " for survey: " + source_s_id);	// For log
@@ -1104,7 +1103,7 @@ public class TaskManager {
 						}
 						writeTaskCreatedFromSurveyResults(sd, cResults, as, hostname, tgId, tgName, pId, pName, sourceSurvey, 
 								target_s_ident, tid, instanceId, true, remoteUser, temporaryUser, complete_all,
-								assign_auto, repeat);  // Write to the database
+								assign_auto, as.repeat);  // Write to the database
 					}
 				}
 			}
