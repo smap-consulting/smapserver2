@@ -88,57 +88,61 @@ public class SurveyTableManager {
 		this.cResults = cResults;
 		this.localisation = l;
 		
-		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
-		
-		String sqlGetCsvTable = "select id, sqldef from csvtable "
-				+ "where o_id = ? "
-				+ "and s_id = ? "
-				+ "and survey "
-				+ "and filename = ? "
-				+ "and user_ident = ?";
-		PreparedStatement pstmtGetCsvTable = null;
-		
-		String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, survey, user_ident, ts_initialised) "
-				+ "values(nextval('csv_seq'), ?, ?, ?, true, ?, now())";
-		PreparedStatement pstmtInsertCsvTable = null;
-		try {
-			pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
-			pstmtGetCsvTable.setInt(1, oId);
-			pstmtGetCsvTable.setInt(2, sId);
-			pstmtGetCsvTable.setString(3, fileName);
-			pstmtGetCsvTable.setString(4, user);
-			log.info("Getting csv table id: " + pstmtGetCsvTable.toString());
-			ResultSet rs = pstmtGetCsvTable.executeQuery();
+		if(oId <= 0) {
+			log.info("************************ Error: Create Survey Table Manager : Organisation id is less than or equal to 0");
+		} else {
+			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			
-			if(rs.next()) {
-				tableId = rs.getInt(1);
-				sqlDef = gson.fromJson(rs.getString(2), SqlDef.class);
-			} else {
-				/*
-				 * Create the headers and sql
-				 */				
-				pstmtInsertCsvTable = sd.prepareStatement(sqlInsertCsvTable, Statement.RETURN_GENERATED_KEYS);
-				pstmtInsertCsvTable.setInt(1, oId);
-				pstmtInsertCsvTable.setInt(2, sId);
-				pstmtInsertCsvTable.setString(3, fileName);
-				pstmtInsertCsvTable.setString(4, user);
-				log.info("Create a new csv file entry (Survey Manager): " + pstmtInsertCsvTable.toString());
-				pstmtInsertCsvTable.executeUpdate();
-				ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
-				if(rsKeys.next()) {
-					tableId = rsKeys.getInt(1);
+			String sqlGetCsvTable = "select id, sqldef from csvtable "
+					+ "where o_id = ? "
+					+ "and s_id = ? "
+					+ "and survey "
+					+ "and filename = ? "
+					+ "and user_ident = ?";
+			PreparedStatement pstmtGetCsvTable = null;
+			
+			String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, survey, user_ident, ts_initialised) "
+					+ "values(nextval('csv_seq'), ?, ?, ?, true, ?, now())";
+			PreparedStatement pstmtInsertCsvTable = null;
+			try {
+				pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
+				pstmtGetCsvTable.setInt(1, oId);
+				pstmtGetCsvTable.setInt(2, sId);
+				pstmtGetCsvTable.setString(3, fileName);
+				pstmtGetCsvTable.setString(4, user);
+				log.info("Getting csv table id: " + pstmtGetCsvTable.toString());
+				ResultSet rs = pstmtGetCsvTable.executeQuery();
+				
+				if(rs.next()) {
+					tableId = rs.getInt(1);
+					sqlDef = gson.fromJson(rs.getString(2), SqlDef.class);
 				} else {
-					throw new Exception("Failed to create CSV Table entry");
+					/*
+					 * Create the headers and sql
+					 */				
+					pstmtInsertCsvTable = sd.prepareStatement(sqlInsertCsvTable, Statement.RETURN_GENERATED_KEYS);
+					pstmtInsertCsvTable.setInt(1, oId);
+					pstmtInsertCsvTable.setInt(2, sId);
+					pstmtInsertCsvTable.setString(3, fileName);
+					pstmtInsertCsvTable.setString(4, user);
+					log.info("Create a new csv file entry (Survey Manager): " + pstmtInsertCsvTable.toString());
+					pstmtInsertCsvTable.executeUpdate();
+					ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
+					if(rsKeys.next()) {
+						tableId = rsKeys.getInt(1);
+					} else {
+						throw new Exception("Failed to create CSV Table entry");
+					}
 				}
+				if(sqlDef == null) {
+					getSqlAndHeaders(sd, cResults, sId, fileName, user);
+				}
+	
+				
+			} finally {
+				try {pstmtGetCsvTable.close();} catch(Exception e) {}
+				try {pstmtInsertCsvTable.close();} catch(Exception e) {}
 			}
-			if(sqlDef == null) {
-				getSqlAndHeaders(sd, cResults, sId, fileName, user);
-			}
-
-			
-		} finally {
-			try {pstmtGetCsvTable.close();} catch(Exception e) {}
-			try {pstmtInsertCsvTable.close();} catch(Exception e) {}
 		}
 	}
 
