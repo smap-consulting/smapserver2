@@ -124,6 +124,7 @@ public class XLSXAdminReportsManagerFormAccess {
 					sd, 
 					null, 		// cResults
 					request.getRemoteUser(), 
+					false,
 					sId, 
 					true,		// full details
 					null, 		// basePath

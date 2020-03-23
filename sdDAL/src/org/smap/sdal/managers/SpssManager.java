@@ -79,7 +79,7 @@ public class SpssManager {
 			 * Get the results and details of the user that submitted the survey
 			 */
 			boolean superUser = GeneralUtilityMethods.isSuperUser(connectionSD, remoteUser);
-			survey = sm.getById(connectionSD, null, remoteUser, sId, true, null, null, 
+			survey = sm.getById(connectionSD, null, remoteUser, false, sId, true, null, null, 
 					false, false, true, false, false, "real", false, false, superUser, null,
 					false,		// Do not follow links to child surveys
 					false,		// launched only

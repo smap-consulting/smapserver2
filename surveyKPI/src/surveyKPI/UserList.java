@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
@@ -33,14 +34,19 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.ActionManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.UserManager;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 import org.smap.sdal.model.UserSimple;
@@ -49,9 +55,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import utilities.XLSUsersManager;
+
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -118,7 +129,6 @@ public class UserList extends Application {
 		aSimpleList.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		ArrayList<User> users = null;
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		try {
@@ -131,7 +141,7 @@ public class UserList extends Application {
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
 			
 			UserManager um = new UserManager(localisation);
-			users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
+			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -175,7 +185,7 @@ public class UserList extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOnlyViewData = GeneralUtilityMethods.isOnlyViewData(sd, request.getRemoteUser());
 			UserManager um = new UserManager(localisation);
-			users = um.getUserListSimple(sd, oId, true, isOnlyViewData, request.getRemoteUser());		// Always sort by name
+			users = um.getUserListSimple(sd, oId, true, isOnlyViewData, request.getRemoteUser(), false);		// Always sort by name
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -528,7 +538,7 @@ public class UserList extends Application {
 	 */
 	@DELETE
 	@Consumes("application/json")
-	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) { 
+	public Response delUser(@Context HttpServletRequest request, @FormParam("users") String users) {
 		
 		Response response = null;
 		String requestName = "surveyKPI - delUser";
@@ -599,7 +609,233 @@ public class UserList extends Application {
 		return response;
 	}
 	
+	/*
+	 * Export users
+	 */
+	@GET
+	@Path ("/xls")
+	@Produces("application/x-download")
+	public Response exportUsers(@Context HttpServletRequest request, 
+			@QueryParam("tz") String tz,
+			@Context HttpServletResponse response
+		) throws Exception {
 
+		String connectionString = "Export users";
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		
+		// Authorisation - Access
+		a.isAuthorised(sd, request.getRemoteUser());		
+		// End Authorisation 
+		
+		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String filename = null;
+			filename = localisation.getString("mf_u") + ".xlsx";			
+			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
+			
+			UserManager um = new UserManager(localisation);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
+
+			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
+			
+			// Create User XLS File
+			XLSUsersManager xu = new XLSUsersManager(request.getScheme(), request.getServerName());
+			xu.createXLSFile(sd, response.getOutputStream(), users, localisation, tz);
+			
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);	
+			
+		}
+		return Response.ok("").build();
+	}
+
+	/*
+	 * Import users from an xls file
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/xls")
+	public Response importProjects(
+			@Context HttpServletRequest request
+			) throws IOException {
+		
+		Response response = null;
+		boolean clear = false;
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
+
+		log.info("userevent: " + request.getRemoteUser() + " : import users ");
+
+		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB TODO handle this with exception and redirect to an error page
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		Connection cResults = null;
+		String fileName = null;
+		String filetype = null;
+		FileItem file = null;
+		String requester = "UsersList - Users Upload";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(requester);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation	
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			cResults = ResultsDataSource.getConnection(requester);
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";	// Set default for timezone
+			
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				// Get form parameters
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+					if(item.getFieldName().equals("file_clear")) {
+						clear = Boolean.valueOf(item.getString());
+					}
+					
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					fileName = item.getName();
+					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
+						filetype = "xlsx";
+					} else if(fileName.endsWith("xls")) {
+						filetype = "xls";
+					} else {
+						log.info("unknown file type for item: " + fileName);
+						continue;	
+					}
+					
+					file = item;
+				}
+			}
+	
+			if(file != null) {
+				// Authorisation - Access
+				a.isAuthorised(sd, request.getRemoteUser());			
+				// End authorisation
+				
+				/*
+				 * Get the organisation and name of the user making the request
+				 */
+				String sql = "select u.o_id, u.name "
+						+ "from users u " 
+						+ "where u.ident = ?";				
+							
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setString(1, request.getRemoteUser());
+				log.info("SQL: " + pstmt.toString());
+				ResultSet resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					int oId = resultSet.getInt(1);
+					String adminName = resultSet.getString(2);	
+				
+					String scheme = request.getScheme();
+					String serverName = request.getServerName();
+					ArrayList<String> added = new ArrayList<> ();
+					
+					// Process xls file
+					XLSUsersManager xum = new XLSUsersManager();
+					ArrayList<User> users = xum.getXLSUsersList(sd, filetype, file.getInputStream(), localisation, tz, oId);	
+							
+					// Save users the database
+					UserManager um = new UserManager(localisation);
+					
+					ArrayList<UserSimple> emptyUsers = null;
+					String basePath = GeneralUtilityMethods.getBasePath(request);
+					
+					if(clear) {
+						
+						emptyUsers = um.getUserListSimple(sd, oId, true, false, null, true);
+						
+						if(emptyUsers.size() > 0) {
+							for(UserSimple us : emptyUsers) {
+								um.deleteUser(sd, request.getRemoteUser(), basePath, us.id, oId, true);
+							}
+						}
+					}
+					
+					for(User u : users) {
+						try {
+							
+							um.createUser(sd, u, oId, 
+									false, false, false, false, 
+									request.getRemoteUser(), scheme, serverName, adminName, localisation);
+							added.add(u.name);
+						} catch (Exception e) {
+							log.info("Falied to add user " + u.name + " : " + e.getMessage());
+						}
+					}
+					
+					
+					String note = localisation.getString("u_import");
+					if(emptyUsers == null) {
+						note = note.replaceFirst("%s1", "0");
+					} else {
+						note = note.replaceFirst("%s1", String.valueOf(emptyUsers.size()));
+					}
+					
+					note = note.replaceFirst("%s2", String.valueOf(users.size()));
+					note = note.replaceFirst("%s3", String.valueOf(added.size()));
+					note = note.replaceFirst("%s4", added.toString());
+					lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), 
+							LogManager.PROJECT, note);
+					
+				
+					response = Response.ok(note).build();
+				} else {
+					response = Response.serverError().entity("Admin user not found").build();
+				}
+			} else {
+				response = Response.serverError().entity("File not found").build();
+			}
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+			try {if(!sd.getAutoCommit()) { sd.rollback();}} catch(Exception e) {}
+		} finally {
+			
+			try {if(!sd.getAutoCommit()) { sd.setAutoCommit(true);}} catch(Exception e) {}
+			try {if(pstmt != null) {pstmt.close();}} catch(Exception e) {};
+			
+			SDDataSource.closeConnection(requester, sd);
+			ResultsDataSource.closeConnection(requester, cResults);
+			
+		}
+		
+		return response;
+		
+	}
 	
 	private String getGroups(ArrayList<UserGroup> groups) {
 		StringBuffer g = new StringBuffer("");
@@ -633,6 +869,7 @@ public class UserList extends Application {
 		}
 		return g.toString();
 	}
+	
 
 }
 

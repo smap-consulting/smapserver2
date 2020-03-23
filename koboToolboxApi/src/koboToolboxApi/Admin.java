@@ -111,9 +111,12 @@ public class Admin extends Application {
 		ArrayList<Project> projects = null;
 		
 		try {
-			ProjectManager pm = new ProjectManager();
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			ProjectManager pm = new ProjectManager(localisation);
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
-			projects = pm.getProjects(sd, request.getRemoteUser(), all, links, urlprefix);
+			projects = pm.getProjects(sd, request.getRemoteUser(), all, links, urlprefix, false, false);
 				
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(projects);
@@ -300,7 +303,7 @@ public class Admin extends Application {
 					countNots++;	
 					// Test the filter
 					SurveyManager sm = new SurveyManager(localisation, "UTC");
-					Survey survey = sm.getById(sd, cResults, userName, sId, true, basePath, 
+					Survey survey = sm.getById(sd, cResults, userName, false, sId, true, basePath, 
 							instanceId, true, false, true, false, true, "real", 
 							false, false, 
 							true, 			// pretend to be super user
@@ -347,6 +350,7 @@ public class Admin extends Application {
 									cResults,
 									ueId, 
 									userName, 
+									false,
 									"https",
 									server,
 									basePath,

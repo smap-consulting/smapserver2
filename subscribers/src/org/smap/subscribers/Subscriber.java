@@ -61,7 +61,8 @@ public abstract class Subscriber {
 	 * @param server
 	 * @param se
 	 */
-	public abstract void upload(SurveyInstance event, InputStream id, String user, String server, String device, 
+	public abstract void upload(SurveyInstance event, InputStream id, String user, 
+			boolean temporaryUser, String server, String device, 
 			SubscriberEvent se, String confFilePath, String formStatus, String basePath, String filePath,
 			String updateId, int ue_id, Date uploadTime, 
 			String surveyNotes, String locationTrigger,

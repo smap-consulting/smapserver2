@@ -374,6 +374,7 @@ public class SurveyManager {
 			Connection sd, 
 			Connection cResults,
 			String user,
+			boolean temporaryUser,
 			int sId,
 			boolean full,						// Get the full details of the survey
 			String basePath,
@@ -427,7 +428,7 @@ public class SurveyManager {
 				+ "and p.o_id = o.id "
 				+ "and s.s_id = ? ";
 
-		if(user != null) {
+		if(user != null && !temporaryUser) {
 			sql.append(userIdentifiedSql);
 		} else {
 			sql.append(anonUserSql);
@@ -530,7 +531,8 @@ public class SurveyManager {
 							0,	
 							sd,
 							cResults, 
-							user,							
+							user,	
+							temporaryUser,
 							basePath,
 							getPropertyTypeQuestions,	
 							getHrk,		
@@ -2526,6 +2528,7 @@ public class SurveyManager {
 			
 			// The following parameters are used when getting date from referenced surveys
 			String remoteUser,							// The user making the request
+			boolean temporaryUser,
 			String basePath,
 			boolean getPropertyTypeQuestions,	
 			boolean getHrk,		
@@ -2732,6 +2735,7 @@ public class SurveyManager {
 							cResults,
 							resultSet, 
 							remoteUser,							// The user making the request
+							temporaryUser,
 							basePath,
 							getPropertyTypeQuestions,	
 							getHrk,		
@@ -2774,6 +2778,7 @@ public class SurveyManager {
 						cResults,
 						resultSet, 					
 						remoteUser,							// The user making the request
+						temporaryUser,
 						basePath,
 						getPropertyTypeQuestions,	
 						getHrk,		
@@ -2818,6 +2823,7 @@ public class SurveyManager {
 			ResultSet resultSet, 
 												// The following parameters are used when getting date from referenced surveys
 			String remoteUser,							// The user making the request
+			boolean temporaryUser,
 			String basePath,
 			boolean getPropertyTypeQuestions,	
 			boolean getHrk,		
@@ -2866,7 +2872,8 @@ public class SurveyManager {
 							subForm.id, 
 							sd,
 							cResults,						
-							remoteUser,							
+							remoteUser,	
+							temporaryUser,
 							basePath,
 							getPropertyTypeQuestions,	
 							getHrk,		
@@ -2901,6 +2908,7 @@ public class SurveyManager {
 						sd, 
 						cResults,
 						remoteUser,
+						temporaryUser,
 						refId,
 						true,						// Get the full details of the survey
 						basePath,
@@ -2952,7 +2960,8 @@ public class SurveyManager {
 							mainSubForm.id, 
 							sd,
 							cResults,
-							remoteUser,							
+							remoteUser,	
+							temporaryUser,
 							basePath,
 							getPropertyTypeQuestions,	
 							getHrk,		

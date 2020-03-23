@@ -7873,6 +7873,7 @@ public class GeneralUtilityMethods {
 		u.ident = tempUserId;
 		u.email = email;
 		u.name = assignee_name;
+		
 
 		// Only allow access to the project used by this task
 		u.projects = new ArrayList<Project> ();
@@ -9183,6 +9184,29 @@ public class GeneralUtilityMethods {
 		}
 		
 		return tuf;
+	}
+	
+	public static ArrayList<UserGroup> getSecurityGroups(Connection sd) throws SQLException {
+		
+		String sql = "select id, name "
+				+ "from groups "
+				+ "order by name asc";
+		PreparedStatement pstmt = null;
+		
+		ArrayList<UserGroup> groups = new ArrayList<UserGroup> ();
+		try {
+			pstmt = sd.prepareStatement(sql);
+			
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {			
+				groups.add(new UserGroup(rs.getInt(1), rs.getString(2)));
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		}
+		
+		return groups;
 	}
 }
 

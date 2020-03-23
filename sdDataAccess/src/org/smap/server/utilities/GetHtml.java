@@ -81,7 +81,9 @@ public class GetHtml {
 
 		try {
 
-			survey = sm.getById(sd, cResults, userIdent, sId, true, basePath, null, false, false, true, false,
+			survey = sm.getById(sd, cResults, userIdent, 
+					false, 	// Either logged in user or using a temporary ident so not real temporary user
+					sId, true, basePath, null, false, false, true, false,
 					false, "real", false, false, superUser, null,
 					false,		// Do not include child surveys - presumably never required for a web form
 					false,		// launched only

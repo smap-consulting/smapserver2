@@ -303,7 +303,7 @@ public class MailoutApi extends Application {
 		
 		Response response = null;
 		String connectionString = "api/v1/mailout - add email";
-		String url = "";
+
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		MailoutPerson mailoutPerson = null;

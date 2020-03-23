@@ -6,10 +6,18 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.core.Response;
+
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.ProjectLinks;
 
@@ -37,6 +45,14 @@ public class ProjectManager {
 	private static Logger log =
 			 Logger.getLogger(ProjectManager.class.getName());
 
+	LogManager lm = new LogManager();		// Application log
+	
+	private ResourceBundle localisation;
+	
+	public ProjectManager(ResourceBundle l) {
+		localisation = l;
+	}
+	
 	/*
 	 * Get projects
 	 */
@@ -44,8 +60,10 @@ public class ProjectManager {
 			Connection sd, 
 			String user,
 			boolean all,			// If true get all projects in user organisation, otherwise just ones they are in
-			boolean links,		// If true include links to other data that uses the project id as a key
-			String urlprefix		// Url prefix for links
+			boolean links,			// If true include links to other data that uses the project id as a key
+			String urlprefix,		// Url prefix for links
+			boolean emptyOnly,
+			boolean importedOnly
 			) throws ApplicationException, SQLException {
 		
 		PreparedStatement pstmt = null;
@@ -57,24 +75,30 @@ public class ProjectManager {
 			
 			if(o_id > 0) {
 				
-				String cols = "select p.id, p.name, p.description, p.tasks_only, p.changed_by, p.changed_ts ";
-				String sql = null;
+				StringBuffer sql = new StringBuffer("select p.id, p.name, p.description, p.tasks_only, "
+						+ "p.changed_by, p.changed_ts ");
+				
 				if(all) {
-					sql = cols
-							+ "from project p "
-							+ "where p.o_id = ? "
-							+ "order by p.name asc;";		
+					sql.append("from project p "
+							+ "where p.o_id = ? ");	
 				} else {
-					sql = cols
-							+ "from project p, user_project up, users u "
+					sql.append("from project p, user_project up, users u "
 							+ "where p.o_id = ? "
 							+ "and p.id = up.p_id "
 							+ "and up.u_id = u.id "
-							+ "and u.ident = ? "
-							+ "order by p.name asc;";		
-					
+							+ "and u.ident = ? ");				
 				}
-				pstmt = sd.prepareStatement(sql);			
+				if(emptyOnly) {
+					sql.append("and p.id not in "
+							+ " (select p_id from survey " 
+							+ " where hidden = false) ");
+				}
+				if(importedOnly) {
+					sql.append("and p.imported ");
+				}
+				sql.append("order by p.name asc");
+				
+				pstmt = sd.prepareStatement(sql.toString());			
 				pstmt.setInt(1, o_id);
 				if(!all) {
 					pstmt.setString(2, user);
@@ -160,7 +184,7 @@ public class ProjectManager {
 	}
 	
 	/*
-	 * Create a new project
+	 * Add a user to a project
 	 */
 	public int addUser(
 			Connection sd, 
@@ -201,6 +225,163 @@ public class ProjectManager {
 		}
 		
 		return p_id;
+	}
+	
+	
+	/*
+	 * Delete projects
+	 */
+	public void deleteProjects(Connection sd, Connection cResults,
+			Authorise a, 
+			ArrayList<Project> pArray, 
+			String remoteUser,
+			String basePath) throws Exception {
+
+		PreparedStatement pstmt = null;
+		
+		try {	
+			String sql = null;
+			ResultSet resultSet = null;
+			
+			int o_id = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
+				
+			for(int i = 0; i < pArray.size(); i++) {
+				Project p = pArray.get(i);
+				
+				a.projectInUsersOrganisation(sd, remoteUser, p.id);		// Authorise deletion of this project
+				
+				String project_name = GeneralUtilityMethods.getProjectName(sd, p.id);
+				
+				/*
+				 * Ensure that there are no undeleted surveys in this project
+				 * Don't count hidden surveys which have been replaced
+				 */
+				sql = "select count(*) "
+						+ " from survey s " 
+						+ " where s.p_id = ? "
+						+ "and s.hidden = false";
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				log.info("Check for undeleted surveys: " + pstmt.toString());
+				resultSet = pstmt.executeQuery();
+				if(resultSet.next()) {
+					int count = resultSet.getInt(1);
+					if(count > 0) {
+						String msg = localisation.getString("msg_undel_proj").replace("%s1", String.valueOf(p.id));
+						throw new Exception(msg);
+					}
+				} else {
+					throw new Exception("Error getting survey count");
+				}			
+				
+				// Erase any hidden forms 
+				ServerManager sm = new ServerManager();
+				sql = "select s_id, ident, display_name "
+						+ " from survey s " 
+						+ " where s.p_id = ? "
+						+ "and s.hidden = true";
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					int sId = rs.getInt(1);
+					String ident = rs.getString(2);
+					String displayName = rs.getString(3);
+					sm.deleteSurvey(		// Delete the replaced survey
+							sd, 
+							cResults,
+							remoteUser,
+							p.id,
+							sId,
+							ident,
+							displayName,
+							basePath,
+							true,
+							"yes");
+				}
+				
+				// Delete the project
+				sql = "delete from project p " 
+						+ "where p.id = ? "
+						+ "and p.o_id = ?";			// Ensure the project is in the same organisation as the administrator doing the editing
+					
+				try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {}
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, p.id);
+				pstmt.setInt(2, o_id);
+				log.info("Delete project: " + pstmt.toString());
+				pstmt.executeUpdate();
+
+				String msg = localisation.getString("msg_del_proj");
+				msg = msg.replace("%s1", project_name);
+				lm.writeLogOrganisation(sd, o_id, remoteUser, LogManager.DELETE, 
+						msg);
+			}
+			
+			sd.commit();
+					
+		} finally {	
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		}
+		
+	}
+	
+	/*
+	 * Write a list of projects
+	 */
+	public ArrayList<String> writeProjects(
+			Connection sd, 
+			ArrayList<Project> projects, 
+			int o_id, 
+			String userIdent,
+			boolean imported) throws SQLException {
+		
+		ArrayList<String> added = new ArrayList<String> ();
+		
+		String sql = "insert into project (name, description, o_id, changed_by, changed_ts, imported) " +
+				" values (?, ?, ?, ?, now(), ?);";		
+		PreparedStatement pstmt = null;
+		
+		String sqlExists = "select count(*) from project where name = ? and o_id = ?";
+		PreparedStatement pstmtExists = null;
+		
+		ResultSet rs = null;
+		
+		try {
+		
+			// Prepare insert
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(3, o_id);
+			pstmt.setString(4, userIdent);
+			pstmt.setBoolean(5, imported);
+			
+			// Prepare exists check
+			pstmtExists = sd.prepareStatement(sqlExists);
+			pstmtExists.setInt(2,  o_id);
+			
+			for(Project p : projects) {
+				pstmtExists.setString(1,  p.name);
+				if(rs != null) {
+					rs.close();
+				}
+				rs = pstmtExists.executeQuery();
+				if(!rs.next() || rs.getInt(1) == 0) {
+					pstmt.setString(1, p.name);
+					pstmt.setString(2, p.desc);
+					pstmt.executeUpdate();
+					
+					added.add(p.name);
+				}
+			}
+
+		} finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			try {if (pstmtExists != null) {pstmtExists.close();} } catch (SQLException e) {	}
+		}
+		return added;
 	}
 	
 }

@@ -229,7 +229,7 @@ public class ActionService extends Application {
 			a.sId = GeneralUtilityMethods.getSurveyId(sd, a.surveyIdent);
 		}
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
-		Survey s = sm.getById(sd, cResults, uIdent, a.sId, false, null, null, false, false, false, false, false, null,
+		Survey s = sm.getById(sd, cResults, uIdent, false, a.sId, false, null, null, false, false, false, false, false, null,
 				false, false, false, null,
 				false,	// child surveys
 				false,	// launched only

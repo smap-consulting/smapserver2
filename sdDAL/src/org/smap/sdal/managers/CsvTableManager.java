@@ -122,7 +122,7 @@ public class CsvTableManager {
 				pstmtInsertCsvTable.setInt(2, sId);
 				pstmtInsertCsvTable.setString(3, fileName);
 				pstmtInsertCsvTable.setString(4, null);
-				log.info("Create a new csv file entry: " + pstmtInsertCsvTable.toString());
+				log.info("Create a new csv file entry (Table Manager): " + pstmtInsertCsvTable.toString());
 				pstmtInsertCsvTable.executeUpdate();
 				ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
 				if(rsKeys.next()) {

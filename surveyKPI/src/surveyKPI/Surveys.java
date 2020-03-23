@@ -213,7 +213,7 @@ public class Surveys extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, tz);
-			survey = sm.getById(sd, cResults,  request.getRemoteUser(), sId, 
+			survey = sm.getById(sd, cResults,  request.getRemoteUser(), false, sId, 
 					true, 		// Get full details
 					basePath, 
 					null, 		// instance id
@@ -309,7 +309,7 @@ public class Surveys extends Application {
 			int sId = sm.createNewSurvey(sd, name, projectId, existing, existingSurveyId, sharedResults, request.getRemoteUser());
 			// Get the survey details.  superUser set to true as this user just created the survey so they are effectively a super user for this survey and we can save a database call
 			survey = sm.getById(sd, 
-					cResults,  request.getRemoteUser(), sId, true, 
+					cResults,  request.getRemoteUser(), false, sId, true, 
 					basePath, null, false, false, true, true, false,
 					"internal", false, false, true, null,
 					false,		// Do not include child surveys
@@ -392,7 +392,7 @@ public class Surveys extends Application {
 			GeneralUtilityMethods.setMediaForLanguages(sd, sId, languageList);	// Cope with media being duplicated across all languages
 			// Get the survey details.  superUser set to true as this user just edited the survey so they are effectively a super user for this survey and we can save a databse call
 			org.smap.sdal.model.Survey  survey = sm.getById(sd, 
-					null,  request.getRemoteUser(), sId, true, 
+					null,  request.getRemoteUser(), false, sId, true, 
 					basePath, null, false, false, true, true, false,
 					"internal", false, false, true, null,
 					false,		// Do not include child surveys

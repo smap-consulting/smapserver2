@@ -427,8 +427,8 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, password, created) " +
-				" values (?, ?, ?, ?, ?, md5(?), now());";
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, password, created) " +
+				" values (?, ?, ?, ?, ?, ?, md5(?), now());";
 
 		PreparedStatement pstmt = null;
 
@@ -440,7 +440,8 @@ public class UserManager {
 			pstmt.setString(3, u.name);
 			pstmt.setString(4, u.email);
 			pstmt.setInt(5, o_id);
-			pstmt.setString(6, pwdString);
+			pstmt.setBoolean(6,u.imported);
+			pstmt.setString(7, pwdString);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -510,6 +511,8 @@ public class UserManager {
 			User u, 
 			int o_id) throws Exception {
 
+		log.info("############# Creating temporary user");
+		
 		int u_id = -1;
 		String sql = "insert into users "
 				+ "(ident, o_id, email, name, temporary, action_details, single_submission, created) "
@@ -1427,31 +1430,35 @@ public class UserManager {
 			int oId, 
 			boolean orderByName,
 			boolean isOnlyViewData,
-			String ident) throws SQLException {
+			String ident, 
+			boolean importedOnly) throws SQLException {
 		
 		ArrayList<UserSimple> users = new ArrayList<> ();
 		
-		String sql = "select u.id as id,"
+		StringBuffer sql = new StringBuffer("select u.id as id,"
 				+ "u.ident as ident, "
 				+ "u.name as name "			
 				+ "from users u "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
-				+ "and not u.temporary ";
+				+ "and not u.temporary ");
 		
 		if(isOnlyViewData) {
-			sql += "and u.ident = ? ";
+			sql.append("and u.ident = ? ");
+		}
+		if(importedOnly) {
+			sql.append("and u.imported ");
 		}
 		if(orderByName) {
-			sql += "order by u.name asc";
+			sql.append("order by u.name asc");
 		} else {
-			sql += "order by u.ident asc";
+			sql.append("order by u.ident asc");
 		}
 		
 		PreparedStatement pstmt = null;
 		
 		try {
 			
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			ResultSet rs = null;
 			
 			pstmt.setInt(1, oId);
