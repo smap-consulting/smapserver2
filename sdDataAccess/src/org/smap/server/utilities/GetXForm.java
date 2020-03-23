@@ -1480,8 +1480,10 @@ public class GetXForm {
 	 * Get the instance data for an XForm
 	 */
 	public String getInstanceXml(int sId, String templateName, SurveyTemplate template, String key, String keyval,
-			int priKey, boolean simplifyMedia, 
-			boolean isWebForms, int taskKey,
+			int priKey, 
+			boolean simplifyMedia, 
+			boolean isWebForms, 
+			int taskKey,
 			String urlprefix,
 			Instance initialData) 
 			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
@@ -1551,10 +1553,10 @@ public class GetXForm {
 				hasData = true;
 				TaskManager tm = new TaskManager(localisation, tz);
 				Instance instance = tm.getInstance(sd, taskKey);
-				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix, true);
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, instance, urlprefix, true, isWebForms);
 			} else if(initialData != null) {
 				hasData = true;
-				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true);
+				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true, isWebForms);
 
 			}
 
@@ -1843,7 +1845,8 @@ public class GetXForm {
 				Element parentElement, int sId, String survey_ident, 
 				Instance instance,
 				String urlprefix,
-				boolean isTopLevel)
+				boolean isTopLevel,
+				boolean webform)
 			throws SQLException {
 
 		List<Results> record = new ArrayList<Results>();
@@ -1898,7 +1901,12 @@ public class GetXForm {
 								urlprefix = "https://localhost/";
 							}
 							if(qValue.startsWith(urlprefix)) {
-								int idx = urlprefix.length();
+								int idx = 0;
+								if(webform) {
+									idx = urlprefix.length();
+								} else {
+									idx = qValue.lastIndexOf("/") + 1;
+								}
 								if(qValue.length() > idx) {
 									value = qValue.substring(idx);
 									gFilenames.add(value);
@@ -1956,7 +1964,7 @@ public class GetXForm {
 					}
 				}
 				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
-						survey_ident, iSub, urlprefix, false);		
+						survey_ident, iSub, urlprefix, false, webform);		
 
 				Element childElement = null;
 				childElement = outputDoc.createElement(item.name);
