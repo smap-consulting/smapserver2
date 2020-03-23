@@ -52,6 +52,9 @@ public class Manager {
 		if(subscriberType.equals("upload")) {
 			MessageProcessor mp = new MessageProcessor();
 			mp.go(smapId, fileLocn);
+
+			AutoUpdateProcessor au = new AutoUpdateProcessor();
+			au.go(smapId, fileLocn);
 		}
 		
 		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);

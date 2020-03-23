@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -10,10 +11,15 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.managers.AutoUpdateManager;
 import org.smap.sdal.managers.MessagingManagerApply;
+import org.smap.sdal.model.AutoUpdate;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXException;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /*****************************************************************************
  * 
@@ -33,7 +39,7 @@ import org.xml.sax.SAXException;
  * 
  ******************************************************************************/
 
-public class MessageProcessor {
+public class AutoUpdateProcessor {
 
 	String confFilePath;
 
@@ -45,13 +51,13 @@ public class MessageProcessor {
 
 	private static Logger log = Logger.getLogger(Subscriber.class.getName());
 
-	private class MessageLoop implements Runnable {
+	private class UpdateLoop implements Runnable {
 		Connection sd;
 		Connection cResults;
 		String serverName;
 		String basePath;
 
-		public MessageLoop(Connection sd, Connection cResults, String basePath) {
+		public UpdateLoop(Connection sd, Connection cResults, String basePath) {
 			this.sd = sd;
 			this.cResults = cResults;
 			this.basePath = basePath;
@@ -61,16 +67,22 @@ public class MessageProcessor {
 
 			int delaySecs = 5;
 			while (true) {
-				System.out.print("m");
+				System.out.print("u");
 				
 				try {
 					// Make sure we have a connection to the database
 					getDatabaseConnection();
 					
-					// Apply messages
-					MessagingManagerApply mma = new MessagingManagerApply();
-					mma.applyOutbound(sd, cResults, serverName, basePath);
-					mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
+					/*
+					 * Apply auto updates
+					 */
+					AutoUpdateManager aum = new AutoUpdateManager(localisation);
+					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson, survey);
+					if(autoUpdates != null) {
+						log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
+						aum.applyAutoUpdates(sd, cResults, serverName, 0, autoUpdates);
+					}
 					
 				} catch (Exception e) {
 					log.log(Level.SEVERE, e.getMessage(), e);
@@ -159,7 +171,7 @@ public class MessageProcessor {
 			// Send any pending messages
 			File pFile = new File("/smap_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new MessageLoop(sd, cResults, basePath));
+				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath));
 				t.start();
 			} else {
 				// No message!

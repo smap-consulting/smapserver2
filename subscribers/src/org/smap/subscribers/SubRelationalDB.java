@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -65,7 +64,6 @@ import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
-import org.smap.sdal.model.TableColumn;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
 import org.smap.server.exceptions.SQLInsertException;
@@ -74,7 +72,6 @@ import org.w3c.dom.Document;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 public class SubRelationalDB extends Subscriber {
 
@@ -197,15 +194,6 @@ public class SubRelationalDB extends Subscriber {
 				applyAssignmentStatus(sd, cResults, assignmentId, ue_id, id);
 			}
 			
-			/*
-			 * Apply auto updates
-			 */
-			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-			ArrayList<AutoUpdate> autoUpdates = getAutoUpdates(sd, cResults, gson, survey);
-			if(autoUpdates != null) {
-				log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
-				applyAutoUpdates(sd, cResults, server, submittingUser, autoUpdates);
-			}
 			se.setStatus("success");			
 
 		} catch (SQLInsertException e) {  
@@ -425,189 +413,7 @@ public class SubRelationalDB extends Subscriber {
 		}
 	}
 	
-	/*
-	 * Get auto updates for this survey
-	 */
-	private ArrayList<AutoUpdate> getAutoUpdates(Connection sd, 
-			Connection cResults, 
-			Gson gson, 
-			Survey survey) throws SQLException {
-		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();	
-		SurveyManager sm = new SurveyManager(localisation, tz);
-		
-		// Get the group survey id
-		int groupSurveyId = 0;
-		if(survey.groupSurveyId == 0) {
-			groupSurveyId = survey.id;
-		} else {
-			groupSurveyId = GeneralUtilityMethods.getLatestSurveyId(sd, survey.groupSurveyId);
-		}
-		
-		HashMap<String, QuestionForm> groupQuestions = sm.getGroupQuestions(sd, 
-				groupSurveyId, 
-				" q.parameters like '%source=%'");
-		
-		for(String q : groupQuestions.keySet()) {
-			QuestionForm qf = groupQuestions.get(q);
-			if(qf.parameters != null) {
-				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
-				String auto = params.get("auto");
-				if(auto != null && auto.equals("yes")) {			
-					if(params.get("source") != null) {
-						
-						String refColumn = params.get("source").trim();					
-						if(refColumn.startsWith("$") && refColumn.length() > 3) {	// Remove ${} syntax if the source has that
-							refColumn = refColumn.substring(2, refColumn.length() -1);
-						}
-						
-						if(GeneralUtilityMethods.hasColumn(cResults, qf.tableName, refColumn)) {
-					
-							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
-									groupSurveyId, 
-									" q.column_name = '" + refColumn + "'");
-							
-							QuestionForm refQf = refQuestionMap.get(refColumn);
-							
-							if(refQf.qType != null 
-									&& (refQf.qType.equals("image")
-											|| refQf.qType.equals("audio"))) {
-								
-								String updateType = null;
-								if(refQf.qType.equals("image")) {
-									updateType = AutoUpdate.AUTO_UPDATE_IMAGE;
-								} else if(refQf.qType.equals("audio")) {
-									updateType = AutoUpdate.AUTO_UPDATE_AUDIO;
-								}
-								
-								AutoUpdate au = new AutoUpdate(updateType);
-								au.labelColType = "text";
-								au.sourceColName = refColumn;
-								au.targetColName = qf.columnName;
-								au.tableName = qf.tableName;
-								autoUpdates.add(au);
-								
-								log.info("--------------- AutoUpdate: " + refQf.qType);
-							} 
-						} else {
-							log.info("------------------ AutoUpdate: Error: " + refColumn + " not found in " + qf.tableName);
-						}
-					} 
-				} else {
-					log.info("------------------ AutoUpdate: auto not set for " + qf.qName);
-				}
-			}
-		}
-		
-		return autoUpdates;
-	}
 	
-	/*
-	 * Apply auto update changes
-	 */
-	private void applyAutoUpdates(
-			Connection sd,
-			Connection cResults,
-			String server, 
-			String remoteUser, 
-			ArrayList<AutoUpdate> updates) {
-		
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmtUpdate = null;
-
-		try {
-
-			ImageProcessing ip = new ImageProcessing();
-			AudioProcessing ap = new AudioProcessing();
-			
-			// For each update item get the records that are null and need updating
-			for(AutoUpdate item : updates) {
-					
-				if(GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.sourceColName)) {
-					
-					if(GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.targetColName)) {
-						
-						String sql = "select prikey," + item.sourceColName 
-								+ " from " + item.tableName 
-								+ " where " + item.targetColName + " is null "
-								+ "and " + item.sourceColName + " is not null";
-						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-						pstmt = cResults.prepareStatement(sql);
-							
-						String sqlUpdate = "update " 
-								+ item.tableName 
-								+ " set " + item.targetColName + " = ? where prikey = ?";
-						if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
-						pstmtUpdate = cResults.prepareStatement(sqlUpdate);
-							
-						log.info("Get auto updates: " + pstmt.toString());						
-						ResultSet rs = pstmt.executeQuery();
-						while (rs.next()) {
-							int prikey = rs.getInt(1);
-							String source = rs.getString(2);
-							if(source.trim().startsWith("attachments")) {
-								if(item.type.equals(AutoUpdate.AUTO_UPDATE_IMAGE)) {
-									String labels = ip.getLabels(server, remoteUser, "/smap/" + source, item.labelColType);
-									lm.writeLog(sd, 0, remoteUser, LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
-									
-									// Write labels to database
-									pstmtUpdate.setString(1, labels);
-									pstmtUpdate.setInt(2, prikey);
-									log.info("Update with labels: " + pstmtUpdate.toString());
-									pstmtUpdate.executeUpdate();
-								} else if(item.type.equals(AutoUpdate.AUTO_UPDATE_AUDIO)) {
-									String  transcript = ap.getTranscript(server, remoteUser, "/smap/" + source, 
-											item.labelColType,
-											"smap_transcribe_" + prikey);
-									lm.writeLog(sd, 0, remoteUser, LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
-									
-									// Write labels to database
-									pstmtUpdate.setString(1, transcript);
-									pstmtUpdate.setInt(2, prikey);
-									log.info("Update with labels: " + pstmtUpdate.toString());
-									pstmtUpdate.executeUpdate();
-								} else {
-									log.info("Error: cannot perform auto update for update type: " + item.type);
-								}
-							}
-							
-						} 
-					} else {
-						log.info("------------ AutoUpdate: Target Columns not found: " + item.targetColName + " in " + item.tableName);
-					}				
-				} else {
-					log.info("------------ AutoUpdate: Target Columns not found: " + item.sourceColName + " in " + item.tableName);
-				}
-			}
-			
-
-		} catch (Exception e) {
-			e.printStackTrace();
-		} finally {
-
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
-
-
-			try {
-				if (sd != null) {
-					sd.close();
-					sd = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-
-			try {
-				if (cResults != null) {
-					cResults.close();
-					cResults = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
 
 	/*
 	 * Write the submission to the database
