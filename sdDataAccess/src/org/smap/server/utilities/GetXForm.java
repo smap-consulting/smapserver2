@@ -1898,9 +1898,9 @@ public class GetXForm {
 								urlprefix = "https://localhost/";
 							}
 							if(qValue.startsWith(urlprefix)) {
-								int idx = qValue.lastIndexOf("/");
+								int idx = urlprefix.length();
 								if(qValue.length() > idx) {
-									value = qValue.substring(idx + 1);
+									value = qValue.substring(idx);
 									gFilenames.add(value);
 								} else {
 									value = qValue;
