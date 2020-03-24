@@ -122,7 +122,6 @@ public class MessageProcessor {
 			}
 			
 			// Get the database connection
-			log.info("Messaging: Getting database connections");
 			
 			db = dbf.newDocumentBuilder();
 			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));

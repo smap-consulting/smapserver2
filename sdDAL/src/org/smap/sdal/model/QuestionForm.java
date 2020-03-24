@@ -10,6 +10,7 @@ public class QuestionForm {
 	public String tableName;
 	public String parameters;
 	public String qType;
+	public int s_id;
 	
 	public QuestionForm(
 			String qName, 
@@ -17,7 +18,8 @@ public class QuestionForm {
 			String formName, 
 			String tableName, 
 			String parameters,
-			String qType) {
+			String qType,
+			int s_id) {
 		
 		this.qName = qName;
 		this.columnName = columnName;
@@ -25,5 +27,6 @@ public class QuestionForm {
 		this.tableName = tableName;
 		this.parameters = parameters;
 		this.qType = qType;
+		this.s_id = s_id;
 	}
 }

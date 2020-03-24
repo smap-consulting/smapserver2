@@ -73,13 +73,14 @@ public class AutoUpdateProcessor {
 					// Make sure we have a connection to the database
 					getDatabaseConnection();
 					
+					
 					/*
 					 * Apply auto updates
 					 */
-					AutoUpdateManager aum = new AutoUpdateManager(localisation);
+					AutoUpdateManager aum = new AutoUpdateManager();
 					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson, survey);
-					if(autoUpdates != null) {
+					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
+					if(autoUpdates != null && autoUpdates.size() > 0) {
 						log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
 						aum.applyAutoUpdates(sd, cResults, serverName, 0, autoUpdates);
 					}
@@ -116,7 +117,6 @@ public class AutoUpdateProcessor {
 			
 			// Make sure any existing connections are closed
 			if(sd != null) {
-				log.info("Messaging: Closing sd connection");
 				try {
 					sd.close();
 				} catch (Exception e) {
@@ -126,7 +126,6 @@ public class AutoUpdateProcessor {
 			
 			if(cResults != null) {
 				try {
-					log.info("Messaging: Closing cResults connection");
 					cResults.close();
 				} catch (Exception e) {
 					
@@ -134,7 +133,6 @@ public class AutoUpdateProcessor {
 			}
 			
 			// Get the database connection
-			log.info("Messaging: Getting database connections");
 			
 			db = dbf.newDocumentBuilder();
 			xmlConf = db.parse(new File(confFilePath + "/metaDataModel.xml"));

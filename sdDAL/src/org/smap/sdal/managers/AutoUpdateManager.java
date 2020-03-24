@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
@@ -13,6 +14,7 @@ import org.smap.notifications.interfaces.AudioProcessing;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.AutoUpdate;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
 
@@ -48,13 +50,11 @@ public class AutoUpdateManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
-	ResourceBundle localisation = null;
-	
 	public static String AUTO_UPDATE_IMAGE = "imagelabel";
 	public static String AUTO_UPDATE_AUDIO = "audiotranscript";
 	
-	public AutoUpdateManager(ResourceBundle l) {
-		localisation = l;	
+	public AutoUpdateManager() {
+
 	}
 	
 	/*
@@ -62,22 +62,11 @@ public class AutoUpdateManager {
 	 */
 	public ArrayList<AutoUpdate> identifyAutoUpdates(Connection sd, 
 			Connection cResults, 
-			Gson gson, 
-			Survey survey) throws SQLException {
+			Gson gson) throws SQLException {
 		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();	
-		SurveyManager sm = new SurveyManager(localisation, "UTC");
 		
-		// Get the group survey id
-		int groupSurveyId = 0;
-		if(survey.groupSurveyId == 0) {
-			groupSurveyId = survey.id;
-		} else {
-			groupSurveyId = GeneralUtilityMethods.getLatestSurveyId(sd, survey.groupSurveyId);
-		}
-		
-		HashMap<String, QuestionForm> groupQuestions = sm.getGroupQuestions(sd, 
-				groupSurveyId, 
-				" q.parameters like '%source=%'");
+		HashMap<String, QuestionForm> groupQuestions = getAutoUpdateQuestions(sd);
+		HashMap<Integer, SurveyManager> smHashMap = new HashMap<> ();		// educe database access
 		
 		for(String q : groupQuestions.keySet()) {
 			QuestionForm qf = groupQuestions.get(q);
@@ -90,10 +79,27 @@ public class AutoUpdateManager {
 						String refColumn = params.get("source").trim();					
 						if(refColumn.startsWith("$") && refColumn.length() > 3) {	// Remove ${} syntax if the source has that
 							refColumn = refColumn.substring(2, refColumn.length() -1);
-						}
+						}		
 						
 						if(GeneralUtilityMethods.hasColumn(cResults, qf.tableName, refColumn)) {
 					
+							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, qf.s_id);
+							
+							SurveyManager sm = smHashMap.get(oId);
+							if(sm == null) {
+								Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
+								Locale orgLocale = new Locale(organisation.locale);
+								ResourceBundle localisation = null;
+								try {
+									localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+								} catch(Exception e) {
+									localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+								}
+								sm = new SurveyManager(localisation, "UTC");
+								smHashMap.put(oId, sm);
+							}
+							
+							int groupSurveyId = getGroupSurveyId(sd, qf.s_id);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
 									groupSurveyId, 
 									" q.column_name = '" + refColumn + "'");
@@ -238,6 +244,64 @@ public class AutoUpdateManager {
 				e.printStackTrace();
 			}
 		}
+	}
+	
+	private HashMap<String, QuestionForm> getAutoUpdateQuestions(Connection sd) throws SQLException {
+		
+		HashMap<String, QuestionForm> auQuestions = new HashMap<> ();
+		
+		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id "
+				+ "from question q, form f, survey s "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = s.s_id "
+				+ "and not s.deleted "
+				+ "and not s.blocked "
+				+ "and q.parameters like '%source=%'"
+				+ "and q.parameters like '%auto=yes%'";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				QuestionForm qt = new QuestionForm(
+						rs.getString("qname"), 
+						rs.getString("column_name"),
+						rs.getString("name"),
+						rs.getString("table_name"),
+						rs.getString("parameters"),
+						rs.getString("qtype"),
+						rs.getInt("s_id"));
+				auQuestions.put(rs.getString("column_name"), qt);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return auQuestions;
+	}
+	
+	private int getGroupSurveyId(Connection sd, int sId) throws SQLException {
+		int groupSurveyId = sId;
+		
+		String sql = "select group_survey_id from survey where s_id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				int id = rs.getInt(1);
+				if(id > 0) {
+					groupSurveyId = id;
+				}
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return groupSurveyId;
 	}
 }
 
