@@ -81,7 +81,7 @@ public class AutoUpdateProcessor {
 					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
 					if(autoUpdates != null && autoUpdates.size() > 0) {
-						log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
+						//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
 						aum.applyAutoUpdates(sd, cResults, serverName, 0, autoUpdates);
 					}
 					
