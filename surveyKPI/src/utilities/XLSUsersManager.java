@@ -251,7 +251,8 @@ public class XLSUsersManager {
 	
 				lastRowNum = sheet.getLastRowNum();
 				boolean needHeader = true;
-	
+				HashMap<String, Integer> userDups = new HashMap <> ();
+				
 				for(int j = 0; j <= lastRowNum; j++) {
 	
 					row = sheet.getRow(j);
@@ -321,6 +322,18 @@ public class XLSUsersManager {
 									msg = msg.replace("%s2", String.valueOf(j));
 									throw new ApplicationException(msg);
 								}
+							}
+							
+							// Validate duplicate user idents
+							Integer firstRow = userDups.get(u.ident.toLowerCase());
+							if(firstRow != null) {
+								String msg = localisation.getString("fup_dun");
+								msg = msg.replace("%s1", u.ident);
+								msg = msg.replace("%s2", String.valueOf(j));
+								msg = msg.replace("%s3", String.valueOf(firstRow));
+								throw new ApplicationException(msg);
+							} else {
+								userDups.put(u.ident.toLowerCase(), j);
 							}
 							
 							users.add(u);
