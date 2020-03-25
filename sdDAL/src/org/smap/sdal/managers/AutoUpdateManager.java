@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.AudioProcessing;
@@ -53,6 +54,10 @@ public class AutoUpdateManager {
 	public static String AUTO_UPDATE_IMAGE = "imagelabel";
 	public static String AUTO_UPDATE_AUDIO = "audiotranscript";
 	
+	public static String AU_STATUS_PENDING = "pending";
+	public static String AU_STATUS_COMPLETE = "complete";
+	public static String AU_STATUS_ERROR = "error";
+	
 	public AutoUpdateManager() {
 
 	}
@@ -66,14 +71,18 @@ public class AutoUpdateManager {
 		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();	
 		
 		HashMap<String, QuestionForm> groupQuestions = getAutoUpdateQuestions(sd);
-		HashMap<Integer, SurveyManager> smHashMap = new HashMap<> ();		// educe database access
+		HashMap<Integer, String> localeHashMap = new HashMap<> ();		// reduce database access
 		
 		for(String q : groupQuestions.keySet()) {
 			QuestionForm qf = groupQuestions.get(q);
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");
-				if(auto != null && auto.equals("yes")) {			
+				if(auto != null && auto.equals("yes")) {
+					
+					ResourceBundle localisation = null;
+					String itemLocaleString = null;
+					
 					if(params.get("source") != null) {
 						
 						String refColumn = params.get("source").trim();					
@@ -85,19 +94,20 @@ public class AutoUpdateManager {
 					
 							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, qf.s_id);
 							
-							SurveyManager sm = smHashMap.get(oId);
-							if(sm == null) {
+							itemLocaleString = localeHashMap.get(oId);
+							if(itemLocaleString == null) {
 								Organisation organisation = GeneralUtilityMethods.getOrganisation(sd, oId);
-								Locale orgLocale = new Locale(organisation.locale);
-								ResourceBundle localisation = null;
-								try {
-									localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
-								} catch(Exception e) {
-									localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
-								}
-								sm = new SurveyManager(localisation, "UTC");
-								smHashMap.put(oId, sm);
+								itemLocaleString = organisation.locale;
+								localeHashMap.put(oId, itemLocaleString);
 							}
+							Locale orgLocale = new Locale(itemLocaleString);								
+							try {
+								localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+							} catch(Exception e) {
+								localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+							}
+							SurveyManager sm = new SurveyManager(localisation, "UTC");
+							
 							
 							int groupSurveyId = getGroupSurveyId(sd, qf.s_id);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
@@ -118,6 +128,8 @@ public class AutoUpdateManager {
 								}
 								
 								AutoUpdate au = new AutoUpdate(updateType);
+								au.oId = oId;
+								au.locale = itemLocaleString;
 								au.labelColType = "text";
 								au.sourceColName = refColumn;
 								au.targetColName = qf.columnName;
@@ -140,11 +152,45 @@ public class AutoUpdateManager {
 	}
 	
 	/*
+	 * Check pending async jobs to see if they have finished
+	 */
+	public void checkPendingJobs(
+		Connection sd,
+		Connection cResults,
+		Gson gson) {
+		
+		ImageProcessing ip = new ImageProcessing();
+		AudioProcessing ap = new AudioProcessing();		
+		
+		String sql = "select type, job from au_aws_async where status = ?";
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, AU_STATUS_PENDING);
+			
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				String type = rs.getString(1);
+				String job = rs.getString(2);
+				if(type.equals(AUTO_UPDATE_AUDIO)) {
+					String result = ap.getTranscript(job);
+				}
+				System.out.println("Pending job: " + rs.getString(2));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			
+		}
+	}
+	
+	/*
 	 * Apply auto update changes
 	 */
 	public void applyAutoUpdates(
 			Connection sd,
 			Connection cResults,
+			Gson gson,
 			String server, 
 			int oId,
 			ArrayList<AutoUpdate> updates) {
@@ -152,10 +198,15 @@ public class AutoUpdateManager {
 		PreparedStatement pstmt = null;
 		PreparedStatement pstmtUpdate = null;
 
+		String sqlAsync = "insert into au_aws_async(o_id, type, au_details, status, job, results, started) "
+				+ "values(?, ?, ?, ?, ?, ?, now())";
+		PreparedStatement pstmtAsync = null;
 		try {
 
+			pstmtAsync = sd.prepareStatement(sqlAsync);
+			
 			ImageProcessing ip = new ImageProcessing();
-			AudioProcessing ap = new AudioProcessing();
+			AudioProcessing ap = new AudioProcessing();		
 			
 			// For each update item get the records that are null and need updating
 			for(AutoUpdate item : updates) {
@@ -163,6 +214,14 @@ public class AutoUpdateManager {
 				if(GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.sourceColName)) {
 					
 					if(GeneralUtilityMethods.hasColumn(cResults, item.tableName, item.targetColName)) {
+						
+						Locale orgLocale = new Locale(item.locale);
+						ResourceBundle localisation = null;
+						try {
+							localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+						} catch(Exception e) {
+							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+						}
 						
 						String sql = "select prikey," + item.sourceColName 
 								+ " from " + item.tableName 
@@ -182,30 +241,50 @@ public class AutoUpdateManager {
 						while (rs.next()) {
 							int prikey = rs.getInt(1);
 							String source = rs.getString(2);
+							String output = "";
 							if(source.trim().startsWith("attachments")) {
 								if(item.type.equals(AUTO_UPDATE_IMAGE)) {
-									String labels = ip.getLabels(server, "auto_update", "/smap/" + source, item.labelColType);
+									output = ip.getLabels(server, "auto_update", "/smap/" + source, item.labelColType);
 									lm.writeLog(sd, oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
 									
-									// Write labels to database
-									pstmtUpdate.setString(1, labels);
-									pstmtUpdate.setInt(2, prikey);
-									log.info("Update with labels: " + pstmtUpdate.toString());
-									pstmtUpdate.executeUpdate();
 								} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
-									String  transcript = ap.getTranscript(server, "auto_update", "/smap/" + source, 
-											item.labelColType,
-											"smap_transcribe_" + prikey);
+									
+									// Unique job within the account
+									StringBuffer job = new StringBuffer(item.tableName)
+											.append("_")
+											.append(prikey)
+											.append("_")
+											.append(String.valueOf(UUID.randomUUID()));
+									
+									String  result = ap.submitJob(server, "auto_update", "/smap/" + source, 
+											item.labelColType, job.toString());
+						
 									lm.writeLogOrganisation(sd, oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
 									
-									// Write labels to database
-									pstmtUpdate.setString(1, transcript);
-									pstmtUpdate.setInt(2, prikey);
-									log.info("Update with labels: " + pstmtUpdate.toString());
-									pstmtUpdate.executeUpdate();
+									// Write result to async table, the labels will be retrieved later
+									pstmtAsync.setInt(1, item.oId);
+									pstmtAsync.setString(2, item.type);
+									pstmtAsync.setString(3, gson.toJson(item));
+									pstmtAsync.setString(4, AU_STATUS_PENDING);
+									pstmtAsync.setString(5, job.toString());
+									pstmtAsync.setString(6, result);
+									log.info("Save to Async queue: " + pstmtAsync.toString());
+									pstmtAsync.executeUpdate();
+									
+									// Update tables to record that update is pending
+									output = "[" + localisation.getString("c_pending") + "]";
 								} else {
-									log.info("Error: cannot perform auto update for update type: " + item.type);
+									String msg = "cannot perform auto update for update type: \" + item.type";
+									log.info("Error: " + msg);
+									output = "[" + localisation.getString("c_error") + " " + msg + "]";
 								}
+								
+								// Write result to database
+								pstmtUpdate.setString(1, output);
+								pstmtUpdate.setInt(2, prikey);
+								log.info("Autoupdate results: " + pstmtUpdate.toString());
+								pstmtUpdate.executeUpdate();
+								
 							}
 							
 						} 
@@ -224,6 +303,7 @@ public class AutoUpdateManager {
 
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
+			if(pstmtAsync != null) {try {pstmtAsync.close();} catch(Exception e) {}}
 
 
 			try {

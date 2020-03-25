@@ -72,17 +72,21 @@ public class AutoUpdateProcessor {
 				try {
 					// Make sure we have a connection to the database
 					getDatabaseConnection();
-					
-					
-					/*
-					 * Apply auto updates
-					 */
 					AutoUpdateManager aum = new AutoUpdateManager();
 					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+					
+					/*
+					 * Check for pending jobs
+					 */	
+					aum.checkPendingJobs(sd, cResults, gson);
+								
+					/*
+					 * Apply auto updates
+					 */	
 					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
 					if(autoUpdates != null && autoUpdates.size() > 0) {
 						//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
-						aum.applyAutoUpdates(sd, cResults, serverName, 0, autoUpdates);
+						aum.applyAutoUpdates(sd, cResults, gson, serverName, 0, autoUpdates);
 					}
 					
 				} catch (Exception e) {
