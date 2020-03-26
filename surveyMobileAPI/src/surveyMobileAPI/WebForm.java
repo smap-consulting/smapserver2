@@ -564,7 +564,7 @@ public class WebForm extends Application {
 
 			// Get the XML of the Form
 			template = new SurveyTemplate(localisation);
-			template.readDatabase(survey.id, false);
+			template.readDatabase(survey.id, true);
 			String surveyClass = template.getSurveyClass();
 
 			// If required get the instance data
@@ -887,9 +887,6 @@ public class WebForm extends Application {
 
 		StringBuffer output = new StringBuffer();
 		output.append(openMain(orgId, minimal));
-
-		// String transformed = transform(request, formXML,
-		// "/XSL/openrosa2html5form.xsl");
 
 		GetHtml getHtml = new GetHtml(localisation);
 		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, gRecordCounts);

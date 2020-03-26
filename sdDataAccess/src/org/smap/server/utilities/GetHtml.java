@@ -826,8 +826,14 @@ public class GetHtml {
 		parent.appendChild(optionElement);
 		optionElement.setAttribute("class", "itemset-labels");
 		optionElement.setAttribute("data-value-ref", "name");
-		optionElement.setAttribute("data-label-type", "itext");
-		optionElement.setAttribute("data-label-ref", "itextId");
+		if(q.external_choices) {
+			optionElement.setAttribute("data-label-type", "label");
+			optionElement.setAttribute("data-label-ref", "label");
+		} else {
+			optionElement.setAttribute("data-label-type", "itext");
+			optionElement.setAttribute("data-label-ref", "itextId");
+		}
+		
 
 		addMinimalOptionLabels(sd, optionElement, q, form);
 
@@ -1672,8 +1678,8 @@ public class GetHtml {
 
 		if (q.nodeset == null || q.nodeset.trim().length() == 0) {
 			return false;
-		} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
-			return false;	// External choices won't use a nodeset
+		//} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
+		//	return false;	// External choices won't use a nodeset
 		} else if(q.type.equals("rank")) {
 			return false;
 		} else {

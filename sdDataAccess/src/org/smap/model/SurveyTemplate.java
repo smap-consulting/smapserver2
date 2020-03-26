@@ -9,8 +9,10 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.Set;
+import java.util.UUID;
 import java.util.Vector;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -1184,7 +1186,7 @@ public class SurveyTemplate {
 	 * 
 	 * @param surveyIdent the ident of the survey
 	 */
-	public String readDatabase(Connection sd, String surveyIdent, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
+	public String readDatabase(Connection sd, Connection cResults, String surveyIdent, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
 
 		JdbcSurveyManager sm = null;
 		
@@ -1200,7 +1202,7 @@ public class SurveyTemplate {
 			survey = sm.getByIdent(surveyIdent);
 			
 			if(survey != null) {
-				readDatabase(survey, sd, embedExternalSearch);	// Get the rest of the survey
+				readDatabase(survey, sd, cResults, embedExternalSearch);	// Get the rest of the survey
 				newSurveyIdent = survey.getIdent();
 			} else {
 				log.info("Error: Survey Template not found: " + surveyId);
@@ -1222,19 +1224,17 @@ public class SurveyTemplate {
 	public void readDatabase(int surveyId, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
 
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Read Database");
+		Connection cResults = org.smap.sdal.Utilities.ResultsDataSource.getConnection("SurveyTemplate-Read Database");
 		JdbcSurveyManager sm = null;
 		
 		try {
-			// Locate the survey object
-			//SurveyManager surveys = new SurveyManager(pc);
-			//survey = surveys.getById(surveyId);
 			
 			sm = new JdbcSurveyManager(sd);
 			
 			survey = sm.getById(surveyId);
 	
 			if(survey != null) {
-				readDatabase(survey, sd, embedExternalSearch);	// Get the rest of the survey
+				readDatabase(survey, sd, cResults, embedExternalSearch);	// Get the rest of the survey
 			} else {
 				log.info("Error: Survey Template not found: " + surveyId);
 				throw new MissingTemplateException("Error: Survey Template not found: " + surveyId);
@@ -1243,6 +1243,7 @@ public class SurveyTemplate {
 		} finally {
 			if(sm != null) {sm.close();}
 			org.smap.sdal.Utilities.SDDataSource.closeConnection("SurveyTemplate-Read Database", sd);
+			org.smap.sdal.Utilities.ResultsDataSource.closeConnection("SurveyTemplate-Read Database", cResults);
 		}
 
 	}
@@ -1252,12 +1253,12 @@ public class SurveyTemplate {
 	 * Method to read the remaining survey template from the database once the 
 	 *  survey to be read has been identified
 	 */
-	private void readDatabase(Survey survey, Connection sd, boolean embedExternalSearch) throws SQLException {
+	private void readDatabase(Survey survey, 
+			Connection sd, 
+			Connection cResults, 
+			boolean embedExternalSearch) throws SQLException {
 
-		/*
-		 * Get the project name
-		 */
-		//project = pPersist.getById(survey.getProjectId());
+		int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, survey.getId());
 		
 		JdbcProjectManager pm = null;
 		JdbcFormManager fm = null;
@@ -1292,7 +1293,6 @@ public class SurveyTemplate {
 			 * Get questions
 			 */
 			qm = new JdbcQuestionManager(sd);
-			//List <Question> qList = qPersist.getBySurvey(survey);
 			List <Question> qList = qm.getBySurveyId(survey.getId(), formList);
 			
 			/*
@@ -1399,63 +1399,33 @@ public class SurveyTemplate {
 					 * Get options for this question
 					 */
 					om = new JdbcOptionManager(sd);
-					List <Option> oList = om.getByListId(q.getListId());
+					List <Option> oList = null;
 					
-					/*
-					 * Either internal or external(from a file) choices should be included in cascade lists
-					 */
 					boolean includeExternal = false;
 					if(embedExternalSearch) {
-						for(int j= 0; j < oList.size(); j++) {
-							if(oList.get(j).getExternalFile()) {
-								includeExternal = true;		// Include external choices if there are any external choices in the list
-								break;
-							}
+						includeExternal = GeneralUtilityMethods.listHasExternalChoices(sd, survey.getId(), q.getListId());
+						if(includeExternal) {
+							oList = getExternalList(sd, cResults, oId, survey.getId(), q.getId());
 						}
+					}				
+					if(!includeExternal) {
+						oList = om.getByListId(q.getListId());
 					}
 					
 					for(int j= 0; j < oList.size(); j++) {
 						Option o = oList.get(j);
 						o.setQuestionRef(qRef);
-						String oRef = qRef + "/" + o.getId();
+						String oRef = qRef;
+						if(o.getId() > 0) {
+							oRef += "/" + o.getId();
+						} else {
+							// Option from external won't have an id
+							oRef += "/" + UUID.randomUUID().toString();
+						}
 						if(oRef != null) {
 							if(cascade && !cascadeInstanceAlreadyLoaded) {
-
-								if((includeExternal && o.getExternalFile()) || (!includeExternal && !o.getExternalFile())) {
-									o.setListName(cascadeName);
-									// Cascade options are shared, check that this option has not been added already by another question
-									//String existingRef = cascadeOptionLoaded(cascadeName, o.getLabelId(), o.getValue());
-									//if(existingRef == null) {
-									cascade_options.put(oRef, o);
-									/*
-									} else {
-										/*
-										 * Replace existing if the new option has more cascading filters
-										 * All this complexity is required because pyxform puts a list in two places
-										 *  in the xform output depending on whether or not it has cascades
-										 *  We want to give preference to options that have a cascade
-										 *  
-										 *  No longer needed as pyxform has been removed
-										 *
-										// 
-										if(o.getCascadeFilters() != null) {
-											boolean replace = false;
-											Option oldOption = cascade_options.get(existingRef);
-											if(oldOption.getCascadeFilters() == null) {
-												replace = true;
-											} else {
-												if(o.getCascadeFilters().length() > oldOption.getCascadeFilters().length()) {
-													replace = true;
-												}
-											}
-											if(replace) {
-												cascade_options.remove(existingRef);
-												cascade_options.put(oRef, o);
-											}
-										}
-									}
-								*/
-								}
+								o.setListName(cascadeName);
+								cascade_options.put(oRef, o);
 							} else {
 								options.put(oRef, o);
 							}
@@ -1491,8 +1461,6 @@ public class SurveyTemplate {
 			if(om != null) {om.close();}
 			if(tm != null) {tm.close();}
 		}
-
-
 	}
 	
 	/*
@@ -1661,6 +1629,45 @@ public class SurveyTemplate {
 				}
 			}
 		}
+	}
+	
+	/*
+	 * Get external options for the question
+	 */
+	private ArrayList<Option> getExternalList(
+			Connection sd, 
+			Connection cResults,
+			int oId,
+			int sId,
+			int qId) {
+		
+		ArrayList<Option> options = new ArrayList<Option> ();
+		try {
+			ArrayList<org.smap.sdal.model.Option> oList = GeneralUtilityMethods.getExternalChoices(
+					sd, 
+					cResults, 
+					localisation, 
+					user, 
+					oId, 
+					survey.getId(), qId, null, survey.getIdent(), "UTC");
+			
+			int idx = 0;
+			for(org.smap.sdal.model.Option o : oList) {
+				Option oLegacy = new Option();
+				oLegacy.setId(o.id);
+				oLegacy.setValue(o.value);
+				if(o.labels.size() > 0) {
+					oLegacy.setLabel(o.labels.get(0).text);
+				}
+				oLegacy.setSeq(idx++);
+				oLegacy.setExternalFile(true);
+				options.add(oLegacy);
+			}
+			// Convert new SDAL options to the legacy SDDataAccess Options
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		}
+		return options;
 	}
 	
 }

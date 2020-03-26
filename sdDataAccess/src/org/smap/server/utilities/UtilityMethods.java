@@ -344,7 +344,7 @@ public class UtilityMethods {
 		FormDesc topForm = formList.get(0);
 		
 		SurveyTemplate template = new SurveyTemplate(localisation); 
-		template.readDatabase(sd, sIdent, false);	
+		template.readDatabase(sd, results, sIdent, false);	
 		ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, results, sId, template,  0);
 		
 		boolean tableChanged = false;

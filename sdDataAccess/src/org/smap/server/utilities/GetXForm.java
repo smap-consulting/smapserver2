@@ -1363,7 +1363,13 @@ public class GetXForm {
 			parent.appendChild(itemElement);
 
 			// Add label element
-			Element labelElement = outputXML.createElement(ci.labelKey);
+			String labelKey;
+			if(o.getExternalFile()) {
+				labelKey = "label";
+			} else {
+				labelKey = ci.labelKey;
+			}
+			Element labelElement = outputXML.createElement(labelKey);
 			String label = o.getLabelId();
 			if (label == null) {
 				// Use the default label text

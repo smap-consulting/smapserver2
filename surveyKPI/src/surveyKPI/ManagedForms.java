@@ -428,7 +428,7 @@ public class ManagedForms extends Application {
 			// 0. Ensure that the form data columns are fully published, don't add managed columns at this stage
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, am.sId);
 			SurveyTemplate template = new SurveyTemplate(localisation);
-			template.readDatabase(sd, sIdent, false);	
+			template.readDatabase(sd, cResults, sIdent, false);	
 			if(am.manageId > 0) {
 			
 				ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, am.sId, template,  0);

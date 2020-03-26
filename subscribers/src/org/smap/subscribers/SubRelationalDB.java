@@ -768,7 +768,7 @@ public class SubRelationalDB extends Subscriber {
 					
 					// Create new tables
 					SurveyTemplate template = new SurveyTemplate(localisation); 
-					template.readDatabase(sd, sIdent, false);	
+					template.readDatabase(sd, cResults, sIdent, false);	
 					ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, cResults, sId, template,  0);
 					
 					boolean tableChanged = false;
