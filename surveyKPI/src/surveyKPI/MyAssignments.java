@@ -943,7 +943,7 @@ public class MyAssignments extends Application {
 				+ "assignee_name = (select name from users where id = ?) "
 				+ "where a.id = ? "
 				+ "and a.assignee = ? "
-				+ "and status == 'accepted' ";
+				+ "and status = 'accepted' ";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
 	}
