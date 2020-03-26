@@ -976,7 +976,7 @@ public class SurveyManager {
 			if(external) {
 				int qId = GeneralUtilityMethods.getQuestionFromList(sd, s.id, listId);
 				externalOptions = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, user, oId, s.id, qId, null, s.ident, tz);
+						cResults, localisation, user, oId, s.id, qId, null, s.ident, tz, null);
 			} 
 			
 			// Get options from meta definition - insert external if required when not a numeric option

@@ -1405,7 +1405,7 @@ public class SurveyTemplate {
 					if(embedExternalSearch) {
 						includeExternal = GeneralUtilityMethods.listHasExternalChoices(sd, survey.getId(), q.getListId());
 						if(includeExternal) {
-							oList = getExternalList(sd, cResults, oId, survey.getId(), q.getId());
+							oList = getExternalList(sd, cResults, oId, survey.getId(), q);
 						}
 					}				
 					if(!includeExternal) {
@@ -1639,17 +1639,20 @@ public class SurveyTemplate {
 			Connection cResults,
 			int oId,
 			int sId,
-			int qId) {
+			Question q) {
 		
 		ArrayList<Option> options = new ArrayList<Option> ();
 		try {
+			q.filters = 
+					GeneralUtilityMethods.getSearchFiltersFromAppearance(q.getAppearance(false, questionPaths));
+	
 			ArrayList<org.smap.sdal.model.Option> oList = GeneralUtilityMethods.getExternalChoices(
 					sd, 
 					cResults, 
 					localisation, 
 					user, 
 					oId, 
-					survey.getId(), qId, null, survey.getIdent(), "UTC");
+					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", q.filters);
 			
 			int idx = 0;
 			for(org.smap.sdal.model.Option o : oList) {
@@ -1661,6 +1664,13 @@ public class SurveyTemplate {
 				}
 				oLegacy.setSeq(idx++);
 				oLegacy.setExternalFile(true);
+				if(o.cascade_filters != null) {
+					for(String k : o.cascade_filters.keySet()) {
+						oLegacy.addCascadeKeyValue(k, o.cascade_filters.get(k));
+					}
+					oLegacy.setCascadeFilters();
+				}
+				
 				options.add(oLegacy);
 			}
 			// Convert new SDAL options to the legacy SDDataAccess Options

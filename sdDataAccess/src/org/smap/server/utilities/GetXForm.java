@@ -1389,10 +1389,6 @@ public class GetXForm {
 			itemElement.appendChild(valueElement);
 
 			// Add other elements that are used for selecting relevant values
-
-			if (embedExternalSearch) {
-
-			}
 			o.setCascadeKeyValues(); // Set the key value pairs from the filter string
 			HashMap<String, String> cvs = o.getCascadeKeyValues();
 			List<String> keyList = new ArrayList<String>(cvs.keySet());

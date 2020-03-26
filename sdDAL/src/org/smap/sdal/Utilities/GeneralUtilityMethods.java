@@ -4000,7 +4000,7 @@ public class GeneralUtilityMethods {
 						// Don't get external select 1 choices it is not necessary
 						if(!qType.equals("select1") && GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz, null);
 							if(options != null) {
 								for(Option o : options) {
 									String label ="";
@@ -4842,7 +4842,8 @@ public class GeneralUtilityMethods {
 			int qId, 
 			ArrayList<String> matches,
 			String surveyIdent,
-			String tz) throws Exception {
+			String tz,
+			HashMap<String, String> wfFilters) throws Exception {
 
 		ArrayList<Option> choices = new ArrayList<Option> ();		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
@@ -4924,7 +4925,7 @@ public class GeneralUtilityMethods {
 							} else {
 								// Get data from a csv table
 								CsvTableManager csvMgr = new CsvTableManager(sd, localisation);
-								choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches);
+								choices = csvMgr.getChoices(oId, sId, filename, ovalue, languageItems, matches, wfFilters);
 							}
 						}
 					}
@@ -6741,6 +6742,33 @@ public class GeneralUtilityMethods {
 		}
 
 		return filterQuestion;
+	}
+	
+	/*
+	 * Get the search filter questions
+	 */
+	public static HashMap<String, String> getSearchFiltersFromAppearance(String appearance) {
+		HashMap<String, String> filters = null;
+
+		if (appearance != null && appearance.toLowerCase().trim().contains("search(")) {
+			int idx1 = appearance.indexOf('(');
+			int idx2 = appearance.indexOf(')');
+
+			if (idx1 > 0 && idx2 > idx1) {
+				String criteriaString = appearance.substring(idx1 + 1, idx2);
+				log.info("#### criteria for csv filter: " + criteriaString);
+				String criteria[] = criteriaString.split(",");
+				if (criteria.length >= 4) {
+					filters = new HashMap<>();
+					filters.put(criteria[2].trim().replace("\'", ""), criteria[3].trim().replace("\'", ""));
+				}
+				if (criteria.length >= 6) {
+					filters.put(criteria[4].trim().replace("\'", ""), criteria[5].trim().replace("\'", ""));
+				}
+			}
+		}
+
+		return filters;
 	}
 	
 	/*

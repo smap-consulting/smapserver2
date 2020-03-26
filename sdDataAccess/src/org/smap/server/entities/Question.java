@@ -147,6 +147,7 @@ public class Question {
 	
 	public boolean isTableList = false;
 	
+	public HashMap<String, String> filters = null;
 	/*
 	 * Constructor Establish Database Connection using JNDI
 	 */
