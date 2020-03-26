@@ -121,9 +121,10 @@ public class GetXForm {
 
 		String response = null;
 
-		if (isWebForms) {
-			embedExternalSearch = true; // Webforms do not support search therefore embed the choices in the html
-		}
+		// XXXX
+		//if (isWebForms) {
+		//	embedExternalSearch = true; // Webforms do not support search therefore embed the choices in the html
+		//}
 
 		Connection sd = null;
 		Connection cResults = null;

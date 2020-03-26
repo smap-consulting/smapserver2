@@ -564,7 +564,7 @@ public class WebForm extends Application {
 
 			// Get the XML of the Form
 			template = new SurveyTemplate(localisation);
-			template.readDatabase(survey.id, true);
+			template.readDatabase(survey.id, false);
 			String surveyClass = template.getSurveyClass();
 
 			// If required get the instance data
@@ -620,6 +620,7 @@ public class WebForm extends Application {
 					outputString.append(")");
 				}
 			} else {
+				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
 						survey.surveyClass, orgId, accessKey, superUser, single));
 			}

@@ -105,8 +105,7 @@ public class GetHtml {
 
 			Element parent;
 			parent = populateRoot();
-			// populateHead(sd, outputHtml, b, parent);
-			createForm(sd, parent, true, true);
+			createForm(sd, parent, true);
 
 			// Write the survey to a string and return it to the calling program
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
@@ -141,7 +140,7 @@ public class GetHtml {
 		return rootElement;
 	}
 
-	public void createForm(Connection sd, Element parent, boolean isWebForms, boolean useNodesets) throws Exception {
+	public void createForm(Connection sd, Element parent, boolean useNodesets) throws Exception {
 
 		Element bodyElement = outputDoc.createElement("form");
 		bodyElement.setAttribute("novalidate", "novalidate");
