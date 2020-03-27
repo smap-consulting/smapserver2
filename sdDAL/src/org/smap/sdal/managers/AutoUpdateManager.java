@@ -106,8 +106,7 @@ public class AutoUpdateManager {
 							} catch(Exception e) {
 								localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 							}
-							SurveyManager sm = new SurveyManager(localisation, "UTC");
-							
+							SurveyManager sm = new SurveyManager(localisation, "UTC");			
 							
 							int groupSurveyId = getGroupSurveyId(sd, qf.s_id);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
@@ -136,7 +135,7 @@ public class AutoUpdateManager {
 								au.tableName = qf.tableName;
 								autoUpdates.add(au);
 								
-								log.info("--------------- AutoUpdate: " + refQf.qType);
+								// Diagnostic log.info("--------------- AutoUpdate: " + refQf.qType);
 							} 
 						} else {
 							log.info("------------------ AutoUpdate: Error: " + refColumn + " not found in " + qf.tableName);
@@ -162,7 +161,7 @@ public class AutoUpdateManager {
 		ImageProcessing ip = new ImageProcessing();
 		AudioProcessing ap = new AudioProcessing();		
 		
-		String sql = "select type, job from au_aws_async where status = ?";
+		String sql = "select type, job from aws_async_jobs where status = ?";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -196,11 +195,13 @@ public class AutoUpdateManager {
 			ArrayList<AutoUpdate> updates) {
 		
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtUpdate = null;
 
-		String sqlAsync = "insert into au_aws_async(o_id, type, au_details, status, job, results, started) "
-				+ "values(?, ?, ?, ?, ?, ?, now())";
+		String sqlAsync = "insert into aws_async_jobs"
+				+ "(o_id, table_name, col_name, instanceid, type, "
+				+ "update_details, job, status, request_initiated) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmtAsync = null;
+		
 		try {
 
 			pstmtAsync = sd.prepareStatement(sqlAsync);
@@ -223,23 +224,18 @@ public class AutoUpdateManager {
 							localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 						}
 						
-						String sql = "select prikey," + item.sourceColName 
+						String sql = "select instanceid," + item.sourceColName 
 								+ " from " + item.tableName 
 								+ " where " + item.targetColName + " is null "
-								+ "and " + item.sourceColName + " is not null";
+								+ "and " + item.sourceColName + " is not null "
+								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
 							
-						String sqlUpdate = "update " 
-								+ item.tableName 
-								+ " set " + item.targetColName + " = ? where prikey = ?";
-						if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
-						pstmtUpdate = cResults.prepareStatement(sqlUpdate);
-							
-						log.info("Get auto updates: " + pstmt.toString());						
+						// Diagnostic log.info("Get auto updates: " + pstmt.toString());						
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
-							int prikey = rs.getInt(1);
+							String instanceId = rs.getString(1);
 							String source = rs.getString(2);
 							String output = "";
 							if(source.trim().startsWith("attachments")) {
@@ -252,27 +248,31 @@ public class AutoUpdateManager {
 									// Unique job within the account
 									StringBuffer job = new StringBuffer(item.tableName)
 											.append("_")
-											.append(prikey)
-											.append("_")
 											.append(String.valueOf(UUID.randomUUID()));
 									
-									String  result = ap.submitJob(server, "auto_update", "/smap/" + source, 
+									String  status = ap.submitJob(server, "auto_update", "/smap/" + source, 
 											item.labelColType, job.toString());
-						
-									lm.writeLogOrganisation(sd, oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
 									
-									// Write result to async table, the labels will be retrieved later
-									pstmtAsync.setInt(1, item.oId);
-									pstmtAsync.setString(2, item.type);
-									pstmtAsync.setString(3, gson.toJson(item));
-									pstmtAsync.setString(4, AU_STATUS_PENDING);
-									pstmtAsync.setString(5, job.toString());
-									pstmtAsync.setString(6, result);
-									log.info("Save to Async queue: " + pstmtAsync.toString());
-									pstmtAsync.executeUpdate();
-									
-									// Update tables to record that update is pending
-									output = "[" + localisation.getString("c_pending") + "]";
+									if(status.equals("IN_PROGRESS")) {
+										lm.writeLogOrganisation(sd, oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
+										
+										// Write result to async table, the labels will be retrieved later
+										pstmtAsync.setInt(1, item.oId);
+										pstmtAsync.setString(2, item.tableName);
+										pstmtAsync.setString(3, item.targetColName);
+										pstmtAsync.setString(4, instanceId);
+										pstmtAsync.setString(5, item.type);
+										pstmtAsync.setString(6, gson.toJson(item));
+										pstmtAsync.setString(7, job.toString());
+										pstmtAsync.setString(8, AU_STATUS_PENDING);
+										log.info("Save to Async queue: " + pstmtAsync.toString());
+										pstmtAsync.executeUpdate();
+										
+										// Update tables to record that update is pending
+										output = "[" + localisation.getString("c_pending") + "]";
+									} else {
+										output = "[" + status + "]";
+									}
 								} else {
 									String msg = "cannot perform auto update for update type: \" + item.type";
 									log.info("Error: " + msg);
@@ -280,10 +280,8 @@ public class AutoUpdateManager {
 								}
 								
 								// Write result to database
-								pstmtUpdate.setString(1, output);
-								pstmtUpdate.setInt(2, prikey);
-								log.info("Autoupdate results: " + pstmtUpdate.toString());
-								pstmtUpdate.executeUpdate();
+								writeResult(cResults, item.tableName, item.targetColName, instanceId, output);
+								
 								
 							}
 							
@@ -302,27 +300,7 @@ public class AutoUpdateManager {
 		} finally {
 
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
 			if(pstmtAsync != null) {try {pstmtAsync.close();} catch(Exception e) {}}
-
-
-			try {
-				if (sd != null) {
-					sd.close();
-					sd = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-
-			try {
-				if (cResults != null) {
-					cResults.close();
-					cResults = null;
-				}
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
 		}
 	}
 	
@@ -382,6 +360,35 @@ public class AutoUpdateManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
 		return groupSurveyId;
+	}
+	
+	/*
+	 * Write a result to the latest record in the results table
+	 */
+	private void writeResult(Connection cResults, 
+			String tableName,
+			String colName,
+			String instanceId, 
+			String output) throws SQLException {
+		
+		PreparedStatement pstmtUpdate = null;
+		
+		String sqlUpdate = "update " 
+				+ tableName 
+				+ " set " + colName + " = ? "
+				+ "where instanceid = ?";
+		pstmtUpdate = cResults.prepareStatement(sqlUpdate);
+		
+		instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
+		pstmtUpdate.setString(1, output);
+		pstmtUpdate.setString(2, instanceId);
+		pstmtUpdate.executeUpdate();
+		
+		try {
+			
+		} finally {
+			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
+		}
 	}
 }
 

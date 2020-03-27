@@ -59,7 +59,7 @@ public class MessageProcessor {
 
 		public void run() {
 
-			int delaySecs = 5;
+			int delaySecs = 1;
 			while (true) {
 				System.out.print("m");
 				
