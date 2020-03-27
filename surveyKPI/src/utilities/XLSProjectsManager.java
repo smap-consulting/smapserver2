@@ -206,6 +206,7 @@ public class XLSProjectsManager {
 		int lastRowNum = 0;
 		ArrayList<Project> projects = new ArrayList<Project> ();
 
+		HashMap<String, Integer> projectDups = new HashMap<> ();
 		HashMap<String, Integer> header = null;
 
 		if(type != null && type.equals("xls")) {
@@ -242,6 +243,18 @@ public class XLSProjectsManager {
 							String msg = localisation.getString("fup_pnm");
 							msg = msg.replace("%s1", String.valueOf(j));
 							throw new ApplicationException(msg);
+						}
+						
+						// Validate duplicate project names
+						Integer firstRow = projectDups.get(name.toLowerCase());
+						if(firstRow != null) {
+							String msg = localisation.getString("fup_dpn");
+							msg = msg.replace("%s1", name);
+							msg = msg.replace("%s2", String.valueOf(j));
+							msg = msg.replace("%s3", String.valueOf(firstRow));
+							throw new ApplicationException(msg);
+						} else {
+							projectDups.put(name.toLowerCase(), j);
 						}
 						
 						Project p = new Project();
