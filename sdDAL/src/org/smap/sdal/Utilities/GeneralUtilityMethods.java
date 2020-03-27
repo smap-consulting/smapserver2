@@ -5945,6 +5945,8 @@ public class GeneralUtilityMethods {
 			String msg = e.getMessage();
 			if(msg.contains("already exists")) {
 				log.info("Column already exists");
+			} else if(msg.contains("does not exist")) {
+				log.info("Table does not exist");
 			} else {
 				throw e;
 			}
@@ -8075,6 +8077,10 @@ public class GeneralUtilityMethods {
 	 * Ie if you start with Record A and then Update it then the two records will have the same thread id.
 	 */
 	public static String getThread(Connection cResults, String table, String instanceId) throws SQLException {
+		
+		if(!GeneralUtilityMethods.tableExists(cResults, table)) {
+			return null;
+		}
 		
 		String thread = null;
 		String sql = "select _thread from " + table + " where instanceid = ?";
