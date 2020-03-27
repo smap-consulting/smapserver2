@@ -1439,7 +1439,7 @@ public class GetXForm {
 							}
 						}
 					} else {
-						log.info("Error: Values length is " + values.length + " and column length is " + cols.length);
+						log.info("Error: Values length is " + values.length + " and column length is " + cols.length + " for line: " + line);
 					}
 				}
 			}
