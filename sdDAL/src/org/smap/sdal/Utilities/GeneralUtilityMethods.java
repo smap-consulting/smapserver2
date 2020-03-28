@@ -3638,7 +3638,7 @@ public class GeneralUtilityMethods {
 		// SQL to get the questions
 		String sqlQuestion1 = "select qname, qtype, column_name, q_id, readonly, "
 				+ "source_param, appearance, display_name, l_id, compressed, style_id,"
-				+ "server_calculate " 
+				+ "server_calculate, parameters " 
 				+ "from question "
 				+ "where f_id = ? "
 				+ "and (source is not null or qtype = 'server_calculate') "
@@ -3895,6 +3895,7 @@ public class GeneralUtilityMethods {
 				boolean compressed = rsQuestions.getBoolean(10);
 				int style_id = rsQuestions.getInt(11);
 				String serverCalculate = rsQuestions.getString(12);
+				String parameters = rsQuestions.getString("parameters");
 				
 				String hxlCode = getHxlCode(appearance, question_name);
 
@@ -4051,6 +4052,7 @@ public class GeneralUtilityMethods {
 					if(style_id > 0) {
 						c.markup = getMarkup(sd, style_id);
 					}
+					c.parameters  = GeneralUtilityMethods.convertParametersToHashMap(parameters);
 				}
 
 			}

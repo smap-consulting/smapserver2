@@ -220,6 +220,8 @@ public void populateSvd(
 			if(!isMain && !tc.type.equals("server_calculate")) {
 				tc.readonly = false;		// Why are we messing with the read only settings here? (TODO)
 			}
+			
+			tc.parameters = c.parameters;		// Add parameters
 
 			if(tc.column_name.equals("the_geom")) {
 				tc.displayName = "_geolocation";
@@ -241,6 +243,7 @@ public void populateSvd(
 			} else {
 				tc.markup = c.markup;
 			}
+			
 
 			if(tc.include) {					
 				svd.columns.add(tc);
