@@ -13,6 +13,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.file.Files;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.PreparedStatement;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.TimeZone;
@@ -9261,6 +9263,21 @@ public class GeneralUtilityMethods {
 			bufferedReader.close();
 		}
 		return sb.toString();
+	}
+	
+	public static String getMediaBucket() {
+		
+		String mediaBucket = null;
+		try {
+			List<String> lines = Files.readAllLines(new File("~ubuntu/bucket").toPath());
+			if(lines.size() > 0) {
+				mediaBucket = lines.get(0);
+			}
+		} catch (Exception e) {
+			
+		}
+
+		return mediaBucket;
 	}
 }
 

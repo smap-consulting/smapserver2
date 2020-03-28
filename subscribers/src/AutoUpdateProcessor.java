@@ -56,11 +56,13 @@ public class AutoUpdateProcessor {
 		Connection cResults;
 		String serverName;
 		String basePath;
+		String mediaBucket;
 
-		public UpdateLoop(Connection sd, Connection cResults, String basePath) {
+		public UpdateLoop(Connection sd, Connection cResults, String basePath, String mediaBucket) {
 			this.sd = sd;
 			this.cResults = cResults;
 			this.basePath = basePath;
+			this.mediaBucket = mediaBucket;
 		}
 
 		public void run() {
@@ -86,7 +88,7 @@ public class AutoUpdateProcessor {
 					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
 					if(autoUpdates != null && autoUpdates.size() > 0) {
 						//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
-						aum.applyAutoUpdates(sd, cResults, gson, serverName, 0, autoUpdates);
+						aum.applyAutoUpdates(sd, cResults, gson, serverName, 0, autoUpdates, mediaBucket, basePath);
 					}
 					
 				} catch (Exception e) {
@@ -164,7 +166,7 @@ public class AutoUpdateProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath) {
+	public void go(String smapId, String basePath, String mediaBucket) {
 
 		confFilePath = "./" + smapId;
 
@@ -173,7 +175,7 @@ public class AutoUpdateProcessor {
 			// Send any pending messages
 			File pFile = new File("/smap_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath));
+				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath, mediaBucket));
 				t.start();
 			} else {
 				// No message!

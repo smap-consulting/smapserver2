@@ -1,8 +1,10 @@
+import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.text.DateFormat;
 import java.util.Date;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.subscribers.Subscriber;
 
 /*****************************************************************************
@@ -53,8 +55,11 @@ public class Manager {
 			MessageProcessor mp = new MessageProcessor();
 			mp.go(smapId, fileLocn);
 
+			// Start the AWS service processor
+			String mediaBucket = GeneralUtilityMethods.getMediaBucket();
+			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
-			au.go(smapId, fileLocn);
+			au.go(smapId, fileLocn, mediaBucket);
 		}
 		
 		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);

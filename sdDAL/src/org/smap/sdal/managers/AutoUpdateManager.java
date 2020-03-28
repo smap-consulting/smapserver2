@@ -234,7 +234,9 @@ public class AutoUpdateManager {
 			Gson gson,
 			String server, 
 			int oId,
-			ArrayList<AutoUpdate> updates) {
+			ArrayList<AutoUpdate> updates,
+			String mediaBucket,
+			String basePath) {
 		
 		PreparedStatement pstmt = null;
 
@@ -292,8 +294,12 @@ public class AutoUpdateManager {
 											.append("_")
 											.append(String.valueOf(UUID.randomUUID()));
 									
-									String  status = ap.submitJob(server, "auto_update", "/smap/" + source, 
-											item.labelColType, job.toString());
+									String  status = ap.submitJob(localisation, server, 
+											basePath + "/",
+											source, 
+											item.labelColType, 
+											job.toString(),
+											mediaBucket);
 									
 									if(status.equals("IN_PROGRESS")) {
 										lm.writeLogOrganisation(sd, oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
