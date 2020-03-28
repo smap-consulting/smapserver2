@@ -319,7 +319,9 @@ public class SurveyTableManager {
 	/*
 	 * Get a choice
 	 */
-	public Option getLineAsOption(String oValue, ArrayList<LanguageItem> items) throws SQLException {
+	public Option getLineAsOption(String oValue, 
+			ArrayList<LanguageItem> items,
+			HashMap<String, String> wfFilterColumns) throws SQLException {
 		Option o = null;
 		
 		if(rs != null && rs.next()) {
@@ -341,6 +343,13 @@ public class SurveyTableManager {
 				}
 				
 				o.labels.add(l);
+				
+				if(wfFilterColumns != null) {
+					o.cascade_filters = new HashMap<>();
+					for(String fc : wfFilterColumns.keySet()) {
+						o.cascade_filters.put(fc, rs.getString(fc)); 
+					}
+				}
 			}
 		}
 		return o;
@@ -812,5 +821,19 @@ public class SurveyTableManager {
 
 	}
 
-
+	public ArrayList<Option> getChoices(String ovalue, ArrayList<LanguageItem> languageItems, 
+			HashMap<String, String> wfFilterColumns) throws SQLException {
+		ArrayList<Option> choices = new ArrayList<> ();
+		
+		Option o = null;
+		HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
+		while((o = getLineAsOption(ovalue, languageItems, wfFilterColumns)) != null) {
+			if(choicesLoaded.get(o.value) == null) {
+				choices.add(o);
+				choicesLoaded.put(o.value, "x");
+			}
+		}
+		
+		return choices;
+	}
 }

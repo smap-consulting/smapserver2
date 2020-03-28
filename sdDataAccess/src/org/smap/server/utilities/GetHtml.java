@@ -105,8 +105,7 @@ public class GetHtml {
 
 			Element parent;
 			parent = populateRoot();
-			// populateHead(sd, outputHtml, b, parent);
-			createForm(sd, parent, true, true);
+			createForm(sd, parent, true);
 
 			// Write the survey to a string and return it to the calling program
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
@@ -141,7 +140,7 @@ public class GetHtml {
 		return rootElement;
 	}
 
-	public void createForm(Connection sd, Element parent, boolean isWebForms, boolean useNodesets) throws Exception {
+	public void createForm(Connection sd, Element parent, boolean useNodesets) throws Exception {
 
 		Element bodyElement = outputDoc.createElement("form");
 		bodyElement.setAttribute("novalidate", "novalidate");
@@ -827,8 +826,14 @@ public class GetHtml {
 		parent.appendChild(optionElement);
 		optionElement.setAttribute("class", "itemset-labels");
 		optionElement.setAttribute("data-value-ref", "name");
-		optionElement.setAttribute("data-label-type", "itext");
-		optionElement.setAttribute("data-label-ref", "itextId");
+		if(q.external_choices) {
+			optionElement.setAttribute("data-label-type", "label");
+			optionElement.setAttribute("data-label-ref", "label");
+		} else {
+			optionElement.setAttribute("data-label-type", "itext");
+			optionElement.setAttribute("data-label-ref", "itextId");
+		}
+		
 
 		addMinimalOptionLabels(sd, optionElement, q, form);
 
@@ -1659,7 +1664,7 @@ public class GetHtml {
 	/*
 	 * Attempt to get the full nodeset incorporating any external filters
 	 */
-	private String getNodeset(Question q, Form form) throws Exception {
+	private String getNodeset(Question q, Form form) throws Exception {		
 		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name);
 		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
 				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
@@ -1673,8 +1678,8 @@ public class GetHtml {
 
 		if (q.nodeset == null || q.nodeset.trim().length() == 0) {
 			return false;
-		} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
-			return false;	// External choices won't use a nodeset
+		//} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
+		//	return false;	// External choices won't use a nodeset
 		} else if(q.type.equals("rank")) {
 			return false;
 		} else {

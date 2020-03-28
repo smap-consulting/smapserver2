@@ -240,47 +240,49 @@ public class RecordEventManager {
 				if(updateId != null) {
 					// Get the current Task Item Change and update it
 					String key = GeneralUtilityMethods.getThread(cResults, tableName, updateId);
-					if(assignmentId > 0) {
-						pstmtGet = sd.prepareStatement(sqlGetUsingAssignment);
-						pstmtGet.setString(1,  key);
-						pstmtGet.setInt(2,  assignmentId);
-					} else {
-						pstmtGet = sd.prepareStatement(sqlGetUsingTask);
-						pstmtGet.setString(1,  key);
-						pstmtGet.setInt(2, taskId);
-					}
+					if(key != null) {
+						if(assignmentId > 0) {
+							pstmtGet = sd.prepareStatement(sqlGetUsingAssignment);
+							pstmtGet.setString(1,  key);
+							pstmtGet.setInt(2,  assignmentId);
+						} else {
+							pstmtGet = sd.prepareStatement(sqlGetUsingTask);
+							pstmtGet.setString(1,  key);
+							pstmtGet.setInt(2, taskId);
+						}
 	
-					sd.setAutoCommit(false);
-					ResultSet rs2 = pstmtGet.executeQuery();
-					if(rs2.next()) {
-						String itemString = rs2.getString(1);
-						String oldStatus = rs2.getString(2);
-						if(itemString != null) {
-							TaskItemChange tic = gson.fromJson(itemString, TaskItemChange.class);
-							tic.taskEvents.add(new TaskEventChange(taskName, status, assigned, 
-									null,		// comment
-									scheduleAt,
-									scheduleFinish,
-									assign_auto
-									));
-							
-							if(status == null) {
-								status = oldStatus;
-							}
-							// Write the changed event back to the database
-							if(assignmentId > 0) {
-								pstmtSet = sd.prepareStatement(sqlSetUsingAssignment);
-								pstmtSet.setInt(5, assignmentId);
-							} else {
-								pstmtSet = sd.prepareStatement(sqlSetUsingTask);
-								pstmtSet.setInt(5, taskId);
-							}
-							pstmtSet.setString(1,gson.toJson(tic));
-							pstmtSet.setInt(2, assignmentId);
-							pstmtSet.setString(3, status);
-							pstmtSet.setString(4, key);
-							pstmtSet.executeUpdate();
-						}				
+						sd.setAutoCommit(false);
+						ResultSet rs2 = pstmtGet.executeQuery();
+						if(rs2.next()) {
+							String itemString = rs2.getString(1);
+							String oldStatus = rs2.getString(2);
+							if(itemString != null) {
+								TaskItemChange tic = gson.fromJson(itemString, TaskItemChange.class);
+								tic.taskEvents.add(new TaskEventChange(taskName, status, assigned, 
+										null,		// comment
+										scheduleAt,
+										scheduleFinish,
+										assign_auto
+										));
+								
+								if(status == null) {
+									status = oldStatus;
+								}
+								// Write the changed event back to the database
+								if(assignmentId > 0) {
+									pstmtSet = sd.prepareStatement(sqlSetUsingAssignment);
+									pstmtSet.setInt(5, assignmentId);
+								} else {
+									pstmtSet = sd.prepareStatement(sqlSetUsingTask);
+									pstmtSet.setInt(5, taskId);
+								}
+								pstmtSet.setString(1,gson.toJson(tic));
+								pstmtSet.setInt(2, assignmentId);
+								pstmtSet.setString(3, status);
+								pstmtSet.setString(4, key);
+								pstmtSet.executeUpdate();
+							}	
+						}
 					}
 					
 					sd.setAutoCommit(true);

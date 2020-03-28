@@ -300,34 +300,44 @@ public class UtilityMethods {
     		int f_id,
     		String qName) throws Exception {
 		
-		String v = nodeset;
+		String out = nodeset;
 		
 		if(embedExternalSearch) {
 			// Potentially add a filter using the appearance value to the nodeset
-			String filterQuestion = GeneralUtilityMethods.getFirstSearchQuestionFromAppearance(appearance);
+
+			HashMap<String, String> filters = GeneralUtilityMethods.getSearchFiltersFromAppearance(appearance);
 			
-			if(filterQuestion != null) {
+			if(filters != null) {
 				log.info("Add filter from: " + appearance + " to: " + nodeset);
-				if(v != null) {
+
+				if(out != null) {
 					// First remove any filter added through setting of choice_filter this is incompatible with the use of search()
-					int idx = v.indexOf('[');
+					int idx = out.indexOf('[');
 					if (idx >= 0) {
-						v = v.substring(0, idx);
+						out = out.substring(0, idx);
 					}
 				
-					v += "[ _smap_cascade = " + filterQuestion + " ]";
+					int count = 0;
+					out += "[ ";
+					for(String k : filters.keySet()) {
+						if(count++ > 0) {
+							out += " and ";
+						}
+						 out += k + " = " + filters.get(k) ;
+					}
+					out += " ]";
 				}
 			}
 	
 		}		
 		
 		if(convertToXPath) {
-			v = convertAllxlsNames(v, false, questionPaths, f_id, false, qName, true);
+			out = convertAllxlsNames(out, false, questionPaths, f_id, false, qName, true);
 		} else if(convertToXLSName) {
-			v = GeneralUtilityMethods.convertAllXpathNames(v, true);
+			out = GeneralUtilityMethods.convertAllXpathNames(out, true);
 		}
 		
-		return v;
+		return out;
 	}
     
 	/*
@@ -344,7 +354,7 @@ public class UtilityMethods {
 		FormDesc topForm = formList.get(0);
 		
 		SurveyTemplate template = new SurveyTemplate(localisation); 
-		template.readDatabase(sd, sIdent, false);	
+		template.readDatabase(sd, results, sIdent, false);	
 		ArrayList<String> tablesCreated = tm.writeAllTableStructures(sd, results, sId, template,  0);
 		
 		boolean tableChanged = false;

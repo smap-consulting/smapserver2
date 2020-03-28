@@ -21,6 +21,7 @@ import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.ActionManager.Update;
 import org.smap.sdal.model.CsvTable;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.CsvHeader;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
@@ -371,7 +372,8 @@ public class CsvTableManager {
 	 */
 	public ArrayList<Option> getChoices(int oId, int sId, String fileName, String ovalue, 
 			ArrayList<LanguageItem> items,
-			ArrayList<String> matches) throws SQLException, ApplicationException {
+			ArrayList<String> matches,
+			HashMap<String, String> wfFilters) throws SQLException, ApplicationException {
 		
 		ArrayList<Option> choices = null;
 		
@@ -384,13 +386,13 @@ public class CsvTableManager {
 			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches, fileName);				
+				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches, fileName, wfFilters);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches, fileName);	
+					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches, fileName, wfFilters);	
 				} else {
 					log.info("CSV file not found: " + fileName);
 				}
@@ -547,7 +549,7 @@ public class CsvTableManager {
 	 * Read the choices out of a file - CSV files are now stored in tables
 	 */
 	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
-			ArrayList<String> matches, String filename) throws SQLException, ApplicationException {
+			ArrayList<String> matches, String filename, HashMap<String, String> wfFilterColumns) throws SQLException, ApplicationException {
 			
 		ArrayList<Option> choices = new ArrayList<Option> ();
 		
@@ -565,6 +567,12 @@ public class CsvTableManager {
 					}
 				} else {
 					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(item.text));
+				}
+			}
+			// Get filter values for webforms
+			if(wfFilterColumns != null) {
+				for(String fc : wfFilterColumns.keySet()) {
+					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(fc));
 				}
 			}
 			sql.append(" from ").append(table);
@@ -598,7 +606,7 @@ public class CsvTableManager {
 			}
 			log.info("Get CSV values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
-			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();
+			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
 			
 			while(rsx.next()) {
 				int idx = 1;
@@ -624,6 +632,12 @@ public class CsvTableManager {
 						}
 						o.labels.add(l);
 										
+					}
+					if(wfFilterColumns != null) {
+						o.cascade_filters = new HashMap<>();
+						for(String fc : wfFilterColumns.keySet()) {
+							o.cascade_filters.put(fc, rsx.getString(idx++)); 
+						}
 					}
 					choices.add(o);
 					choicesLoaded.put(o.value, "x");

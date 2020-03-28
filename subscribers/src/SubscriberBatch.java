@@ -290,7 +290,7 @@ public class SubscriberBatch {
 										SurveyManager sm = new SurveyManager(localisation, "UTC");
 										sdalSurvey = sm.getSurveyId(sd, templateName);	// Get the survey from the templateName / ident
 										
-										template.readDatabase(sd, templateName, false);					
+										template.readDatabase(sd, cResults, templateName, false);					
 										template.extendInstance(sd, instance, true, sdalSurvey);	// Extend the instance with information from the template
 										// instance.getTopElement().printIEModel("   ");	// Debug
 

@@ -121,9 +121,10 @@ public class GetXForm {
 
 		String response = null;
 
-		if (isWebForms) {
-			embedExternalSearch = true; // Webforms do not support search therefore embed the choices in the html
-		}
+		// XXXX
+		//if (isWebForms) {
+		//	embedExternalSearch = true; // Webforms do not support search therefore embed the choices in the html
+		//}
 
 		Connection sd = null;
 		Connection cResults = null;
@@ -1362,7 +1363,13 @@ public class GetXForm {
 			parent.appendChild(itemElement);
 
 			// Add label element
-			Element labelElement = outputXML.createElement(ci.labelKey);
+			String labelKey;
+			if(o.getExternalFile()) {
+				labelKey = "label";
+			} else {
+				labelKey = ci.labelKey;
+			}
+			Element labelElement = outputXML.createElement(labelKey);
 			String label = o.getLabelId();
 			if (label == null) {
 				// Use the default label text
@@ -1382,10 +1389,6 @@ public class GetXForm {
 			itemElement.appendChild(valueElement);
 
 			// Add other elements that are used for selecting relevant values
-
-			if (embedExternalSearch) {
-
-			}
 			o.setCascadeKeyValues(); // Set the key value pairs from the filter string
 			HashMap<String, String> cvs = o.getCascadeKeyValues();
 			List<String> keyList = new ArrayList<String>(cvs.keySet());
@@ -1413,33 +1416,35 @@ public class GetXForm {
 			// Get Header
 			String line = GeneralUtilityMethods.removeBOM(br.readLine());
 			String cols[] = parser.parseLine(line);
+			log.info("Header line for csv file: " + filepath + " is: " + line);
 
 			while (line != null) {
 				line = br.readLine();
 				if (line != null && line.trim().length() > 0) {
 					String[] values = parser.parseLine(line);
 					
-					if(values.length == cols.length) {
-						Element item = outputXML.createElement("item");
-						parent.appendChild(item);
-						Element elem = null;
-						for (int i = 0; i < cols.length; i++) {
-							try {
-								elem = outputXML.createElement(cols[i]);
-								String v = values[i];
-								v = v.replaceAll("'", "");
-								elem.setTextContent(v);
-								item.appendChild(elem);
-							} catch (Exception e) {
-								log.log(Level.SEVERE, e.getMessage(), e);
-								String msg = localisation.getString("msg_inv_col");
-								msg = msg.replaceAll("%s1", cols[i]);
-								msg = msg.replaceAll("%s2", file.getName());
-								throw new Exception (msg);
-							}
+					// Warning log message if the number of columns does not match the data
+					if(values.length != cols.length) {
+						log.info("Error: Values length is " + values.length + " and column length is " + cols.length + " for line: " + line);
+					}
+
+					Element item = outputXML.createElement("item");
+					parent.appendChild(item);
+					Element elem = null;
+					for (int i = 0; i < cols.length && i < values.length; i++) {
+						try {
+							elem = outputXML.createElement(cols[i]);
+							String v = values[i];
+							v = v.replaceAll("'", "");
+							elem.setTextContent(v);
+							item.appendChild(elem);
+						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);
+							String msg = localisation.getString("msg_inv_col");
+							msg = msg.replaceAll("%s1", cols[i]);
+							msg = msg.replaceAll("%s2", file.getName());
+							throw new Exception (msg);
 						}
-					} else {
-						log.info("Error: Values length is " + values.length + " and column length is " + cols.length);
 					}
 				}
 			}
@@ -1540,6 +1545,7 @@ public class GetXForm {
 
 			// Generate the XML
 			boolean hasData = false;
+			log.info("Populate form data: " + priKey + " : " + templateName + " : " + firstForm.getName());
 			if (priKey > 0) {
 				hasData = true;
 				populateFormData(outputXML, firstForm, priKey, -1, cResults, sd, template, null, sId, templateName, false,

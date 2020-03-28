@@ -48,6 +48,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
@@ -115,6 +116,7 @@ public class XFormData {
 		String auditFilePath = null;
 
 		Connection sd = null;
+		Connection cResults = null;
 		PreparedStatement pstmtIsRepeating = null;
 		ResultSet rsRepeating = null;
 		
@@ -122,6 +124,7 @@ public class XFormData {
 
 		try {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
+			cResults = SDDataSource.getConnection("surveyMobileAPI-XFormData");
 			
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -152,7 +155,7 @@ public class XFormData {
 							+ ")");
 					
 					SurveyTemplate template = new SurveyTemplate(localisation);
-					templateName = template.readDatabase(sd, templateName, false);  // Update the template name if the survey has been replaced
+					templateName = template.readDatabase(sd, cResults, templateName, false);  // Update the template name if the survey has been replaced
 					
 					SurveyManager sm = new SurveyManager(localisation, "UTC");
 					survey = sm.getSurveyId(sd, templateName); // Get the survey id from the templateName / key
@@ -425,6 +428,7 @@ public class XFormData {
 			try {if (pstmtIsRepeating != null) {pstmtIsRepeating.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);
+			ResultsDataSource.closeConnection("surveyMobileAPI-XFormData", cResults);
 		}
 	}
 

@@ -620,6 +620,7 @@ public class WebForm extends Application {
 					outputString.append(")");
 				}
 			} else {
+				// MAIN ENTRY POINT
 				outputString.append(addDocument(request, instanceXML, instanceStrToEditId, assignmentId,
 						survey.surveyClass, orgId, accessKey, superUser, single));
 			}
@@ -886,9 +887,6 @@ public class WebForm extends Application {
 
 		StringBuffer output = new StringBuffer();
 		output.append(openMain(orgId, minimal));
-
-		// String transformed = transform(request, formXML,
-		// "/XSL/openrosa2html5form.xsl");
 
 		GetHtml getHtml = new GetHtml(localisation);
 		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, gRecordCounts);
