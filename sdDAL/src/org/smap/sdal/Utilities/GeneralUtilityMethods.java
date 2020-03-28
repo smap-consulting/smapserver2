@@ -4845,7 +4845,7 @@ public class GeneralUtilityMethods {
 			String tz,
 			HashMap<String, String> wfFilters) throws Exception {
 
-		ArrayList<Option> choices = new ArrayList<Option> ();		
+		ArrayList<Option> choices = null;		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
 		PreparedStatement pstmt = null;
 		
@@ -4899,6 +4899,7 @@ public class GeneralUtilityMethods {
 						}
 						
 						if(languageItems.size() > 0) {
+							
 							if(filename.startsWith("linked_s")) {
 								if(filename.equals("linked_self")) {
 									filename = "linked_" + surveyIdent;
@@ -4915,12 +4916,8 @@ public class GeneralUtilityMethods {
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz);
-								
-								Option o = null;
-								while((o = stm.getLineAsOption(ovalue, languageItems)) != null) {
-									choices.add(o);
-								}
+								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz);						
+								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 								
 							} else {
 								// Get data from a csv table

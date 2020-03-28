@@ -606,7 +606,7 @@ public class CsvTableManager {
 			}
 			log.info("Get CSV values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
-			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();
+			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
 			
 			while(rsx.next()) {
 				int idx = 1;
