@@ -1,5 +1,11 @@
 package org.smap.sdal.managers;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -18,6 +24,7 @@ import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.TranscribeResultSmap;
 
 import com.google.gson.Gson;
 
@@ -161,7 +168,14 @@ public class AutoUpdateManager {
 		ImageProcessing ip = new ImageProcessing();
 		AudioProcessing ap = new AudioProcessing();		
 		
-		String sql = "select type, job from aws_async_jobs where status = ?";
+		String sql = "select "
+				+ "id,"
+				+ "type, "
+				+ "job,"
+				+ "table_name,"
+				+ "col_name,"
+				+ "instanceid "
+				+ " from aws_async_jobs where status = ?";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -169,12 +183,40 @@ public class AutoUpdateManager {
 			
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				String type = rs.getString(1);
-				String job = rs.getString(2);
+				int id = rs.getInt(1);
+				String type = rs.getString(2);
+				String job = rs.getString(3);
+				String tableName = rs.getString(4);
+				String colName = rs.getString(5);
+				String instanceId = rs.getString(6);
+				
 				if(type.equals(AUTO_UPDATE_AUDIO)) {
-					String result = ap.getTranscript(job);
+					String urlString = ap.getTranscriptUri(job);
+					
+					if(urlString != null && urlString.startsWith("https")) {
+						
+						String output = null;
+						String status = null;
+						
+						try {					
+							TranscribeResultSmap trs = gson.fromJson(
+									GeneralUtilityMethods.readTextUrl(urlString), 
+									TranscribeResultSmap.class);
+							
+							output = trs.results.transcripts.get(0).transcript;
+							status = AU_STATUS_COMPLETE;
+							
+							
+						} catch (Exception e) {
+							output = "[" + e.getMessage()+ "]";
+							status = AU_STATUS_ERROR;
+							urlString = null;
+						}
+						// Write result to database and update the job status
+						writeResult(cResults, tableName, colName, instanceId, output);
+						updateSyncStatus(sd, id, status, urlString);
+					}
 				}
-				System.out.println("Pending job: " + rs.getString(2));
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -388,6 +430,37 @@ public class AutoUpdateManager {
 			
 		} finally {
 			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Write a result to the latest record in the results table
+	 */
+	private void updateSyncStatus(Connection sd, 		
+			int id,
+			String status,
+			String urlString
+		) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		
+		String sqlUpdate = "update aws_async_jobs " 
+				+ "set status = ?,"
+				+ "results_link = ?,"
+				+ "request_completed = now() "
+				+ "where id = ?";
+		
+		pstmt = sd.prepareStatement(sqlUpdate);
+		
+		pstmt.setString(1, status);
+		pstmt.setString(2, urlString);
+		pstmt.setInt(3, id);
+		pstmt.executeUpdate();
+		
+		try {
+			
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
 	}
 }

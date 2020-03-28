@@ -6,8 +6,10 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.math.BigInteger;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -9238,6 +9240,25 @@ public class GeneralUtilityMethods {
 		}
 		
 		return groups;
+	}
+	
+	public static String readTextUrl(String urlString) throws IOException {
+				
+		StringBuilder sb = new StringBuilder();
+		BufferedReader bufferedReader = null;
+		try {
+			URL url = new URL(urlString);
+			bufferedReader = new BufferedReader(new InputStreamReader(url.openStream()));
+			
+			String line;
+			while ( (line = bufferedReader.readLine()) != null ) {
+				sb.append(line);
+			}
+
+		} finally {
+			bufferedReader.close();
+		}
+		return sb.toString();
 	}
 }
 
