@@ -306,7 +306,7 @@ public class UtilityMethods {
 			// Potentially add a filter using the appearance value to the nodeset
 
 			HashMap<String, String> filters = GeneralUtilityMethods.getSearchFiltersFromAppearance(appearance);
-			
+
 			if(filters != null) {
 				log.info("Add filter from: " + appearance + " to: " + nodeset);
 
@@ -316,14 +316,20 @@ public class UtilityMethods {
 					if (idx >= 0) {
 						out = out.substring(0, idx);
 					}
-				
+
 					int count = 0;
 					out += "[ ";
 					for(String k : filters.keySet()) {
 						if(count++ > 0) {
 							out += " and ";
 						}
-						 out += k + " = " + filters.get(k) ;
+						String v = filters.get(k);
+						if(v.trim().startsWith("${")) {
+							out += k + " = " + filters.get(k) ;			// A question
+						} else {
+							out += k + " = '" + filters.get(k) + "'";	// A string
+						}
+						
 					}
 					out += " ]";
 				}
