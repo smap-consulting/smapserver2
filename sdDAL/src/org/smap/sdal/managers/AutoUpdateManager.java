@@ -163,10 +163,11 @@ public class AutoUpdateManager {
 	public void checkPendingJobs(
 		Connection sd,
 		Connection cResults,
-		Gson gson) {
+		Gson gson,
+		String region) {
 		
 		ImageProcessing ip = new ImageProcessing();
-		AudioProcessing ap = new AudioProcessing();		
+		AudioProcessing ap = new AudioProcessing(region);		
 		
 		String sql = "select "
 				+ "id,"
@@ -233,9 +234,9 @@ public class AutoUpdateManager {
 			Connection cResults,
 			Gson gson,
 			String server, 
-			int oId,
 			ArrayList<AutoUpdate> updates,
 			String mediaBucket,
+			String region,
 			String basePath) {
 		
 		PreparedStatement pstmt = null;
@@ -251,7 +252,7 @@ public class AutoUpdateManager {
 			pstmtAsync = sd.prepareStatement(sqlAsync);
 			
 			ImageProcessing ip = new ImageProcessing();
-			AudioProcessing ap = new AudioProcessing();		
+			AudioProcessing ap = new AudioProcessing(region);		
 			
 			// For each update item get the records that are null and need updating
 			for(AutoUpdate item : updates) {
@@ -285,7 +286,7 @@ public class AutoUpdateManager {
 							if(source.trim().startsWith("attachments")) {
 								if(item.type.equals(AUTO_UPDATE_IMAGE)) {
 									output = ip.getLabels(server, "auto_update", "/smap/" + source, item.labelColType);
-									lm.writeLog(sd, oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
+									lm.writeLog(sd, item.oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
 									
 								} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
 									
@@ -302,7 +303,7 @@ public class AutoUpdateManager {
 											mediaBucket);
 									
 									if(status.equals("IN_PROGRESS")) {
-										lm.writeLogOrganisation(sd, oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
+										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
 										
 										// Write result to async table, the labels will be retrieved later
 										pstmtAsync.setInt(1, item.oId);

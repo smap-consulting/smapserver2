@@ -56,10 +56,12 @@ public class Manager {
 			mp.go(smapId, fileLocn);
 
 			// Start the AWS service processor
-			String mediaBucket = GeneralUtilityMethods.getMediaBucket();
+			String mediaBucket = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/bucket");
+			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+			System.out.println("Auto Update:  S3 Bucket is: " + region + " : " + mediaBucket);
 			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
-			au.go(smapId, fileLocn, mediaBucket);
+			au.go(smapId, fileLocn, mediaBucket, region);
 		}
 		
 		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);

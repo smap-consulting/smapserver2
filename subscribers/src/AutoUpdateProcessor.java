@@ -12,7 +12,6 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.AutoUpdateManager;
-import org.smap.sdal.managers.MessagingManagerApply;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
@@ -57,12 +56,14 @@ public class AutoUpdateProcessor {
 		String serverName;
 		String basePath;
 		String mediaBucket;
+		String region;
 
-		public UpdateLoop(Connection sd, Connection cResults, String basePath, String mediaBucket) {
+		public UpdateLoop(Connection sd, Connection cResults, String basePath, String mediaBucket, String region) {
 			this.sd = sd;
 			this.cResults = cResults;
 			this.basePath = basePath;
 			this.mediaBucket = mediaBucket;
+			this.region = region;
 		}
 
 		public void run() {
@@ -80,7 +81,7 @@ public class AutoUpdateProcessor {
 					/*
 					 * Check for pending jobs
 					 */	
-					aum.checkPendingJobs(sd, cResults, gson);
+					aum.checkPendingJobs(sd, cResults, gson, region);
 								
 					/*
 					 * Apply auto updates
@@ -88,7 +89,7 @@ public class AutoUpdateProcessor {
 					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
 					if(autoUpdates != null && autoUpdates.size() > 0) {
 						//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
-						aum.applyAutoUpdates(sd, cResults, gson, serverName, 0, autoUpdates, mediaBucket, basePath);
+						aum.applyAutoUpdates(sd, cResults, gson, serverName, autoUpdates, mediaBucket, region, basePath);
 					}
 					
 				} catch (Exception e) {
@@ -166,7 +167,7 @@ public class AutoUpdateProcessor {
 	/**
 	 * @param args
 	 */
-	public void go(String smapId, String basePath, String mediaBucket) {
+	public void go(String smapId, String basePath, String mediaBucket, String region) {
 
 		confFilePath = "./" + smapId;
 
@@ -175,7 +176,7 @@ public class AutoUpdateProcessor {
 			// Send any pending messages
 			File pFile = new File("/smap_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath, mediaBucket));
+				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath, mediaBucket, region));
 				t.start();
 			} else {
 				// No message!

@@ -532,6 +532,8 @@ public class GeneralUtilityMethods {
 		}
 
 	}
+	
+
 
 	/*
 	 * Return the users language
@@ -8705,7 +8707,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 		String sql = "select instanceid "
 				+ "from " + tableName + " "
-				+ "where _thread = (select _thread from " + tableName + " where instanceid = ?) "
+				+ "where _thread = (select distinct _thread from " + tableName + " where instanceid = ?) "
 				+ "order by prikey desc limit 1";
 
 		if(GeneralUtilityMethods.hasColumn(cResults, tableName, "_thread")) {
@@ -9265,16 +9267,16 @@ public class GeneralUtilityMethods {
 		return sb.toString();
 	}
 	
-	public static String getMediaBucket() {
+	public static String getSettingFromFile(String filePath) {
 		
 		String mediaBucket = null;
 		try {
-			List<String> lines = Files.readAllLines(new File("~ubuntu/bucket").toPath());
+			List<String> lines = Files.readAllLines(new File(filePath).toPath());
 			if(lines.size() > 0) {
 				mediaBucket = lines.get(0);
 			}
 		} catch (Exception e) {
-			
+			log.log(Level.SEVERE, e.getMessage(), e);;
 		}
 
 		return mediaBucket;
