@@ -741,7 +741,7 @@ public class GetHtml {
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 		}
 		if(q.constraint != null && q.constraint.length() > 0) {
-			textElement.setAttribute("data-constraint", q.constraint);
+			textElement.setAttribute("data-constraint", UtilityMethods.convertAllxlsNames(q.constraint,false, paths, form.id, true, q.name, false));
 		}		
 		if (q.readonly) {
 			textElement.setAttribute("readonly", "readonly");
@@ -1050,7 +1050,7 @@ public class GetHtml {
 						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 			}
 			if(q.constraint != null && q.constraint.length() > 0) {
-				inputElement.setAttribute("data-constraint", q.constraint);
+				inputElement.setAttribute("data-constraint", UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 			}
 
 			if(q.required) {
@@ -1102,9 +1102,9 @@ public class GetHtml {
 					}
 					inputElement.setAttribute("value", o.value);
 					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
-					if(q.constraint != null && q.constraint.length() > 0) {
-						inputElement.setAttribute("data-constraint", q.constraint);
-					}
+					//if(q.constraint != null && q.constraint.length() > 0) { What is this doing here!
+					//	inputElement.setAttribute("data-constraint", q.constraint);
+					//}
 				}
 
 			}
