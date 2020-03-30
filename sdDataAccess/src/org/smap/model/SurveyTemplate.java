@@ -1655,23 +1655,25 @@ public class SurveyTemplate {
 					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", q.filters);
 			
 			int idx = 0;
-			for(org.smap.sdal.model.Option o : oList) {
-				Option oLegacy = new Option();
-				oLegacy.setId(o.id);
-				oLegacy.setValue(o.value);
-				if(o.labels.size() > 0) {
-					oLegacy.setLabel(o.labels.get(0).text);
-				}
-				oLegacy.setSeq(idx++);
-				oLegacy.setExternalFile(true);
-				if(o.cascade_filters != null) {
-					for(String k : o.cascade_filters.keySet()) {
-						oLegacy.addCascadeKeyValue(k, o.cascade_filters.get(k));
+			if(oList != null) {
+				for(org.smap.sdal.model.Option o : oList) {
+					Option oLegacy = new Option();
+					oLegacy.setId(o.id);
+					oLegacy.setValue(o.value);
+					if(o.labels.size() > 0) {
+						oLegacy.setLabel(o.labels.get(0).text);
 					}
-					oLegacy.setCascadeFilters();
+					oLegacy.setSeq(idx++);
+					oLegacy.setExternalFile(true);
+					if(o.cascade_filters != null) {
+						for(String k : o.cascade_filters.keySet()) {
+							oLegacy.addCascadeKeyValue(k, o.cascade_filters.get(k));
+						}
+						oLegacy.setCascadeFilters();
+					}
+					
+					options.add(oLegacy);
 				}
-				
-				options.add(oLegacy);
 			}
 			// Convert new SDAL options to the legacy SDDataAccess Options
 		} catch (Exception e) {
