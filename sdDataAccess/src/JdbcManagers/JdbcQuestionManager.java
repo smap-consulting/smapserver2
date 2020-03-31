@@ -182,7 +182,8 @@ public class JdbcQuestionManager {
 					q.getNodeset(),
 					q.getAppearance(false, null),
 					q.getFormId(),
-					q.getName());
+					q.getName(),
+					true);
 			if(nodeset == null || nodeset.trim().length() == 0) {
 				nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(null, q.getListName());
 				nodeset_value = "name";

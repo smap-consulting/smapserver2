@@ -211,6 +211,7 @@ public class UtilityMethods {
 				/*
 				 * Return relative path if requested
 				 * This is the relative path from the calledFromQuestion to the qPath
+				 * Only used in fieldTask not Webforms - tentative
 				 * 
 				 * Examples:
 				 *   called from:     /x1/x2/x3/qCalledFrom
@@ -298,7 +299,8 @@ public class UtilityMethods {
     		String nodeset,
     		String appearance,
     		int f_id,
-    		String qName) throws Exception {
+    		String qName,
+    		boolean relativePath) throws Exception {
 		
 		String out = nodeset;
 		
@@ -338,7 +340,7 @@ public class UtilityMethods {
 		}		
 		
 		if(convertToXPath) {
-			out = convertAllxlsNames(out, false, questionPaths, f_id, false, qName, true);
+			out = convertAllxlsNames(out, false, questionPaths, f_id, false, qName, relativePath);
 		} else if(convertToXLSName) {
 			out = GeneralUtilityMethods.convertAllXpathNames(out, true);
 		}

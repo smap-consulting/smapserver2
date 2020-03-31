@@ -1181,7 +1181,7 @@ public class GetXForm {
 			// String nodeset = q.getNodeset(true, false, template.getQuestionPaths(),
 			// embedExternalSearch);
 			String nodeset = UtilityMethods.getNodeset(true, false, template.getQuestionPaths(), embedExternalSearch,
-					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName());
+					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName(), true);
 			// Add the itemset
 			if (nodeset != null
 					&& (!GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, template.getQuestionPaths()))

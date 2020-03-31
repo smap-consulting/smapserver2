@@ -1351,7 +1351,8 @@ public class SurveyTemplate {
 								q.getNodeset(),
 								q.getAppearance(false, null),
 								q.getFormId(),
-								q.getName());
+								q.getName(),
+								true);
 						isExternal = GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, getQuestionPaths()));
 					} catch (Exception e) {
 						
