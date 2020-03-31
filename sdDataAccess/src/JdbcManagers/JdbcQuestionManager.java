@@ -182,7 +182,9 @@ public class JdbcQuestionManager {
 					q.getNodeset(),
 					q.getAppearance(false, null),
 					q.getFormId(),
-					q.getName());
+					q.getName(),
+					false	// Not converted to XPath hence relativePath setting is ignored
+					);
 			if(nodeset == null || nodeset.trim().length() == 0) {
 				nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(null, q.getListName());
 				nodeset_value = "name";

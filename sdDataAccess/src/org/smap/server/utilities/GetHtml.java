@@ -12,6 +12,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.IntStream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.DocumentBuilder;
@@ -515,11 +516,31 @@ public class GetHtml {
 
 		// Add appearances
 		if(q.appearance != null) {
+			
 			String[] appList = q.appearance.split(" ");
+			boolean inSearch = false;
+			int brackets = 0;
+			
 			for (int i = 0; i < appList.length; i++) {
 				if (appList[i] != null && appList[i].trim().length() > 0) {
-					classVal.append(" or-appearance-");
-					classVal.append(appList[i].toLowerCase().trim());
+					
+					String appItem = appList[i].toLowerCase().trim();
+					
+					if(appItem.startsWith("search(")) {
+						inSearch = true;
+						brackets = 0;
+					}
+					
+					if(!inSearch) {
+						classVal.append(" or-appearance-");
+						classVal.append(appItem);
+						System.out.println("     " + appItem);
+					} else {
+						brackets = brackets + countChars(appItem, '(') - countChars(appItem, ')');
+						if(brackets == 0) {
+							inSearch = false;
+						}
+					}
 				}
 			}
 		}
@@ -720,7 +741,7 @@ public class GetHtml {
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 		}
 		if(q.constraint != null && q.constraint.length() > 0) {
-			textElement.setAttribute("data-constraint", q.constraint);
+			textElement.setAttribute("data-constraint", UtilityMethods.convertAllxlsNames(q.constraint,false, paths, form.id, true, q.name, false));
 		}		
 		if (q.readonly) {
 			textElement.setAttribute("readonly", "readonly");
@@ -1029,7 +1050,7 @@ public class GetHtml {
 						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 			}
 			if(q.constraint != null && q.constraint.length() > 0) {
-				inputElement.setAttribute("data-constraint", q.constraint);
+				inputElement.setAttribute("data-constraint", UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
 			}
 
 			if(q.required) {
@@ -1081,9 +1102,9 @@ public class GetHtml {
 					}
 					inputElement.setAttribute("value", o.value);
 					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
-					if(q.constraint != null && q.constraint.length() > 0) {
-						inputElement.setAttribute("data-constraint", q.constraint);
-					}
+					//if(q.constraint != null && q.constraint.length() > 0) { What is this doing here!
+					//	inputElement.setAttribute("data-constraint", q.constraint);
+					//}
 				}
 
 			}
@@ -1665,7 +1686,8 @@ public class GetHtml {
 	 * Attempt to get the full nodeset incorporating any external filters
 	 */
 	private String getNodeset(Question q, Form form) throws Exception {		
-		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name);
+		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
+				false /*(form.parentform > 0)*/);		// In our of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
 		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
 				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
 		return adjustedNodeset;
@@ -1759,4 +1781,19 @@ public class GetHtml {
 		return labelQ;
 	}
 
+	/*
+	 * Count occurence of characters in a string
+	 */
+	private int countChars(String in, char c) {
+		int count = 0;
+		if(in != null) {
+			char [] cArray = in.toCharArray();
+			for(int i = 0; i < cArray.length; i++) {
+				if(cArray[i] == c) {
+					count++;
+				}
+			}
+		}
+		return count;
+	}
 }

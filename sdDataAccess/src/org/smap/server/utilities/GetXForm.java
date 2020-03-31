@@ -828,30 +828,44 @@ public class GetXForm {
 		Element questionElement = outputXML.createElement("bind");
 
 		// Add type
-		String type = q.getType();
+		String bindType = q.getType();
 		String dataType = q.getDataType();
 
-		if(type.equals("range")) {
+		if(bindType.equals("range")) {
 			dataType = getDataTypeFromRange(q.getParameters());
 		}
 
-		if (type.equals("audio") || type.equals("video") || type.equals("image") || type.equals("file")) {
-			type = "binary";
-		} else if (type.equals("begin repeat") && count) {
-			type = "string"; // For a calculate
-		} else if (type.equals("calculate")) {
-			type = "string";
-		} else if (type.equals("note")) {
-			type = "string";
-		}
-		if (!type.equals("begin group") && !type.equals("begin repeat") && !type.equals("geopolygon")
-				&& !type.equals("geolinestring")) {
+		// Bind specific types
+		if (bindType.equals("audio") || bindType.equals("video") || bindType.equals("image") || bindType.equals("file")) {
+			bindType = "binary";
+		} else if (bindType.equals("begin repeat") && count) {
+			bindType = "string"; // For a calculate
+		} else if (bindType.equals("calculate")) {
+			bindType = "string";
+		} else if (bindType.equals("note")) {
+			bindType = "string";
+		} else if(bindType.equals("select1")) {  // Select one
+			bindType = "string";
+		} else if(bindType.equals("select")) {	// Select multiple
+			bindType = "string";
+		} else if(bindType.equals("acknowledge")) {
+			bindType = "string";
+		} else if(bindType.equals("chart")) {
+			bindType = "string";
+		} else if(bindType.equals("trigger")) {
+			bindType = "string";
+		} else if(bindType.equals("rank")) {
+			bindType = "odk:rank";
+		} 
+		
+		if (!bindType.equals("begin group") && !bindType.equals("begin repeat") && !bindType.equals("geopolygon")
+				&& !bindType.equals("geolinestring")) {
 			// Use the data type if it exists
 			if(dataType != null && dataType.trim().length() > 0) {
 				dataType = "xsd:" + dataType;
 				questionElement.setAttribute("type", dataType);
 			} else {
-				questionElement.setAttribute("type", type);
+				questionElement.setAttribute("type", bindType);
 			}
 		}
 
@@ -1164,10 +1178,10 @@ public class GetXForm {
 
 		boolean cascade = false;
 		if (useNodesets) {
-			// String nodeset = q.getNodeset(true, false, template.getQuestionPaths(),
-			// embedExternalSearch);
 			String nodeset = UtilityMethods.getNodeset(true, false, template.getQuestionPaths(), embedExternalSearch,
-					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName());
+					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName(), 
+					f.hasParent()	// Relative path if in a subform
+					);
 			// Add the itemset
 			if (nodeset != null
 					&& (!GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, template.getQuestionPaths()))
