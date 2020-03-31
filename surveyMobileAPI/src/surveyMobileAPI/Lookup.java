@@ -352,14 +352,13 @@ public class Lookup extends Application{
 			Iterator<?> itr = items.iterator();
 			File savedFile = null;
 			String contentType = null;
+			String tempFileName = UUID.randomUUID().toString();
 			while(itr.hasNext()) {
 				FileItem item = (FileItem) itr.next();
 	
 				if(!item.isFormField()) {
 					if(!item.isFormField()) {
-						String fileName = item.getName();
 						contentType = item.getContentType();
-						String tempFileName = UUID.randomUUID().toString();
 						String filePath = basePath + "/temp/" + tempFileName;								
 						savedFile = new File(filePath);
 						item.write(savedFile);  // Save the new file
@@ -376,11 +375,11 @@ public class Lookup extends Application{
 				throw new ApplicationException("Content type not supported: " + contentType);
 			}
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);				
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);				
 
-			ImageProcessing ip = new ImageProcessing();		// Can this be handled in a singleton
-			String labels = ip.getLabels(request.getServerName(), request.getRemoteUser(), savedFile.getAbsolutePath(), "text");
+			ImageProcessing ip = new ImageProcessing(null);		// Can this be handled in a singleton
+			String labels = ip.getLabels(request.getServerName(), "/temp", tempFileName, "text");
 			System.out.println("Labels: " + labels);
 			response = Response.ok(labels).build();
 			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent);

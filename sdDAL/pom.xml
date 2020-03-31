@@ -101,12 +101,13 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Local -->
+		<!-- Local 
 		<dependency>
 			<groupId>au.com.smap</groupId>
 			<artifactId>amazon</artifactId>
 			<version>1.0.0</version>
 		</dependency>
+		-->
 
 	</dependencies>
 </project>

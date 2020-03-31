@@ -1,11 +1,4 @@
-import java.io.File;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.text.DateFormat;
-import java.util.Date;
-
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.subscribers.Subscriber;
 
 /*****************************************************************************
 

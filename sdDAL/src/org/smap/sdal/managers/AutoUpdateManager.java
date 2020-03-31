@@ -1,11 +1,5 @@
 package org.smap.sdal.managers;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -19,11 +13,11 @@ import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.AudioProcessing;
 import org.smap.notifications.interfaces.ImageProcessing;
+import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.AutoUpdate;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.QuestionForm;
-import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TranscribeResultSmap;
 
 import com.google.gson.Gson;
@@ -60,6 +54,7 @@ public class AutoUpdateManager {
 	
 	public static String AUTO_UPDATE_IMAGE = "imagelabel";
 	public static String AUTO_UPDATE_AUDIO = "audiotranscript";
+	public static String AUTO_UPDATE_TEXT = "texttranslate";
 	
 	public static String AU_STATUS_PENDING = "pending";
 	public static String AU_STATUS_COMPLETE = "complete";
@@ -124,13 +119,16 @@ public class AutoUpdateManager {
 							
 							if(refQf.qType != null 
 									&& (refQf.qType.equals("image")
-											|| refQf.qType.equals("audio"))) {
+											|| refQf.qType.equals("audio")
+											|| refQf.qType.equals("string"))) {
 								
 								String updateType = null;
 								if(refQf.qType.equals("image")) {
 									updateType = AUTO_UPDATE_IMAGE;
 								} else if(refQf.qType.equals("audio")) {
 									updateType = AUTO_UPDATE_AUDIO;
+								} else if(refQf.qType.equals("string")) {
+									updateType = AUTO_UPDATE_TEXT;
 								}
 								
 								AutoUpdate au = new AutoUpdate(updateType);
@@ -166,7 +164,7 @@ public class AutoUpdateManager {
 		Gson gson,
 		String region) {
 		
-		ImageProcessing ip = new ImageProcessing();
+		ImageProcessing ip = new ImageProcessing(region);
 		AudioProcessing ap = new AudioProcessing(region);		
 		
 		String sql = "select "
@@ -251,8 +249,9 @@ public class AutoUpdateManager {
 
 			pstmtAsync = sd.prepareStatement(sqlAsync);
 			
-			ImageProcessing ip = new ImageProcessing();
-			AudioProcessing ap = new AudioProcessing(region);		
+			ImageProcessing ip = new ImageProcessing(region);
+			AudioProcessing ap = new AudioProcessing(region);	
+			TextProcessing tp = new TextProcessing(region);	
 			
 			// For each update item get the records that are null and need updating
 			for(AutoUpdate item : updates) {
@@ -283,19 +282,33 @@ public class AutoUpdateManager {
 							String instanceId = rs.getString(1);
 							String source = rs.getString(2);
 							String output = "";
-							if(source.trim().startsWith("attachments")) {
-								if(item.type.equals(AUTO_UPDATE_IMAGE)) {
-									output = ip.getLabels(server, "auto_update", "/smap/" + source, item.labelColType);
+							
+							if(item.type.equals(AUTO_UPDATE_IMAGE)) {
+									
+								if(source.trim().startsWith("attachments")) {
+									
+									output = ip.getLabels(
+											basePath + "/",
+											source, 
+											item.labelColType,
+											mediaBucket);
+									
 									lm.writeLog(sd, item.oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
 									
-								} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
+								} else {
+									output = "[Error: invalid source data " + source + "]";
+								}
+							} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
+									
+								if(source.trim().startsWith("attachments")) {
 									
 									// Unique job within the account
 									StringBuffer job = new StringBuffer(item.tableName)
 											.append("_")
 											.append(String.valueOf(UUID.randomUUID()));
 									
-									String  status = ap.submitJob(localisation, server, 
+									String  status = ap.submitJob(
+											localisation, 
 											basePath + "/",
 											source, 
 											item.labelColType, 
@@ -323,23 +336,29 @@ public class AutoUpdateManager {
 										output = "[" + status + "]";
 									}
 								} else {
-									String msg = "cannot perform auto update for update type: \" + item.type";
-									log.info("Error: " + msg);
-									output = "[" + localisation.getString("c_error") + " " + msg + "]";
+									output = "[Error: invalid source data " + source + "]";
 								}
-								
-								// Write result to database
-								writeResult(cResults, item.tableName, item.targetColName, instanceId, output);
-								
-								
+							} else if(item.type.equals(AUTO_UPDATE_TEXT)) {
+									
+								output = tp.getTranslatian(source, "en", "es");
+								lm.writeLog(sd, item.oId, "auto_update", LogManager.TRANSLATE, "Batch: " + "/smap/" + source);
+									
+							} else {
+								String msg = "cannot perform auto update for update type: \" + item.type";
+								log.info("Error: " + msg);
+								output = "[" + localisation.getString("c_error") + " " + msg + "]";
 							}
+								
+							// Write result to database
+							writeResult(cResults, item.tableName, item.targetColName, instanceId, output);					
+								
 							
 						} 
 					} else {
 						log.info("------------ AutoUpdate: Target Columns not found: " + item.targetColName + " in " + item.tableName);
 					}				
 				} else {
-					log.info("------------ AutoUpdate: Target Columns not found: " + item.sourceColName + " in " + item.tableName);
+					log.info("------------ AutoUpdate: Source Columns not found: " + item.sourceColName + " in " + item.tableName);
 				}
 			}
 			
@@ -420,24 +439,59 @@ public class AutoUpdateManager {
 			String instanceId, 
 			String output) throws SQLException {
 		
-		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmt = null;
 		
-		String sqlUpdate = "update " 
+		String sql = "update " 
 				+ tableName 
 				+ " set " + colName + " = ? "
 				+ "where instanceid = ?";
-		pstmtUpdate = cResults.prepareStatement(sqlUpdate);
 		
-		instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
-		pstmtUpdate.setString(1, output);
-		pstmtUpdate.setString(2, instanceId);
-		pstmtUpdate.executeUpdate();
+		try {			
+			pstmt = cResults.prepareStatement(sql);
+			
+			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
+			pstmt.setString(1, output);
+			pstmt.setString(2, instanceId);
+			pstmt.executeUpdate();
+		
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Read the source data
+	 */
+	private String readSource(Connection cResults, 
+			String tableName,
+			String colName,
+			String instanceId) throws SQLException {
+		
+		PreparedStatement pstmt = null;
+		String source = "";
+		
+		String sql = "select "
+				+ colName 
+				+ " from "
+				+ tableName 
+				+ "where instanceid = ?";
 		
 		try {
 			
+			pstmt = cResults.prepareStatement(sql);
+			
+			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
+			pstmt.setString(1, instanceId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				source = rs.getString(1);
+			}
+		
 		} finally {
-			if(pstmtUpdate != null) {try {pstmtUpdate.close();} catch(Exception e) {}}
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
+		
+		return source;
 	}
 	
 	/*
