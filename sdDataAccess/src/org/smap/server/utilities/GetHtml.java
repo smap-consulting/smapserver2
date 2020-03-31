@@ -1686,7 +1686,8 @@ public class GetHtml {
 	 * Attempt to get the full nodeset incorporating any external filters
 	 */
 	private String getNodeset(Question q, Form form) throws Exception {		
-		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, false);
+		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
+				false /*(form.parentform > 0)*/);		// In our of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
 		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
 				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
 		return adjustedNodeset;

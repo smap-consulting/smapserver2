@@ -1352,7 +1352,8 @@ public class SurveyTemplate {
 								q.getAppearance(false, null),
 								q.getFormId(),
 								q.getName(),
-								true);
+								false	// Not converted to XPath name hence relativePath is ignored
+								);
 						isExternal = GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, getQuestionPaths()));
 					} catch (Exception e) {
 						

@@ -1178,10 +1178,10 @@ public class GetXForm {
 
 		boolean cascade = false;
 		if (useNodesets) {
-			// String nodeset = q.getNodeset(true, false, template.getQuestionPaths(),
-			// embedExternalSearch);
 			String nodeset = UtilityMethods.getNodeset(true, false, template.getQuestionPaths(), embedExternalSearch,
-					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName(), true);
+					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName(), 
+					f.hasParent()	// Relative path if in a subform
+					);
 			// Add the itemset
 			if (nodeset != null
 					&& (!GeneralUtilityMethods.isAppearanceExternalFile(q.getAppearance(true, template.getQuestionPaths()))
