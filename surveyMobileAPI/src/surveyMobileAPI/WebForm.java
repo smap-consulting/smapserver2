@@ -486,7 +486,6 @@ public class WebForm extends Application {
 		ServerManager sm = new ServerManager();
 		StringBuffer outputString = new StringBuffer();
 
-		
 		if (userIdent != null) {
 			
 			// Authorisation
