@@ -456,6 +456,10 @@ public class GetHtml {
 						input.setAttribute("data-relevant",
 								UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 					}
+					if (q.constraint != null && q.constraint.trim().length() > 0) {
+						input.setAttribute("data-constraint",
+								UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
+					}
 					// Dynamic Default
 					if (q.calculation != null && q.calculation.trim().length() > 0) {
 						bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
@@ -1102,9 +1106,10 @@ public class GetHtml {
 					}
 					inputElement.setAttribute("value", o.value);
 					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
-					//if(q.constraint != null && q.constraint.length() > 0) { What is this doing here!
-					//	inputElement.setAttribute("data-constraint", q.constraint);
-					//}
+					if(q.constraint != null && q.constraint.length() > 0) { 
+						// inputElement.setAttribute("data-constraint", q.constraint);
+						log.info("XXXXXXXXXXXXXXXXXX wants to set constraint on attribute for question: " + q.name + " : " + q.fId);
+					}
 				}
 
 			}
@@ -1311,7 +1316,7 @@ public class GetHtml {
 		}
 
 		// Constraint message (Without a language)
-		if(!constraintMessageAdded && !q.type.startsWith("select")) {
+		if(!constraintMessageAdded) {
 			addConstraintMsg(q.constraint_msg, null, parent, 0);
 		}
 
