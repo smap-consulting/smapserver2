@@ -809,6 +809,10 @@ public class GetHtml {
 			selectElement.setAttribute("data-relevant",
 					UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 		}
+		if (q.constraint != null && q.constraint.trim().length() > 0) {
+			selectElement.setAttribute("data-constraint",
+					UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
+		}
 		if (q.required) {
 			selectElement.setAttribute("data-required", "true()");
 		}
@@ -903,6 +907,11 @@ public class GetHtml {
 				inputElement.setAttribute("data-relevant",
 						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
 			}
+			if (q.constraint != null && q.constraint.trim().length() > 0) {
+				inputElement.setAttribute("data-constraint",
+						UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
+			}
+			
 			parent.appendChild(inputElement);
 		}
 		// Option wrapper
