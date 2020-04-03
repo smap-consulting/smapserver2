@@ -110,8 +110,10 @@ public class Surveys extends Application {
 			@QueryParam("groups") boolean groups
 			) { 
 		
+		String connectionString = "surveyKPI-Surveys";
+		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		if(getDeleted) {
 			aUpdate.isAuthorised(sd, request.getRemoteUser());
 		} else {
@@ -159,7 +161,7 @@ public class Surveys extends Application {
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 
@@ -180,9 +182,10 @@ public class Surveys extends Application {
 			@QueryParam("tz") String tz
 			) { 
 		
+		String connectionString = "surveyKPI - Get Survey Details";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-Surveys");	
+		Connection sd = SDDataSource.getConnection(connectionString );	
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -205,7 +208,7 @@ public class Surveys extends Application {
 		}
 		
 		Response response = null;
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-Surveys");
+		Connection cResults = ResultsDataSource.getConnection(connectionString );
 		
 		try {
 			// Get the users locale
@@ -244,8 +247,8 @@ public class Surveys extends Application {
 			response = Response.serverError().build();
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-Surveys", sd);	
-			ResultsDataSource.closeConnection("surveyKPI-Surveys", cResults);
+			SDDataSource.closeConnection(connectionString , sd);	
+			ResultsDataSource.closeConnection(connectionString , cResults);
 			
 		}
 
@@ -686,7 +689,7 @@ public class Surveys extends Application {
 			/*
 			 * PDF Template
 			 */
-			String templateName = null;
+
 			String archivedTemplateName = null;
 			boolean updatePDFName = true;
 			if(fileName != null) {  // Save the file
@@ -695,7 +698,7 @@ public class Surveys extends Application {
 				copyPdf(request, survey.displayName, survey.displayName + "__prev__", survey.p_id);
 				
 				archivedTemplateName = writePdf(request, survey.displayName, pdfItem, true, survey.p_id);		// TODO Save the change log version of the file		
-	            templateName = writePdf(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
+	            writePdf(request, survey.displayName, pdfItem, false, survey.p_id);				// Save the "current" version of the file			
 			
 			} else if(pdfSet.equals("no")) {
 				
@@ -707,7 +710,7 @@ public class Surveys extends Application {
 			} else {
 				  // If the survey name has been changed then change the name of the template on disk
 				if(originalDisplayName != null && !originalDisplayName.equals(survey.displayName)) {
-					templateName = renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
+					renamePdf(request, originalDisplayName, survey.displayName, survey.p_id);
 				}
 
 				updatePDFName = false;	// PDF was not changed
@@ -1258,6 +1261,58 @@ public class Surveys extends Application {
 			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
 			
 			SDDataSource.closeConnection("surveyKPI-Survey", sd);
+			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Translate a survey
+	 */
+	@PUT
+	@Path("/translate/{sId}/{from}/{to}/{fromCode}/{toCode}")
+	public Response translateSurvey(@Context HttpServletRequest request,
+			@PathParam("sId") int sId,
+			@PathParam("from") String fromLanguage,
+			@PathParam("to") String toLanguage,
+			@PathParam("fromCode") String fromCode,
+			@PathParam("toCode") String toCode
+			) { 
+		
+		log.info("translate survey:" + sId + " : " + fromLanguage + "(" + fromCode + ")" 
+				+ " : " + toLanguage + "(" + toCode + ")");
+		
+		String connectionString = "surey-KPI - Translate Survey";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString );
+		aUpdate.isAuthorised(sd, request.getRemoteUser());	
+		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, true);
+
+		Response response = null;
+
+		try {
+	
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			sm.translate(sd, sId, fromLanguage, toLanguage, fromCode, toCode);
+				
+			/*
+			 * Get all language items for the survey and update them
+			 */
+			response = Response.ok("").build();
+					
+		}  catch (Exception e) {
+			try {sd.rollback();} catch (Exception ex) {};
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);		
 			
 		}
 

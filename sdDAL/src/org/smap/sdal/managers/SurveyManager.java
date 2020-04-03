@@ -4283,4 +4283,35 @@ public class SurveyManager {
 		}
 		return valid;
 	}
+	
+	/*
+	 * Translate from one language to another
+	 */
+	public void translate(Connection sd, int sId, 
+			String fromLanguage, 
+			String toLanguage, 
+			String fromCode, 
+			String toCode) throws SQLException {
+		
+		String sql = "select value, type from translation "
+				+ "where s_id = ? "
+				+ "and language = ? "
+				+ "and value is not null "
+				+ "and not external "
+				+ "and (type = 'none' or type = 'guidance' or type = 'constraint_msg')";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, fromLanguage);
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {
+				System.out.println("translating " + rs.getString(1));
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
 }
