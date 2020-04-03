@@ -4008,7 +4008,7 @@ public class GeneralUtilityMethods {
 						if(!qType.equals("select1") && GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
 									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz, null);
-							if(options != null) {
+							if(options != null && options.size() > 0) {
 								for(Option o : options) {
 									String label ="";
 									if(o.externalLabel != null) {
@@ -4944,6 +4944,10 @@ public class GeneralUtilityMethods {
 			try {if (pstmtLabels != null) {pstmtLabels.close();}} catch (SQLException e) {}
 		}
 
+		if(choices == null) {
+			choices = new ArrayList<>();
+		}
+		
 		return choices;
 	}
 

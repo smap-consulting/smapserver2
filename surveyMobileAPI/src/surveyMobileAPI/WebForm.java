@@ -486,7 +486,6 @@ public class WebForm extends Application {
 		ServerManager sm = new ServerManager();
 		StringBuffer outputString = new StringBuffer();
 
-		
 		if (userIdent != null) {
 			
 			// Authorisation
@@ -511,6 +510,7 @@ public class WebForm extends Application {
 			survey = surveyManager.getSurveyId(sd, formIdent); // Get the survey id from the templateName / key
 			if (survey == null) {
 				log.info("Error: Could not find survey id");
+				SDDataSource.closeConnection(requester, sd);
 				throw new NotFoundException();
 			}
 			try {

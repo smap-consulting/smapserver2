@@ -828,9 +828,18 @@ public class SurveyTableManager {
 		Option o = null;
 		HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
 		while((o = getLineAsOption(ovalue, languageItems, wfFilterColumns)) != null) {
-			if(choicesLoaded.get(o.value) == null) {
+			StringBuffer uniqueChoice = new StringBuffer("");
+			uniqueChoice.append(ovalue);
+			if(wfFilterColumns != null) {
+				for(String fc : wfFilterColumns.keySet()) {					
+					String fv = wfFilterColumns.get(fc);
+					o.cascade_filters.put(fc, fv); 
+					uniqueChoice.append(":::").append(fv);
+				}
+			}
+			if(choicesLoaded.get(uniqueChoice.toString()) == null) {
 				choices.add(o);
-				choicesLoaded.put(o.value, "x");
+				choicesLoaded.put(uniqueChoice.toString(), "x");
 			}
 		}
 		

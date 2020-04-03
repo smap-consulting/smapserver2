@@ -609,38 +609,46 @@ public class CsvTableManager {
 			HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
 			
 			while(rsx.next()) {
+				
+				StringBuffer uniqueChoice = new StringBuffer("");
+				
 				int idx = 1;
 				Option o = new Option();
 				o.value = rsx.getString(idx++);
-				if(choicesLoaded.get(o.value) == null) {
-					o.labels = new ArrayList<Label> ();
-					o.externalLabel = items;
-					o.externalFile = true;
-					for(LanguageItem item : items) {
-						Label l = new Label();
-						if(item.text.contains(",")) {
-							String[] comp = item.text.split(",");
-							l.text = "";
-							for(int i = 0; i < comp.length; i++) {
-								if(i > 0) {
-									l.text += ", ";
-								}
-								l.text += rsx.getString(idx++);
+				uniqueChoice.append(o.value);
+				
+				o.labels = new ArrayList<Label> ();
+				o.externalLabel = items;
+				o.externalFile = true;
+				for(LanguageItem item : items) {
+					Label l = new Label();
+					if(item.text.contains(",")) {
+						String[] comp = item.text.split(",");
+						l.text = "";
+						for(int i = 0; i < comp.length; i++) {
+							if(i > 0) {
+								l.text += ", ";
 							}
-						} else {
-							l.text = rsx.getString(idx++);
+							l.text += rsx.getString(idx++);
 						}
-						o.labels.add(l);
-										
+					} else {
+						l.text = rsx.getString(idx++);
 					}
-					if(wfFilterColumns != null) {
-						o.cascade_filters = new HashMap<>();
-						for(String fc : wfFilterColumns.keySet()) {
-							o.cascade_filters.put(fc, rsx.getString(idx++)); 
-						}
+					o.labels.add(l);					
+				}
+					
+				if(wfFilterColumns != null) {
+					o.cascade_filters = new HashMap<>();
+					for(String fc : wfFilterColumns.keySet()) {					
+						String fv = rsx.getString(idx++);
+						o.cascade_filters.put(fc, fv); 
+						uniqueChoice.append(":::").append(fv);
 					}
+				}
+				
+				if(choicesLoaded.get(uniqueChoice.toString()) == null) {
 					choices.add(o);
-					choicesLoaded.put(o.value, "x");
+					choicesLoaded.put(uniqueChoice.toString(), "x");
 				}
 			}	
 		} catch (Exception e) {
