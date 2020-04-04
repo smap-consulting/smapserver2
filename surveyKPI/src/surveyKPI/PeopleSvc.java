@@ -19,27 +19,19 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
-import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.managers.EmailManager;
-import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.PeopleManager;
-import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.People;
 
 import com.google.gson.Gson;
@@ -96,10 +88,11 @@ public class PeopleSvc extends Application {
 		}
 		// End Authorisation
 		
+		ResourceBundle localisation = null;
 		try {	
 			// Localisation			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			PeopleManager pm = new PeopleManager(localisation);
  
@@ -122,7 +115,13 @@ public class PeopleSvc extends Application {
 			}
 		} catch (AuthorisationException e) {
 			log.info("Authorisation Exception");
-		    response = Response.serverError().entity("Not authorised").build();
+			String msg = null;
+			if(localisation != null) {
+				msg = localisation.getString("ae");
+			} else {
+				msg = "Authoisation Error";
+			}
+		    response = Response.serverError().entity(msg).build();
 		} catch (Exception e) {
 			String msg = e.getMessage();
 			log.info(msg);
@@ -140,5 +139,61 @@ public class PeopleSvc extends Application {
 
 	}
 
+	/*
+	 * Delete the contact
+	 */
+	@DELETE
+	@Path("/{id}")
+	public Response deletePerson(
+			@Context HttpServletRequest request,
+			@PathParam("id") int id) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI-Survey - delete contact";
+			
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		if(id > 0) {
+			a.isValidOptin(sd, request.getRemoteUser(), id);
+		}
+		// End Authorisation
+		
+		ResourceBundle localisation = null;
+		try {	
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			PeopleManager pm = new PeopleManager(localisation);
+			pm.deletePerson(sd, id);
+			
+			response = Response.ok().build();
+			
+		} catch (AuthorisationException e) {
+			log.info("Authorisation Exception");
+			String msg = null;
+			if(localisation != null) {
+				msg = localisation.getString("ae");
+			} else {
+				msg = "Authoisation Error";
+			}
+		    response = Response.serverError().entity(msg).build();
+		} catch (Exception e) {
+			String msg = e.getMessage();
+			log.info(msg);
+			if(msg == null) {
+				msg = "System Error";
+			}
+		    response = Response.serverError().entity(msg).build();
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+
+		return response;
+
+	}
 }
 

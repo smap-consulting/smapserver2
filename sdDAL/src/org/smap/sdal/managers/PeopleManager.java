@@ -451,6 +451,27 @@ public class PeopleManager {
 		}
 		return oList;
 	}
+	
+	/*
+	 * Remove a contact
+	 */
+	public void deletePerson(Connection sd, int id) throws SQLException {
+		
+		String sql = "delete from people "
+				+ "where id = ?";
+		
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			
+			log.info("Delete contact: " + pstmt.toString());
+			pstmt.executeUpdate();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+		}
+	}
 }
 
 
