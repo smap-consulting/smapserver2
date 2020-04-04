@@ -1990,9 +1990,6 @@ public class GetXForm {
 				childElement = outputDoc.createElement(item.name);
 				currentParent.appendChild(childElement);
 
-				elementStack.push(currentParent);
-				currentParent = childElement;
-
 			} if (item.end_group) {
 				
 				currentParent = elementStack.pop();
