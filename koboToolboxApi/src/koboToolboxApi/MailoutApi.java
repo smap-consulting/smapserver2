@@ -305,39 +305,44 @@ public class MailoutApi extends Application {
 		String connectionString = "api/v1/mailout - add email";
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
-		
+	
 		MailoutPerson mailoutPerson = null;
 		try {
 			mailoutPerson = gson.fromJson(emailString, MailoutPerson.class);
 		} catch (Exception e) {
-			throw new SystemException("JSON Error: " + e.getMessage());
+			String msg = "JSON Error: " + e.getMessage() + " : " + emailString;
+			log.info("Error: " + msg);
+			throw new SystemException(msg);
 		}
-	
+		
+		String sqlUrl = "update mailout_people set link = ? where id = ?";
+		PreparedStatement pstmtSent = null;
+		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
 		// End Authorisation
 		
-		// Convert action into an initial status
-		String initialStatus = MailoutManager.STATUS_NEW;
-		if(action != null) {
-			if(action.equals("manual")) {
-				initialStatus = MailoutManager.STATUS_MANUAL;
-			} else if(action.equals("email")) {
-				initialStatus = MailoutManager.STATUS_PENDING;
-			}
-		}
-		
-		String sqlUrl = "update mailout_people set link = ? where id = ?";
-		PreparedStatement pstmtSent = null;
-		
-		try {
-			
-			sd = SDDataSource.getConnection(connectionString);
+		try {		
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 	
+			// Convert action into an initial status
+			String initialStatus = MailoutManager.STATUS_NEW;
+			if(action != null) {
+				if(action.equals("manual")) {
+					initialStatus = MailoutManager.STATUS_MANUAL;
+				} else if(action.equals("email")) {
+					initialStatus = MailoutManager.STATUS_PENDING;
+				}
+			}
+			
+			// Validation
+			if(mailoutPerson.email == null) {
+				throw new ApplicationException(localisation.getString("email_nf"));
+			}
+			
 			// Save mailout emails to the database
 			MailoutManager mm = new MailoutManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
@@ -380,7 +385,7 @@ public class MailoutApi extends Application {
 			
 			
 		} catch(Exception e) {
-			log.log(Level.SEVERE,"Error: ", e);
+			log.log(Level.SEVERE, e.getMessage(), e);
 			String msg = e.getMessage();
 			if(msg == null) {
 				msg = "System Error";
