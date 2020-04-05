@@ -1979,21 +1979,14 @@ public class GetXForm {
 				Instance iSub = null;
 				if(instance != null && instance.repeats != null) {
 					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
-					if(subInstanceList.size() > j) {
-						iSub = subInstanceList.get(j);
+					if(subInstanceList.size() > j - 1) {
+						iSub = subInstanceList.get(j - 1);
 					}
 				}
 				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
 						survey_ident, iSub, urlprefix, false, webform);		
 
-				Element childElement = null;
-				childElement = outputDoc.createElement(item.name);
-				currentParent.appendChild(childElement);
-
-				elementStack.push(currentParent);
-				currentParent = childElement;
-
-			} if (item.end_group) {
+			} else if (item.end_group) {
 				
 				currentParent = elementStack.pop();
 				
