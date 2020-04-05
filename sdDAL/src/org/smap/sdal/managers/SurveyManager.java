@@ -1195,7 +1195,7 @@ public class SurveyManager {
 	 */
 	public ChangeResponse applyChangeSetArray(Connection sd, 
 			Connection cResults,
-			int sId, String ident, ArrayList<ChangeSet> changes,
+			int sId, String userIdent, ArrayList<ChangeSet> changes,
 			boolean logIndividualChangeSets) throws Exception {
 
 		ChangeResponse resp = new ChangeResponse();	// Response object
@@ -1220,7 +1220,7 @@ public class SurveyManager {
 			 * This should be saved rather than the ident as a user could be deleted
 			 *  then a new user created with the same ident but its a different user
 			 */
-			userId = GeneralUtilityMethods.getUserId(sd, ident);
+			userId = GeneralUtilityMethods.getUserId(sd, userIdent);
 
 			if(sd.getAutoCommit()) {
 				log.info("Set autocommit sd false");
@@ -1247,7 +1247,7 @@ public class SurveyManager {
 			pstmt.close();
 
 
-			for(ChangeSet cs : changes) {			
+			for(ChangeSet cs : changes) {		
 
 				// Process each change set separately and roll back to a save point if it fails
 				Savepoint sp = sd.setSavepoint();
@@ -4287,29 +4287,46 @@ public class SurveyManager {
 	/*
 	 * Translate from one language to another
 	 */
-	public void translate(Connection sd, int sId, 
+	public void translate(
+			Connection sd, 
+			String userIdent,
+			int sId, 
+			Survey survey,
 			String fromLanguage, 
 			String toLanguage, 
 			String fromCode, 
-			String toCode) throws SQLException {
+			String toCode) throws Exception {
 		
 		String sql = "select value, type from translation "
 				+ "where s_id = ? "
 				+ "and language = ? "
 				+ "and value is not null "
 				+ "and not external "
-				+ "and (type = 'none' or type = 'guidance' or type = 'constraint_msg')";
-		
+				+ "and (type = 'none' or type = 'guidance' or type = 'constraint_msg')";		
 		PreparedStatement pstmt = null;
 		
+		
 		try {
+			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
 			pstmt.setString(2, fromLanguage);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
 				System.out.println("translating " + rs.getString(1));
+			
 			}
+			
+			if(changes.size() > 0) {
+				applyChangeSetArray(sd, 
+						null,	// cResults should not be required
+						sId, 
+						userIdent, 
+						changes,
+						true);
+			}
+			
+			// TODO apply changes to language items that are not labels
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}

@@ -1285,6 +1285,7 @@ public class Surveys extends Application {
 		
 		String connectionString = "surey-KPI - Translate Survey";
 		
+		// TODO Validate language names - They must already exist in the survey
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );
 		aUpdate.isAuthorised(sd, request.getRemoteUser());	
@@ -1299,7 +1300,31 @@ public class Surveys extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			sm.translate(sd, sId, fromLanguage, toLanguage, fromCode, toCode);
+			org.smap.sdal.model.Survey survey = sm.getById(sd, null,  request.getRemoteUser(), false, sId, 
+					true, 		// Get full details
+					null,		// Base Path 
+					null, 		// instance id
+					false, 		// get results
+					false, 		// Generate dummy values
+					true, 		// Get property type questions
+					false,		// Don't get soft deleted	
+					false,
+					"internal",
+					false,		// Get change history
+					false,
+					true,	// Super user
+					null,
+					false,		// Do not include child surveys
+					false,		// launched only
+					true		// merge setValues into default value
+					);
+			sm.translate(sd, request.getRemoteUser(), 
+					sId, 
+					survey,
+					fromLanguage, 
+					toLanguage, 
+					fromCode, 
+					toCode);
 				
 			/*
 			 * Get all language items for the survey and update them
