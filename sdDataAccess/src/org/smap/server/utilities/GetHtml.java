@@ -1142,7 +1142,11 @@ public class GetHtml {
 				}
 				bodyElement.setTextContent(label);
 				
-				addMedia(parent, o.labels.get(idx), lang, o.text_id);
+				if(labelElement != null) {
+					addMedia(labelElement, o.labels.get(idx), lang, o.text_id);
+				} else {
+					addMedia(parent, o.labels.get(idx), lang, o.text_id);
+				}
 
 				idx++;
 			}
