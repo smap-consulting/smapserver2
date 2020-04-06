@@ -13,7 +13,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Form;
@@ -829,7 +828,7 @@ public class SurveyTableManager {
 		HashMap<String, String> choicesLoaded = new HashMap<String, String> ();		// Eliminate duplicates
 		while((o = getLineAsOption(ovalue, languageItems, wfFilterColumns)) != null) {
 			StringBuffer uniqueChoice = new StringBuffer("");
-			uniqueChoice.append(ovalue);
+			uniqueChoice.append(o.value);
 			if(wfFilterColumns != null) {
 				for(String fc : wfFilterColumns.keySet()) {					
 					String fv = wfFilterColumns.get(fc);
