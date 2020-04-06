@@ -37,6 +37,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
+import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -52,7 +53,10 @@ import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.Question;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -64,6 +68,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -1274,14 +1279,13 @@ public class Surveys extends Application {
 	@Path("/translate/{sId}/{from}/{to}/{fromCode}/{toCode}")
 	public Response translateSurvey(@Context HttpServletRequest request,
 			@PathParam("sId") int sId,
-			@PathParam("from") String fromLanguage,
-			@PathParam("to") String toLanguage,
+			@PathParam("from") int fromLanguageIndex,
+			@PathParam("to") int toLanguageIndex,
 			@PathParam("fromCode") String fromCode,
 			@PathParam("toCode") String toCode
 			) { 
 		
-		log.info("translate survey:" + sId + " : " + fromLanguage + "(" + fromCode + ")" 
-				+ " : " + toLanguage + "(" + toCode + ")");
+		log.info("translate survey:" + sId + " : " + fromCode + " : " + toCode);
 		
 		String connectionString = "surey-KPI - Translate Survey";
 		
@@ -1312,19 +1316,64 @@ public class Surveys extends Application {
 					"internal",
 					false,		// Get change history
 					false,
-					true,	// Super user
+					true,		// Super user
 					null,
 					false,		// Do not include child surveys
 					false,		// launched only
 					true		// merge setValues into default value
 					);
+			
+			// Get the text processor
+			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+			if(region == null) {
+				region = "us-east-1";
+			}
+			TextProcessing tp = new TextProcessing(region);	
+
+			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
+			ChangeSet cs = new ChangeSet();
+			cs.changeType = "label";
+			cs.items = new ArrayList<ChangeItem> ();
+
+			// translate all unique text from all forms
+			HashMap<String, String> uniqueText = new HashMap<> ();
+			for(int i = 0; i < survey.forms.size(); i++) {
+				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+				
+				for(int j = 0; j < formQuestions.size(); j++) {
+
+					Question q = formQuestions.get(j);
+					String fromText = q.labels.get(fromLanguageIndex).text;
+					String toText = uniqueText.get(fromText);
+					if(toText == null) {
+						System.out.println("From text: "  + fromText);
+						toText = tp.getTranslatian(fromText, fromCode, toCode);
+						System.out.println("    " + toText);	
+						uniqueText.put(fromText, toText);
+					} else {
+						// Still need to write this to the database
+					}
+					
+					ChangeItem ci = new ChangeItem();
+					ci.property = new PropertyChange();
+					ci.property.type = "question";
+					ci.property.propType = "text";	// as opposed to media
+					ci.property.qId = q.id;
+					ci.property.oldVal = q.labels.get(toLanguageIndex).text;
+					ci.property.newVal = toText;
+					ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+					cs.items.add(ci);
+					
+				}
+			}
+			if(cs.items.size() > 0) {
+				changes.add(cs);
+			}			
+				
 			sm.translate(sd, request.getRemoteUser(), 
 					sId, 
 					survey,
-					fromLanguage, 
-					toLanguage, 
-					fromCode, 
-					toCode);
+					changes);
 				
 			/*
 			 * Get all language items for the survey and update them

@@ -39,6 +39,7 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
@@ -1397,6 +1398,7 @@ public class SurveyManager {
 				boolean isQuestion = ci.property.type.equals("question");
 				boolean isOption = ci.property.type.equals("option");
 				String text_id = null;
+				boolean updateTextId = false;
 				if(!isQuestion) {
 					// Get the text id for an option
 					// Don't rely on the key as the text id may have been changed by a name change
@@ -1412,6 +1414,7 @@ public class SurveyManager {
 
 					if(text_id == null) {
 						text_id = "option_" + listId + "_" + ci.property.name + ":label";
+						updateTextId = true;
 					}
 
 				} else {
@@ -1425,9 +1428,11 @@ public class SurveyManager {
 						}
 						if(text_id == null || text_id.trim().length() == 0) {
 							text_id = ci.property.key;
+							updateTextId = true;
 						}
 					} else {
 						text_id = ci.property.key;		// For question we can rely on the key?
+						updateTextId = true;
 					}
 				}
 
@@ -1445,18 +1450,20 @@ public class SurveyManager {
 					if(ci.property.propType.equals("text")) {
 						addLabel(connectionSD, ci, ci.property.languageName, pstmtLangNew, sId, pstmtDeleteLabel, text_id);
 
-						// Add the new text id to the question - Is this needed ?????
-						if(isQuestion) {
-							pstmtNewQuestionLabel.setString(1, ci.property.key);
-							pstmtNewQuestionLabel.setInt(2, ci.property.qId);
-							// (debug) log.info("Update question table with text_id: " + pstmtNewQuestionLabel.toString());
-							pstmtNewQuestionLabel.executeUpdate();
-						} else if(isOption) {
-							pstmtNewOptionLabel.setString(1, text_id);
-							pstmtNewOptionLabel.setInt(2, listId);
-							pstmtNewOptionLabel.setString(3, ci.property.name);
-							// (debug) log.info("Update option label with label_id: " + pstmtNewOptionLabel.toString());
-							pstmtNewOptionLabel.executeUpdate();
+						// Add the new text id to the question
+						if(updateTextId) {
+							if(isQuestion) {
+								pstmtNewQuestionLabel.setString(1, ci.property.key);
+								pstmtNewQuestionLabel.setInt(2, ci.property.qId);
+								log.info("Update question table with text_id: " + pstmtNewQuestionLabel.toString());
+								pstmtNewQuestionLabel.executeUpdate();
+							} else if(isOption) {
+								pstmtNewOptionLabel.setString(1, text_id);
+								pstmtNewOptionLabel.setInt(2, listId);
+								pstmtNewOptionLabel.setString(3, ci.property.name);
+								// (debug) log.info("Update option label with label_id: " + pstmtNewOptionLabel.toString());
+								pstmtNewOptionLabel.executeUpdate();
+							}
 						}
 
 					} else if(ci.property.propType.equals("hint")) {
@@ -1549,7 +1556,6 @@ public class SurveyManager {
 
 		if(ci.property.newVal != null) {
 
-			// pstmtLangNew.setString(1, GeneralUtilityMethods.convertAllxlsNames(ci.property.newVal, sId, sd, true));
 			pstmtLangNew.setString(1, ci.property.newVal);
 			pstmtLangNew.setInt(2, sId);
 			pstmtLangNew.setString(3, language);
@@ -1561,7 +1567,7 @@ public class SurveyManager {
 			}
 			pstmtLangNew.setString(5,  transType);
 
-			// (debug) log.info("Insert new question label: " + pstmtLangNew.toString());
+			log.info("Insert new question label: " + pstmtLangNew.toString());
 
 			pstmtLangNew.executeUpdate();
 		} else {
@@ -4292,43 +4298,16 @@ public class SurveyManager {
 			String userIdent,
 			int sId, 
 			Survey survey,
-			String fromLanguage, 
-			String toLanguage, 
-			String fromCode, 
-			String toCode) throws Exception {
-		
-		String sql = "select value, type from translation "
-				+ "where s_id = ? "
-				+ "and language = ? "
-				+ "and value is not null "
-				+ "and not external "
-				+ "and (type = 'none' or type = 'guidance' or type = 'constraint_msg')";		
-		PreparedStatement pstmt = null;
-		
-		
-		try {
-			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			pstmt.setString(2, fromLanguage);
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				System.out.println("translating " + rs.getString(1));
-			
-			}
-			
-			if(changes.size() > 0) {
-				applyChangeSetArray(sd, 
-						null,	// cResults should not be required
-						sId, 
-						userIdent, 
-						changes,
-						true);
-			}
-			
-			// TODO apply changes to language items that are not labels
-		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			ArrayList<ChangeSet> changes) throws Exception {
+
+		if(changes.size() > 0) {
+			applyChangeSetArray(sd, 
+					null,	// cResults should not be required
+					sId, 
+					userIdent, 
+					changes,
+					true);
 		}
+		
 	}
 }

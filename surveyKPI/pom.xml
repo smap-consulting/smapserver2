@@ -27,7 +27,7 @@
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk-bom</artifactId>
-				<version>1.11.207</version>
+				<version>1.11.745</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -63,12 +63,17 @@
 			<artifactId>aws-java-sdk-sns</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk-translate</artifactId>
+		</dependency>
+		
 		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-rekognition -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-rekognition</artifactId>
 		</dependency>
-
+		
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
