@@ -260,6 +260,8 @@ public class Billing extends Application {
 				addStaticMap(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.REKOGNITION) {
 				addRekognition(sd, item, eId, oId, year, month);
+			} else if(item.item == BillingDetail.TRANSLATE) {
+				addTranslate(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.MONTHLY) {
 				item.amount = item.unitCost;
 			}
@@ -469,6 +471,39 @@ public class Billing extends Application {
 		String sqlRekognition = "select  count(*) as total "
 				+ "from log "
 				+ "where event = 'Rekognition Request' "
+				+ "and extract(month from log_time) = ? "
+				+ "and extract(year from log_time) = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sqlRekognition);
+			pstmt.setInt(1, month);
+			pstmt.setInt(2, year);
+			
+			ResultSet rs = pstmt.executeQuery();
+		
+			if(rs.next()) {
+				item.quantity = rs.getInt("total");
+				
+				item.amount = (item.quantity - item.free) * item.unitCost;
+				if(item.amount < 0) {
+					item.amount = 0.0;
+				}
+				
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	/*
+	 * Get Translate usage
+	 */
+	private void addTranslate(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
+		
+		String sqlRekognition = "select  sum(measure) as total "
+				+ "from log "
+				+ "where event = 'Translate Request' "
 				+ "and extract(month from log_time) = ? "
 				+ "and extract(year from log_time) = ?";
 		PreparedStatement pstmt = null;

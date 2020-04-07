@@ -8,6 +8,7 @@ public class BillingDetail {
 	public static int REKOGNITION = 3;
 	public static int STATIC_MAP = 4;
 	public static int MONTHLY = 5;
+	public static int TRANSLATE = 6;
 	
 	public int oId;
 	public int eId;
