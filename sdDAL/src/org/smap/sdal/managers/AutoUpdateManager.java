@@ -293,7 +293,7 @@ public class AutoUpdateManager {
 											item.labelColType,
 											mediaBucket);
 									
-									lm.writeLog(sd, item.oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source);
+									lm.writeLog(sd, item.oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source, 0);
 									
 								} else {
 									output = "[Error: invalid source data " + source + "]";
@@ -316,7 +316,7 @@ public class AutoUpdateManager {
 											mediaBucket);
 									
 									if(status.equals("IN_PROGRESS")) {
-										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source);
+										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
 										
 										// Write result to async table, the labels will be retrieved later
 										pstmtAsync.setInt(1, item.oId);
@@ -340,8 +340,16 @@ public class AutoUpdateManager {
 								}
 							} else if(item.type.equals(AUTO_UPDATE_TEXT)) {
 									
-								output = tp.getTranslatian(source, "en", "es");
-								lm.writeLog(sd, item.oId, "auto_update", LogManager.TRANSLATE, "Batch: " + "/smap/" + source);
+								String fromCode = "en";		// TODO
+								String toCode = "es";		// TODO
+								output = tp.getTranslatian(source, fromCode, toCode);
+								String msg = localisation.getString("aws_t_au")
+										.replace("%s1", fromCode)
+										.replace("%s2", toCode)
+										.replace("%s3", item.tableName)
+										.replace("%s4", item.targetColName);
+								lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSLATE, msg, 
+										source.length());
 									
 							} else {
 								String msg = "cannot perform auto update for update type: \" + item.type";
@@ -459,41 +467,7 @@ public class AutoUpdateManager {
 		}
 	}
 	
-	/*
-	 * Read the source data
-	 */
-	private String readSource(Connection cResults, 
-			String tableName,
-			String colName,
-			String instanceId) throws SQLException {
-		
-		PreparedStatement pstmt = null;
-		String source = "";
-		
-		String sql = "select "
-				+ colName 
-				+ " from "
-				+ tableName 
-				+ "where instanceid = ?";
-		
-		try {
-			
-			pstmt = cResults.prepareStatement(sql);
-			
-			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
-			pstmt.setString(1, instanceId);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				source = rs.getString(1);
-			}
-		
-		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-		}
-		
-		return source;
-	}
-	
+
 	/*
 	 * Write a result to the latest record in the results table
 	 */

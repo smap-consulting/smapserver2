@@ -83,7 +83,7 @@ public class SurveyResults extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results", 0);
 		
 		// Escape any quotes
 		if(sId > 0) {
@@ -234,7 +234,7 @@ public class SurveyResults extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "restore", "Restore results");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "restore", "Restore results", 0);
 		
 		// Escape any quotes
 		if(sId > 0) {

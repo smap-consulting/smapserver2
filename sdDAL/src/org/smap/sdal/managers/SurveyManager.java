@@ -701,7 +701,7 @@ public class SurveyManager {
 				pstmtCreateForm.execute();
 			}
 
-			lm.writeLog(sd, sId, user, "create survey", "Survey created in online editor");
+			lm.writeLog(sd, sId, user, "create survey", "Survey created in online editor", 0);
 			sd.commit();
 
 		} catch (SQLException e) {
@@ -3490,7 +3490,7 @@ public class SurveyManager {
 			pstmt.setInt(1, sId);
 			log.info(pstmt.toString());
 			pstmt.executeUpdate();
-			lm.writeLog(sd, sId, user, "restore", "Restore survey ");
+			lm.writeLog(sd, sId, user, "restore", "Restore survey ", 0);
 			log.info("userevent: " + user + " : un delete survey : " + sId);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -3628,7 +3628,7 @@ public class SurveyManager {
 				log.info("Soft delete survey: " + pstmt.toString());
 				pstmt.executeUpdate();
 	
-				lm.writeLog(sd, sId, user, "delete", "Soft Delete survey " + surveyDisplayName);
+				lm.writeLog(sd, sId, user, "delete", "Soft Delete survey " + surveyDisplayName, 0);
 				log.info("userevent: " + user + " : soft delete survey : " + sId);
 	
 				// Rename files

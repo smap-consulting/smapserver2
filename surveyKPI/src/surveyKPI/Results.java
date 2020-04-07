@@ -256,7 +256,7 @@ public class Results extends Application {
 			q.add(aQ);
 			tables.add(aQ.getTableName(), aQ.getFId(),  aQ.getParentFId());			
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View results for question " + aQ.getName());
+			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View results for question " + aQ.getName(), 0);
 			
 			 // Get the filter
 			Filter filter = null;

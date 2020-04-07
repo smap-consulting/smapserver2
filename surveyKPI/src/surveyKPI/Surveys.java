@@ -44,6 +44,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
@@ -86,6 +87,7 @@ public class Surveys extends Application {
 	private static Logger log =
 			 Logger.getLogger(Surveys.class.getName());
 
+	LogManager lm = new LogManager();		// Application log
 	
 	public Surveys() {
 		
@@ -1336,6 +1338,7 @@ public class Surveys extends Application {
 			cs.items = new ArrayList<ChangeItem> ();
 
 			// translate all unique text from all forms
+			int charsTranslated = 0;  // Count of unicode characters translated
 			HashMap<String, String> uniqueText = new HashMap<> ();
 			for(int i = 0; i < survey.forms.size(); i++) {
 				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
@@ -1348,11 +1351,10 @@ public class Surveys extends Application {
 					if(toText == null) {
 						System.out.println("From text: "  + fromText);
 						toText = tp.getTranslatian(fromText, fromCode, toCode);
+						charsTranslated += fromText.length();
 						System.out.println("    " + toText);	
 						uniqueText.put(fromText, toText);
-					} else {
-						// Still need to write this to the database
-					}
+					} 
 					
 					ChangeItem ci = new ChangeItem();
 					ci.property = new PropertyChange();
@@ -1379,6 +1381,11 @@ public class Surveys extends Application {
 			// Update the codes of the "to" language
 			GeneralUtilityMethods.setLanguageCode(sd, sId, toLanguageIndex, toCode);
 			
+			// Write the log / billing entry
+			String msg = localisation.getString("aws_t_st")
+					.replace("%s1", fromCode)
+					.replace("%s2", toCode);
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.TRANSLATE, msg, charsTranslated);
 			response = Response.ok("").build();
 					
 		}  catch (Exception e) {

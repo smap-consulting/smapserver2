@@ -19,12 +19,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -46,23 +43,12 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.PDFSurveyManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.LQAS;
-import org.smap.sdal.model.LQASGroup;
-import org.smap.sdal.model.LQASItem;
-import org.smap.sdal.model.LQASdataItemOld;
-import org.smap.sdal.model.LQASold;
-
-import utilities.XLSFormManager;
 import utilities.XLS_LQAS_Manager;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.itextpdf.tool.xml.ElementList;
-import com.itextpdf.tool.xml.parser.XMLParser;
-
-import net.sourceforge.jeval.Evaluator;
 
 /*
  * Creates an LQAS report in XLS
@@ -113,7 +99,7 @@ public class ExportLQAS extends Application {
 		}
 		// End Authorisation 
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to LQAS");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to LQAS", 0);
 		
 		Response responseVal = null;
 		

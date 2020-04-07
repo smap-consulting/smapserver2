@@ -29,8 +29,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
@@ -40,7 +38,6 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.BillingManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
-import org.smap.sdal.model.Enterprise;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.RateDetail;
 

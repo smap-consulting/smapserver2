@@ -24,7 +24,6 @@ import com.itextpdf.text.DocumentException;
 import com.itextpdf.text.Element;
 import com.itextpdf.text.Font;
 import com.itextpdf.text.Image;
-import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.AcroFields.FieldPosition;
@@ -168,7 +167,7 @@ public class PdfUtilities {
 				ImageIO.write(tempImg, "png", file);			       
 				img = Image.getInstance(file.getAbsolutePath());
 			    
-				lm.writeLog(sd, sId, user, "Mapbox Request", map);
+				lm.writeLog(sd, sId, user, "Mapbox Request", map, 0);
 			} catch (Exception e) {
 				log.log(Level.SEVERE, "Exception", e);
 			}

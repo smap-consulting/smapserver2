@@ -3,7 +3,6 @@
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -32,7 +31,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.SqlDesc;
 
@@ -78,7 +76,7 @@ public class ExportSurveyLocation extends Application {
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export to " + format);
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export to " + format, 0);
 		
 		String escapedFileName = null;
 		try {

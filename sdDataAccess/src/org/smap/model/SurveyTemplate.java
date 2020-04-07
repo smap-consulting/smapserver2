@@ -1121,7 +1121,7 @@ public class SurveyTemplate {
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
 			GeneralUtilityMethods.updateFormDependencies(sd, sId);
 			
-			lm.writeLog(sd, sId, user, "create survey", "Survey loaded from xls form");
+			lm.writeLog(sd, sId, user, "create survey", "Survey loaded from xls form", 0);
 			
 			sd.commit();
 		} catch (Exception e) {

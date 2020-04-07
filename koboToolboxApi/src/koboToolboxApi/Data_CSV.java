@@ -206,7 +206,7 @@ public class Data_CSV extends Application {
 		// End Authorisation
 
 		String language = "none";
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "API CSV view");
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "API CSV view", 0);
 
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 

@@ -37,17 +37,14 @@ import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -238,7 +235,7 @@ public class PasswordReset extends Application {
 				count++;
 				
 				log.info("userevent: " + ident + "reset password / forgot password");
-				lm.writeLog(sd, -1, ident, "user details", "reset password / forgot password");
+				lm.writeLog(sd, -1, ident, "user details", "reset password / forgot password", 0);
 			} 
 			
 			if(count == 0) {

@@ -41,7 +41,6 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.constants.SmapExportTypes;
@@ -108,7 +107,7 @@ public class XLSXReportsManager {
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
-		lm.writeLog(sd, sId, username, "view", "Export as: xlsx");
+		lm.writeLog(sd, sId, username, "view", "Export as: xlsx", 0);
 
 		String escapedFileName = null;
 		try {
@@ -592,7 +591,7 @@ public class XLSXReportsManager {
 				try {cResults.setAutoCommit(true);} catch (Exception ex) {}
 				log.log(Level.SEVERE, "Error", e);
 				response.setHeader("Content-type",  "text/html; charset=UTF-8");
-				lm.writeLog(sd, sId, username, "error", e.getMessage());
+				lm.writeLog(sd, sId, username, "error", e.getMessage(), 0);
 				
 				String msg = e.getMessage();
 				if(msg.contains("does not exist")) {

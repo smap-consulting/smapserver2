@@ -83,7 +83,7 @@ public class SurveyExchange extends Application {
 			
 			String tz = "UTC";
 			
-			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export all Survey Data");
+			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export all Survey Data", 0);
 			
 			connectionResults = ResultsDataSource.getConnection(connectionName);
 			

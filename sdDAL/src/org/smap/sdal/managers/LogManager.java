@@ -65,7 +65,8 @@ public class LogManager {
 			int sId,
 			String uIdent,
 			String event,
-			String note)  {
+			String note,
+			int measure)  {
 		
 		String sql = "insert into log ("
 				+ "log_time,"
@@ -74,7 +75,8 @@ public class LogManager {
 				+ "e_id,"
 				+ "user_ident,"
 				+ "event,"
-				+ "note) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?);";
+				+ "note,"
+				+ "measure) values (now(), ?, ?, (select e_id from organisation where id = ?), ?, ?, ?, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -91,6 +93,7 @@ public class LogManager {
 			pstmt.setString(4, uIdent);
 			pstmt.setString(5,  event);
 			pstmt.setString(6,  note);
+			pstmt.setInt(7, measure);
 			
 			pstmt.executeUpdate();
 
@@ -100,7 +103,6 @@ public class LogManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
-
 	}
 	
 	/*
@@ -111,7 +113,8 @@ public class LogManager {
 			int oId,
 			String uIdent,
 			String event,
-			String note)  {
+			String note,
+			int measure)  {
 		
 		String sql = "insert into log ("
 				+ "log_time,"
@@ -119,7 +122,8 @@ public class LogManager {
 				+ "o_id,"
 				+ "user_ident,"
 				+ "event,"
-				+ "note) values (now(), 0, ?, ?, ?, ?);";
+				+ "note,"
+				+ "measure) values (now(), 0, ?, ?, ?, ?, ?);";
 
 		PreparedStatement pstmt = null;
 		
@@ -130,16 +134,15 @@ public class LogManager {
 			pstmt.setString(2, uIdent);
 			pstmt.setString(3,  event);
 			pstmt.setString(4,  note);
+			pstmt.setInt(5, measure);
 			
 			pstmt.executeUpdate();
-
 
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "SQL Error", e);
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
-
 	}
 	
 }

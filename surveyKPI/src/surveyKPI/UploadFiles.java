@@ -985,7 +985,7 @@ public class UploadFiles extends Application {
 					String configString = gson.toJson(config);
 
 					crm.save(sd, reportName, configString, oId, reportType);
-					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", config.columns.size() + " custom report definition uploaded from file " + fileName);
+					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", config.columns.size() + " custom report definition uploaded from file " + fileName, 0);
 
 					ArrayList<CustomReportItem> reportsList = crm.getList(sd, oId, reportType, false);
 					// Return custom report list			 

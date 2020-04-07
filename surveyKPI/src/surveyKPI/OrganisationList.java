@@ -671,7 +671,7 @@ public class OrganisationList extends Application {
 			String orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
 			String msg = localisation.getString("org_device");
 			msg = msg.replace("%s1", orgName);
-			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.ORGANISATION_UPDATE, msg);
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.ORGANISATION_UPDATE, msg, 0);
 
 			response = Response.ok().build();
 	
@@ -1086,10 +1086,10 @@ public class OrganisationList extends Application {
 			
 			String orgName = GeneralUtilityMethods.getOrganisationName(sd, orgId);
 			String entName = GeneralUtilityMethods.getEnterpriseName(sd, entId);
-			String msg = localisation.getString("org_move");
-			msg = msg.replace("%s1", orgName);
-			msg = msg.replace("%s2", entName);
-			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.MOVE_ORGANISATION, msg);
+			String msg = localisation.getString("org_move")
+					.replace("%s1", orgName)
+					.replace("%s2", entName);
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.MOVE_ORGANISATION, msg, 0);
 			
 			response = Response.ok().build();
 				

@@ -133,7 +133,7 @@ public class ExportSurveyThingsat extends Application {
 		}
 		// End Authorisation
 
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export as Neo4J");
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export as Neo4J", 0);
 		
 		String escapedFileName = null;
 		try {

@@ -3291,7 +3291,7 @@ public class TaskManager {
 													survey.id, 
 													ia.getAddress(), 
 													LogManager.EMAIL_TASK, 
-													localisation.getString("mo_sent"));
+													localisation.getString("mo_sent"), 0);
 
 										} else {
 											/*
@@ -3319,7 +3319,7 @@ public class TaskManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
+							lm.writeLog(sd, msg.sId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
 							writeToMonitor = false;
 						}
 					} else {

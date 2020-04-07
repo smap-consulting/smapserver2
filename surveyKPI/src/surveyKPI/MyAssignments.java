@@ -1047,7 +1047,7 @@ public class MyAssignments extends Application {
 			// Get the oId here this should be a pretty rare event
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
 			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
-					assignmentId + ": " + comment );
+					assignmentId + ": " + comment, 0);
 		}
 		
 		/*

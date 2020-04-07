@@ -545,9 +545,9 @@ public class WebForm extends Application {
 				if(action.equals("mailout")) {
 					PeopleManager pm = new PeopleManager(localisation);
 					pm.subscribeEmail(sd, email, orgId);
-					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"));
+					lm.writeLog(sd, survey.id, email, LogManager.MAILOUT, localisation.getString("mo_submitted"), 0);
 				} else 	if(action.equals("task")) {
-					lm.writeLog(sd, survey.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"));
+					lm.writeLog(sd, survey.id, email, LogManager.EMAIL_TASK, localisation.getString("mo_submitted"), 0);
 				}
 				
 			} catch (Exception e) {
@@ -1243,7 +1243,7 @@ public class WebForm extends Application {
 
 		} catch (Exception e) {
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
-			lm.writeLog(sd, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage());
+			lm.writeLog(sd, survey.id, userIdent, "Error", "Failed to get instance data: " + e.getMessage(), 0);
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 

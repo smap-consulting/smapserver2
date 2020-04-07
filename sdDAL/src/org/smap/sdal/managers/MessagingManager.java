@@ -274,7 +274,7 @@ public class MessagingManager {
 			
 			String note = localisation.getString("optin_sent");
 			note = note.replace("%s1", email);
-			lm.writeLogOrganisation(sd, oId, email, LogManager.OPTIN, note);
+			lm.writeLogOrganisation(sd, oId, email, LogManager.OPTIN, note, 0);
 			
 		} catch (Exception e) {
 			// Record that the opt in message has not been sent
@@ -301,7 +301,7 @@ public class MessagingManager {
 				err_msg = "";
 			}
 			note = note.replace("%s2", err_msg);
-			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note);
+			lm.writeLogOrganisation(sd, oId, null, LogManager.OPTIN, note, 0);
 			
 			throw e;
 		} finally {

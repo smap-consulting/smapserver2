@@ -438,7 +438,7 @@ public class NotificationManager {
 				nName = "";
 			}
 			logMessage = logMessage.replaceAll("%s1", nName);
-			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage);
+			lm.writeLog(sd, 0, user, LogManager.DELETE, logMessage, 0);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 		}
@@ -623,7 +623,7 @@ public class NotificationManager {
 						lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
 								localisation.getString("filter_error")
 								.replace("%s1", filter)
-								.replace("%s2", msg));
+								.replace("%s2", msg), 0);
 					}
 				}
 				
@@ -632,7 +632,7 @@ public class NotificationManager {
 							localisation.getString("filter_reject")
 							.replace("%s1", survey.displayName)
 							.replace("%s2", filter)
-							.replace("%s3", instanceId));
+							.replace("%s3", instanceId), 0);
 				} else {
 		
 					SubmissionMessage subMsg = new SubmissionMessage(
@@ -966,7 +966,7 @@ public class NotificationManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
 							writeToMonitor = false;
 						}
 					} else {
@@ -1332,7 +1332,7 @@ public class NotificationManager {
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
-							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"));
+							lm.writeLog(sd, surveyId, "subscriber", LogManager.EMAIL, localisation.getString("email_nr"), 0);
 							writeToMonitor = false;
 						}
 					} else {

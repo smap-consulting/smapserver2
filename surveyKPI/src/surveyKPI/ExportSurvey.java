@@ -26,7 +26,6 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
 import org.apache.commons.lang3.StringEscapeUtils;
-import org.apache.poi.ss.usermodel.Cell;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -40,8 +39,6 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
-
-import utilities.XLSUtilities;
 
 /*
  * Provides a survey level export of a survey as an XLS file
@@ -201,7 +198,7 @@ public class ExportSurvey extends Application {
 
 		tz = (tz == null) ? "UTC" : tz;
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS", 0);
 
 		String escapedFileName = null;
 		try {
@@ -685,7 +682,7 @@ public class ExportSurvey extends Application {
 				outWriter.close();
 
 			} catch (Exception e) {
-				lm.writeLog(sd, sId, request.getRemoteUser(), "error", "Exporting survey to XLS: " + e.getMessage());
+				lm.writeLog(sd, sId, request.getRemoteUser(), "error", "Exporting survey to XLS: " + e.getMessage(), 0);
 				log.log(Level.SEVERE, "Exception", e);
 			} finally {
 

@@ -339,6 +339,7 @@ public class BillingManager {
 		return enabled;
 	
 	}
-}
+
+} 
 
 

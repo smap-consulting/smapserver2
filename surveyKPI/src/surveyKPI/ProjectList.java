@@ -496,7 +496,7 @@ public class ProjectList extends Application {
 				note = note.replaceFirst("%s3", String.valueOf(added.size()));
 				note = note.replaceFirst("%s4", added.toString());
 				lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), 
-						LogManager.PROJECT, note);
+						LogManager.PROJECT, note, 0);
 				
 				response = Response.ok(note).build();
 			} else {

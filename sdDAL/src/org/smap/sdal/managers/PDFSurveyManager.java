@@ -1543,7 +1543,7 @@ public class PDFSurveyManager {
 			}
 		} catch (Exception e) {
 			log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
-			lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString());
+			lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
 			labelCell.addElement(getPara(html.toString(), di, gv, null, null));
 		}
 
@@ -1900,7 +1900,7 @@ public class PDFSurveyManager {
 					parser.xmlParser.parse(new StringReader(html));
 				} catch (Exception e) {
 					log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
-					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString());
+					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
 					cell.addElement(getPara(html.toString(), di, gv, null, null));
 				}
 				for(Element element : parser.elements) {					

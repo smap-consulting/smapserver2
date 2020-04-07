@@ -1127,7 +1127,7 @@ public class SubscriberBatch {
 					logMessage = localisation.getString("lm_reminder");
 					logMessage = logMessage.replaceAll("%s1", GeneralUtilityMethods.getNotificationName(sd, nId));
 				}
-				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage);
+				lm.writeLogOrganisation(sd, oId, "subscriber", LogManager.REMINDER, logMessage, 0);
 				
 				
 			}
@@ -1308,7 +1308,7 @@ public class SubscriberBatch {
 				
 				um.deleteSingleSubmissionTemporaryUser(sd, userIdent, UserManager.STATUS_EXPIRED);
 				String modIdent = action.email != null ? action.email : userIdent;			
-				lm.writeLogOrganisation(sd, oId, modIdent, LogManager.EXPIRED, localisation.getString("msg_expired"));
+				lm.writeLogOrganisation(sd, oId, modIdent, LogManager.EXPIRED, localisation.getString("msg_expired"), 0);
 				
 			}
 		} finally {

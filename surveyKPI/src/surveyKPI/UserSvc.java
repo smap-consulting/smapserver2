@@ -288,7 +288,7 @@ public class UserSvc extends Application {
 			}
 			
 			log.info("userevent: " + request.getRemoteUser() + (u.password == null ? " : updated user details : " : " : updated password : ") + u.name);
-			lm.writeLog(sd, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"));
+			lm.writeLog(sd, -1, request.getRemoteUser(), "user details", (u.password == null ? "updated user details" : "updated password"), 0);
 			log.info("Update user details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

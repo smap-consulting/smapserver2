@@ -153,7 +153,7 @@ public class Items extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View Results");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "View Results", 0);
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -809,7 +809,7 @@ public class Items extends Application {
 		a.isValidUser(sd, request.getRemoteUser(), uId);
 		// End Authorisation
 		
-		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Activity for " + uId);
+		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Activity for " + uId, 0);
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
@@ -1045,7 +1045,7 @@ public class Items extends Application {
 		a.projectInUsersOrganisation(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
-		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Locations " + pId);
+		lm.writeLog(sd, 0, request.getRemoteUser(), "view", "User Locations " + pId, 0);
 	
 		tz = (tz == null) ? "UTC" : tz;
 		

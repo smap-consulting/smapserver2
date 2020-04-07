@@ -495,7 +495,7 @@ public class UserManager {
 			if(msg != null && u.ident != null) {
 				msg = msg.replace("%s1", u.ident);
 			}
-			lm.writeLogOrganisation(sd, o_id, userIdent, LogManager.CREATE, msg);
+			lm.writeLogOrganisation(sd, o_id, userIdent, LogManager.CREATE, msg, 0);
 			
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -1590,7 +1590,7 @@ public class UserManager {
 							oId, 
 							requestingUser, 
 							LogManager.DELETE, 
-							msg);
+							msg, 0);
 			}
 		} finally {
 			try {if (pstmtHardDelete != null) {pstmtHardDelete.close();}} catch (SQLException e) {}
@@ -1639,11 +1639,11 @@ public class UserManager {
 				// Write logs for other organisations
 				for(int ox : organisationList) {
 					lm.writeLogOrganisation(sd, 
-							ox, requestingUser, "delete", msg);
+							ox, requestingUser, "delete", msg, 0);
 				}
 			} else {
 				lm.writeLogOrganisation(sd, 
-						o_id, requestingUser, "delete", msg);
+						o_id, requestingUser, "delete", msg, 0);
 			}
 		}	
 	}

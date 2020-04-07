@@ -49,10 +49,8 @@ import com.google.gson.reflect.TypeToken;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -189,7 +187,7 @@ public class Review extends Application {
 		aView.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Review of text data");
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Review of text data", 0);
 		
 		try {
 			// Localisation			
@@ -544,7 +542,7 @@ public class Review extends Application {
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Audit changes to text data");
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Audit changes to text data", 0);
 		
 		Connection dConnection = ResultsDataSource.getConnection("surveyKPI-Audit");
 		

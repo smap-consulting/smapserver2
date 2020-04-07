@@ -382,7 +382,7 @@ public class Lookup extends Application{
 			String labels = ip.getLabels(request.getServerName(), "/temp", tempFileName, "text");
 			System.out.println("Labels: " + labels);
 			response = Response.ok(labels).build();
-			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent);
+			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent, 0);
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();

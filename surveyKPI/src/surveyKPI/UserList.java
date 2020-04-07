@@ -492,7 +492,7 @@ public class UserList extends Application {
 								false);
 						
 						lm.writeLogOrganisation(sd, 
-								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups));
+								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups), 0);
 					}
 					
 					// Record the user change so that devices can be notified
@@ -808,7 +808,7 @@ public class UserList extends Application {
 					note = note.replaceFirst("%s3", String.valueOf(added.size()));
 					note = note.replaceFirst("%s4", added.toString());
 					lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), 
-							LogManager.PROJECT, note);
+							LogManager.PROJECT, note, 0);
 					
 				
 					response = Response.ok(note).build();

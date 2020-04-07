@@ -110,7 +110,7 @@ public class CreatePDF extends Application {
 		}
 		// End Authorisation 
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Create PDF for instance: " + instanceId);
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Create PDF for instance: " + instanceId, 0);
 		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		

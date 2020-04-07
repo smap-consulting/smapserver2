@@ -152,7 +152,7 @@ public class ReportGen extends Application {
 		Connection cResults = ResultsDataSource.getConnection("surveyKPI-ReportGen");
 		
 		try {
-			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Report");
+			lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Report", 0);
 			
 			String filetype = "xlsx";
 			GeneralUtilityMethods.setFilenameInResponse(filename + "." + filetype, response);

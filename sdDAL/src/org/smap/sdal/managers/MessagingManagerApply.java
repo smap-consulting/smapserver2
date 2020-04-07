@@ -503,7 +503,7 @@ public class MessagingManagerApply {
 
 				String note = localisation.getString("mo_pending_sent");
 				note = note.replace("%s1", topic);
-				lm.writeLogOrganisation(sd, organisation.id, email, LogManager.OPTIN, note);
+				lm.writeLogOrganisation(sd, organisation.id, email, LogManager.OPTIN, note, 0);
 
 			}
 

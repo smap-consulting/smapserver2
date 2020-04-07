@@ -1,9 +1,7 @@
 package surveyKPI;
 
 import java.io.File;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.lang.reflect.Type;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -41,14 +39,9 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
-import org.smap.sdal.model.ColDesc;
-import org.smap.sdal.model.ExportForm;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -141,7 +134,7 @@ public class ExportSurveyMedia extends Application {
 		}
 		// End Authorisation
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export Media from a survey");
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export Media from a survey", 0);
 		
 		String escapedFileName = null;
 		try {
