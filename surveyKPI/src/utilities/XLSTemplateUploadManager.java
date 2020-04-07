@@ -492,7 +492,9 @@ public class XLSTemplateUploadManager {
 								String exists = langMap.get(sArray[1]);
 								if(exists == null) {
 									langMap.put(sArray[1], sArray[1]);
-									survey.languages.add(new Language(0, sArray[1]));
+									survey.languages.add(new Language(0, sArray[1],
+											GeneralUtilityMethods.getLanguageCode(sArray[1]),
+											GeneralUtilityMethods.isRtl(sArray[1])));
 								}
 							}
 						}
@@ -553,7 +555,7 @@ public class XLSTemplateUploadManager {
 
 		// Add a default language if needed
 		if(survey.languages.size() == 0) {
-			survey.languages.add(new Language(0, "language"));
+			survey.languages.add(new Language(0, "language", null, false));
 			useDefaultLanguage = true;
 		}
 		

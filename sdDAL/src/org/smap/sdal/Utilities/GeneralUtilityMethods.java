@@ -2962,13 +2962,13 @@ public class GeneralUtilityMethods {
 		ArrayList<Language> languages = new ArrayList<Language>();
 
 		try {
-			String sqlLanguages = "select id, language, seq from language where s_id = ? order by seq asc";
+			String sqlLanguages = "select id, language, code, rtl from language where s_id = ? order by seq asc";
 			pstmt = sd.prepareStatement(sqlLanguages);
 
 			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				languages.add(new Language(rs.getInt(1), rs.getString(2)));
+				languages.add(new Language(rs.getInt(1), rs.getString(2), rs.getString(3), rs.getBoolean(4)));
 			}
 
 			if (languages.size() == 0) {
@@ -2976,7 +2976,13 @@ public class GeneralUtilityMethods {
 				// languages from translations
 				ArrayList<String> languageNames = GeneralUtilityMethods.getLanguagesUsedInSurvey(sd, sId);
 				for (int i = 0; i < languageNames.size(); i++) {
-					languages.add(new Language(-1, languageNames.get(i)));
+					String lName = languageNames.get(i);
+					if(lName != null) {
+						String code = getLanguageCode(lName);
+						boolean rtl = isRtl(lName);
+						
+						languages.add(new Language(-1, languageNames.get(i), code, rtl));
+					}
 				}
 				GeneralUtilityMethods.setLanguages(sd, sId, languages);
 			}
@@ -3002,14 +3008,22 @@ public class GeneralUtilityMethods {
 			String sqlDelete = "delete from language where id = ? and s_id = ?;";
 			pstmtDelete = sd.prepareStatement(sqlDelete);
 
-			String sqlInsert = "insert into language(s_id, language, seq) values(?, ?, ?);";
+			String sqlInsert = "insert into language(s_id, language, seq, code, rtl) "
+					+ "values(?, ?, ?, ?, ?);";
 			pstmtInsert = sd.prepareStatement(sqlInsert);
 
-			String sqlUpdate = "update language " + "set language = ?, " + "seq = ? " + "where id = ? "
+			String sqlUpdate = "update language " 
+					+ "set language = ?, " 
+					+ "seq = ?,"
+					+ "code = ?,"
+					+ "rtl = ? " 
+					+ "where id = ? "
 					+ "and s_id = ?"; // Security
 			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 
-			String sqlUpdateTranslations = "update translation " + "set language = ? " + "where s_id = ? "
+			String sqlUpdateTranslations = "update translation " 
+					+ "set language = ? " 
+					+ "where s_id = ? "
 					+ "and language = (select language from language where id = ?);";
 			pstmtUpdateTranslations = sd.prepareStatement(sqlUpdateTranslations);
 
@@ -3042,8 +3056,10 @@ public class GeneralUtilityMethods {
 					// Update language name
 					pstmtUpdate.setString(1, language.name);
 					pstmtUpdate.setInt(2, seq);
-					pstmtUpdate.setInt(3, language.id);
-					pstmtUpdate.setInt(4, sId);
+					pstmtUpdate.setString(3, language.code);
+					pstmtUpdate.setBoolean(4, language.rtl);
+					pstmtUpdate.setInt(5, language.id);
+					pstmtUpdate.setInt(6, sId);
 
 					log.info("Update Language: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
@@ -3054,6 +3070,8 @@ public class GeneralUtilityMethods {
 					pstmtInsert.setInt(1, sId);
 					pstmtInsert.setString(2, language.name);
 					pstmtInsert.setInt(3, seq);
+					pstmtInsert.setString(4, language.code);
+					pstmtInsert.setBoolean(5, language.rtl);
 
 					log.info("Insert Language: " + pstmtInsert.toString());
 					pstmtInsert.executeUpdate();
@@ -9284,6 +9302,51 @@ public class GeneralUtilityMethods {
 		}
 
 		return mediaBucket;
+	}
+	
+	/*
+	 * Guess the language direction from the language name
+	 */
+	public static boolean isRtl(String lName) {
+
+		boolean rtl = false;
+		
+		if(lName.contains("(ltr)")) {
+			rtl = false;  // Override language
+		} else if(lName.contains("arabic")
+					|| lName.contains("(ar)")
+					|| lName.contains("(he)")
+					|| lName.contains("(ur)")
+					|| lName.contains("(rtl)")
+					) {
+			rtl = true;
+		}
+		return rtl;
+	}
+	
+	/*
+	 * Get the language code from the language specified by the user
+	 */
+	public static String getLanguageCode(String lName) {
+		// Extract code if set
+		String code = null;
+		
+		String lNameTemp = lName.replace("(ltr)", "");
+		lNameTemp = lNameTemp.replace("(rtl)", "");
+		int idx1 = lNameTemp.indexOf("(");
+		if(idx1 > -1) {
+			int idx2 = lNameTemp.indexOf(")", idx1);
+			if(idx2 > -1) {
+				String potentialCode = lNameTemp.substring(idx1 + 1, idx2);
+				System.out.println("Language code: " + potentialCode);
+				if(potentialCode.length() == 2 ||
+						(potentialCode.length() == 5 && potentialCode.charAt(2) == '-')) {
+					code = potentialCode;
+				}
+			}
+		}
+		
+		return code;
 	}
 }
 

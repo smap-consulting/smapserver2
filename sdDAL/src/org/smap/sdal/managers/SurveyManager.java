@@ -687,7 +687,7 @@ public class SurveyManager {
 
 				// 4. Create default language
 				ArrayList<Language> languages = new ArrayList<Language> ();
-				languages.add(new Language(-1, "language"));
+				languages.add(new Language(-1, "language", null, false));
 				GeneralUtilityMethods.setLanguages(sd, sId, languages);
 
 				// 5 Create a new empty form (except for default questions)

@@ -215,7 +215,13 @@ public class GetHtml {
 		for (Language lang : survey.languages) {
 			bodyElement = outputDoc.createElement("option");
 			bodyElement.setAttribute("value", lang.name);
-			if(isRtl(lang.name)) {
+			
+			boolean rtl = lang.rtl;
+			// For backward compatability if the language code is null guess the rtl from the language name
+			if(lang.code == null) {
+				rtl = GeneralUtilityMethods.isRtl(lang.name);
+			}
+			if(rtl) {
 				bodyElement.setAttribute("data-dir", "rtl");
 			}
 			bodyElement.setTextContent(lang.name);
@@ -227,24 +233,6 @@ public class GetHtml {
 			}
 			idx++;
 		}
-	}
-	
-	private boolean isRtl(String name) {
-		boolean rtl = false;
-		if(name != null) {
-			name = name.toLowerCase();
-			if(name.contains("(ltr)")) {
-				rtl = false;
-			} else if(name.contains("arabic")
-					|| name.contains("(ar)")
-					|| name.contains("(he)")
-					|| name.contains("(ur)")
-					|| name.contains("(rtl)")
-					) {
-				rtl = true;
-			}
-		}
-		return rtl;
 	}
 
 	/*
