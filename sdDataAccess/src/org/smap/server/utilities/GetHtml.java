@@ -12,8 +12,6 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.IntStream;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -1132,7 +1130,11 @@ public class GetHtml {
 				}
 				bodyElement.setTextContent(label);
 				
-				addMedia(parent, o.labels.get(idx), lang, o.text_id);
+				if(labelElement != null) {
+					addMedia(labelElement, o.labels.get(idx), lang, o.text_id);
+				} else {
+					addMedia(parent, o.labels.get(idx), lang, o.text_id);
+				}
 
 				idx++;
 			}

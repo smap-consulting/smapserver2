@@ -776,9 +776,9 @@ public class WebForm extends Application {
 
 		// Data model
 
-		output.append("surveyData.modelStr='");
+		output.append("surveyData.modelStr=\"");
 		output.append(getModelStr(request));
-		output.append("';\n");
+		output.append("\";\n");
 
 		// Instance Data
 		if (instanceXML != null) {
@@ -845,8 +845,10 @@ public class WebForm extends Application {
 		if(modelIdx > 0) {
 			model = model.substring(modelIdx);
 			
+			System.out.println("Model: " + model);
 			model = model.replace("\n", "");
 			model = model.replace("\r", "");
+			model = model.replaceAll("\"", "'");
 		} 
 		
 		return model;

@@ -121,11 +121,6 @@ public class GetXForm {
 
 		String response = null;
 
-		// XXXX
-		//if (isWebForms) {
-		//	embedExternalSearch = true; // Webforms do not support search therefore embed the choices in the html
-		//}
-
 		Connection sd = null;
 		Connection cResults = null;
 		try {
@@ -250,8 +245,8 @@ public class GetXForm {
 		}
 		
 		if (template.hasCascade()) {
-
 			List<CascadeInstance> cis = template.getCascadeInstances();
+
 			for (int i = 0; i < cis.size(); i++) {
 				Element cascadeInstanceElement = outputDoc.createElement("instance");
 				cascadeInstanceElement.setAttribute("id", cis.get(i).name);
@@ -478,15 +473,6 @@ public class GetXForm {
 			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm); // Process the top form
 			parent.appendChild(formElement);
 		}
-	}
-
-	/*
-	 * Populate the Cascade Instance element
-	 */
-	public void populateCascadeInstance(Document outputDoc, Element parent, String instance) {
-
-		log.info("TODO: Add value name and label name for instance:" + instance);
-
 	}
 
 	public void populateBody(Connection sd, Document outputDoc, Element parent) throws Exception {
