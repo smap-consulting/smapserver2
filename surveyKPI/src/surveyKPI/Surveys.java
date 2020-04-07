@@ -1370,14 +1370,15 @@ public class Surveys extends Application {
 				changes.add(cs);
 			}			
 				
+			// Apply the changeset
 			sm.translate(sd, request.getRemoteUser(), 
 					sId, 
 					survey,
 					changes);
 				
-			/*
-			 * Get all language items for the survey and update them
-			 */
+			// Update the codes of the "to" language
+			GeneralUtilityMethods.setLanguageCode(sd, sId, toLanguageIndex, toCode);
+			
 			response = Response.ok("").build();
 					
 		}  catch (Exception e) {

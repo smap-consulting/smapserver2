@@ -3117,6 +3117,33 @@ public class GeneralUtilityMethods {
 		}
 
 	}
+	
+	/*
+	 * Update the language code for a language
+	 */
+	public static void setLanguageCode(Connection sd, int sId, int seq, String code) throws SQLException {
+
+		PreparedStatement pstmt = null;
+
+		try {
+			String sql = "update language " 
+					+ "set code = ? " 
+					+ "where seq = ? "
+					+ "and s_id = ?";
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, code);
+			pstmt.setInt(2, seq);
+			pstmt.setInt(3, sId);
+
+			log.info("Update Language code: " + pstmt.toString());
+			pstmt.executeUpdate();
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+
+	}
 
 	/*
 	 * Make sure media is consistent across all languages A future change may have
