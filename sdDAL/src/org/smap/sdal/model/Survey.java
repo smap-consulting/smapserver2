@@ -652,7 +652,7 @@ public class Survey {
 					// Create a new role
 					r.desc = localisation.getString("tu_cb");
 					r.desc = r.desc.replace("%s1", displayName);
-					rId = rm.createRole(sd, r, o_id, userIdent);
+					rId = rm.createRole(sd, r, o_id, userIdent, false);
 				}
 				
 				// Add the column filter

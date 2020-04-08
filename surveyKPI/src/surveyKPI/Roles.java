@@ -19,6 +19,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
@@ -31,10 +32,20 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
+import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleName;
 
@@ -42,9 +53,15 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
+import utilities.XLSProjectsManager;
+import utilities.XLSRolesManager;
+
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -62,6 +79,8 @@ public class Roles extends Application {
 
 	private static Logger log =
 			 Logger.getLogger(Roles.class.getName());
+	
+	LogManager lm = new LogManager(); // Application log
 	
 	public Roles() {
 		
@@ -158,7 +177,7 @@ public class Roles extends Application {
 				if(r.id == -1) {
 					
 					// New role
-					rm.createRole(sd, r, o_id, request.getRemoteUser());
+					rm.createRole(sd, r, o_id, request.getRemoteUser(), false);
 					
 				} else {
 					// Existing role
@@ -376,6 +395,181 @@ public class Roles extends Application {
 		}
 
 		return response;
+	}
+	
+	/*
+	 * Export roles
+	 */
+	@GET
+	@Path ("/xls")
+	@Produces("application/x-download")
+	public Response exportRoles(@Context HttpServletRequest request, 
+			@QueryParam("tz") String tz,
+			@Context HttpServletResponse response
+		) throws Exception {
+
+		String connectionString = "Export Roles";
+		Connection sd = SDDataSource.getConnection(connectionString);	
+		// Authorisation - Access
+		aSM.isAuthorised(sd, request.getRemoteUser());		
+		// End Authorisation 
+		
+		try {
+			
+			// Localisation
+			Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, request.getRemoteUser());
+			Locale locale = new Locale(organisation.locale);
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String filename = null;
+			filename = localisation.getString("rep_roles") + ".xlsx";			
+			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			RoleManager rm = new RoleManager(localisation);
+			ArrayList<Role> roles = rm.getRoles(sd, oId);
+
+			// Create Project XLS File
+			XLSRolesManager xr = new XLSRolesManager(request.getScheme(), request.getServerName());
+			xr.createXLSFile(response.getOutputStream(), roles, localisation, tz);
+
+		}  catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			throw new Exception("Exception: " + e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);	
+			
+		}
+		return Response.ok("").build();
+	}
+	
+	/*
+	 * Import roles from an xls file
+	 */
+	@POST
+	@Produces("application/json")
+	@Path("/xls")
+	public Response importProjects(
+			@Context HttpServletRequest request
+			) throws IOException {
+		
+		Response response = null;
+		boolean clear = false;
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
+
+		log.info("userevent: " + request.getRemoteUser() + " : import roles ");
+
+		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB TODO handle this with exception and redirect to an error page
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+	
+		String fileName = null;
+		String filetype = null;
+		FileItem file = null;
+		String connectionString = "Roles - Roles Upload";
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aSM.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation	
+		
+		try {
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String tz = "UTC";	// Set default for timezone
+			
+			/*
+			 * Parse the request
+			 */
+			List<?> items = uploadHandler.parseRequest(request);
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				// Get form parameters
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+					if(item.getFieldName().equals("file_clear")) {
+						clear = Boolean.valueOf(item.getString());
+					}
+					
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					fileName = item.getName();
+					if(fileName.endsWith("xlsx") || fileName.endsWith("xlsm")) {
+						filetype = "xlsx";
+					} else if(fileName.endsWith("xls")) {
+						filetype = "xls";
+					} else {
+						log.info("unknown file type for item: " + fileName);
+						continue;	
+					}
+					
+					file = item;
+				}
+			}
+	
+			if(file != null) {
+
+				// Process xls file
+				XLSRolesManager xrm = new XLSRolesManager();
+				ArrayList<Role> roles = xrm.getXLSRolesList(filetype, file.getInputStream(), localisation, tz);	
+						
+				RoleManager rm = new RoleManager(localisation);
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());				
+				int deletedCount = 0;
+				
+				// Delete previously imported roles
+				if(clear) {
+					deletedCount = rm.deleteImportedRoles(sd, oId);
+				}
+
+				// Save roles to the database
+				ArrayList<String> added = new ArrayList<> ();
+				for(Role r : roles) {
+					int id = rm.createRole(sd, r, oId, request.getRemoteUser(), true);
+					if(id > 0) {
+						added.add(r.name);
+					}
+				}
+					
+				String note = localisation.getString("r_import")
+					.replace("%s1", String.valueOf(deletedCount))
+					.replace("%s2", String.valueOf(roles.size()))
+					.replace("%s3", String.valueOf(added.size()))
+					.replaceFirst("%s4", added.toString());
+				lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), 
+						LogManager.ROLE, note);
+				
+				response = Response.ok(note).build();
+			} else {
+				response = Response.serverError().entity("File not found").build();
+			}
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+			try {if(!sd.getAutoCommit()) { sd.rollback();}} catch(Exception e) {}
+		} finally {
+			
+			try {if(!sd.getAutoCommit()) { sd.setAutoCommit(true);}} catch(Exception e) {}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
+		}
+		
+		return response;
+		
 	}
 
 }

@@ -145,29 +145,33 @@ public class RoleManager {
 	 */
 	public int createRole(Connection sd, 
 			Role r, 
-			int o_id, 
-			String ident) throws Exception {
+			int oId, 
+			String ident,
+			boolean imported) throws Exception {
 		
 		int rId = 0;
-		String sql = "insert into role (o_id, name, description, changed_by, changed_ts) " +
-				" values (?, ?, ?, ?, now());";
+		String sql = "insert into role (o_id, name, description, imported, changed_by, changed_ts) " +
+				" values (?, ?, ?, ?, ?, now());";
 		
 		PreparedStatement pstmt = null;
 		
 		try {
 			
-			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-			pstmt.setInt(1, o_id);
-			pstmt.setString(2, r.name);
-			pstmt.setString(3, r.desc);
-			pstmt.setString(4, ident);
-
-			log.info("SQL: " + pstmt.toString());
-			pstmt.executeUpdate();
-			
-			ResultSet rs = pstmt.getGeneratedKeys();
-			if(rs.next()) {
-				rId = rs.getInt(1);
+			if(GeneralUtilityMethods.getRoleId(sd, r.name, oId) <= 0) {	// Role name does not exist
+				pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, r.name);
+				pstmt.setString(3, r.desc);
+				pstmt.setBoolean(4, imported);
+				pstmt.setString(5, ident);
+	
+				log.info("SQL: " + pstmt.toString());
+				pstmt.executeUpdate();
+				
+				ResultSet rs = pstmt.getGeneratedKeys();
+				if(rs.next()) {
+					rId = rs.getInt(1);
+				}
 			}
 			
 		}  finally {		
@@ -245,6 +249,31 @@ public class RoleManager {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 			
 		}
+
+	}
+	
+	/*
+	 * delete roles
+	 */
+	public int deleteImportedRoles(Connection sd, int o_id) throws Exception {
+		
+		String sql = "delete from role where o_id = ? and imported";		
+		PreparedStatement pstmt = null;
+		
+		int count = 0;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, o_id);		
+			count = pstmt.executeUpdate();
+			
+		}  finally {		
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
+			
+		}
+		
+		return count;
 
 	}
 	
