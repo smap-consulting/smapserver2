@@ -1,9 +1,11 @@
 package org.smap.sdal.managers;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -285,9 +287,14 @@ public class BillingManager {
 				rd.oId = oId;
 				rd.eId = eId;
 				rd.currency = rs.getString(2);
-				rd.appliesFrom = rs.getObject(3, LocalDate.class);
+				
+				java.sql.Date sqlDate = rs.getDate(3);
+				rd.appliesFrom = sqlDate.toLocalDate();
+				
 				rd.modifiedBy = rs.getString(4);
-				rd.modified = rs.getObject(5, LocalDateTime.class);
+				
+				Timestamp sqlTimestamp = rs.getTimestamp(5);
+				rd.modified = sqlTimestamp.toLocalDateTime();
 				rates.add(rd);
 			}
 		} catch(Exception e) {

@@ -549,7 +549,7 @@ public class Roles extends Application {
 					.replace("%s3", String.valueOf(added.size()))
 					.replaceFirst("%s4", added.toString());
 				lm.writeLogOrganisation(sd, oId, request.getRemoteUser(), 
-						LogManager.ROLE, note);
+						LogManager.ROLE, note, 0);
 				
 				response = Response.ok(note).build();
 			} else {

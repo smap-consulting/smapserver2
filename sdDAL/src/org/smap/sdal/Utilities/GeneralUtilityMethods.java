@@ -279,6 +279,7 @@ public class GeneralUtilityMethods {
 		boolean businessServer = true;
 		if(host.endsWith("smap.com.au") 
 				&& !host.equals("sg.smap.com.au")
+				&& !host.equals("ubuntu1804.smap.com.au")
 				&& !host.equals("dev.smap.com.au")) {
 			businessServer = false;
 		}
