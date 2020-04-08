@@ -246,7 +246,7 @@ public class XLSRolesManager {
 							throw new ApplicationException(msg);
 						}
 						
-						// Validate duplicate project names
+						// Validate duplicate role names
 						Integer firstRow = roleDups.get(name.toLowerCase());
 						if(firstRow != null) {
 							String msg = localisation.getString("fup_dn")
