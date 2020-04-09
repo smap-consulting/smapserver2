@@ -429,7 +429,7 @@ public class Data_CSV extends Application {
 					log.info("Get CSV data: " + pstmt.toString());
 					HashMap<String, AuditItem> auditData = null;
 					Type auditItemType = new TypeToken<HashMap<String, AuditItem>>() {}.getType();
-					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 	
 					sd.setAutoCommit(false);		// page the results to reduce memory usage
 					pstmt.setFetchSize(100);	

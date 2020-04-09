@@ -46,6 +46,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.managers.ResourceManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.ChangeElement;
@@ -1296,6 +1297,7 @@ public class Surveys extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString );
 		aUpdate.isAuthorised(sd, request.getRemoteUser());	
 		aUpdate.isValidSurvey(sd, request.getRemoteUser(), sId, false, true);
+		// End Authorisation
 
 		Response response = null;
 
@@ -1305,91 +1307,97 @@ public class Surveys extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			SurveyManager sm = new SurveyManager(localisation, "UTC");
-			org.smap.sdal.model.Survey survey = sm.getById(sd, null,  request.getRemoteUser(), false, sId, 
-					true, 		// Get full details
-					null,		// Base Path 
-					null, 		// instance id
-					false, 		// get results
-					false, 		// Generate dummy values
-					true, 		// Get property type questions
-					false,		// Don't get soft deleted	
-					false,
-					"internal",
-					false,		// Get change history
-					false,
-					true,		// Super user
-					null,
-					false,		// Do not include child surveys
-					false,		// launched only
-					true		// merge setValues into default value
-					);
+			// Check for usage limits
+			ResourceManager rm = new ResourceManager();
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			if(!rm.canUse(sd, oId, LogManager.TRANSLATE)) {
+				response = Response.serverError().entity(
+						localisation.getString("re_error").replace("%s1",  LogManager.TRANSLATE)).build();
+			} else {
 			
-			// Get the text processor
-			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
-			if(region == null) {
-				region = "us-east-1";
-			}
-			TextProcessing tp = new TextProcessing(region);	
-
-			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
-			ChangeSet cs = new ChangeSet();
-			cs.changeType = "label";
-			cs.items = new ArrayList<ChangeItem> ();
-
-			// translate all unique text from all forms
-			int charsTranslated = 0;  // Count of unicode characters translated
-			HashMap<String, String> uniqueText = new HashMap<> ();
-			for(int i = 0; i < survey.forms.size(); i++) {
-				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+				SurveyManager sm = new SurveyManager(localisation, "UTC");
+				org.smap.sdal.model.Survey survey = sm.getById(sd, null,  request.getRemoteUser(), false, sId, 
+						true, 		// Get full details
+						null,		// Base Path 
+						null, 		// instance id
+						false, 		// get results
+						false, 		// Generate dummy values
+						true, 		// Get property type questions
+						false,		// Don't get soft deleted	
+						false,
+						"internal",
+						false,		// Get change history
+						false,
+						true,		// Super user
+						null,
+						false,		// Do not include child surveys
+						false,		// launched only
+						true		// merge setValues into default value
+						);
 				
-				for(int j = 0; j < formQuestions.size(); j++) {
-
-					Question q = formQuestions.get(j);
-					String fromText = q.labels.get(fromLanguageIndex).text;
-					String toText = uniqueText.get(fromText);
-					if(toText == null) {
-						System.out.println("From text: "  + fromText);
-						toText = tp.getTranslatian(fromText, fromCode, toCode);
-						charsTranslated += fromText.length();
-						System.out.println("    " + toText);	
-						uniqueText.put(fromText, toText);
-					} 
-					
-					ChangeItem ci = new ChangeItem();
-					ci.property = new PropertyChange();
-					ci.property.type = "question";
-					ci.property.propType = "text";	// as opposed to media
-					ci.property.qId = q.id;
-					ci.property.oldVal = q.labels.get(toLanguageIndex).text;
-					ci.property.newVal = toText;
-					ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-					cs.items.add(ci);
-					
+				// Get the text processor
+				String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+				if(region == null) {
+					region = "us-east-1";
 				}
+				TextProcessing tp = new TextProcessing(region);	
+	
+				ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
+				ChangeSet cs = new ChangeSet();
+				cs.changeType = "label";
+				cs.items = new ArrayList<ChangeItem> ();
+	
+				// translate all unique text from all forms
+				int charsTranslated = 0;  // Count of unicode characters translated
+				HashMap<String, String> uniqueText = new HashMap<> ();
+				for(int i = 0; i < survey.forms.size(); i++) {
+					ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+					
+					for(int j = 0; j < formQuestions.size(); j++) {
+	
+						Question q = formQuestions.get(j);
+						String fromText = q.labels.get(fromLanguageIndex).text;
+						String toText = uniqueText.get(fromText);
+						if(toText == null) {
+							toText = tp.getTranslatian(fromText, fromCode, toCode);
+							charsTranslated += fromText.length();	
+							uniqueText.put(fromText, toText);
+						} 
+						
+						ChangeItem ci = new ChangeItem();
+						ci.property = new PropertyChange();
+						ci.property.type = "question";
+						ci.property.propType = "text";	// as opposed to media
+						ci.property.qId = q.id;
+						ci.property.oldVal = q.labels.get(toLanguageIndex).text;
+						ci.property.newVal = toText;
+						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						cs.items.add(ci);
+						
+					}
+				}
+				if(cs.items.size() > 0) {
+					changes.add(cs);
+				}			
+					
+				// Apply the changeset
+				sm.translate(sd, request.getRemoteUser(), 
+						sId, 
+						survey,
+						changes);
+					
+				// Update the codes of the "to" language
+				GeneralUtilityMethods.setLanguageCode(sd, sId, toLanguageIndex, toCode);
+				
+				// Write the log / billing entry
+				String msg = localisation.getString("aws_t_st")
+						.replace("%s1", fromCode)
+						.replace("%s2", toCode);
+				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.TRANSLATE, msg, charsTranslated);
+				response = Response.ok("").build();
 			}
-			if(cs.items.size() > 0) {
-				changes.add(cs);
-			}			
-				
-			// Apply the changeset
-			sm.translate(sd, request.getRemoteUser(), 
-					sId, 
-					survey,
-					changes);
-				
-			// Update the codes of the "to" language
-			GeneralUtilityMethods.setLanguageCode(sd, sId, toLanguageIndex, toCode);
-			
-			// Write the log / billing entry
-			String msg = localisation.getString("aws_t_st")
-					.replace("%s1", fromCode)
-					.replace("%s2", toCode);
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.TRANSLATE, msg, charsTranslated);
-			response = Response.ok("").build();
 					
 		}  catch (Exception e) {
-			try {sd.rollback();} catch (Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
 		} finally {
@@ -1514,7 +1522,7 @@ public class Surveys extends Application {
 		File oldFile = new File(originalFilePath);
 	   
 	    try {
-	    		FileUtils.copyFile(oldFile, newFile);
+	    	FileUtils.copyFile(oldFile, newFile);
 		} catch (Exception e) {
 			log.info(e.getMessage());;
 		}

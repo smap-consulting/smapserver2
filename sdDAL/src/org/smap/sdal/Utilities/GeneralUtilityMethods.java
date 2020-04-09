@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.math.BigInteger;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -45,7 +44,6 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
-import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
@@ -101,8 +99,6 @@ import com.google.gson.reflect.TypeToken;
 public class GeneralUtilityMethods {
 
 	private static Logger log = Logger.getLogger(GeneralUtilityMethods.class.getName());
-
-	private static LogManager lm = new LogManager();		// Application log
 
 	private static int LENGTH_QUESTION_NAME = 57; // 63 max size of postgresql column names.
 	private static int LENGTH_QUESTION_RAND = 5;
@@ -4240,7 +4236,7 @@ public class GeneralUtilityMethods {
 		}
 
 		if (hxlCode == null) {
-			// TODO try to get hxl code from defaut column name
+			// TODO try to get hxl code from default column name
 		}
 		return hxlCode;
 	}
@@ -6382,7 +6378,7 @@ public class GeneralUtilityMethods {
 			while (rs.next()) {
 				String name = rs.getString(1);
 				String parent = rs.getString(2);
-				String parameters = rs.getString(3);		// TODO something with this
+				String parameters = rs.getString(3);
 				String type = rs.getString(4);
 				
 				ArrayList<KeyValueSimp> params = GeneralUtilityMethods.convertParametersToArray(parameters);
@@ -7857,7 +7853,7 @@ public class GeneralUtilityMethods {
 	
 	/*
 	 * Convert a geojson string into a WKT string
-	 * Assume Point TODO update to cater for other types
+	 * Assume Point
 	 */
 	public static String getWKTfromGeoJson(String json) {
 		
@@ -9375,6 +9371,41 @@ public class GeneralUtilityMethods {
 		}
 		
 		return code;
+	}
+	
+	/*
+	 * Get the limit for a resource
+	 */
+	public static int getLimit(Connection sd, int oId, String resource) {
+		int limit = 0;
+		
+		String sql = "select limit "
+				+ " from organisation where id = ?";		
+		PreparedStatement pstmt = null;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String limitString = rs.getString(1);
+				if(limitString != null) {
+					HashMap<String, Integer> limits = gson.fromJson(limitString, 
+							new TypeToken<HashMap<String, Integer>>() {}.getType());
+					Integer l = limits.get(resource);
+					if(l != null) {
+						limit = l;
+					}
+				}
+			}
+		} catch (Exception e) {
+			// Don't throw an error just return 0
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
+		return limit;
 	}
 }
 
