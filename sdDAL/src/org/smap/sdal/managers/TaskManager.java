@@ -470,10 +470,6 @@ public class TaskManager {
 				boolean deleted = rs.getBoolean("deleted");
 				int assignee = rs.getInt("assignee"); 
 				Timestamp to = rs.getTimestamp("schedule_finish");
-				// Remove default finish
-				//if(to == null) {
-				//	to = rs.getTimestamp("default_finish");
-				//}
 				
 				// If we don't want accepted but do want late tasks then filter on date
 				if(wantLate && !wantAccepted) {
