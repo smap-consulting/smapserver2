@@ -438,8 +438,6 @@ public class Tasks extends Application {
 		}
 		// End Authorisation 
 		
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-		
 		// Set file type to "xlsx" unless "xls" has been specified
 		if(filetype == null || !filetype.equals("xls")) {
 			filetype = "xlsx";

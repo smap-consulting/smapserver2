@@ -549,8 +549,6 @@ public class XLSTaskManager {
 		
 		DataFormat format = wb.createDataFormat();
 		CellStyle styleTimestamp = wb.createCellStyle();
-		ZoneId timeZoneId = ZoneId.of(tz);
-		ZoneId gmtZoneId = ZoneId.of("GMT");
 		
 		styleTimestamp.setDataFormat(format.getFormat("yyyy-mm-dd h:mm"));	
 		
@@ -570,12 +568,9 @@ public class XLSTaskManager {
 						cell.setCellStyle(styleTimestamp);
 						
 						if(col.getDateValue(props) != null) {
-							LocalDateTime gmtDate = col.getDateValue(props).toLocalDateTime();
-							ZonedDateTime gmtZoned = ZonedDateTime.of(gmtDate, gmtZoneId);
-							ZonedDateTime localZoned = gmtZoned.withZoneSameInstant(timeZoneId);
-							LocalDateTime localDate = localZoned.toLocalDateTime();
-							Timestamp ts2 = Timestamp.valueOf(localDate);
-							cell.setCellValue(ts2);
+							LocalDateTime theDate = col.getDateValue(props).toLocalDateTime();
+							Timestamp ts = Timestamp.valueOf(theDate);
+							cell.setCellValue(ts);
 						}
 	
 					} else {

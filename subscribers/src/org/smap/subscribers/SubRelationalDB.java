@@ -1244,8 +1244,11 @@ public class SubRelationalDB extends Subscriber {
 			}
 
 			if(sourceKey > 0) {
+				String value = (replace) ? localisation.getString("sub_rb") : localisation.getString("sub_mw");
+				value +=  " " + prikey;
+				
 				UtilityMethodsEmail.markRecord(cResults, sd, localisation, table, 
-						true, "Merged with " + prikey, sourceKey, sId, f_id, true, false, user, true, tz, false);
+						true, value, sourceKey, sId, f_id, true, false, user, true, tz, false);
 			}
 
 		} finally {
@@ -1502,7 +1505,7 @@ public class SubRelationalDB extends Subscriber {
 
 			if(exists) {
 				pstmtCloseNew = cRel.prepareStatement(sqlCloseNew);
-				pstmtCloseNew.setString(1, "Discarded in favour of " + sourceKey);
+				pstmtCloseNew.setString(1, localisation.getString("sub_dif") + " " + sourceKey);
 				pstmtCloseNew.setInt(2, prikey);
 				log.info(("Discarding new: " + pstmtCloseNew.toString()));
 				pstmtCloseNew.executeUpdate();
