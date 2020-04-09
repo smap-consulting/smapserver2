@@ -164,7 +164,8 @@ public class OrganisationList extends Application {
 					+ "website, "
 					+ "locale,"
 					+ "timezone,"
-					+ "server_description "
+					+ "server_description,"
+					+ "limits "
 					+ "from organisation "
 					+ "where organisation.e_id = ? "
 					+ "order by name asc;";			

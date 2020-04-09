@@ -993,7 +993,8 @@ public class GeneralUtilityMethods {
 				+ "locale,"
 				+ "timezone,"
 				+ "server_description,"
-				+ "e_id "
+				+ "e_id,"
+				+ "limits "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
