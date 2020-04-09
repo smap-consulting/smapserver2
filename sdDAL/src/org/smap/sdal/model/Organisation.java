@@ -1,5 +1,7 @@
 package org.smap.sdal.model;
 
+import java.util.HashMap;
+
 /*
 This file is part of SMAP.
 
@@ -53,6 +55,7 @@ public class Organisation {
 	public int e_id;		// Enterprise id
 	public WebformOptions webform;
 	public AppearanceOptions appearance = new AppearanceOptions();
+	public HashMap<String, Integer> limits;
 
 	public String getAdminEmail() {
 
