@@ -62,6 +62,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -212,6 +213,10 @@ public class OrganisationList extends Application {
 					org.timeZone = "UTC";
 				}
 				org.server_description = resultSet.getString("server_description");
+				
+				String limits = resultSet.getString("limits");
+				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());				
+				
 				organisations.add(org);
 			}
 	
@@ -240,7 +245,7 @@ public class OrganisationList extends Application {
 		
 		Response response = null;
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
-		fileItemFactory.setSizeThreshold(1*1024*1024); //1 MB TODO handle this with exception and redirect to an error page
+		fileItemFactory.setSizeThreshold(20*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access

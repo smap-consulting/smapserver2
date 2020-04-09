@@ -1001,6 +1001,9 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 		
 		try {
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 
@@ -1042,6 +1045,9 @@ public class GeneralUtilityMethods {
 					org.timeZone = "UTC";
 				}
 				org.server_description = resultSet.getString("server_description");
+				
+				String limits = resultSet.getString("limits");
+				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());				
 			}
 
 	
