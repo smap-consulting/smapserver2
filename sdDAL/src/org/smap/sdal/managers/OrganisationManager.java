@@ -6,18 +6,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.ws.rs.core.Response;
 
 import org.apache.commons.fileupload.FileItem;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
-import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.EmailServer;
@@ -82,44 +78,47 @@ public class OrganisationManager {
 			String scheme
 			) throws SQLException, ApplicationException {
 		
-		String sql = "update organisation set " +
-				" name = ?, " + 
-				" company_name = ?, " + 
-				" company_address = ?, " + 
-				" company_phone = ?, " + 
-				" company_email = ?, " + 
-				" allow_email = ?, " +
-				" allow_facebook = ?, " +
-				" allow_twitter = ?, " +
-				" can_edit = ?, " +
-				" email_task = ?, " +
-				" admin_email = ?, " +
-				" smtp_host = ?, " +
-				" email_domain = ?, " +
-				" email_user = ?, " +
-				" email_password = ?, " +
-				" email_port = ?, " +
-				" default_email_content = ?, " +
-				" website = ?, " +
-				" locale = ?, " +
-				" timezone = ?, " +
-				" server_description = ?, " +
-				" changed_by = ?, " + 
-				" can_notify = ?, " + 
-				" can_use_api = ?, " + 
-				" can_submit = ?, " + 
-				" set_as_theme = ?, " + 
-				" navbar_color = ?, " + 
-				" can_sms = ?, " + 
-				" send_optin = ?, " + 
-				" changed_ts = now() " + 
-				" where " +
-				" id = ?;";
+		String sql = "update organisation set "
+				+ "name = ?, "
+				+ "company_name = ?, "
+				+ "company_address = ?, "
+				+ "company_phone = ?, " 
+				+ "company_email = ?, " 
+				+ "allow_email = ?, "
+				+ "allow_facebook = ?, "
+				+ "allow_twitter = ?, "
+				+ "can_edit = ?, "
+				+ "email_task = ?, "
+				+ "admin_email = ?, "
+				+ "smtp_host = ?, "
+				+ "email_domain = ?, "
+				+ "email_user = ?, "
+				+ "email_password = ?, "
+				+ "email_port = ?, "
+				+ "default_email_content = ?, "
+				+ "website = ?, "
+				+ "locale = ?, "
+				+ "timezone = ?, "
+				+ "server_description = ?, "
+				+ "changed_by = ?, "
+				+ "can_notify = ?, "
+				+ "can_use_api = ?, "
+				+ "can_submit = ?, "
+				+ "set_as_theme = ?, "
+				+ "navbar_color = ?, "
+				+ "can_sms = ?, "
+				+ "send_optin = ?, "
+				+ "limits = ?," 
+				+ "changed_ts = now() " 
+				+ "where "
+				+ "id = ?";
 	
 		PreparedStatement pstmt = null;
 		
 		try {
 			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
 			// Get the current settings in case we need to notify the administrator of a change
 			Organisation originalOrg = GeneralUtilityMethods.getOrganisation(sd, o.id);
 			
@@ -153,7 +152,8 @@ public class OrganisationManager {
 			pstmt.setString(27, o.appearance.navbar_color);
 			pstmt.setBoolean(28, o.can_sms);
 			pstmt.setBoolean(29, o.send_optin);
-			pstmt.setInt(30, o.id);
+			pstmt.setString(30, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setInt(31, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -290,15 +290,18 @@ public class OrganisationManager {
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, ft_image_size, ft_send, ft_delete, "
-				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, changed_ts) "
+				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?,"
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, now());";
+				+ "?, ?, ?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+
 			/*
 			 * Check to see if this organisation name is already taken
 			 */
@@ -341,7 +344,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(23, o.can_use_api);
 			pstmt.setBoolean(24, o.can_submit);
 			pstmt.setBoolean(25, o.appearance.set_as_theme);
-			pstmt.setInt(26, o.e_id);			// TODO set from current organisation enterprise id
+			pstmt.setInt(26, o.e_id);
 			pstmt.setString(27, "not set");		// backward navigation
 			pstmt.setString(28, "not set");		// screen navigation
 			pstmt.setString(29, "not set");		// image size
@@ -356,6 +359,7 @@ public class OrganisationManager {
 			pstmt.setString(34,navBarColor);
 			pstmt.setBoolean(35, o.can_sms);
 			pstmt.setBoolean(36, o.send_optin);
+			pstmt.setString(36, o.limits == null ? null : gson.toJson(o.limits));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
@@ -431,7 +435,6 @@ public class OrganisationManager {
 	            }
 	            
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
             
