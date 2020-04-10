@@ -845,7 +845,6 @@ public class WebForm extends Application {
 		if(modelIdx > 0) {
 			model = model.substring(modelIdx);
 			
-			System.out.println("Model: " + model);
 			model = model.replace("\n", "");
 			model = model.replace("\r", "");
 			model = model.replaceAll("\"", "'");

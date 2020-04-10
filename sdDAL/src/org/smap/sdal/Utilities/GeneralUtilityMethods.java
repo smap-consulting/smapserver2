@@ -9370,7 +9370,6 @@ public class GeneralUtilityMethods {
 			int idx2 = lNameTemp.indexOf(")", idx1);
 			if(idx2 > -1) {
 				String potentialCode = lNameTemp.substring(idx1 + 1, idx2);
-				System.out.println("Language code: " + potentialCode);
 				if(potentialCode.length() == 2 ||
 						(potentialCode.length() == 5 && potentialCode.charAt(2) == '-')) {
 					code = potentialCode;

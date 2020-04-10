@@ -123,6 +123,9 @@ public class AutoUpdateManager {
 											|| refQf.qType.equals("string"))) {
 								
 								String updateType = null;
+								String fromLang = params.get("from_lang");
+								String toLang = params.get("to_lang");
+								
 								if(refQf.qType.equals("image")) {
 									updateType = AUTO_UPDATE_IMAGE;
 								} else if(refQf.qType.equals("audio")) {
@@ -131,16 +134,24 @@ public class AutoUpdateManager {
 									updateType = AUTO_UPDATE_TEXT;
 								}
 								
-								AutoUpdate au = new AutoUpdate(updateType);
-								au.oId = oId;
-								au.locale = itemLocaleString;
-								au.labelColType = "text";
-								au.sourceColName = refColumn;
-								au.targetColName = qf.columnName;
-								au.tableName = qf.tableName;
-								autoUpdates.add(au);
-								
-								// Diagnostic log.info("--------------- AutoUpdate: " + refQf.qType);
+								// Validate
+								if(updateType == null) {
+									log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
+								} else if(updateType.equals(AUTO_UPDATE_TEXT) &&
+										(fromLang == null || toLang == null)) {
+									log.info("------------------ AutoUpdate: Error: From Language / To Language not specified for text translation");
+								} else {
+									AutoUpdate au = new AutoUpdate(updateType);
+									au.oId = oId;
+									au.locale = itemLocaleString;
+									au.labelColType = "text";
+									au.sourceColName = refColumn;
+									au.targetColName = qf.columnName;
+									au.tableName = qf.tableName;
+									au.fromLang = fromLang;
+									au.toLang = toLang;
+									autoUpdates.add(au);
+								}
 							} 
 						} else {
 							log.info("------------------ AutoUpdate: Error: " + refColumn + " not found in " + qf.tableName);
@@ -252,6 +263,7 @@ public class AutoUpdateManager {
 			ImageProcessing ip = new ImageProcessing(region);
 			AudioProcessing ap = new AudioProcessing(region);	
 			TextProcessing tp = new TextProcessing(region);	
+			ResourceManager rm = new ResourceManager();
 			
 			// For each update item get the records that are null and need updating
 			for(AutoUpdate item : updates) {
@@ -340,16 +352,24 @@ public class AutoUpdateManager {
 								}
 							} else if(item.type.equals(AUTO_UPDATE_TEXT)) {
 									
-								String fromCode = "en";		// TODO
-								String toCode = "es";		// TODO
-								output = tp.getTranslatian(source, fromCode, toCode);
-								String msg = localisation.getString("aws_t_au")
-										.replace("%s1", fromCode)
-										.replace("%s2", toCode)
-										.replace("%s3", item.tableName)
-										.replace("%s4", item.targetColName);
-								lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSLATE, msg, 
-										source.length());
+								if(rm.canUse(sd, item.oId, LogManager.TRANSLATE)) {
+									
+									output = tp.getTranslatian(source, item.fromLang, item.toLang);
+									String msg = localisation.getString("aws_t_au")
+											.replace("%s1", item.fromLang)
+											.replace("%s2", item.toLang)
+											.replace("%s3", item.tableName)
+											.replace("%s4", item.targetColName);
+									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSLATE, msg, 
+											source.length());
+									rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
+											"auto_update", source.length());
+								} else {
+									String msg = localisation.getString("re_error")
+											.replace("%s1", LogManager.TRANSLATE);
+									output = "[" + msg + "]";
+									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+								}
 									
 							} else {
 								String msg = "cannot perform auto update for update type: \" + item.type";

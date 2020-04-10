@@ -342,7 +342,7 @@ public class XLSTemplateUploadManager {
 					msg = msg.replace("%s1", survey.key_policy);
 					throw new ApplicationException(msg);
 				}
-				
+				survey.autoTranslate = getBooleanColumn(row, "auto_translate", settingsHeader, lastCellNum, false);
 				
 				String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
 				if(pdRepeats != null) {

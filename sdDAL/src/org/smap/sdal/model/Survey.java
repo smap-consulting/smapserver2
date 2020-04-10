@@ -45,6 +45,7 @@ public class Survey {
 	public boolean blocked;
 	public String manifest;
 	public boolean hasManifest;
+	public boolean autoTranslate;			// Only used on upload from XLS to do auto translation
 	public ArrayList<Form> forms = new ArrayList<Form> ();
 	public HashMap<String, OptionList> optionLists = new HashMap<> ();
 	public HashMap<String, StyleList> styleLists = new HashMap<> ();
@@ -58,17 +59,14 @@ public class Survey {
 	public HashMap<String, Role> roles = new HashMap<> ();
 	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
-	//public int managed_id;
 	public int version;			// Default to 1
 	public boolean loadedFromXLS;
 	public ArrayList<Pulldata> pulldata;
 	public String hrk;
 	public String key_policy;
-	//public ArrayList<LinkedSurvey> linkedSurveys = new ArrayList<LinkedSurvey> ();
 	public String basedOn;
 	public Timestamp created;
 	public boolean exclude_empty;
-	//public String autoUpdates;
 	public String projectName;
 	private boolean projectTasksOnly;		// deprecated
 	private boolean hideOnDevice;		// Replaces projectTasksOnly

@@ -57,6 +57,7 @@ public class LogManager {
 	public static String EXPIRED = "expired";
 	public static String PROJECT = "project";
 	public static String ROLE = "role";
+	public static String LIMIT = "limit";
 	
 	/*
 	 * Write a log entry that includes the survey id

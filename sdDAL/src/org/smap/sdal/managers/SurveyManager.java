@@ -39,6 +39,8 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.ws.rs.core.Response;
+
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -4293,21 +4295,119 @@ public class SurveyManager {
 	/*
 	 * Translate from one language to another
 	 */
-	public void translate(
+	public String translate(
 			Connection sd, 
 			String userIdent,
-			int sId, 
-			Survey survey,
-			ArrayList<ChangeSet> changes) throws Exception {
+			int sId,
+			int fromLanguageIndex,
+			int toLanguageIndex,
+			String fromCode,
+			String toCode,
+			boolean overwrite) throws Exception {
 
-		if(changes.size() > 0) {
-			applyChangeSetArray(sd, 
-					null,	// cResults should not be required
-					sId, 
-					userIdent, 
-					changes,
-					true);
+		String result = null;
+		
+		// Check for usage limits
+		ResourceManager rm = new ResourceManager();
+		int oId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
+		if(!rm.canUse(sd, oId, LogManager.TRANSLATE)) {
+			result = "re_error";
+		} else {
+		
+			org.smap.sdal.model.Survey survey = getById(sd, null,  userIdent, false, sId, 
+					true, 		// Get full details
+					null,		// Base Path 
+					null, 		// instance id
+					false, 		// get results
+					false, 		// Generate dummy values
+					true, 		// Get property type questions
+					false,		// Don't get soft deleted	
+					false,
+					"internal",
+					false,		// Get change history
+					false,
+					true,		// Super user
+					null,
+					false,		// Do not include child surveys
+					false,		// launched only
+					true		// merge setValues into default value
+					);
+			
+			// Get the text processor
+			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+			if(region == null) {
+				region = "us-east-1";
+			}
+			TextProcessing tp = new TextProcessing(region);	
+
+			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
+			ChangeSet cs = new ChangeSet();
+			cs.changeType = "label";
+			cs.items = new ArrayList<ChangeItem> ();
+
+			// translate all unique text from all forms
+			int charsTranslated = 0;  // Count of unicode characters translated
+			HashMap<String, String> uniqueText = new HashMap<> ();
+			for(int i = 0; i < survey.forms.size(); i++) {
+				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+				
+				for(int j = 0; j < formQuestions.size(); j++) {
+
+					Question q = formQuestions.get(j);
+					if(!overwrite) {
+						String currentText = q.labels.get(toLanguageIndex).text;
+						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
+							continue;	// This question already has a value
+						}
+					}
+					String fromText = q.labels.get(fromLanguageIndex).text;
+					String toText = uniqueText.get(fromText);
+					if(toText == null) {
+						toText = tp.getTranslatian(fromText, fromCode, toCode);
+						charsTranslated += fromText.length();	
+						uniqueText.put(fromText, toText);
+					} 
+					
+					ChangeItem ci = new ChangeItem();
+					ci.property = new PropertyChange();
+					ci.property.type = "question";
+					ci.property.propType = "text";	// as opposed to media
+					ci.property.qId = q.id;
+					ci.property.oldVal = q.labels.get(toLanguageIndex).text;
+					ci.property.newVal = toText;
+					ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+					cs.items.add(ci);
+					
+				}
+			}
+			if(cs.items.size() > 0) {
+				changes.add(cs);
+			}			
+				
+			// Apply the changeset
+			if(changes.size() > 0) {
+				applyChangeSetArray(sd, 
+						null,	// cResults should not be required
+						sId, 
+						userIdent, 
+						changes,
+						true);
+			}		
+				
+			// Update the codes of the "to" and "from" languages
+			GeneralUtilityMethods.setLanguageCode(sd, sId, toLanguageIndex, toCode);
+			GeneralUtilityMethods.setLanguageCode(sd, sId, fromLanguageIndex, fromCode);
+			
+			// Record the usage
+			String msg = localisation.getString("aws_t_st")
+					.replace("%s1", fromCode)
+					.replace("%s2", toCode);			
+			rm.recordUsage(sd, oId, sId, LogManager.TRANSLATE, msg, 
+					userIdent, charsTranslated);
+			
 		}
+
+		return result;
 		
 	}
 }

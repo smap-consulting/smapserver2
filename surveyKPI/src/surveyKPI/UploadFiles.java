@@ -60,6 +60,7 @@ import org.smap.sdal.model.CustomReportItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.LQAS;
+import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.ReportConfig;
@@ -848,15 +849,43 @@ public class UploadFiles extends Application {
 			pstmtChangeLog.setTimestamp(6, GeneralUtilityMethods.getTimeStamp());
 			pstmtChangeLog.execute();
 			
-			if(warnings.size() == 0) {
-				response = Response.ok(gson.toJson(new Message("success", "", displayName))).build();
-			} else {
-				StringBuilder msg = new StringBuilder("");
+			StringBuilder responseMsg = new StringBuilder("");
+			String responseCode = "success";
+			if(warnings.size() > 0) {
 				for(ApplicationWarning w : warnings) {
-					msg.append("<br/> - ").append(w.getMessage());
+					responseMsg.append("<br/> - ").append(w.getMessage());
 				}
-				response = Response.ok(gson.toJson(new Message("warning", msg.toString(), displayName))).build();
+				responseCode = "warning";
 			}
+			
+			/*
+			 * Apply auto translations
+			 */
+			if(s.autoTranslate && s.languages.size() > 1) {
+				
+				Language fromLanguage = s.languages.get(0);
+				if(fromLanguage.code != null) {		// TODO ensure code is valid
+					for(int i = 1; i < s.languages.size(); i++) {
+						Language toLanguage = s.languages.get(i);
+						if(toLanguage.code != null) {		// TODO ensure code is valid
+							String result = sm.translate(sd, request.getRemoteUser(), s.id,
+									0,	// from language index
+									i,	// to language index
+									fromLanguage.code,
+									toLanguage.code,
+									false	// Do not overwrite
+									);
+							if(result != null) {
+								responseCode = "warning";
+								responseMsg.append(localisation.getString(result).replace("%s1",  LogManager.TRANSLATE));
+							}
+						}
+					}
+				}
+				
+			}
+			
+			response = Response.ok(gson.toJson(new Message(responseCode, responseMsg.toString(), displayName))).build();
 			
 		} catch(ApplicationException ex) {		
 			response = Response.ok(gson.toJson(new Message("error", ex.getMessage(), displayName))).build();
