@@ -5,7 +5,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
-import java.util.Date;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -37,6 +36,8 @@ public class ResourceManager {
 	private static Logger log =
 			 Logger.getLogger(ResourceManager.class.getName());
 	
+	LogManager lm = new LogManager();		// Application log
+	
 	/*
 	 * Check to see if the person can use the resource
 	 */
@@ -46,38 +47,44 @@ public class ResourceManager {
 		
 		boolean decision = false;
 		int limit = GeneralUtilityMethods.getLimit(sd, oId, resource);
-		System.out.println("xxxxxxxxxxxxxxx " + limit);
-
+		String period = "";
+		int usage = 0;
+		
 		if(limit > 0) {
+			
 			LocalDate d = LocalDate.now();
 			int month = d.getMonth().getValue();
 			int year = d.getYear();
-			String period = String.valueOf(year) + String.valueOf(month);
+			period = String.valueOf(year) + String.valueOf(month);
 			
-			String sql = "select usage from resource_usage "
+			String sql = "select period, usage from resource_usage "
 					+ "where o_id = ? "
-					+ "and period = ? "
 					+ "and resource = ?";
 			PreparedStatement pstmt = null;
 			
-			int usage = 0;
 			try {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, oId);
-				pstmt.setString(2,  period);
-				pstmt.setString(3, resource);
+				pstmt.setString(2, resource);
 				ResultSet rs = pstmt.executeQuery();
 				
 				if(rs.next()) {
-					usage = rs.getInt(1);
-					System.out.println("=============" + usage);
+					String storedPeriod = rs.getString(1);
+					if(period.equals(storedPeriod)) {
+						// Resource usage table is up to date
+						usage = rs.getInt(2);
+					} else {
+						// A new period begins
+						usage = 0;
+						deleteUsage(sd, oId, resource, period);
+						updateUsage(sd, oId, resource, period, usage);
+					}
 				} else {
 					// Get the usage from the logs
 					usage = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, resource);
 					updateUsage(sd, oId, resource, period, usage);
 				}
 				
-				System.out.println("----------- " + usage);
 				decision = usage < limit;
 				
 			} finally {
@@ -85,21 +92,53 @@ public class ResourceManager {
 			}
 		}
 		
+		if(!decision) {
+			log.info("Usage denied. Period: " + period 
+					+ " Resource: " + resource 
+					+ " Limit: " + limit 
+					+ " Usage: " + usage);
+		}
+		
 		return decision;
+	}
+	
+	/*
+	 * Called to record usage of a limited reource
+	 */
+	public void recordUsage(Connection sd, int oId, int sId, String resource, String msg, 
+			String user,
+			int usage) throws SQLException {
+		
+		// Get the period before writing the log in case we are on the cusp of change
+		LocalDate d = LocalDate.now();
+		int month = d.getMonth().getValue();
+		int year = d.getYear();
+		String period = String.valueOf(year) + String.valueOf(month);
+
+		// Write the log entry
+		if(sId > 0) {
+			lm.writeLog(sd, sId, user, resource, msg, usage);
+		} else {
+			lm.writeLogOrganisation(sd, oId, user, resource, msg, usage);
+		}
+		
+		// Keep temporary store of usage for performance reasons
+		updateUsage(sd, oId, resource, period, usage);
 	}
 	
 	/*
 	 * Update the usage count
 	 */
-	public void updateUsage(Connection sd, int oId, String resource, String period, int usage) throws SQLException  {
+	private void updateUsage(Connection sd, int oId, String resource, String period, int usage) throws SQLException  {
 		
-		String sql_u = "update resource_usage set usage = ? "
+		String sql_u = "update resource_usage set usage = usage + ? "
 				+ "where o_id = ? "
 				+ "and period = ? "
 				+ "and resource = ?";
 		
 		String sql_c = "insert into resource_usage (usage, o_id, period, resource) values (?, ?, ?, ?) ";
 		
+		String sql_d = "delete from resource_usage where o_id = ? and resource = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -112,6 +151,14 @@ public class ResourceManager {
 			int count = pstmt.executeUpdate();
 			if(count == 0) {
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+				// Delete any old period data
+				pstmt = sd.prepareStatement(sql_d);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, resource);
+				pstmt.executeUpdate();
+				
+				// Insert the new usage
+				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 				pstmt = sd.prepareStatement(sql_c);
 				pstmt.setInt(1,  usage);
 				pstmt.setInt(2,  oId);
@@ -122,8 +169,30 @@ public class ResourceManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
-
 	}	
+	
+	/*
+	 * Delete the usage count
+	 */
+	private void deleteUsage(Connection sd, int oId, String resource, String period) throws SQLException {
+		
+		String sql = "delete from resource_usage "
+				+ "where o_id = ? "
+				+ "and resource = ? "
+				+ "and period = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  oId);
+			pstmt.setString(2,  resource);
+			pstmt.setString(3,  period);
+			pstmt.executeUpdate();
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
+	}
+	
 }
 
 

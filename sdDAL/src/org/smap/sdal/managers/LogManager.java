@@ -44,9 +44,9 @@ public class LogManager {
 	public static String ERROR = "error";
 	public static String NOTIFICATION = "notification";
 	public static String ORGANISATION_UPDATE = "organisation update";
-	public static String REKOGNITION = "Rekognition";
-	public static String TRANSCRIBE = "Transcribe";
-	public static String TRANSLATE = "Translate";
+	public static String REKOGNITION = "rekognition";
+	public static String TRANSCRIBE = "transcribe";
+	public static String TRANSLATE = "translate";
 	public static String REMINDER = "reminder";
 	public static String MAILOUT = "mailout";
 	public static String VIEW = "view";

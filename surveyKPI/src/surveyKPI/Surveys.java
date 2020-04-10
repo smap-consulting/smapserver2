@@ -1310,7 +1310,7 @@ public class Surveys extends Application {
 			// Check for usage limits
 			ResourceManager rm = new ResourceManager();
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			if(!rm.canUse(sd, oId, LogManager.TRANSLATE.toLowerCase())) {
+			if(!rm.canUse(sd, oId, LogManager.TRANSLATE)) {
 				response = Response.serverError().entity(
 						localisation.getString("re_error").replace("%s1",  LogManager.TRANSLATE)).build();
 			} else {
@@ -1389,11 +1389,13 @@ public class Surveys extends Application {
 				// Update the codes of the "to" language
 				GeneralUtilityMethods.setLanguageCode(sd, sId, toLanguageIndex, toCode);
 				
-				// Write the log / billing entry
+				// Record the usage
 				String msg = localisation.getString("aws_t_st")
 						.replace("%s1", fromCode)
-						.replace("%s2", toCode);
-				lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.TRANSLATE, msg, charsTranslated);
+						.replace("%s2", toCode);			
+				rm.recordUsage(sd, oId, sId, LogManager.TRANSLATE, msg, 
+						request.getRemoteUser(), charsTranslated);
+				
 				response = Response.ok("").build();
 			}
 					
