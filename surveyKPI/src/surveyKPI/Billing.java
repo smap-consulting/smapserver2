@@ -36,6 +36,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.BillingManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.Organisation;
@@ -501,31 +502,10 @@ public class Billing extends Application {
 	 */
 	private void addTranslate(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 		
-		String sqlRekognition = "select  sum(measure) as total "
-				+ "from log "
-				+ "where event = 'Translate Request' "
-				+ "and extract(month from log_time) = ? "
-				+ "and extract(year from log_time) = ?";
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sqlRekognition);
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
-			
-			ResultSet rs = pstmt.executeQuery();
-		
-			if(rs.next()) {
-				item.quantity = rs.getInt("total");
-				
-				item.amount = (item.quantity - item.free) * item.unitCost;
-				if(item.amount < 0) {
-					item.amount = 0.0;
-				}
-				
-			}
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		item.quantity = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, LogManager.TRANSLATE);				
+		item.amount = (item.quantity - item.free) * item.unitCost;
+		if(item.amount < 0) {
+			item.amount = 0.0;
 		}
 	}
 	

@@ -44,6 +44,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
@@ -9386,7 +9387,7 @@ public class GeneralUtilityMethods {
 	public static int getLimit(Connection sd, int oId, String resource) {
 		int limit = 0;
 		
-		String sql = "select limit "
+		String sql = "select limits "
 				+ " from organisation where id = ?";		
 		PreparedStatement pstmt = null;
 		
@@ -9413,6 +9414,39 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
 		return limit;
+	}
+	
+	public static int getUsageMeasure(Connection sd, int oId, int month, int year, String resource) throws SQLException {
+		
+		StringBuilder sb = new StringBuilder("select  sum(measure) as total from log where event = ?")
+				.append(" and extract(month from log_time) = ? and extract(year from log_time) = ?");
+		
+		if(oId > 0) {
+			sb.append(" and o_id = ?");
+		}
+		PreparedStatement pstmt = null;
+		
+		int usage = 0;
+		
+		try {
+			pstmt = sd.prepareStatement(sb.toString());
+			pstmt.setString(1,  resource);
+			pstmt.setInt(2, month);
+			pstmt.setInt(3, year);
+			if(oId > 0) {
+				pstmt.setInt(4, oId);
+			}
+			
+			ResultSet rs = pstmt.executeQuery();
+		
+			if(rs.next()) {
+				usage = rs.getInt("total");
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return usage;
 	}
 }
 

@@ -1310,7 +1310,7 @@ public class Surveys extends Application {
 			// Check for usage limits
 			ResourceManager rm = new ResourceManager();
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			if(!rm.canUse(sd, oId, LogManager.TRANSLATE)) {
+			if(!rm.canUse(sd, oId, LogManager.TRANSLATE.toLowerCase())) {
 				response = Response.serverError().entity(
 						localisation.getString("re_error").replace("%s1",  LogManager.TRANSLATE)).build();
 			} else {
