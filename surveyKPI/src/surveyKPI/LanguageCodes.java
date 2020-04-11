@@ -98,9 +98,7 @@ public class LanguageCodes extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getLanguageCodes(
-			@Context HttpServletRequest request,
-			@QueryParam("translate") boolean translate,
-			@QueryParam("transcribe") boolean transcribe		
+			@Context HttpServletRequest request	
 			) { 
 
 		Response response = null;
@@ -110,16 +108,9 @@ public class LanguageCodes extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());		
 		// End Authorisation
 		
-		boolean hasWhere = false;
-		StringBuffer sql = new StringBuffer("select code from language_codes");
-		if(translate) {
-			sql.append(hasWhere ? " where translate" : " and translate");
-		}
-		if(transcribe) {
-			sql.append(hasWhere ? " where transcribe" : " and transcribe");
-		}
-		sql.append(" order by code asc");
-		
+		String sql = "select code, aws_translate, aws_transcribe "
+				+ "from language_codes "
+				+ "order by code asc";
 		PreparedStatement pstmt = null;
 		
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
@@ -133,7 +124,12 @@ public class LanguageCodes extends Application {
 			pstmt = sd.prepareStatement(sql.toString());
 			ResultSet rs = pstmt.executeQuery();
 			while (rs.next()) {
-				codes.add(new LanguageCode(rs.getString(1), localisation.getString(rs.getString(1))));
+				codes.add(
+						new LanguageCode(rs.getString(1), 
+								localisation.getString(rs.getString(1)),
+								rs.getBoolean(2),
+								rs.getBoolean(3)
+								));
 			}
 			response = Response.ok(gson.toJson(codes)).build();
 		} catch (Exception e) {
