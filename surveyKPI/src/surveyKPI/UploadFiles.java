@@ -51,6 +51,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -863,11 +864,13 @@ public class UploadFiles extends Application {
 			 */
 			if(s.autoTranslate && s.languages.size() > 1) {
 				
+				LanguageCodeManager lcm = new LanguageCodeManager();
 				Language fromLanguage = s.languages.get(0);
-				if(fromLanguage.code != null) {		// TODO ensure code is valid
+				if(fromLanguage.code != null && lcm.isSupported(sd, fromLanguage.code, LanguageCodeManager.LT_TRANSLATE)) {
 					for(int i = 1; i < s.languages.size(); i++) {
 						Language toLanguage = s.languages.get(i);
-						if(toLanguage.code != null) {		// TODO ensure code is valid
+						if(toLanguage.code != null && lcm.isSupported(sd, toLanguage.code, LanguageCodeManager.LT_TRANSLATE)) {
+							
 							String result = sm.translate(sd, request.getRemoteUser(), s.id,
 									0,	// from language index
 									i,	// to language index
@@ -879,7 +882,21 @@ public class UploadFiles extends Application {
 								responseCode = "warning";
 								responseMsg.append(localisation.getString(result).replace("%s1",  LogManager.TRANSLATE));
 							}
+						} else {
+							responseCode = "warning";
+							if(toLanguage.code == null) {
+								responseMsg.append(localisation.getString("aws_t_nlc").replace("%s1",  toLanguage.name));
+							} else {
+								responseMsg.append(localisation.getString("aws_t_ilc").replace("%s1",  toLanguage.code));
+							}
 						}
+					}
+				} else {
+					responseCode = "warning";
+					if(fromLanguage.code == null) {
+						responseMsg.append(localisation.getString("aws_t_nlc").replace("%s1",  fromLanguage.name));
+					} else {
+						responseMsg.append(localisation.getString("aws_t_ilc").replace("%s1",  fromLanguage.code));
 					}
 				}
 				

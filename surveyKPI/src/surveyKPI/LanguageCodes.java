@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.RoleManager;
@@ -108,37 +109,23 @@ public class LanguageCodes extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());		
 		// End Authorisation
 		
-		String sql = "select code, aws_translate, aws_transcribe "
-				+ "from language_codes "
-				+ "order by code asc";
-		PreparedStatement pstmt = null;
-		
-		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			ArrayList<LanguageCode> codes = new ArrayList<LanguageCode> ();
-			pstmt = sd.prepareStatement(sql.toString());
-			ResultSet rs = pstmt.executeQuery();
-			while (rs.next()) {
-				codes.add(
-						new LanguageCode(rs.getString(1), 
-								localisation.getString(rs.getString(1)),
-								rs.getBoolean(2),
-								rs.getBoolean(3)
-								));
-			}
+			LanguageCodeManager lcm = new LanguageCodeManager();
+			ArrayList<LanguageCode> codes = lcm.getCodes(sd, localisation);
+
 			response = Response.ok(gson.toJson(codes)).build();
 		} catch (Exception e) {
 			
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 
-		} finally {			
-			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+		} finally {
 			SDDataSource.closeConnection("surveyKPI-getRoles", sd);
 		}
 
