@@ -231,9 +231,6 @@ public class Admin extends Application {
 		
 		StringBuffer output = new StringBuffer();
 		
-		String sqlEE = "select exclude_empty from survey where ident = ?";
-		PreparedStatement pstmtEE = null;
-		
 		HashMap<String, SubmissionMessage> sentMessages = new HashMap<>();
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		String sqlMsg = "select data "
@@ -245,8 +242,6 @@ public class Admin extends Application {
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);		
-			
-			pstmtEE = sd.prepareStatement(sqlEE);
 				
 			pstmtGetNotifications = sd.prepareStatement(sqlGetNotifications);
 			
@@ -285,13 +280,6 @@ public class Admin extends Application {
 				String instanceId = rs.getString("instanceid");
 				int pId = rs.getInt("p_id");
 				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-				
-				boolean excludeEmpty = false;
-				pstmtEE.setString(1, sIdent);
-				ResultSet rsEE = pstmtEE.executeQuery();
-				if(rsEE.next()) {
-					excludeEmpty = rsEE.getBoolean(1);
-				}
 				
 				output.append(count).append(" Upload Event: ").append(ueId).append(" ").append(instanceId);
 					
@@ -390,7 +378,6 @@ public class Admin extends Application {
 		} finally {
 			
 			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
-			try {if (pstmtEE != null) {pstmtEE.close();	}} catch (SQLException e) {	}
 			try {if (pstmtMsg != null) {pstmtMsg.close();	}} catch (SQLException e) {	}
 			try {if (pstmtGetNotifications != null) {pstmtGetNotifications.close();	}} catch (SQLException e) {	}
 			SDDataSource.closeConnection(connectionString, sd);

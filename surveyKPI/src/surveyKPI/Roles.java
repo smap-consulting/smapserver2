@@ -38,14 +38,11 @@ import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleName;
 
@@ -53,7 +50,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import utilities.XLSProjectsManager;
 import utilities.XLSRolesManager;
 
 import java.io.IOException;
@@ -111,9 +107,10 @@ public class Roles extends Application {
 			) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-getRoles";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-getRoles");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		aSM.isAuthorised(sd, request.getRemoteUser());
 		
 		// End Authorisation
@@ -129,7 +126,7 @@ public class Roles extends Application {
 			int o_id  = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			ArrayList<Role> roles = rm.getRoles(sd, o_id);
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String resp = gson.toJson(roles);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {
@@ -139,7 +136,7 @@ public class Roles extends Application {
 
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-getRoles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
@@ -154,9 +151,10 @@ public class Roles extends Application {
 	public Response updateRoles(@Context HttpServletRequest request, @FormParam("roles") String roles) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI-updateRoles";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-updateRoles");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		aSM.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
@@ -194,7 +192,7 @@ public class Roles extends Application {
 			log.log(Level.SEVERE,"Error", e);
 
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-updateRoles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -254,9 +252,10 @@ public class Roles extends Application {
 			) { 
 
 		Response response = null;
+		String connectionString = "surveyKPI-getSurveyRoles";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-getSurveyRoles");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -285,7 +284,7 @@ public class Roles extends Application {
 
 		} finally {
 			
-			SDDataSource.closeConnection("surveyKPI-getSurveyRoles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;
@@ -461,7 +460,7 @@ public class Roles extends Application {
 
 		log.info("userevent: " + request.getRemoteUser() + " : import roles ");
 
-		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB TODO handle this with exception and redirect to an error page
+		fileItemFactory.setSizeThreshold(20*1024*1024); 	// 20 MB 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 	
 		String fileName = null;

@@ -34,8 +34,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -148,7 +146,7 @@ public class QuestionDetail extends Application {
 						" AND t.language = ? " +
 						" AND q.q_id = ? " + 
 						" AND q.l_id = o.l_id " +
-						" AND t.type = 'none' " +		// TODO support multiple types as options
+						" AND t.type = 'none' " +
 						" ORDER BY o.seq;";			
 				
 				log.info(sql);
