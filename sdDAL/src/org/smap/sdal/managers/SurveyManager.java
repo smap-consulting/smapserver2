@@ -1428,6 +1428,9 @@ public class SurveyManager {
 						} else if(ci.property.propType.equals("constraint_msg")) {
 							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":constraint");
+						} else if(ci.property.propType.equals("hint")) {
+							text_id = rs.getString(1);
+							text_id = text_id.replace(":label", ":hint");
 						} else {
 							text_id = rs.getString(2);
 						}
@@ -1443,7 +1446,8 @@ public class SurveyManager {
 
 				if(ci.property.oldVal != null && ci.property.newVal != null) {
 					if(ci.property.propType.equals("text")
-							|| ci.property.propType.equals("constraint_msg")) {
+							|| ci.property.propType.equals("constraint_msg")
+							|| ci.property.propType.equals("hint")) {
 						updateLabel(connectionSD, ci, ci.property.languageName, pstmtLangOldVal, sId, text_id);
 					} else {
 						// For media update all the languages
@@ -4350,7 +4354,7 @@ public class SurveyManager {
 			HashMap<String, String> uniqueText = new HashMap<> ();
 			
 			/*
-			 * Translate Questions
+			 * Translate Question labels
 			 */
 			for(int i = 0; i < survey.forms.size(); i++) {
 				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
@@ -4379,6 +4383,44 @@ public class SurveyManager {
 						ci.property.propType = "text";	// as opposed to media
 						ci.property.qId = q.id;
 						ci.property.oldVal = q.labels.get(toLanguageIndex).text;
+						ci.property.newVal = toText;
+						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						cs.items.add(ci);
+					}
+					
+				}
+			}
+			
+			/*
+			 * Translate Hints
+			 */
+			for(int i = 0; i < survey.forms.size(); i++) {
+				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+				
+				for(int j = 0; j < formQuestions.size(); j++) {
+
+					Question q = formQuestions.get(j);
+					if(!overwrite) {
+						String currentText = q.labels.get(toLanguageIndex).hint;
+						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
+							continue;	// This question already has a value
+						}
+					}
+					String fromText = q.labels.get(fromLanguageIndex).hint;
+					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+						String toText = uniqueText.get(fromText);
+						if(toText == null) {
+							toText = tp.getTranslatian(fromText, fromCode, toCode);
+							charsTranslated += fromText.length();	
+							uniqueText.put(fromText, toText);
+						} 
+						
+						ChangeItem ci = new ChangeItem();
+						ci.property = new PropertyChange();
+						ci.property.type = "question";
+						ci.property.propType = "hint";	// as opposed to media
+						ci.property.qId = q.id;
+						ci.property.oldVal = q.labels.get(toLanguageIndex).hint;
 						ci.property.newVal = toText;
 						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
 						cs.items.add(ci);
