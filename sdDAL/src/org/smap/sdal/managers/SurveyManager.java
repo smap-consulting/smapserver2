@@ -3875,9 +3875,6 @@ public class SurveyManager {
 	private ArrayList<MetaItem> getLegacyMeta() {
 		ArrayList<MetaItem> meta = new ArrayList<MetaItem>();
 		
-		// TODO get legacy meta
-		// TODO write legacy meta to the survey defn
-		
 		return meta;
 	}
 	
@@ -4093,7 +4090,7 @@ public class SurveyManager {
 					s.id,
 					s.ident,
 					null,
-					null,		// roles for column filtering TODO add support
+					null,		// roles for column filtering
 					0,			// parent form id
 					form.id,
 					form.tableName,
@@ -4132,7 +4129,7 @@ public class SurveyManager {
 					parkey,
 					hrk,
 					null,
-					null,		// roles for row filtering TODO add support
+					null,		// roles for row filtering
 					null,		// sort
 					null,		// sort direction
 					false,		// mgmt
@@ -4368,22 +4365,62 @@ public class SurveyManager {
 						}
 					}
 					String fromText = q.labels.get(fromLanguageIndex).text;
-					String toText = uniqueText.get(fromText);
-					if(toText == null) {
-						toText = tp.getTranslatian(fromText, fromCode, toCode);
-						charsTranslated += fromText.length();	
-						uniqueText.put(fromText, toText);
-					} 
+					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+						String toText = uniqueText.get(fromText);
+						if(toText == null) {
+							toText = tp.getTranslatian(fromText, fromCode, toCode);
+							charsTranslated += fromText.length();	
+							uniqueText.put(fromText, toText);
+						} 
+						
+						ChangeItem ci = new ChangeItem();
+						ci.property = new PropertyChange();
+						ci.property.type = "question";
+						ci.property.propType = "text";	// as opposed to media
+						ci.property.qId = q.id;
+						ci.property.oldVal = q.labels.get(toLanguageIndex).text;
+						ci.property.newVal = toText;
+						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						cs.items.add(ci);
+					}
 					
-					ChangeItem ci = new ChangeItem();
-					ci.property = new PropertyChange();
-					ci.property.type = "question";
-					ci.property.propType = "text";	// as opposed to media
-					ci.property.qId = q.id;
-					ci.property.oldVal = q.labels.get(toLanguageIndex).text;
-					ci.property.newVal = toText;
-					ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-					cs.items.add(ci);
+				}
+			}
+			
+			/*
+			 * Translate Constraints
+			 */
+			for(int i = 0; i < survey.forms.size(); i++) {
+				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+				
+				for(int j = 0; j < formQuestions.size(); j++) {
+
+					Question q = formQuestions.get(j);
+					if(!overwrite) {
+						String currentText = q.labels.get(toLanguageIndex).constraint_msg;
+						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
+							continue;	// This question already has a value
+						}
+					}
+					String fromText = q.labels.get(fromLanguageIndex).constraint_msg;
+					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+						String toText = uniqueText.get(fromText);
+						if(toText == null) {
+							toText = tp.getTranslatian(fromText, fromCode, toCode);
+							charsTranslated += fromText.length();	
+							uniqueText.put(fromText, toText);
+						} 
+						
+						ChangeItem ci = new ChangeItem();
+						ci.property = new PropertyChange();
+						ci.property.type = "question";
+						ci.property.propType = "constraint_msg";	// as opposed to media
+						ci.property.qId = q.id;
+						ci.property.oldVal = q.labels.get(toLanguageIndex).constraint_msg;
+						ci.property.newVal = toText;
+						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						cs.items.add(ci);
+					}
 					
 				}
 			}
@@ -4403,23 +4440,25 @@ public class SurveyManager {
 						}
 					}
 					String fromText = o.labels.get(fromLanguageIndex).text;
-					String toText = uniqueText.get(fromText);
-					if(toText == null) {
-						toText = tp.getTranslatian(fromText, fromCode, toCode);
-						charsTranslated += fromText.length();	
-						uniqueText.put(fromText, toText);
-					} 
-					
-					ChangeItem ci = new ChangeItem();
-					ci.property = new PropertyChange();
-					ci.property.type = "option";
-					ci.property.optionList = listname;
-					ci.property.name = o.value;
-					ci.property.propType = "text";	// as opposed to media
-					ci.property.oldVal = o.labels.get(toLanguageIndex).text;
-					ci.property.newVal = toText;
-					ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-					cs.items.add(ci);
+					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+						String toText = uniqueText.get(fromText);
+						if(toText == null) {
+							toText = tp.getTranslatian(fromText, fromCode, toCode);
+							charsTranslated += fromText.length();	
+							uniqueText.put(fromText, toText);
+						} 
+						
+						ChangeItem ci = new ChangeItem();
+						ci.property = new PropertyChange();
+						ci.property.type = "option";
+						ci.property.optionList = listname;
+						ci.property.name = o.value;
+						ci.property.propType = "text";	// as opposed to media
+						ci.property.oldVal = o.labels.get(toLanguageIndex).text;
+						ci.property.newVal = toText;
+						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						cs.items.add(ci);
+					}
 					
 				}
 			}
