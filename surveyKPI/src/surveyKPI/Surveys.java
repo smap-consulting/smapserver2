@@ -37,7 +37,6 @@ import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
-import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -46,7 +45,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.ResourceManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.ChangeElement;
@@ -55,10 +53,7 @@ import org.smap.sdal.model.ChangeResponse;
 import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
-import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
-import org.smap.sdal.model.Question;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -70,7 +65,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -1293,7 +1287,6 @@ public class Surveys extends Application {
 		
 		String connectionString = "surey-KPI - Translate Survey";
 		
-		// TODO Validate language names - They must already exist in the survey
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString );
 		aUpdate.isAuthorised(sd, request.getRemoteUser());	

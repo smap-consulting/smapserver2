@@ -4348,6 +4348,10 @@ public class SurveyManager {
 			// translate all unique text from all forms
 			int charsTranslated = 0;  // Count of unicode characters translated
 			HashMap<String, String> uniqueText = new HashMap<> ();
+			
+			/*
+			 * Translate Questions
+			 */
 			for(int i = 0; i < survey.forms.size(); i++) {
 				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
 				
@@ -4380,6 +4384,44 @@ public class SurveyManager {
 					
 				}
 			}
+			
+			/*
+			 * Translate Choices
+			 */
+			for(String listname : survey.optionLists.keySet()) {
+				OptionList ol = survey.optionLists.get(listname);
+				for(int j = 0; j < ol.options.size(); j++) {
+
+					Option o = ol.options.get(j);
+					if(!overwrite) {
+						String currentText = o.labels.get(toLanguageIndex).text;
+						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
+							continue;	// This choice already has a value
+						}
+					}
+					String fromText = o.labels.get(fromLanguageIndex).text;
+					String toText = uniqueText.get(fromText);
+					if(toText == null) {
+						toText = tp.getTranslatian(fromText, fromCode, toCode);
+						charsTranslated += fromText.length();	
+						uniqueText.put(fromText, toText);
+					} 
+					
+					ChangeItem ci = new ChangeItem();
+					ci.property = new PropertyChange();
+					ci.property.type = "option";
+					ci.property.optionList = listname;
+					ci.property.name = o.value;
+					ci.property.propType = "text";	// as opposed to media
+					ci.property.oldVal = o.labels.get(toLanguageIndex).text;
+					ci.property.newVal = toText;
+					ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+					cs.items.add(ci);
+					
+				}
+			}
+			
+			
 			if(cs.items.size() > 0) {
 				changes.add(cs);
 			}			
