@@ -1425,6 +1425,9 @@ public class SurveyManager {
 					if(rs.next()) {
 						if(ci.property.propType.equals("text")) {
 							text_id = rs.getString(1);
+						} else if(ci.property.propType.equals("constraint_msg")) {
+							text_id = rs.getString(1);
+							text_id = text_id.replace(":label", ":constraint");
 						} else {
 							text_id = rs.getString(2);
 						}
@@ -1439,7 +1442,8 @@ public class SurveyManager {
 				}
 
 				if(ci.property.oldVal != null && ci.property.newVal != null) {
-					if(ci.property.propType.equals("text")) {
+					if(ci.property.propType.equals("text")
+							|| ci.property.propType.equals("constraint_msg")) {
 						updateLabel(connectionSD, ci, ci.property.languageName, pstmtLangOldVal, sId, text_id);
 					} else {
 						// For media update all the languages
@@ -1449,7 +1453,8 @@ public class SurveyManager {
 					}
 
 				} else {
-					if(ci.property.propType.equals("text")) {
+					if(ci.property.propType.equals("text") 
+							|| ci.property.propType.equals("constraint_msg")) {
 						addLabel(connectionSD, ci, ci.property.languageName, pstmtLangNew, sId, pstmtDeleteLabel, text_id);
 
 						// Add the new text id to the question
@@ -1463,7 +1468,6 @@ public class SurveyManager {
 								pstmtNewOptionLabel.setString(1, text_id);
 								pstmtNewOptionLabel.setInt(2, listId);
 								pstmtNewOptionLabel.setString(3, ci.property.name);
-								// (debug) log.info("Update option label with label_id: " + pstmtNewOptionLabel.toString());
 								pstmtNewOptionLabel.executeUpdate();
 							}
 						}
@@ -1475,7 +1479,6 @@ public class SurveyManager {
 						if(isQuestion) {
 							pstmtNewQuestionHint.setString(1, ci.property.key);
 							pstmtNewQuestionHint.setInt(2, ci.property.qId);
-							// (debug) log.info("Update question table with hint_id: " + pstmtNewQuestionHint.toString());
 							pstmtNewQuestionHint.executeUpdate();
 						}
 
