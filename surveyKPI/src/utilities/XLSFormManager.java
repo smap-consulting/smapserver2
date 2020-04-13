@@ -899,7 +899,6 @@ public class XLSFormManager {
 		}
 
 		// Add remaining columns
-		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
 		cols.add(new Column(colNumber++,"choice_filter", Column.COL_CHOICE_FILTER, 0, "choice_filter"));
 		cols.add(new Column(colNumber++,"constraint", Column.COL_CONSTRAINT, 0, "constraint"));
 		
@@ -912,17 +911,6 @@ public class XLSFormManager {
 			}
 		} else {
 			cols.add(new Column(colNumber++,XLSFormColumns.CONSTRAINT_MESSAGE, Column.COL_CONSTRAINT_MSG, 0, "constraint_msg"));
-		}
-		
-		// Required message potentially multi-language
-		labelIndex = 0;
-		if(hasMultiRequiredLanguages) {
-			for(Language language : survey.languages) {
-				cols.add(new Column(colNumber++, 
-						XLSFormColumns.REQUIRED_MESSAGE + "::" + language.name, Column.COL_REQUIRED_MSG, labelIndex++, "label"));
-			}
-		} else {
-			cols.add(new Column(colNumber++,XLSFormColumns.REQUIRED_MESSAGE, Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		}
 		
 		cols.add(new Column(colNumber++,"relevant", Column.COL_RELEVANT, 0, "relevant"));
@@ -938,10 +926,21 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "body::accuracyThreshold", Column.COL_ACCURACY, 0, "accuracy"));
 		cols.add(new Column(colNumber++, "body::intent", Column.COL_INTENT, 0, "intent"));
 		cols.add(new Column(colNumber++, "required", Column.COL_REQUIRED, 0, "required"));
+		// Required message potentially multi-language
+		labelIndex = 0;
+		if(hasMultiRequiredLanguages) {
+			for(Language language : survey.languages) {
+				cols.add(new Column(colNumber++, 
+						XLSFormColumns.REQUIRED_MESSAGE + "::" + language.name, Column.COL_REQUIRED_MSG, labelIndex++, "label"));
+			}
+		} else {
+			cols.add(new Column(colNumber++,XLSFormColumns.REQUIRED_MESSAGE, Column.COL_REQUIRED_MSG, 0, "required_msg"));
+		}
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
-
+		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
+		
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
 			cols.add(new Column(colNumber++,"role::" + role, Column.COL_ROLE, 0, role));
@@ -980,7 +979,6 @@ public class XLSFormManager {
 
 		cols.add(new Column(colNumber++, "list_name", Column.COL_LIST_NAME, 0, "list_name"));
 		cols.add(new Column(colNumber++, "name", Column.COL_CHOICE_NAME, 0, "choice_name"));
-		cols.add(new Column(colNumber++, "display_name", Column.COL_CHOICE_DISPLAY_NAME, 0, "choice_display_name"));
 
 		// Add label columns
 		int labelIndex = 0;
@@ -1006,6 +1004,8 @@ public class XLSFormManager {
 			labelIndex++;
 		}
 
+		cols.add(new Column(colNumber++, "display_name", Column.COL_CHOICE_DISPLAY_NAME, 0, "choice_display_name"));
+		
 		return cols;
 	}
 	
