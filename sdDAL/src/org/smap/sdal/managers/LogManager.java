@@ -58,6 +58,7 @@ public class LogManager {
 	public static String PROJECT = "project";
 	public static String ROLE = "role";
 	public static String LIMIT = "limit";
+	public static String SUBMISSION = "submissions";
 	
 	/*
 	 * Write a log entry that includes the survey id

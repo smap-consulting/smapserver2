@@ -53,6 +53,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.QuestionManager;
+import org.smap.sdal.managers.ResourceManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Action;
@@ -308,8 +309,9 @@ public class XFormData {
 				}
 				throw new ApplicationException("deleted::" + survey.displayName);
 			}
-			if (survey.getBlocked()) { // Throw an exception if the survey has been blocked form accepting any more
-										// submissions
+			
+			// Throw an exception if the survey has been blocked from accepting any more submissions
+			if (survey.getBlocked()) { 
 				String reason = localisation.getString("submit_blocked");
 				reason = reason.replace("%s1", survey.displayName);
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
@@ -317,6 +319,21 @@ public class XFormData {
 				}
 
 				throw new ApplicationException("blocked::" + survey.displayName);
+			}
+			
+			/*
+			 * Throw an exception if the submission limit for an organisation has been reached
+			 */
+			ResourceManager rm = new ResourceManager();
+			if(!rm.canSubmit(sd, survey.o_id, LogManager.SUBMISSION)) {
+				String reason = localisation.getString("submission_limit");
+				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
+					writeUploadError(sd, user, survey, templateName, si, reason);
+				}
+
+				throw new ApplicationException("blocked::" + reason);
+			} else {
+				rm.recordUsage(sd, survey.o_id, survey.id, LogManager.SUBMISSION, null, user, 1);
 			}
 
 			log.info("###### submitted by: " + request.getRemoteUser());

@@ -103,7 +103,74 @@ public class ResourceManager {
 	}
 	
 	/*
-	 * Called to record usage of a limited reource
+	 * Check to see if the person can submit for this organisation
+	 */
+	public boolean canSubmit(Connection sd, 
+			int oId,
+			String resource) throws SQLException {
+		
+		boolean decision = false;
+		int limit = GeneralUtilityMethods.getLimit(sd, oId, resource);
+		String period = "";
+		int usage = 0;
+		
+		// A limit of 0 means no restrictions
+		if(limit == 0) {
+			return true;
+		} else {
+			
+			LocalDate d = LocalDate.now();
+			int month = d.getMonth().getValue();
+			int year = d.getYear();
+			period = String.valueOf(year) + String.valueOf(month);
+			
+			String sql = "select period, usage from resource_usage "
+					+ "where o_id = ? "
+					+ "and resource = ?";
+			PreparedStatement pstmt = null;
+			
+			try {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, resource);
+				ResultSet rs = pstmt.executeQuery();
+				
+				if(rs.next()) {
+					String storedPeriod = rs.getString(1);
+					if(period.equals(storedPeriod)) {
+						// Resource usage table is up to date
+						usage = rs.getInt(2);
+					} else {
+						// A new period begins
+						usage = 0;
+						deleteUsage(sd, oId, resource, period);
+						updateUsage(sd, oId, resource, period, usage);
+					}
+				} else {
+					// Get the usage from the upload_event table
+					usage = GeneralUtilityMethods.getUsageSubmissions(sd, oId, month, year);
+					updateUsage(sd, oId, resource, period, usage);
+				}
+				
+				decision = usage < limit;
+				
+			} finally {
+				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+			}
+		}
+		
+		if(!decision) {
+			log.info("Usage denied. Period: " + period 
+					+ " Resource: " + resource 
+					+ " Limit: " + limit 
+					+ " Usage: " + usage);
+		}
+		
+		return decision;
+	}
+	
+	/*
+	 * Called to record usage of a limited resource
 	 */
 	public void recordUsage(Connection sd, int oId, int sId, String resource, String msg, 
 			String user,
@@ -116,10 +183,12 @@ public class ResourceManager {
 		String period = String.valueOf(year) + String.valueOf(month);
 
 		// Write the log entry
-		if(sId > 0) {
-			lm.writeLog(sd, sId, user, resource, msg, usage);
-		} else {
-			lm.writeLogOrganisation(sd, oId, user, resource, msg, usage);
+		if(msg != null) {
+			if(sId > 0) {
+				lm.writeLog(sd, sId, user, resource, msg, usage);
+			} else {
+				lm.writeLogOrganisation(sd, oId, user, resource, msg, usage);
+			}
 		}
 		
 		// Keep temporary store of usage for performance reasons

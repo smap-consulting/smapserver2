@@ -9447,5 +9447,35 @@ public class GeneralUtilityMethods {
 		
 		return usage;
 	}
+	
+	public static int getUsageSubmissions(Connection sd, int oId, int month, int year) throws SQLException {
+		
+		String sql = "select  count(*) as total from upload_event ue, subscriber_event se "
+				+ "where ue.ue_id = se.ue_id "
+				+ "and se.status = 'success' "
+				+ "and ue.o_id = ? "
+				+ "and extract(month from ue.upload_time) = ? "
+				+ "and extract(year from ue.upload_time) = ? ";
+		PreparedStatement pstmt = null;
+		
+		int usage = 0;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  oId);
+			pstmt.setInt(2, month);
+			pstmt.setInt(3, year);
+			
+			ResultSet rs = pstmt.executeQuery();
+		
+			if(rs.next()) {
+				usage = rs.getInt("total");
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return usage;
+	}
 }
 

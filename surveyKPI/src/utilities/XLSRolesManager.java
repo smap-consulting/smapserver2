@@ -31,7 +31,6 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Role;
 
 
@@ -99,7 +98,7 @@ public class XLSRolesManager {
 	public void createXLSFile(OutputStream outputStream, ArrayList<Role> roles, 
 			ResourceBundle localisation, String tz) throws IOException {
 		
-		Sheet roleSheet = wb.createSheet(localisation.getString("ar_project"));
+		Sheet roleSheet = wb.createSheet(localisation.getString("rep_roles"));
 		
 		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 
