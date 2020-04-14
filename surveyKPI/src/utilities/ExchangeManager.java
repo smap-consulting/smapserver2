@@ -1324,8 +1324,12 @@ public class ExchangeManager {
 		
 		// Add the geopoint value if it exists
 		if(eh.hasGeopoint) {
-			String lon = line[eh.lonIndex];
-			String lat = line[eh.latIndex];
+			String lon = null;
+			String lat = null;
+			if(eh.lonIndex < line.length && eh.latIndex < line.length) {
+				lon = line[eh.lonIndex];
+				lat = line[eh.latIndex];
+			}
 			if(lon == null || lon.length() == 0) {
 				lon = "0.0";
 			}
