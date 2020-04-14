@@ -112,6 +112,7 @@ public class XLSFormManager {
 		public static final int COL_TRACK_CHANGES = 211;
 		public static final int COL_DATA_SURVEY = 212;
 		public static final int COL_OVERSIGHT_SURVEY = 213;
+		public static final int COL_AUTO_TRANSLATE = 214;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -470,6 +471,9 @@ public class XLSFormManager {
 			} else if(type == COL_OVERSIGHT_SURVEY) {				
 				value = survey.oversightSurvey ? "yes" : "no";
 
+			} else if(type == COL_AUTO_TRANSLATE) {				
+				value = survey.autoTranslate ? "yes" : "no";
+
 			} else if(type == COL_TIMING_DATA) {				
 				value = survey.timing_data ? "yes" : "no";
 
@@ -690,7 +694,7 @@ public class XLSFormManager {
 					if(q.list_name != null) {
 						if(addedOptionLists.get(q.list_name) == null) {
 							OptionList ol = survey.optionLists.get(q.list_name);
-							if(ol != null) {		// option list is populated for questions that are not select TODO Fix
+							if(ol != null) {		// option list is populated for questions that are not select
 								addChoiceList(choicesSheet, ol, colsChoices, filterIndexes, styles, q.list_name);
 							}
 							addedOptionLists.put(q.list_name, q.list_name);	// Remember lists that have been added
@@ -1063,6 +1067,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "audit_location_data", Column.COL_AUDIT_LOCATION_DATA, 0, "audit_location_data"));
 		cols.add(new Column(colNumber++, "track_changes", Column.COL_TRACK_CHANGES, 0, "track_changes"));
 		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
+		cols.add(new Column(colNumber++, "auto_translate", Column.COL_AUTO_TRANSLATE, 0, "auto_translate"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {

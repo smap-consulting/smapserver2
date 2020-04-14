@@ -416,6 +416,7 @@ public class SurveyManager {
 				+ "s.oversight_survey, "
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
+				+ "s.auto_translate,"
 				+ "s.pdf_template ");
 				
 		String userIdentifiedSql = "from survey s, users u, user_project up, project p, organisation o "
@@ -499,12 +500,13 @@ public class SurveyManager {
 				s.oversightSurvey = resultSet.getBoolean(29);
 				s.audit_location_data = resultSet.getBoolean(30);
 				s.track_changes = resultSet.getBoolean(31);
+				s.autoTranslate = resultSet.getBoolean(32);
 				
 				
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
-					String newName = resultSet.getString(32);
+					String newName = resultSet.getString(33);
 					if(newName != null) {
 						s.pdfTemplateName = newName;
 					} else {
