@@ -44,6 +44,7 @@ import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
+import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
@@ -9377,6 +9378,13 @@ public class GeneralUtilityMethods {
 			}
 		}
 		
+		/*
+		 * If no code was found attempt to get the code from the language name
+		 */
+		if(code == null) {
+			LanguageCodeManager lcm = new LanguageCodeManager();
+			code = lcm.getCodeFromLanguage(lName);
+		}
 		return code;
 	}
 	

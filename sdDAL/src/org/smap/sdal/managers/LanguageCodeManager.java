@@ -124,8 +124,24 @@ public class LanguageCodeManager {
 		}
 		return supported;
 	}
-
-
+	
+	/*
+	 * Attempt to get the code from the language name
+	 */
+	public String getCodeFromLanguage(String name) {
+		
+		String code = null;
+		if(name != null) {
+			name = name.toLowerCase().trim();
+			if(name.equals("english")) {
+				code = "en";
+			} else if(name.equals("spanish")) {
+				code = "es";
+			}
+		}
+		
+		return code;
+	}
 }
 
 
