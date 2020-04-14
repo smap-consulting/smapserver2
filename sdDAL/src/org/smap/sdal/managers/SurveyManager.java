@@ -1430,6 +1430,9 @@ public class SurveyManager {
 						} else if(ci.property.propType.equals("constraint_msg")) {
 							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":constraint");
+						} else if(ci.property.propType.equals("required_msg")) {
+							text_id = rs.getString(1);
+							text_id = text_id.replace(":label", ":required");
 						} else if(ci.property.propType.equals("hint")) {
 							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":hint");
@@ -1449,6 +1452,7 @@ public class SurveyManager {
 				if(ci.property.oldVal != null && ci.property.newVal != null) {
 					if(ci.property.propType.equals("text")
 							|| ci.property.propType.equals("constraint_msg")
+							|| ci.property.propType.equals("required_msg")
 							|| ci.property.propType.equals("hint")) {
 						updateLabel(connectionSD, ci, ci.property.languageName, pstmtLangOldVal, sId, text_id);
 					} else {
@@ -1460,7 +1464,8 @@ public class SurveyManager {
 
 				} else {
 					if(ci.property.propType.equals("text") 
-							|| ci.property.propType.equals("constraint_msg")) {
+							|| ci.property.propType.equals("constraint_msg")
+							|| ci.property.propType.equals("required_msg")) {
 						addLabel(connectionSD, ci, ci.property.languageName, pstmtLangNew, sId, pstmtDeleteLabel, text_id);
 
 						// Add the new text id to the question
@@ -4461,6 +4466,44 @@ public class SurveyManager {
 						ci.property.propType = "constraint_msg";	// as opposed to media
 						ci.property.qId = q.id;
 						ci.property.oldVal = q.labels.get(toLanguageIndex).constraint_msg;
+						ci.property.newVal = toText;
+						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
+						cs.items.add(ci);
+					}
+					
+				}
+			}
+			
+			/*
+			 * Translate Required Message
+			 */
+			for(int i = 0; i < survey.forms.size(); i++) {
+				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
+				
+				for(int j = 0; j < formQuestions.size(); j++) {
+
+					Question q = formQuestions.get(j);
+					if(!overwrite) {
+						String currentText = q.labels.get(toLanguageIndex).required_msg;
+						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
+							continue;	// This question already has a value
+						}
+					}
+					String fromText = q.labels.get(fromLanguageIndex).required_msg;
+					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+						String toText = uniqueText.get(fromText);
+						if(toText == null) {
+							toText = tp.getTranslatian(fromText, fromCode, toCode);
+							charsTranslated += fromText.length();	
+							uniqueText.put(fromText, toText);
+						} 
+						
+						ChangeItem ci = new ChangeItem();
+						ci.property = new PropertyChange();
+						ci.property.type = "question";
+						ci.property.propType = "required_msg";
+						ci.property.qId = q.id;
+						ci.property.oldVal = q.labels.get(toLanguageIndex).required_msg;
 						ci.property.newVal = toText;
 						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
 						cs.items.add(ci);
