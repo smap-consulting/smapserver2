@@ -4394,26 +4394,17 @@ public class SurveyManager {
 						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
 						cs.items.add(ci);
 					}
-					
-				}
-			}
 			
-			/*
-			 * Translate Hints
-			 */
-			for(int i = 0; i < survey.forms.size(); i++) {
-				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
-				
-				for(int j = 0; j < formQuestions.size(); j++) {
-
-					Question q = formQuestions.get(j);
+					/*
+					 * Translate Hints
+					 */
 					if(!overwrite) {
 						String currentText = q.labels.get(toLanguageIndex).hint;
 						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
 							continue;	// This question already has a value
 						}
 					}
-					String fromText = q.labels.get(fromLanguageIndex).hint;
+					fromText = q.labels.get(fromLanguageIndex).hint;
 					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
 						String toText = uniqueText.get(fromText);
 						if(toText == null) {
@@ -4432,26 +4423,17 @@ public class SurveyManager {
 						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
 						cs.items.add(ci);
 					}
-					
-				}
-			}
 			
-			/*
-			 * Translate Constraints
-			 */
-			for(int i = 0; i < survey.forms.size(); i++) {
-				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
-				
-				for(int j = 0; j < formQuestions.size(); j++) {
-
-					Question q = formQuestions.get(j);
+					/*
+					 * Translate Constraints
+					 */
 					if(!overwrite) {
 						String currentText = q.labels.get(toLanguageIndex).constraint_msg;
 						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
 							continue;	// This question already has a value
 						}
 					}
-					String fromText = q.labels.get(fromLanguageIndex).constraint_msg;
+					fromText = q.labels.get(fromLanguageIndex).constraint_msg;
 					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
 						String toText = uniqueText.get(fromText);
 						if(toText == null) {
@@ -4471,25 +4453,16 @@ public class SurveyManager {
 						cs.items.add(ci);
 					}
 					
-				}
-			}
-			
-			/*
-			 * Translate Required Message
-			 */
-			for(int i = 0; i < survey.forms.size(); i++) {
-				ArrayList<Question> formQuestions = survey.forms.get(i).questions; 
-				
-				for(int j = 0; j < formQuestions.size(); j++) {
-
-					Question q = formQuestions.get(j);
+					/*
+					 * Translate Required Message
+					 */
 					if(!overwrite) {
 						String currentText = q.labels.get(toLanguageIndex).required_msg;
 						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
 							continue;	// This question already has a value
 						}
 					}
-					String fromText = q.labels.get(fromLanguageIndex).required_msg;
+					fromText = q.labels.get(fromLanguageIndex).required_msg;
 					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
 						String toText = uniqueText.get(fromText);
 						if(toText == null) {
