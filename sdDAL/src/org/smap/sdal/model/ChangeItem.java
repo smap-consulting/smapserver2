@@ -29,4 +29,20 @@ public class ChangeItem {
 	public String action;			// Add / delete / change
 	public String type;				// question or option
 	public int origSId;				// The survey id when this CI was created, this suvey id will change if a survey is replaced
+
+	public ChangeItem() {
+		
+	}
+	
+	public ChangeItem(String type, String propType, int qId, String oldVal, 
+			String newVal,
+			String languageName) {
+		property = new PropertyChange();
+		property.type = type;
+		property.propType = propType;	// as opposed to media
+		property.qId = qId;
+		property.oldVal = oldVal;
+		property.newVal = newVal;
+		property.languageName = languageName;
+	}
 }

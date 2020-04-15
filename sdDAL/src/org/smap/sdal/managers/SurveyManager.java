@@ -1436,6 +1436,9 @@ public class SurveyManager {
 						} else if(ci.property.propType.equals("hint")) {
 							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":hint");
+						} else if(ci.property.propType.equals("guidance_hint")) {
+							text_id = rs.getString(1);
+							text_id = text_id.replace(":label", ":guidance_hint");
 						} else {
 							text_id = rs.getString(2);
 						}
@@ -1453,7 +1456,8 @@ public class SurveyManager {
 					if(ci.property.propType.equals("text")
 							|| ci.property.propType.equals("constraint_msg")
 							|| ci.property.propType.equals("required_msg")
-							|| ci.property.propType.equals("hint")) {
+							|| ci.property.propType.equals("hint")
+							|| ci.property.propType.equals("guidance_hint")) {
 						updateLabel(connectionSD, ci, ci.property.languageName, pstmtLangOldVal, sId, text_id);
 					} else {
 						// For media update all the languages
@@ -1465,7 +1469,8 @@ public class SurveyManager {
 				} else {
 					if(ci.property.propType.equals("text") 
 							|| ci.property.propType.equals("constraint_msg")
-							|| ci.property.propType.equals("required_msg")) {
+							|| ci.property.propType.equals("required_msg")
+							|| ci.property.propType.equals("guidance_hint")) {
 						addLabel(connectionSD, ci, ci.property.languageName, pstmtLangNew, sId, pstmtDeleteLabel, text_id);
 
 						// Add the new text id to the question
@@ -1549,6 +1554,8 @@ public class SurveyManager {
 		pstmtLangOldVal.setString(4, text_id);
 		if(ci.property.propType.equals("text") || ci.property.propType.equals("hint")) {
 			transType = "none";
+		} else if(ci.property.propType.equals("guidance_hint")) {
+			transType = "guidance";
 		} else {
 			transType = ci.property.propType;
 		}
@@ -4369,117 +4376,143 @@ public class SurveyManager {
 				for(int j = 0; j < formQuestions.size(); j++) {
 
 					Question q = formQuestions.get(j);
-					if(!overwrite) {
-						String currentText = q.labels.get(toLanguageIndex).text;
-						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
-							continue;	// This question already has a value
+					
+					String currentText = q.labels.get(toLanguageIndex).text;
+					if(overwrite 
+							|| currentText == null 
+							|| currentText.trim().length() > 0 
+							|| currentText.trim().equals("-")) {
+				
+						String fromText = q.labels.get(fromLanguageIndex).text;
+						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+							String toText = uniqueText.get(fromText);
+							if(toText == null) {
+								toText = tp.getTranslatian(fromText, fromCode, toCode);
+								charsTranslated += fromText.length();	
+								uniqueText.put(fromText, toText);
+							} 
+							
+							cs.items.add(new ChangeItem(
+									"question",
+									"text",
+									q.id,
+									q.labels.get(toLanguageIndex).text,
+									toText,
+									survey.languages.get(toLanguageIndex).name));
+	
 						}
-					}
-					String fromText = q.labels.get(fromLanguageIndex).text;
-					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
-						String toText = uniqueText.get(fromText);
-						if(toText == null) {
-							toText = tp.getTranslatian(fromText, fromCode, toCode);
-							charsTranslated += fromText.length();	
-							uniqueText.put(fromText, toText);
-						} 
-						
-						ChangeItem ci = new ChangeItem();
-						ci.property = new PropertyChange();
-						ci.property.type = "question";
-						ci.property.propType = "text";	// as opposed to media
-						ci.property.qId = q.id;
-						ci.property.oldVal = q.labels.get(toLanguageIndex).text;
-						ci.property.newVal = toText;
-						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-						cs.items.add(ci);
 					}
 			
 					/*
 					 * Translate Hints
 					 */
-					if(!overwrite) {
-						String currentText = q.labels.get(toLanguageIndex).hint;
-						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
-							continue;	// This question already has a value
+					currentText = q.labels.get(toLanguageIndex).hint;
+					if(overwrite 
+							|| currentText == null 
+							|| currentText.trim().length() > 0 
+							|| currentText.trim().equals("-")) {
+					
+						String fromText = q.labels.get(fromLanguageIndex).hint;
+						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+							String toText = uniqueText.get(fromText);
+							if(toText == null) {
+								toText = tp.getTranslatian(fromText, fromCode, toCode);
+								charsTranslated += fromText.length();	
+								uniqueText.put(fromText, toText);
+							} 
+							
+							cs.items.add(new ChangeItem(
+									"question",
+									"hint",
+									q.id,
+									q.labels.get(toLanguageIndex).hint,
+									toText,
+									survey.languages.get(toLanguageIndex).name));
 						}
-					}
-					fromText = q.labels.get(fromLanguageIndex).hint;
-					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
-						String toText = uniqueText.get(fromText);
-						if(toText == null) {
-							toText = tp.getTranslatian(fromText, fromCode, toCode);
-							charsTranslated += fromText.length();	
-							uniqueText.put(fromText, toText);
-						} 
-						
-						ChangeItem ci = new ChangeItem();
-						ci.property = new PropertyChange();
-						ci.property.type = "question";
-						ci.property.propType = "hint";	// as opposed to media
-						ci.property.qId = q.id;
-						ci.property.oldVal = q.labels.get(toLanguageIndex).hint;
-						ci.property.newVal = toText;
-						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-						cs.items.add(ci);
 					}
 			
 					/*
 					 * Translate Constraints
 					 */
-					if(!overwrite) {
-						String currentText = q.labels.get(toLanguageIndex).constraint_msg;
-						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
-							continue;	// This question already has a value
+					currentText = q.labels.get(toLanguageIndex).constraint_msg;
+					if(overwrite 
+							|| currentText == null 
+							|| currentText.trim().length() > 0 
+							|| currentText.trim().equals("-")) {
+					
+						String fromText = q.labels.get(fromLanguageIndex).constraint_msg;
+						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+							String toText = uniqueText.get(fromText);
+							if(toText == null) {
+								toText = tp.getTranslatian(fromText, fromCode, toCode);
+								charsTranslated += fromText.length();	
+								uniqueText.put(fromText, toText);
+							} 
+							
+							cs.items.add(new ChangeItem(
+									"question",
+									"constraint_msg",
+									q.id,
+									q.labels.get(toLanguageIndex).constraint_msg,
+									toText,
+									survey.languages.get(toLanguageIndex).name));
 						}
-					}
-					fromText = q.labels.get(fromLanguageIndex).constraint_msg;
-					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
-						String toText = uniqueText.get(fromText);
-						if(toText == null) {
-							toText = tp.getTranslatian(fromText, fromCode, toCode);
-							charsTranslated += fromText.length();	
-							uniqueText.put(fromText, toText);
-						} 
-						
-						ChangeItem ci = new ChangeItem();
-						ci.property = new PropertyChange();
-						ci.property.type = "question";
-						ci.property.propType = "constraint_msg";	// as opposed to media
-						ci.property.qId = q.id;
-						ci.property.oldVal = q.labels.get(toLanguageIndex).constraint_msg;
-						ci.property.newVal = toText;
-						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-						cs.items.add(ci);
 					}
 					
 					/*
 					 * Translate Required Message
 					 */
-					if(!overwrite) {
-						String currentText = q.labels.get(toLanguageIndex).required_msg;
-						if(currentText != null && currentText.trim().length() > 0 && !currentText.equals("-")) {
-							continue;	// This question already has a value
+					currentText = q.labels.get(toLanguageIndex).required_msg;
+					if(overwrite 
+							|| currentText == null 
+							|| currentText.trim().length() > 0 
+							|| currentText.trim().equals("-")) {
+					
+						String fromText = q.labels.get(fromLanguageIndex).required_msg;
+						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+							String toText = uniqueText.get(fromText);
+							if(toText == null) {
+								toText = tp.getTranslatian(fromText, fromCode, toCode);
+								charsTranslated += fromText.length();	
+								uniqueText.put(fromText, toText);
+							} 
+							
+							cs.items.add(new ChangeItem(
+									"question",
+									"required_msg",
+									q.id,
+									q.labels.get(toLanguageIndex).required_msg,
+									toText,
+									survey.languages.get(toLanguageIndex).name));
 						}
 					}
-					fromText = q.labels.get(fromLanguageIndex).required_msg;
-					if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
-						String toText = uniqueText.get(fromText);
-						if(toText == null) {
-							toText = tp.getTranslatian(fromText, fromCode, toCode);
-							charsTranslated += fromText.length();	
-							uniqueText.put(fromText, toText);
-						} 
-						
-						ChangeItem ci = new ChangeItem();
-						ci.property = new PropertyChange();
-						ci.property.type = "question";
-						ci.property.propType = "required_msg";
-						ci.property.qId = q.id;
-						ci.property.oldVal = q.labels.get(toLanguageIndex).required_msg;
-						ci.property.newVal = toText;
-						ci.property.languageName = survey.languages.get(toLanguageIndex).name;
-						cs.items.add(ci);
+					
+					/*
+					 * Translate Required Message
+					 */
+					currentText = q.labels.get(toLanguageIndex).guidance_hint;
+					if(overwrite 
+							|| currentText == null 
+							|| currentText.trim().length() > 0 
+							|| currentText.trim().equals("-")) {
+					
+						String fromText = q.labels.get(fromLanguageIndex).guidance_hint;
+						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
+							String toText = uniqueText.get(fromText);
+							if(toText == null) {
+								toText = tp.getTranslatian(fromText, fromCode, toCode);
+								charsTranslated += fromText.length();	
+								uniqueText.put(fromText, toText);
+							} 
+							
+							cs.items.add(new ChangeItem(
+									"question",
+									"guidance_hint",
+									q.id,
+									q.labels.get(toLanguageIndex).guidance_hint,
+									toText,
+									survey.languages.get(toLanguageIndex).name));
+						}
 					}
 					
 				}
