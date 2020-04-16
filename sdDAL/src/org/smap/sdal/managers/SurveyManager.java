@@ -437,7 +437,7 @@ public class SurveyManager {
 		} else {
 			sql.append(anonUserSql);
 		}
-		if(!superUser && user != null) {
+		if(!superUser && user != null && !temporaryUser) {
 			sql.append(GeneralUtilityMethods.getSurveyRBAC());	// Add RBAC
 		}
 
@@ -446,11 +446,11 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());	 
 			int idx = 1;
-			if(user != null) {
+			if(user != null && !temporaryUser) {
 				pstmt.setString(idx++, user);
 			}
 			pstmt.setInt(idx++, sId);
-			if(!superUser && user != null) {
+			if(!superUser && user != null && !temporaryUser) {
 				pstmt.setString(idx++, user);		// RBAC check
 			}
 
