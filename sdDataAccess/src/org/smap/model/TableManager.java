@@ -702,7 +702,7 @@ public class TableManager {
 						}
 
 
-					} else if(ci.question != null || (ci.property != null && ci.property.prop.equals("name"))) {
+					} else if(ci.question != null || (ci.property != null && ci.property.prop != null && ci.property.prop.equals("name"))) {
 						// Don't rely on any parameters in the change item, they may have been changed again after the question was added
 						int qId = 0;
 						if(ci.question != null) {
