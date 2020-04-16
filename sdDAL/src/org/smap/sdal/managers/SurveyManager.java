@@ -826,7 +826,8 @@ public class SurveyManager {
 				+ "f.table_name, "
 				+ "f.reference, "
 				+ "f.merge,"
-				+ "f.replace  "
+				+ "f.replace,"
+				+ "f.append "
 				+ "from form f where f.s_id = ?;";
 		PreparedStatement pstmtGetForms = sd.prepareStatement(sqlGetForms);	
 
@@ -906,6 +907,7 @@ public class SurveyManager {
 			f.reference = rsGetForms.getBoolean(6);
 			f.merge = rsGetForms.getBoolean(7);
 			f.replace = rsGetForms.getBoolean(8);
+			f.append = rsGetForms.getBoolean(9);
 
 			f.questions = qm.getQuestionsInForm(sd, 
 					cResults,
@@ -2221,6 +2223,7 @@ public class SurveyManager {
 							boolean ref= false;
 							boolean merge = false;
 							boolean replace = false;
+							boolean append = false;
 							String refForm = null;
 							for(KeyValueSimp k : props) {
 								if(k.k.equals("ref")) {
@@ -2233,15 +2236,15 @@ public class SurveyManager {
 										merge = true;
 									} else if(k.v.equals("replace")) {
 										replace = true;
-									} else if(k.v.equals("append") || k.v.equals("none")) {
-										// default
+									} else if(k.v.equals("append")) {
+										append = true;
 									} else {
 										log.info("Error: unknown key policy: " + k.v);
 									}
 								}
 							}
 
-							String sqlUpdateForm = "update form set reference = ?, merge = ?, replace = ? "
+							String sqlUpdateForm = "update form set reference = ?, merge = ?, replace = ?, append = ? "
 									+ "where s_id = ? "
 									+ "and parentquestion = ?";
 							try {if (pstmtUpdateForm != null) {pstmtUpdateForm.close();}} catch (SQLException e) {}
@@ -2249,8 +2252,9 @@ public class SurveyManager {
 							pstmtUpdateForm.setBoolean(1,  ref);
 							pstmtUpdateForm.setBoolean(2,  merge);
 							pstmtUpdateForm.setBoolean(3,  replace);
-							pstmtUpdateForm.setInt(4,  sId);
-							pstmtUpdateForm.setInt(5, ci.property.qId);
+							pstmtUpdateForm.setBoolean(4,  append);
+							pstmtUpdateForm.setInt(5,  sId);
+							pstmtUpdateForm.setInt(6, ci.property.qId);
 	
 							log.info("Updating form properties: " + pstmtUpdateForm.toString());
 							pstmtUpdateForm.executeUpdate();	

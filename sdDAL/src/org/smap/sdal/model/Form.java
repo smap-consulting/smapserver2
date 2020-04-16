@@ -20,6 +20,7 @@ public class Form {
 	public boolean reference;		// True if this form does not contain its own data and just presents a reference view of another forms data
 	public boolean merge;			// True if this forms results should be merged with existing repeats
 	public boolean replace;			// True if old records should be replaced
+	public boolean append;
 	public ArrayList<Question> questions = new ArrayList<Question> ();
 	
 	// Basic constructor

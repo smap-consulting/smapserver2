@@ -107,8 +107,8 @@ public class QuestionManager {
 
 		PreparedStatement pstmtForm = null;
 		String sqlForm = "insert into form(f_id, s_id, name, label, table_name, "
-				+ "parentform, parentquestion, repeats, path, form_index, reference, merge, replace) " +
-				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+				+ "parentform, parentquestion, repeats, path, form_index, reference, merge, replace, append) " +
+				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 		PreparedStatement pstmtGetFormId = null;
 		String sqlGetFormId = "select f_id from form where s_id = ? and form_index = ?";
@@ -305,6 +305,7 @@ public class QuestionManager {
 					boolean ref= false;
 					boolean merge = false;
 					boolean replace = false;
+					boolean append = false;
 					for(KeyValueSimp k : props) {
 						if(k.k.equals("ref")) {
 							ref = true;
@@ -315,6 +316,8 @@ public class QuestionManager {
 								merge = true;
 							} else if(k.v.equals("replace")) {
 								replace = true;
+							} else if(k.v.equals("append")) {
+								append = true;
 							} else if(k.v.equals("none")) {
 								// default - ignore
 							} else {
@@ -336,6 +339,7 @@ public class QuestionManager {
 					pstmtForm.setBoolean(10, ref);
 					pstmtForm.setBoolean(11, merge);
 					pstmtForm.setBoolean(12, replace);
+					pstmtForm.setBoolean(13, append);
 
 					log.info("SQL: Insert new form: " + pstmtForm.toString());
 					pstmtForm.executeUpdate();

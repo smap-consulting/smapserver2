@@ -955,9 +955,7 @@ public class SubRelationalDB extends Subscriber {
 				+ "and s_id = ?";
 		PreparedStatement pstmtFormDetails = null;
 
-		//PreparedStatement pstmtChildUpdate = null;
-
-		String sqlTableMerge = "select table_name, merge, replace from form "
+		String sqlTableMerge = "select table_name, merge, replace, append from form "
 				+ "where s_id = ? "
 				+ "and reference = 'false' ";
 		PreparedStatement pstmtTableMerge = null;
@@ -1006,13 +1004,25 @@ public class SubRelationalDB extends Subscriber {
 				ArrayList<String> replaceTables = new ArrayList<> ();
 				ArrayList<Integer> copiedSourceKeys = new ArrayList<> ();
 				while(rtm.next()) {
-					if(rtm.getBoolean("replace") || replace) {		// Overall survey replace overrides sub form key policy
+					if(rtm.getBoolean("replace") /*|| replace*/) {
 						replaceTables.add(rtm.getString(1));
 						log.info("Need to replace table " + rtm.getString(1));
 					} else if(rtm.getBoolean("merge")) {
 						mergeTables.add(rtm.getString(1));
 						log.info("Need to merge table " + rtm.getString(1));
-					} 
+					} else if(rtm.getBoolean("append")) {
+						// No need to do anything
+						log.info("Appending " + rtm.getString(1));
+					} else {
+						// Default
+						if(replace) {
+							log.info("Defaulting to replace " + rtm.getString(1));
+							replaceTables.add(rtm.getString(1));
+						} else {
+							// No need to do anything
+							log.info("Defaulting to append " + rtm.getString(1));
+						}
+					}
 				}
 				
 				// Add the child records from the merged survey to the new survey
@@ -1039,7 +1049,7 @@ public class SubRelationalDB extends Subscriber {
 				while(rsc.next()) {
 					String tableName = rsc.getString(1);
 					
-					// Get the child id and formname which are needed for console history of merges
+					// Get the child id and form name which are needed for console history of merges
 					int child_f_id = 0;
 					String formname = null;
 					
@@ -1107,13 +1117,6 @@ public class SubRelationalDB extends Subscriber {
 									log.info("Copy from " + childSourcekeys.get(i) + " to new parent " + prikey + " : " + pstmtCopyChild.toString());
 									pstmtCopyChild.executeUpdate();
 									copiedSourceKeys.add(childSourcekeys.get(i));
-									/* TODO
-									subFormChanges = getChangeRecord(
-											sd,
-											cResults, 
-											tableName, 
-											childSourcekeys.get(i), false, false, child_f_id);
-											*/
 								}
 								
 							}

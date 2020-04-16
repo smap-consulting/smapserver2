@@ -490,8 +490,9 @@ public class Survey {
 				+ "table_name,"
 				+ "reference,"
 				+ "merge,"
-				+ "replace) "
-				+ "values (nextval('f_seq'), ?, ?, ?, ?, ?, ?);";
+				+ "replace,"
+				+ "append) "
+				+ "values (nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 		
 		PreparedStatement pstmtSetLabels = null;
@@ -531,6 +532,7 @@ public class Survey {
 				pstmt.setBoolean(4, f.reference);
 				pstmt.setBoolean(5, f.merge);
 				pstmt.setBoolean(6, f.replace);
+				pstmt.setBoolean(7, f.append);
 				pstmt.executeUpdate();
 
 				ResultSet rs = pstmt.getGeneratedKeys();
