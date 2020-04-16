@@ -4352,11 +4352,7 @@ public class SurveyManager {
 					);
 			
 			// Get the text processor
-			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
-			if(region == null) {
-				region = "us-east-1";
-			}
-			TextProcessing tp = new TextProcessing(region);	
+			TextProcessing tp = new TextProcessing(GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region"));	
 
 			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
 			ChangeSet cs = new ChangeSet();

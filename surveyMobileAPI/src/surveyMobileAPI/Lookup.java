@@ -344,7 +344,7 @@ public class Lookup extends Application{
 		 * Parse the request
 		 */
 		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();
-		fileItemFactory.setSizeThreshold(5*1024*1024);
+		fileItemFactory.setSizeThreshold(20*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		try {
 					
@@ -378,10 +378,22 @@ public class Lookup extends Application{
 			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);				
 
-			ImageProcessing ip = new ImageProcessing(null);		// Can this be handled in a singleton
-			String labels = ip.getLabels(request.getServerName(), "/temp", tempFileName, "text");
-			System.out.println("Labels: " + labels);
-			response = Response.ok(labels).build();
+			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+			ImageProcessing ip = new ImageProcessing(region);
+			try {
+				log.info("xxxxxxxx Image lookup: " + tempFileName + " : " + region);
+				String labels = ip.getLabels(
+						basePath + "/temp/",
+						tempFileName, 
+						"text",
+						null);
+				log.info("Labels: " + labels);
+				response = Response.ok(labels).build();
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+				response = Response.ok(e.getMessage()).build();
+			}
+				
 			lm.writeLog(sd, sId, request.getRemoteUser(), "Rekognition Request", "Online for survey: " + surveyIdent, 0);
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);

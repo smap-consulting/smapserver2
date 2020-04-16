@@ -299,11 +299,15 @@ public class AutoUpdateManager {
 									
 								if(source.trim().startsWith("attachments")) {
 									
-									output = ip.getLabels(
-											basePath + "/",
-											source, 
-											item.labelColType,
-											mediaBucket);
+									try {
+										output = ip.getLabels(
+												basePath + "/",
+												source, 
+												item.labelColType,
+												mediaBucket);
+									} catch (Exception e) {
+										output = "[Error: " + e.getMessage() + "]";
+									}
 									
 									lm.writeLog(sd, item.oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source, 0);
 									
@@ -319,33 +323,37 @@ public class AutoUpdateManager {
 											.append("_")
 											.append(String.valueOf(UUID.randomUUID()));
 									
-									String  status = ap.submitJob(
-											localisation, 
-											basePath + "/",
-											source, 
-											item.labelColType, 
-											job.toString(),
-											mediaBucket);
+									try {
+										String  status = ap.submitJob(
+												localisation, 
+												basePath + "/",
+												source, 
+												item.labelColType, 
+												job.toString(),
+												mediaBucket);
 									
-									if(status.equals("IN_PROGRESS")) {
-										lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
-										
-										// Write result to async table, the labels will be retrieved later
-										pstmtAsync.setInt(1, item.oId);
-										pstmtAsync.setString(2, item.tableName);
-										pstmtAsync.setString(3, item.targetColName);
-										pstmtAsync.setString(4, instanceId);
-										pstmtAsync.setString(5, item.type);
-										pstmtAsync.setString(6, gson.toJson(item));
-										pstmtAsync.setString(7, job.toString());
-										pstmtAsync.setString(8, AU_STATUS_PENDING);
-										log.info("Save to Async queue: " + pstmtAsync.toString());
-										pstmtAsync.executeUpdate();
-										
-										// Update tables to record that update is pending
-										output = "[" + localisation.getString("c_pending") + "]";
-									} else {
-										output = "[" + status + "]";
+										if(status.equals("IN_PROGRESS")) {
+											lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
+											
+											// Write result to async table, the labels will be retrieved later
+											pstmtAsync.setInt(1, item.oId);
+											pstmtAsync.setString(2, item.tableName);
+											pstmtAsync.setString(3, item.targetColName);
+											pstmtAsync.setString(4, instanceId);
+											pstmtAsync.setString(5, item.type);
+											pstmtAsync.setString(6, gson.toJson(item));
+											pstmtAsync.setString(7, job.toString());
+											pstmtAsync.setString(8, AU_STATUS_PENDING);
+											log.info("Save to Async queue: " + pstmtAsync.toString());
+											pstmtAsync.executeUpdate();
+											
+											// Update tables to record that update is pending
+											output = "[" + localisation.getString("c_pending") + "]";
+										} else {
+											output = "[" + status + "]";
+										}
+									} catch (Exception e) {
+										output = "[Error: " + e.getMessage() + "]";
 									}
 								} else {
 									output = "[Error: invalid source data " + source + "]";
