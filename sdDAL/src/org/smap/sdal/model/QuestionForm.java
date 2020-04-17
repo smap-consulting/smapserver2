@@ -11,6 +11,7 @@ public class QuestionForm {
 	public String parameters;
 	public String qType;
 	public int s_id;
+	public boolean reference;
 	
 	public QuestionForm(
 			String qName, 
@@ -19,7 +20,8 @@ public class QuestionForm {
 			String tableName, 
 			String parameters,
 			String qType,
-			int s_id) {
+			int s_id,
+			boolean reference) {
 		
 		this.qName = qName;
 		this.columnName = columnName;
@@ -28,5 +30,6 @@ public class QuestionForm {
 		this.parameters = parameters;
 		this.qType = qType;
 		this.s_id = s_id;
+		this.reference = reference;
 	}
 }

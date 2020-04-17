@@ -1327,6 +1327,17 @@ public class SurveyTemplate {
 				
 				q.setFormRef(formRef);
 				String qRef = q.getPath();
+				
+				/*
+				 * Ignore hidden questions in reference forms
+				 */
+				if(f.getReference()) {
+					continue;
+				}
+				
+				/*
+				 * Get the options
+				 */
 				if(qRef != null) {
 					
 					questions.put(qRef, q);

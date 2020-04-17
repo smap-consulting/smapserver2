@@ -2,8 +2,6 @@ package org.smap.sdal.model;
 
 import java.util.ArrayList;
 
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-
 /*
  * Form Class
  * Used for survey editing

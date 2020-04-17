@@ -412,7 +412,7 @@ public class AutoUpdateManager {
 		
 		HashMap<String, QuestionForm> auQuestions = new HashMap<> ();
 		
-		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id "
+		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
 				+ "from question q, form f, survey s "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = s.s_id "
@@ -434,7 +434,8 @@ public class AutoUpdateManager {
 						rs.getString("table_name"),
 						rs.getString("parameters"),
 						rs.getString("qtype"),
-						rs.getInt("s_id"));
+						rs.getInt("s_id"),
+						rs.getBoolean("reference"));
 				auQuestions.put(rs.getString("column_name"), qt);
 			}
 		} finally {

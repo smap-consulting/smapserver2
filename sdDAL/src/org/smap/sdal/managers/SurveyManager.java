@@ -3431,7 +3431,7 @@ public class SurveyManager {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 		
-		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id "
+		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and (q.f_id in "
@@ -3458,7 +3458,8 @@ public class SurveyManager {
 						rs.getString("table_name"),
 						rs.getString("parameters"),
 						rs.getString("qtype"),
-						rs.getInt("s_id"));
+						rs.getInt("s_id"),
+						rs.getBoolean("reference"));
 				groupQuestions.put(rs.getString("column_name"), qt);
 			}
 		} finally {

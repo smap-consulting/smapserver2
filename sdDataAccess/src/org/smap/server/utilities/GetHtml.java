@@ -524,7 +524,6 @@ public class GetHtml {
 					if(!inSearch) {
 						classVal.append(" or-appearance-");
 						classVal.append(appItem);
-						System.out.println("     " + appItem);
 					} else {
 						brackets = brackets + countChars(appItem, '(') - countChars(appItem, ')');
 						if(brackets == 0) {
