@@ -1675,6 +1675,8 @@ public class XLSTemplateUploadManager {
 					f.replace = true;
 				} else if(ref.equals("merge")) {
 					f.merge = true;
+				} else if(ref.equals("append")) {
+					f.append = true;
 				}
 			}
 			

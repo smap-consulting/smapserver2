@@ -1329,13 +1329,6 @@ public class SurveyTemplate {
 				String qRef = q.getPath();
 				
 				/*
-				 * Ignore hidden questions in reference forms
-				 */
-				if(f.getReference()) {
-					continue;
-				}
-				
-				/*
 				 * Get the options
 				 */
 				if(qRef != null) {
@@ -1370,7 +1363,8 @@ public class SurveyTemplate {
 						
 					}
 					
-					if(listName != null && label != null && (!isExternal || embedExternalSearch)) { 
+					// Do not add questions in reference form into a cascade instance
+					if(!f.getReference() && listName != null && label != null && (!isExternal || embedExternalSearch)) { 
 						
 						/*
 						 * If this survey was loaded from xlsForm then the list name will not be the same as the
