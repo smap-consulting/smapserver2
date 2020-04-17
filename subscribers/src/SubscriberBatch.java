@@ -216,9 +216,9 @@ public class SubscriberBatch {
 						List<UploadEvent> uel = null;
 
 						if(subscriberType.equals("upload")) {
-							uel = uem.getFailed(s.getSubscriberName());		// Get pending jobs
+							uel = uem.getPending(s.getSubscriberName());		// Get pending jobs
 						} else if(subscriberType.equals("forward")) {
-							uel = uem.getFailedForward(s.getSubscriberName(), s.getSurveyId());		// Get pending jobs 
+							uel = uem.getForwardPending(s.getSubscriberName(), s.getSurveyId());		// Get pending jobs 
 						} 
 
 						if(uel.isEmpty()) {
@@ -899,7 +899,6 @@ public class SubscriberBatch {
 				" and ue.ident = ? " +
 				" and ue.incomplete = 'true'" +
 				" and not ue.results_db_applied ";
-				//" and not exists (select se.se_id from subscriber_event se where se.ue_id = ue.ue_id)";
 
 		String sqlUpdate = "insert into subscriber_event (se_id, ue_id, subscriber, status, reason) values (nextval('se_seq'), ?, ?, ?, ?);";
 

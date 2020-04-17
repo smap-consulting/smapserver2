@@ -418,6 +418,7 @@ public class AutoUpdateManager {
 				+ "and f.s_id = s.s_id "
 				+ "and not s.deleted "
 				+ "and not s.blocked "
+				+ "and q.parameters not null "
 				+ "and q.parameters like '%source=%'"
 				+ "and q.parameters like '%auto=yes%'";
 

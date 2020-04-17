@@ -110,13 +110,15 @@ public class JdbcUploadEventManager {
 	
 	String sqlOrder = " order by ue.ue_id asc";
 	
+	String sqlLimit = " limit 1000";
+	
 	/*
 	 * Constructor
 	 */
 	public JdbcUploadEventManager(Connection sd) throws SQLException {
 		pstmt = sd.prepareStatement(sql);
 		pstmtUnprocessed = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlOrder);
-		pstmtUnprocessedResultsDB = sd.prepareStatement(sqlGet + sqlProcessedFilter + sqlOrder);
+		pstmtUnprocessedResultsDB = sd.prepareStatement(sqlGet + sqlProcessedFilter + sqlOrder + sqlLimit);
 		pstmtFailedForward = sd.prepareStatement(sqlGet + sqlNotResultsDB + sqlForwardFilter + sqlOrder);
 	}
 	
@@ -160,7 +162,7 @@ public class JdbcUploadEventManager {
 	/*
 	 * Get Uploads that have not been processed by the subscriber
 	 */
-	public List<UploadEvent> getFailed(String subscriber) throws SQLException {
+	public List<UploadEvent> getPending(String subscriber) throws SQLException {
 		if(subscriber.equals("results_db")) {
 			return getUploadEventList(pstmtUnprocessedResultsDB);
 		} else {
@@ -169,7 +171,7 @@ public class JdbcUploadEventManager {
 		}
 	}
 	
-	public List<UploadEvent> getFailedForward(String subscriber, int sId) throws SQLException {
+	public List<UploadEvent> getForwardPending(String subscriber, int sId) throws SQLException {
 		pstmtFailedForward.setString(1, subscriber);
 		pstmtFailedForward.setInt(2, sId);
 		return getUploadEventList(pstmtFailedForward);
