@@ -263,6 +263,8 @@ public class Billing extends Application {
 				addRekognition(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.TRANSLATE) {
 				addTranslate(sd, item, eId, oId, year, month);
+			} else if(item.item == BillingDetail.TRANSCRIBE) {
+				addTranscribe(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.MONTHLY) {
 				item.amount = item.unitCost;
 			}
@@ -503,6 +505,18 @@ public class Billing extends Application {
 	private void addTranslate(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 		
 		item.quantity = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, LogManager.TRANSLATE);				
+		item.amount = (item.quantity - item.free) * item.unitCost;
+		if(item.amount < 0) {
+			item.amount = 0.0;
+		}
+	}
+	
+	/*
+	 * Get Transcribe usage
+	 */
+	private void addTranscribe(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
+		
+		item.quantity = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, LogManager.TRANSCRIBE);				
 		item.amount = (item.quantity - item.free) * item.unitCost;
 		if(item.amount < 0) {
 			item.amount = 0.0;

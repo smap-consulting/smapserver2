@@ -177,17 +177,19 @@ public class AutoUpdateManager {
 		Gson gson,
 		String region) {
 		
-		ImageProcessing ip = new ImageProcessing(region);
-		AudioProcessing ap = new AudioProcessing(region);		
+		AudioProcessing ap = new AudioProcessing(region);	
+		ResourceManager rm = new ResourceManager();
 		
 		String sql = "select "
 				+ "id,"
+				+ "o_id,"
 				+ "type, "
 				+ "job,"
 				+ "table_name,"
 				+ "col_name,"
-				+ "instanceid "
-				+ " from aws_async_jobs where status = ?";
+				+ "instanceid,"
+				+ "locale "
+				+ "from aws_async_jobs where status = ?";
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
@@ -196,11 +198,21 @@ public class AutoUpdateManager {
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				int id = rs.getInt(1);
-				String type = rs.getString(2);
-				String job = rs.getString(3);
-				String tableName = rs.getString(4);
-				String colName = rs.getString(5);
-				String instanceId = rs.getString(6);
+				int oId = rs.getInt(2);
+				String type = rs.getString(3);
+				String job = rs.getString(4);
+				String tableName = rs.getString(5);
+				String colName = rs.getString(6);
+				String instanceId = rs.getString(7);
+				String locale = rs.getString(8);
+				
+				Locale orgLocale = new Locale(locale);
+				ResourceBundle localisation = null;
+				try {
+					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", orgLocale);
+				} catch(Exception e) {
+					localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
+				}
 				
 				if(type.equals(AUTO_UPDATE_AUDIO)) {
 					String urlString = ap.getTranscriptUri(job);
@@ -209,6 +221,7 @@ public class AutoUpdateManager {
 						
 						String output = null;
 						String status = null;
+						int durn = 0;
 						
 						try {					
 							TranscribeResultSmap trs = gson.fromJson(
@@ -216,8 +229,10 @@ public class AutoUpdateManager {
 									TranscribeResultSmap.class);
 							
 							output = trs.results.transcripts.get(0).transcript;
+							String durnString = trs.results.items.get(trs.results.items.size() - 1).end_time;
+							Double durnDouble = Double.valueOf(durnString);
+							durn = (int) Math.round(durnDouble);
 							status = AU_STATUS_COMPLETE;
-							
 							
 						} catch (Exception e) {
 							output = "[" + e.getMessage()+ "]";
@@ -226,7 +241,14 @@ public class AutoUpdateManager {
 						}
 						// Write result to database and update the job status
 						writeResult(cResults, tableName, colName, instanceId, output);
-						updateSyncStatus(sd, id, status, urlString);
+						updateSyncStatus(sd, id, status, urlString, durn);
+						
+						int billableDuration = (durn > 15) ? durn : 15;		// Minimum bilable time is 15 seconds
+						String msg = localisation.getString("aws_t_au_trans")
+								.replace("%s3", tableName)
+								.replace("%s4", colName);
+						rm.recordUsage(sd, oId, 0, LogManager.TRANSLATE, msg, 
+								"auto_update", billableDuration);
 					}
 				}
 			}
@@ -256,8 +278,8 @@ public class AutoUpdateManager {
 		
 		String sqlAsync = "insert into aws_async_jobs"
 				+ "(o_id, table_name, col_name, instanceid, type, "
-				+ "update_details, job, status, request_initiated) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "update_details, job, status, locale, request_initiated) "
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmtAsync = null;
 		
 		try {
@@ -340,7 +362,7 @@ public class AutoUpdateManager {
 											if(status.equals("IN_PROGRESS")) {
 												lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
 
-												// Write result to async table, the labels will be retrieved later
+												// Write result to async table, the transcript will be retrieved later
 												pstmtAsync.setInt(1, item.oId);
 												pstmtAsync.setString(2, item.tableName);
 												pstmtAsync.setString(3, item.targetColName);
@@ -349,6 +371,7 @@ public class AutoUpdateManager {
 												pstmtAsync.setString(6, gson.toJson(item));
 												pstmtAsync.setString(7, job.toString());
 												pstmtAsync.setString(8, AU_STATUS_PENDING);
+												pstmtAsync.setString(9, item.locale);
 												log.info("Save to Async queue: " + pstmtAsync.toString());
 												pstmtAsync.executeUpdate();
 
@@ -378,8 +401,6 @@ public class AutoUpdateManager {
 													.replace("%s2", item.toLang)
 													.replace("%s3", item.tableName)
 													.replace("%s4", item.targetColName);
-											lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSLATE, msg, 
-													source.length());
 											rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
 													"auto_update", source.length());
 										} else {
@@ -520,7 +541,8 @@ public class AutoUpdateManager {
 	private void updateSyncStatus(Connection sd, 		
 			int id,
 			String status,
-			String urlString
+			String urlString,
+			long durn
 		) throws SQLException {
 		
 		PreparedStatement pstmt = null;
@@ -528,6 +550,7 @@ public class AutoUpdateManager {
 		String sqlUpdate = "update aws_async_jobs " 
 				+ "set status = ?,"
 				+ "results_link = ?,"
+				+ "duration = ?, "
 				+ "request_completed = now() "
 				+ "where id = ?";
 		
@@ -535,7 +558,8 @@ public class AutoUpdateManager {
 		
 		pstmt.setString(1, status);
 		pstmt.setString(2, urlString);
-		pstmt.setInt(3, id);
+		pstmt.setLong(3, durn);
+		pstmt.setInt(4, id);
 		pstmt.executeUpdate();
 		
 		try {
