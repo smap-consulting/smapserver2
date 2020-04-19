@@ -137,11 +137,6 @@ public class AutoUpdateManager {
 								// Validate
 								if(updateType == null) {
 									log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
-								} else if(updateType.equals(AUTO_UPDATE_TEXT) &&
-										(fromLang == null || toLang == null)) {
-									log.info("------------------ AutoUpdate: Error: From Language / To Language not specified for text translation");
-								} else if(updateType.equals(AUTO_UPDATE_AUDIO) && fromLang == null) {
-									log.info("------------------ AutoUpdate: Error: From Language not specified for audio transcription");
 								} else {
 									AutoUpdate au = new AutoUpdate(updateType);
 									au.oId = oId;
@@ -335,7 +330,7 @@ public class AutoUpdateManager {
 										output = "[Error: " + e.getMessage() + "]";
 									}
 									
-									lm.writeLog(sd, item.oId, "auto_update", LogManager.REKOGNITION, "Batch: " + "/smap/" + source, 0);
+									rm.recordUsage(sd, item.oId, 0, LogManager.REKOGNITION, "Batch: " + "/smap/" + source, "auto_update", 1);
 									
 								} else {
 									output = "[Error: invalid source data " + source + "]";
@@ -384,7 +379,11 @@ public class AutoUpdateManager {
 											output = "[Error: " + e.getMessage() + "]";
 										}
 									} else {
-										output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+										if(item.fromLang == null) {
+											output = "[Error: " + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+										} else {
+											output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+										}
 									}
 								} else {
 									output = "[Error: invalid source data " + source + "]";
@@ -402,24 +401,31 @@ public class AutoUpdateManager {
 													.replace("%s3", item.tableName)
 													.replace("%s4", item.targetColName);
 											rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
-													"auto_update", source.length());
+													"auto_update", source.length());					
 										} else {
-											String msg = localisation.getString("re_error")
-													.replace("%s1", LogManager.TRANSLATE);
-											output = "[" + msg + "]";
-											lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+											if(item.toLang == null) {
+												output = "[" + localisation.getString("aws_t_np").replace("%s1", "to_lang") + "]";
+											} else {
+												output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.toLang) + "]";
+											}
 										}
-											
 									} else {
-										String msg = "cannot perform auto update for update type: \" + item.type";
-										log.info("Error: " + msg);
-										output = "[" + localisation.getString("c_error") + " " + msg + "]";
+										if(item.fromLang == null) {
+											output = "[" + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+										} else {
+											output = "[" + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+										}
 									}
 								} else {
-									output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.toLang) + "]";
+									String msg = localisation.getString("re_error")
+											.replace("%s1", LogManager.TRANSLATE);
+									output = "[" + msg + "]";
+									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
 								}
 							} else {
-								output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+								String msg = "cannot perform auto update for update type: \" + item.type";
+								log.info("Error: " + msg);
+								output = "[" + localisation.getString("c_error") + " " + msg + "]";
 							}
 								
 							// Write result to database
