@@ -4291,7 +4291,7 @@ public class GeneralUtilityMethods {
 			if (needAnd) {
 				sqlFrag += "and ";
 			}
-			sqlFrag += dateName + " < ? ";
+			sqlFrag += dateName + " <= ? ";
 		}
 
 		return sqlFrag;
