@@ -61,27 +61,36 @@ public class MessageProcessor {
 
 			int delaySecs = 5;
 		
-			while (true) {
-				System.out.print("m");
+			boolean loop = true;
+			while(loop) {
 				
-				try {
-					// Make sure we have a connection to the database
-					getDatabaseConnection();
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
+				if(subscriberControl != null && subscriberControl.equals("stop")) {
+					System.out.println("---------- Message Processor Stopped");
+					loop = false;
+				} else {
 					
-					// Apply messages
-					MessagingManagerApply mma = new MessagingManagerApply();
-					mma.applyOutbound(sd, cResults, serverName, basePath);
-					mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
+					System.out.print("m");
 					
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-				
-				// Sleep and then go again
-				try {
-					Thread.sleep(delaySecs * 1000);
-				} catch (Exception e) {
-					// ignore
+					try {
+						// Make sure we have a connection to the database
+						getDatabaseConnection();
+						
+						// Apply messages
+						MessagingManagerApply mma = new MessagingManagerApply();
+						mma.applyOutbound(sd, cResults, serverName, basePath);
+						mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
+						
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					
+					// Sleep and then go again
+					try {
+						Thread.sleep(delaySecs * 1000);
+					} catch (Exception e) {
+						// ignore
+					}
 				}
 
 			}

@@ -67,16 +67,14 @@ public class Manager {
 		
 		boolean loop = true;
 		while(loop) {
-
-			SubscriberBatch batchJob = new SubscriberBatch();
-			batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
-
 			String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
 			if(subscriberControl != null && subscriberControl.equals("stop")) {
-				System.out.println("######## Stopped");
+				System.out.println("######## Stopped");		
 				loop = false;
 			} else {
-			
+				SubscriberBatch batchJob = new SubscriberBatch();
+				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
+
 				try {
 					Thread.sleep(delaySecs * 1000);
 				} catch (Exception e) {

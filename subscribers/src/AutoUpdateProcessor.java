@@ -69,38 +69,46 @@ public class AutoUpdateProcessor {
 		public void run() {
 
 			int delaySecs = 5;
-			while (true) {
-				System.out.print("u");
+			boolean loop = true;
+			while(loop) {
 				
-				try {
-					// Make sure we have a connection to the database
-					getDatabaseConnection();
-					AutoUpdateManager aum = new AutoUpdateManager();
-					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
+				if(subscriberControl != null && subscriberControl.equals("stop")) {
+					System.out.println("========== Auto update Processor Stopped");
+					loop = false;
+				} else {
+					System.out.print("u");
 					
-					/*
-					 * Check for pending jobs
-					 */	
-					aum.checkPendingJobs(sd, cResults, gson, region);
-								
-					/*
-					 * Apply auto updates
-					 */	
-					ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
-					if(autoUpdates != null && autoUpdates.size() > 0) {
-						//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
-						aum.applyAutoUpdates(sd, cResults, gson, serverName, autoUpdates, mediaBucket, region, basePath);
+					try {
+						// Make sure we have a connection to the database
+						getDatabaseConnection();
+						AutoUpdateManager aum = new AutoUpdateManager();
+						Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+						
+						/*
+						 * Check for pending jobs
+						 */	
+						aum.checkPendingJobs(sd, cResults, gson, region);
+									
+						/*
+						 * Apply auto updates
+						 */	
+						ArrayList<AutoUpdate> autoUpdates = aum.identifyAutoUpdates(sd, cResults, gson);
+						if(autoUpdates != null && autoUpdates.size() > 0) {
+							//log.info("-------------- AutoUpdate applying " + autoUpdates.size() + " updates");
+							aum.applyAutoUpdates(sd, cResults, gson, serverName, autoUpdates, mediaBucket, region, basePath);
+						}
+						
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
 					}
 					
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-				
-				// Sleep and then go again
-				try {
-					Thread.sleep(delaySecs * 1000);
-				} catch (Exception e) {
-					// ignore
+					// Sleep and then go again
+					try {
+						Thread.sleep(delaySecs * 1000);
+					} catch (Exception e) {
+						// ignore
+					}
 				}
 
 			}

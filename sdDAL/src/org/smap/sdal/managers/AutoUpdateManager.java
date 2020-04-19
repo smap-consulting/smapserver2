@@ -140,6 +140,8 @@ public class AutoUpdateManager {
 								} else if(updateType.equals(AUTO_UPDATE_TEXT) &&
 										(fromLang == null || toLang == null)) {
 									log.info("------------------ AutoUpdate: Error: From Language / To Language not specified for text translation");
+								} else if(updateType.equals(AUTO_UPDATE_AUDIO) && fromLang == null) {
+									log.info("------------------ AutoUpdate: Error: From Language not specified for audio transcription");
 								} else {
 									AutoUpdate au = new AutoUpdate(updateType);
 									au.oId = oId;
@@ -250,6 +252,8 @@ public class AutoUpdateManager {
 		
 		PreparedStatement pstmt = null;
 
+		LanguageCodeManager lcm = new LanguageCodeManager();
+		
 		String sqlAsync = "insert into aws_async_jobs"
 				+ "(o_id, table_name, col_name, instanceid, type, "
 				+ "update_details, job, status, request_initiated) "
@@ -323,37 +327,41 @@ public class AutoUpdateManager {
 											.append("_")
 											.append(String.valueOf(UUID.randomUUID()));
 									
-									try {
-										String  status = ap.submitJob(
-												localisation, 
-												basePath + "/",
-												source, 
-												item.labelColType, 
-												job.toString(),
-												mediaBucket);
-									
-										if(status.equals("IN_PROGRESS")) {
-											lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
-											
-											// Write result to async table, the labels will be retrieved later
-											pstmtAsync.setInt(1, item.oId);
-											pstmtAsync.setString(2, item.tableName);
-											pstmtAsync.setString(3, item.targetColName);
-											pstmtAsync.setString(4, instanceId);
-											pstmtAsync.setString(5, item.type);
-											pstmtAsync.setString(6, gson.toJson(item));
-											pstmtAsync.setString(7, job.toString());
-											pstmtAsync.setString(8, AU_STATUS_PENDING);
-											log.info("Save to Async queue: " + pstmtAsync.toString());
-											pstmtAsync.executeUpdate();
-											
-											// Update tables to record that update is pending
-											output = "[" + localisation.getString("c_pending") + "]";
-										} else {
-											output = "[" + status + "]";
+									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSCRIBE)) {
+										try {
+											String  status = ap.submitJob(
+													localisation, 
+													basePath + "/",
+													source, 
+													item.fromLang,
+													job.toString(),
+													mediaBucket);
+
+											if(status.equals("IN_PROGRESS")) {
+												lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
+
+												// Write result to async table, the labels will be retrieved later
+												pstmtAsync.setInt(1, item.oId);
+												pstmtAsync.setString(2, item.tableName);
+												pstmtAsync.setString(3, item.targetColName);
+												pstmtAsync.setString(4, instanceId);
+												pstmtAsync.setString(5, item.type);
+												pstmtAsync.setString(6, gson.toJson(item));
+												pstmtAsync.setString(7, job.toString());
+												pstmtAsync.setString(8, AU_STATUS_PENDING);
+												log.info("Save to Async queue: " + pstmtAsync.toString());
+												pstmtAsync.executeUpdate();
+
+												// Update tables to record that update is pending
+												output = "[" + localisation.getString("c_pending") + "]";
+											} else {
+												output = "[" + status + "]";
+											}
+										} catch (Exception e) {
+											output = "[Error: " + e.getMessage() + "]";
 										}
-									} catch (Exception e) {
-										output = "[Error: " + e.getMessage() + "]";
+									} else {
+										output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
 									}
 								} else {
 									output = "[Error: invalid source data " + source + "]";
@@ -362,27 +370,35 @@ public class AutoUpdateManager {
 									
 								if(rm.canUse(sd, item.oId, LogManager.TRANSLATE)) {
 									
-									output = tp.getTranslatian(source, item.fromLang, item.toLang);
-									String msg = localisation.getString("aws_t_au")
-											.replace("%s1", item.fromLang)
-											.replace("%s2", item.toLang)
-											.replace("%s3", item.tableName)
-											.replace("%s4", item.targetColName);
-									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSLATE, msg, 
-											source.length());
-									rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
-											"auto_update", source.length());
+									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
+										if(lcm.isSupported(sd, item.toLang, LanguageCodeManager.LT_TRANSLATE)) {
+											output = tp.getTranslatian(source, item.fromLang, item.toLang);
+											String msg = localisation.getString("aws_t_au")
+													.replace("%s1", item.fromLang)
+													.replace("%s2", item.toLang)
+													.replace("%s3", item.tableName)
+													.replace("%s4", item.targetColName);
+											lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSLATE, msg, 
+													source.length());
+											rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
+													"auto_update", source.length());
+										} else {
+											String msg = localisation.getString("re_error")
+													.replace("%s1", LogManager.TRANSLATE);
+											output = "[" + msg + "]";
+											lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+										}
+											
+									} else {
+										String msg = "cannot perform auto update for update type: \" + item.type";
+										log.info("Error: " + msg);
+										output = "[" + localisation.getString("c_error") + " " + msg + "]";
+									}
 								} else {
-									String msg = localisation.getString("re_error")
-											.replace("%s1", LogManager.TRANSLATE);
-									output = "[" + msg + "]";
-									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+									output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.toLang) + "]";
 								}
-									
 							} else {
-								String msg = "cannot perform auto update for update type: \" + item.type";
-								log.info("Error: " + msg);
-								output = "[" + localisation.getString("c_error") + " " + msg + "]";
+								output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
 							}
 								
 							// Write result to database
@@ -418,7 +434,7 @@ public class AutoUpdateManager {
 				+ "and f.s_id = s.s_id "
 				+ "and not s.deleted "
 				+ "and not s.blocked "
-				+ "and q.parameters not null "
+				+ "and q.parameters is not null "
 				+ "and q.parameters like '%source=%'"
 				+ "and q.parameters like '%auto=yes%'";
 

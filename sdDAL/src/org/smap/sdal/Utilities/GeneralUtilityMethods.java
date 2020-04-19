@@ -9331,7 +9331,7 @@ public class GeneralUtilityMethods {
 				mediaBucket = lines.get(0);
 			}
 		} catch (Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);;
+			// log.log(Level.SEVERE, e.getMessage(), e);;
 		}
 
 		return mediaBucket;
