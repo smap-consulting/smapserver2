@@ -64,10 +64,11 @@ public class JdbcUploadEventManager {
 			+ "end_time,"
 			+ "instance_name,"
 			+ "scheduled_start,"
-			+ "temporary_user) "
+			+ "temporary_user,"
+			+ "results_db_applied) "
 			+ "values (nextval('ue_seq'), now(), ?, ?, ?, ?, ?, ?, ?, ?, ?"
 			+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-			+ ", ?, ?, ?, ?, ?, ?, ?);";
+			+ ", ?, ?, ?, ?, ?, ?, ?, ?);";
 	
 	PreparedStatement pstmtUnprocessed = null;
 	String sqlGet = "select "
@@ -125,7 +126,7 @@ public class JdbcUploadEventManager {
 	/*
 	 * Write the upload event to the database
 	 */
-	public void write(UploadEvent ue) throws SQLException {
+	public void write(UploadEvent ue, boolean results_db_applied) throws SQLException {
 		pstmt.setString(1, ue.getUserName());
 		pstmt.setString(2, ue.getFileName());
 		pstmt.setString(3,  ue.getSurveyName());
@@ -154,6 +155,7 @@ public class JdbcUploadEventManager {
 		pstmt.setString(26, ue.getInstanceName());
 		pstmt.setTimestamp(27, ue.getScheduledStart());
 		pstmt.setBoolean(28, ue.getTemporaryUser());
+		pstmt.setBoolean(29, results_db_applied);
 	
 		pstmt.executeUpdate();
 	}

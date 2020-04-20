@@ -405,7 +405,7 @@ public class XFormData {
 			JdbcUploadEventManager uem = null;
 			try {
 				uem = new JdbcUploadEventManager(sd);
-				uem.write(ue);
+				uem.write(ue, false);
 			} finally {
 				if (uem != null) {
 					uem.close();
@@ -468,7 +468,8 @@ public class XFormData {
 		JdbcUploadEventManager uem = null;
 		try {
 			uem = new JdbcUploadEventManager(sd);
-			uem.write(ue);
+			uem.write(ue, true);
+			
 		} finally {
 			if (uem != null) {
 				uem.close();
