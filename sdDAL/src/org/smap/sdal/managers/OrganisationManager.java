@@ -6,6 +6,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -313,6 +314,14 @@ public class OrganisationManager {
 				throw new ApplicationException(localisation.getString("msg_org_exists"));
 			} 
 			
+			// Initialise limits
+			if(o.limits == null) {
+				o.limits = new HashMap<String, Integer> ();
+				o.limits.put(LogManager.TRANSCRIBE, Organisation.DEFAULT_TRANSCRIBE_LIMIT);
+				o.limits.put(LogManager.TRANSLATE, Organisation.DEFAULT_TRANSLATE_LIMIT);
+				o.limits.put(LogManager.REKOGNITION, Organisation.DEFAULT_REKOGNITION_LIMIT);
+			}
+			
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, o.name);
 			pstmt.setString(2, o.company_name);
@@ -359,7 +368,7 @@ public class OrganisationManager {
 			pstmt.setString(34,navBarColor);
 			pstmt.setBoolean(35, o.can_sms);
 			pstmt.setBoolean(36, o.send_optin);
-			pstmt.setString(36, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setString(37, o.limits == null ? null : gson.toJson(o.limits));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

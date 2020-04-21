@@ -119,11 +119,6 @@ public class Register extends Application {
 			o.send_optin = true;
 			o.e_id = 1;				// Default organisation!
 			
-			o.limits = new HashMap<String, Integer> ();
-			o.limits.put(LogManager.TRANSCRIBE, Organisation.DEFAULT_TRANSCRIBE_LIMIT);
-			o.limits.put(LogManager.TRANSLATE, Organisation.DEFAULT_TRANSLATE_LIMIT);
-			o.limits.put(LogManager.REKOGNITION, Organisation.DEFAULT_REKOGNITION_LIMIT);
-			
 			int o_id = om.createOrganisation(
 					sd, 
 					o, 
