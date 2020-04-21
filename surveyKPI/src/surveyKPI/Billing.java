@@ -24,6 +24,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -48,7 +49,9 @@ import com.google.gson.GsonBuilder;
 
 import utilities.XLSBillingManager;
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -182,6 +185,46 @@ public class Billing extends Application {
 	}
 	
 	/*
+	 * Get the usage for the current month of an organisation
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/usage/{org}")
+	public String getCurentUsage(@Context HttpServletRequest request,			
+			@PathParam("org") int oId) throws Exception { 
+	
+		String connectionString = "surveyKPI-Billing-getCurrentUsage";
+		
+		LocalDate d = LocalDate.now();
+		int month = d.getMonth().getValue();
+		int year = d.getYear();
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOrg.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		HashMap<String, Integer> usage = new HashMap<> ();
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+					
+			usage = populateUsage(sd, oId, year, month);
+
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return gson.toJson(usage);
+	}
+	
+	/*
 	 * Export Billing details for an organisation
 	 */
 	@GET
@@ -251,6 +294,30 @@ public class Billing extends Application {
 		return Response.ok("").build();
 	}
 
+	private HashMap<String, Integer> populateUsage(Connection sd, int oId, int year, int month) throws SQLException {
+		
+		HashMap<String, Integer> usage = new HashMap<> ();
+		BillLineItem item = new BillLineItem();
+		
+		// Submissions
+		addUsage(sd, item, 0, oId, year, month);
+		usage.put(LogManager.SUBMISSION, item.quantity);
+		
+		// Rekognition
+		addRekognition(sd, item, 0, oId, year, month);
+		usage.put(LogManager.REKOGNITION, item.quantity);
+		
+		// Translate
+		addTranslate(sd, item, 0, oId, year, month);
+		usage.put(LogManager.TRANSLATE, item.quantity);
+		
+		// Transcribe
+		addTranscribe(sd, item, 0, oId, year, month);
+		usage.put(LogManager.TRANSCRIBE, item.quantity);
+		
+		return usage;
+	}
+	
 	private void populateBill(Connection sd, ArrayList<BillLineItem> items, int eId, int oId, int year, int month) throws SQLException, ApplicationException {
 		
 		for(BillLineItem item : items) {

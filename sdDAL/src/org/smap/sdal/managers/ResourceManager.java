@@ -256,7 +256,7 @@ public class ResourceManager {
 					updateUsage(sd, oId, resource, period, usage);
 				}
 				
-				decision = usage < limit;
+				decision = usage <= limit;
 				
 			} finally {
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
