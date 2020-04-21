@@ -541,15 +541,16 @@ public class Billing extends Application {
 		
 		String sqlRekognition = "select  count(*) as total "
 				+ "from log "
-				+ "where event = 'Rekognition Request' "
+				+ "where event = ? "
 				+ "and extract(month from log_time) = ? "
 				+ "and extract(year from log_time) = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
 			pstmt = sd.prepareStatement(sqlRekognition);
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
+			pstmt.setString(1, LogManager.REKOGNITION);
+			pstmt.setInt(2, month);
+			pstmt.setInt(3, year);
 			
 			ResultSet rs = pstmt.executeQuery();
 		

@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.AudioProcessing;
@@ -224,9 +225,21 @@ public class AutoUpdateManager {
 									TranscribeResultSmap.class);
 							
 							output = trs.results.transcripts.get(0).transcript;
-							String durnString = trs.results.items.get(trs.results.items.size() - 1).end_time;
-							Double durnDouble = Double.valueOf(durnString);
-							durn = (int) Math.round(durnDouble);
+							
+							// Get the end time
+							for(int i = trs.results.items.size() - 1; i > 0; i--) {
+								String durnString = trs.results.items.get(i).end_time;
+								if(durnString != null) {
+									try {
+										Double durnDouble = Double.valueOf(durnString);
+										durn = (int) Math.round(durnDouble);
+									} catch (Exception e) {
+										log.log(Level.SEVERE, e.getMessage(), e);
+									}
+									break;
+								}
+							}
+												
 							status = AU_STATUS_COMPLETE;
 							
 						} catch (Exception e) {
@@ -238,12 +251,16 @@ public class AutoUpdateManager {
 						writeResult(cResults, tableName, colName, instanceId, output);
 						updateSyncStatus(sd, id, status, urlString, durn);
 						
-						int billableDuration = (durn > 15) ? durn : 15;		// Minimum bilable time is 15 seconds
-						String msg = localisation.getString("aws_t_au_trans")
-								.replace("%s3", tableName)
-								.replace("%s4", colName);
-						rm.recordUsage(sd, oId, 0, LogManager.TRANSLATE, msg, 
-								"auto_update", billableDuration);
+						if(durn > 0) {
+							int billableDuration = (durn > 15) ? durn : 15;		// Minimum billable time is 15 seconds
+							String msg = localisation.getString("aws_t_au_trans")
+									.replace("%s3", tableName)
+									.replace("%s4", colName);
+							rm.recordUsage(sd, oId, 0, LogManager.TRANSCRIBE, msg, 
+									"auto_update", billableDuration);
+						} else {
+							log.info("Error:xxxxxxxxxx duration of audio recorded as 0");
+						}
 					}
 				}
 			}
@@ -318,75 +335,90 @@ public class AutoUpdateManager {
 							
 							if(item.type.equals(AUTO_UPDATE_IMAGE)) {
 									
-								if(source.trim().startsWith("attachments")) {
-									
-									try {
-										output = ip.getLabels(
-												basePath + "/",
-												source, 
-												item.labelColType,
-												mediaBucket);
-									} catch (Exception e) {
-										output = "[Error: " + e.getMessage() + "]";
-									}
-									
-									rm.recordUsage(sd, item.oId, 0, LogManager.REKOGNITION, "Batch: " + "/smap/" + source, "auto_update", 1);
-									
-								} else {
-									output = "[Error: invalid source data " + source + "]";
-								}
-							} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
-									
-								if(source.trim().startsWith("attachments")) {
-									
-									// Unique job within the account
-									StringBuffer job = new StringBuffer(item.tableName)
-											.append("_")
-											.append(String.valueOf(UUID.randomUUID()));
-									
-									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSCRIBE)) {
+								if(rm.canUse(sd, item.oId, LogManager.REKOGNITION)) {
+									if(source.trim().startsWith("attachments")) {
+										
 										try {
-											String  status = ap.submitJob(
-													localisation, 
+											output = ip.getLabels(
 													basePath + "/",
 													source, 
-													item.fromLang,
-													job.toString(),
+													item.labelColType,
 													mediaBucket);
-
-											if(status.equals("IN_PROGRESS")) {
-												lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
-
-												// Write result to async table, the transcript will be retrieved later
-												pstmtAsync.setInt(1, item.oId);
-												pstmtAsync.setString(2, item.tableName);
-												pstmtAsync.setString(3, item.targetColName);
-												pstmtAsync.setString(4, instanceId);
-												pstmtAsync.setString(5, item.type);
-												pstmtAsync.setString(6, gson.toJson(item));
-												pstmtAsync.setString(7, job.toString());
-												pstmtAsync.setString(8, AU_STATUS_PENDING);
-												pstmtAsync.setString(9, item.locale);
-												log.info("Save to Async queue: " + pstmtAsync.toString());
-												pstmtAsync.executeUpdate();
-
-												// Update tables to record that update is pending
-												output = "[" + localisation.getString("c_pending") + "]";
-											} else {
-												output = "[" + status + "]";
-											}
 										} catch (Exception e) {
 											output = "[Error: " + e.getMessage() + "]";
 										}
+										
+										rm.recordUsage(sd, item.oId, 0, LogManager.REKOGNITION, "Batch: " + "/smap/" + source, "auto_update", 1);
+										
 									} else {
-										if(item.fromLang == null) {
-											output = "[Error: " + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
-										} else {
-											output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
-										}
+										output = "[Error: invalid source data " + source + "]";
 									}
 								} else {
-									output = "[Error: invalid source data " + source + "]";
+									String msg = localisation.getString("re_error")
+											.replace("%s1", LogManager.REKOGNITION);
+									output = "[" + msg + "]";
+									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
+								}
+									
+							} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
+								
+								if(rm.canUse(sd, item.oId, LogManager.TRANSCRIBE)) {
+									if(source.trim().startsWith("attachments")) {
+										
+										// Unique job within the account
+										StringBuffer job = new StringBuffer(item.tableName)
+												.append("_")
+												.append(String.valueOf(UUID.randomUUID()));
+										
+										if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSCRIBE)) {
+											try {
+												String  status = ap.submitJob(
+														localisation, 
+														basePath + "/",
+														source, 
+														item.fromLang,
+														job.toString(),
+														mediaBucket);
+	
+												if(status.equals("IN_PROGRESS")) {
+													lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
+	
+													// Write result to async table, the transcript will be retrieved later
+													pstmtAsync.setInt(1, item.oId);
+													pstmtAsync.setString(2, item.tableName);
+													pstmtAsync.setString(3, item.targetColName);
+													pstmtAsync.setString(4, instanceId);
+													pstmtAsync.setString(5, item.type);
+													pstmtAsync.setString(6, gson.toJson(item));
+													pstmtAsync.setString(7, job.toString());
+													pstmtAsync.setString(8, AU_STATUS_PENDING);
+													pstmtAsync.setString(9, item.locale);
+													log.info("Save to Async queue: " + pstmtAsync.toString());
+													pstmtAsync.executeUpdate();
+	
+													// Update tables to record that update is pending
+													output = "[" + localisation.getString("c_pending") + "]";
+												} else {
+													output = "[" + status + "]";
+												}
+											} catch (Exception e) {
+												output = "[Error: " + e.getMessage() + "]";
+											}
+										} else {
+											if(item.fromLang == null) {
+												output = "[Error: " + localisation.getString("aws_t_np").replace("%s1", "from_lang") + "]";
+											} else {
+												output = "[Error: " + localisation.getString("aws_t_ilc").replace("%s1", item.fromLang) + "]";
+											}
+										}
+									} else {
+										output = "[Error: invalid source data " + source + "]";
+									}
+								} else {
+									String msg = localisation.getString("re_error")
+											.replace("%s1", LogManager.TRANSCRIBE);
+									output = "[" + msg + "]";
+									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
 								}
 							} else if(item.type.equals(AUTO_UPDATE_TEXT)) {
 									
@@ -566,6 +598,8 @@ public class AutoUpdateManager {
 		pstmt.setString(2, urlString);
 		pstmt.setLong(3, durn);
 		pstmt.setInt(4, id);
+		
+		log.info("Update sync status: " + pstmt.toString());
 		pstmt.executeUpdate();
 		
 		try {
