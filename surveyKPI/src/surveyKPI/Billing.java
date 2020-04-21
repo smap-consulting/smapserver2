@@ -37,6 +37,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.BillingManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.ResourceManager;
 import org.smap.sdal.model.BillLineItem;
 import org.smap.sdal.model.BillingDetail;
 import org.smap.sdal.model.Organisation;
@@ -504,7 +505,8 @@ public class Billing extends Application {
 	 */
 	private void addTranslate(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 		
-		item.quantity = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, LogManager.TRANSLATE);				
+		ResourceManager rm = new ResourceManager();
+		item.quantity = rm.getUsageMeasure(sd, oId, month, year, LogManager.TRANSLATE);				
 		item.amount = (item.quantity - item.free) * item.unitCost;
 		if(item.amount < 0) {
 			item.amount = 0.0;
@@ -515,8 +517,8 @@ public class Billing extends Application {
 	 * Get Transcribe usage
 	 */
 	private void addTranscribe(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
-		
-		item.quantity = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, LogManager.TRANSCRIBE);				
+		ResourceManager rm = new ResourceManager();
+		item.quantity = rm.getUsageMeasure(sd, oId, month, year, LogManager.TRANSCRIBE);				
 		item.amount = (item.quantity - item.free) * item.unitCost;
 		if(item.amount < 0) {
 			item.amount = 0.0;

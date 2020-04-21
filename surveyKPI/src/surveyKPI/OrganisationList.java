@@ -217,7 +217,6 @@ public class OrganisationList extends Application {
 				
 				String limits = resultSet.getString("limits");
 				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());				
-				
 				organisations.add(org);
 			}
 	

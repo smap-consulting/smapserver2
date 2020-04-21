@@ -5,9 +5,13 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.HashMap;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
 
@@ -38,6 +42,106 @@ public class ResourceManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
+
+	
+	/*
+	 * Get the limit for a resource
+	 */
+	public int getLimit(Connection sd, int oId, String resource) {
+		int limit = 0;
+		
+		String sql = "select limits "
+				+ " from organisation where id = ?";		
+		PreparedStatement pstmt = null;
+		
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				String limitString = rs.getString(1);
+				if(limitString != null) {
+					HashMap<String, Integer> limits = gson.fromJson(limitString, 
+							new TypeToken<HashMap<String, Integer>>() {}.getType());
+					Integer l = limits.get(resource);
+					if(l != null) {
+						limit = l;
+					}
+				}
+			}
+		} catch (Exception e) {
+			// Don't throw an error just return 0
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
+		return limit;
+	}
+	
+	public int getUsageMeasure(Connection sd, int oId, int month, int year, String resource) throws SQLException {
+		
+		StringBuilder sb = new StringBuilder("select  sum(measure) as total from log where event = ?")
+				.append(" and extract(month from log_time) = ? and extract(year from log_time) = ?");
+		
+		if(oId > 0) {
+			sb.append(" and o_id = ?");
+		}
+		PreparedStatement pstmt = null;
+		
+		int usage = 0;
+		
+		try {
+			pstmt = sd.prepareStatement(sb.toString());
+			pstmt.setString(1,  resource);
+			pstmt.setInt(2, month);
+			pstmt.setInt(3, year);
+			if(oId > 0) {
+				pstmt.setInt(4, oId);
+			}
+			
+			ResultSet rs = pstmt.executeQuery();
+		
+			if(rs.next()) {
+				usage = rs.getInt("total");
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return usage;
+	}
+	
+	public int getUsageSubmissions(Connection sd, int oId, int month, int year) throws SQLException {
+		
+		String sql = "select  count(*) as total from upload_event ue, subscriber_event se "
+				+ "where ue.ue_id = se.ue_id "
+				+ "and se.status = 'success' "
+				+ "and ue.o_id = ? "
+				+ "and extract(month from ue.upload_time) = ? "
+				+ "and extract(year from ue.upload_time) = ? ";
+		PreparedStatement pstmt = null;
+		
+		int usage = 0;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  oId);
+			pstmt.setInt(2, month);
+			pstmt.setInt(3, year);
+			
+			ResultSet rs = pstmt.executeQuery();
+		
+			if(rs.next()) {
+				usage = rs.getInt("total");
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return usage;
+	}
+	
 	/*
 	 * Check to see if the person can use the resource
 	 */
@@ -46,7 +150,7 @@ public class ResourceManager {
 			String resource) throws SQLException {
 		
 		boolean decision = false;
-		int limit = GeneralUtilityMethods.getLimit(sd, oId, resource);
+		int limit = getLimit(sd, oId, resource);
 		String period = "";
 		int usage = 0;
 		
@@ -81,7 +185,7 @@ public class ResourceManager {
 					}
 				} else {
 					// Get the usage from the logs
-					usage = GeneralUtilityMethods.getUsageMeasure(sd, oId, month, year, resource);
+					usage = getUsageMeasure(sd, oId, month, year, resource);
 					updateUsage(sd, oId, resource, period, usage);
 				}
 				
@@ -110,7 +214,7 @@ public class ResourceManager {
 			String resource) throws SQLException {
 		
 		boolean decision = false;
-		int limit = GeneralUtilityMethods.getLimit(sd, oId, resource);
+		int limit = getLimit(sd, oId, resource);
 		String period = "";
 		int usage = 0;
 		
@@ -148,7 +252,7 @@ public class ResourceManager {
 					}
 				} else {
 					// Get the usage from the upload_event table
-					usage = GeneralUtilityMethods.getUsageSubmissions(sd, oId, month, year);
+					usage = getUsageSubmissions(sd, oId, month, year);
 					updateUsage(sd, oId, resource, period, usage);
 				}
 				
