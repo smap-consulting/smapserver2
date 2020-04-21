@@ -31,6 +31,7 @@ import org.smap.notifications.interfaces.EmitNotifications;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.UserManager;
@@ -42,6 +43,7 @@ import org.smap.sdal.model.UserGroup;
 import com.google.gson.Gson;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -116,6 +118,11 @@ public class Register extends Application {
 			o.can_sms = false;
 			o.send_optin = true;
 			o.e_id = 1;				// Default organisation!
+			
+			o.limits = new HashMap<String, Integer> ();
+			o.limits.put(LogManager.TRANSCRIBE, Organisation.DEFAULT_TRANSCRIBE_LIMIT);
+			o.limits.put(LogManager.TRANSLATE, Organisation.DEFAULT_TRANSLATE_LIMIT);
+			o.limits.put(LogManager.REKOGNITION, Organisation.DEFAULT_REKOGNITION_LIMIT);
 			
 			int o_id = om.createOrganisation(
 					sd, 
