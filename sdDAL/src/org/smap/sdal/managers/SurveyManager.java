@@ -4381,14 +4381,16 @@ public class SurveyManager {
 					String currentText = q.labels.get(toLanguageIndex).text;
 					if(overwrite 
 							|| currentText == null 
-							|| currentText.trim().length() > 0 
+							|| currentText.trim().length() == 0 
 							|| currentText.trim().equals("-")) {
 				
 						String fromText = q.labels.get(fromLanguageIndex).text;
 						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
 							String toText = uniqueText.get(fromText);
 							if(toText == null) {
-								toText = tp.getTranslatian(fromText, fromCode, toCode);
+								String in = encodePlaceHolders(fromText);	// Add do not translates
+								toText = tp.getTranslatian(in, fromCode, toCode);
+								toText = decodePlaceHolders(toText);  	   // Remove do not translate
 								charsTranslated += fromText.length();	
 								uniqueText.put(fromText, toText);
 							} 
@@ -4410,7 +4412,7 @@ public class SurveyManager {
 					currentText = q.labels.get(toLanguageIndex).hint;
 					if(overwrite 
 							|| currentText == null 
-							|| currentText.trim().length() > 0 
+							|| currentText.trim().length() == 0 
 							|| currentText.trim().equals("-")) {
 					
 						String fromText = q.labels.get(fromLanguageIndex).hint;
@@ -4438,7 +4440,7 @@ public class SurveyManager {
 					currentText = q.labels.get(toLanguageIndex).constraint_msg;
 					if(overwrite 
 							|| currentText == null 
-							|| currentText.trim().length() > 0 
+							|| currentText.trim().length() == 0 
 							|| currentText.trim().equals("-")) {
 					
 						String fromText = q.labels.get(fromLanguageIndex).constraint_msg;
@@ -4466,7 +4468,7 @@ public class SurveyManager {
 					currentText = q.labels.get(toLanguageIndex).required_msg;
 					if(overwrite 
 							|| currentText == null 
-							|| currentText.trim().length() > 0 
+							|| currentText.trim().length() == 0 
 							|| currentText.trim().equals("-")) {
 					
 						String fromText = q.labels.get(fromLanguageIndex).required_msg;
@@ -4494,7 +4496,7 @@ public class SurveyManager {
 					currentText = q.labels.get(toLanguageIndex).guidance_hint;
 					if(overwrite 
 							|| currentText == null 
-							|| currentText.trim().length() > 0 
+							|| currentText.trim().length() == 0 
 							|| currentText.trim().equals("-")) {
 					
 						String fromText = q.labels.get(fromLanguageIndex).guidance_hint;
@@ -4587,5 +4589,17 @@ public class SurveyManager {
 
 		return result;
 		
+	}
+	
+	// Mark placeholders as do not translate
+	private String encodePlaceHolders(String in) {
+		return in.replace("${", "#${");  
+	}
+	
+	// Decode placeholders as do not translate
+	private String decodePlaceHolders(String in) {
+		in = in.replace("$ {", "${");
+		in = in.replace("# $", "#$");
+		return in.replace("#${", "${");
 	}
 }
