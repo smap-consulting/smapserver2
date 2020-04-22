@@ -4388,9 +4388,7 @@ public class SurveyManager {
 						if(fromText != null && fromText.trim().length() > 0 && !fromText.trim().equals("-")) {
 							String toText = uniqueText.get(fromText);
 							if(toText == null) {
-								String in = encodePlaceHolders(fromText);	// Add do not translates
-								toText = tp.getTranslatian(in, fromCode, toCode);
-								toText = decodePlaceHolders(toText);  	   // Remove do not translate
+								toText = tp.getTranslatian(fromText, fromCode, toCode);
 								charsTranslated += fromText.length();	
 								uniqueText.put(fromText, toText);
 							} 
@@ -4589,17 +4587,5 @@ public class SurveyManager {
 
 		return result;
 		
-	}
-	
-	// Mark placeholders as do not translate
-	private String encodePlaceHolders(String in) {
-		return in.replace("${", "#${");  
-	}
-	
-	// Decode placeholders as do not translate
-	private String decodePlaceHolders(String in) {
-		in = in.replace("$ {", "${");
-		in = in.replace("# $", "#$");
-		return in.replace("#${", "${");
 	}
 }
