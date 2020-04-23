@@ -1047,7 +1047,6 @@ public class AllAssignments extends Application {
 				
 				/*
 				 * Delete any attachments
-				 * TODO this will delete the attachments even if the new upload fails
 				 */
 				String fileFolder = basePath + "/attachments/" + sIdent;
 				File folder = new File(fileFolder);
@@ -1262,8 +1261,6 @@ public class AllAssignments extends Application {
 		boolean repeat = false;
 		Timestamp scheduleAt = null;
 		String locationTrigger = null;
-		Calendar cal = Calendar.getInstance(); 
-
 
 		try {
 
