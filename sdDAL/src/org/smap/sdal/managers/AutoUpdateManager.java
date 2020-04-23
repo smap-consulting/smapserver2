@@ -60,6 +60,7 @@ public class AutoUpdateManager {
 	public static String AU_STATUS_PENDING = "pending";
 	public static String AU_STATUS_COMPLETE = "complete";
 	public static String AU_STATUS_ERROR = "error";
+	public static String AU_STATUS_TIMEOUT = "timeout";
 	
 	public AutoUpdateManager() {
 
@@ -184,7 +185,8 @@ public class AutoUpdateManager {
 				+ "table_name,"
 				+ "col_name,"
 				+ "instanceid,"
-				+ "locale "
+				+ "locale, "
+				+ "now() > (request_initiated + interval '24 hours') as timed_out "
 				+ "from aws_async_jobs where status = ?";
 		PreparedStatement pstmt = null;
 		try {
@@ -201,7 +203,11 @@ public class AutoUpdateManager {
 				String colName = rs.getString(6);
 				String instanceId = rs.getString(7);
 				String locale = rs.getString(8);
+				boolean timedOut = rs.getBoolean(9);
 				
+				if(locale == null) {
+					locale = "en";
+				}
 				Locale orgLocale = new Locale(locale);
 				ResourceBundle localisation = null;
 				try {
@@ -210,7 +216,9 @@ public class AutoUpdateManager {
 					localisation = ResourceBundle.getBundle("src.org.smap.sdal.resources.SmapResources", orgLocale);
 				}
 				
-				if(type.equals(AUTO_UPDATE_AUDIO)) {
+				boolean success = false;
+				
+				if(type != null && type.equals(AUTO_UPDATE_AUDIO)) {
 					String urlString = ap.getTranscriptUri(job);
 					
 					if(urlString != null && urlString.startsWith("https")) {
@@ -248,6 +256,7 @@ public class AutoUpdateManager {
 							urlString = null;
 						}
 						// Write result to database and update the job status
+						success = true;
 						writeResult(cResults, tableName, colName, instanceId, output);
 						updateSyncStatus(sd, id, status, urlString, durn);
 						
@@ -261,7 +270,13 @@ public class AutoUpdateManager {
 						} else {
 							log.info("Error:xxxxxxxxxx duration of audio recorded as 0");
 						}
-					}
+					} 
+				}
+				
+				if(!success && timedOut) {
+					writeResult(cResults, tableName, colName, instanceId, 
+							"[" + localisation.getString("aws_t_timeout") + "]");
+					updateSyncStatus(sd, id, AU_STATUS_TIMEOUT, null, 0);
 				}
 			}
 		} catch (Exception e) {
@@ -559,16 +574,18 @@ public class AutoUpdateManager {
 				+ " set " + colName + " = ? "
 				+ "where instanceid = ?";
 		
-		try {			
-			pstmt = cResults.prepareStatement(sql);
+		if(colName != null && tableName != null && instanceId != null) {
+			try {			
+				pstmt = cResults.prepareStatement(sql);
+				
+				instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
+				pstmt.setString(1, output);
+				pstmt.setString(2, instanceId);
+				pstmt.executeUpdate();
 			
-			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, tableName, instanceId);
-			pstmt.setString(1, output);
-			pstmt.setString(2, instanceId);
-			pstmt.executeUpdate();
-		
-		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			} finally {
+				if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			}
 		}
 	}
 	
