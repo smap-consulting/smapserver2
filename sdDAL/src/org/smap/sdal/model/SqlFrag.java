@@ -69,6 +69,7 @@ public class SqlFrag {
 		 * This SQL Fragment may actually be text without quotes
 		 * If so then wrap in single quotes
 		 */
+		in = in.replace("''", "#####xx#####");	// Escape double single quotes first
 		in = checkForText(in);
 		
 		/*
@@ -130,6 +131,9 @@ public class SqlFrag {
 				}
 			} else if(p.getType().equals("text") || p.getType().equals("date")) {
 				SqlFragParam px = new SqlFragParam();
+				// UnEscape double single quotes
+				// Note using double single quotes is no longer required so convert to single quote
+				p.sValue = p.sValue.replace("#####xx#####", "'");	
 				px.addTextParam(p.sValue);
 				params.add(px);
 				sql.append(" ? ");
