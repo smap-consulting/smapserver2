@@ -1651,6 +1651,12 @@ public class SurveyManager {
 		String sqlForm = "insert into form(f_id, s_id, name, label, table_name, "
 				+ "parentform, parentquestion, repeats, path, form_index) " +
 				"values(nextval('f_seq'), ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+		
+		PreparedStatement pstmtDeleteForm = null;
+		String sqlDeleteForm = "delete from form f "
+				+ "where f.s_id = ? "
+				+ "and f.parentQuestion = ?"
+				+ "and f.name = ?;";
 
 		String sql = "delete from question q where f_id = ? and qname = ? and q.q_id in " +
 				" (select q_id from question q, form f where q.f_id = f.f_id and f.s_id = ?);";	// Ensure user is authorised to access this question
@@ -2061,6 +2067,15 @@ public class SurveyManager {
 							log.info("Delete End group of question: " + pstmt.toString());
 							pstmt.executeUpdate();
 						}
+						
+						// if the old question type was a begin repeat then delete the form
+						if(ci.property.oldVal != null && ci.property.oldVal.equals("begin repeat")) {
+							pstmtDeleteForm = sd.prepareStatement(sqlDeleteForm);
+							pstmtDeleteForm.setInt(1, sId);
+							pstmtDeleteForm.setInt(2, ci.property.qId);
+							pstmtDeleteForm.setString(3, ci.property.name);
+							pstmtDeleteForm.executeUpdate();
+						}
 
 						// Source is set to "user" for questions that can be completed by a user
 						boolean setSource = false;
@@ -2334,6 +2349,7 @@ public class SurveyManager {
 			try {if (pstmtAddNodeset != null) {pstmtAddNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtClearNodeset != null) {pstmtClearNodeset.close();}} catch (SQLException e) {}
 			try {if (pstmtForm != null) {pstmtForm.close();}} catch (SQLException e) {}
+			try {if (pstmtDeleteForm != null) {pstmtDeleteForm.close();}} catch (SQLException e) {}
 			try {if (pstmtSource != null) {pstmtSource.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
