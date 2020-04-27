@@ -220,6 +220,7 @@ public class ResourceManager {
 		
 		// A limit of 0 means no restrictions
 		if(limit == 0) {
+			log.info("no limit");
 			return true;
 		} else {
 			
@@ -237,6 +238,7 @@ public class ResourceManager {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, oId);
 				pstmt.setString(2, resource);
+				log.info("xxxxxxxxxxx " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				
 				if(rs.next()) {
