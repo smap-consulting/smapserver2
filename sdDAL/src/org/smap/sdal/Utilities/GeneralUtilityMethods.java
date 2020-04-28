@@ -5966,8 +5966,10 @@ public class GeneralUtilityMethods {
 
 		boolean hasColumn = false;
 
-		String sql = "select column_name " + "from information_schema.columns "
-				+ "where table_name = ? and column_name = ?;";
+		String sql = "select column_name " 
+				+ "from information_schema.columns "
+				+ "where table_name = ? "
+				+ "and column_name = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -5995,7 +5997,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
 
-		String sql = "alter table " + tablename + " add column " + columnName + " " + type;
+		String sql = "alter table " + tablename + " add column if not exists " + columnName + " " + type;
 
 		PreparedStatement pstmt = conn.prepareStatement(sql);
 		log.info("Adding column: " + pstmt.toString());
@@ -8822,14 +8824,14 @@ public class GeneralUtilityMethods {
 					
 					// Add altitude and accuracy
 					if(type.equals("geopoint")) {
-						String sqlAlterTable = "alter table " + table + " add column " 
+						String sqlAlterTable = "alter table " + table + " add column if not exists " 
 								+  column + "_alt double precision";
 						pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
 						log.info("Alter table: " + pstmtAlterTable.toString());					
 						pstmtAlterTable.executeUpdate();
 
 						try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
-						sqlAlterTable = "alter table " + table + " add column "
+						sqlAlterTable = "alter table " + table + " add column if not exists "
 								+ column + "_acc double precision";
 						pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
 						log.info("Alter table: " + pstmtAlterTable.toString());					
@@ -8847,7 +8849,7 @@ public class GeneralUtilityMethods {
 			} else {
 
 				type = getPostgresColType(type, compressed);
-				String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
+				String sqlAlterTable = "alter table " + table + " add column if not exists " + column + " " + type + ";";
 				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
 				log.info("Alter table: " + pstmtAlterTable.toString());
 
