@@ -57,7 +57,9 @@ public class SurveyExchange extends Application {
 			@Context HttpServletResponse response,
 			@PathParam("sId") int sId,
 			@PathParam("filename") String filename,
-			@QueryParam("media") boolean media
+			@QueryParam("media") boolean media,
+			@QueryParam("start") int startRec,
+			@QueryParam("end") int endRec
 			) {
 		
 		Response responseVal = null;
@@ -116,7 +118,9 @@ public class SurveyExchange extends Application {
 					request,
 					filePath,
 					superUser,
-					media);
+					media,
+					startRec,
+					endRec);
 						
 			GeneralUtilityMethods.writeFilesToZipOutputStream(new ZipOutputStream(response.getOutputStream()), files);			
 			responseVal = Response.ok("").build();

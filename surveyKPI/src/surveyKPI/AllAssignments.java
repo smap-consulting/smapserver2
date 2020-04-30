@@ -942,7 +942,9 @@ public class AllAssignments extends Application {
 						request,
 						folderPath,
 						superUser,
-						true);
+						true,
+						0,		// startRec
+						0);		// endRec
 				
 				fileName = String.valueOf(UUID.randomUUID()) + ".zip";
 				filePath = basePath + "/temp/" + fileName;

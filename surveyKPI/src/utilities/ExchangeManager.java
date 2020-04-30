@@ -111,7 +111,9 @@ public class ExchangeManager {
 			HttpServletRequest request,
 			String dirPath,
 			boolean superUser,
-			boolean incMedia) throws Exception {
+			boolean incMedia,
+			int startRec,
+			int endRec) throws Exception {
 		
 		wb = new SXSSFWorkbook(10);
 		Sheet sheet = null;
@@ -172,6 +174,8 @@ public class ExchangeManager {
 					if(f.parent > 0) {
 						parentId = f.parent;
 					}
+					int level = getLevel(f, formList, 0);
+					
 					HashMap<String, String> selectMultipleColumnNames = new HashMap<String, String> ();
 					
 					// Get the list of table columns
@@ -270,7 +274,10 @@ public class ExchangeManager {
 								basePath,
 								dirPath,
 								files,
-								incMedia);
+								incMedia,
+								startRec,
+								endRec,
+								level);
 						
 					} catch(Exception e) {
 						// Ignore errors if the only problem is that the tables have not been created yet
@@ -306,6 +313,23 @@ public class ExchangeManager {
 		return files;
 	}
 	
+	/*
+	 * Get the level of a form
+	 * Forms that are the child of a child cannot be filtered by record number
+	 */
+	private int getLevel(FormDesc f, ArrayList <FormDesc> formList, int level) {
+		
+		if(f.parent > 0) {
+			level++;
+			for(FormDesc fx : formList) {
+				if(fx.f_id == f.parent) {					
+					level =  getLevel(fx, formList, level);
+					break;
+				}
+			}
+		}
+		return level;
+	}
 	/*
 	 * Get a sorted list of forms in order from parents to children
 	 */
@@ -599,23 +623,51 @@ public class ExchangeManager {
 			String basePath,
 			String dirPath,
 			ArrayList<FileDescription> files,
-			boolean incMedia) throws Exception {
+			boolean incMedia,
+			int startRec,
+			int endRec,
+			int level) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
 		ResultSet resultSet = null;
 		
+		sql.append("select ")
+			.append(f.columns)
+			.append(" from ")
+			.append(f.table_name)
+			.append(" where _bad is false"); 
 		/*
-		 * Retrieve the data for this table
+		 * Can only apply record filtering to first two levels
 		 */
-		sql.append("select ");
-		sql.append(f.columns);
-		sql.append(" from ");
-		sql.append(f.table_name);
-		sql.append(" where _bad is false order by prikey asc");		
+		ArrayList<Integer> params = new ArrayList<Integer> ();
+		if(level == 0) {
+			if(startRec > 0) {
+				sql.append(" and prikey >= ?");
+				params.add(startRec);
+			}
+			if(endRec > 0) {
+				sql.append(" and prikey <= ?");
+				params.add(endRec);
+			}
+		} else if(level == 1) {
+			if(startRec > 0) {
+				sql.append(" and parkey >= ?");
+				params.add(startRec);
+			}
+			if(endRec > 0) {
+				sql.append(" and parkey <= ?");
+				params.add(endRec);
+			}
+		}
+		sql.append(" order by prikey asc");		
 
 		try {
 			pstmt = connectionResults.prepareStatement(sql.toString());
+			int paramIdx = 1;
+			for(int p : params) {
+				pstmt.setInt(paramIdx++, p);
+			}
 			log.info("Get data: " + pstmt.toString());
 			
 			sd.setAutoCommit(false);		// page the results to reduce memory usage
