@@ -47,7 +47,6 @@ public class SurveyExchange extends Application {
 	LogManager lm = new LogManager();		// Application log
 	
 	ArrayList<StringBuffer> parentRows = null;
-
 	
 	Workbook wb = null;
 	

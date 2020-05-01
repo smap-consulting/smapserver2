@@ -151,6 +151,14 @@ public class XLSXAdminReportsNotifications {
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("a_target"));
 			
+			cell = row.createCell(colNumber++);	// Filter
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("filters"));
+			
+			cell = row.createCell(colNumber++);	// Attach
+			cell.setCellStyle(headerStyle);
+			cell.setCellValue(localisation.getString("attach"));
+			
 			cell = row.createCell(colNumber++);	// Details
 			cell.setCellStyle(headerStyle);
 			cell.setCellValue(localisation.getString("a_details"));
@@ -177,6 +185,12 @@ public class XLSXAdminReportsNotifications {
 				
 				cell = row.createCell(colNumber++);	// Target
 				cell.setCellValue(n.target);
+				
+				cell = row.createCell(colNumber++);	// Filter
+				cell.setCellValue(n.filter);
+				
+				cell = row.createCell(colNumber++);	// Attach
+				cell.setCellValue(n.notifyDetails.attach);
 
 				cell = row.createCell(colNumber++);	// Details
 				StringBuffer details = new StringBuffer("");
