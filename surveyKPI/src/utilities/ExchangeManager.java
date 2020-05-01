@@ -87,6 +87,9 @@ public class ExchangeManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
+	public static int MAX_EXPORT_MEDIA = 500;
+	public static int  MAX_EXPORT = 10000;
+	
 	private ResourceBundle localisation;
 	private String tz;
 	
@@ -660,7 +663,7 @@ public class ExchangeManager {
 				params.add(endRec);
 			}
 		}
-		sql.append(" order by prikey asc");		
+		sql.append(" order by prikey asc");
 
 		try {
 			pstmt = connectionResults.prepareStatement(sql.toString());
