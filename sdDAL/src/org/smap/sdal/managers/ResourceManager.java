@@ -112,7 +112,7 @@ public class ResourceManager {
 		return usage;
 	}
 	
-	public int getUsageSubmissions(Connection sd, int oId, int month, int year) throws SQLException {
+	public int getUsageSubmissionsMeasure(Connection sd, int oId, int month, int year) throws SQLException {
 		
 		String sql = "select  count(*) as total from upload_event ue, subscriber_event se "
 				+ "where ue.ue_id = se.ue_id "
@@ -143,6 +143,54 @@ public class ResourceManager {
 	}
 	
 	/*
+	 * Get the usage in the period
+	 */
+	public int getUsage(Connection sd, int oId,
+			String resource, int month, int year) throws SQLException {
+		
+		int usage = 0;
+		String period = String.valueOf(year) + String.valueOf(month);
+			
+		String sql = "select period, usage from resource_usage "
+				+ "where o_id = ? "
+				+ "and resource = ?";
+		PreparedStatement pstmt = null;
+			
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2, resource);
+			ResultSet rs = pstmt.executeQuery();
+				
+			if(rs.next()) {
+				String storedPeriod = rs.getString(1);
+				if(period.equals(storedPeriod)) {
+					// Resource usage table is up to date
+					usage = rs.getInt(2);
+				} else {
+					// A new period begins
+					usage = 0;
+					deleteUsage(sd, oId, resource, period);
+					updateUsage(sd, oId, resource, period, usage);
+				}
+			} else {
+				// Get the usage from the logs
+				if(resource.equals(LogManager.SUBMISSION)) {
+					usage = getUsageSubmissionsMeasure(sd, oId, month, year);
+				} else {
+					usage = getUsageMeasure(sd, oId, month, year, resource);
+				}
+				updateUsage(sd, oId, resource, period, usage);
+			}
+				
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
+	
+		return usage;
+	}
+	
+	/*
 	 * Check to see if the person can use the resource
 	 */
 	public boolean canUse(Connection sd, 
@@ -161,108 +209,8 @@ public class ResourceManager {
 			int year = d.getYear();
 			period = String.valueOf(year) + String.valueOf(month);
 			
-			String sql = "select period, usage from resource_usage "
-					+ "where o_id = ? "
-					+ "and resource = ?";
-			PreparedStatement pstmt = null;
-			
-			try {
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, oId);
-				pstmt.setString(2, resource);
-				ResultSet rs = pstmt.executeQuery();
-				
-				if(rs.next()) {
-					String storedPeriod = rs.getString(1);
-					if(period.equals(storedPeriod)) {
-						// Resource usage table is up to date
-						usage = rs.getInt(2);
-					} else {
-						// A new period begins
-						usage = 0;
-						deleteUsage(sd, oId, resource, period);
-						updateUsage(sd, oId, resource, period, usage);
-					}
-				} else {
-					// Get the usage from the logs
-					usage = getUsageMeasure(sd, oId, month, year, resource);
-					updateUsage(sd, oId, resource, period, usage);
-				}
-				
-				decision = usage < limit;
-				
-			} finally {
-				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-			}
-		}
-		
-		if(!decision) {
-			log.info("Usage denied. Period: " + period 
-					+ " Resource: " + resource 
-					+ " Limit: " + limit 
-					+ " Usage: " + usage);
-		}
-		
-		return decision;
-	}
-	
-	/*
-	 * Check to see if the person can submit for this organisation
-	 */
-	public boolean canSubmit(Connection sd, 
-			int oId,
-			String resource) throws SQLException {
-		
-		boolean decision = false;
-		int limit = getLimit(sd, oId, resource);
-		String period = "";
-		int usage = 0;
-		
-		// A limit of 0 means no restrictions
-		if(limit == 0) {
-			log.info("no limit");
-			return true;
-		} else {
-			
-			LocalDate d = LocalDate.now();
-			int month = d.getMonth().getValue();
-			int year = d.getYear();
-			period = String.valueOf(year) + String.valueOf(month);
-			
-			String sql = "select period, usage from resource_usage "
-					+ "where o_id = ? "
-					+ "and resource = ?";
-			PreparedStatement pstmt = null;
-			
-			try {
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, oId);
-				pstmt.setString(2, resource);
-				log.info("xxxxxxxxxxx " + pstmt.toString());
-				ResultSet rs = pstmt.executeQuery();
-				
-				if(rs.next()) {
-					String storedPeriod = rs.getString(1);
-					if(period.equals(storedPeriod)) {
-						// Resource usage table is up to date
-						usage = rs.getInt(2);
-					} else {
-						// A new period begins
-						usage = 0;
-						deleteUsage(sd, oId, resource, period);
-						updateUsage(sd, oId, resource, period, usage);
-					}
-				} else {
-					// Get the usage from the upload_event table
-					usage = getUsageSubmissions(sd, oId, month, year);
-					updateUsage(sd, oId, resource, period, usage);
-				}
-				
-				decision = usage <= limit;
-				
-			} finally {
-				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
-			}
+			usage = getUsage(sd, oId, resource, month, year);
+			decision = usage < limit;
 		}
 		
 		if(!decision) {

@@ -325,7 +325,7 @@ public class XFormData {
 			 * Throw an exception if the submission limit for an organisation has been reached
 			 */
 			ResourceManager rm = new ResourceManager();
-			if(!rm.canSubmit(sd, survey.o_id, LogManager.SUBMISSION)) {
+			if(!rm.canUse(sd, survey.o_id, LogManager.SUBMISSION)) {
 				String reason = localisation.getString("submission_limit");
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);

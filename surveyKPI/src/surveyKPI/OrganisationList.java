@@ -25,6 +25,7 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -44,6 +45,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
+import org.smap.sdal.managers.ResourceManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.DeviceSettings;
@@ -61,6 +63,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -1106,6 +1109,50 @@ public class OrganisationList extends Application {
 		}
 		
 		return response;
+	}
+	
+	/*
+	 * Get the usage for the current month of an organisation
+	 */
+	@GET
+	@Path("/usage/{org}")
+	@Produces("application/json")
+	public String getCurentUsage(@Context HttpServletRequest request,			
+			@PathParam("org") int oId) throws Exception { 
+	
+		String connectionString = "surveyKPI-Billing-getCurrentUsage";
+		
+		LocalDate d = LocalDate.now();
+		int month = d.getMonth().getValue();
+		int year = d.getYear();
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		HashMap<String, Integer> usage = new HashMap<> ();
+		
+		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		
+		try {
+					
+			ResourceManager rm = new ResourceManager();
+			
+			usage.put(LogManager.SUBMISSION, rm.getUsage(sd, oId, LogManager.SUBMISSION, month, year));
+			usage.put(LogManager.REKOGNITION, rm.getUsage(sd, oId, LogManager.REKOGNITION, month, year));
+			usage.put(LogManager.TRANSLATE, rm.getUsage(sd, oId, LogManager.TRANSLATE, month, year));
+			usage.put(LogManager.TRANSCRIBE, rm.getUsage(sd, oId, LogManager.TRANSCRIBE, month, year));
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw new Exception(e.getMessage());
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return gson.toJson(usage);
 	}
 
 }
