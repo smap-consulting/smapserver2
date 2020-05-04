@@ -1986,8 +1986,11 @@ public class GeneralUtilityMethods {
 
 		boolean reported = false;
 
-		String sqlReport = "select count(*) from upload_event " + "where user_name = ? " + "and imei = ? "
-				+ "and ident = ? " + "and reason = ?;";
+		String sqlReport = "select count(*) from upload_event " 
+				+ "where user_name = ? " 
+				+ "and imei = ? "
+				+ "and ident = ? " 
+				+ "and reason = ?;";
 
 		PreparedStatement pstmt = null;
 

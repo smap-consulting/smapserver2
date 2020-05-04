@@ -50,6 +50,7 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MailoutManager;
 import org.smap.sdal.managers.QuestionManager;
@@ -330,6 +331,10 @@ public class XFormData {
 				if (!GeneralUtilityMethods.hasUploadErrorBeenReported(sd, user, si.getImei(), templateName, reason)) {
 					writeUploadError(sd, user, survey, templateName, si, reason);
 				}
+				EmailManager em = new EmailManager();
+				String template = localisation.getString("submission_limit_email");
+				em.alertAdministrator(sd, survey.o_id, user, localisation, serverName, reason,
+						template, LogManager.SUBMISSION);
 
 				throw new ApplicationException("blocked::" + reason);
 			} else {

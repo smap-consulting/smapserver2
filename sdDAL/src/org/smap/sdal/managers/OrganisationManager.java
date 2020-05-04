@@ -177,6 +177,7 @@ public class OrganisationManager {
 					|| originalOrg.email_task != o.email_task
 					|| originalOrg.can_sms != o.can_sms) {
 				
+				EmailManager em = new EmailManager();			
 				EmailServer emailServer = null;
 				SubscriptionStatus subStatus = null;
 				
@@ -217,7 +218,6 @@ public class OrganisationManager {
 							}
 							
 							String sender = "";
-							EmailManager em = new EmailManager();
 							// Catch and log exceptions
 							try {
 								em.sendEmail(

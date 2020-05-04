@@ -42,8 +42,6 @@ public class ResourceManager {
 	
 	LogManager lm = new LogManager();		// Application log
 	
-
-	
 	/*
 	 * Get the limit for a resource
 	 */

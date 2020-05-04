@@ -1,5 +1,9 @@
 package org.smap.sdal.managers;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Properties;
 import java.util.ResourceBundle;
@@ -23,7 +27,12 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 
+import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Organisation;
+import org.smap.sdal.model.SubscriptionStatus;
 
 /*****************************************************************************
 
@@ -52,6 +61,8 @@ public class EmailManager {
 	private static Logger log =
 			Logger.getLogger(EmailManager.class.getName());
 
+	LogManager lm = new LogManager();		// Application log
+	
 	/*
 	 * Add an authenticator class
 	 */
@@ -325,8 +336,240 @@ public class EmailManager {
 			String msg = me.getMessage();
 			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 		}
+	}
+	
+	/*
+	 * Send an email alert to an administrator
+	 */
+	public void alertAdministrator(Connection sd, int oId, String userIdent, 
+			ResourceBundle localisation,
+			String serverName,
+			String subject,
+			String template,
+			String type) throws SQLException, ApplicationException {
+		
+		EmailManager em = new EmailManager();			
+		EmailServer emailServer = null;
+		SubscriptionStatus subStatus = null;
+		
+		if(!alertEmailSent(sd, oId, type)) {
+			Organisation org = GeneralUtilityMethods.getOrganisation(sd, oId);
+			if(org.admin_email != null) {
+				emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
+				if(emailServer.smtpHost != null) {
+					
+					PeopleManager pm = new PeopleManager(localisation);
+					subStatus = pm.getEmailKey(sd, oId, org.getAdminEmail());
+					if(subStatus.unsubscribed) {
+						// Person has unsubscribed
+						String msg = localisation.getString("email_us");
+						msg = msg.replaceFirst("%s1", org.getAdminEmail());
+						log.info(msg);
+					} else {
+						
+						// Replace tokens in template
+						if(org.limits != null) {
+							String submissionLimit = "0";
+							try {
+								submissionLimit = String.valueOf(org.limits.get(LogManager.SUBMISSION));
+							} catch (Exception e) {}
+							template = template.replace("${submission_limit}", submissionLimit);
+						}
+						template = template.replace("${org_name}", org.name);
+						
+								
+						// Catch and log exceptions
+						try {
+							em.sendEmailHtml(
+									org.getAdminEmail(), 
+									"org_alert", 
+									subject, 
+									template, 
+									null, 
+									null, 
+									emailServer,
+									serverName,
+									subStatus.emailKey,
+									localisation,
+									org.server_description,
+									org.name);
+						} catch(Exception e) {
+							lm.writeLogOrganisation(sd, oId, userIdent, LogManager.EMAIL, e.getMessage(), 0);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	// Send an email using HTML format
+	public void sendEmailHtml( 
+			String email, 
+			String type, 
+			String subject,
+			String template,
+			String filePath,	// The next two parameters are for an attachment TODO make an array
+			String filename,
+			EmailServer emailServer,
+			String serverName,
+			String emailKey,
+			ResourceBundle localisation,
+			String serverDescription,
+			String organisationName) throws Exception  {
 
+		if(emailServer.smtpHost == null) {
+			throw new Exception("Cannot send email, smtp_host not available");
+		}
 
+		RecipientType rt = null;
+		String sender = "";
+		try {
+			Properties props = System.getProperties();
+			props.put("mail.smtp.host", emailServer.smtpHost);	
+
+			Authenticator authenticator = null;
+
+			// Create an authenticator if the user name and password is available
+			if(emailServer.emailUser != null && emailServer.emailPassword != null 
+					&& emailServer.emailUser.trim().length() > 0 
+					&& emailServer.emailPassword.trim().length() > 0) {
+				String authUser = emailServer.emailUser + "@" + emailServer.emailDomain;
+				authenticator = new Authenticator(authUser, emailServer.emailPassword);
+				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
+				props.setProperty("mail.smtp.auth", "true");
+				props.setProperty("mail.smtp.starttls.enable", "true");
+				if(emailServer.emailPort > 0) {
+					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
+				} else {
+					props.setProperty("mail.smtp.port", "587");	
+				}
+
+				sender = emailServer.emailUser;
+
+				log.info("Trying to send email with authentication");
+			} else {
+				if(emailServer.emailPort > 0) {
+					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
+				} else {
+					// Use default port (25?)
+				}
+				log.info("No authentication");
+			}
+
+			props.setProperty("mail.smtp.connectiontimeout", "60000");
+			props.setProperty("mail.smtp.timeout", "60000");
+			props.setProperty("mail.smtp.writetimeout", "60000");
+			Session session = Session.getInstance(props, authenticator);
+			Message msg = new MimeMessage(session);
+			if(type.equals("notify")) {
+				rt = Message.RecipientType.BCC;
+			} else {
+				rt = Message.RecipientType.TO;
+			}
+
+			log.info("Sending to email addresses: " + email);
+			InternetAddress[] emailArray = InternetAddress.parse(email);
+			log.info("Number of email addresses: " + emailArray.length);
+			msg.setRecipients(rt,	emailArray);
+			msg.setSubject(subject);
+
+			sender = sender + "@" + emailServer.emailDomain;
+
+			log.info("Sending email from: " + sender);
+			msg.setFrom(InternetAddress.parse(sender, false)[0]);
+			
+			// Add unsubscribe
+			StringBuffer unsubscribe = new StringBuffer();
+			if(emailKey != null) {	
+				unsubscribe.append("<p style=\"color:blue;text-align:center;\">")
+						.append("<a href=\"https://")
+						.append(serverName)
+						.append("/subscriptions.html?token=")
+						.append(emailKey)
+						.append("\">")
+						.append(localisation.getString("c_unsubscribe"))
+						.append("</a>")
+						.append("</p>");		
+						
+				template = template.replace("${unsubscribe}", unsubscribe.toString());
+			} else {
+				template = template.replace("${unsubscribe}", "");
+			}
+			
+			Multipart multipart = new MimeMultipart();
+			
+			// Add body part
+			MimeBodyPart messageBodyPart = new MimeBodyPart();
+			messageBodyPart.setText(template, "utf-8", "html");
+			multipart.addBodyPart(messageBodyPart);
+
+			// Add file attachments if they exist
+			if(filePath != null) {			 
+				messageBodyPart = new MimeBodyPart();
+				DataSource source = new FileDataSource(filePath);
+				messageBodyPart.setDataHandler(new DataHandler(source));
+				messageBodyPart.setFileName(filename);
+				multipart.addBodyPart(messageBodyPart);
+			}
+
+			msg.setContent(multipart);
+
+			msg.setHeader("X-Mailer", "msgsend");
+			log.info("Sending email from: " + sender);
+			Transport.send(msg);
+
+		} catch(AuthenticationFailedException ae) { 
+			throw new Exception(localisation.getString("email_cs") + ":  " + localisation.getString("ae"));
+		} catch(MessagingException me) {
+			log.log(Level.SEVERE, "Messaging Exception", me);
+			String msg = me.getMessage();
+			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
+		}
+	}
+	
+	boolean alertEmailSent(Connection sd, int oId, String type) throws SQLException {
+		boolean sent = false;
+		String sql = "select count(*) from email_alerts "
+				+ "where o_id = ? "
+				+ "and alert_type = ? "
+				+ "and (alert_recorded > now() - interval '1 day')";
+		PreparedStatement pstmt = null;
+		
+		String sqlDel = "delete from email_alerts "
+				+ "where o_id = ? "
+				+ "and alert_type = ?";
+		PreparedStatement pstmtDel = null;
+		
+		String sqlAdd = "insert into email_alerts "
+				+ "(o_id, alert_type, alert_recorded) values(?, ?, now())";
+		PreparedStatement pstmtAdd = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, oId);
+			pstmt.setString(2,  type);
+			
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next() && rs.getInt(1) > 0) {
+				sent = true;
+			} else {
+				pstmtDel = sd.prepareStatement(sqlDel);
+				pstmtDel.setInt(1, oId);
+				pstmtDel.setString(2,  type);
+				pstmtDel.executeUpdate();
+				
+				pstmtAdd = sd.prepareStatement(sqlAdd);
+				pstmtAdd.setInt(1, oId);
+				pstmtAdd.setString(2,  type);
+				pstmtAdd.executeUpdate();
+			}
+			
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+			if(pstmtDel != null) {try {pstmtDel.close();} catch(Exception e) {}}
+			if(pstmtAdd != null) {try {pstmtAdd.close();} catch(Exception e) {}}
+		}
+		return sent;
 	}
 }
 
