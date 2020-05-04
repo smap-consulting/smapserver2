@@ -1284,7 +1284,6 @@ public class Surveys extends Application {
 			) { 
 		
 		log.info("translate survey:" + sId + " : " + fromCode + " : " + toCode);
-		
 		String connectionString = "surey-KPI - Translate Survey";
 		
 		// Authorisation - Access
