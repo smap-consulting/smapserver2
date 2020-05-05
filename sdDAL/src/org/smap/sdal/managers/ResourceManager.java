@@ -200,6 +200,11 @@ public class ResourceManager {
 		String period = "";
 		int usage = 0;
 		
+		// A limit of 0 for submissions means no restrictions
+		if(limit == 0 && resource.equals(LogManager.SUBMISSION)) {
+			return true;
+		}
+		
 		if(limit > 0) {
 			
 			LocalDate d = LocalDate.now();

@@ -69,7 +69,7 @@ public class SqlFrag {
 		 * This SQL Fragment may actually be text without quotes
 		 * If so then wrap in single quotes
 		 */
-		in = in.replace("''", "#####xx#####");	// Escape double single quotes first
+		in = escapeDoubledQuotesInText(in);	// Escape double single quotes first
 		in = checkForText(in);
 		
 		/*
@@ -316,5 +316,44 @@ public class SqlFrag {
 		} 
 		msg.append(partB);
 		return msg.toString();
+	}
+	
+	private String escapeDoubledQuotesInText(String in) {
+		
+		System.out.println("In: " + in);
+		StringBuilder out = new StringBuilder();
+		boolean inQuote = false;
+		boolean quoteFound = false;
+		boolean doubleQuoteFound = false;
+		for(int i = 0; i < in.length(); i++) {
+			char c = in.charAt(i);
+			if(c == '\'') {
+				if(quoteFound) {
+					doubleQuoteFound = true;
+				}
+				quoteFound = true;
+			} else {
+				if(doubleQuoteFound) {
+					if(inQuote) {
+						out.append("#####xx#####");
+					} else {
+						out.append("''");
+					}
+				} else if(quoteFound) {
+					out.append("'");
+					inQuote = !inQuote;
+				}
+				quoteFound = false;
+				doubleQuoteFound = false;
+				out.append(c);
+			}					
+		}
+		if(doubleQuoteFound) {
+			out.append("''");
+		} else if(quoteFound) {
+			out.append("'");
+		}
+
+		return out.toString();
 	}
 }
