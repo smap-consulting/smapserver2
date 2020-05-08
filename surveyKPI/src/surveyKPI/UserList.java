@@ -436,6 +436,7 @@ public class UserList extends Application {
 			String sql = null;
 			int o_id;
 			String adminName = null;
+			String adminEmail = null;
 			ResultSet resultSet = null;
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
@@ -445,7 +446,7 @@ public class UserList extends Application {
 			/*
 			 * Get the organisation and name of the user making the request
 			 */
-			sql = "SELECT u.o_id, u.name " +
+			sql = "SELECT u.o_id, u.name, u.email " +
 					" FROM users u " +  
 					" WHERE u.ident = ?";				
 						
@@ -455,7 +456,8 @@ public class UserList extends Application {
 			resultSet = pstmt.executeQuery();
 			if(resultSet.next()) {
 				o_id = resultSet.getInt(1);
-				adminName = resultSet.getString(2);			
+				adminName = resultSet.getString(2);	
+				adminEmail = resultSet.getString(3);
 				
 				for(int i = 0; i < uArray.size(); i++) {
 					User u = uArray.get(i);
@@ -477,6 +479,7 @@ public class UserList extends Application {
 								request.getScheme(),
 								request.getServerName(),
 								adminName,
+								adminEmail,
 								localisation);
 								
 					} else {
@@ -747,7 +750,7 @@ public class UserList extends Application {
 				/*
 				 * Get the organisation and name of the user making the request
 				 */
-				String sql = "select u.o_id, u.name "
+				String sql = "select u.o_id, u.name, u.email "
 						+ "from users u " 
 						+ "where u.ident = ?";				
 							
@@ -758,6 +761,7 @@ public class UserList extends Application {
 				if(resultSet.next()) {
 					int oId = resultSet.getInt(1);
 					String adminName = resultSet.getString(2);	
+					String adminEmail = resultSet.getString(3);	
 				
 					String scheme = request.getScheme();
 					String serverName = request.getServerName();
@@ -789,7 +793,7 @@ public class UserList extends Application {
 							
 							um.createUser(sd, u, oId, 
 									false, false, false, false, 
-									request.getRemoteUser(), scheme, serverName, adminName, localisation);
+									request.getRemoteUser(), scheme, serverName, adminName, adminEmail, localisation);
 							added.add(u.name);
 						} catch (Exception e) {
 							log.info("Falied to add user " + u.name + " : " + e.getMessage());

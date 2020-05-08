@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -206,38 +207,6 @@ public class EmailManager {
 				txtMessage.append(adminEmail);
 				txtMessage.append(".");
 
-			} else if(type.equals("newuser")) {
-
-				txtMessage.append(adminName).append(" ");
-				txtMessage.append(localisation.getString("email_hga1")).append(" ");
-				if(serverDescription == null) {
-					txtMessage.append(localisation.getString("email_hga2")).append(" ");
-				} else {
-					txtMessage.append(serverDescription).append(" ");
-				}
-				txtMessage.append(localisation.getString("email_hga3")).append(" ");
-				txtMessage.append(scheme).append("://");
-				txtMessage.append(serverName);
-				txtMessage.append("\n");
-				txtMessage.append(localisation.getString("email_sp"));
-				txtMessage.append(" " + scheme + "://");
-				txtMessage.append(serverName);
-				txtMessage.append("/resetPassword.html?token=");
-				txtMessage.append(password_uuid);
-				txtMessage.append("\n\n");
-				txtMessage.append(localisation.getString("email_un"));
-				txtMessage.append(": ");
-				txtMessage.append(identString.toString());
-				txtMessage.append("\n\n");
-				txtMessage.append(localisation.getString("email_vf"));
-				txtMessage.append(" ");
-				txtMessage.append(interval);
-				txtMessage.append("\n");
-				txtMessage.append(localisation.getString("email_dnr"));
-				txtMessage.append(" ");
-				txtMessage.append(adminEmail);
-				txtMessage.append(".");	
-
 			} else if(type.equals("notify")) {
 				txtMessage.append(localisation.getString("email_ian"));
 				txtMessage.append(" " + scheme + "://");
@@ -345,15 +314,20 @@ public class EmailManager {
 			ResourceBundle localisation,
 			String serverName,
 			String subject,
-			String template,
+			StringBuilder template,
 			String type) throws SQLException, ApplicationException {
 		
 		EmailManager em = new EmailManager();			
 		EmailServer emailServer = null;
 		SubscriptionStatus subStatus = null;
+		String content = null;
+		HashMap<String, String> customTokens = new HashMap<> ();
 		
 		if(!alertEmailSent(sd, oId, type)) {
 			Organisation org = GeneralUtilityMethods.getOrganisation(sd, oId);
+			template = template.append(" ").append(org.getEmailFooter());
+			content = template.toString();
+			
 			if(org.admin_email != null) {
 				emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
 				if(emailServer.smtpHost != null) {
@@ -367,32 +341,30 @@ public class EmailManager {
 						log.info(msg);
 					} else {
 						
-						// Replace tokens in template
+						// Add custom tokens
 						if(org.limits != null) {
 							String submissionLimit = "0";
 							try {
 								submissionLimit = String.valueOf(org.limits.get(LogManager.SUBMISSION));
 							} catch (Exception e) {}
-							template = template.replace("${submission_limit}", submissionLimit);
+							customTokens.put("${submission_limit}", submissionLimit);
 						}
-						template = template.replace("${org_name}", org.name);
 						
 								
 						// Catch and log exceptions
 						try {
 							em.sendEmailHtml(
 									org.getAdminEmail(), 
-									"org_alert", 
+									"bcc", 
 									subject, 
-									template, 
+									content, 
 									null, 
 									null, 
 									emailServer,
 									serverName,
 									subStatus.emailKey,
 									localisation,
-									org.server_description,
-									org.name);
+									customTokens);
 						} catch(Exception e) {
 							lm.writeLogOrganisation(sd, oId, userIdent, LogManager.EMAIL, e.getMessage(), 0);
 						}
@@ -405,7 +377,7 @@ public class EmailManager {
 	// Send an email using HTML format
 	public void sendEmailHtml( 
 			String email, 
-			String type, 
+			String ccType, 
 			String subject,
 			String template,
 			String filePath,	// The next two parameters are for an attachment TODO make an array
@@ -414,8 +386,7 @@ public class EmailManager {
 			String serverName,
 			String emailKey,
 			ResourceBundle localisation,
-			String serverDescription,
-			String organisationName) throws Exception  {
+			HashMap<String, String> tokens) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -461,7 +432,7 @@ public class EmailManager {
 			props.setProperty("mail.smtp.writetimeout", "60000");
 			Session session = Session.getInstance(props, authenticator);
 			Message msg = new MimeMessage(session);
-			if(type.equals("notify")) {
+			if(ccType.equals("bcc")) {
 				rt = Message.RecipientType.BCC;
 			} else {
 				rt = Message.RecipientType.TO;
@@ -494,6 +465,13 @@ public class EmailManager {
 				template = template.replace("${unsubscribe}", unsubscribe.toString());
 			} else {
 				template = template.replace("${unsubscribe}", "");
+			}
+			
+			/*
+			 * Perform custom token replacements
+			 */
+			for(String token : tokens.keySet()) {
+				template = template.replace(token, tokens.get(token));
 			}
 			
 			Multipart multipart = new MimeMultipart();

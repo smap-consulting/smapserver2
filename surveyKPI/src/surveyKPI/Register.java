@@ -161,6 +161,7 @@ public class Register extends Application {
 					request.getScheme(),
 					request.getServerName(),
 					rd.admin_name,
+					null,
 					localisation);			 
 
 			 // 3. Create a default project

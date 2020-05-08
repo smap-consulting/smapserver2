@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -406,6 +407,7 @@ public class UserManager {
 			String scheme,
 			String serverName,
 			String adminName,
+			String adminEmail,
 			ResourceBundle localisation) throws Exception {
 
 		// Before creating the user check that email is available if it has been requested
@@ -461,32 +463,55 @@ public class UserManager {
 				Organisation organisation = UtilityMethodsEmail.getOrganisationDefaults(sd, null, userIdent);
 
 				String subject = localisation.getString("email_ac") + " " + serverName;
-				String interval = "48 hours";
-				String uuid = UtilityMethodsEmail.setOnetimePassword(sd, pstmt, u.email, interval);
-				ArrayList<String> idents = UtilityMethodsEmail.getIdentsFromEmail(sd, pstmt, u.email);
-				String sender = "newuser";
+				String uuid = UtilityMethodsEmail.setOnetimePassword(sd, pstmt, u.email, "48 hours");
 				EmailManager em = new EmailManager();
-				em.sendEmail(
+				
+				HashMap<String, String> customTokens = new HashMap<> ();
+				StringBuilder template = new StringBuilder(localisation.getString("email_newuser"));
+				template.append(" ").append(localisation.getString("email_un2"));
+				if(adminEmail != null) {
+					template.append(" ").append(localisation.getString("email_dnr2"));
+				}
+				template.append(" ").append(organisation.getEmailFooter());
+				String content = template.toString();
+				String serverUrl = scheme + "://" + serverName;
+				
+				// add custom tokens
+				customTokens.put("${admin}", adminName);
+				if(organisation.server_description == null || organisation.server_description.trim().isEmpty()) {
+					organisation.server_description = localisation.getString("email_hga2");
+				} 
+				customTokens.put("${server_description}", organisation.server_description);
+				customTokens.put("${server_url}", serverUrl);
+				
+				StringBuilder passwordUrl = new StringBuilder("");
+				passwordUrl.append("<a href=\"https://")
+				.append(serverName)
+				.append("/resetPassword.html?token=")
+				.append(uuid)
+				.append("\">")
+				.append(localisation.getString("email_link"))
+				.append("</a>");
+				customTokens.put("${set_password_url}", passwordUrl.toString());
+				
+				customTokens.put("${user_ident}", u.ident);
+				customTokens.put("${valid_for}", "48");
+				customTokens.put("${admin_email}",adminEmail);
+
+				log.info("Content: " + content);
+				log.info("tokens: " + customTokens.toString());
+				em.sendEmailHtml(
 						u.email, 
-						uuid, 
-						"newuser", 
+						"bcc", 
 						subject, 
+						content, 
 						null, 
-						sender, 
-						adminName, 
-						interval, 
-						idents, 
 						null, 
-						null,
-						null,
-						organisation.getAdminEmail(), 
 						emailServer,
-						scheme,
 						serverName,
 						subStatus.emailKey,
 						localisation,
-						organisation.server_description,
-						organisation.name);
+						customTokens);
 
 			}
 			
