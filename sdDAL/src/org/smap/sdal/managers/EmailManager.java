@@ -471,7 +471,11 @@ public class EmailManager {
 			 * Perform custom token replacements
 			 */
 			for(String token : tokens.keySet()) {
-				template = template.replace(token, tokens.get(token));
+				String val = tokens.get(token);
+				if(val == null) {
+					val = "";
+				}
+				template = template.replace(token, val);
 			}
 			
 			Multipart multipart = new MimeMultipart();
