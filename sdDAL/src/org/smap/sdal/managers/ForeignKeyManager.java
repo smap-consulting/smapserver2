@@ -208,13 +208,15 @@ public class ForeignKeyManager {
 										try {	// Continue on error
 											count = pstmtInsertKey.executeUpdate();
 										} catch (Exception e) {
-											log.log(Level.SEVERE, e.getMessage(), e);
+											String msg = e.getMessage();
+											if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
+												// Ignore Table has not been created yet - not an issue
+											} else {
+												log.log(Level.SEVERE, e.getMessage(), e);
+											}					
 										}
 										if(count == 0) {
-											pstmtResult.setString(1, "error: failed to set key");
-											pstmtResult.setInt(2, id);
-											log.info("error: failed to set key");
-											pstmtResult.executeUpdate();
+											log.info("xxxxxxxxx Foreign key not found - maybe it has not been submited yet");
 										} else {
 											pstmtResult.setString(1, "ok: applied");
 											pstmtResult.setInt(2, id);

@@ -363,6 +363,7 @@ public class Data extends Application {
 			 * Hack - some older clients still pass the survey id rather than the ident
 			 * Until these are fixed handle either
 			 */
+			log.info("Get data records for survey ident: " + sIdent);
 			if(sIdent.startsWith("s")) {
 				sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);		// Ident - the correct way
 			} else {
