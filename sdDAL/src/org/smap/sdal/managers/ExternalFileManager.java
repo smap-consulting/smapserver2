@@ -345,6 +345,7 @@ public class ExternalFileManager {
 					if(rs != null) {
 						rs.close();
 					}
+					log.info("####### Getting chart data: " + pstmtData.toString());
 					rs = pstmtData.executeQuery();
 
 					BufferedWriter bw = new BufferedWriter(
@@ -587,13 +588,18 @@ public class ExternalFileManager {
 		ArrayList<String> subTables = new ArrayList<>();
 		HashMap<Integer, Integer> forms = new HashMap<>();
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
+		String dateColumn = null;
 
 		ResultSet rs = null;
-		String sqlGetCol = "select column_name, f_id from question " + "where qname = ? " + "and published "
+		String sqlGetCol = "select column_name, f_id, qtype from question " 
+				+ "where qname = ? " 
+				+ "and published "
 				+ "and f_id in (select f_id from form where s_id = ?)";
 		PreparedStatement pstmtGetCol = null;
 
-		String sqlGetTable = "select f_id, table_name from form " + "where s_id = ? " + "and parentform = ?";
+		String sqlGetTable = "select f_id, table_name from form " 
+				+ "where s_id = ? " 
+				+ "and parentform = ?";
 		PreparedStatement pstmtGetTable = null;
 
 		try {
@@ -619,11 +625,13 @@ public class ExternalFileManager {
 					continue; // Generated not extracted
 				}
 				String colName = null;
+				String qType = null;
 				pstmtGetCol.setString(1, name);
 				rs = pstmtGetCol.executeQuery();
 				if (rs.next()) {
 					colName = rs.getString(1);
 					fId = rs.getInt(2);
+					qType = rs.getString(3);
 				} else if(SmapServerMeta.isServerReferenceMeta(name)) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;
@@ -632,6 +640,9 @@ public class ExternalFileManager {
 				}
 				colNames.add(colName);
 				forms.put(fId, fId);
+				if(qType != null && qType.equals("date") || qType.equals("dateTime")) {
+					dateColumn = colName;
+				}
 
 				if (!first) {
 					sql.append(",");
@@ -686,8 +697,10 @@ public class ExternalFileManager {
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
 			if(chart_key != null) {
-				sql.append(" order by ");
-				sql.append(chart_key);
+				sql.append(" order by ").append(chart_key);
+				if(dateColumn != null) {
+					sql.append(",").append(dateColumn);
+				}
 				sql.append(" asc");
 			} else if (linked_s_pd) {
 				sql.append(" order by _data_key");

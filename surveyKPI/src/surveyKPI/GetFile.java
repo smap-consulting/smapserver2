@@ -1,7 +1,5 @@
 package surveyKPI;
 
-
-
 /*
 This file is part of SMAP.
 
@@ -261,7 +259,6 @@ public class GetFile extends Application {
 		log.info("Get File: " + filename + " for survey: " + sId);
 		
 		Response r = null;
-
 		
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection("Get Survey File");
@@ -284,6 +281,7 @@ public class GetFile extends Application {
 			}
 			filepath += filename;
 			
+			log.info("File path: " + filepath);
 			FileManager fm = new FileManager();
 			fm.getFile(response, filepath, filename);
 			
@@ -298,10 +296,6 @@ public class GetFile extends Application {
 		
 		return r;
 	}
-	
-
-	
-
 	
 	/*
 	 * Get the file at the organisation level
