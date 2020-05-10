@@ -840,7 +840,7 @@ public class Survey {
 			if(q.type.equals("select")) {
 				pstmt.setBoolean(29, q.compressed);
 			} else {
-				pstmt.setBoolean(29, false);
+				pstmt.setBoolean(29, true);
 			}
 			pstmt.setString(30,  q.display_name);
 			pstmt.setString(31,  q.intent);

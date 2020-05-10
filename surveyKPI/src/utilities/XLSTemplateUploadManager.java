@@ -807,9 +807,7 @@ public class XLSTemplateUploadManager {
 		q.display_name = XLSUtilities.getTextColumn(row, "display_name", surveyHeader, lastCellNum, null); 
 		
 		// 18. Compressed
-		if(q.type.equals("select")) {
-			q.compressed = true;
-		} 
+		q.compressed = true;
 		
 		// 19. body::intent
 		q.intent = XLSUtilities.getTextColumn(row, "body::intent", surveyHeader, lastCellNum, null);

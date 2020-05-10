@@ -271,11 +271,7 @@ public class QuestionManager {
 				pstmtInsertQuestion.setString(25, nodeset_value);
 				pstmtInsertQuestion.setString(26, nodeset_label);
 				pstmtInsertQuestion.setString(27, q.display_name);
-				if(q.type.equals("select") || q.type.equals("rank")) {
-					pstmtInsertQuestion.setBoolean(28, true);		// All select questions now default to compressed
-				} else {
-					pstmtInsertQuestion.setBoolean(28, false);
-				}
+				pstmtInsertQuestion.setBoolean(28, true);		// All select questions now default to compressed
 				pstmtInsertQuestion.setString(29, q.intent);
 				pstmtInsertQuestion.setString(30, q.getSetValueArrayAsString(gson));
 				
@@ -1898,8 +1894,6 @@ public class QuestionManager {
 				q.display_name = rsGetQuestions.getString(28);
 				q.fId = rsGetQuestions.getInt(29);
 				q.compressed = rsGetQuestions.getBoolean(30);				
-				//String exChoices = rsGetQuestions.getString(31);
-				//String exTable = rsGetQuestions.getString(32);
 				q.l_id = rsGetQuestions.getInt(33);
 				q.intent = rsGetQuestions.getString(34);
 				q.style_list = rsGetQuestions.getString(35);

@@ -13,7 +13,7 @@ public class ColDesc {
 	public String displayName;
 	public ArrayList<OptionDesc> optionLabels = null;		// Used for Stata generation
 	public ArrayList<KeyValue>  choices = null;			// Used for compressing select multiples
-	public boolean compressed = false;
+	public boolean compressed;
 	public boolean selectDisplayNames = false;
 	
 	public ColDesc(String n, String db_type, String qType, String label, 
