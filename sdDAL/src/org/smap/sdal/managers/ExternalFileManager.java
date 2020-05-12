@@ -101,7 +101,7 @@ public class ExternalFileManager {
 	 * Create a linked file
 	 */
 	public boolean createLinkedFile(Connection sd, Connection cRel, int sId, // The survey that contains the manifest item
-			String filename, String filepath, String userName, String tz) throws Exception {
+			String filename, String filepath, String userName, String tz) {
 
 		ResultSet rs = null;
 		boolean linked_s_pd = false;
@@ -247,8 +247,10 @@ public class ExternalFileManager {
 				}
 
 				// 5. Get the sql
+				log.info("------------------------------------ get sql");
 				RoleManager rm = new RoleManager(localisation);
 				SqlDef sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, userName, rm, chart_key);
+				log.info("------------------------------------ sql retrieved");
 				pstmtData = cRel.prepareStatement(sqlDef.sql);
 				int paramCount = 1;
 				if (sqlDef.hasRbacFilter) {
@@ -640,7 +642,7 @@ public class ExternalFileManager {
 				}
 				colNames.add(colName);
 				forms.put(fId, fId);
-				if(qType != null && qType.equals("date") || qType.equals("dateTime")) {
+				if(qType != null && (qType.equals("date") || qType.equals("dateTime"))) {
 					dateColumn = colName;
 				}
 
@@ -720,6 +722,9 @@ public class ExternalFileManager {
 				sql.append(" asc");
 			}
 
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw e;
 		} finally {
 			if (pstmtGetCol != null)
 				try {
