@@ -582,7 +582,7 @@ public class PDFSurveyManager {
 						log.info("No field for image (Mapbox not called: " + fieldName);
 					}
 				
-				} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")) {
+				} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
 					PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
 				
 				} else {				
@@ -1633,7 +1633,7 @@ public class PDFSurveyManager {
 				// TODO add empty image
 			}
 
-		} else if (di.type.equals("video") || di.type.equals("audio")) {
+		} else if (di.type.equals("video") || di.type.equals("audio") || di.type.equals("file")) {
 			if(di.value != null && !di.value.trim().equals("") && !di.value.trim().equals("Unknown")) {
 				Anchor anchor = new Anchor(serverRoot + di.value);
 				anchor.setReference(serverRoot + di.value);
