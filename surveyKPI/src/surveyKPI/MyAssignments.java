@@ -760,7 +760,6 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
 		PreparedStatement pstmtUpdateId = null;
-		PreparedStatement pstmtRepeats = null;
 		PreparedStatement pstmtUnassignedRejected = null;
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
@@ -780,10 +779,6 @@ public class MyAssignments extends Application {
 					+ "where id = ? "
 					+ "and update_id is null";
 			pstmtUpdateId = sd.prepareStatement(sqlUpdateId);
-			
-			String sqlRepeats = "update tasks set repeat_count = repeat_count + 1 "
-					+ "where id = ?";
-			pstmtRepeats = sd.prepareStatement(sqlRepeats);
 			
 			sd.setAutoCommit(false);
 			for(TaskAssignment ta : tr.taskAssignments) {
@@ -814,9 +809,6 @@ public class MyAssignments extends Application {
 					log.info("+++++++++++++++ Updating task updateId: " + pstmtUpdateId.toString());
 					pstmtUpdateId.executeUpdate();	
 
-					pstmtRepeats.setInt(1, ta.task.id);
-					log.info("+++++++++++++++ Updating repeats: " + pstmtRepeats.toString());
-					pstmtRepeats.executeUpdate();
 				} else {
 					log.info("Error: assignment id is zero");
 				}
@@ -908,7 +900,6 @@ public class MyAssignments extends Application {
 			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 			try {if ( pstmtUpdateId != null ) { pstmtUpdateId.close(); }} catch (Exception e) {}
-			try {if ( pstmtRepeats != null ) { pstmtRepeats.close(); }} catch (Exception e) {}
 			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}
 
 			SDDataSource.closeConnection(connectionString, sd);
