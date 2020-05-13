@@ -291,12 +291,13 @@ public class OrganisationManager {
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, ft_image_size, ft_send, ft_delete, "
-				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, changed_ts) "
+				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
+				+ "ft_high_res_video, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?,"
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, now());";
+				+ "?, ?, ?, ?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -369,6 +370,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(35, o.can_sms);
 			pstmt.setBoolean(36, o.send_optin);
 			pstmt.setString(37, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setString(38, "not set");		// High Resolution Video
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

@@ -446,7 +446,8 @@ public class OrganisationList extends Application {
 				+ "ft_exit_track_menu, "
 				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation,"
 				+ "ft_navigation,"
-				+ "ft_pw_policy "
+				+ "ft_pw_policy,"
+				+ "ft_high_res_video "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -476,6 +477,7 @@ public class OrganisationList extends Application {
 				d.ft_backward_navigation = rs.getString(12);
 				d.ft_navigation = rs.getString(13);
 				d.ft_pw_policy = rs.getInt(14);
+				d.ft_high_res_video = rs.getString(15);
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -641,6 +643,7 @@ public class OrganisationList extends Application {
 				+ " ft_backward_navigation = ?, "
 				+ " ft_navigation = ?, "
 				+ "ft_pw_policy = ?, "
+				+ "ft_high_res_video = ?, "
 				+ "changed_by = ?, "
 				+ "changed_ts = now() "
 				+ "where "
@@ -670,8 +673,9 @@ public class OrganisationList extends Application {
 			pstmt.setString(12, d.ft_backward_navigation);
 			pstmt.setString(13, d.ft_navigation);
 			pstmt.setInt(14, d.ft_pw_policy);
-			pstmt.setString(15, request.getRemoteUser());
-			pstmt.setInt(16, oId);
+			pstmt.setString(15, d.ft_high_res_video);
+			pstmt.setString(16, request.getRemoteUser());
+			pstmt.setInt(17, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();
