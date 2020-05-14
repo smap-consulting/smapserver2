@@ -1142,8 +1142,8 @@ public class WebForm extends Application {
 			output.append("<button id='submit-form-single' class='btn btn-primary btn-large lang' data-lang='formfooter.submit.btn'>Submit</button>\n");
 		}
 		if (surveyClass != null && surveyClass.contains("pages")) {
-			output.append("<a class='lang previous-page disabled' data-lang='form.pages.back' href='#'>Back</a>\n");
-			output.append("<a class='lang next-page' data-lang='form.pages.next' href='#'>Next</span></a>\n");
+			output.append("<button class='btn previous-page disabled' href='#'><<<</button>\n");
+			output.append("<button class='btn next-page' href='#'>>>></span></button>\n");
 		}
 		output.append(
 				"<div class=\"enketo-power\" style=\"margin-bottom: 30px;\"><span class='lang' data-lang='enketo.power'>Powered by</span> <a href=\"http://enketo.org\" title=\"enketo.org website\"><img src=\"/images/enketo_bare_150x56.png\" alt=\"enketo logo\" /></a> </div>");
