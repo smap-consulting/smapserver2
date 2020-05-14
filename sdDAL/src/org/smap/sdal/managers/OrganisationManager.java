@@ -551,6 +551,9 @@ public class OrganisationManager {
 				webform.page_background_color = "#f0f0f0";
 				webform.paper_background_color = "#fff";
 				webform.footer_horizontal_offset = 5;
+				webform.button_background_color = "#ce4f07";
+				webform.header_text_color = "#ce4f07";
+				webform.button_text_color = "fff";
 			}
 			
 		} finally {			

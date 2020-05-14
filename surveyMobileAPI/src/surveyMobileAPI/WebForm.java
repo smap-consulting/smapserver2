@@ -721,6 +721,20 @@ public class WebForm extends Application {
 			}
 			output.append(".form-footer .enketo-power {position:absolute; right: " + options.footer_horizontal_offset + "px}");
 
+			if((options.button_background_color != null && options.button_background_color.trim().length() > 0) ||
+					(options.button_text_color != null && options.button_text_color.trim().length() > 0)) {
+				output.append(".btn,.btn.disabled, .btn.disabled:hover {");
+				if(options.button_background_color != null && options.button_background_color.trim().length() > 0) {
+					output.append("background-color: " + options.button_background_color +";");
+				}
+				if(options.button_text_color != null && options.button_text_color.trim().length() > 0) {
+					output.append("color: " + options.button_text_color + ";");
+				}
+				output.append("}");
+			}
+			if(options.header_text_color != null && options.header_text_color.trim().length() > 0) {
+				output.append(".or > h3, .or > h4, .or-group > h4 {color: " + options.header_text_color + "}");
+			}
 			output.append("</style>");
 		}
 		output.append("<link rel='shortcut icon' href='/favicon.ico'>\n");

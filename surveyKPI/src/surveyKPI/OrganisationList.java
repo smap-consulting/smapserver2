@@ -735,6 +735,24 @@ public class OrganisationList extends Application {
 				throw new ApplicationException("Invalid hex color: " + webform.paper_background_color);
 			}
 		}
+		if(webform.button_background_color != null && webform.button_background_color.trim().length() > 0) {
+			matcher = pattern.matcher(webform.button_background_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + webform.button_background_color);
+			}
+		}
+		if(webform.button_text_color != null && webform.button_text_color.trim().length() > 0) {
+			matcher = pattern.matcher(webform.button_text_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + webform.button_text_color);
+			}
+		}
+		if(webform.header_text_color != null && webform.header_text_color.trim().length() > 0) {
+			matcher = pattern.matcher(webform.header_text_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + webform.header_text_color);
+			}
+		}
 	
 		String sql = "update organisation set " +			
 				" webform = ? " +
