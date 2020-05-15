@@ -33,5 +33,6 @@ public class DeviceSettings {
 	public int ft_pw_policy;
 	public String ft_backward_navigation;
 	public String ft_navigation;
+	public String ft_guidance;
 	public String ft_high_res_video;
 }

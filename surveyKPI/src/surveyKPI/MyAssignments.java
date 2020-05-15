@@ -609,7 +609,8 @@ public class MyAssignments extends Application {
 					+ "o.ft_backward_navigation,"
 					+ "o.ft_navigation,"
 					+ "o.ft_pw_policy,"
-					+ "o.ft_high_res_video "
+					+ "o.ft_high_res_video,"
+					+ "o.ft_guidance "
 					+ "from organisation o, users u "
 					+ "where u.o_id = o.id "
 					+ "and u.ident = ?");
@@ -641,6 +642,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_navigation = resultSet.getString(13);
 				tr.settings.ft_pw_policy = resultSet.getInt(14);
 				tr.settings.ft_high_res_video = resultSet.getString(15);
+				tr.settings.ft_guidance = resultSet.getString(16);
 				tr.settings.ft_location_trigger = true;
 			}
 

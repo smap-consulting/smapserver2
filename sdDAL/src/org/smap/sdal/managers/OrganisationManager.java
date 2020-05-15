@@ -290,12 +290,13 @@ public class OrganisationManager {
 				+ "allow_email, allow_facebook, allow_twitter, can_edit, email_task, "
 				+ "changed_by, admin_email, smtp_host, email_domain, email_user, email_password, "
 				+ "email_port, default_email_content, website, locale, timezone, "
-				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, ft_image_size, ft_send, ft_delete, "
+				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
+				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
 				+ "ft_high_res_video, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?,"
+				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
@@ -357,20 +358,21 @@ public class OrganisationManager {
 			pstmt.setInt(26, o.e_id);
 			pstmt.setString(27, "not set");		// backward navigation
 			pstmt.setString(28, "not set");		// screen navigation
-			pstmt.setString(29, "not set");		// image size
-			pstmt.setString(30, "not set");		// send automatically
-			pstmt.setString(31, "not set");		// FT delete after sending
-			pstmt.setString(32, "not set");		// Send location
-			pstmt.setInt(33, -1);				// Never require re-entry of FT password
+			pstmt.setString(29, "not set");		// Guidance
+			pstmt.setString(30, "not set");		// image size
+			pstmt.setString(31, "not set");		// send automatically
+			pstmt.setString(32, "not set");		// FT delete after sending
+			pstmt.setString(33, "not set");		// Send location
+			pstmt.setInt(34, -1);				// Never require re-entry of FT password
 			String navBarColor = o.appearance.navbar_color;
 			if(navBarColor == null) {
 				navBarColor =  Organisation.DEFAULT_NAVBAR_COLOR;
 			}
-			pstmt.setString(34,navBarColor);
-			pstmt.setBoolean(35, o.can_sms);
-			pstmt.setBoolean(36, o.send_optin);
-			pstmt.setString(37, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setString(38, "not set");		// High Resolution Video
+			pstmt.setString(35,navBarColor);
+			pstmt.setBoolean(36, o.can_sms);
+			pstmt.setBoolean(37, o.send_optin);
+			pstmt.setString(38, o.limits == null ? null : gson.toJson(o.limits));
+			pstmt.setString(39, "not set");		// High Resolution Video
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
