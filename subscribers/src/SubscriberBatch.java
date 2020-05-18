@@ -1158,7 +1158,8 @@ public class SubscriberBatch {
 				+ "ppl.name, "
 				+ "m.content, "
 				+ "m.subject,"
-				+ "mp.initial_data "
+				+ "mp.initial_data, "
+				+ "mp.link "
 				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
 				+ "where mp.m_id = m.id "
 				+ "and mp.p_id = ppl.id "
@@ -1193,23 +1194,26 @@ public class SubscriberBatch {
 				String content = rs.getString("content");
 				String subject = rs.getString("subject");
 				String initialData = rs.getString("initial_data");
+				String link = rs.getString("link");
 				
 				ResourceBundle localisation = locMap.get(surveyIdent);
 				
-				// Create an action to complete the mailed out form
-				ActionManager am = new ActionManager(localisation, "UTC");
-				Action action = new Action("mailout");
-				action.surveyIdent = surveyIdent;
-				action.pId = pId;
-				action.single = true;
-				action.mailoutPersonId = id;
-				action.email = email;
-				
-				if(initialData != null) {
-					action.initialData = gson.fromJson(initialData, Instance.class);
+				if(link == null) { 
+					// Create an action to complete the mailed out form if a link does not already exist
+					ActionManager am = new ActionManager(localisation, "UTC");
+					Action action = new Action("mailout");
+					action.surveyIdent = surveyIdent;
+					action.pId = pId;
+					action.single = true;
+					action.mailoutPersonId = id;
+					action.email = email;
+					
+					if(initialData != null) {
+						action.initialData = gson.fromJson(initialData, Instance.class);
+					}
+					
+					link = am.getLink(sd, action, oId, true);
 				}
-				
-				String link = am.getLink(sd, action, oId, true);
 				
 				// Add user name to content
 				if(content == null) {
@@ -1278,7 +1282,7 @@ public class SubscriberBatch {
 				+ "where temporary "
 				+ "and single_submission "
 				+ "and (created < now() - interval '" + interval + " days') "
-				+ "limit 100";  // Apply progressively incase a large number expire simulataneously
+				+ "limit 100";  // Apply progressively incase a large number expire simultaneously
 		
 		PreparedStatement pstmt = null;
 		

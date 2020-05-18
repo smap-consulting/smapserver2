@@ -311,7 +311,7 @@ public class MailoutSvc extends Application {
 	public Response sendMailouts(@Context HttpServletRequest request,
 			@PathParam("mailoutId") int mailoutId,
 			@QueryParam("retry") boolean retry
-			) { 
+			) {
 
 		Response response = null;
 		String connectionString = "surveyKPI-Send Emails";
@@ -329,6 +329,47 @@ public class MailoutSvc extends Application {
 						
 			MailoutManager mm = new MailoutManager(localisation);
 			mm.sendEmails(sd, mailoutId, retry); 
+				
+			response = Response.ok("").build();
+				
+		} catch (Exception e) {
+			
+			log.log(Level.SEVERE,"Error: ", e);
+		    response = Response.serverError().build();
+		    
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Generate links for any emails without links
+	 */
+	@GET
+	@Path("/gen/{mailoutId}")
+	public Response genMailoutLInks(@Context HttpServletRequest request,
+			@PathParam("mailoutId") int mailoutId
+			) { 
+
+		Response response = null;
+		String connectionString = "surveyKPI-Generatate Email Links";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidMailout(sd, request.getRemoteUser(), mailoutId);
+		// End Authorisation
+		
+		try {
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+						
+			MailoutManager mm = new MailoutManager(localisation);
+			mm.genEmailLinks(sd, mailoutId, request.getServerName());
 				
 			response = Response.ok("").build();
 				

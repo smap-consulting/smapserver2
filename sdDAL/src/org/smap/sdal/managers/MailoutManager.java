@@ -10,6 +10,8 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -19,6 +21,7 @@ import javax.mail.internet.InternetAddress;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.Action;
 import org.smap.sdal.model.EmailServer;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Mailout;
@@ -537,6 +540,77 @@ public class MailoutManager {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
 		
+		return;
+	}
+	
+	/*
+	 * Generate the links for a mailout
+	 */
+	public void genEmailLinks(Connection sd, int mailoutId, String serverName) throws Exception {
+		
+		// Sql to get mailouts
+		String sql = "select "
+				+ "mp.id, "
+				+ "p.o_id, "
+				+ "m.survey_ident, "
+				+ "p.id as p_id, "
+				+ "ppl.email, "
+				+ "mp.initial_data "
+				+ "from mailout_people mp, mailout m, people ppl, survey s, project p "
+				+ "where mp.m_id = m.id "
+				+ "and mp.p_id = ppl.id "
+				+ "and m.survey_ident = s.ident "
+				+ "and s.p_id = p.id "
+				+ "and mp.link is null ";
+		PreparedStatement pstmt = null;
+		
+		// SQL to record the link
+		String sqlLinkCreated = "update mailout_people set link = ? where id = ?";
+		PreparedStatement pstmtLinkCreated = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmtLinkCreated = sd.prepareStatement(sqlLinkCreated);
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			ActionManager am = new ActionManager(localisation, "UTC");
+
+			log.info("----- Gen mailout links: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while (rs.next()) {		
+				int id = rs.getInt("id");
+				int oId = rs.getInt("o_id");
+				String surveyIdent = rs.getString("survey_ident");
+				int pId = rs.getInt("p_id");
+				String email = rs.getString("email");
+				String initialData = rs.getString("initial_data");
+				
+				// Create the action 					
+				Action action = new Action("mailout");
+				action.surveyIdent = surveyIdent;
+				action.pId = pId;
+				action.single = true;
+				action.mailoutPersonId = id;
+				action.email = email;
+					
+				if(initialData != null) {
+					action.initialData = gson.fromJson(initialData, Instance.class);
+				}
+					
+				String link = am.getLink(sd, action, oId, true);
+				
+				// record the sending of the notification
+				pstmtLinkCreated.setString(1, "https://" + serverName + "/webForm" + link);
+				pstmtLinkCreated.setInt(2, id);
+				log.info("Generate link: " + pstmtLinkCreated.toString());
+				pstmtLinkCreated.executeUpdate();
+				
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			try {if (pstmtLinkCreated != null) {pstmtLinkCreated.close();}} catch (SQLException e) {}
+		}
 		return;
 	}
 	
