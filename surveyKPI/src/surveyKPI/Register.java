@@ -109,7 +109,7 @@ public class Register extends Application {
 			o.company_name = rd.org_name;
 			o.website = rd.website;
 			o.can_edit = true;
-			o.can_notify = false;
+			o.can_notify = true;
 			o.can_use_api = true;
 			o.can_submit = true;
 			o.appearance.set_as_theme = false;
