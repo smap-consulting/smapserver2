@@ -685,8 +685,12 @@ public class GetXForm {
 				} else {
 
 					questionElement = outputDoc.createElement(q.getName());
-					if (q.getDefaultAnswer() != null) {
-						questionElement.setTextContent(q.getDefaultAnswer());
+					String def = q.getDefaultAnswer();
+					if (def != null && def.length() > 0) {
+						if(qType.equals("image") && !def.startsWith("jr://")) {
+							def = "jr://images/" + def;
+						}
+						questionElement.setTextContent(def);
 					}
 
 					currentParent.appendChild(questionElement);
