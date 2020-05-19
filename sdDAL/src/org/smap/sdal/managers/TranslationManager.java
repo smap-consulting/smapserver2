@@ -43,10 +43,18 @@ public class TranslationManager {
 			 Logger.getLogger(TranslationManager.class.getName());
 
 	private String manifestQuerySql = 
-			" from translation t, survey s " +
-					" where s.s_id = t.s_id " +
-					" and (t.type = 'image' or t.type = 'video' or t.type = 'audio') " +
-					" and t.s_id = ?; ";
+			" from translation t, survey s "
+					+ "where s.s_id = t.s_id "
+					+ "and (t.type = 'image' or t.type = 'video' or t.type = 'audio') "
+					+ "and t.s_id = ?";
+	
+	private String defaultImageSql = 
+			"from question q, form f "
+					+ "where q.f_id = f.f_id "
+					+ "and f.s_id = ? "
+					+ "and q.qtype = 'image' "
+					+ "and q.defaultanswer is not null "
+					+ "and q.defaultanswer != ''";
 	
 	public List<ManifestValue> getManifestBySurvey(Connection sd, 
 			String user, 
@@ -62,6 +70,10 @@ public class TranslationManager {
 		String sqlQuestionLevel = "select t.text_id, t.type, t.value " +
 				manifestQuerySql;
 		PreparedStatement pstmtQuestionLevel = null;
+		
+		String sqlDefaultImage = "select q.defaultanswer " +
+				defaultImageSql;
+		PreparedStatement pstmtDefaultImage = null;
 		
 		try {
 			
@@ -98,12 +110,44 @@ public class TranslationManager {
 			List<ManifestValue> surveyManifests = getSurveyManifests(sd, surveyId, surveyIdent, basePath, oId, false);
 			manifests.addAll(surveyManifests);
 			
+			/*
+			 * Get default image sql
+			 */
+			pstmtDefaultImage = sd.prepareStatement(sqlDefaultImage);	 			
+			pstmtDefaultImage.setInt(1, surveyId);
+
+			rs = pstmtDefaultImage.executeQuery();
+				
+			while (rs.next()) {		
+				System.out.println("Default value: " + rs.getString(1));
+				
+				ManifestValue m = new ManifestValue();
+				m.sId = surveyId;
+				m.type = "image";
+				m.value = rs.getString(1);
+				
+				if(m.value != null) {
+					// Get file name from value (Just for legacy, new media should be stored as the file name only)
+					int idx = m.value.lastIndexOf('/');	
+					m.fileName = m.value.substring(idx + 1);					
+					UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, basePath, oId, surveyId);		// Url will be null if file does not exist
+					
+					// Make sure we have not already added this file (Happens with multiple languages referencing the same file)
+					if(files.get(m.fileName) == null) {
+						files.put(m.fileName, m.fileName);
+						manifests.add(m);
+					}
+				}
+			}
+			
+			
 			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
 		} finally {
 			if (pstmtQuestionLevel != null) { try {pstmtQuestionLevel.close();} catch (SQLException e) {}}
+			if (pstmtDefaultImage != null) { try {pstmtDefaultImage.close();} catch (SQLException e) {}}
 		}
 		
 		return manifests;
@@ -285,8 +329,13 @@ public class TranslationManager {
 		// Test for a survey level manifest
 		String sqlSurveyLevel = "select manifest from survey where s_id = ? and manifest is not null";
 		
+		// Test for default images
+		String sqlDefaultImages = "select count(*) " +
+				defaultImageSql;
+		
 		PreparedStatement pstmtQuestionLevel = null;
 		PreparedStatement pstmtSurveyLevel = null;
+		PreparedStatement pstmtDefaultImages = null;
 		
 		try {
 			ResultSet resultSet = null;
@@ -316,12 +365,29 @@ public class TranslationManager {
 					}
 				}
 			}
+			
+			if(!hasManifest) {
+				/*
+				 * Test for default images
+				 */
+				pstmtDefaultImages = sd.prepareStatement(sqlDefaultImages);
+				pstmtDefaultImages.setInt(1, surveyId);
+				
+				resultSet = pstmtDefaultImages.executeQuery();
+				if(resultSet.next()) {
+					if(resultSet.getInt(1) > 0) {
+						hasManifest = true;
+					}
+				}
+			}
+			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
 		} finally {
 			if (pstmtQuestionLevel != null) { try {pstmtQuestionLevel.close();} catch (SQLException e) {}}
 			if (pstmtSurveyLevel != null) { try {pstmtSurveyLevel.close();} catch (SQLException e) {}}
+			if (pstmtDefaultImages != null) { try {pstmtDefaultImages.close();} catch (SQLException e) {}}
 		}
 		
 		return hasManifest;	
