@@ -6014,7 +6014,7 @@ public class GeneralUtilityMethods {
 				log.info("Table does not exist");
 			} else if(msg.contains("syntax error at or near \"not\"")) {
 				log.info("Obsolete version of postgres");
-				// A hack to allow an old version of postgres to stil work
+				// A hack to allow an old version of Postgres to still work
 				sql = "alter table " + tablename + " add column " + columnName + " " + type;
 				try {
 					try {if (pstmt != null) {pstmt.close();}} catch (Exception exx) {}
@@ -9402,6 +9402,43 @@ public class GeneralUtilityMethods {
 			code = lcm.getCodeFromLanguage(lName);
 		}
 		return code;
+	}
+	
+	/*
+	 * Adjust by the specified amount
+	 * Assumes colour is in rgb, with a pound sign and 6 digits
+	 */
+	public static String adjustColor(String rgb, int amt) {
+		
+		rgb = rgb.substring(1);	// remove pound sign
+	    int ivalue = Integer.parseInt(rgb,16);
+	 
+	    int red = (ivalue >> 16) + amt;
+	 
+	    if (red > 255) {
+	    	red = 255;
+	    } else if  (red < 0) {
+	    	red = 0;
+	    }
+	 
+	    int blue = ((ivalue >> 8) & 0x00FF) + amt;
+	 
+	    if (blue > 255) {
+	    	blue = 255;
+	    } else if  (blue < 0) {
+	    	blue = 0;
+	    }
+	 
+	    int green = (ivalue & 0x0000FF) + amt;
+	 
+	    if (green > 255) {
+	    	green = 255;
+	    } else if (green < 0) {
+	    	green = 0;
+	    }
+	 
+	    return "#" + Integer.toHexString(green | (blue << 8) | (red << 16));
+	  
 	}
 }
 

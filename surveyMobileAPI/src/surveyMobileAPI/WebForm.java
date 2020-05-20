@@ -765,16 +765,27 @@ public class WebForm extends Application {
 			}
 			output.append(".form-footer .enketo-power {position:absolute; right: " + options.footer_horizontal_offset + "px}");
 
+			// Set the background button colors
 			if((options.button_background_color != null && options.button_background_color.trim().length() > 0) ||
 					(options.button_text_color != null && options.button_text_color.trim().length() > 0)) {
-				output.append(".btn,.btn.disabled, .btn.disabled:hover {");
+				
+				output.append(".btn,.btn.disabled, .btn:focus {");
 				if(options.button_background_color != null && options.button_background_color.trim().length() > 0) {
 					output.append("background-color: " + options.button_background_color +";");
+					output.append("border-color: " + GeneralUtilityMethods.adjustColor(options.button_background_color, 20) +";");
 				}
 				if(options.button_text_color != null && options.button_text_color.trim().length() > 0) {
 					output.append("color: " + options.button_text_color + ";");
 				}
 				output.append("}");
+				
+				if(options.button_background_color != null && options.button_background_color.trim().length() > 0) {
+					output.append("button.btn:hover, button.btn.disabled:hover, button.btn.disabled:focus {");
+					output.append("background-color: " + options.button_background_color +";");
+					output.append("filter: brightness(180%);");
+					output.append("}");
+				}
+			
 			}
 			if(options.header_text_color != null && options.header_text_color.trim().length() > 0) {
 				output.append(".or > h3, .or > h4, .or-group > h4 {color: " + options.header_text_color + "}");
@@ -817,7 +828,7 @@ public class WebForm extends Application {
 
 		return output;
 	}
-
+	
 	/*
 	 * Add the data
 	 */
