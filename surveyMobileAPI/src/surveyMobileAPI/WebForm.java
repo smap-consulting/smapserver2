@@ -650,13 +650,13 @@ public class WebForm extends Application {
 	/*
 	 * Add the HTML
 	 */
-	private StringBuffer addDocument(HttpServletRequest request, String instanceXML,
+	private String addDocument(HttpServletRequest request, String instanceXML,
 			String dataToEditId, int assignmentId, String surveyClass, int orgId, String accessKey, 
 			boolean superUser,
 			boolean single)
 			throws TransformerFactoryConfigurationError, Exception {
 
-		StringBuffer output = new StringBuffer();
+		StringBuilder output = new StringBuilder();
 
 		output.append("<!DOCTYPE html>\n");
 
@@ -675,9 +675,53 @@ public class WebForm extends Application {
 		output.append(addBody(request, dataToEditId, orgId, surveyClass, superUser));
 
 		output.append("</html>\n");
-		return output;
+		String html = postProcessHtml(output);		// Set URL links and replace escaped XML
+		
+		return html;
 	}
 
+	/*
+	 * 
+	 */
+	private String postProcessHtml(StringBuilder output) {
+		
+		String html = output.toString();
+		
+		// Convert escaped XML into HTML
+		html = html.replaceAll("&gt;", ">");
+		html = html.replaceAll("&lt;", "<");
+		html = html.replaceAll("\\\\\\\\", "\\\\");
+		
+		String dynamic = "";
+		if(isTemporaryUser) {
+			dynamic = "/id/" + userIdent;		
+		}
+		for (int i = 0; i < manifestList.size(); i++) {
+			log.info(manifestList.get(i).fileName + " : " + manifestList.get(i).url + " : "
+					+ manifestList.get(i).type);
+			String type = manifestList.get(i).type;
+			String name = manifestList.get(i).fileName;
+			String url = manifestList.get(i).url;
+			if (type.equals("image")) {
+				type = "images";
+			}
+			
+			if (url != null) {
+				if (mimeType.equals("json")) {
+					ManifestValue mv = new ManifestValue(); // Create a new version of the manifest to send to a
+															// client that doesn't have unneeded data
+					mv.type = type;
+					mv.fileName = name;
+					mv.url = url;
+					jr.manifestList.add(mv);
+				} else {
+					url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
+					html = html.replace("jr://" + type + "/" + name, url);
+				}
+			}
+		}
+		return html;
+	}
 	/*
 	 * Add the head section
 	 */
@@ -905,40 +949,6 @@ public class WebForm extends Application {
 
 		GetHtml getHtml = new GetHtml(localisation);
 		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, gRecordCounts);
-
-		// Convert escaped XML into HTML
-		html = html.replaceAll("&gt;", ">");
-		html = html.replaceAll("&lt;", "<");
-		html = html.replaceAll("\\\\\\\\", "\\\\");
-		
-		String dynamic = "";
-		if(isTemporaryUser) {
-			dynamic = "/id/" + userIdent;		
-		}
-		for (int i = 0; i < manifestList.size(); i++) {
-			log.info(manifestList.get(i).fileName + " : " + manifestList.get(i).url + " : "
-					+ manifestList.get(i).type);
-			String type = manifestList.get(i).type;
-			String name = manifestList.get(i).fileName;
-			String url = manifestList.get(i).url;
-			if (type.equals("image")) {
-				type = "images";
-			}
-			
-			if (url != null) {
-				if (mimeType.equals("json")) {
-					ManifestValue mv = new ManifestValue(); // Create a new version of the manifest to send to a
-															// client that doesn't have unneeded data
-					mv.type = type;
-					mv.fileName = name;
-					mv.url = url;
-					jr.manifestList.add(mv);
-				} else {
-					url = url.replaceFirst("/surveyKPI/file", "/surveyKPI/file" + dynamic);
-					html = html.replace("jr://" + type + "/" + name, url);
-				}
-			}
-		}
 
 		output.append(html);
 

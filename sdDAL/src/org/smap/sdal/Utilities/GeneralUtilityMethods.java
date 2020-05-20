@@ -6012,6 +6012,17 @@ public class GeneralUtilityMethods {
 				log.info("Column already exists");
 			} else if(msg.contains("does not exist")) {
 				log.info("Table does not exist");
+			} else if(msg.contains("syntax error at or near \"not\"")) {
+				log.info("Obsolete version of postgres");
+				// A hack to allow an old version of postgres to stil work
+				sql = "alter table " + tablename + " add column " + columnName + " " + type;
+				try {
+					try {if (pstmt != null) {pstmt.close();}} catch (Exception exx) {}
+					pstmt = conn.prepareStatement(sql);
+					pstmt.executeUpdate();
+				} catch (Exception ex) {
+					// Ignore
+				}
 			} else {
 				throw e;
 			}
