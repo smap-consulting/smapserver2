@@ -152,7 +152,7 @@ public class WebForm extends Application {
 	/*
 	 * Get instance data. Respond with JSON
 	 * The data is identified by the form and the unique updateid for the record
-	 * The json includes an instance XML as a string
+	 * The JSON includes an instance XML as a string
 	 */
 	@GET
 	@Path("/instance/{ident}/{updateid}")

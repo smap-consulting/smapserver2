@@ -320,7 +320,7 @@ public class SurveyTableManager {
 	 */
 	public Option getLineAsOption(String oValue, 
 			ArrayList<LanguageItem> items,
-			HashMap<String, String> wfFilterColumns) throws SQLException {
+			ArrayList<KeyValueSimp> wfFilterColumns) throws SQLException {
 		Option o = null;
 		
 		if(rs != null && rs.next()) {
@@ -345,8 +345,8 @@ public class SurveyTableManager {
 				
 				if(wfFilterColumns != null) {
 					o.cascade_filters = new HashMap<>();
-					for(String fc : wfFilterColumns.keySet()) {
-						o.cascade_filters.put(fc, rs.getString(fc)); 
+					for(KeyValueSimp fc : wfFilterColumns) {
+						o.cascade_filters.put(fc.k, rs.getString(fc.k)); 
 					}
 				}
 			}
@@ -821,7 +821,7 @@ public class SurveyTableManager {
 	}
 
 	public ArrayList<Option> getChoices(String ovalue, ArrayList<LanguageItem> languageItems, 
-			HashMap<String, String> wfFilterColumns) throws SQLException {
+			ArrayList<KeyValueSimp> wfFilterColumns) throws SQLException {
 		ArrayList<Option> choices = new ArrayList<> ();
 		
 		Option o = null;
@@ -830,10 +830,9 @@ public class SurveyTableManager {
 			StringBuffer uniqueChoice = new StringBuffer("");
 			uniqueChoice.append(o.value);
 			if(wfFilterColumns != null) {
-				for(String fc : wfFilterColumns.keySet()) {					
-					String fv = wfFilterColumns.get(fc);
-					o.cascade_filters.put(fc, fv); 
-					uniqueChoice.append(":::").append(fv);
+				for(KeyValueSimp fc : wfFilterColumns) {	
+					o.cascade_filters.put(fc.k, fc.v); 
+					uniqueChoice.append(":::").append(fc.v);
 				}
 			}
 			if(choicesLoaded.get(uniqueChoice.toString()) == null) {

@@ -79,6 +79,7 @@ import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
+import org.smap.sdal.model.Search;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
@@ -4905,7 +4906,7 @@ public class GeneralUtilityMethods {
 			ArrayList<String> matches,
 			String surveyIdent,
 			String tz,
-			HashMap<String, String> wfFilters) throws Exception {
+			ArrayList<KeyValueSimp> wfFilters) throws Exception {
 
 		ArrayList<Option> choices = null;		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
@@ -6828,9 +6829,10 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the search filter questions
 	 */
-	public static HashMap<String, String> getSearchFiltersFromAppearance(String appearance) {
-		HashMap<String, String> filters = null;
-
+	public static Search getSearchFiltersFromAppearance(String appearance) {
+		
+		Search search = new Search();
+		
 		if (appearance != null && appearance.toLowerCase().trim().contains("search(")) {
 			int idx1 = appearance.indexOf('(');
 			int idx2 = appearance.indexOf(')');
@@ -6839,17 +6841,19 @@ public class GeneralUtilityMethods {
 				String criteriaString = appearance.substring(idx1 + 1, idx2);
 				log.info("#### criteria for csv filter: " + criteriaString);
 				String criteria[] = criteriaString.split(",");
+				if (criteria.length >= 2) {
+					search.fn = criteria[1];
+				}
 				if (criteria.length >= 4) {
-					filters = new HashMap<>();
-					filters.put(criteria[2].trim().replace("\'", ""), criteria[3].trim().replace("\'", ""));
+					search.filters.add(new KeyValueSimp(criteria[2].trim().replace("\'", ""), criteria[3].trim().replace("\'", "")));
 				}
 				if (criteria.length >= 6) {
-					filters.put(criteria[4].trim().replace("\'", ""), criteria[5].trim().replace("\'", ""));
+					search.filters.add(new KeyValueSimp(criteria[4].trim().replace("\'", ""), criteria[5].trim().replace("\'", "")));
 				}
 			}
 		}
 
-		return filters;
+		return search;
 	}
 	
 	/*

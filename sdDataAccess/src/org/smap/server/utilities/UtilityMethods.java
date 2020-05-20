@@ -14,6 +14,8 @@ import org.smap.model.IE;
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.KeyValueSimp;
+import org.smap.sdal.model.Search;
 import org.smap.server.entities.Option;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -305,11 +307,11 @@ public class UtilityMethods {
 		String out = nodeset;
 		
 		if(embedExternalSearch) {
+			
 			// Potentially add a filter using the appearance value to the nodeset
+			Search search = GeneralUtilityMethods.getSearchFiltersFromAppearance(appearance);
 
-			HashMap<String, String> filters = GeneralUtilityMethods.getSearchFiltersFromAppearance(appearance);
-
-			if(filters != null) {
+			if(search.filters.size() > 0) {
 				log.info("Add filter from: " + appearance + " to: " + nodeset);
 
 				if(out != null) {
@@ -321,15 +323,15 @@ public class UtilityMethods {
 
 					int count = 0;
 					out += "[ ";
-					for(String k : filters.keySet()) {
+					for(KeyValueSimp kv : search.filters) {
 						if(count++ > 0) {
 							out += " and ";
 						}
-						String v = filters.get(k);
-						if(v.trim().startsWith("${")) {
-							out += k + " = " + filters.get(k) ;			// A question
+						
+						if(kv.v.trim().startsWith("${")) {
+							out += kv.k + " = " + kv.v ;			// A question
 						} else {
-							out += k + " = '" + filters.get(k) + "'";	// A string
+							out += kv.k + " = '" + kv.v + "'";		// A string
 						}
 						
 					}

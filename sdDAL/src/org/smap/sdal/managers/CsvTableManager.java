@@ -373,7 +373,7 @@ public class CsvTableManager {
 	public ArrayList<Option> getChoices(int oId, int sId, String fileName, String ovalue, 
 			ArrayList<LanguageItem> items,
 			ArrayList<String> matches,
-			HashMap<String, String> wfFilters) throws SQLException, ApplicationException {
+			ArrayList<KeyValueSimp> wfFilters) throws SQLException, ApplicationException {
 		
 		ArrayList<Option> choices = null;
 		
@@ -549,7 +549,7 @@ public class CsvTableManager {
 	 * Read the choices out of a file - CSV files are now stored in tables
 	 */
 	private ArrayList<Option> readChoicesFromTable(int tableId, String ovalue, ArrayList<LanguageItem> items,
-			ArrayList<String> matches, String filename, HashMap<String, String> wfFilterColumns) throws SQLException, ApplicationException {
+			ArrayList<String> matches, String filename, ArrayList<KeyValueSimp> wfFilterColumns) throws SQLException, ApplicationException {
 			
 		ArrayList<Option> choices = new ArrayList<Option> ();
 		
@@ -571,8 +571,8 @@ public class CsvTableManager {
 			}
 			// Get filter values for webforms
 			if(wfFilterColumns != null) {
-				for(String fc : wfFilterColumns.keySet()) {
-					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(fc));
+				for(KeyValueSimp fc : wfFilterColumns) {
+					sql.append(",").append(GeneralUtilityMethods.cleanNameNoRand(fc.k));
 				}
 			}
 			sql.append(" from ").append(table);
@@ -639,9 +639,9 @@ public class CsvTableManager {
 					
 				if(wfFilterColumns != null) {
 					o.cascade_filters = new HashMap<>();
-					for(String fc : wfFilterColumns.keySet()) {					
+					for(KeyValueSimp fc : wfFilterColumns) {					
 						String fv = rsx.getString(idx++);
-						o.cascade_filters.put(fc, fv); 
+						o.cascade_filters.put(fc.k, fv); 
 						uniqueChoice.append(":::").append(fv);
 					}
 				}

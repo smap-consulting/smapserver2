@@ -1690,7 +1690,7 @@ public class GetHtml {
 	 */
 	private String getNodeset(Question q, Form form) throws Exception {		
 		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
-				false /*(form.parentform > 0)*/);		// In our of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
+				false /*(form.parentform > 0)*/);		// In our version of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
 		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
 				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
 		return adjustedNodeset;
@@ -1703,8 +1703,6 @@ public class GetHtml {
 
 		if (q.nodeset == null || q.nodeset.trim().length() == 0) {
 			return false;
-		//} else if(GeneralUtilityMethods.hasExternalChoices(sd, q.id)) {
-		//	return false;	// External choices won't use a nodeset
 		} else if(q.type.equals("rank")) {
 			return false;
 		} else {

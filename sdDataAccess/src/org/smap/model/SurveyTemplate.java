@@ -20,6 +20,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.Search;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.Option;
@@ -1650,7 +1651,7 @@ public class SurveyTemplate {
 		
 		ArrayList<Option> options = new ArrayList<Option> ();
 		try {
-			q.filters = 
+			Search search = 
 					GeneralUtilityMethods.getSearchFiltersFromAppearance(q.getAppearance(false, questionPaths));
 	
 			ArrayList<org.smap.sdal.model.Option> oList = GeneralUtilityMethods.getExternalChoices(
@@ -1659,7 +1660,7 @@ public class SurveyTemplate {
 					localisation, 
 					user, 
 					oId, 
-					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", q.filters);
+					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", search.filters);
 			
 			int idx = 0;
 			if(oList != null) {
