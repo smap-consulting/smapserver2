@@ -6842,7 +6842,7 @@ public class GeneralUtilityMethods {
 				log.info("#### criteria for csv filter: " + criteriaString);
 				String criteria[] = criteriaString.split(",");
 				if (criteria.length >= 2) {
-					search.fn = criteria[1];
+					search.fn = criteria[1].trim().replace("\'", "");
 				}
 				if (criteria.length >= 4) {
 					search.filters.add(new KeyValueSimp(criteria[2].trim().replace("\'", ""), criteria[3].trim().replace("\'", "")));

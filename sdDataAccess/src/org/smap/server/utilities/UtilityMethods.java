@@ -328,10 +328,19 @@ public class UtilityMethods {
 							out += " and ";
 						}
 						
-						if(kv.v.trim().startsWith("${")) {
-							out += kv.k + " = " + kv.v ;			// A question
-						} else {
-							out += kv.k + " = '" + kv.v + "'";		// A string
+						if(count == 1 && search.fn.equals("in")) {	// Second filter is always 'matches'
+							if(kv.v.trim().startsWith("${")) {
+								out += kv.k + " = " + kv.v ;					// A question
+								out += "selected(" + kv.v +", " + kv.k + ")"; 
+							} else {
+								out += "selected('" + kv.v +"', " + kv.k + ")";	// A string
+							}
+						} else {	// Assume matches
+							if(kv.v.trim().startsWith("${")) {
+								out += kv.k + " = " + kv.v ;			// A question
+							} else {
+								out += kv.k + " = '" + kv.v + "'";		// A string
+							}
 						}
 						
 					}
