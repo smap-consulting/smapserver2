@@ -324,14 +324,14 @@ public class UtilityMethods {
 					int count = 0;
 					out += "[ ";
 					for(KeyValueSimp kv : search.filters) {
+						
 						if(count++ > 0) {
 							out += " and ";
 						}
 						
 						if(count == 1 && search.fn.equals("in")) {	// Second filter is always 'matches'
-							if(kv.v.trim().startsWith("${")) {
-								out += kv.k + " = " + kv.v ;					// A question
-								out += "selected(" + kv.v +", " + kv.k + ")"; 
+							if(kv.v.trim().startsWith("${")) {				
+								out += "selected(" + kv.v +", " + kv.k + ")"; 	// A question
 							} else {
 								out += "selected('" + kv.v +"', " + kv.k + ")";	// A string
 							}
