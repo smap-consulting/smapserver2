@@ -81,8 +81,10 @@ public class AutoUpdateManager {
 			QuestionForm qf = groupQuestions.get(q);
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
-				String auto = params.get("auto");
-				if(auto != null && auto.equals("yes")) {
+				String auto = params.get("auto");	// legacy
+				String auto_annotate = params.get("auto_annotate");
+				if((auto_annotate != null && auto_annotate.equals("yes")) 
+						|| (auto != null && auto.equals("yes"))) {
 					
 					ResourceBundle localisation = null;
 					String itemLocaleString = null;
