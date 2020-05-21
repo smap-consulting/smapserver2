@@ -343,7 +343,7 @@ public class SurveyTableManager {
 				
 				o.labels.add(l);
 				
-				if(wfFilterColumns != null) {
+				if(wfFilterColumns != null && wfFilterColumns.size() > 0) {
 					o.cascade_filters = new HashMap<>();
 					for(KeyValueSimp fc : wfFilterColumns) {
 						o.cascade_filters.put(fc.k, rs.getString(fc.k)); 
@@ -829,9 +829,9 @@ public class SurveyTableManager {
 		while((o = getLineAsOption(ovalue, languageItems, wfFilterColumns)) != null) {
 			StringBuffer uniqueChoice = new StringBuffer("");
 			uniqueChoice.append(o.value);
-			if(wfFilterColumns != null) {
+			if(wfFilterColumns != null && wfFilterColumns.size() > 0) {
 				for(KeyValueSimp fc : wfFilterColumns) {	
-					o.cascade_filters.put(fc.k, fc.v); 
+			//		o.cascade_filters.put(fc.k, fc.v); 
 					uniqueChoice.append(":::").append(fc.v);
 				}
 			}
