@@ -39,8 +39,6 @@ import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.ws.rs.core.Response;
-
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -1427,23 +1425,16 @@ public class SurveyManager {
 					pstmtGetQuestionTextId.setInt(1, ci.property.qId);
 					ResultSet rs = pstmtGetQuestionTextId.executeQuery();
 					if(rs.next()) {
-						if(ci.property.propType.equals("text")) {
-							text_id = rs.getString(1);
-						} else if(ci.property.propType.equals("constraint_msg")) {
-							text_id = rs.getString(1);
+						text_id = rs.getString(1);
+						if(ci.property.propType.equals("constraint_msg")) {
 							text_id = text_id.replace(":label", ":constraint");
 						} else if(ci.property.propType.equals("required_msg")) {
-							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":required");
 						} else if(ci.property.propType.equals("hint")) {
-							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":hint");
 						} else if(ci.property.propType.equals("guidance_hint")) {
-							text_id = rs.getString(1);
 							text_id = text_id.replace(":label", ":guidance_hint");
-						} else {
-							text_id = rs.getString(2);
-						}
+						} 
 						if(text_id == null || text_id.trim().length() == 0) {
 							text_id = ci.property.key;
 							updateTextId = true;
