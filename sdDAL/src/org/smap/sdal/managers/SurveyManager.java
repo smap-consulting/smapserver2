@@ -3505,6 +3505,7 @@ public class SurveyManager {
 			while (rs.next()) {
 				QuestionLite q = new QuestionLite();
 				q.name = rs.getString("qname"); 
+				q.type = rs.getString("qtype");
 				groupQuestions.add(q);
 			}
 		} finally {
