@@ -28,12 +28,10 @@ import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.QuestionLite;
@@ -43,6 +41,8 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Locale;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -224,7 +224,56 @@ public class QuestionListByIdent extends Application {
 		return response;
 	}
 	
+	/*
+	 * Return a list of all questions in a survey group
+	 */
+	@GET
+	@Path("/group")
+	@Produces("application/json")
+	public Response getGroupQuestions(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent) { 
 
+		String connectionString = "surveyKPI-getQuestionsNewIdent";
+		Response response = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		int sId = 0;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+		} catch (Exception e) {
+		}
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		ArrayList<QuestionLite> questions = new ArrayList<QuestionLite> ();
+	
+		try {
+			
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			SurveyManager sm = new SurveyManager(localisation, null);			
+			questions = sm.getGroupQuestionsArray(sd, sId, null);
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			response = Response.ok(gson.toJson(questions)).build();
+				
+		} catch (SQLException e) {
+		    log.log(Level.SEVERE, "SQL Error", e);	    
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+
+		return response;
+	}
 
 }
 

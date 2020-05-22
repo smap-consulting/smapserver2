@@ -69,6 +69,7 @@ import org.smap.sdal.model.PropertyChange;
 import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
+import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.ServerCalculation;
@@ -103,6 +104,13 @@ public class SurveyManager {
 	public static String KP_REPLACE = "replace";
 	public static String KP_MERGE = "merge";
 	public static String KP_DISCARD = "discard";
+	
+	private static String sqlGetGroupQuestions = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
+			+ "from question q, form f "
+			+ "where q.f_id = f.f_id "
+			+ "and (q.f_id in "
+			+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ? and deleted = 'false')) or "
+			+ "q.f_id in (select f_id from form where s_id = ?))";
 	
 	public SurveyManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -3437,14 +3445,9 @@ public class SurveyManager {
 			String filter) throws SQLException {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
-		
-		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
-				+ "from question q, form f "
-				+ "where q.f_id = f.f_id "
-				+ "and (q.f_id in "
-				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ? and deleted = 'false')) or "
-				+ "q.f_id in (select f_id from form where s_id = ?))";
 
+		String sql = sqlGetGroupQuestions;
+		
 		if(filter != null) {
 			sql += " and " + filter;
 		}
@@ -3468,6 +3471,41 @@ public class SurveyManager {
 						rs.getInt("s_id"),
 						rs.getBoolean("reference"));
 				groupQuestions.put(rs.getString("column_name"), qt);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return groupQuestions;
+	}
+	
+	/*
+	 * Get the group Questions as an array
+	 */
+	public ArrayList<QuestionLite> getGroupQuestionsArray(Connection sd, 
+			int groupSurveyId,
+			String filter) throws SQLException {
+		
+		ArrayList<QuestionLite> groupQuestions = new ArrayList<> ();
+
+		String sql = sqlGetGroupQuestions;
+		
+		if(filter != null) {
+			sql += " and " + filter;
+		}
+		sql += " order by q.qname asc";
+		
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2, groupSurveyId);
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				QuestionLite q = new QuestionLite();
+				q.name = rs.getString("qname"); 
+				groupQuestions.add(q);
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

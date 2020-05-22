@@ -112,28 +112,28 @@ public class ExportSurveyThingsat extends Application {
 		}
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-ExportSurvey");
+		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurvey");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {}
 		
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		a.isAuthorised(sd, request.getRemoteUser());
 		if(queryList != null) {
 			HashMap<Integer, String> checkedSurveys = new HashMap<Integer, String> ();
 			for(int i = 0; i < queryList.size(); i++) {
 				int survey = queryList.get(i).survey;
 				if(checkedSurveys.get(new Integer(survey)) == null) {
-					a.isValidSurvey(connectionSD, request.getRemoteUser(), queryList.get(i).survey, false, superUser);
+					a.isValidSurvey(sd, request.getRemoteUser(), queryList.get(i).survey, false, superUser);
 					checkedSurveys.put(new Integer(survey), "checked");
 				}
 			}
 		} else {
-			a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		}
 		// End Authorisation
 
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export as Neo4J", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export as Neo4J", 0);
 		
 		String escapedFileName = null;
 		try {
@@ -169,15 +169,15 @@ public class ExportSurveyThingsat extends Application {
 			connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
 			
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
 			
 			/*
 			 * Get the thingsat model
 			 */
-			Thingsat things = new Thingsat(getThingsAtModel(connectionSD, sId));
-			addChoices(connectionSD, things);		// Add the options to any properties that are from select questions
+			Thingsat things = new Thingsat(getThingsAtModel(sd, sId));
+			addChoices(sd, things);		// Add the options to any properties that are from select questions
 			//things.debug();
 			things.createDataFiles(filepath, "import");
 			
@@ -186,16 +186,16 @@ public class ExportSurveyThingsat extends Application {
 			 */
 			QueryManager qm = new QueryManager();
 			if(queryList == null) {
-				queryList = qm.getFormList(connectionSD, sId, fId);
+				queryList = qm.getFormList(sd, sId, fId);
 			} else {
-				qm.extendFormList(connectionSD, queryList);
+				qm.extendFormList(sd, queryList);
 			}
-			QueryForm startingForm = qm.getQueryTree(connectionSD, queryList);	// Convert the query list into a tree
+			QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 			
 			/*
 			 * Get the sql
 			 */
-			SqlDesc sqlDesc = QueryGenerator.gen(connectionSD, 
+			SqlDesc sqlDesc = QueryGenerator.gen(sd, 
 					connectionResults,
 					localisation,
 					sId,
@@ -251,7 +251,7 @@ public class ExportSurveyThingsat extends Application {
 		} finally {
 
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-			SDDataSource.closeConnection("surveyKPI-ExportSurvey", connectionSD);
+			SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
 			ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
 		}	
 		

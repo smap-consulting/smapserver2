@@ -512,7 +512,7 @@ public class AutoUpdateManager {
 				+ "and not s.blocked "
 				+ "and q.parameters is not null "
 				+ "and q.parameters like '%source=%'"
-				+ "and q.parameters like '%auto=yes%'";
+				+ "and (q.parameters like '%auto=yes%' || q.parameters like '%auto_annotate=yes%')";
 
 		PreparedStatement pstmt = null;
 		try {
