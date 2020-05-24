@@ -3506,49 +3506,51 @@ public class GeneralUtilityMethods {
 	public static String getResponseMetaValue(Connection sd, Connection results, int sId, String metaName,
 			String instanceId) throws Exception {
 
-		PreparedStatement pstmtResults = null;
-
+		PreparedStatement pstmt = null;
 		String value = null;
-		try {
-			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
-			// Add dummy meta items for reserved system columns
-			if(metaName.equals("_user")) {
-				preloads.add(new MetaItem(MetaItem.INITIAL_ID,
-						null, 		
-						metaName, 
-						null, 	
-						metaName, 
-						null,
-						true,
-						null,
-						null));
-			}
-					
-			for(MetaItem item : preloads) {
-				if(item.name.equals(metaName)) {
-					Form f = getTopLevelForm(sd, sId);
-					StringBuffer query = new StringBuffer("select ");
-					query.append(item.columnName);
-					query.append(" from ");
-					query.append(f.tableName);
-					query.append(" where instanceid = ?");
-					
-					pstmtResults = results.prepareStatement(query.toString());
-					pstmtResults.setString(1, instanceId);
-					log.info("Get results for a question: " + pstmtResults.toString());
-					ResultSet rs = pstmtResults.executeQuery();
-					if (rs.next()) {
-						value = rs.getString(1);
-					}
-					break;
+		
+		if(metaName != null) {
+			try {
+				ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+				// Add dummy meta items for reserved system columns
+				if(metaName.equals("_user")) {
+					preloads.add(new MetaItem(MetaItem.INITIAL_ID,
+							null, 		
+							metaName, 
+							null, 	
+							metaName, 
+							null,
+							true,
+							null,
+							null));
 				}
+						
+				for(MetaItem item : preloads) {
+					if(item.name.equals(metaName)) {
+						Form f = getTopLevelForm(sd, sId);
+						StringBuffer query = new StringBuffer("select ");
+						query.append(item.columnName);
+						query.append(" from ");
+						query.append(f.tableName);
+						query.append(" where instanceid = ?");
+						
+						pstmt = results.prepareStatement(query.toString());
+						pstmt.setString(1, instanceId);
+						log.info("Get results for a question: " + pstmt.toString());
+						ResultSet rs = pstmt.executeQuery();
+						if (rs.next()) {
+							value = rs.getString(1);
+						}
+						break;
+					}
+				}
+				
+			} catch (SQLException e) {
+				log.log(Level.SEVERE, "Error", e);
+				throw e;
+			} finally {
+				try {if (pstmt != null) {	pstmt.close();}} catch (SQLException e) {}
 			}
-			
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "Error", e);
-			throw e;
-		} finally {
-			try {if (pstmtResults != null) {	pstmtResults.close();}} catch (SQLException e) {}
 		}
 		return value;
 	}
@@ -9443,6 +9445,31 @@ public class GeneralUtilityMethods {
 	 
 	    return "#" + Integer.toHexString(green | (blue << 8) | (red << 16));
 	  
+	}
+	
+	/*
+	 * Get the group survey id for a question
+	 */
+	public static int getGroupSurveyId(Connection sd, int sId) throws SQLException {
+		int groupSurveyId = sId;
+		
+		String sql = "select group_survey_id from survey where s_id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				int id = rs.getInt(1);
+				if(id > 0) {
+					groupSurveyId = id;
+				}
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return groupSurveyId;
 	}
 }
 

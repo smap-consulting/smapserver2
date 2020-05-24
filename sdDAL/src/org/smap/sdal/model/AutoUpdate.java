@@ -13,6 +13,7 @@ public class AutoUpdate {
 	
 	public String fromLang;
 	public String toLang;
+	public boolean medical;
 	
 	public AutoUpdate(String type) {
 		this.type = type;

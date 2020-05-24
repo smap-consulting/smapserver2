@@ -114,7 +114,7 @@ public class AutoUpdateManager {
 							}
 							SurveyManager sm = new SurveyManager(localisation, "UTC");			
 							
-							int groupSurveyId = getGroupSurveyId(sd, qf.s_id);
+							int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, qf.s_id);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
 									groupSurveyId, 
 									" q.column_name = '" + refColumn + "'");
@@ -129,6 +129,8 @@ public class AutoUpdateManager {
 								String updateType = null;
 								String fromLang = params.get("from_lang");
 								String toLang = params.get("to_lang");
+								String medicalString = params.get("medical");
+								boolean medical = (medicalString != null && (medicalString.equals("yes") || medicalString.equals("true")));
 								
 								if(refQf.qType.equals("image")) {
 									updateType = AUTO_UPDATE_IMAGE;
@@ -151,6 +153,7 @@ public class AutoUpdateManager {
 									au.tableName = qf.tableName;
 									au.fromLang = fromLang;
 									au.toLang = toLang;
+									au.medical = medical;
 									autoUpdates.add(au);
 								}
 							} 
@@ -395,7 +398,8 @@ public class AutoUpdateManager {
 														source, 
 														item.fromLang,
 														job.toString(),
-														mediaBucket);
+														mediaBucket,
+														item.medical);
 	
 												if(status.equals("IN_PROGRESS")) {
 													lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
@@ -536,28 +540,6 @@ public class AutoUpdateManager {
 		}
 		
 		return auQuestions;
-	}
-	
-	private int getGroupSurveyId(Connection sd, int sId) throws SQLException {
-		int groupSurveyId = sId;
-		
-		String sql = "select group_survey_id from survey where s_id = ?";
-		PreparedStatement pstmt = null;
-		
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next()) {
-				int id = rs.getInt(1);
-				if(id > 0) {
-					groupSurveyId = id;
-				}
-			}
-		} finally {
-			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-		}
-		return groupSurveyId;
 	}
 	
 	/*

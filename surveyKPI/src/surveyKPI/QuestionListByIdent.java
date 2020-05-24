@@ -258,8 +258,8 @@ public class QuestionListByIdent extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			SurveyManager sm = new SurveyManager(localisation, null);			
-			questions = sm.getGroupQuestionsArray(sd, sId, null);
+			SurveyManager sm = new SurveyManager(localisation, null);	
+			questions = sm.getGroupQuestionsArray(sd, GeneralUtilityMethods.getGroupSurveyId(sd, sId), null);
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			response = Response.ok(gson.toJson(questions)).build();

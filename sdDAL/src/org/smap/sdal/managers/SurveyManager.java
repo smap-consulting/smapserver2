@@ -3481,6 +3481,7 @@ public class SurveyManager {
 	
 	/*
 	 * Get the group Questions as an array
+	 * Note the group survey id of a survey must be passed not the survey's id
 	 */
 	public ArrayList<QuestionLite> getGroupQuestionsArray(Connection sd, 
 			int groupSurveyId,
@@ -3500,6 +3501,8 @@ public class SurveyManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, groupSurveyId);
 			pstmt.setInt(2, groupSurveyId);
+			System.out.println("++++++++ Get Group Questions: " + pstmt.toString());
+			
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
