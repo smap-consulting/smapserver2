@@ -186,6 +186,7 @@ public class AutoUpdateManager {
 				+ "id,"
 				+ "o_id,"
 				+ "type, "
+				+ "medical, "
 				+ "job,"
 				+ "table_name,"
 				+ "col_name,"
@@ -203,12 +204,13 @@ public class AutoUpdateManager {
 				int id = rs.getInt(1);
 				int oId = rs.getInt(2);
 				String type = rs.getString(3);
-				String job = rs.getString(4);
-				String tableName = rs.getString(5);
-				String colName = rs.getString(6);
-				String instanceId = rs.getString(7);
-				String locale = rs.getString(8);
-				boolean timedOut = rs.getBoolean(9);
+				boolean medical = rs.getBoolean(4);
+				String job = rs.getString(5);
+				String tableName = rs.getString(6);
+				String colName = rs.getString(7);
+				String instanceId = rs.getString(8);
+				String locale = rs.getString(9);
+				boolean timedOut = rs.getBoolean(10);
 				
 				if(locale == null) {
 					locale = "en";
@@ -224,7 +226,12 @@ public class AutoUpdateManager {
 				boolean success = false;
 				
 				if(type != null && type.equals(AUTO_UPDATE_AUDIO)) {
-					String urlString = ap.getTranscriptUri(job);
+					String urlString = null;
+					if(medical) {
+						urlString = ap.getMedicalTranscriptUri(job);
+					} else {
+						urlString = ap.getTranscriptUri(job);
+					}
 					
 					if(urlString != null && urlString.startsWith("https")) {
 						
@@ -257,8 +264,8 @@ public class AutoUpdateManager {
 							
 						} catch (Exception e) {
 							output = "[" + e.getMessage()+ "]";
+							log.log(Level.SEVERE, e.getMessage(), e);
 							status = AU_STATUS_ERROR;
-							urlString = null;
 						}
 						// Write result to database and update the job status
 						success = true;
@@ -267,11 +274,19 @@ public class AutoUpdateManager {
 						
 						if(durn > 0) {
 							int billableDuration = (durn > 15) ? durn : 15;		// Minimum billable time is 15 seconds
-							String msg = localisation.getString("aws_t_au_trans")
-									.replace("%s3", tableName)
-									.replace("%s4", colName);
-							rm.recordUsage(sd, oId, 0, LogManager.TRANSCRIBE, msg, 
-									"auto_update", billableDuration);
+							if(medical) {
+								String msg = localisation.getString("aws_t_au_trans_medical")
+										.replace("%s3", tableName)
+										.replace("%s4", colName);
+								rm.recordUsage(sd, oId, 0, LogManager.TRANSCRIBE_MEDICAL, msg, 
+										"auto_update", billableDuration);
+							} else {
+								String msg = localisation.getString("aws_t_au_trans")
+										.replace("%s3", tableName)
+										.replace("%s4", colName);
+								rm.recordUsage(sd, oId, 0, LogManager.TRANSCRIBE, msg, 
+										"auto_update", billableDuration);
+							}
 						} else {
 							log.info("Error:xxxxxxxxxx duration of audio recorded as 0");
 						}
@@ -309,9 +324,9 @@ public class AutoUpdateManager {
 		LanguageCodeManager lcm = new LanguageCodeManager();
 		
 		String sqlAsync = "insert into aws_async_jobs"
-				+ "(o_id, table_name, col_name, instanceid, type, "
+				+ "(o_id, table_name, col_name, instanceid, type, medical, "
 				+ "update_details, job, status, locale, request_initiated) "
-				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
+				+ "values(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now())";
 		PreparedStatement pstmtAsync = null;
 		
 		try {
@@ -382,7 +397,9 @@ public class AutoUpdateManager {
 									
 							} else if(item.type.equals(AUTO_UPDATE_AUDIO)) {
 								
-								if(rm.canUse(sd, item.oId, LogManager.TRANSCRIBE)) {
+								String logCode = item.medical ? LogManager.TRANSCRIBE_MEDICAL : LogManager.TRANSCRIBE;
+								
+								if(rm.canUse(sd, item.oId, logCode)) {
 									if(source.trim().startsWith("attachments")) {
 										
 										// Unique job within the account
@@ -390,6 +407,9 @@ public class AutoUpdateManager {
 												.append("_")
 												.append(String.valueOf(UUID.randomUUID()));
 										
+										if(item.fromLang == null) {
+											item.fromLang = "en-US";
+										}
 										if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSCRIBE)) {
 											try {
 												String  status = ap.submitJob(
@@ -402,7 +422,7 @@ public class AutoUpdateManager {
 														item.medical);
 	
 												if(status.equals("IN_PROGRESS")) {
-													lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.TRANSCRIBE, "Batch: " + "/smap/" + source, 0);
+													lm.writeLogOrganisation(sd, item.oId, "auto_update", logCode, "Batch: " + "/smap/" + source, 0);
 	
 													// Write result to async table, the transcript will be retrieved later
 													pstmtAsync.setInt(1, item.oId);
@@ -410,10 +430,11 @@ public class AutoUpdateManager {
 													pstmtAsync.setString(3, item.targetColName);
 													pstmtAsync.setString(4, instanceId);
 													pstmtAsync.setString(5, item.type);
-													pstmtAsync.setString(6, gson.toJson(item));
-													pstmtAsync.setString(7, job.toString());
-													pstmtAsync.setString(8, AU_STATUS_PENDING);
-													pstmtAsync.setString(9, item.locale);
+													pstmtAsync.setBoolean(6, item.medical);
+													pstmtAsync.setString(7, gson.toJson(item));
+													pstmtAsync.setString(8, job.toString());
+													pstmtAsync.setString(9, AU_STATUS_PENDING);
+													pstmtAsync.setString(10, item.locale);
 													log.info("Save to Async queue: " + pstmtAsync.toString());
 													pstmtAsync.executeUpdate();
 	
@@ -423,6 +444,7 @@ public class AutoUpdateManager {
 													output = "[" + status + "]";
 												}
 											} catch (Exception e) {
+												log.log(Level.SEVERE, e.getMessage(), e);
 												output = "[Error: " + e.getMessage() + "]";
 											}
 										} else {
@@ -437,7 +459,7 @@ public class AutoUpdateManager {
 									}
 								} else {
 									String msg = localisation.getString("re_error")
-											.replace("%s1", LogManager.TRANSCRIBE);
+											.replace("%s1", logCode);
 									output = "[" + msg + "]";
 									lm.writeLogOrganisation(sd, item.oId, "auto_update", LogManager.LIMIT, msg, 0);
 								}
@@ -516,7 +538,7 @@ public class AutoUpdateManager {
 				+ "and not s.blocked "
 				+ "and q.parameters is not null "
 				+ "and q.parameters like '%source=%'"
-				+ "and (q.parameters like '%auto=yes%' || q.parameters like '%auto_annotate=yes%')";
+				+ "and (q.parameters like '%auto=yes%' or q.parameters like '%auto_annotate=yes%')";
 
 		PreparedStatement pstmt = null;
 		try {

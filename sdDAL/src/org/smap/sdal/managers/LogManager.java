@@ -46,6 +46,7 @@ public class LogManager {
 	public static String ORGANISATION_UPDATE = "organisation update";
 	public static String REKOGNITION = "rekognition";
 	public static String TRANSCRIBE = "transcribe";
+	public static String TRANSCRIBE_MEDICAL = "transcribe_medical";
 	public static String TRANSLATE = "translate";
 	public static String REMINDER = "reminder";
 	public static String MAILOUT = "mailout";
