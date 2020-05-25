@@ -13,6 +13,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.notifications.interfaces.AudioProcessing;
+import org.smap.notifications.interfaces.S3;
 import org.smap.notifications.interfaces.ImageProcessing;
 import org.smap.notifications.interfaces.TextProcessing;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -239,13 +240,20 @@ public class AutoUpdateManager {
 						String status = null;
 						int durn = 0;
 						
-						try {					
-							TranscribeResultSmap trs = gson.fromJson(
-									GeneralUtilityMethods.readTextUrl(urlString), 
-									TranscribeResultSmap.class);
-							
+						try {	
+							TranscribeResultSmap trs = null;
+							if(medical) {
+								S3 s3 = new S3(region);
+								trs = gson.fromJson(s3.getFromUrl(urlString), 
+										TranscribeResultSmap.class);
+								
+							} else {
+								trs = gson.fromJson(
+										GeneralUtilityMethods.readTextUrl(urlString), 
+										TranscribeResultSmap.class);			
+								
+							}
 							output = trs.results.transcripts.get(0).transcript;
-							
 							// Get the end time
 							for(int i = trs.results.items.size() - 1; i > 0; i--) {
 								String durnString = trs.results.items.get(i).end_time;

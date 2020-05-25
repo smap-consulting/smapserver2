@@ -9339,7 +9339,7 @@ public class GeneralUtilityMethods {
 			}
 
 		} finally {
-			bufferedReader.close();
+			if(bufferedReader != null) try{bufferedReader.close();} catch(Exception e) {}
 		}
 		return sb.toString();
 	}
