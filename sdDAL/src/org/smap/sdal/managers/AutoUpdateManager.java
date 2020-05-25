@@ -131,6 +131,7 @@ public class AutoUpdateManager {
 								String fromLang = params.get("from_lang");
 								String toLang = params.get("to_lang");
 								String medicalString = params.get("medical");
+								String medType = params.get("med_type");
 								boolean medical = (medicalString != null && (medicalString.equals("yes") || medicalString.equals("true")));
 								
 								if(refQf.qType.equals("image")) {
@@ -155,6 +156,7 @@ public class AutoUpdateManager {
 									au.fromLang = fromLang;
 									au.toLang = toLang;
 									au.medical = medical;
+									au.medType = medType;
 									autoUpdates.add(au);
 								}
 							} 
@@ -243,9 +245,9 @@ public class AutoUpdateManager {
 						try {	
 							TranscribeResultSmap trs = null;
 							if(medical) {
-								S3 s3 = new S3(region);
-								trs = gson.fromJson(s3.getFromUrl(urlString), 
-										TranscribeResultSmap.class);
+								S3 s3 = new S3(region, urlString);
+								trs = gson.fromJson(s3.get(), TranscribeResultSmap.class);
+								s3.rm();    // Remove from s3 after retrieval
 								
 							} else {
 								trs = gson.fromJson(
@@ -427,7 +429,8 @@ public class AutoUpdateManager {
 														item.fromLang,
 														job.toString(),
 														mediaBucket,
-														item.medical);
+														item.medical,
+														item.medType);
 	
 												if(status.equals("IN_PROGRESS")) {
 													lm.writeLogOrganisation(sd, item.oId, "auto_update", logCode, "Batch: " + "/smap/" + source, 0);

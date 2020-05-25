@@ -14,6 +14,7 @@ public class AutoUpdate {
 	public String fromLang;
 	public String toLang;
 	public boolean medical;
+	public String medType;					// for use with medical audio conversation || dictation
 	
 	public AutoUpdate(String type) {
 		this.type = type;
