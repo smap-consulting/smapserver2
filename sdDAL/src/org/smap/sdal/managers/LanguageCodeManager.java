@@ -60,6 +60,7 @@ public class LanguageCodeManager {
 
 	public static String LT_TRANSLATE = "translate";
 	public static String LT_TRANSCRIBE = "transcribe";
+	public static String LT_TRANSCRIBE_MEDICAL = "transcribe_medical";
 
 	/*
 	 * Get language codes
@@ -69,7 +70,7 @@ public class LanguageCodeManager {
 
 		ArrayList<LanguageCode> codes = new ArrayList<LanguageCode> ();
 		
-		String sql = "select code, aws_translate, aws_transcribe "
+		String sql = "select code, aws_translate, aws_transcribe, transcribe_medical "
 				+ "from language_codes "
 				+ "order by code asc";
 		PreparedStatement pstmt = null;
@@ -82,7 +83,8 @@ public class LanguageCodeManager {
 						new LanguageCode(rs.getString(1), 
 								localisation.getString(rs.getString(1)),
 								rs.getBoolean(2),
-								rs.getBoolean(3)
+								rs.getBoolean(3),
+								rs.getBoolean(4)
 								));
 			}
 		} finally {			
@@ -108,6 +110,8 @@ public class LanguageCodeManager {
 				sb.append(" and aws_translate");
 			} else if(type.equals(LT_TRANSCRIBE)) {
 				sb.append(" and aws_transcribe");
+			} else if(type.equals(LT_TRANSCRIBE_MEDICAL)) {
+				sb.append(" and aws_transcribe_medical");
 			}
 		}
 		PreparedStatement pstmt = null;
