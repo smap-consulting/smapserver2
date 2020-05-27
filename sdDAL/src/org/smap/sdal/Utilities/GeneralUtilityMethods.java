@@ -1374,7 +1374,7 @@ public class GeneralUtilityMethods {
 
 		String status = "";
 	
-		String sql = "select status, t.repeat " 
+		String sql = "select a.status, t.repeat " 
 				+ " from assignments a, tasks t " 
 				+ "where a.id = ? "
 				+ "and a.task_id = t.id";
@@ -6003,34 +6003,36 @@ public class GeneralUtilityMethods {
 	 */
 	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
 
-		String sql = "alter table " + tablename + " add column if not exists " + columnName + " " + type;
-
-		PreparedStatement pstmt = conn.prepareStatement(sql);
-		log.info("Adding column: " + pstmt.toString());
-		try {
-			pstmt.executeUpdate();
-		} catch (Exception e) {
-			String msg = e.getMessage();
-			if(msg.contains("already exists")) {
-				log.info("Column already exists");
-			} else if(msg.contains("does not exist")) {
-				log.info("Table does not exist");
-			} else if(msg.contains("syntax error at or near \"not\"")) {
-				log.info("Obsolete version of postgres");
-				// A hack to allow an old version of Postgres to still work
-				sql = "alter table " + tablename + " add column " + columnName + " " + type;
-				try {
-					try {if (pstmt != null) {pstmt.close();}} catch (Exception exx) {}
-					pstmt = conn.prepareStatement(sql);
-					pstmt.executeUpdate();
-				} catch (Exception ex) {
-					// Ignore
+		if(!GeneralUtilityMethods.hasColumn(conn, tablename, columnName)) {
+			String sql = "alter table " + tablename + " add column " + columnName + " " + type;
+	
+			PreparedStatement pstmt = conn.prepareStatement(sql);
+			log.info("Adding column: " + pstmt.toString());
+			try {
+				pstmt.executeUpdate();
+			} catch (Exception e) {
+				String msg = e.getMessage();
+				if(msg.contains("already exists")) {
+					log.info("Column already exists");
+				} else if(msg.contains("does not exist")) {
+					log.info("Table does not exist");
+				} else if(msg.contains("syntax error at or near \"not\"")) {
+					log.info("Obsolete version of postgres");
+					// A hack to allow an old version of Postgres to still work
+					sql = "alter table " + tablename + " add column " + columnName + " " + type;
+					try {
+						try {if (pstmt != null) {pstmt.close();}} catch (Exception exx) {}
+						pstmt = conn.prepareStatement(sql);
+						pstmt.executeUpdate();
+					} catch (Exception ex) {
+						// Ignore
+					}
+				} else {
+					throw e;
 				}
-			} else {
-				throw e;
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 			}
-		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 	}
 	
@@ -8844,18 +8846,23 @@ public class GeneralUtilityMethods {
 					
 					// Add altitude and accuracy
 					if(type.equals("geopoint")) {
-						String sqlAlterTable = "alter table " + table + " add column if not exists " 
-								+  column + "_alt double precision";
-						pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-						log.info("Alter table: " + pstmtAlterTable.toString());					
-						pstmtAlterTable.executeUpdate();
+						String sqlAlterTable = null;
+						if(!GeneralUtilityMethods.hasColumn(cResults, table, "_alt")) {
+							sqlAlterTable = "alter table " + table + " add column " 
+									+  column + "_alt double precision";
+							pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+							log.info("Alter table: " + pstmtAlterTable.toString());					
+							pstmtAlterTable.executeUpdate();
+						}
 
 						try {if (pstmtAlterTable != null) {pstmtAlterTable.close();}} catch (Exception e) {}
-						sqlAlterTable = "alter table " + table + " add column if not exists "
-								+ column + "_acc double precision";
-						pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-						log.info("Alter table: " + pstmtAlterTable.toString());					
-						pstmtAlterTable.executeUpdate();
+						if(!GeneralUtilityMethods.hasColumn(cResults, table, "_acc")) {
+							sqlAlterTable = "alter table " + table + " add column "
+									+ column + "_acc double precision";
+							pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+							log.info("Alter table: " + pstmtAlterTable.toString());					
+							pstmtAlterTable.executeUpdate();
+						}
 					}
 				} catch (Exception e) {
 					// Allow this to fail where an older version added a geometry, which was then deleted, then a new 
@@ -8869,11 +8876,13 @@ public class GeneralUtilityMethods {
 			} else {
 
 				type = getPostgresColType(type, compressed);
-				String sqlAlterTable = "alter table " + table + " add column if not exists " + column + " " + type + ";";
-				pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
-				log.info("Alter table: " + pstmtAlterTable.toString());
-
-				pstmtAlterTable.executeUpdate();
+				if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
+					String sqlAlterTable = "alter table " + table + " add column " + column + " " + type + ";";
+					pstmtAlterTable = cResults.prepareStatement(sqlAlterTable);
+					log.info("Alter table: " + pstmtAlterTable.toString());
+	
+					pstmtAlterTable.executeUpdate();
+				}
 
 				// Commit this change to the database
 				try {cResults.commit();} catch(Exception ex) {}
