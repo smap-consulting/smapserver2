@@ -335,6 +335,12 @@ public class UtilityMethods {
 							} else {
 								out += "selected('" + kv.v +"', " + kv.k + ")";	// A string
 							}
+						} else if(count == 1 && search.fn.equals("not in")) {
+							if(kv.v.trim().startsWith("${")) {				
+								out += "not(selected(" + kv.v +", " + kv.k + "))"; 	// A question
+							} else {
+								out += "not(selected('" + kv.v +"', " + kv.k + "))";	// A string
+							}
 						} else {	// Assume matches
 							if(kv.v.trim().startsWith("${")) {
 								out += kv.k + " = " + kv.v ;			// A question
