@@ -9,6 +9,7 @@ koboToolboxApi/.gitignore
 Servers/
 
 subscribers/target/
+subscribers/.aws/
 
 build/css.orig
 
