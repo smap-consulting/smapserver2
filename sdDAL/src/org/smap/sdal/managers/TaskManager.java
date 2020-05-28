@@ -3573,7 +3573,7 @@ public class TaskManager {
 			String taskGroupName, 
 			int projectId,
 			String addressParams,
-			String settings,
+			String rule,
 			int sourceSurveyId,
 			int targetSurveyId,
 			int dlDist,
@@ -3626,7 +3626,7 @@ public class TaskManager {
 				pstmtTaskGroup.setString(1, taskGroupName);
 				pstmtTaskGroup.setInt(2, projectId);
 				pstmtTaskGroup.setString(3, addressParams);
-				pstmtTaskGroup.setString(4, settings);
+				pstmtTaskGroup.setString(4, rule);
 				pstmtTaskGroup.setInt(5, sourceSurveyId);
 				pstmtTaskGroup.setInt(6, targetSurveyId);
 				pstmtTaskGroup.setInt(7, dlDist);

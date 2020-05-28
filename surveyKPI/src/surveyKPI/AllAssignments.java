@@ -127,6 +127,8 @@ public class AllAssignments extends Application {
 
 		log.info("++++++++++++++++++++++++++++++++++++++ Assignment:" + settings);
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		
+		// Make sure rule is well formed
 		AssignFromSurvey as = gson.fromJson(settings, AssignFromSurvey.class);
 
 		String userName = request.getRemoteUser();
@@ -193,7 +195,7 @@ public class AllAssignments extends Application {
 				taskGroupId = tm.createTaskGroup(sd, as.task_group_name, 
 						projectId,
 						gson.toJson(as.address_columns),
-						settings,
+						gson.toJson(as),
 						as.source_survey_id,
 						as.target_survey_id,
 						as.dl_dist,
@@ -638,7 +640,7 @@ public class AllAssignments extends Application {
 				pstmtTaskGroup.setString(1, as.task_group_name);
 				pstmtTaskGroup.setInt(2, projectId);
 				pstmtTaskGroup.setString(3, addressParams);
-				pstmtTaskGroup.setString(4, settings);
+				pstmtTaskGroup.setString(4, gson.toJson(as));
 				pstmtTaskGroup.setInt(5, as.source_survey_id);
 				pstmtTaskGroup.setInt(6, as.target_survey_id);
 				pstmtTaskGroup.setInt(7, as.dl_dist);
