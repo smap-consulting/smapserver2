@@ -10,6 +10,7 @@ public class BillingDetail {
 	public static int MONTHLY = 5;
 	public static int TRANSLATE = 6;
 	public static int TRANSCRIBE = 7;
+	public static int TRANSCRIBE_MEDICAL = 8;
 	
 	public int oId;
 	public int eId;

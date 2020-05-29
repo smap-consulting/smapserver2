@@ -24,7 +24,6 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -49,9 +48,7 @@ import com.google.gson.GsonBuilder;
 
 import utilities.XLSBillingManager;
 import java.sql.*;
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -269,6 +266,8 @@ public class Billing extends Application {
 				addTranslate(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.TRANSCRIBE) {
 				addTranscribe(sd, item, eId, oId, year, month);
+			} else if(item.item == BillingDetail.TRANSCRIBE_MEDICAL) {
+				addTranscribeMedical(sd, item, eId, oId, year, month);
 			} else if(item.item == BillingDetail.MONTHLY) {
 				item.amount = item.unitCost;
 			}
@@ -523,6 +522,18 @@ public class Billing extends Application {
 	private void addTranscribe(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
 		ResourceManager rm = new ResourceManager();
 		item.quantity = rm.getUsageMeasure(sd, oId, month, year, LogManager.TRANSCRIBE);				
+		item.amount = (item.quantity - item.free) * item.unitCost;
+		if(item.amount < 0) {
+			item.amount = 0.0;
+		}
+	}
+	
+	/*
+	 * Get Transcribe Medical usage
+	 */
+	private void addTranscribeMedical(Connection sd, BillLineItem item, int eId, int oId, int year, int month) throws SQLException {
+		ResourceManager rm = new ResourceManager();
+		item.quantity = rm.getUsageMeasure(sd, oId, month, year, LogManager.TRANSCRIBE_MEDICAL);				
 		item.amount = (item.quantity - item.free) * item.unitCost;
 		if(item.amount < 0) {
 			item.amount = 0.0;
