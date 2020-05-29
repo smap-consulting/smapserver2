@@ -68,18 +68,18 @@ public class AutoUpdateManager {
 	}
 	
 	/*
-	 * Identify any auto updates required for this submission and write to a table
+	 * Identify any potential auto updates required 
 	 */
 	public ArrayList<AutoUpdate> identifyAutoUpdates(Connection sd, 
 			Connection cResults, 
 			Gson gson) throws SQLException {
 		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();	
 		
-		HashMap<String, QuestionForm> groupQuestions = getAutoUpdateQuestions(sd);
+		ArrayList<QuestionForm> groupQuestions = getAutoUpdateQuestions(sd);
 		HashMap<Integer, String> localeHashMap = new HashMap<> ();		// reduce database access
 		
-		for(String q : groupQuestions.keySet()) {
-			QuestionForm qf = groupQuestions.get(q);
+		//log.info("#### Found " + groupQuestions.size() + " auto update question");	// debug
+		for(QuestionForm qf : groupQuestions) {
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");	// legacy
@@ -371,7 +371,7 @@ public class AutoUpdateManager {
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
 							
-						// Diagnostic log.info("Get auto updates: " + pstmt.toString());						
+						// log.info("#### Get auto updates: " + pstmt.toString());		// debug					
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
 							String instanceId = rs.getString(1);
@@ -537,9 +537,9 @@ public class AutoUpdateManager {
 		}
 	}
 	
-	private HashMap<String, QuestionForm> getAutoUpdateQuestions(Connection sd) throws SQLException {
+	private ArrayList<QuestionForm> getAutoUpdateQuestions(Connection sd) throws SQLException {
 		
-		HashMap<String, QuestionForm> auQuestions = new HashMap<> ();
+		ArrayList<QuestionForm> auQuestions = new ArrayList<> ();
 		
 		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
 				+ "from question q, form f, survey s "
@@ -554,6 +554,7 @@ public class AutoUpdateManager {
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
+			//log.info("@@@@: " + pstmt.toString());  // debug
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
@@ -566,7 +567,7 @@ public class AutoUpdateManager {
 						rs.getString("qtype"),
 						rs.getInt("s_id"),
 						rs.getBoolean("reference"));
-				auQuestions.put(rs.getString("column_name"), qt);
+				auQuestions.add(qt);
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
