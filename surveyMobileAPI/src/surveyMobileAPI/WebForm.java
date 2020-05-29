@@ -691,7 +691,7 @@ public class WebForm extends Application {
 		html = html.replaceAll("&gt;", ">");
 		html = html.replaceAll("&lt;", "<");
 		html = html.replaceAll("\\\\\\\\", "\\\\");
-		
+	    
 		String dynamic = "";
 		if(isTemporaryUser) {
 			dynamic = "/id/" + userIdent;		
