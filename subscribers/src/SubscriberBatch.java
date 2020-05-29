@@ -378,6 +378,10 @@ public class SubscriberBatch {
 											pstmtResultsDB.setInt(1, ue.getId());
 											pstmtResultsDB.executeUpdate();
 										}
+										
+										// If S3 is enabled send the submission to S3
+										GeneralUtilityMethods.sendToS3(uploadFile);
+													
 
 									} else if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
 										// If the host is unreachable then stop forwarding for 10 seconds

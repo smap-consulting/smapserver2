@@ -45,7 +45,6 @@ import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
-import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
@@ -533,7 +532,29 @@ public class GeneralUtilityMethods {
 
 	}
 	
+	/*
+	 * Send a file to S3
+	 */
+	public static void sendToS3(String filePath) {
 
+		String cmd = "/smap_bin/sendToS3.sh " + filePath 
+				+ " >> /var/log/subscribers/attachments.log 2>&1";
+		log.info("Exec: " + cmd);
+		try {
+
+			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
+
+			int code = proc.waitFor();
+			log.info("Attachment processing finished with status:" + code);
+			if (code != 0) {
+				log.info("Error: Attachment processing failed");
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
 
 	/*
 	 * Return the users language

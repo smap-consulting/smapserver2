@@ -365,7 +365,7 @@ public class AutoUpdateManager {
 						
 						String sql = "select instanceid," + item.sourceColName 
 								+ " from " + item.tableName 
-								+ " where " + item.targetColName + " is null "
+								+ " where (" + item.targetColName + " is null or " + item.targetColName + " = '') "
 								+ "and " + item.sourceColName + " is not null "
 								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
