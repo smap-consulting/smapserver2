@@ -8504,10 +8504,25 @@ public class GeneralUtilityMethods {
 	public static void restoreUploadedFiles(String ident, String type) throws InterruptedException, IOException {
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
 				ident + 	" " + type + " >> /var/log/subscribers/survey.log 2>&1"});
+		
+		/*
+		 * If type is uploadedSurveys then also get attachments as raw media are no longer saved
+		 */
+		if(type.equals("uploadedSurveys")) {
+			Process proc2 = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
+					ident + 	" uploadedSurveys >> /var/log/subscribers/survey.log 2>&1"});
+			
+			int code2 = proc2.waitFor();
+			if(code2 != 0) {
+				log.info("Error:  Failed to restore attachments from s3 for ident " + ident + " error code: " + code2);
+			}
+		}
+		
+		
 		int code = proc.waitFor();
 
 		if(code != 0) {
-			log.info("Error:  Failed to restore files from s3 for ident " + ident + " error code: " + code);
+			log.info("Error:  Failed to restore files from s3 for ident " + ident + "and type: " + type + " error code: " + code);
 		}
 
 	}
