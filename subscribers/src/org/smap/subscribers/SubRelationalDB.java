@@ -59,6 +59,7 @@ import org.smap.sdal.model.AuditData;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.ForeignKey;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.SubscriberEvent;
@@ -114,7 +115,7 @@ public class SubRelationalDB extends Subscriber {
 	}
 
 	@Override
-	public void upload(SurveyInstance instance, InputStream is, String submittingUser, 
+	public ArrayList<MediaChange> upload(SurveyInstance instance, InputStream is, String submittingUser, 
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
@@ -222,7 +223,7 @@ public class SubRelationalDB extends Subscriber {
 			}
 		}
 
-		return;
+		return mediaChanges;
 	}
 	
 	/*
@@ -1952,7 +1953,8 @@ public class SubRelationalDB extends Subscriber {
 									srcPathFile, 
 									gBasePath, 
 									surveyName,
-									null) + "'";
+									null,
+									mediaChanges) + "'";
 
 						} else {
 							try {

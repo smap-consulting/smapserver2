@@ -1290,7 +1290,8 @@ public class ExchangeManager {
 						srcPathFile, 
 						basePath, 
 						sIdent,
-						srcUrl);
+						srcUrl,
+						null);
 				}
 				if(value != null && value.trim().length() == 0) {
 					value = null;

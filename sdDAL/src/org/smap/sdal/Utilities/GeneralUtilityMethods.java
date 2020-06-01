@@ -68,6 +68,7 @@ import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.LinkedTarget;
 import org.smap.sdal.model.ManifestInfo;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.MySensitiveData;
 import org.smap.sdal.model.Option;
@@ -461,7 +462,10 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add an attachment to a survey
 	 */
-	static public String createAttachments(String srcName, File srcPathFile, String basePath, String surveyName, String srcUrl) {
+	static public String createAttachments(String srcName, File srcPathFile, String basePath, 
+			String surveyName, 
+			String srcUrl,
+			ArrayList<MediaChange> mediaChanges) {
 
 		log.info("Create attachments");
 
@@ -472,16 +476,24 @@ public class GeneralUtilityMethods {
 		if (idx > 0) {
 			srcExt = srcName.substring(idx + 1);
 		}
-
-		String dstName = String.valueOf(UUID.randomUUID());
+		
+		String dstName = null;
 		String dstDir = basePath + "/attachments/" + surveyName;
 		String dstThumbsPath = basePath + "/attachments/" + surveyName + "/thumbs";
 		String dstFlvPath = basePath + "/attachments/" + surveyName + "/flv";
-		File dstPathFile = new File(dstDir + "/" + dstName + "." + srcExt);
 		File dstDirFile = new File(dstDir);
 		File dstThumbsFile = new File(dstThumbsPath);
 		File dstFlvFile = new File(dstFlvPath);
-
+		
+		// The alternate destination file exists if the the source image has already been processed and we are doing a restore
+		File alternateDstPathFile = new File(dstDir + "/" + srcName + "." + srcExt);
+		if(alternateDstPathFile.exists()) {
+			dstName = srcName;
+		} else {
+			dstName = String.valueOf(UUID.randomUUID());
+		}
+		File dstPathFile = new File(dstDir + "/" + dstName + "." + srcExt);
+		
 		String contentType = org.smap.sdal.Utilities.UtilityMethodsEmail.getContentType(srcName);
 
 		try {
@@ -491,7 +503,14 @@ public class GeneralUtilityMethods {
 			FileUtils.forceMkdir(dstFlvFile);
 			if(srcPathFile != null) {
 				log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile);
-				FileUtils.copyFile(srcPathFile, dstPathFile);
+				if(!alternateDstPathFile.exists()) {
+					FileUtils.copyFile(srcPathFile, dstPathFile);
+					if(mediaChanges != null) {
+						mediaChanges.add(new MediaChange(srcPathFile.getName(), dstPathFile.getName(), srcPathFile.getAbsolutePath()));
+					}
+				} else {
+					log.info("Destination file already exists, copy skipped");
+				}
 			} else if(srcUrl != null) {
 				log.info("Processing attachment: " + srcUrl + " as " + dstPathFile);
 				FileUtils.copyURLToFile(new URL(srcUrl), dstPathFile);

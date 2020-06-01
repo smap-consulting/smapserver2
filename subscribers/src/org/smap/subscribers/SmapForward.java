@@ -60,6 +60,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.smap.model.SurveyInstance;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.SubscriberEvent;
 
@@ -84,7 +85,7 @@ public class SmapForward extends Subscriber {
 	}
 
 	@Override
-	public void upload(SurveyInstance instance, InputStream xis, String remoteUser, 
+	public ArrayList<MediaChange> upload(SurveyInstance instance, InputStream xis, String remoteUser, 
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
@@ -220,6 +221,8 @@ public class SmapForward extends Subscriber {
 				tempFile.delete();
 			}
 		}
+		
+		return mediaChanges;
 
 	}
 

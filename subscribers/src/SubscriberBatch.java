@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -28,6 +29,7 @@ import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathFactory;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -61,6 +63,7 @@ import org.smap.sdal.model.Action;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutMessage;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
@@ -241,6 +244,8 @@ public class SubscriberBatch {
 								InputStream is = null;
 								InputStream is2 = null;
 								InputStream is3 = null;
+								
+								ArrayList<MediaChange> mediaChanges = null;
 
 								try {
 									int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, ue.getSurveyId());
@@ -298,7 +303,7 @@ public class SubscriberBatch {
 										getAttachmentsFromIncompleteSurveys(sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent());
 
 										is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
-										s.upload(instance, 
+										mediaChanges = s.upload(instance, 
 												is3, 
 												ue.getUserName(), 
 												ue.getTemporaryUser(),
@@ -378,9 +383,6 @@ public class SubscriberBatch {
 											pstmtResultsDB.setInt(1, ue.getId());
 											pstmtResultsDB.executeUpdate();
 										}
-										
-										// If S3 is enabled send the submission to S3
-										GeneralUtilityMethods.sendToS3(uploadFile);
 													
 
 									} else if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
@@ -399,6 +401,16 @@ public class SubscriberBatch {
 									}
 								}	
 
+								/*
+								 * Perform post processing of the XML file
+								 * Send it to S3 if that is enabled
+								 * Update any media names with the final media names
+								 */
+								if(mediaChanges != null && mediaChanges.size() > 0) {
+									processMediaChanges(uploadFile, mediaChanges);
+								}
+								GeneralUtilityMethods.sendToS3(uploadFile);
+								
 								// If the host is unreachable stop processing this subscriber, it may be that it has been taken off line
 								if(se.getStatus() != null && se.getStatus().equals("host_unreachable")) {
 									log.info("Stopping processing of subscriber: " + s.getSubscriberName());
@@ -1320,6 +1332,30 @@ public class SubscriberBatch {
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+	}
+	
+	
+	private void processMediaChanges(String uploadFile, ArrayList<MediaChange> mediaChanges) {
+		File xmlFile = new File(uploadFile);
+		if(xmlFile.exists()) {
+			try {
+				String contents = FileUtils.readFileToString(xmlFile, StandardCharsets.UTF_8);
+				for(MediaChange mc : mediaChanges) {
+					contents = contents.replace(">" + mc.srcName + "<", ">" + mc.dstName + "<");
+				}
+				FileUtils.writeStringToFile(xmlFile, contents);
+				// Repeat the loop because we want to ensure the xml file is saved before deleting anything
+				for(MediaChange mc : mediaChanges) {
+					File srcFile = new File(mc.srcPath);
+					if(srcFile.exists()) {
+						log.info("Deleting input file: " + srcFile.getAbsolutePath());
+						srcFile.delete();
+					}
+				}
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
 		}
 	}
 

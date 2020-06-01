@@ -19,10 +19,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 package org.smap.subscribers;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.ResourceBundle;
 
 import org.smap.model.SurveyInstance;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.HostUnreachableException;
 import org.smap.server.entities.SubscriberEvent;
@@ -50,6 +52,8 @@ public abstract class Subscriber {
 	final int DUPLICATE_REPLACE = 2;
 	private int duplicatePolicy = DUPLICATE_DROP;
 	
+	protected ArrayList<MediaChange> mediaChanges = new ArrayList<> ();
+	
 	Subscriber() {
 		
 	}
@@ -61,7 +65,7 @@ public abstract class Subscriber {
 	 * @param server
 	 * @param se
 	 */
-	public abstract void upload(SurveyInstance event, InputStream id, String user, 
+	public abstract ArrayList<MediaChange> upload(SurveyInstance event, InputStream id, String user, 
 			boolean temporaryUser, String server, String device, 
 			SubscriberEvent se, String confFilePath, String formStatus, String basePath, String filePath,
 			String updateId, int ue_id, Date uploadTime, 

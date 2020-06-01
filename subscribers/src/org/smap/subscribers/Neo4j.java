@@ -58,6 +58,7 @@ import org.apache.http.impl.client.HttpClients;
 //import org.neo4j.kernel.GraphDatabaseAPI;
 //import org.neo4j.server.WrappingNeoServerBootstrapper;
 import org.smap.model.SurveyInstance;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.SubscriberEvent;
 import org.w3c.dom.Document;
@@ -113,7 +114,7 @@ public class Neo4j extends Subscriber {
 	}
 	
 	@Override
-	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
+	public ArrayList<MediaChange> upload(SurveyInstance instance, InputStream is, String remoteUser, 
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime, 
@@ -168,7 +169,7 @@ public class Neo4j extends Subscriber {
 			e.printStackTrace();
 			se.setStatus("error");
 			se.setReason("Configuration File:" + e.getMessage());
-			return;
+			return null;
 		}		
 
 		try {
@@ -182,7 +183,7 @@ public class Neo4j extends Subscriber {
 			
 		}
 			
-		return;
+		return mediaChanges;
 	}
 	
 	private void neo4jQueryRemote(String host, String path, NeoQuery nq) {
