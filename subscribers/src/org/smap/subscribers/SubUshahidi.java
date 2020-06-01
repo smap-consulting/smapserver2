@@ -26,6 +26,7 @@ import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -56,6 +57,7 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.smap.model.IE;
 import org.smap.model.SurveyInstance;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
 import org.smap.server.entities.SubscriberEvent;
 import org.w3c.dom.Document;
@@ -82,7 +84,7 @@ public class SubUshahidi extends Subscriber {
 	}
 	
 	@Override
-	public void upload(SurveyInstance instance, InputStream is, String remoteUser, 
+	public ArrayList<MediaChange> upload(SurveyInstance instance, InputStream is, String remoteUser, 
 			boolean temporaryUser,
 			String server, String device, SubscriberEvent se, String confFilePath, String formStatus,
 			String basePath, String filePath, String updateId, int ue_id, Date uploadTime,
@@ -333,7 +335,7 @@ public class SubUshahidi extends Subscriber {
 			httpClient.getConnectionManager().shutdown();
 		}
 			
-		return;
+		return mediaChanges;
 	}
 
 }
