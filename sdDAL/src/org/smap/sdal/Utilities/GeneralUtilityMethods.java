@@ -480,10 +480,8 @@ public class GeneralUtilityMethods {
 		String dstName = null;
 		String dstDir = basePath + "/attachments/" + surveyName;
 		String dstThumbsPath = basePath + "/attachments/" + surveyName + "/thumbs";
-		String dstFlvPath = basePath + "/attachments/" + surveyName + "/flv";
 		File dstDirFile = new File(dstDir);
 		File dstThumbsFile = new File(dstThumbsPath);
-		File dstFlvFile = new File(dstFlvPath);
 		
 		// The alternate destination file exists if the the source image has already been processed and we are doing a restore
 		File alternateDstPathFile = new File(dstDir + "/" + srcName + "." + srcExt);
@@ -500,7 +498,6 @@ public class GeneralUtilityMethods {
 			
 			FileUtils.forceMkdir(dstDirFile);
 			FileUtils.forceMkdir(dstThumbsFile);
-			FileUtils.forceMkdir(dstFlvFile);
 			if(srcPathFile != null) {
 				log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile);
 				if(!alternateDstPathFile.exists()) {
