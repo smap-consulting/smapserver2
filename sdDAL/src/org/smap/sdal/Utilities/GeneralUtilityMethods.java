@@ -8526,7 +8526,7 @@ public class GeneralUtilityMethods {
 		 */
 		if(type.equals("uploadedSurveys")) {
 			Process proc2 = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
-					ident + 	" uploadedSurveys >> /var/log/subscribers/survey.log 2>&1"});
+					ident + 	" attachments >> /var/log/subscribers/survey.log 2>&1"});
 			
 			int code2 = proc2.waitFor();
 			if(code2 != 0) {
