@@ -45,14 +45,16 @@ public class JdbcTranslationManager {
 	PreparedStatement pstmtGetBySurveyId = null;
 	PreparedStatement pstmtGetBySurveyIdNoExternal = null;
 	String sqlGet = "select "
-			+ "t_id,"
-			+ "s_id,"
-			+ "language,"
-			+ "text_id,"
-			+ "type,"
-			+ "value "
-			+ "from translation "
-			+ "where s_id = ? ";
+			+ "t.t_id,"
+			+ "t.s_id,"
+			+ "t.language,"
+			+ "t.text_id,"
+			+ "t.type,"
+			+ "t.value "
+			+ "from translation t, language l "
+			+ "where t.s_id = l.s_id "
+			+ "and t.language = l.language "
+			+ "and t.s_id = ?";
 	String sqlNoExternal = " and external = false ";
 	String sqlOrder = "order by language;";
 			
