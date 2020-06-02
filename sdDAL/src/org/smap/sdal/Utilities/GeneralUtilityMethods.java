@@ -3015,7 +3015,7 @@ public class GeneralUtilityMethods {
 						languages.add(new Language(-1, languageNames.get(i), code, rtl));
 					}
 				}
-				GeneralUtilityMethods.setLanguages(sd, sId, languages);
+				setLanguages(sd, sId, languages);
 			}
 
 		} finally {

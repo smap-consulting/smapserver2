@@ -379,12 +379,40 @@ public class Surveys extends Application {
 		
 		String basePath = GeneralUtilityMethods.getBasePath(request);
 		
+		PreparedStatement pstmt = null;
+		String sqlChangeLog = "insert into survey_change " +
+				"(s_id, version, changes, user_id, apply_results, updated_time) " +
+				"values(?, ?, ?, ?, 'true', ?)";
+		PreparedStatement pstmtChangeLog = null;
+		
 		try {
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			
+			// Start transaction
+			sd.setAutoCommit(false);
+			
+			/*
+			 * Lock the survey
+			 * update version number of survey and get the new version
+			 */
+			String sqlUpdateVersion = "update survey set version = version + 1 where s_id = ?";
+			String sqlGetVersion = "select version from survey where s_id = ?";
+			pstmt = sd.prepareStatement(sqlUpdateVersion);
+			pstmt.setInt(1, sId);
+			pstmt.execute();
+			pstmt.close();
+
+			pstmt = sd.prepareStatement(sqlGetVersion);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			rs.next();
+			int version = rs.getInt(1);
+			pstmt.close();
+			
 			/*
 			 * Parse the request
 			 */
@@ -408,20 +436,56 @@ public class Surveys extends Application {
 			// Record the message so that devices can be notified
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.surveyChange(sd, sId, 0);
+					
+			// Write to the change log
+			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			ChangeElement change = new ChangeElement();
+			change.action = "language_update";
+			change.origSId = sId;
+			StringBuilder msg = new StringBuilder("");
+			for(Language l : languageList) {
+				if(msg.length() > 0) {
+					msg.append(", ");
+				}
+				msg.append(l.name);
+				if(l.code != null) {
+					msg.append(" (").append(l.code).append(")");
+				}
+				if(l.deleted) {
+					msg.append(" [").append(localisation.getString("c_del")).append("]");
+				} 
+			}
+			change.msg = msg.toString();
+			
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setInt(2, version);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, userId);
+			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmtChangeLog.execute();
+			
+			sd.commit();
+			sd.setAutoCommit(true);
 			
 			String resp = gson.toJson(survey);
 			response = Response.ok(resp).build();
 			
 		} catch (SQLException e) {
+			try{sd.rollback();} catch(Exception ex) {};
 			log.log(Level.SEVERE,"sql error", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} catch (Exception e) {
+			try{sd.rollback();} catch(Exception ex) {};
 			log.log(Level.SEVERE,"Exception loading settings", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			
+			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
+			if (pstmt != null) try {pstmt.close();} catch (SQLException e) {}
 			SDDataSource.closeConnection("surveyKPI-Surveys", sd);
 			
+			try {sd.setAutoCommit(true);} catch(Exception e) {}
 		}
 
 		return response;
@@ -793,7 +857,6 @@ public class Surveys extends Application {
 				
 				// Write to the change log
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
-				// Write the change log
 				pstmtChangeLog.setInt(1, sId);
 				pstmtChangeLog.setInt(2, version);
 				pstmtChangeLog.setString(3, gson.toJson(change));
@@ -856,6 +919,7 @@ public class Surveys extends Application {
 			if (pstmtChangeLog != null) try {pstmtChangeLog.close();} catch (SQLException e) {}
 			if (pstmtAddHrk != null) try {pstmtAddHrk.close();} catch (SQLException e) {}
 			
+			try {sd.setAutoCommit(true);} catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-Survey", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Survey", cResults);
 			
