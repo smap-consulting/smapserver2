@@ -1947,24 +1947,13 @@ public class SubRelationalDB extends Subscriber {
 						File srcXmlDirFile = srcXmlFile.getParentFile();
 						File srcPathFile = new File(srcXmlDirFile.getAbsolutePath() + "/" + srcName);
 
-						if(srcPathFile.exists()) {
-							value = "'" + GeneralUtilityMethods.createAttachments(
-									srcName, 
-									srcPathFile, 
-									gBasePath, 
-									surveyName,
-									null,
-									mediaChanges) + "'";
-
-						} else {
-							try {
-								new PrintStream(System.out, true, "UTF-8").println("Source file does not exist: " + srcPathFile.getAbsolutePath());
-							} catch (UnsupportedEncodingException e) {
-								// TODO Auto-generated catch block
-								e.printStackTrace();
-							}
-							value = "'" + value + "'";
-						}
+						value = "'" + GeneralUtilityMethods.createAttachments(
+								srcName, 
+								srcPathFile, 
+								gBasePath, 
+								surveyName,
+								null,
+								mediaChanges) + "'";		
 
 					}
 				} else if(qType.equals("geoshape") || qType.equals("geotrace")) {

@@ -471,10 +471,14 @@ public class GeneralUtilityMethods {
 
 		String value = null;
 		String srcExt = "";
+		String srcBase = srcName;
 
 		int idx = srcName.lastIndexOf('.');
 		if (idx > 0) {
 			srcExt = srcName.substring(idx + 1);
+			srcBase = srcName.substring(0, idx);
+		} else {
+			log.info("Error: attachment without extension: " + srcName);
 		}
 		
 		String dstName = null;
@@ -484,9 +488,9 @@ public class GeneralUtilityMethods {
 		File dstThumbsFile = new File(dstThumbsPath);
 		
 		// The alternate destination file exists if the the source image has already been processed and we are doing a restore
-		File alternateDstPathFile = new File(dstDir + "/" + srcName + "." + srcExt);
+		File alternateDstPathFile = new File(dstDir + "/" + srcBase + "." + srcExt);
 		if(alternateDstPathFile.exists()) {
-			dstName = srcName;
+			dstName = srcBase;
 		} else {
 			dstName = String.valueOf(UUID.randomUUID());
 		}
@@ -499,11 +503,16 @@ public class GeneralUtilityMethods {
 			FileUtils.forceMkdir(dstDirFile);
 			FileUtils.forceMkdir(dstThumbsFile);
 			if(srcPathFile != null) {
-				log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile);
-				if(!alternateDstPathFile.exists()) {
-					FileUtils.copyFile(srcPathFile, dstPathFile);
-					if(mediaChanges != null) {
-						mediaChanges.add(new MediaChange(srcPathFile.getName(), dstPathFile.getName(), srcPathFile.getAbsolutePath()));
+				log.info("Processing attachment: " + srcPathFile.getAbsolutePath() + " as " + dstPathFile.getAbsolutePath());
+				if(!dstPathFile.exists()) {
+					log.info(dstPathFile.getAbsolutePath() + " does not exist. Copy source file");
+					if(srcPathFile.exists()) {
+						FileUtils.copyFile(srcPathFile, dstPathFile);
+						if(mediaChanges != null) {
+							mediaChanges.add(new MediaChange(srcPathFile.getName(), dstPathFile.getName(), srcPathFile.getAbsolutePath()));
+						}
+					} else {
+						log.info("Error: Source file does not exist: " + srcPathFile.getAbsolutePath());
 					}
 				} else {
 					log.info("Destination file already exists, copy skipped");
@@ -521,6 +530,7 @@ public class GeneralUtilityMethods {
 		// scheme)
 		value = "attachments/" + surveyName + "/" + dstName + "." + srcExt;
 
+		log.info("Media value: " + value);
 		return value;
 	}
 
