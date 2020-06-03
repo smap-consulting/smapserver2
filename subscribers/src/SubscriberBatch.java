@@ -1220,10 +1220,13 @@ public class SubscriberBatch {
 				}
 				
 				// Add user name to content
+				log.info("Add username to content: " + name);
 				if(content == null) {
 					content = "Mailout";
 				} else {
-					content = content.replaceAll("\\$\\{name\\}", name);
+					if(name != null) {
+						content = content.replaceAll("\\$\\{name\\}", name);
+					}
 					if(content.contains("${url}")) {
 						String url = "https://" + serverName + "/webForm" + link;
 						content = content.replaceAll("\\$\\{url\\}", url);
@@ -1232,6 +1235,7 @@ public class SubscriberBatch {
 				}
 				
 				// Send the Mailout Message
+				log.info("Create send message");
 				MailoutMessage msg = new MailoutMessage(
 						id,
 						surveyIdent,
