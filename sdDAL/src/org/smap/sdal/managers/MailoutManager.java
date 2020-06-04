@@ -5,13 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -723,6 +717,20 @@ public class MailoutManager {
 													LogManager.MAILOUT, 
 													localisation.getString("mo_sent"), 0);
 
+											em.sendEmailHtml(
+													ia.getAddress(), 
+													"bcc", 
+													subject, 
+													content, 
+													null, 
+													null, 
+													emailServer,
+													server,
+													subStatus.emailKey,
+													localisation,
+													null);
+											
+											/*
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 
@@ -744,6 +752,7 @@ public class MailoutManager {
 													localisation,
 													organisation.server_description,
 													organisation.name);
+													*/
 											
 											if(subStatus.optedInSent == null) {
 												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 

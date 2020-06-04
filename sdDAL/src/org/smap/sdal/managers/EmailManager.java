@@ -470,12 +470,14 @@ public class EmailManager {
 			/*
 			 * Perform custom token replacements
 			 */
-			for(String token : tokens.keySet()) {
-				String val = tokens.get(token);
-				if(val == null) {
-					val = "";
+			if(tokens != null) {
+				for(String token : tokens.keySet()) {
+					String val = tokens.get(token);
+					if(val == null) {
+						val = "";
+					}
+					template = template.replace(token, val);
 				}
-				template = template.replace(token, val);
 			}
 			
 			Multipart multipart = new MimeMultipart();
