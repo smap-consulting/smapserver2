@@ -628,8 +628,6 @@ public class MailoutManager {
 		if(msg.actionLink != null) {
 			docURL = "/webForm" + msg.actionLink;
 		}
-		String filePath = null;
-		String filename = "instance";
 		int surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
 		
 		boolean writeToMonitor = true;
@@ -681,12 +679,23 @@ public class MailoutManager {
 							if(msg.from != null && msg.from.trim().length() > 0) {
 								from = msg.from;
 							}
-							String content = null;
+							StringBuilder content = null;
 							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = msg.content;
+								content = new StringBuilder(msg.content);
 							} else {
-								content = organisation.default_email_content;
+								content = new StringBuilder(organisation.default_email_content);
 							}
+							
+							// Add the survey link
+							if(docURL != null) {
+								content.append("<br />")
+									.append("<a href=\"").append(docURL).append("\">")
+									.append(localisation.getString("ar_survey")).append("</a>");
+							}
+							// Add the unsubscribe link
+							content.append("<br /><br />")
+								.append("${unsubscribe}");
+
 							
 							notify_details = "Sending mailout email to: " + msg.email + " containing link " + docURL;
 							
@@ -721,7 +730,7 @@ public class MailoutManager {
 													ia.getAddress(), 
 													"bcc", 
 													subject, 
-													content, 
+													content.toString(), 
 													null, 
 													null, 
 													emailServer,

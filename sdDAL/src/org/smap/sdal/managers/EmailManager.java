@@ -451,7 +451,7 @@ public class EmailManager {
 			
 			// Add unsubscribe
 			StringBuffer unsubscribe = new StringBuffer();
-			if(emailKey != null) {	
+			if(emailKey != null) {
 				unsubscribe.append("<p style=\"color:blue;text-align:center;\">")
 						.append("<a href=\"https://")
 						.append(serverName)
