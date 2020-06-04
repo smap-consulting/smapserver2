@@ -68,7 +68,6 @@ public class Survey {
 	public Timestamp created;
 	public boolean exclude_empty;
 	public String projectName;
-	private boolean projectTasksOnly;		// deprecated
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
 	public boolean dataSurvey = true;
 	public boolean oversightSurvey = true;
@@ -88,7 +87,7 @@ public class Survey {
 	public boolean getBlocked() { return blocked;};
 	public boolean hasManifest() { return hasManifest;};
 	public boolean getHideOnDevice() { 
-		return hideOnDevice || projectTasksOnly;
+		return hideOnDevice;
 	};
 	
 	public Form getFirstForm() {
@@ -206,7 +205,6 @@ public class Survey {
 	public void setLoadedFromXLS(boolean v) { loadedFromXLS = v;};
 	public void setProjectName(String v) { projectName = v;};
 	public void setProjectId(int v) { p_id = v;};
-	public void setProjectTasksOnly(boolean v) { projectTasksOnly = v;};		// Deprecated
 	public void setHideOnDevice(boolean v) { hideOnDevice = v;};
 	
 	/*

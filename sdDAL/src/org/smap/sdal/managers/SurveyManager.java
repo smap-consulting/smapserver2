@@ -229,7 +229,6 @@ public class SurveyManager {
 				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
 				s.setProjectName(resultSet.getString("project_name"));
 				s.setProjectId(resultSet.getInt("project_id"));
-				s.setProjectTasksOnly(resultSet.getBoolean("tasks_only"));
 				s.groupSurveyId = resultSet.getInt("group_survey_id");
 				s.publicLink = resultSet.getString("public_link");
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
