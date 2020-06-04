@@ -1103,9 +1103,9 @@ public class SubRelationalDB extends Subscriber {
 												cResults, 
 												tableName, 
 												childPrikeys.get(i), childSourcekeys.get(i), 
-												false, 
+												false,   // Doing a merge so set replace to false
 												child_f_id,
-												true));  // Doing a merge so set replace to false
+												true));  
 									}
 								} else {
 									// copy		
@@ -1124,15 +1124,17 @@ public class SubRelationalDB extends Subscriber {
 							for(int i = 0; i < childSourcekeys.size(); i++) {
 								if(i < childPrikeys.size()) {
 									// merge
-									log.info("Merge from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
+									log.info("Replace from " + childSourcekeys.get(i) + " to " + childPrikeys.get(i));
 									if(child_f_id > 0) {
 										subFormChanges.add(mergeRecords(
 												sd,
 												cResults, 
 												tableName, 
-												childPrikeys.get(i), childSourcekeys.get(i), false, 
+												childPrikeys.get(i), 
+												childSourcekeys.get(i), 
+												true,    // Doing a replace so set replace to true
 												child_f_id,
-												true));  // Doing a replace so set replace to true
+												true));  
 									}
 								} else {
 									// Record the dropped record		
