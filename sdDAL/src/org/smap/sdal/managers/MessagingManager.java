@@ -235,28 +235,42 @@ public class MessagingManager {
 		PreparedStatement pstmt = null;
 		try {
 			if(sendEmail) {		// Sometimes a specific opt in email is not required
-				em.sendEmail(
-						email, 
-						null, 
-						"optin", 
-						localisation.getString("c_opt_in_subject"), 
-						null,
-						from,		
-						null, 
-						null, 
-						null, 
-						null,		// doc url 
-						null,		// file path
-						null,		// file name
+				
+				String msg = localisation.getString("c_opt_in_content");
+				msg = msg.replace("%s1", GeneralUtilityMethods.getOrganisationName(sd, oId) + " (" + server + ")");
+				
+				StringBuilder content = new StringBuilder("<p>")
+						.append(msg)
+						.append("</p>");
+				
+				content.append("<br/><p>").append(localisation.getString("c_goto"))
+					.append("<a href=\"").append(scheme).append("://").append(server)
+					.append("/subscriptions.html?subscribe=yes&token=")
+					.append(emailKey)
+					.append("\">")
+					.append(localisation.getString("email_link"))
+					.append("</a></p>");
+				
+				content.append("<br/><br/><p>")
+					.append(localisation.getString("email_dnr"))
+					.append(" ")
+					.append(adminEmail)
+					.append(".</p>");
+				
+				content.append("<br/><br/>${unsubscribe}");
+				em.sendEmailHtml(
 						adminEmail, 
+						"bcc", 
+						localisation.getString("c_opt_in_subject"), 
+						content.toString(), 
+						null, 
+						null, 
 						emailServer,
-						scheme,
 						server,
 						emailKey,
 						localisation,
-						null,		// Server description
-						GeneralUtilityMethods.getOrganisationName(sd, oId)
-						);
+						null);
+				
 			}
 			
 			// Record that the opt in message has been sent
