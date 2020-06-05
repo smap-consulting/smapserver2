@@ -30,11 +30,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.OrganisationLite;
 
 import com.google.gson.Gson;
@@ -137,20 +139,45 @@ public class Subscriptions extends Application {
 					log.info("Sending email");
 
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, email, request.getRemoteUser());
-
+					Organisation o = GeneralUtilityMethods.getOrganisation(sd, oId);
+					String adminEmail = o.getAdminEmail();
 					if(emailServer.smtpHost != null) {
 
 						String subject = localisation.getString("c_s");
 						String sender = "subscribe";
 						EmailManager em = new EmailManager();
-						em.sendEmail(email, null, "subscribe", subject, null, sender, null, null, 
-								null, null, null, null, null, emailServer, 
-								request.getScheme(),
+						
+						StringBuilder content = new StringBuilder();
+						content.append("<br/><p>").append(localisation.getString("c_goto"))
+							.append("<a href=\"")
+							.append(request.getScheme()).append("://").append(request.getServerName())
+							.append("/subscriptions.html?subscribe=yes&token=")
+							.append(key)
+							.append("\">")
+							.append(localisation.getString("email_link"))
+							.append("</a> ");
+						
+						content.append(localisation.getString("email_s"))
+							.append("</p><p>")
+							.append(localisation.getString("email_dnr"))
+							.append(adminEmail)
+							.append(".</p>");
+						
+						content.append("<br/><br/>${unsubscribe}");
+						
+						em.sendEmailHtml(
+								email, 
+								"bcc", 
+								localisation.getString("c_opt_in_subject"), 
+								content.toString(), 
+								null, 
+								null, 
+								emailServer,
 								request.getServerName(),
-								key,	// email key
+								key,
 								localisation,
-								null,
 								null);
+						
 						response = Response.ok().build();
 					} else {
 						String msg = "Error password reset.  Email not enabled on this server.";

@@ -228,8 +228,6 @@ public class MessagingManager {
 			String server,
 			boolean sendEmail) throws Exception {
 		
-		String from = emailServer.smtpHost;
-		
 		EmailManager em = new EmailManager();
 		
 		PreparedStatement pstmt = null;
@@ -258,8 +256,9 @@ public class MessagingManager {
 					.append(".</p>");
 				
 				content.append("<br/><br/>${unsubscribe}");
+				
 				em.sendEmailHtml(
-						adminEmail, 
+						email, 
 						"bcc", 
 						localisation.getString("c_opt_in_subject"), 
 						content.toString(), 
