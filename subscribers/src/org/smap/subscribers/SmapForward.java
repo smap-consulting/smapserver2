@@ -244,7 +244,7 @@ public class SmapForward extends Subscriber {
 		} else {
 
 			if(formStatus != null) {
-				System.out.println("Setting form status in header: " + formStatus);
+				log.info("Setting form status in header: " + formStatus);
 				req.setHeader("form_status", formStatus);						// smap add form_status header
 			} else {
 				log.info("Form Status null");

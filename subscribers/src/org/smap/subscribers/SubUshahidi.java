@@ -23,17 +23,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.ResourceBundle;
-import java.util.Set;
+import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -68,7 +64,9 @@ import org.xml.sax.SAXException;
 
 public class SubUshahidi extends Subscriber {
 	
-
+	private static Logger log =
+			Logger.getLogger(SubUshahidi.class.getName());
+	
 	/**
 	 * @param args
 	 */
@@ -154,26 +152,12 @@ public class SubUshahidi extends Subscriber {
 	    			String mapValue = expr.evaluate(map);
 	    			mapHash.put(key, mapValue);
 	    		}
-	    		
-	    		// debug
-	    		/*
-	    	    System.out.println("Xpath discovered node:" + value);
-	    	    System.out.println("  Name Attribute:" + name);
-	    	    System.out.println("  Type Attribute:" + type);
-	    	    Set set = mapHash.entrySet();
-	    	    Iterator it = set.iterator();
-	    	    while(it.hasNext()) {
-	    	    	Map.Entry me = (Map.Entry) it.next();
-	    	    	System.out.println("        Map:(" + me.getKey() + "," + me.getValue() + ")");
-	    	    }
-	    	    */
-	    	    // end debug
 
 	    	    // Ignore if the name, type or value are missing
 	    	    if(name == null || name.trim().isEmpty()
 	    	    		|| type == null || type.trim().isEmpty() 
 	    	    		|| value == null || value.trim().isEmpty()) {
-    	    		System.out.println("Warning: empty name, type or value - ignoring");
+    	    		log.info("Warning: empty name, type or value - ignoring");
     	    		continue;
 	    	    }
 	    	    
@@ -187,19 +171,19 @@ public class SubUshahidi extends Subscriber {
 	    	    		
 	    	    	expr = xpath.compile(value);
 	    	    	parValue = expr.evaluate(surveyDocument);
-	    	    	System.out.println("      xPathResult:" + parValue);	//debug
+	    	    	log.info("      xPathResult:" + parValue);	//debug
 	    	    	
 	    	    } else if(type.equals("other")){
 	    	    	
 	    	    	if(value.equals("remoteUser")) {
 	    	    		parValue = remoteUser;
 	    	    	} else {
-	    	    		System.out.println("Warning: unknown other value:" + value);
+	    	    		log.info("Warning: unknown other value:" + value);
 	    	    		continue;
 	    	    	}
 	    	    
 	    	    } else {	
-	    	    	System.out.println("Warning: unknown type:" + type);
+	    	    	log.info("Warning: unknown type:" + type);
 	    	    }
 	    	    
 	    		// Ushahidi parameters take only part of the full date, and part of the location
@@ -295,42 +279,42 @@ public class SubUshahidi extends Subscriber {
 			se.setStatus("error");
 			String msg = "UnsupportedCodingException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(ClientProtocolException e) {
 			se.setStatus("error");
 			String msg = "ClientProtocolException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(IOException e) {
 			se.setStatus("error");
 			String msg = "IOException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(SAXException e) {
 			se.setStatus("error");
 			String msg = "SAXException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(ParserConfigurationException e) {
 			se.setStatus("error");
 			String msg = "ParserConfigurationException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(IllegalArgumentException e) {
 			se.setStatus("error");			
 			String msg = "IllegalArgumentException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(XPathExpressionException e) {
 			se.setStatus("error");			
 			String msg = "XPathExpressionException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(ParseException e) {
 			se.setStatus("error");			
 			String msg = "Error parsing dates:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} finally {	
 			httpClient.getConnectionManager().shutdown();
 		}

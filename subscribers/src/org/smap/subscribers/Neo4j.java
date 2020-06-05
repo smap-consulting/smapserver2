@@ -28,19 +28,18 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.ResourceBundle;
+import java.util.logging.Logger;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
-import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.ResponseHandler;
-import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.entity.ContentType;
@@ -49,14 +48,6 @@ import org.apache.http.impl.client.BasicCredentialsProvider;
 import org.apache.http.impl.client.BasicResponseHandler;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-//import org.neo4j.graphdb.GraphDatabaseService;
-//import org.neo4j.graphdb.Node;
-//import org.neo4j.graphdb.Relationship;
-//import org.neo4j.graphdb.RelationshipType;
-//import org.neo4j.graphdb.Transaction;
-//import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-//import org.neo4j.kernel.GraphDatabaseAPI;
-//import org.neo4j.server.WrappingNeoServerBootstrapper;
 import org.smap.model.SurveyInstance;
 import org.smap.sdal.model.MediaChange;
 import org.smap.sdal.model.Survey;
@@ -68,6 +59,9 @@ import com.google.gson.GsonBuilder;
 
 public class Neo4j extends Subscriber {
 
+	private static Logger log =
+			Logger.getLogger(Neo4j.class.getName());
+	
 	/*
 	 * Class to store neo4j queries
 	 */
@@ -127,7 +121,6 @@ public class Neo4j extends Subscriber {
 		if(gBasePath == null || gBasePath.equals("/ebs1")) {
 			gBasePath = "/ebs1/servers/" + server.toLowerCase();
 		}
-		System.out.println("base path: " + gBasePath);
 		// Open the configuration file
 		String neoServer = null;
 		String neoPath = null;
@@ -155,11 +148,9 @@ public class Neo4j extends Subscriber {
 			
 			// TODO Check that the neo4j server is running
 			// Get the connection details for the target neo4j database
-			System.out.println("Writing to neo4j server: " + neoServer);
+			log.info("Writing to neo4j server: " + neoServer);
 			
-			System.out.println("#######");
 			instance.getTopElement().printIEModel("    ");
-			System.out.println("#######");
 			NeoQuery nq = new NeoQuery();
 			nq.statements.add(new Statement("create (n:safety);"));
 			//neo4jQueryRemote(neoServer, neoPath, nq);
@@ -217,7 +208,7 @@ public class Neo4j extends Subscriber {
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		String payload = gson.toJson(nq);
-		System.out.println(payload);
+		log.info(payload);
 
 		//String payload = "{\"statements\" : [ {\"statement\" : \"" +query + "\"} ]}";
 
@@ -242,35 +233,35 @@ public class Neo4j extends Subscriber {
             req.setHeader("Accept", "application/json");
             req.setHeader("Content-type", "application/json; charset=UTF-8");
 
-            System.out.println("	Info: submitting to: " + req.getURI().toString());
+            log.info("	Info: submitting to: " + req.getURI().toString());
             response = httpclient.execute(target, req, localContext);
             ResponseHandler<String> handler = new BasicResponseHandler();
             responseCode = response.getStatusLine().getStatusCode();
             responseReason = response.getStatusLine().getReasonPhrase(); 
             
             String body = handler.handleResponse(response);
-            System.out.println("Response: " + responseReason);
-            System.out.println("Response Body: " + body);
+            log.info("Response: " + responseReason);
+            log.info("Response Body: " + body);
            	
 	       			
 		} catch (UnsupportedEncodingException e) {
 			
 			String msg = "UnsupportedCodingException:" + e.getMessage();
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 			
 		} catch(ClientProtocolException e) {
 
 			String msg = "ClientProtocolException:" + e.getMessage();
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 			e.printStackTrace();
 		} catch(IOException e) {
 
 			String msg = "IOException:" + e.getMessage();
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 			e.printStackTrace();
 		} catch(IllegalArgumentException e) {		
 			String msg = "IllegalArgumentException:" + e.getMessage();
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} finally {
         	try {
 				httpclient.close();
@@ -282,76 +273,5 @@ public class Neo4j extends Subscriber {
         }
 		
 	}
-	/*
-    private static enum RelTypes implements RelationshipType
-    {
-        KNOWS
-    }
-    
-	@SuppressWarnings("deprecation")
-	private void neo4jQueryLocal(NeoQuery nq) {
-		
-		GraphDatabaseService graphDb;
-		Node firstNode;
-		Node secondNode;
-		Relationship relationship;
-		  
-		final String DB_PATH = gBasePath + "/neo4j";
-		System.out.println("Neo4j Database: " + DB_PATH);
-		
-		graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( DB_PATH );
-		WrappingNeoServerBootstrapper srv = new WrappingNeoServerBootstrapper((GraphDatabaseAPI)graphDb);
-		int status = srv.start();
-
-		if(status == srv.WEB_SERVER_STARTUP_ERROR_CODE) {
-			System.out.println("Web Server failed to start: " + status);
-		}
-		
-		System.out.println("sleeping now");
-		try {
-			Thread.sleep(100 * 1000);
-		} catch (Exception e) {
-			// ignore
-		}
-		//registerShutdownHook( graphDb );
-		
-        try ( Transaction tx = graphDb.beginTx() )
-        {
-            // Database operations go here
-            // END SNIPPET: transaction
-            // START SNIPPET: addData
-            firstNode = graphDb.createNode();
-            firstNode.setProperty( "message", "Hello, " );
-            secondNode = graphDb.createNode();
-            secondNode.setProperty( "message", "World!" );
-
-            relationship = firstNode.createRelationshipTo( secondNode, RelTypes.KNOWS );
-            relationship.setProperty( "message", "brave Neo4j " );
-            // END SNIPPET: addData
-
-            // START SNIPPET: readData
-            System.out.print( firstNode.getProperty( "message" ) );
-            System.out.print( relationship.getProperty( "message" ) );
-            System.out.print( secondNode.getProperty( "message" ) );
- 
-            tx.success();
-        }
-        //graphDb.shutdown();
-	}
 	
-    private static void registerShutdownHook( final GraphDatabaseService graphDb )
-    {
-        // Registers a shutdown hook for the Neo4j instance so that it
-        // shuts down nicely when the VM exits (even if you "Ctrl-C" the
-        // running application).
-        Runtime.getRuntime().addShutdownHook( new Thread()
-        {
-            @Override
-            public void run()
-            {
-                graphDb.shutdown();
-            }
-        } );
-    }
-*/
 }

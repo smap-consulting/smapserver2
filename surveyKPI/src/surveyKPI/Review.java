@@ -1450,27 +1450,10 @@ public class Review extends Application {
 						}
 					}
 				}
-				System.out.println("yyyy " + rawName + " : " + name + " : " + value);
 				KeyValue kv = new KeyValue(name, value);
 				names.add(kv);
 			}	
 		}
-		
-		/*
-		 * If no questions were found that used the selected() or ${..} syntax then try other question names that 
-		 * have a path
-		 *
-		if(names.isEmpty()) {
-			if((idx1 = relevance.lastIndexOf('/')) >= 0) {
-				idx2 = relevance.indexOf('\'', idx1);
-				if(idx2 > idx1) {
-					name = relevance.substring(idx1+1, idx2);
-				}
-				KeyValue kv = new KeyValue(name, value);
-				names.add(kv);
-			}	
-		}
-		*/
 		
 		return names;
 	}

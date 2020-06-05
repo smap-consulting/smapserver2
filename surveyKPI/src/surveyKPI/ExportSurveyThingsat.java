@@ -406,7 +406,6 @@ public class ExportSurveyThingsat extends Application {
 
 	private void addChoicesToProperties(PreparedStatement pstmt, ArrayList<Property> properties) throws SQLException {
 		for(Property p: properties) {
-			System.out.println("     property" + p.colName + " : " + p.q_type);
 			if(p.q_type != null && p.q_type.equals("select")) {
 				p.optionValues = new ArrayList<String> ();
 				pstmt.setInt(1, p.q_id);

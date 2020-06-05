@@ -1660,17 +1660,6 @@ public class SubRelationalDB extends Subscriber {
 		String value = col.getValue();	
 		String colName = col.getName();
 
-		/*
-		 * Debug utf-8 print
-		 *
-		try {
-			new PrintStream(System.out, true, "UTF-8").println("value: " + value);
-		} catch (UnsupportedEncodingException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		 */
-
 		// If the deviceId is not in the form results add it from the form meta data
 		if(colName != null && colName.equals("_device")) {
 			if(value == null || value.trim().length() == 0) {

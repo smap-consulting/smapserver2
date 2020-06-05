@@ -288,9 +288,7 @@ public class IE {
 	 * Debug methods
 	 */
 	public void printIEModel(String indent) {
-		//if(type.equals("question") && !qType.equals("begin group")) {
-			System.out.println(indent + path + ":" + type + ":" + name + "(" + qType + "):" + value);
-		//}
+		System.out.println(indent + path + ":" + type + ":" + name + "(" + qType + "):" + value);
 		for(IE child : children) {
 			child.printIEModel(indent + "    ");
 		}
