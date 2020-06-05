@@ -143,13 +143,11 @@ public class Subscriptions extends Application {
 					String adminEmail = o.getAdminEmail();
 					if(emailServer.smtpHost != null) {
 
-						String subject = localisation.getString("c_s");
-						String sender = "subscribe";
 						EmailManager em = new EmailManager();
 						
 						StringBuilder content = new StringBuilder();
 						content.append("<br/><p>").append(localisation.getString("c_goto"))
-							.append("<a href=\"")
+							.append(" <a href=\"")
 							.append(request.getScheme()).append("://").append(request.getServerName())
 							.append("/subscriptions.html?subscribe=yes&token=")
 							.append(key)
@@ -160,6 +158,7 @@ public class Subscriptions extends Application {
 						content.append(localisation.getString("email_s"))
 							.append("</p><p>")
 							.append(localisation.getString("email_dnr"))
+							.append(" ")
 							.append(adminEmail)
 							.append(".</p>");
 						
@@ -168,7 +167,7 @@ public class Subscriptions extends Application {
 						em.sendEmailHtml(
 								email, 
 								"bcc", 
-								localisation.getString("c_opt_in_subject"), 
+								localisation.getString("c_s"), 
 								content.toString(), 
 								null, 
 								null, 
