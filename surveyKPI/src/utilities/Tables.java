@@ -101,10 +101,6 @@ public class Tables {
 					));
 		}
 		
-		// Debug
-		//for(int i = 0; i < allTables.size(); i++) {
-		//	System.out.println("  All tables: " + allTables.get(i).getTName());
-		//}
 		pstmt.close();
 		
 		// 2) For each table in the query add any tables between it and another table in the query

@@ -66,7 +66,7 @@ public class MessageProcessor {
 				
 				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
-					System.out.println("---------- Message Processor Stopped");
+					log.info("---------- Message Processor Stopped");
 					loop = false;
 				} else {
 					

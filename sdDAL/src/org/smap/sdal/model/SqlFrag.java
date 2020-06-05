@@ -320,7 +320,6 @@ public class SqlFrag {
 	
 	private String escapeDoubledQuotesInText(String in) {
 		
-		System.out.println("In: " + in);
 		StringBuilder out = new StringBuilder();
 		boolean inQuote = false;
 		boolean quoteFound = false;

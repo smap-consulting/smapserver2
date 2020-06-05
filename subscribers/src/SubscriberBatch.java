@@ -1079,7 +1079,7 @@ public class SubscriberBatch {
 			while (rs.next()) {
 				
 				if(idx++ == 0) {
-					System.out.println("\n-------------");
+					log.info("\n-------------");
 				}
 				int tId = rs.getInt(1);
 				int nId = rs.getInt(2);

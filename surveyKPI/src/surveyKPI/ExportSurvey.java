@@ -139,10 +139,10 @@ public class ExportSurvey extends Application {
 			if(records != null) {		
 				for(int i = 0; i < records.size(); i++) {
 					if(long_form) {
-						System.out.println(padding + f_id + ":  " + records.get(i).prikey + 
+						log.info(padding + f_id + ":  " + records.get(i).prikey + 
 								" : " + records.get(i).record.toString() );
 					} else { 
-						System.out.println(padding + f_id + ":  " + records.get(i).record.substring(0, 50));
+						log.info(padding + f_id + ":  " + records.get(i).record.substring(0, 50));
 					}
 				}
 			}

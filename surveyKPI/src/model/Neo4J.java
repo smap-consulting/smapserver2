@@ -7,6 +7,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.logging.Logger;
+
+import surveyKPI.PasswordReset;
 
 /*
 This file is part of SMAP.
@@ -30,6 +33,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Data object for Neo4J / thingsat export
  */
 public class Neo4J  {
+	
+	private static Logger log =
+			 Logger.getLogger(Neo4J.class.getName());
 	
 	// Data values for node
 	public String name;		// Must be unique within a model across relations and nodes
@@ -217,7 +223,7 @@ public class Neo4J  {
 			if(sourceKey == null || targetKey == null) {
 				return;		// Missing end point, can happen with select multiple where an option was not selected
 			}
-			System.out.println("CurrentKey : " + currentKey + " sourceKey: " + sourceKey + " targetKey: " + targetKey);
+			log.info("CurrentKey : " + currentKey + " sourceKey: " + sourceKey + " targetKey: " + targetKey);
 			output.append(",\"");
 			output.append(sourceKey);
 			output.append("\",");
@@ -244,7 +250,7 @@ public class Neo4J  {
 						return;			// Multi select option not selected, don't create the node or relation
 					}
 				} else {
-					System.out.println("###### question type: " + p.q_type);
+					log.info("###### question type: " + p.q_type);
 					
 					v = rs.getString(colName);
 				}

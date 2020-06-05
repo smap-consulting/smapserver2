@@ -1082,7 +1082,7 @@ public class PutXForm {
 	   					q.setSource("user");	// Set source as it may not have been set in the body
 	   				}
 	    		} else {
-	    			System.out.println("Warning, bind attribute ignored (" + name + ":" + attribute.getNodeValue());
+	    			log.info("Warning, bind attribute ignored (" + name + ":" + attribute.getNodeValue());
 	    		}
 	    	}
     	//}

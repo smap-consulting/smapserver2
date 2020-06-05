@@ -1,9 +1,13 @@
 package org.smap.sdal.model;
 
+import java.util.logging.Logger;
+
 import com.itextpdf.text.BaseColor;
 
-
 public class DisplayItem {
+	
+	private static Logger log =
+			 Logger.getLogger(DisplayItem.class.getName());
 
 	public int width;			// Width of entire cell item relative to enclosing item
 	public int widthLabel = 5;	// Percentage width of label (If label is full width value appears below)
@@ -33,6 +37,6 @@ public class DisplayItem {
 	public boolean isHyperlink = false;
 	
 	public void debug() {
-		System.out.println("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );
+		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );
 	}
 }

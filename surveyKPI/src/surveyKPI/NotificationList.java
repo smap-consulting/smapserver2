@@ -262,7 +262,7 @@ public class NotificationList extends Application {
             }
                 
             if(fList != null) {
-            	System.out.println("Length: " + fList.xform.size());
+            	log.info("Length: " + fList.xform.size());
 				Gson gsonResp = new GsonBuilder().disableHtmlEscaping().create();
 				resp = gsonResp.toJson(fList.xform);
             }

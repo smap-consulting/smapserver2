@@ -279,7 +279,7 @@ public class ExportSurveyThingsat extends Application {
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String modelString = rs.getString(1);
-				System.out.println("Model: " + modelString);
+				log.info("Model: " + modelString);
 				things = new Gson().fromJson(modelString, ThingsatDO.class);
 				
 			}
@@ -390,11 +390,9 @@ public class ExportSurveyThingsat extends Application {
 			pstmt = connectionSD.prepareStatement(sql);
 		
 			for(Neo4J n : things.nodes) {
-				System.out.println("--------" + n.name);
 				addChoicesToProperties(pstmt, n.properties);
 			}
 			for(Neo4J l : things.links) {
-				System.out.println("++++++++" + l.name);
 				addChoicesToProperties(pstmt, l.properties);
 			}
 			

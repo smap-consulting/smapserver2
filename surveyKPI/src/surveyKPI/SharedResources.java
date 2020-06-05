@@ -145,7 +145,6 @@ public class SharedResources extends Application {
 	public Response updateMap(@Context HttpServletRequest request, @FormParam("map") String mapString) { 
 		
 		Response response = null;
-		System.out.println("Map details:" + mapString);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-SharedResources");

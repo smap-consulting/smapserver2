@@ -127,7 +127,6 @@ public class ExportLQAS extends Application {
 			/*
 			 * Get the LQAS definition to apply to this survey
 			 */
-			System.out.println("Report Id:" + rId);
 			LQAS lqas = null;
 			if(rId > 0) {
 				CustomReportsManager crm = new CustomReportsManager();
@@ -137,8 +136,6 @@ public class ExportLQAS extends Application {
 			// Write out the definition ==== Temp
 		   	Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			String json = gson.toJson(lqas);
-			System.out.println("json: " + json);
-			System.out.println("Filename: " + survey.displayName + "." + filetype);
 			
 			// Set file name
 			GeneralUtilityMethods.setFilenameInResponse(survey.displayName + "." + filetype, response);

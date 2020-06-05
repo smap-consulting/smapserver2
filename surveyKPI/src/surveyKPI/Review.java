@@ -1409,7 +1409,6 @@ public class Review extends Application {
 		
 		ArrayList<KeyValue> names = new ArrayList<KeyValue>();
 		
-		System.out.println("Relevance: " + relevance);
 		while((idx1 = relevance.indexOf("selected", idx1 + 1)) >= 0) {
 			idx1 = relevance.indexOf("(", idx1 + 1);
 			if(idx1 > 0) {

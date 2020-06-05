@@ -594,8 +594,6 @@ public class Billing extends Application {
 				bEnable = true;
 			}
 			
-			System.out.println("Level: " + level + " do " + enable + " id " + id);
-			
 			if(level.equals("owner")) {
 				pstmt = sd.prepareStatement(sqlOwner);
 			} else if(level.equals("ent")) {

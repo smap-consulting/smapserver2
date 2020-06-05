@@ -3500,7 +3500,7 @@ public class SurveyManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, groupSurveyId);
 			pstmt.setInt(2, groupSurveyId);
-			System.out.println("++++++++ Get Group Questions: " + pstmt.toString());
+			log.info("++++++++ Get Group Questions: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
 

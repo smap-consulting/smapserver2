@@ -589,7 +589,7 @@ public class QuestionManager {
 
 				// 3. Update the form settings if a form is being moved
 				if(q.type.equals("begin repeat")) {
-					System.out.println("Moving repeat");
+					log.info("Moving repeat");
 
 					// 3a. Get the question Id of the form being moved
 					pstmtGetQuestionId = sd.prepareStatement(sqlGetQuestionId);

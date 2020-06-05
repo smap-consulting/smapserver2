@@ -1,3 +1,5 @@
+import java.util.logging.Logger;
+
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 /*****************************************************************************
@@ -24,7 +26,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 public class Manager {
-
+	
+	private static Logger log =
+			 Logger.getLogger(Manager.class.getName());
+	
 	public static void main(String[] args) {
 		
 		String fileLocn = "/smap";			// Default for legacy servers that do not set file path
@@ -51,13 +56,13 @@ public class Manager {
 			// Start the AWS service processor
 			String mediaBucket = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/bucket");
 			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
-			System.out.println("Auto Update:  S3 Bucket is: " + region + " : " + mediaBucket);
+			log.info("Auto Update:  S3 Bucket is: " + region + " : " + mediaBucket);
 			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
 			au.go(smapId, fileLocn, mediaBucket, region);
 		}
 		
-		System.out.println("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
+		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
 		int delaySecs = 4;
 		
 		// Forwarding can happen less frequently, this reduce the load due to searching for items to forward
@@ -69,7 +74,7 @@ public class Manager {
 		while(loop) {
 			String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
 			if(subscriberControl != null && subscriberControl.equals("stop")) {
-				System.out.println("######## Stopped");		
+				log.info("######## Stopped");		
 				loop = false;
 			} else {
 				SubscriberBatch batchJob = new SubscriberBatch();

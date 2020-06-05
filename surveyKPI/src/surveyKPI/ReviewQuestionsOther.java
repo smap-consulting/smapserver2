@@ -42,6 +42,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /*
@@ -155,8 +156,6 @@ public class ReviewQuestionsOther extends Application {
 				q.name = resultSet.getString(5);
 				q.path = resultSet.getString(6);
 				
-				
-				System.out.println("Question: " + q.name + " : " + q.type + " : " + q.relevant);
 				if(q.type.startsWith("select")) {
 					selectQuestions.add(q);					
 				} else if (q.type.equals("string") && q.relevant != null) {
@@ -189,8 +188,7 @@ public class ReviewQuestionsOther extends Application {
 			response = Response.ok(resp).build();
 				
 		} catch (SQLException e) {
-		    System.out.println("Connection Failed! Check output console");
-		    e.printStackTrace();
+		    log.log(Level.SEVERE, e.getMessage(), e);
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

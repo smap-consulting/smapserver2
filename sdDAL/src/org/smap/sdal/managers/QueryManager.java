@@ -374,15 +374,6 @@ public class QueryManager {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 		}
 		
-		for(int i = 0; i < formList.size(); i++) {
-			System.out.println("   Survey: " + formList.get(i).survey);
-			System.out.println("   Form: " + formList.get(i).form);
-			System.out.println("   Question: " + formList.get(i).fromQuestionId);
-			System.out.println("   Table: " + formList.get(i).table);
-			System.out.println("   SurveyLevel: " + formList.get(i).surveyLevel);
-			System.out.println();
-		}
-		
 	}
 	
 	

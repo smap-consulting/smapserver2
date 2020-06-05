@@ -78,7 +78,6 @@ public class Values extends Application {
 			) { 
 	
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-		System.out.println("urlprefix: " + urlprefix);
 		
 		Response response = null;
 		Connection cResults = null;
@@ -130,7 +129,6 @@ public class Values extends Application {
 			/*
 			 * Collect the data
 			 */
-			System.out.println("Questions type: " + aQ.getType());
 			if(resultSet.next()) {
 				if(aQ.getType().equals("select")) {
 					ArrayList<OptionInfo> oList = aQ.getOptions();

@@ -74,7 +74,7 @@ public class AutoUpdateProcessor {
 				
 				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
-					System.out.println("========== Auto update Processor Stopped");
+					log.info("========== Auto update Processor Stopped");
 					loop = false;
 				} else {
 					System.out.print("u");

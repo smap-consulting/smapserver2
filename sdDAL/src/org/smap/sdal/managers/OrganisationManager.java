@@ -196,7 +196,7 @@ public class OrganisationManager {
 							String subject = localisation.getString("email_org_change");
 							subject = subject.replaceAll("%s1", serverName);
 							subject = subject.replaceAll("%s2", originalOrg.name);
-							System.out.println("Sending email confirmation: Header = " + subject);
+							log.info("Sending email confirmation: Header = " + subject);
 							
 							String content = localisation.getString("org_change");
 							content = content.replaceAll("%s1", originalOrg.name);

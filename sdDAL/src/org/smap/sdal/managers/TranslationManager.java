@@ -119,7 +119,6 @@ public class TranslationManager {
 			rs = pstmtDefaultImage.executeQuery();
 				
 			while (rs.next()) {		
-				System.out.println("Default value: " + rs.getString(1));
 				
 				ManifestValue m = new ManifestValue();
 				m.sId = surveyId;

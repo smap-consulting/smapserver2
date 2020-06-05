@@ -181,9 +181,9 @@ public class SmapForward extends Subscriber {
 
 			// verify that the response was a 201 or 202.
 			// If it wasn't, the submission has failed.
-			System.out.println("	Info: Response code: " + responseCode + " : " + responseReason);
+			log.info("	Info: Response code: " + responseCode + " : " + responseReason);
 			if (responseCode != HttpStatus.SC_CREATED && responseCode != HttpStatus.SC_ACCEPTED) {      
-				System.out.println("	Error: upload failed: ");
+				log.info("	Error: upload failed: ");
 				se.setStatus("error");		
 				se.setReason(responseCode + ":" + responseReason);
 			} else {
@@ -194,22 +194,22 @@ public class SmapForward extends Subscriber {
 			se.setStatus("error");
 			String msg = "UnsupportedCodingException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(ClientProtocolException e) {
 			se.setStatus("host_unreachable");
 			String msg = "ClientProtocolException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(IOException e) {
 			se.setStatus("host_unreachable");
 			String msg = "IOException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} catch(IllegalArgumentException e) {
 			se.setStatus("error");			
 			String msg = "IllegalArgumentException:" + e.getMessage();
 			se.setReason(msg);
-			System.out.println("        " + msg);
+			log.info("        " + msg);
 		} finally {
 			try {
 				httpclient.close();
@@ -240,17 +240,17 @@ public class SmapForward extends Subscriber {
 		final File instanceFile = new File(filePath);	
 
 		if (!instanceFile.exists()) {
-			System.out.println("	Error: File to be forwarded " + filePath + " does not exist");
+			log.info("	Error: File to be forwarded " + filePath + " does not exist");
 		} else {
 
 			if(formStatus != null) {
 				System.out.println("Setting form status in header: " + formStatus);
 				req.setHeader("form_status", formStatus);						// smap add form_status header
 			} else {
-				System.out.println("Form Status null");
+				log.info("Form Status null");
 			}
 			// add the submission file after transforming the survey id
-			System.out.println("Instance file: " + instanceFile);
+			log.info("Instance file: " + instanceFile);
 			PipedInputStream in = new PipedInputStream();
 			final PipedOutputStream outStream = new PipedOutputStream(in);
 			new Thread(
@@ -281,12 +281,12 @@ public class SmapForward extends Subscriber {
 			/*
 			 * Add submission file as file body, hence save to temporary file first
 			 */
-			System.out.println("Saving stream to file");
+			log.info("Saving stream to file");
 			ammendedFile = saveStreamTemp(in);
 			FileBody fb = new FileBody(ammendedFile);
 			entityBuilder.addPart("xml_submission_file", fb);	
 
-			System.out.println("Instance file path: " + instanceFile.getPath());
+			log.info("Instance file path: " + instanceFile.getPath());
 
 			/*
 			 *  find all files referenced by the survey

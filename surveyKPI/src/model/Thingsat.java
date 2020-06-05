@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.logging.Logger;
 
 /*
 This file is part of SMAP.
@@ -30,6 +31,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  * Data object for Neo4J / thingsat export
  */
 public class Thingsat {
+	private static Logger log =
+			 Logger.getLogger(Thingsat.class.getName());
+	
 	public ArrayList<Neo4J> nodes = new ArrayList<Neo4J> ();
 	public ArrayList<Neo4J> links  = new ArrayList<Neo4J> ();
 	
@@ -55,7 +59,7 @@ public class Thingsat {
 		
 		this.filepath = filepath;
 		this.filename = filename;
-		System.out.println("Creating cql file at: " + filepath + "/" + filename + ".cql");
+		log.info("Creating cql file at: " + filepath + "/" + filename + ".cql");
 		f = new File(filepath, filename + ".cql");
 		w = new PrintWriter(f);
 		
@@ -175,7 +179,7 @@ public class Thingsat {
 		code = proc.waitFor();
 		
 		
-        System.out.println("Process create zip exitValue: " + code);
+        log.info("Process create zip exitValue: " + code);
 	};
 	
 	public void localLoad() throws IOException, InterruptedException {
@@ -185,12 +189,12 @@ public class Thingsat {
 				filepath + "/import.sh " +
 				" >> /var/log/subscribers/survey.log 2>&1"});
 		code = proc.waitFor();	
-        System.out.println("Process create local load - 1 exitValue: " + code);
+        log.info("Process create local load - 1 exitValue: " + code);
         
 		proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", filepath + "/import.sh " + filepath + 
 				" >> /var/log/subscribers/survey.log 2>&1"});
 		code = proc.waitFor();	
-        System.out.println("Process create local load - 2 exitValue: " + code);
+        log.info("Process create local load - 2 exitValue: " + code);
 	};
 	
 	public void writeDataHeaders() {
@@ -203,14 +207,14 @@ public class Thingsat {
 	}
 	
 	public void debug() {
-		System.out.println(" thingsat model =====================");
-		System.out.println(" Nodes ------------------");
+		log.info(" thingsat model =====================");
+		log.info(" Nodes ------------------");
 		if(nodes != null) {
 			for (int i = 0; i < nodes.size(); i++) {
 				nodes.get(i).debug();
 			}
 		}
-		System.out.println(" Relations ------------------");
+		log.info(" Relations ------------------");
 		if(links != null) {
 			for (int i = 0; i < links.size(); i++) {
 				links.get(i).debug();

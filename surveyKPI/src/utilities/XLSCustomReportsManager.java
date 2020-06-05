@@ -598,9 +598,6 @@ public class XLSCustomReportsManager {
         Row row = null;
         int lastRowNum = 0;
         HashMap<String, Integer> header = null;
- 
-        
-        System.out.println("Getting LQAS report");
         
 		if(type != null && type.equals("xls")) {
 			wb = new HSSFWorkbook(inputStream);

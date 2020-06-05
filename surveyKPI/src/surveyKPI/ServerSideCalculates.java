@@ -145,7 +145,6 @@ public class ServerSideCalculates extends Application {
 		a.isAuthorised(connectionSD, request.getRemoteUser());
 		// End Authorisation
 		
-		System.out.println("Name: " + name + " : " + fId);
 		PreparedStatement pstmtDupName = null;
 		PreparedStatement pstmtDupSSC = null;
 		PreparedStatement pstmtAddSSC = null;
@@ -163,7 +162,6 @@ public class ServerSideCalculates extends Application {
 			
 			pstmtDupName.setInt(1, sId);
 			pstmtDupName.setString(2, name);
-			System.out.println("sql: " + sql + " : " + sId + " : " + name);
 			ResultSet rs = pstmtDupName.executeQuery();
 			int count = 0;
 			if (rs.next()) {	
@@ -184,7 +182,6 @@ public class ServerSideCalculates extends Application {
 			
 			pstmtDupSSC.setInt(1, sId);
 			pstmtDupSSC.setString(2, name);
-			System.out.println("sql: " + sql + " : " + sId + " : " + name);
 			rs = pstmtDupSSC.executeQuery();
 			count = 0;
 			if (rs.next()) {	
@@ -257,7 +254,6 @@ public class ServerSideCalculates extends Application {
 			
 			pstmt.setInt(1, sId);
 			pstmt.setInt(2, id);
-			System.out.println("sql: " + sql + " : " + sId + " : " + id);
 			pstmt.executeUpdate();
 			
 			response = Response.ok().build();

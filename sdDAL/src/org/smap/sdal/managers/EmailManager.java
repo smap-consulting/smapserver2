@@ -295,7 +295,6 @@ public class EmailManager {
 
 			msg.setHeader("X-Mailer", "msgsend");
 			log.info("Sending email from: " + sender);
-			System.out.println("content: " + txtMessage.toString());
 			Transport.send(msg);
 
 		} catch(AuthenticationFailedException ae) { 

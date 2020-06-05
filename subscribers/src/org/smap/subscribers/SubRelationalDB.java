@@ -209,8 +209,7 @@ public class SubRelationalDB extends Subscriber {
 					sd.close();
 				}
 			} catch (SQLException e) {
-				System.out.println("Failed to close meta connection");
-				e.printStackTrace();
+				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			
 			try {
@@ -218,8 +217,7 @@ public class SubRelationalDB extends Subscriber {
 					cResults.close();
 				}
 			} catch (SQLException e) {
-				System.out.println("Failed to close results connection");
-				e.printStackTrace();
+				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 		}
 
@@ -1198,7 +1196,6 @@ public class SubRelationalDB extends Subscriber {
 						 */
 						pstmtCopyBack = cResults.prepareStatement(getCopyBackSql(cResults, tableName, sourceKey));
 						for(int i = childSourcekeys.size() - 1; i >= 0; i--) {
-							//System.out.println("Copy back: Table: " + tableName + " key: " + childSourcekeys.get(i) + " original parent: " + sourceKey);
 							if(copiedSourceKeys.contains(childSourcekeys.get(i))) {
 								pstmtCopyBack.setInt(1, childSourcekeys.get(i));
 								log.info("Copy back: " + pstmtCopyBack.toString());
@@ -1522,175 +1519,6 @@ public class SubRelationalDB extends Subscriber {
 
 	}
 
-
-	/*
-	 * Method to replace an existing record
-	 *
-	private  void replaceExistingRecord(
-			Connection cRel, 
-			Connection sd, 
-			IE element, 
-			int existingKey, 
-			int newKey,
-			boolean hasHrk,
-			String hrk,
-			String newInstance,
-			String oldInstance,
-			int sId,
-			String remoteUser) throws SQLException, Exception {
-
-		 *
-		 * Set the record as bad with the reason being that it has been replaced
-		 *	
-		String tableName = element.getTableName();
-		List<IE> columns = element.getQuestions();
-		PreparedStatement pstmt = null;
-		PreparedStatement pstmtCheckBad = null;
-		PreparedStatement pstmtAdd = null;
-		PreparedStatement pstmtHrk = null;
-		PreparedStatement pstmtReplacedBy = null;
-		PreparedStatement pstmtGetColumns = null;
-		PreparedStatement pstmtGetData1 = null;
-		PreparedStatement pstmtGetData2 = null;
-
-		try {
-			// Check that the new record is not bad
-			String sql = "select _bad from " + tableName + " where prikey = ?;";
-			boolean isGood = false;
-			pstmtCheckBad = cRel.prepareStatement(sql);
-			pstmtCheckBad.setLong(1, newKey);
-			ResultSet rsCheckBad = pstmtCheckBad.executeQuery();
-			if(rsCheckBad.next()) {
-				isGood = !rsCheckBad.getBoolean(1);
-			}
-				
-			if(isGood) {
-				// Get the form id for this table
-				String bad_reason = "Replaced by " + newKey;
-				int f_id;
-				sql = "select f.f_id from form f where f.table_name = ? and f.s_id = ?;";
-
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setString(1, tableName);
-				pstmt.setInt(2, sId);
-				ResultSet rs = pstmt.executeQuery();
-				if(rs.next()) {
-					f_id = rs.getInt(1);
-
-					// Mark the records replaced
-					boolean replacedRecordsAreGood = false;
-					String previousKeys = "";
-	
-					previousKeys += " " + String.valueOf(existingKey);
-					// Find out if the record being replaced is bad - If none of them are good then the replacedRecordsAreGood flag will be false
-					pstmtCheckBad.setLong(1, existingKey);
-					rsCheckBad = pstmtCheckBad.executeQuery();
-					if(rsCheckBad.next()) {
-						if(!rsCheckBad.getBoolean(1)) {
-							replacedRecordsAreGood = true;
-						}
-					}
-					
-					 *
-					 * Save the delta and delete the old record
-					 *
-					String sqlGetData = "select * from " + tableName + " where prikey = ?";
-					pstmtGetData1 = cRel.prepareStatement(sqlGetData);
-					pstmtGetData1.setInt(1, existingKey);
-					ResultSet rsExisting = pstmtGetData1.executeQuery();
-					pstmtGetData2 = cRel.prepareStatement(sqlGetData);
-					pstmtGetData2.setInt(1, newKey);
-					ResultSet rsNew = pstmtGetData2.executeQuery();
-					
-					String sqlGetColumns = "select column_name, data_type from INFORMATION_SCHEMA.COLUMNS where table_name = ?";
-					pstmtGetColumns = cRel.prepareStatement(sqlGetColumns);
-					pstmtGetColumns.setString(1, tableName);
-					
-					ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
-					Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-					
-					if(rsExisting.next() && rsNew.next()) {
-						ResultSet rsCols = pstmtGetColumns.executeQuery();
-						while(rsCols.next()) {
-							String col = rsCols.getString(1);
-							String type = rsCols.getString(2);
-							
-							String oldVal = rsExisting.getString(col);
-							String newVal = rsNew.getString(col);
-							
-							if(col.equals("prikey") || col.equals("_upload_time")) {
-								continue;
-							} else if(oldVal == null && newVal == null) {
-								continue;
-							} else if(oldVal == null || newVal == null || !oldVal.equals(newVal)) {
-								System.out.println("New val of: " + newVal + " for " + col + " was " + oldVal);
-								DataItemChange item = new DataItemChange(col, type, newVal, oldVal);
-								changes.add(item);
-							} else {
-								continue;
-							}
-						}
-					}
-
-					System.out.println("================= Changes: " + gson.toJson(changes));
-					// Save the changes
-					RecordEventManager rem = new RecordEventManager();
-					rem.saveChange(sd, remoteUser, tableName, hrk, newInstance, oldInstance, gson.toJson(changes), sId);					
-
-
-					// Mark the record being replaced as bad
-					 *
-					 * Is now deleted see above
-					org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, cMeta, localisation, tableName, 
-							true, bad_reason, existingKey, sId, f_id, true, false, user, true, tz, false);
-					*
-					// Set the hrk of the new record to the hrk of the old record
-					// This can only be done for one old record, possibly there is never more than 1
-					if(hasHrk) {
-						if(!GeneralUtilityMethods.hasColumn(cRel, tableName, "_hrk")) {
-							// This should not be needed as the _hrk column should be in the table if an hrk has been specified for the survey
-							log.info("Error:  _hrk being created for table " + tableName + " this column should already be there");
-							String sqlAddHrk = "alter table " + tableName + " add column _hrk text;";
-							pstmtAdd = cRel.prepareStatement(sqlAddHrk);
-							pstmtAdd.executeUpdate();
-						}
-						String sqlHrk = "update " + tableName + " set _hrk = (select t2._hrk from "
-								+ tableName
-								+ " t2 where t2.prikey = ?) "
-								+ "where prikey = ?;";
-						pstmtHrk = cRel.prepareStatement(sqlHrk);
-						pstmtHrk.setInt(1, existingKey);
-						pstmtHrk.setLong(2, newKey);
-						log.info("Updating hrk with original value: " + pstmtHrk.toString());
-						pstmtHrk.executeUpdate();
-
-					}
-					
-					// If the records being replaced were all bad then set the new record to bad
-					if(!replacedRecordsAreGood) {
-						bad_reason = localisation.getString("t_rep_bad") + previousKeys;
-						org.smap.sdal.Utilities.UtilityMethodsEmail.markRecord(cRel, sd, localisation, tableName, 
-								true, bad_reason, (int) newKey, sId, f_id, true, false, user, true, tz, false);
-					}
-				}		
-			
-			}
-			GeneralUtilityMethods.continueThread(cRel, tableName, newKey, existingKey);
-			
-		} finally {
-			if(pstmt != null) try{pstmt.close();}catch(Exception e) {};
-			if(pstmtHrk != null) try{pstmtHrk.close();}catch(Exception e) {};
-			if(pstmtAdd != null) try{pstmtAdd.close();}catch(Exception e) {};
-			if(pstmtReplacedBy != null) try{pstmtReplacedBy.close();}catch(Exception e) {};
-			if(pstmtCheckBad != null) try{pstmtCheckBad.close();}catch(Exception e) {};
-			if(pstmtGetData1 != null) try{pstmtGetData1.close();}catch(Exception e) {};
-			if(pstmtGetData2 != null) try{pstmtGetData2.close();}catch(Exception e) {};
-			if(pstmtGetColumns != null) try{pstmtGetColumns.close();}catch(Exception e) {};
-		}
-
-	}
-	*/
-
 	/*
 	 * Get the primary key from the unique instance id
 	 */
@@ -1938,12 +1766,7 @@ public class SubRelationalDB extends Subscriber {
 						 */
 						String srcName = value;
 
-						try {
-							new PrintStream(System.out, true, "UTF-8").println("Creating file: " + srcName);
-						} catch (UnsupportedEncodingException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
+						log.info("Creating file: " + srcName);				
 
 						File srcXmlFile = new File(gFilePath);
 						File srcXmlDirFile = srcXmlFile.getParentFile();
