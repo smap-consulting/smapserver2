@@ -31,12 +31,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.EmailManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PeopleManager;
 import org.smap.sdal.model.EmailServer;
+import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SubscriptionStatus;
 
 import com.google.gson.Gson;
@@ -125,19 +127,71 @@ public class PasswordReset extends Application {
 					
 					if(emailServer.smtpHost != null) {
 						
+						int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+						Organisation o = GeneralUtilityMethods.getOrganisation(sd, oId);
+						String adminEmail = o.getAdminEmail();
+						
 						ArrayList<String> idents = UtilityMethodsEmail.getIdentsFromEmail(sd, pstmt, email);
-					    String sender = "reset";
 					    
 					    String subject = localisation.getString("c_r_p");
 					    EmailManager em = new EmailManager();
-						em.sendEmail(email, uuid, "reset", subject, null, sender, null, interval, 
-					    		idents, null, null, null, null, emailServer, 
-					    		request.getScheme(),
-					    		request.getServerName(),
-					    		subStatus.emailKey,
-					    		localisation,
-					    		null,
-					    		null);
+					    
+					    StringBuilder content = new StringBuilder(); 
+					    content.append("<p>").append(localisation.getString("c_goto"))
+							.append("<a href=\"").append("https").append("://").append(request.getServerName())
+							.append("//resetPassword.html?token=")
+							.append(uuid)
+							.append("\">")
+							.append(localisation.getString("email_link"))
+							.append("</a> ")				
+							.append(localisation.getString("email_rp"))
+							.append("</p>");
+					
+					    // User ident
+					    StringBuffer identString = new StringBuffer();
+						int count = 0;
+						if(idents != null) {
+							for(String ident : idents) {
+								if(count++ > 0) {
+									identString.append(" or ");
+								} 
+								identString.append(ident);
+							}
+						}			
+					    content.append("<p>")
+					    	.append(localisation.getString("email_un"))
+							.append(": ")
+							.append(identString.toString())
+							.append("</p>");
+						
+					    // Email validity
+					    content.append("<p>")
+							.append(localisation.getString("email_vf"))
+							.append(" ")
+							.append(interval)
+							.append("</p>");
+				
+						content.append("<br/><br/><p>")
+							.append(localisation.getString("email_dnr"))
+							.append(" ")
+							.append(adminEmail)
+							.append(".</p>");
+						
+						content.append("<br/><br/>${unsubscribe}");
+						
+						em.sendEmailHtml(
+								email, 
+								"bcc", 
+								subject, 
+								content.toString(), 
+								null, 
+								null, 
+								emailServer,
+								request.getServerName(),
+								subStatus.emailKey,
+								localisation,
+								null);
+						
 					    response = Response.ok().build();
 					} else {
 						String msg = "Error password reset.  Email not enabled on this server.";
@@ -246,8 +300,10 @@ public class PasswordReset extends Application {
 				int nbrUpdated = pstmtDel.executeUpdate();
 				if(nbrUpdated > 0) {
 					response = Response.status(Status.NOT_FOUND).entity("Token has expired").build();
+					log.info("Error: Token has expired");
 				} else {
 					response = Response.status(Status.NOT_FOUND).entity("Token not found").build();
+					log.info("Error: Token not found");
 				}
 				
 			}

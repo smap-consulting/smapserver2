@@ -739,30 +739,6 @@ public class MailoutManager {
 													localisation,
 													null);
 											
-											/*
-											em.sendEmail(
-													ia.getAddress(), 
-													null, 
-													"notify", 
-													subject, 
-													content,
-													from,		
-													null, 
-													null, 
-													null, 
-													docURL, 
-													filePath,
-													filename,
-													organisation.getAdminEmail(), 
-													emailServer,
-													scheme,
-													server,
-													subStatus.emailKey,
-													localisation,
-													organisation.server_description,
-													organisation.name);
-													*/
-											
 											if(subStatus.optedInSent == null) {
 												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 
 														organisation.getAdminEmail(), emailServer, 
