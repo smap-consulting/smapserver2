@@ -539,7 +539,7 @@ public class GeneralUtilityMethods {
 	 */
 	private static void processAttachment(String fileName, String destDir, String contentType, String ext) {
 
-		String cmd = "/smap_bin/processAttachment.sh " + fileName + " " + destDir + " " + contentType + " " + ext
+		String cmd = "/smap_bin/processAttachment.sh " + fileName + " " + destDir + " \"" + contentType + "\" " + ext
 				+ " >> /var/log/subscribers/attachments.log 2>&1";
 		log.info("Exec: " + cmd);
 		try {
