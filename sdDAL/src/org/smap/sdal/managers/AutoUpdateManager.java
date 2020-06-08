@@ -75,11 +75,11 @@ public class AutoUpdateManager {
 			Gson gson) throws SQLException {
 		ArrayList<AutoUpdate> autoUpdates = new ArrayList<AutoUpdate> ();	
 		
-		ArrayList<QuestionForm> groupQuestions = getAutoUpdateQuestions(sd);
+		ArrayList<QuestionForm> auQuestions = getAutoUpdateQuestions(sd);
 		HashMap<Integer, String> localeHashMap = new HashMap<> ();		// reduce database access
 		
 		//log.info("#### Found " + groupQuestions.size() + " auto update question");	// debug
-		for(QuestionForm qf : groupQuestions) {
+		for(QuestionForm qf : auQuestions) {
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");	// legacy
@@ -540,24 +540,26 @@ public class AutoUpdateManager {
 	private ArrayList<QuestionForm> getAutoUpdateQuestions(Connection sd) throws SQLException {
 		
 		ArrayList<QuestionForm> auQuestions = new ArrayList<> ();
-		
+
 		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
-				+ "from question q, form f, survey s "
+				+ "from question q, form f, survey s, autoupdate_questions auq "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = s.s_id "
+				+ "and q.q_id = auq.q_id "
 				+ "and not s.deleted "
 				+ "and not s.blocked "
 				+ "and q.parameters is not null "
 				+ "and q.parameters like '%source=%'"
-				+ "and (q.parameters like '%auto=yes%' or q.parameters like '%auto_annotate=yes%')";
-
+				+ "and (q.parameters like '%auto=yes%' or q.parameters like '%auto_annotate=yes%')";		
 		PreparedStatement pstmt = null;
+		
 		try {
+			
 			pstmt = sd.prepareStatement(sql);
-			//log.info("@@@@: " + pstmt.toString());  // debug
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
+				
 				QuestionForm qt = new QuestionForm(
 						rs.getString("qname"), 
 						rs.getString("column_name"),
@@ -567,7 +569,9 @@ public class AutoUpdateManager {
 						rs.getString("qtype"),
 						rs.getInt("s_id"),
 						rs.getBoolean("reference"));
+					
 				auQuestions.add(qt);
+
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
