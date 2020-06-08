@@ -9546,5 +9546,55 @@ public class GeneralUtilityMethods {
 		}
 		return groupSurveyId;
 	}
+	
+	/*
+	 * Write the autoupdate questions to a table that acts as an index in order to make i easier for the autoupdate process
+	 * to find the questions it needs to operate on
+	 */
+	public static void writeAutoUpdateQuestion(Connection sd, int sId, int qId, String parameters, boolean change) throws SQLException {
+		
+		String sql = "insert into autoupdate_questions (q_id, s_id) values(?, ?)";
+		PreparedStatement pstmt = null;
+		
+		if(parameters != null) {
+			
+			if(parameters != null 
+					&& parameters.contains("source=")
+					&& (parameters.contains("auto_annotate=yes") || parameters.contains("auto_annotate=true"))) {
+				
+				try {
+					pstmt = sd.prepareStatement(sql);
+					pstmt.setInt(1, qId);
+					pstmt.setInt(2, sId);
+					pstmt.executeUpdate();		
+				} finally {
+					if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+				}
+				
+			} else if (change) {
+				deleteAutoUpdateQuestion(sd, sId, qId);
+			}
+		}
+	}
+	
+	/*
+	 * Delete an autoupdate question indicator
+	 */
+	public static void deleteAutoUpdateQuestion(Connection sd, int sId, int qId) throws SQLException {
+		
+		String sql = "delete from autoupdate_questions "
+				+ "where q_id = ? "
+				+ "and s_id = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, qId);
+			pstmt.setInt(2, sId);
+			pstmt.executeUpdate();		
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
 }
 

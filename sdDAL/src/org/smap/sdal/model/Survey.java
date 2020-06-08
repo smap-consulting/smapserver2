@@ -546,6 +546,7 @@ public class Survey {
 						q.compressed = getExistingCompressedFlag(sd, tableName,existingSurveyId, q.name);
 					}
 					writeQuestion(sd, localisation, q, f.id, idx++, pstmtSetLabels);
+					GeneralUtilityMethods.writeAutoUpdateQuestion(sd, id, q.id, GeneralUtilityMethods.convertParametersToString(q.paramArray), false);
 				}
 				
 			}

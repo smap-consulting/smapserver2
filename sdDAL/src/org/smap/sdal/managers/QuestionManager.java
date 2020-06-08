@@ -342,13 +342,16 @@ public class QuestionManager {
 
 				}
 				
-				// Potentially update choices if this is a sleect question that uses search()
+				// Potentially update choices if this is a select question that uses search()
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					if(q.app_choices !=null && q.app_choices.length() > 0) {
 						sm.updateSearchChoices(sd, pstmt, q.app_choices, sId, qId);
 					}
 					
 				}
+				
+				// Record any auto update questions
+				GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, qId, q.parameters, false);
 
 			}
 
@@ -866,8 +869,8 @@ public class QuestionManager {
 						log.info("Deleting form: " + pstmtDeleteForm.toString());
 						pstmtDeleteForm.executeUpdate();
 
-
 					}
+					
 
 				}
 
