@@ -273,9 +273,6 @@ public class XLSMailoutManager {
 			}
 		}
 
-		ZoneId timeZoneId = ZoneId.of(tz);
-		ZoneId gmtZoneId = ZoneId.of("GMT");
-
 		sheet = wb.getSheet("mailouts");
 		if(sheet == null) {
 			throw new ApplicationException(localisation.getString("mo_nws"));
@@ -344,8 +341,10 @@ public class XLSMailoutManager {
             if(cell != null) {
                 name = cell.getStringCellValue();
                 if(name != null && name.trim().length() > 0) {
-                	name = name.toLowerCase();
-                    header.put(name, i);
+                	if(isReservedColumnName(name)) {
+                		name = name.toLowerCase();
+                	}
+            		header.put(name, i);
                 }
             }
         }
@@ -368,9 +367,8 @@ public class XLSMailoutManager {
             if(cell != null) {
                 name = cell.getStringCellValue();
                 if(name != null && name.trim().length() > 0) {
-                	name = name.toLowerCase();
-                	if(!name.equals("email") && !name.equals("name") &&
-                			!name.equals("status") && !name.equals("status_details")) {
+                	name = name.trim();
+                	if(!isReservedColumnName(name)) {
 	                    idx.add(name);
                 	}
                 }
@@ -378,5 +376,19 @@ public class XLSMailoutManager {
         }
             
 		return idx;
+	}
+	
+	private boolean isReservedColumnName(String name) {
+		if(name != null) {
+			name = name.trim().toLowerCase();
+			if(name.equals("email") 
+	    			|| name.equals("name") 
+	    			|| name.equals("status") 
+	    			|| name.equals("link") 
+	    			|| name.equals("status_details")) {
+				return true;
+			} 
+		}
+		return false;
 	}
 }
