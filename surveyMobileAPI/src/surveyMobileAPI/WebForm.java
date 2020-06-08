@@ -1249,10 +1249,6 @@ public class WebForm extends Application {
 			SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 
-			// template.printModel(); // debug
-			//GetXForm xForm = new GetXForm();
-			// String formXML = xForm.get(template);
-
 			// If required get the instance data
 			String instanceXML = null;
 			String dataKey = "instanceid";

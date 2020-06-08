@@ -1928,6 +1928,12 @@ public class GetXForm {
 							} else {
 								value = qValue;
 							}
+						} else if(qType.equals("dateTime")) {
+							value = qValue;
+							if(value != null) {
+								value = value.trim().replace(' ',  'T');
+								value = GeneralUtilityMethods.workAroundJava8bug00(value);
+							}
 						} else {
 							value = qValue;
 						}

@@ -8487,7 +8487,7 @@ public class GeneralUtilityMethods {
 		    // If third character from end is a PLUS SIGN, append ':00'.
 		    timeString += ":00";
 		} else if ( timeString.lastIndexOf ( "-" ) == ( timeString.length () - 3 ) ) {
-		    // If third character from end is a PLUS SIGN, append ':00'.
+		    // If third character from end is a Minus SIGN, append ':00'.
 		    timeString += ":00";
 		}
 		
