@@ -546,7 +546,7 @@ public class Survey {
 						q.compressed = getExistingCompressedFlag(sd, tableName,existingSurveyId, q.name);
 					}
 					writeQuestion(sd, localisation, q, f.id, idx++, pstmtSetLabels);
-					writeAutoUpdateQuestion(sd, id, q);
+					GeneralUtilityMethods.writeAutoUpdateQuestion(sd, id, q.id, GeneralUtilityMethods.convertParametersToString(q.paramArray), false);
 				}
 				
 			}
@@ -554,35 +554,6 @@ public class Survey {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			if(pstmtSetLabels != null) {try {pstmtSetLabels.close();} catch(Exception e) {}}
 		}	
-	}
-	
-	/*
-	 * Write the autoupdate questions
-	 * Then get the style id to be used by the question
-	 */
-	private void writeAutoUpdateQuestion(Connection sd, int sId, Question q) throws SQLException {
-		
-		String sql = "insert into autoupdate_questions (q_id, s_id) values(?, ?);";
-		PreparedStatement pstmt = null;
-		
-		if(q.paramArray != null && q.paramArray.size() > 0) {
-			String paramString = GeneralUtilityMethods.convertParametersToString(q.paramArray);
-			
-			if(paramString != null 
-					&& paramString.contains("source=")
-					&& (paramString.contains("auto_annotate=yes") || paramString.contains("auto_annotate=true"))) {
-				
-				try {
-					pstmt = sd.prepareStatement(sql);
-					pstmt.setInt(1, q.id);
-					pstmt.setInt(2, sId);
-					pstmt.executeUpdate();		
-				} finally {
-					if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
-				}
-				
-			}
-		}
 	}
 	
 	/*

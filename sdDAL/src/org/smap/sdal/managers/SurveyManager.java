@@ -2298,6 +2298,14 @@ public class SurveyManager {
 							pstmtUpdateForm.executeUpdate();				
 							
 						}
+						
+						// If this is a parameter change record any affected auto update questions
+						if(ci.property.prop.equals("parameters")) {
+							GeneralUtilityMethods.writeAutoUpdateQuestion(sd, sId, ci.property.qId, ci.property.newVal, true);
+						}
+						
+						
+						
 						log.info("userevent: " + userId + " : modify survey property : " + property + " to: " + ci.property.newVal + " survey: " + sId);
 
 						// Write the change log
