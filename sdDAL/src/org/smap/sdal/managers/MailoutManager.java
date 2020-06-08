@@ -277,7 +277,7 @@ public class MailoutManager {
 					mp.initialData = gson.fromJson(initialData, Instance.class);
 				} 
 				
-				if(mp.status == null) {
+				if(mp.status == null || mp.status.equals(MailoutManager.STATUS_NEW)) {
 					mp.status_loc = loc_new;
 				} else if(mp.status.equals(MailoutManager.STATUS_SENT)) {
 					mp.status_loc = loc_sent;
