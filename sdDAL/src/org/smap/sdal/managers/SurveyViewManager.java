@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -264,6 +265,7 @@ public void populateSvd(
 	
 	// remove any of the main form questions that were in the group form
 	if(mainColumnsToRemove.size() > 0) {
+		Collections.sort(mainColumnsToRemove);
 		for(int i = mainColumnsToRemove.size() - 1; i >= 0; i--) {
 			svd.columns.remove(mainColumnsToRemove.get(i).intValue());
 		}
