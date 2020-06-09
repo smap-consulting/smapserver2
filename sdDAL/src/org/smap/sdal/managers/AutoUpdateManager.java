@@ -161,7 +161,7 @@ public class AutoUpdateManager {
 								}
 							} 
 						} else {
-							log.info("------------------ AutoUpdate: Error: " + refColumn + " not found in " + qf.tableName);
+							// No column.  Probably has not been published yet
 						}
 					} 
 				} else {

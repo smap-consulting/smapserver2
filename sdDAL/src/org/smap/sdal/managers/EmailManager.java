@@ -298,6 +298,7 @@ public class EmailManager {
 			Transport.send(msg);
 
 		} catch(AuthenticationFailedException ae) { 
+			log.log(Level.SEVERE, "Messaging Exception", ae);
 			throw new Exception(localisation.getString("email_cs") + ":  " + localisation.getString("ae"));
 		} catch(MessagingException me) {
 			log.log(Level.SEVERE, "Messaging Exception", me);
