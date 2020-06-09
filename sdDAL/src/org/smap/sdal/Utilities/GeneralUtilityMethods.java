@@ -2380,13 +2380,13 @@ public class GeneralUtilityMethods {
 		String sqlClearObsoleteKeys = "delete from dynamic_users " + " where expiry < now() " + " or expiry is null;";
 		PreparedStatement pstmtClearObsoleteKeys = null;
 
-		String interval = "7 days";
+		String interval = "28 days";
 		String sqlAddKey = "insert into dynamic_users (u_id, survey_ident, access_key, expiry) "
 				+ " values (?, ?, ?, timestamp 'now' + interval '" + interval + "');";
 		PreparedStatement pstmtAddKey = null;
 
 		String sqlGetKey = "select access_key from dynamic_users where u_id = ? "
-				+ "and expiry > now() + interval ' 2 days'"; // Get a new key if less than 2 days before old one expires
+				+ "and expiry > now() + interval '21 days'"; // Get a new key if less than 21 days before old one expires
 		PreparedStatement pstmtGetKey = null;
 
 		try {
