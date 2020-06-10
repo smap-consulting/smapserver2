@@ -21,8 +21,6 @@ package org.smap.subscribers;
 
 import java.io.File;
 import java.io.InputStream;
-import java.io.PrintStream;
-import java.io.UnsupportedEncodingException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
