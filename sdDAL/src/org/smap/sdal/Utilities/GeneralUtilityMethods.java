@@ -6244,7 +6244,9 @@ public class GeneralUtilityMethods {
 	 */
 	public static String getTableForQuestion(Connection sd, int sId, String column_name) throws Exception {
 
-		String sql = "select table_name from form f, question q " + "where f.s_id = ? " + "and f.f_id = q.f_id "
+		String sql = "select table_name from form f, question q " 
+				+ "where f.s_id = ? " 
+				+ "and f.f_id = q.f_id "
 				+ "and q.column_name = ?;";
 
 		PreparedStatement pstmt = null;

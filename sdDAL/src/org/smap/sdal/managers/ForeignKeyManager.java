@@ -198,30 +198,34 @@ public class ForeignKeyManager {
 										String keyQuestionTable = GeneralUtilityMethods.getTableForQuestion(sd, 
 												surveyIdContainingKeyQuestion, keyColumnName);
 										
-										String sqlInsertKey = "update " + keyQuestionTable + " set " + keyColumnName +
-											" = ? where instanceid = ?";
-										pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);
-										pstmtInsertKey.setString(1, key);
-										pstmtInsertKey.setString(2, instanceOfKeyQuestion);
-										log.info("Inserting key: " + pstmtInsertKey.toString());
-										int count = 0;
-										try {	// Continue on error
-											count = pstmtInsertKey.executeUpdate();
-										} catch (Exception e) {
-											String msg = e.getMessage();
-											if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
-												// Ignore Table has not been created yet - not an issue
+										if(GeneralUtilityMethods.hasColumn(cResults, keyQuestionTable, "instanceid")) {
+										
+											String sqlInsertKey = "update " + keyQuestionTable + " set " + keyColumnName +
+												" = ? where instanceid = ?";
+											pstmtInsertKey = cResults.prepareStatement(sqlInsertKey);
+											pstmtInsertKey.setString(1, key);
+											pstmtInsertKey.setString(2, instanceOfKeyQuestion);
+											log.info("Inserting key: " + pstmtInsertKey.toString());
+											int count = 0;
+											try {	// Continue on error
+												count = pstmtInsertKey.executeUpdate();
+											} catch (Exception e) {
+												if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
+													// Ignore Table has not been created yet - not an issue
+												} else {
+													log.log(Level.SEVERE, e.getMessage(), e);
+												}					
+											}
+											if(count == 0) {
+												log.info("xxxxxxxxx Foreign key not found - maybe it has not been submited yet");
 											} else {
-												log.log(Level.SEVERE, e.getMessage(), e);
-											}					
-										}
-										if(count == 0) {
-											log.info("xxxxxxxxx Foreign key not found - maybe it has not been submited yet");
+												pstmtResult.setString(1, "ok: applied");
+												pstmtResult.setInt(2, id);
+												log.info("ok: applied");
+												pstmtResult.executeUpdate();
+											}
 										} else {
-											pstmtResult.setString(1, "ok: applied");
-											pstmtResult.setInt(2, id);
-											log.info("ok: applied");
-											pstmtResult.executeUpdate();
+											log.info("Error: foreign key question is in a subform which is not supported");
 										}
 									} else {
 										pstmtResult.setString(1, "error: failed column name for question " + keyQuestion + " not found");
