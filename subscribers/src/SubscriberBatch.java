@@ -226,7 +226,7 @@ public class SubscriberBatch {
 
 						if(uel.isEmpty()) {
 
-							System.out.print(".");
+							log.info("................... Submission Processor");
 
 						} else {
 							log.info("\nUploading subscriber: " + s.getSubscriberName() + " : " + timeNow.toString());
@@ -421,7 +421,7 @@ public class SubscriberBatch {
 					} 
 				}
 			} else {
-				System.out.print("#");
+				log.info("###########################################################################");
 			}
 
 			/*

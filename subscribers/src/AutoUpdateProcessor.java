@@ -68,7 +68,7 @@ public class AutoUpdateProcessor {
 
 		public void run() {
 
-			int delaySecs = 5;
+			int delaySecs = 10;
 			boolean loop = true;
 			while(loop) {
 				
@@ -77,7 +77,7 @@ public class AutoUpdateProcessor {
 					log.info("========== Auto update Processor Stopped");
 					loop = false;
 				} else {
-					System.out.print("u");
+					log.info("uuuuuuuuuuuuuuuuuuu Update Processor");
 					
 					try {
 						// Make sure we have a connection to the database

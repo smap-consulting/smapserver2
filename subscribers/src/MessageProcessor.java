@@ -70,7 +70,7 @@ public class MessageProcessor {
 					loop = false;
 				} else {
 					
-					System.out.print("m");
+					log.info("mmmmmmmmmmmmmmmmmmm Message Processor");
 					
 					try {
 						// Make sure we have a connection to the database
