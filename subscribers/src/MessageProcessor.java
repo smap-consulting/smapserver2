@@ -171,9 +171,7 @@ public class MessageProcessor {
 				Thread t = new Thread(new MessageLoop(sd, cResults, basePath));
 				t.start();
 			} else {
-				// No message!
-				// log.info("Skipping device messages. No aws properties file at:
-				// /smap_bin/resources/properties/aws.properties");
+				log.info("Skipping notification messages. No aws properties file at: smap_bin/resources/properties/aws.properties");
 			}
 
 		} catch (Exception e) {
@@ -181,7 +179,7 @@ public class MessageProcessor {
 		} finally {
 
 			/*
-			 * Do not close connections!  This processor is suppossed to run forever
+			 * Do not close connections!  This processor is supposed to run forever
 			 */
 
 		}

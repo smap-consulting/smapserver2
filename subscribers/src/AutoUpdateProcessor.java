@@ -188,8 +188,7 @@ public class AutoUpdateProcessor {
 				t.start();
 			} else {
 				// No message!
-				// log.info("Skipping device messages. No aws properties file at:
-				// /smap_bin/resources/properties/aws.properties");
+				log.info("Auto update processing not enabled. No aws.properties file found at /smap_bin/resources/properties/aws.properties");
 			}
 
 		} catch (Exception e) {
