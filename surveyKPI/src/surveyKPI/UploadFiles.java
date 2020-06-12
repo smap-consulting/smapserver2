@@ -703,6 +703,18 @@ public class UploadFiles extends Application {
 			 */
 			if(isExcel) {
 				s.write(sd, cResults, localisation, request.getRemoteUser(), groupForms, existingSurveyId);
+				String msg = null;
+				String title = null;
+				if(action.equals("replace")) {
+					msg = localisation.getString("log_sr");
+					title = LogManager.REPLACE;
+				} else {
+					msg = localisation.getString("log_sc");
+					title = LogManager.CREATE;
+				}
+				
+				msg = msg.replace("%s1", s.getDisplayName()).replace("%s2", s.getIdent());
+				lm.writeLog(sd, s.getId(), user, title, msg, 0);
 			} else {
 				int sId = model.writeDatabase();
 				s = sm.getById(sd, cResults, user, false, sId, true, basePath, 

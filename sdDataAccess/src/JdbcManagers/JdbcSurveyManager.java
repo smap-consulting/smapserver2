@@ -25,8 +25,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
 import org.smap.server.entities.Survey;
 
 public class JdbcSurveyManager {

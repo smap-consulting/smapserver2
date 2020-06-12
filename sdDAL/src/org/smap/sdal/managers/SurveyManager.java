@@ -710,7 +710,9 @@ public class SurveyManager {
 				pstmtCreateForm.execute();
 			}
 
-			lm.writeLog(sd, sId, user, "create survey", "Survey created in online editor", 0);
+			String msg = localisation.getString("log_sc");
+			msg = msg.replace("%s1", name).replace("%s2", ident);
+			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0);
 			sd.commit();
 
 		} catch (SQLException e) {

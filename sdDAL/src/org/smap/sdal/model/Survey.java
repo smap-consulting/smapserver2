@@ -339,6 +339,7 @@ public class Survey {
 					pstmtUpdate.executeUpdate();
 				}
 			}
+			
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}

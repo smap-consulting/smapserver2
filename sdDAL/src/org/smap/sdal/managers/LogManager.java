@@ -37,6 +37,7 @@ public class LogManager {
 	
 	// Event types
 	public static String CREATE = "create";
+	public static String REPLACE = "replace";
 	public static String DELETE = "delete";
 	public static String EMAIL = "email";
 	public static String EMAIL_TASK = "email task";

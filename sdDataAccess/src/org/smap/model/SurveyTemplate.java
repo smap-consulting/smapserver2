@@ -1043,8 +1043,6 @@ public class SurveyTemplate {
 					}
 				} 			
 			}
-			
-			//sm.updateSelfCalcs(survey.getIdent(), survey.getId());
 	
 			/*
 			 * Forms 2. Update the form record with parent form and question keys
@@ -1122,7 +1120,9 @@ public class SurveyTemplate {
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
 			GeneralUtilityMethods.updateFormDependencies(sd, sId);
 			
-			lm.writeLog(sd, sId, user, "create survey", "Survey loaded from xls form", 0);
+			String msg = localisation.getString("log_sc_xml");
+			msg = msg.replace("%s1", survey.getDisplayName()).replace("%s2", survey.getIdent());
+			lm.writeLog(sd, sId, user, LogManager.CREATE, msg, 0);
 			
 			sd.commit();
 		} catch (Exception e) {
