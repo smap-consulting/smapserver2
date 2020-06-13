@@ -21,16 +21,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.SDDataSource;
 
@@ -39,11 +35,6 @@ import com.google.gson.GsonBuilder;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -111,10 +102,11 @@ public class UserTrail extends Application {
 		log.info("Getting trail between" + startDate.toGMTString() + " and " + endDate.toGMTString());;
 
 		String user = request.getRemoteUser();
+		String connectionString = "usertrail - trail";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
-		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, user);
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -134,7 +126,7 @@ public class UserTrail extends Application {
 					"and ut.u_id = ? " +
 					"order by ut.event_time asc;";
 			
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
 			pstmt.setTimestamp(2, startDate);
 			pstmt.setTimestamp(3, endDate);
@@ -175,7 +167,7 @@ public class UserTrail extends Application {
 			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {	}	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -198,10 +190,11 @@ public class UserTrail extends Application {
 		log.info("Get Survey Locations: Project id:" + projectId);
 
 		String user = request.getRemoteUser();
+		String connectionString = "usertrail - surveys";
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-EventList");
-		a.isAuthorised(connectionSD, user);
-		a.isValidProject(connectionSD, request.getRemoteUser(), projectId);
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, user);
+		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End Authorisation
 		
 		Timestamp startDate = new Timestamp(start_t);
@@ -223,7 +216,7 @@ public class UserTrail extends Application {
 					"and t.u_id = ? " +
 					"order by t.completion_time asc;";
 			
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, projectId);
 			pstmt.setTimestamp(2, startDate);
 			pstmt.setTimestamp(3, endDate);
@@ -263,7 +256,7 @@ public class UserTrail extends Application {
 			try {if(resultSet != null) {resultSet.close();}	} catch (SQLException e) {	}	
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyKPI-EventList", connectionSD);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
