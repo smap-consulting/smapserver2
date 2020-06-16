@@ -190,7 +190,6 @@ public class XLSXAdminReportsManager {
 				cell = row.createCell(monthlyCol);
 				String colAlpha = getColAlpha(monthlyCol);
 				String formula= "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
-				cell.setCellType(CellType.FORMULA);
 				cell.setCellStyle(styles.get("bold"));
 				cell.setCellFormula(formula);
 				
@@ -198,7 +197,6 @@ public class XLSXAdminReportsManager {
 				cell = row.createCell(allTimeCol);
 				colAlpha = getColAlpha(allTimeCol);
 				formula = "SUM(" + colAlpha + firstDataRow + ":" + colAlpha + (rowNumber - 1) + ")";
-				cell.setCellType(CellType.FORMULA);
 				cell.setCellStyle(styles.get("bold"));
 				cell.setCellFormula(formula);
 
