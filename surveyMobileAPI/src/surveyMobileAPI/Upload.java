@@ -186,7 +186,7 @@ public class Upload extends Application {
 					SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
 					
 					if(aDetails == null || aDetails.status == null) {
-						message = localisation.getString("wf_as");
+						throw new AuthorisationException();
 					} else if(aDetails.status.equals("submitted")) {
 						message = localisation.getString("wf_fs");
 						message = message.replace("%s1", sdf.format(aDetails.completed_date));

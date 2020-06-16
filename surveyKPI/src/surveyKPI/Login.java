@@ -74,7 +74,7 @@ public class Login extends Application {
 			if(formIdent != null) {
 				scope = formIdent;		
 			}
-			accessToken.key = GeneralUtilityMethods.getNewAccessKey(connectionSD, user, scope);
+			accessToken.key = GeneralUtilityMethods.getNewAccessKey(connectionSD, user, scope, false);
 			log.info("userevent: " + user + " : requested access key : " + accessToken.key);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to get access key", e);

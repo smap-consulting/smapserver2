@@ -531,7 +531,7 @@ public class WebForm extends Application {
 			// (used from iPhones which do not do authentication on POSTs)
 			try {
 				orgId = GeneralUtilityMethods.getOrganisationId(sd, userIdent);
-				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, formIdent);
+				accessKey = GeneralUtilityMethods.getNewAccessKey(sd, userIdent, formIdent, isTemporaryUser);
 				
 				manifestList = translationMgr.getManifestBySurvey(sd, userIdent, survey.id, basePath, formIdent);
 				serverData = sm.getServer(sd, localisation);

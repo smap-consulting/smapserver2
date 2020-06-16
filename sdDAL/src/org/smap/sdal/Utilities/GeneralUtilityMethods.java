@@ -2369,7 +2369,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get an access key to allow results for a form to be securely submitted
 	 */
-	public static String getNewAccessKey(Connection sd, String userIdent, String surveyIdent) throws SQLException {
+	public static String getNewAccessKey(Connection sd, String userIdent, String surveyIdent, boolean isTemporaryUser) throws SQLException {
 
 		String key = null;
 		int userId = -1;
@@ -2377,7 +2377,9 @@ public class GeneralUtilityMethods {
 		String sqlGetUserId = "select u.id from users u where u.ident = ?;";
 		PreparedStatement pstmtGetUserId = null;
 
-		String sqlClearObsoleteKeys = "delete from dynamic_users " + " where expiry < now() " + " or expiry is null;";
+		String sqlClearObsoleteKeys = "delete from dynamic_users " 
+				+ " where expiry < now() " 
+				+ " or expiry is null;";
 		PreparedStatement pstmtClearObsoleteKeys = null;
 
 		String interval = "28 days";
@@ -2393,9 +2395,12 @@ public class GeneralUtilityMethods {
 
 			/*
 			 * Delete any expired keys
+			 * Only do this for non temporary users, temporary user keys do not expire as they can't renew them
 			 */
-			pstmtClearObsoleteKeys = sd.prepareStatement(sqlClearObsoleteKeys);
-			pstmtClearObsoleteKeys.executeUpdate();
+			if(!isTemporaryUser) {
+				pstmtClearObsoleteKeys = sd.prepareStatement(sqlClearObsoleteKeys);
+				pstmtClearObsoleteKeys.executeUpdate();
+			}
 
 			/*
 			 * Get the user id
@@ -7779,10 +7784,22 @@ public class GeneralUtilityMethods {
 				+ "and o_id = ?";	
 		PreparedStatement pstmt = null;
 
+		String sqlClearObsoleteKeys = "delete from dynamic_users " 
+				+ " where u_id = (select id from users where ident = ? and o_id = ?)";
+		PreparedStatement pstmtClearObsoleteKeys = null;
+				
 		if(uIdent != null) {
 
 			try {
-			
+				
+				// Delete any access keys that they may have
+				pstmtClearObsoleteKeys = sd.prepareStatement(sqlClearObsoleteKeys);
+				pstmtClearObsoleteKeys.setString(1, uIdent);
+				pstmtClearObsoleteKeys.setInt(2,  oId);
+				log.info("Delete access keys for tempoary user: " + pstmtClearObsoleteKeys.toString());
+				pstmtClearObsoleteKeys.executeUpdate();
+				
+				// Delete the user
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setString(1, uIdent);
 				pstmt.setInt(2,  oId);
@@ -7791,12 +7808,14 @@ public class GeneralUtilityMethods {
 				if(count == 0) {
 					log.info("error: failed to delete temporay user: " + uIdent);
 				}
+				
 				// Delete any csv table definitions that they have
 				SurveyTableManager stm = new SurveyTableManager(sd, localisation);
 				stm.deleteForUsers(uIdent);			// Delete references to this survey in the csv table 
-				
+
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (pstmtClearObsoleteKeys != null) {pstmtClearObsoleteKeys.close();}} catch (SQLException e) {}
 			}
 
 		} else {
