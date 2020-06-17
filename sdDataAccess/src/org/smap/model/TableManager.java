@@ -286,7 +286,7 @@ public class TableManager {
 	/*
 	 * Create the tables for the survey
 	 */
-	public ArrayList<String> writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
+	public ArrayList<String> writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) throws Exception {
 
 		String response = null;
 		//boolean hasHrk = (template.getHrk() != null);
@@ -356,6 +356,7 @@ public class TableManager {
 				} catch (SQLException ex) {
 					log.info(ex.getMessage());
 				}
+				throw(e);
 
 			}
 
@@ -379,7 +380,7 @@ public class TableManager {
 		List <GeometryColumn> geoms = new ArrayList<GeometryColumn> ();
 
 		/*
-		 * Attempt to create the table, ignore any exception as the table may already be created
+		 * Attempt to create the table, Don't create if the table already exists
 		 */
 		if(columns.size() > 0) {
 			sql.append("CREATE TABLE ").append(tableName).append(" (")
@@ -521,22 +522,22 @@ public class TableManager {
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtGeom = null;
 			try {
-				pstmt = cResults.prepareStatement(sql.toString());
-				log.info("Sql statement: " + pstmt.toString());
-				pstmt.executeUpdate();
-				// Add geometry columns
-				for(GeometryColumn gc : geoms) {
-					String gSql = "SELECT AddGeometryColumn('" + gc.tableName + 
-							"', '" + gc.columnName + "', " + 
-							gc.srid + ", '" + gc.type + "', " + gc.dimension + ");";
-
-					if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
-					pstmtGeom = cResults.prepareStatement(gSql);
-					log.info("Add geometry columns: " + pstmtGeom.toString());
-					pstmtGeom.executeQuery();
+				if(!GeneralUtilityMethods.tableExists(cResults, tableName)) {
+					pstmt = cResults.prepareStatement(sql.toString());
+					log.info("Sql statement: " + pstmt.toString());
+					pstmt.executeUpdate();
+					// Add geometry columns
+					for(GeometryColumn gc : geoms) {
+						String gSql = "SELECT AddGeometryColumn('" + gc.tableName + 
+								"', '" + gc.columnName + "', " + 
+								gc.srid + ", '" + gc.type + "', " + gc.dimension + ");";
+	
+						if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
+						pstmtGeom = cResults.prepareStatement(gSql);
+						log.info("Add geometry columns: " + pstmtGeom.toString());
+						pstmtGeom.executeQuery();
+					}
 				}
-			} catch (SQLException e) {
-				log.info(e.getMessage());
 			} finally {
 				if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 				if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
