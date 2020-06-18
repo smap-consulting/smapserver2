@@ -471,7 +471,8 @@ public class GeneralUtilityMethods {
 
 		if(srcName.startsWith("attachments/")) {
 			// An existing image in an updated record that was not changed
-			srcName = srcName.substring(srcName.lastIndexOf('/'));
+			return srcName;
+			//srcName = srcName.substring(srcName.lastIndexOf('/'));
 		}
 		String value = null;
 		String srcExt = "";
