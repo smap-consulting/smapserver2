@@ -82,70 +82,35 @@ public class CustomReportsManager {
 	}
 
 	/*
-	 * get a list of reports for a select list
+	 * get a list of custom report types
 	 */
-	public ArrayList<CustomReportItem> getList(Connection sd, int oId, String type, boolean negateType)
+	public ArrayList<CustomReportItem> getList(Connection sd)
 			throws SQLException {
 
-		ArrayList<CustomReportItem> reports = new ArrayList<CustomReportItem>();
+		ArrayList<CustomReportItem> reportTypes = new ArrayList<CustomReportItem>();
 
-		String sql1 = "select id, name, type from custom_report where o_id = ? ";
-		String sql2 = "and type = ? ";
-		String sql2b = "and type != ? ";
-		String sql3 = "order by name asc";
-		String sql4 = "and (type = 'oversight' or type = 'oversight1') ";
-		String sql5 = "and type != 'oversight' and type != 'oversight1' ";
-
+		String sql = "select id, name, config from custom_report_type "
+			+ "order by name asc";
 		PreparedStatement pstmt = null;
 
-		log.info("Type is: " + type + " Negate type is: " + negateType);
 		try {
 
-			if (type != null) {
-				if (negateType) {
-					if(type.equals("oversight") || type.equals("oversight1")) {
-						// Temporarily add for backward compatibility version 17.09
-						pstmt = sd.prepareStatement(sql1 + sql5 + sql3);
-					} else {
-						pstmt = sd.prepareStatement(sql1 + sql2b + sql3);
-					}
-				} else {
-					if(type.equals("oversight") || type.equals("oversight1")) {
-						// Temporarily add for backward compatibility version 17.09
-						pstmt = sd.prepareStatement(sql1 + sql4 + sql3);
-					} else {
-						pstmt = sd.prepareStatement(sql1 + sql2 + sql3);
-					}
-				}
-			} else {
-				pstmt = sd.prepareStatement(sql1 + sql3);
-			}
-
-			pstmt.setInt(1, oId);
-			if (type != null && !type.equals("oversight") && !type.equals("oversight1")) {
-				pstmt.setString(2, type);
-			}
-
-			log.info(pstmt.toString());
+			pstmt = sd.prepareStatement(sql);
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
 				CustomReportItem item = new CustomReportItem();
 				item.id = rs.getInt(1);
 				item.name = rs.getString(2);
-				item.type = rs.getString(3);
-				reports.add(item);
+				// TODO config
+				reportTypes.add(item);
 			}
 
 		} finally {
-			try {
-				pstmt.close();
-			} catch (Exception e) {
-			}
-			;
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}};
 		}
 
-		return reports;
+		return reportTypes;
 
 	}
 
