@@ -246,14 +246,8 @@ public class TableManager {
 					pstmtSetPublishedSharedForm.setInt(2, fd.submittingFormId);
 					log.info("Mark shared questions published: " + pstmtSetPublishedSharedForm.toString());
 					pstmtSetPublishedSharedForm.executeUpdate();
-
-					// 3.2b Update options in the shared form
-					//pstmtSetOptionsPublishedSharedForm.setInt(1, fd.fId);
-					//pstmtSetOptionsPublishedSharedForm.setInt(2, fd.submittingFormId);
-					//log.info("Mark shared options published: " + pstmtSetOptionsPublishedSharedForm.toString());
-					//pstmtSetOptionsPublishedSharedForm.executeUpdate();
 					
-					// 3.3b Update parent question in the shared form
+					// 3.2b Update parent question in the shared form
 					pstmtSetPublishedParentQuestionSharedForm.setInt(1, fd.fId);
 					pstmtSetPublishedParentQuestionSharedForm.setInt(2, fd.submittingFormId);
 					log.info("Mark published: " + pstmtSetPublishedParentQuestionSharedForm.toString());
@@ -275,8 +269,6 @@ public class TableManager {
 			try {if (pstmtGetForms != null) {pstmtGetForms.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedThisForm != null) {pstmtSetPublishedThisForm.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedSharedForm != null) {pstmtSetPublishedSharedForm.close();}} catch (Exception e) {}
-			//try {if (pstmtSetOptionsPublishedThisForm != null) {pstmtSetOptionsPublishedThisForm.close();}} catch (Exception e) {}
-			//try {if (pstmtSetOptionsPublishedSharedForm != null) {pstmtSetOptionsPublishedSharedForm.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedParentQuestion != null) {pstmtSetPublishedParentQuestion.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedParentQuestionSharedForm != null) {pstmtSetPublishedParentQuestionSharedForm.close();}} catch (Exception e) {}
 		}

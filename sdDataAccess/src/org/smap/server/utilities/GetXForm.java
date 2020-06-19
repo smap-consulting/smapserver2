@@ -355,7 +355,7 @@ public class GetXForm {
 						 * Add the translation XML fragment to the output
 						 */
 						Document xfragDoc;
-						if (type.equals("image") || type.equals("video") || type.equals("audio")) {
+						if (type.equals("image") || type.equals("video") || type.equals("audio")  || type.equals("file")) {
 							String base = type;
 							if (type.equals("image")) {
 								base = "images";
@@ -1905,7 +1905,7 @@ public class GetXForm {
 				} else {
 					String qValue = instance.values.get(qName); 
 					if(qValue != null) {
-						if(qType.equals("image")  || qType.equals("audio") || qType.equals("video")) {
+						if(qType.equals("image")  || qType.equals("audio") || qType.equals("video") || qType.equals("file")) {
 							// Hack for special situation on localhost
 							if(urlprefix.equals("http://localhost/")) {
 								urlprefix = "https://localhost/";
