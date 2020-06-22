@@ -31,6 +31,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.common.usermodel.HyperlinkType;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.ChartColumn;
 import org.smap.sdal.model.ChartData;

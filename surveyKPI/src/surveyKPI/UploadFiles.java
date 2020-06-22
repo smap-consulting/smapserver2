@@ -31,9 +31,9 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import model.MediaResponse;
+import utilities.JavaRosaUtilities;
 import utilities.XLSCustomReportsManager;
 import utilities.XLSTemplateUploadManager;
-import utilities.XLSUtilities;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
@@ -49,6 +49,7 @@ import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LanguageCodeManager;
@@ -746,7 +747,7 @@ public class UploadFiles extends Application {
 			boolean valid = true;
 			String errMsg = null;
 			try {
-				XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
+				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
 			} catch (Exception e) {
 								
 				String msg = e.getMessage();

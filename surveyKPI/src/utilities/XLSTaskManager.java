@@ -47,6 +47,7 @@ import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.TaskServerDefn;
+import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.AssignmentServerDefn;
 import org.smap.sdal.model.Location;
 
