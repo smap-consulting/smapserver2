@@ -23,12 +23,9 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.smap.server.entities.Form;
-import org.smap.server.entities.Option;
 import org.smap.server.entities.UploadEvent;
 
 public class JdbcUploadEventManager {

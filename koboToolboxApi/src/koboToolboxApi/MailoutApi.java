@@ -294,7 +294,7 @@ public class MailoutApi extends Application {
 	@POST
 	@Produces("application/json")
 	@Path("/{mailoutId}/email")
-	public Response uploadEmails(
+	public Response createLinks(
 			@Context HttpServletRequest request,
 			@PathParam("mailoutId") int mailoutId,
 			@FormParam("email") String emailString,
