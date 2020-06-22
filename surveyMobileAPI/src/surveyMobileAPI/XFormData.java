@@ -373,12 +373,16 @@ public class XFormData {
 			// Write the upload event
 			UploadEvent ue = new UploadEvent();
 			
-			if(action != null && action.email != null) {
-				ue.setUserName(action.email);
+			if(action != null) {
 				ue.setTemporaryUser(true);
 			} else {
-				ue.setUserName(user);
 				ue.setTemporaryUser(false);
+			}
+			
+			if(action != null && action.email != null) {
+				ue.setUserName(action.email);
+			} else {
+				ue.setUserName(user);
 			}
 			ue.setFormStatus(form_status);
 			ue.setServerName(serverName);

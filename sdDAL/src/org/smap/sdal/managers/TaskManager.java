@@ -3017,6 +3017,8 @@ public class TaskManager {
 			
 			for(String email : emailArray) {
 				
+				action.email = email;
+				
 				if(emailTaskBlocked) {
 					insertAssignment(sd, cResults, gson, pstmtAssign, task_name, 0, null, email, "blocked", taskId, update_id, sIdent, 
 							remoteUser, scheduledAt, scheduledFinish,

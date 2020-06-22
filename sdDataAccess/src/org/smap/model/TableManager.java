@@ -246,14 +246,8 @@ public class TableManager {
 					pstmtSetPublishedSharedForm.setInt(2, fd.submittingFormId);
 					log.info("Mark shared questions published: " + pstmtSetPublishedSharedForm.toString());
 					pstmtSetPublishedSharedForm.executeUpdate();
-
-					// 3.2b Update options in the shared form
-					//pstmtSetOptionsPublishedSharedForm.setInt(1, fd.fId);
-					//pstmtSetOptionsPublishedSharedForm.setInt(2, fd.submittingFormId);
-					//log.info("Mark shared options published: " + pstmtSetOptionsPublishedSharedForm.toString());
-					//pstmtSetOptionsPublishedSharedForm.executeUpdate();
 					
-					// 3.3b Update parent question in the shared form
+					// 3.2b Update parent question in the shared form
 					pstmtSetPublishedParentQuestionSharedForm.setInt(1, fd.fId);
 					pstmtSetPublishedParentQuestionSharedForm.setInt(2, fd.submittingFormId);
 					log.info("Mark published: " + pstmtSetPublishedParentQuestionSharedForm.toString());
@@ -275,8 +269,6 @@ public class TableManager {
 			try {if (pstmtGetForms != null) {pstmtGetForms.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedThisForm != null) {pstmtSetPublishedThisForm.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedSharedForm != null) {pstmtSetPublishedSharedForm.close();}} catch (Exception e) {}
-			//try {if (pstmtSetOptionsPublishedThisForm != null) {pstmtSetOptionsPublishedThisForm.close();}} catch (Exception e) {}
-			//try {if (pstmtSetOptionsPublishedSharedForm != null) {pstmtSetOptionsPublishedSharedForm.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedParentQuestion != null) {pstmtSetPublishedParentQuestion.close();}} catch (Exception e) {}
 			try {if (pstmtSetPublishedParentQuestionSharedForm != null) {pstmtSetPublishedParentQuestionSharedForm.close();}} catch (Exception e) {}
 		}
@@ -286,7 +278,7 @@ public class TableManager {
 	/*
 	 * Create the tables for the survey
 	 */
-	public ArrayList<String> writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) {
+	public ArrayList<String> writeAllTableStructures(Connection sd, Connection cResults, int sId, SurveyTemplate template, int managedId) throws Exception {
 
 		String response = null;
 		//boolean hasHrk = (template.getHrk() != null);
@@ -356,6 +348,7 @@ public class TableManager {
 				} catch (SQLException ex) {
 					log.info(ex.getMessage());
 				}
+				throw(e);
 
 			}
 
@@ -379,7 +372,7 @@ public class TableManager {
 		List <GeometryColumn> geoms = new ArrayList<GeometryColumn> ();
 
 		/*
-		 * Attempt to create the table, ignore any exception as the table may already be created
+		 * Attempt to create the table, Don't create if the table already exists
 		 */
 		if(columns.size() > 0) {
 			sql.append("CREATE TABLE ").append(tableName).append(" (")
@@ -521,22 +514,22 @@ public class TableManager {
 			PreparedStatement pstmt = null;
 			PreparedStatement pstmtGeom = null;
 			try {
-				pstmt = cResults.prepareStatement(sql.toString());
-				log.info("Sql statement: " + pstmt.toString());
-				pstmt.executeUpdate();
-				// Add geometry columns
-				for(GeometryColumn gc : geoms) {
-					String gSql = "SELECT AddGeometryColumn('" + gc.tableName + 
-							"', '" + gc.columnName + "', " + 
-							gc.srid + ", '" + gc.type + "', " + gc.dimension + ");";
-
-					if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
-					pstmtGeom = cResults.prepareStatement(gSql);
-					log.info("Add geometry columns: " + pstmtGeom.toString());
-					pstmtGeom.executeQuery();
+				if(!GeneralUtilityMethods.tableExists(cResults, tableName)) {
+					pstmt = cResults.prepareStatement(sql.toString());
+					log.info("Sql statement: " + pstmt.toString());
+					pstmt.executeUpdate();
+					// Add geometry columns
+					for(GeometryColumn gc : geoms) {
+						String gSql = "SELECT AddGeometryColumn('" + gc.tableName + 
+								"', '" + gc.columnName + "', " + 
+								gc.srid + ", '" + gc.type + "', " + gc.dimension + ");";
+	
+						if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
+						pstmtGeom = cResults.prepareStatement(gSql);
+						log.info("Add geometry columns: " + pstmtGeom.toString());
+						pstmtGeom.executeQuery();
+					}
 				}
-			} catch (SQLException e) {
-				log.info(e.getMessage());
 			} finally {
 				if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
 				if(pstmtGeom != null) try{pstmtGeom.close();}catch(Exception e) {}
