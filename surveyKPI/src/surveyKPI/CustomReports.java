@@ -20,7 +20,9 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -167,6 +169,46 @@ public class CustomReports extends Application {
 			
 			SDDataSource.closeConnection("surveyKPI-CustomReports", sd);
 			
+		}
+
+		return response;
+
+	}
+	
+	/*
+	 * Add a custom report
+	 */
+	@Path("/{type}/{name}")
+	@POST
+	public Response createCustomReport(@Context HttpServletRequest request,
+			@PathParam("type") String type,
+			@PathParam("name") String name,
+			@FormParam("report") String report) { 
+		
+		Response response = null;	
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
+		a.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		try {
+			
+			// Get the users locale
+			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			CustomReportsManager crm = new CustomReportsManager();
+			crm.save(sd, name, report, oId, type);
+			
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"SQL Exception", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			SDDataSource.closeConnection("surveyKPI-CustomReports", sd);			
 		}
 
 		return response;
