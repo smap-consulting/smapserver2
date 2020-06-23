@@ -599,14 +599,21 @@ public class SurveyManager {
 		String tablename = null;
 		String existingSurvey = null;
 		String existingMeta = null;
+		String existingClass = null;
+		String existingKeyPolicy = null;
+		boolean existingDataSurvey = true;
+		boolean existingOversightSurvey = true;
+		String existingInstanceName = null;
+		
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
 		ArrayList<MetaItem> meta = new ArrayList<> ();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
-				+ "based_on, group_survey_id, meta, created)" +
-				" values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, ?, now())";
+				+ "based_on, group_survey_id, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
+				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, ?, now(), "
+				+ "?, ?, ?, ?, ?)";
 		PreparedStatement pstmtCreateSurvey = null;
 
 		String sqlUpdateSurvey = "update survey set name = ?, ident = ? where s_id = ?";
@@ -616,7 +623,9 @@ public class SurveyManager {
 				" values (nextval('f_seq'), ?, 'main', ?, 0, null, '/main');";
 		PreparedStatement pstmtCreateForm = null;
 
-		String sqlGetSource = "select s.display_name, f.f_id, s.meta from survey s, form f "
+		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
+				+ "s.data_survey, s.oversight_survey, s.instance_name "
+				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
 				+ "and f.parentform = 0";
@@ -632,6 +641,11 @@ public class SurveyManager {
 					existingSurvey = rsGetSource.getString(1);
 					existingFormId = rsGetSource.getInt(2);
 					existingMeta = rsGetSource.getString(3);
+					existingClass = rsGetSource.getString(4);
+					existingKeyPolicy = rsGetSource.getString(5);
+					existingDataSurvey = rsGetSource.getBoolean(6);
+					existingOversightSurvey = rsGetSource.getBoolean(7);
+					existingInstanceName = rsGetSource.getString(8);
 				}
 			}
 			if(sd.getAutoCommit()) {
@@ -666,6 +680,12 @@ public class SurveyManager {
 				pstmtCreateSurvey.setString(5,  gson.toJson(meta));
 			}
 
+			pstmtCreateSurvey.setString(6, existingClass);
+			pstmtCreateSurvey.setString(7, existingKeyPolicy);
+			pstmtCreateSurvey.setBoolean(8, existingDataSurvey);
+			pstmtCreateSurvey.setBoolean(9, existingOversightSurvey);
+			pstmtCreateSurvey.setString(10, existingInstanceName);
+			
 			log.info("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
 			ResultSet rs = pstmtCreateSurvey.getGeneratedKeys();
