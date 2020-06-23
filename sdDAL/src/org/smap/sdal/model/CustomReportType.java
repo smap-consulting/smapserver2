@@ -18,18 +18,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-public class CustomReportItem {
+public class CustomReportType {
 	public int id;
 	public String name;
-	public int typeId;
-	public String config;
-	public String surveyName;
 	
-	public CustomReportItem(int id, String name, int typeId, String config, String surveyName) {
+	public CustomReportType(int id, String name) {
 		this.id = id;
 		this.name = name;
-		this.typeId = typeId;
-		this.config = config;
-		this.surveyName = surveyName;
 	}
 }

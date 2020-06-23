@@ -19,6 +19,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.CustomReportItem;
+import org.smap.sdal.model.CustomReportType;
 import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
@@ -51,11 +52,53 @@ public class CustomReportsManager {
 	private static Logger log = Logger.getLogger(CustomReportsManager.class.getName());
 
 	/*
+	 * Get a list of reports
+	 */
+	public ArrayList<CustomReportItem> getReports(Connection sd, int pId)
+			throws SQLException {
+
+		ArrayList<CustomReportItem> reports = new ArrayList<>();
+
+		String sql = "select cr.id, cr.name, cr.type_id, cr.config, s.display_name "
+				+ "from custom_report cr, survey s "
+				+ "where cr.survey_ident = s.ident "
+				+ "and cr.p_id = ? "
+				+ "order by cr.name asc";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, pId);
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				CustomReportItem item = new CustomReportItem(
+						rs.getInt(1),
+						rs.getString(2),
+						rs.getInt(3),
+						rs.getString(4),
+						rs.getString(5)
+						);
+				
+				reports.add(item);
+			}
+
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch (Exception e) {}};
+		}
+
+		return reports;
+	}
+	
+	/*
 	 * Save a report to the database
 	 */
-	public void save(Connection sd, String reportName, String config, int oId, String type) throws Exception {
+	public void save(Connection sd, String reportName, String config, int oId, 
+			int typeId, int pId, String surveyIdent) throws Exception {
 
-		String sql = "insert into custom_report (o_id, name, config, type) values (?, ?, ?, ?);";
+		String sql = "insert into custom_report (o_id, name, config, type_id, p_id, survey_ident) "
+				+ "values (?, ?, ?, ?, ?, ?);";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -64,7 +107,9 @@ public class CustomReportsManager {
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, reportName);
 			pstmt.setString(3, config);
-			pstmt.setString(4, type);
+			pstmt.setInt(4, typeId);
+			pstmt.setInt(5, pId);
+			pstmt.setString(6, surveyIdent);
 
 			log.info(pstmt.toString());
 			pstmt.executeUpdate();
@@ -84,13 +129,14 @@ public class CustomReportsManager {
 	/*
 	 * get a list of custom report types
 	 */
-	public ArrayList<CustomReportItem> getList(Connection sd)
+	public ArrayList<CustomReportType> getTypeList(Connection sd)
 			throws SQLException {
 
-		ArrayList<CustomReportItem> reportTypes = new ArrayList<CustomReportItem>();
+		ArrayList<CustomReportType> reportTypes = new ArrayList<>();
 
-		String sql = "select id, name, config from custom_report_type "
-			+ "order by name asc";
+		String sql = "select id, name, config "
+				+ "from custom_report_type "
+				+ "order by name asc";
 		PreparedStatement pstmt = null;
 
 		try {
@@ -99,9 +145,7 @@ public class CustomReportsManager {
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {
-				CustomReportItem item = new CustomReportItem();
-				item.id = rs.getInt(1);
-				item.name = rs.getString(2);
+				CustomReportType item = new CustomReportType(rs.getInt(1), rs.getString(2));
 				// TODO config
 				reportTypes.add(item);
 			}
@@ -111,7 +155,6 @@ public class CustomReportsManager {
 		}
 
 		return reportTypes;
-
 	}
 
 	/*
@@ -171,44 +214,6 @@ public class CustomReportsManager {
 					}
 				}
 
-			}
-
-		} catch (SQLException e) {
-			throw (new Exception(e.getMessage()));
-		} finally {
-			try {
-				pstmt.close();
-			} catch (Exception e) {
-			}
-			;
-		}
-
-		return config;
-	}
-
-	/*
-	 * Get a report from the database
-	 */
-	public LQAS getLQASReport(Connection sd, int crId) throws Exception {
-
-		LQAS config = null;
-		String sql = "select config from custom_report where id = ?";
-		PreparedStatement pstmt = null;
-
-		try {
-
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, crId);
-
-			log.info(pstmt.toString());
-			pstmt.executeQuery();
-
-			String configString = null;
-			ResultSet rs = pstmt.executeQuery();
-			if (rs.next()) {
-				configString = rs.getString(1);
-				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-				config = gson.fromJson(configString, LQAS.class);
 			}
 
 		} catch (SQLException e) {

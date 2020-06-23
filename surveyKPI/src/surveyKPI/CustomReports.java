@@ -37,6 +37,8 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.model.CustomReportItem;
+import org.smap.sdal.model.CustomReportType;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -70,25 +72,26 @@ public class CustomReports extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getCustomReports(@Context HttpServletRequest request,
-			@QueryParam("negateType") boolean negateType,
-			@QueryParam("type") String type) { 
+			@QueryParam("pId") int pId) { 
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), pId);
 		// End Authorisation
 		
 		Response response = null;
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
-		
+			CustomReportsManager crm = new CustomReportsManager();
+			ArrayList<CustomReportItem> reports = crm.getReports(sd, pId);
+			response = Response.ok(gson.toJson(reports)).build();	
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection("surveyKPI-CustomReports", sd);
 		}
-
 
 		return response;
 	}
@@ -110,8 +113,8 @@ public class CustomReports extends Application {
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
 			CustomReportsManager crm = new CustomReportsManager();
-			ArrayList<CustomReportItem> reports = crm.getList(sd);
-			response = Response.ok(gson.toJson(reports)).build();	
+			ArrayList<CustomReportType> reportTypes = crm.getTypeList(sd);
+			response = Response.ok(gson.toJson(reportTypes)).build();	
 				
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
@@ -178,10 +181,12 @@ public class CustomReports extends Application {
 	/*
 	 * Add a custom report
 	 */
-	@Path("/{type}/{name}")
+	@Path("/{pId}/{sIdent}/{type}/{name}")
 	@POST
 	public Response createCustomReport(@Context HttpServletRequest request,
-			@PathParam("type") String type,
+			@PathParam("pId") int pId,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("type") int typeId,
 			@PathParam("name") String name,
 			@FormParam("report") String report) { 
 		
@@ -190,6 +195,8 @@ public class CustomReports extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), pId);
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, false);
 		// End Authorisation
 		
 		try {
@@ -200,7 +207,7 @@ public class CustomReports extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			CustomReportsManager crm = new CustomReportsManager();
-			crm.save(sd, name, report, oId, type);
+			crm.save(sd, name, report, oId, typeId, pId, sIdent);
 			
 			response = Response.ok().build();
 			

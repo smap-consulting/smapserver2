@@ -32,7 +32,6 @@ import javax.ws.rs.core.Response;
 
 import model.MediaResponse;
 import utilities.JavaRosaUtilities;
-import utilities.XLSCustomReportsManager;
 import utilities.XLSTemplateUploadManager;
 
 import org.apache.commons.fileupload.FileItem;
@@ -50,21 +49,17 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CsvTableManager;
-import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
-import org.smap.sdal.model.CustomReportItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
-import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
 import org.smap.server.utilities.PutXForm;
 
