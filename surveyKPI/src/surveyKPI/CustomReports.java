@@ -142,6 +142,7 @@ public class CustomReports extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidCustomReport(sd, request.getRemoteUser(), id);
 		// End Authorisation
 		
 		try {

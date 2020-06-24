@@ -233,60 +233,23 @@ public class CustomReportsManager {
 	 * Delete a report
 	 */
 	public void delete(Connection sd, int oId, int id, ResourceBundle localisation) throws Exception {
-
-		String sqlManaged = "select s.s_id, s.display_name, p.name " + "from survey s, project p "
-				+ "where s.managed_id = ? " + "and s.p_id = p.id " + "and s.deleted = false " + "and p.o_id = ?";
-		PreparedStatement pstmtManaged = null;
-
-		String sql = "delete from custom_report " + "where id = ? " + "and o_id = ?";
+		
+		String sql = "delete from custom_report " 
+				+ "where id = ? " 
+				+ "and o_id = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 
-			ResultSet resultSet = null;
-
-			pstmtManaged = sd.prepareStatement(sqlManaged);
-			pstmtManaged.setInt(1, id);
-			pstmtManaged.setInt(2, oId);
-			log.info("Delete report, check managed: " + pstmtManaged.toString());
-
-			resultSet = pstmtManaged.executeQuery();
-			boolean inUse = false;
-			String formsUsingReport = "";
-			while (resultSet.next()) {
-				inUse = true;
-				if (formsUsingReport.length() > 0) {
-					formsUsingReport += ", ";
-				}
-				formsUsingReport += "\"" + resultSet.getString(2) + "\" ";
-				formsUsingReport += localisation.getString("mf_ip") + " \"" + resultSet.getString(3) + "\"";
-			}
-			if (inUse) {
-				throw new ApplicationException(localisation.getString("mf_riu") + ": " + formsUsingReport + ". "
-						+ localisation.getString("mf_ul")); // Report is in use
-			}
-			resultSet.close();
-
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, id);
 			pstmt.setInt(2, oId);
-			log.info("Delete report: " + pstmt.toString());
+			log.info("Delete custom report: " + pstmt.toString());
 			pstmt.executeUpdate();
 
 		} finally {
 
-			try {
-				if (pstmtManaged != null) {
-					pstmtManaged.close();
-				}
-			} catch (SQLException e) {
-			}
-			try {
-				if (pstmt != null) {
-					pstmt.close();
-				}
-			} catch (SQLException e) {
-			}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 
 		}
 	}
