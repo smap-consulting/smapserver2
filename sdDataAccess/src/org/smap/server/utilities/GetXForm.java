@@ -395,7 +395,7 @@ public class GetXForm {
 	
 						textElement.appendChild(valueElement);
 						
-						if(type.equals("none") && trans.getTextId().endsWith(":hint")) {
+						if(type.equals("none") && trans.getTextId() != null && trans.getTextId().endsWith(":hint")) {
 							// Keep a record of these hints
 							hints.put(trans.getTextId(), textElement);
 						}
