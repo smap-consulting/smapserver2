@@ -335,7 +335,12 @@ public class PDFSurveyManager {
 
 				writer.setInitialLeading(12);	
 
-				writer.setPageEvent(new PdfPageSizer(survey.displayName, survey.projectName, 
+				String title = survey.getInstanceName();
+				if(title.equals("survey")) {
+					title = survey.displayName;
+				}
+				
+				writer.setPageEvent(new PdfPageSizer(title, 
 						user, basePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2)); 
 				document.open();
@@ -361,7 +366,9 @@ public class PDFSurveyManager {
 							false,
 							parentRecords,
 							remoteUser,
-							oId);		
+							oId,
+							true		// show sub form index
+							);		
 				}
 
 				fillNonTemplateUserDetails(document, user, basePath);
@@ -386,7 +393,8 @@ public class PDFSurveyManager {
 								true, 
 								parentRecords,
 								remoteUser,
-								oId);		
+								oId,
+								false);		
 					}
 				}
 
@@ -782,7 +790,8 @@ public class PDFSurveyManager {
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
 			String remoteUser,
-			int oId) throws DocumentException, IOException, SQLException {
+			int oId,
+			boolean showSubFormIndex) throws DocumentException, IOException, SQLException {
 
 		// Check that the depth of repeats hasn't exceeded the maximum
 		if(depth > repIndexes.length - 1) {
@@ -818,6 +827,7 @@ public class PDFSurveyManager {
 
 				firstQuestion = true;			// Make sure there is a gap when we return from the sub form
 				// If this is a blank template check to see the number of times we should repeat this sub form
+				showSubFormIndex = showSubFormIndex(r.appearance);
 				if(generateBlank) {
 					int blankRepeats = getBlankRepeats(r.appearance);
 					for(int k = 0; k < blankRepeats; k++) {
@@ -836,7 +846,8 @@ public class PDFSurveyManager {
 								appendix,
 								null,
 								remoteUser,
-								oId);
+								oId,
+								showSubFormIndex);
 					}
 				} else {
 					for(int k = 0; k < r.subForm.size(); k++) {
@@ -857,7 +868,8 @@ public class PDFSurveyManager {
 								appendix,
 								parentRecords,
 								remoteUser,
-								oId);
+								oId,
+								showSubFormIndex);
 					} 
 				}
 			} else {
@@ -896,7 +908,8 @@ public class PDFSurveyManager {
 									gv,
 									remoteUser,
 									oId,
-									startGeopointValue);
+									startGeopointValue,
+									showSubFormIndex);
 	
 							newTable.setWidthPercentage(100);
 							newTable.setKeepTogether(true);
@@ -982,9 +995,6 @@ public class PDFSurveyManager {
 			}
 		}
 
-		// Check appendix status
-
-
 		if(include) {
 			if(r.name == null) {
 				include = false;
@@ -997,7 +1007,9 @@ public class PDFSurveyManager {
 			} else if(r.name.startsWith("_")) {
 				// Don't include questions that start with "_",  these are only added to the letter head
 				//include = false;
-			} 
+			} else if(r.name.equals("prikey") || r.name.equals("parkey")) {
+				include = false;
+			}
 		}
 
 		return include;
@@ -1018,26 +1030,32 @@ public class PDFSurveyManager {
 			GlobalVariables gv,
 			String remoteUser,
 			int oId,
-			String startGeopointValue) throws BadElementException, MalformedURLException, IOException {
+			String startGeopointValue,
+			boolean showSubFormIndex) throws BadElementException, MalformedURLException, IOException {
 
-		PdfPTable table = new PdfPTable(depth + NUMBER_TABLE_COLS);	// Add a column for each level of repeats so that the repeat number can be shown
+		// Add a column for each level of repeats so that the repeat number can be shown
+		PdfPTable table = new PdfPTable((showSubFormIndex ? depth : 0) + NUMBER_TABLE_COLS);	
 
 		// Add the cells to record repeat indexes
-		for(int i = 0; i < depth; i++) {
-			PdfPCell c = new PdfPCell();
-			c.addElement(new Paragraph(String.valueOf(repIndexes[i] + 1), defaultFont));
-			c.setBackgroundColor(BaseColor.LIGHT_GRAY);
-			table.addCell(c);
-
-
+		if(showSubFormIndex) {
+			for(int i = 0; i < depth; i++) {
+				PdfPCell c = new PdfPCell();
+				c.addElement(new Paragraph(String.valueOf(repIndexes[i] + 1), defaultFont));
+				c.setBackgroundColor(BaseColor.LIGHT_GRAY);
+				table.addCell(c);
+			}
 		}
 
 		int spanCount = NUMBER_TABLE_COLS;
 		int numberItems = row.items.size();
 		for(DisplayItem di : row.items) {
 
+			boolean hideLabel = false;
+			if(di.hideRepeatingLabels && depth > 0 && repIndexes[depth - 1] > 0) {
+				hideLabel = true;
+			}
 			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, 
-					generateBlank, gv, remoteUser, oId, startGeopointValue));
+					generateBlank, gv, remoteUser, oId, startGeopointValue, hideLabel));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
 			// Make sure the last cell extends to the end of the table
@@ -1313,6 +1331,27 @@ public class PDFSurveyManager {
 
 		return repeats;
 	}
+	
+	/*
+	 * Return true if sub form index should be shown
+	 */
+	boolean showSubFormIndex(String appearance) {
+		boolean show = true;
+
+		if(appearance != null) {
+			String [] appValues = appearance.split(" ");
+			if(appearance != null) {
+				for(int i = 0; i < appValues.length; i++) {
+					if(appValues[i].equals("pdfhideindex")) {
+						show = false;
+					}
+				}
+			}
+		}
+
+		return show;
+	}
+	
 	/*
 	 * Set the attributes for this question from keys set in the appearance column
 	 */
@@ -1359,6 +1398,8 @@ public class PDFSurveyManager {
 						di.isHyperlink = true;		
 					} else if(app.equals("signature")) {
 						di.isSignature = true;		
+					} else if(app.equals("pdfhiderepeatinglabels")) {
+						di.hideRepeatingLabels = true;		
 					}
 				}
 			}
@@ -1475,7 +1516,8 @@ public class PDFSurveyManager {
 			GlobalVariables gv,
 			String remoteUser,
 			int oId,
-			String startGeopointValue) throws BadElementException, MalformedURLException, IOException {
+			String startGeopointValue,
+			boolean hideLabel) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPCell labelCell = new PdfPCell();
 		PdfPCell valueCell = new PdfPCell();
@@ -1485,66 +1527,68 @@ public class PDFSurveyManager {
 		PdfPTable tItem = null;
 
 		// Add label
-		StringBuffer html = new StringBuffer();
-		html.append("<span class='label ");
-		if(di.labelbold) {
-			html.append(" lbold");
-		}
-
-		// Get text value
-		String textValue = "";
-		if(di.text != null && di.text.trim().length() > 0) {
-			textValue = di.text;
-		} else {
-			textValue = di.name;
-		}
-		textValue = textValue.trim();
-		if(textValue.charAt(textValue.length() - 1) != ':') {
-			textValue += ":";
-		}
-		if(di.labelcaps) {
-			textValue = textValue.toUpperCase();
-		}
-
-		// Add language class
-		html.append(GeneralUtilityMethods.getLanguage(textValue));
-		html.append("'>");
-
-		// Add text value
-		html.append(GeneralUtilityMethods.unesc(textValue));
-		html.append("</span>");
-
-		// Only include hints if we are generating a blank template
-		if(generateBlank) {
-			html.append("<span class='hint ");
-			if(di.hint != null) {
-				html.append(GeneralUtilityMethods.getLanguage(di.hint));
-				html.append("'>");
-				html.append(GeneralUtilityMethods.unesc(di.hint));
+		if(!hideLabel) {
+			StringBuffer html = new StringBuffer();
+			html.append("<span class='label ");
+			if(di.labelbold) {
+				html.append(" lbold");
 			}
+	
+			// Get text value
+			String textValue = "";
+			if(di.text != null && di.text.trim().length() > 0) {
+				textValue = di.text;
+			} else {
+				textValue = di.name;
+			}
+			textValue = textValue.trim();
+			if(textValue.charAt(textValue.length() - 1) != ':') {
+				textValue += ":";
+			}
+			if(di.labelcaps) {
+				textValue = textValue.toUpperCase();
+			}
+	
+			// Add language class
+			html.append(GeneralUtilityMethods.getLanguage(textValue));
+			html.append("'>");
+	
+			// Add text value
+			html.append(GeneralUtilityMethods.unesc(textValue));
 			html.append("</span>");
-		}
-
-		parser.elements.clear();
-		try {
-			parser.xmlParser.parse(new StringReader(html.toString()));
-			
-			for(Element element : parser.elements) {
-				if(textValue != null && textValue.length() > 0) {
-					if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
-						labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-					}
-				} else if(di.hint != null && di.hint.length() > 0) {
-					if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
-						labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-					}
+	
+			// Only include hints if we are generating a blank template
+			if(generateBlank) {
+				html.append("<span class='hint ");
+				if(di.hint != null) {
+					html.append(GeneralUtilityMethods.getLanguage(di.hint));
+					html.append("'>");
+					html.append(GeneralUtilityMethods.unesc(di.hint));
 				}
-				labelCell.addElement(element);
+				html.append("</span>");
 			}
-		} catch (Exception e) {
-			log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
-			lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
-			labelCell.addElement(getPara(html.toString(), di, gv, null, null));
+	
+			parser.elements.clear();
+			try {
+				parser.xmlParser.parse(new StringReader(html.toString()));
+				
+				for(Element element : parser.elements) {
+					if(textValue != null && textValue.length() > 0) {
+						if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
+							labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+						}
+					} else if(di.hint != null && di.hint.length() > 0) {
+						if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
+							labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+						}
+					}
+					labelCell.addElement(element);
+				}
+			} catch (Exception e) {
+				log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
+				lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
+				labelCell.addElement(getPara(html.toString(), di, gv, null, null));
+			}
 		}
 
 

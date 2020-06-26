@@ -33,7 +33,6 @@ public class PdfPageSizer extends PdfPageEventHelper {
 	int pagenumber = 0;
 	User user = null;
 	String title;
-	String project;
 	String basePath;
 	int marginLeft;
 	int marginRight;
@@ -46,7 +45,7 @@ public class PdfPageSizer extends PdfPageEventHelper {
 	
 	Font font = new Font(FontFamily.HELVETICA, 10);
 	
-	public PdfPageSizer(String title, String project, User user, String basePath,
+	public PdfPageSizer(String title, User user, String basePath,
 			ArrayList<String> tableHeader,
 			int marginLeft,
 			int marginRight,
@@ -56,7 +55,6 @@ public class PdfPageSizer extends PdfPageEventHelper {
 		super();
 		
 		this.title = title;
-		this.project = project;
 		this.user = user;
 		this.basePath = basePath;
 		this.marginLeft = marginLeft;
@@ -121,17 +119,6 @@ public class PdfPageSizer extends PdfPageEventHelper {
 			ColumnText.showTextAligned(writer.getDirectContent(), 
 					Element.ALIGN_CENTER, titlePhrase, 
 					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getTop() - 100, 0);
-			
-			// Add Project
-			Phrase projectPhrase = new Phrase();
-			Font projectFont = new Font();
-			projectFont.setSize(14);
-			projectPhrase.setFont(projectFont);
-			projectPhrase.add("Project: " +  project);
-			ColumnText.showTextAligned(writer.getDirectContent(), 
-					Element.ALIGN_LEFT, projectPhrase, 
-					pageRect.getLeft() + marginLeft, pageRect.getTop() - 120, 0);
-			
 			
 			if(user != null) {
 				// Show the logo

@@ -86,6 +86,7 @@ public class FormXML extends Application{
 					Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
 					localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				} catch (Exception e) {
+					log.info("Error getting localisation");
 				}
 
 				String tz = "UTC";
