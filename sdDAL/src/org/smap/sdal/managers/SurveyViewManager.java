@@ -114,7 +114,7 @@ public class SurveyViewManager {
 			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
 			int groupFormId = 0;
 			if(fId != 0) {
-				// Get the group form id that matchs the selected form name
+				// Get the group form id that matches the selected form name
 				groupFormId = GeneralUtilityMethods.getFormId(sd, groupSurveyId, formName);
 			}
 			populateSvd(sd, 

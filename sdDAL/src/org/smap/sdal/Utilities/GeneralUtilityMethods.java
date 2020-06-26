@@ -8017,57 +8017,41 @@ public class GeneralUtilityMethods {
 				+ "and soft_deleted = 'false' ";
 		PreparedStatement pstmt = null;
 		
-		String sqlPublished = "select count(*) from information_schema.columns where table_name = ? " 
-				+ "and column_name = ?";
-		PreparedStatement pstmtPub = null;
-		
 		String sqlUpdate = "update question set published = 'true' where q_id = ?";
 		PreparedStatement pstmtUpdate = null;
 		
 		ResultSet rs = null;
-		ResultSet rsPub = null;
 		try {
-			pstmtPub = cResults.prepareStatement(sqlPublished);
-			pstmtPub.setString(1, tableName);
 			
-			pstmtUpdate = sd.prepareStatement(sqlUpdate);
-			
-			// Get unpublished
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, fId);
-		
-			log.info(pstmt.toString());
-			rs = pstmt.executeQuery();
-			while(rs.next()) {
-				int qId = rs.getInt(1);
-				String columnName = rs.getString(2);
-				String type = rs.getString(3);
-				boolean compressed = rs.getBoolean(4);
+			if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
 				
-				pstmtPub.setString(2, columnName);	
-				rsPub = pstmtPub.executeQuery();
-				int count = 0;
-				if(rsPub.next()) {
-					count = rsPub.getInt(1);
-				}
-				if(count > 0) {
-					// Column has been published update the schema to reflect this
-					pstmtUpdate.setInt(1, qId);
-					pstmtUpdate.executeUpdate();
-				} else if(publish) {
+				// Get unpublished
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, fId);
+			
+				log.info(pstmt.toString());
+				rs = pstmt.executeQuery();
+				while(rs.next()) {
+					int qId = rs.getInt(1);
+					String columnName = rs.getString(2);
+					String type = rs.getString(3);
+					boolean compressed = rs.getBoolean(4);
+					
 					if(!GeneralUtilityMethods.hasColumn(cResults, tableName, columnName)) {
 						GeneralUtilityMethods.alterColumn(cResults, tableName, type, columnName, compressed);
+						log.info("Adding column " + columnName + " to table " + tableName);
 					}
 					pstmtUpdate.setInt(1, qId);
+					log.info("Marking question " + columnName + " as published");
 					pstmtUpdate.executeUpdate();
+					
 				}
 			}
 			
 		} finally {
 			if(rs != null) {try{rs.close();} catch(Exception e) {}}
-			if(rsPub != null) {try{rsPub.close();} catch(Exception e) {}}
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
-			if(pstmtPub != null) {try{pstmtPub.close();} catch(Exception e) {}}
 			if(pstmtUpdate != null) {try{pstmtUpdate.close();} catch(Exception e) {}}
 		}
 	}
