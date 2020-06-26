@@ -3879,6 +3879,7 @@ public class GeneralUtilityMethods {
 						c.markup = getMarkup(sd, style_id);
 					}
 					c.parameters  = GeneralUtilityMethods.convertParametersToHashMap(parameters);
+					c.appearance = appearance;
 				}
 
 			}

@@ -45,6 +45,7 @@ public class TableColumn {
 	public ArrayList<Action> actions;			// Actions to take when the column changes
 	public ArrayList<TableColumnMarkup> markup;	// Specify how to present the data
 	public HashMap<String, String> parameters;
+	public String appearance;
 	
 	// Manage extraction of data
 	public SqlFrag calculation = null;

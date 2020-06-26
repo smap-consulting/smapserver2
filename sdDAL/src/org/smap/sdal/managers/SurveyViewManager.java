@@ -223,7 +223,8 @@ public void populateSvd(
 			}
 			
 			tc.parameters = c.parameters;		// Add parameters
-
+			tc.appearance = c.appearance;		// Add appearance
+			
 			if(tc.column_name.equals("the_geom")) {
 				tc.displayName = "_geolocation";
 			} else if(tc.column_name.equals("_bad")) {
