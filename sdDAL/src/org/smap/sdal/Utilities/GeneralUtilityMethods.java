@@ -1048,7 +1048,8 @@ public class GeneralUtilityMethods {
 				+ "timezone,"
 				+ "server_description,"
 				+ "e_id,"
-				+ "limits "
+				+ "limits,"
+				+ "refresh_rate "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
@@ -1102,7 +1103,8 @@ public class GeneralUtilityMethods {
 				org.server_description = resultSet.getString("server_description");
 				
 				String limits = resultSet.getString("limits");
-				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());				
+				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());
+				org.refresh_rate = resultSet.getInt("refresh_rate");
 			}
 
 	
