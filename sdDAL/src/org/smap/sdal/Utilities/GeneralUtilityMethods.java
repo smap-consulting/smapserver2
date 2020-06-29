@@ -61,6 +61,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.GeoPoint;
+import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
@@ -5254,7 +5255,7 @@ public class GeneralUtilityMethods {
 
 		String sqlIns = "insert into form_dependencies (linker_s_id, linked_s_id) values (?, ?)";
 		PreparedStatement pstmtIns = null;
-
+		
 		try {
 
 			ResultSet rs = null;
@@ -5301,7 +5302,15 @@ public class GeneralUtilityMethods {
 					}
 
 					if (linked_sId > 0) {
-						linkedSurveys.put(linked_sId, linked_sId);
+						// Add links to any of the surveys in the linked surveys group.  That way this survey is linked to all the surveys that can affect its manifest
+						int groupSurveyId = getGroupSurveyId(sd, linked_sId );
+						HashMap<Integer, Integer> groupSurveys = getGroupSurveys(sd, groupSurveyId, linked_sId);
+
+						if(groupSurveys.size() > 0) {
+							for(int gSId : groupSurveys.keySet()) {
+								linkedSurveys.put(gSId, gSId);
+							}
+						}
 					}
 				}
 
@@ -5316,31 +5325,52 @@ public class GeneralUtilityMethods {
 				}
 			}
 
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			if (pstmt != null) {
-				try {
-					pstmt.close();
-				} catch (SQLException e) {
-				}
-			}
-			if (pstmtDel != null) {
-				try {
-					pstmtDel.close();
-				} catch (SQLException e) {
-				}
-			}
-			if (pstmtIns != null) {
-				try {
-					pstmtIns.close();
-				} catch (SQLException e) {
-				}
-			}
+			if (pstmt != null) {try {pstmt.close();} catch (SQLException e) {}}
+			if (pstmtDel != null) {try {pstmtDel.close();} catch (SQLException e) {}}
+			if (pstmtIns != null) {try {pstmtIns.close();} catch (SQLException e) {}}
 		}
 	}
 
+	/*
+	 * Get the group surveys
+	 * Always add the survey corresponding to sId to the group
+	 */
+	public static HashMap<Integer, Integer> getGroupSurveys(Connection sd, 
+			int groupSurveyId,
+			int sId) throws SQLException {
+		
+		HashMap<Integer, Integer> groupSurveys = new HashMap<>();
+		
+		StringBuffer sql = new StringBuffer("select distinct s.s_id "
+				+ "from survey s "
+				+ "where not s.deleted "
+				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2,  groupSurveyId);
+			pstmt.setInt(3,  sId);
+				
+			log.info("Get group surveys ids: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupSurveys.put(rs.getInt(1), rs.getInt(1));
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return groupSurveys;
+	}
+	
 	/*
 	 * Get the questions referenced by a search function in a linked survey
 	 */

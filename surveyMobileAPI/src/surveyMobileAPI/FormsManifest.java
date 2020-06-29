@@ -135,16 +135,15 @@ public class FormsManifest {
 			/*
 			 * Get the per-question and per-option media files from the translation table
 			 */
-			String basePath = GeneralUtilityMethods.getBasePath(request);
+			String basepath = GeneralUtilityMethods.getBasePath(request);
 			TranslationManager translationMgr = new TranslationManager();
 			
 			List<ManifestValue> manifestList = translationMgr.
-					getManifestBySurvey(connectionSD, request.getRemoteUser(), survey.id, basePath, key);
+					getManifestBySurvey(connectionSD, request.getRemoteUser(), survey.id, basepath, key);
 
 			for( ManifestValue m : manifestList) {
 
 				String filepath = null;
-				String basepath = GeneralUtilityMethods.getBasePath(request);
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, survey.id);
 				
 				if(m.type.equals("linked")) {
@@ -159,6 +158,7 @@ public class FormsManifest {
 				// Check that the file exists
 				if(filepath != null) {
 					File f = new File(filepath);
+					
 					if(f.exists()) {
 						// Get the MD5 hash
 						String md5 = getMd5(filepath);

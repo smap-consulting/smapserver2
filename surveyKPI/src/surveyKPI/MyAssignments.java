@@ -310,6 +310,7 @@ public class MyAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tz = "UTC";
+			String basepath = GeneralUtilityMethods.getBasePath(request);
 			
 			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 			pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
@@ -556,7 +557,6 @@ public class MyAssignments extends Application {
 						 *  restrict columns and rows per user
 						 */
 						ExternalFileManager efm = new ExternalFileManager(localisation);
-						String basepath = GeneralUtilityMethods.getBasePath(request);
 						String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
 						filepath =  dirPath + m.fileName;
 	
