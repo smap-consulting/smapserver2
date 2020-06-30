@@ -548,8 +548,6 @@ public class MyAssignments extends Application {
 	
 					for( ManifestValue m : manifestList) {
 	
-						String filepath = null;
-	
 						log.info("Linked file:" + m.fileName);
 	
 						/*
@@ -558,7 +556,6 @@ public class MyAssignments extends Application {
 						 */
 						ExternalFileManager efm = new ExternalFileManager(localisation);
 						String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
-						filepath =  dirPath + m.fileName;
 	
 						// Make sure the destination exists
 						File dir = new File(dirPath);
@@ -566,7 +563,7 @@ public class MyAssignments extends Application {
 	
 						log.info("CSV File is:  " + dirPath + " : directory path created");
 	
-						efm.createLinkedFile(sd, cRel, survey.id, m.fileName , filepath, userName, tz);
+						efm.createLinkedFile(sd, cRel, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
 					}
 				}
 

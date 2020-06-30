@@ -135,7 +135,7 @@ public class FormsManifest {
 			/*
 			 * Get the per-question and per-option media files from the translation table
 			 */
-			String basepath = GeneralUtilityMethods.getBasePath(request);
+ 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			TranslationManager translationMgr = new TranslationManager();
 			
 			List<ManifestValue> manifestList = translationMgr.

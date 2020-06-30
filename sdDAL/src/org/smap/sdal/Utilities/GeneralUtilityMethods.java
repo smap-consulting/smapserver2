@@ -45,6 +45,7 @@ import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
+import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
@@ -61,7 +62,6 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.GeoPoint;
-import org.smap.sdal.model.GroupDetails;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Language;
@@ -9341,6 +9341,45 @@ public class GeneralUtilityMethods {
 			pstmt.executeUpdate();		
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Clear entries for linked forms to force reload
+	 */
+	public static void clearLinkedForms(Connection sd, int sId, ResourceBundle localisation) throws SQLException {
+
+		String sqlGetLinkers = "select linker_s_id from form_dependencies where linked_s_id = ?";
+		PreparedStatement pstmtGetLinkers = null;
+
+		String sql = "delete from linked_forms where linked_s_id = ?";
+		PreparedStatement pstmt = null;
+
+		MessagingManager mm = new MessagingManager(localisation);
+
+		try {
+			// Create a notification message for any forms that link to this one
+			pstmtGetLinkers = sd.prepareStatement(sqlGetLinkers);
+			pstmtGetLinkers.setInt(1, sId);
+			ResultSet rs = pstmtGetLinkers.executeQuery();
+			while (rs.next()) {
+				int linker_s_id = rs.getInt(1);
+				mm.surveyChange(sd, sId, linker_s_id);
+			}
+			// Delete the linked form entries so that the CSV files will be regenerated when the linker form is downloaded
+			pstmt = sd.prepareStatement(sql);
+			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId );
+			HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyId, sId);
+			if(groupSurveys.size() > 0) {
+				for(int gSId : groupSurveys.keySet()) {
+					pstmt.setInt(1, gSId);
+					log.info("Clear entries in linked_forms: " + pstmt.toString());
+					pstmt.executeUpdate();
+				}
+			}
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+			if(pstmtGetLinkers != null) try{pstmtGetLinkers.close();}catch(Exception e) {}
 		}
 	}
 }
