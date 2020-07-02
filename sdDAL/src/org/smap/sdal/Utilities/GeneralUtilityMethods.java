@@ -6330,6 +6330,8 @@ public class GeneralUtilityMethods {
 				lang = "arabic";
 			} else if (isLanguage(s, 0x0980, 0x09FF)) {
 				lang = "bengali";
+			} else if (isLanguage(s, 0x0900, 0x097F)) {
+				lang = "devanagari";
 			}
 		}
 		return lang;

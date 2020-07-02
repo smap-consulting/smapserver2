@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,6 +114,8 @@ public class PDFSurveyManager {
 	public static Font arabicFont = null;
 	public static Font bengaliFont = null;
 	public static Font bengaliFontBold = null;
+	public static Font devanagariFont = null;
+	public static Font devanagariFontBold = null;
 	private static final String DEFAULT_CSS = "/smap_bin/resources/css/default_pdf.css";
 	private static int NUMBER_TABLE_COLS = 10;
 	private static int NUMBER_QUESTION_COLS = 10;
@@ -216,6 +219,8 @@ public class PDFSurveyManager {
 				FontFactory.register("/Library/Fonts/NotoSans-Bold.ttf", "notosansbold");
 				FontFactory.register("/Library/Fonts/NotoSansBengali-Regular.ttf", "bengali");
 				FontFactory.register("/Library/Fonts/NotoSansBengali-Bold.ttf", "bengalibold");
+				FontFactory.register("/Library/Fonts/NotoSansDevanagari-Light.ttf", "devanagari");
+				FontFactory.register("/Library/Fonts/NotoSansDevanagari-Bold.ttf", "devanagaribold");
 			} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
 				// Linux / Unix
 				FontFactory.register("/usr/share/fonts/truetype/fontawesome-webfont.ttf", "Symbols");
@@ -224,6 +229,8 @@ public class PDFSurveyManager {
 				FontFactory.register("/usr/share/fonts/truetype/NotoSans-Bold.ttf", "notosansbold");
 				FontFactory.register("/usr/share/fonts/truetype/NotoSansBengali-Regular.ttf", "bengali");
 				FontFactory.register("/usr/share/fonts/truetype/NotoSansBengali-Bold.ttf", "bengalibold");
+				FontFactory.register("/usr/share/fonts/truetype/NotoSansDevanagari-Light.ttf", "devanagari");
+				FontFactory.register("/usr/share/fonts/truetype/NotoSansDevanagari-Bold.ttf", "devanagaribold");
 			}
 
 			Symbols = FontFactory.getFont("Symbols", BaseFont.IDENTITY_H, 
@@ -239,6 +246,10 @@ public class PDFSurveyManager {
 			bengaliFont = FontFactory.getFont("bengali", BaseFont.IDENTITY_H, 
 					BaseFont.EMBEDDED, 10); 
 			bengaliFontBold = FontFactory.getFont("bengalibold", BaseFont.IDENTITY_H, 
+					BaseFont.EMBEDDED, 10); 
+			devanagariFont = FontFactory.getFont("devanagari", BaseFont.IDENTITY_H, 
+					BaseFont.EMBEDDED, 10); 
+			devanagariFontBold = FontFactory.getFont("devanagaribold", BaseFont.IDENTITY_H, 
 					BaseFont.EMBEDDED, 10); 
 
 			defaultFontLink.setColor(BaseColor.BLUE);
@@ -738,6 +749,8 @@ public class PDFSurveyManager {
 			fontProvider.register("/Library/Fonts/NotoSansBengali-Bold.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/Library/Fonts/NotoSans-Regular.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/Library/Fonts/NotoSans-Bold.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/Library/Fonts/NotoSansDevanagari-Light.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/Library/Fonts/NotoSansDevanagari-Bold.ttf", BaseFont.IDENTITY_H);
 
 
 		} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
@@ -747,14 +760,15 @@ public class PDFSurveyManager {
 			fontProvider.register("/usr/share/fonts/truetype/NotoNaskhArabic-Regular.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/usr/share/fonts/truetype/NotoSans-Regular.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/usr/share/fonts/truetype/NotoSans-Bold.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/usr/share/fonts/truetype/NotoSansDevanagari-Light.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/usr/share/fonts/truetype/NotoSansDevanagari-Bold.ttf", BaseFont.IDENTITY_H);
 		}
 
-		/*
 		 System.out.println("Fonts present in " + fontProvider.getClass().getName());
 	        Set<String> registeredFonts = fontProvider.getRegisteredFonts();
 	        for (String font : registeredFonts)
 	            System.out.println(font);
-		 */
+		 
 		CssAppliers cssAppliers = new CssAppliersImpl(fontProvider);
 
 		// HTML
@@ -1828,7 +1842,9 @@ public class PDFSurveyManager {
 				f = arabicFont;
 			} else if(lang.equals("bengali")) {
 				f = bengaliFont;
-			}		
+			} else if(lang.equals("devanagari")) {
+				f = devanagariFont;
+			}	
 		} 
 
 		return f;
