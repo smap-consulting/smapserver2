@@ -146,6 +146,12 @@ public class PDFSurveyManager {
 
 	boolean mExcludeEmpty = false;
 	
+	private class StringElement {
+		public boolean htmlToken;
+		public String text;
+		public int index;
+	}
+	
 	private class GlobalVariables {																// Level descended in form hierarchy
 		//HashMap<String, Integer> count = new HashMap<String, Integer> ();		// Record number at a location given by depth_length as a string
 		int [] cols = {NUMBER_QUESTION_COLS};	// Current Array of columns
@@ -764,10 +770,12 @@ public class PDFSurveyManager {
 			fontProvider.register("/usr/share/fonts/truetype/NotoSansDevanagari-Bold.ttf", BaseFont.IDENTITY_H);
 		}
 
-		 System.out.println("Fonts present in " + fontProvider.getClass().getName());
-	        Set<String> registeredFonts = fontProvider.getRegisteredFonts();
+		/* debug
+		System.out.println("Fonts present in " + fontProvider.getClass().getName());
+	    	Set<String> registeredFonts = fontProvider.getRegisteredFonts();
 	        for (String font : registeredFonts)
-	            System.out.println(font);
+	        	System.out.println(font);
+	     */
 		 
 		CssAppliers cssAppliers = new CssAppliersImpl(fontProvider);
 
@@ -1542,12 +1550,7 @@ public class PDFSurveyManager {
 
 		// Add label
 		if(!hideLabel) {
-			StringBuffer html = new StringBuffer();
-			html.append("<span class='label ");
-			if(di.labelbold) {
-				html.append(" lbold");
-			}
-	
+
 			// Get text value
 			String textValue = "";
 			if(di.text != null && di.text.trim().length() > 0) {
@@ -1556,21 +1559,48 @@ public class PDFSurveyManager {
 				textValue = di.name;
 			}
 			textValue = textValue.trim();
-			if(textValue.charAt(textValue.length() - 1) != ':') {
-				textValue += ":";
-			}
+			
 			if(di.labelcaps) {
 				textValue = textValue.toUpperCase();
 			}
-	
-			// Add language class
-			html.append(GeneralUtilityMethods.getLanguage(textValue));
-			html.append("'>");
-	
-			// Add text value
-			html.append(GeneralUtilityMethods.unesc(textValue));
-			html.append("</span>");
-	
+			
+			ArrayList<StringElement> elements = null;
+			/*
+			 * If the language does not use latin characters then break it up into 
+			 * elements and process each spearately.  However if pure latin then the
+			 * pdf parser seems to work better and does not add newlines after an html token
+			 */
+			if(GeneralUtilityMethods.getLanguage(textValue).equals("")) {
+				elements = new ArrayList<> ();
+				StringElement se = new StringElement();
+				se.htmlToken = false;
+				se.text = textValue;
+				elements.add(se);
+			} else {
+				elements = getStringElements(textValue);
+			}
+			
+			StringBuffer html = new StringBuffer();
+			for(StringElement se : elements) {
+				
+				if(se.htmlToken) {
+					html.append(se.text);
+				} else {
+					html.append("<span class='label ");
+					if(di.labelbold) {
+						html.append(" lbold");
+					}
+					
+					// Add language class
+					html.append(GeneralUtilityMethods.getLanguage(se.text));
+					html.append("'>");
+			
+					// Add text value
+					html.append(GeneralUtilityMethods.unesc(se.text));
+					html.append("</span>");
+				}
+			}
+
 			// Only include hints if we are generating a blank template
 			if(generateBlank) {
 				html.append("<span class='hint ");
@@ -1581,7 +1611,7 @@ public class PDFSurveyManager {
 				}
 				html.append("</span>");
 			}
-	
+			
 			parser.elements.clear();
 			try {
 				parser.xmlParser.parse(new StringReader(html.toString()));
@@ -2068,6 +2098,64 @@ public class PDFSurveyManager {
 			para.add(new Chunk(GeneralUtilityMethods.unesc(value), f));
 			document.add(para);
 		}
+	}
+	
+	private ArrayList<StringElement> getStringElements(String in) {
+		ArrayList<StringElement> elements = new ArrayList<> ();
+		String elementString = null;
+		while(in != null && in.length() > 0) {
+			StringElement token = getNextToken(in);
+			if(token != null) {
+				elementString = in.substring(0, token.index);
+			} else {
+				elementString = in;
+			}
+			
+			int processed = 0;
+			if(elementString != null && elementString.length() > 0) {
+				StringElement e = new StringElement();
+				e.htmlToken = false;
+				e.index = 0;
+				e.text = elementString;
+				elements.add(e);
+				processed += elementString.length();
+			}
+			if(token != null) {
+				elements.add(token);
+				processed += token.text.length();
+			}
+			
+			if(processed == 0) {
+				in = null;
+			} else {
+				in = in.substring(processed);
+			}
+		}
+		return elements;
+	}
+	
+	private StringElement getNextToken(String in) {
+		StringElement token = null;
+		if(in != null && in.length() > 0) {
+			int idx = in.indexOf('<');
+			if(idx >= 0) {
+		
+				if(in.indexOf("<b>", idx) == idx) {
+					token = new StringElement();
+					token.index = idx;
+					token.text = "<b>";
+					token.htmlToken = true;
+				} else if(in.indexOf("</b>", idx) == idx) {
+					token = new StringElement();
+					token.index = idx;
+					token.text = "</b>";
+					token.htmlToken = true;
+				} else {
+					token = getNextToken(in.substring(idx + 1));
+				}
+			}
+		}
+		return token;
 	}
 
 }
