@@ -114,7 +114,7 @@ public class SurveyViewManager {
 			int groupSurveyId = GeneralUtilityMethods.getSurveyId(sd, groupSurvey);
 			int groupFormId = 0;
 			if(fId != 0) {
-				// Get the group form id that matchs the selected form name
+				// Get the group form id that matches the selected form name
 				groupFormId = GeneralUtilityMethods.getFormId(sd, groupSurveyId, formName);
 			}
 			populateSvd(sd, 
@@ -223,7 +223,8 @@ public void populateSvd(
 			}
 			
 			tc.parameters = c.parameters;		// Add parameters
-
+			tc.appearance = c.appearance;		// Add appearance
+			
 			if(tc.column_name.equals("the_geom")) {
 				tc.displayName = "_geolocation";
 			} else if(tc.column_name.equals("_bad")) {

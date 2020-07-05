@@ -168,7 +168,8 @@ public class OrganisationList extends Application {
 					+ "locale,"
 					+ "timezone,"
 					+ "server_description,"
-					+ "limits "
+					+ "limits,"
+					+ "refresh_rate "
 					+ "from organisation "
 					+ "where organisation.e_id = ? "
 					+ "order by name asc;";			
@@ -219,7 +220,8 @@ public class OrganisationList extends Application {
 				org.server_description = resultSet.getString("server_description");
 				
 				String limits = resultSet.getString("limits");
-				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());				
+				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());	
+				org.refresh_rate = resultSet.getInt("refresh_rate");
 				organisations.add(org);
 			}
 	

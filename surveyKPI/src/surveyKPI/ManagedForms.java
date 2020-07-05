@@ -163,6 +163,9 @@ public class ManagedForms extends Application {
 			ActionManager am = new ActionManager(localisation, tz);
 			response = am.processUpdateGroupSurvey(request, sd, cResults, 
 					request.getRemoteUser(), sId, instanceid, groupSurvey, groupForm, updatesString);
+			
+			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);   // log the error but otherwise ignore
 		} finally {

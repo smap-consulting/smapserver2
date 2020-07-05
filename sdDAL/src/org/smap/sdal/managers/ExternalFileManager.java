@@ -530,12 +530,20 @@ public class ExternalFileManager {
 						log.info("Need to regenerate");
 
 						pstmtInsert = sd.prepareStatement(sqlInsert);
-						pstmtInsert.setInt(1, linked_sId);
-						pstmtInsert.setInt(2, linker_sId);
-						pstmtInsert.setString(3, filepath);
-						pstmtInsert.setString(4, user);
-						pstmtInsert.executeUpdate();
-						log.info("Insert record: " + pstmtInsert.toString());
+						
+						// Create an entry in linked forms for all grouped surveys that this this survey links to
+						int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, linked_sId );
+						HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyId, linked_sId);
+						if(groupSurveys.size() > 0) {
+							for(int gSId : groupSurveys.keySet()) {
+								pstmtInsert.setInt(1, gSId);
+								pstmtInsert.setInt(2, linker_sId);
+								pstmtInsert.setString(3, filepath);
+								pstmtInsert.setString(4, user);
+								pstmtInsert.executeUpdate();
+								log.info("Insert record: " + pstmtInsert.toString());
+							}
+						}
 					} else {
 						log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
+import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -113,6 +114,8 @@ public class PDFSurveyManager {
 	public static Font arabicFont = null;
 	public static Font bengaliFont = null;
 	public static Font bengaliFontBold = null;
+	public static Font devanagariFont = null;
+	public static Font devanagariFontBold = null;
 	private static final String DEFAULT_CSS = "/smap_bin/resources/css/default_pdf.css";
 	private static int NUMBER_TABLE_COLS = 10;
 	private static int NUMBER_QUESTION_COLS = 10;
@@ -142,6 +145,12 @@ public class PDFSurveyManager {
 	int marginBottom_2 = 100;
 
 	boolean mExcludeEmpty = false;
+	
+	private class StringElement {
+		public boolean htmlToken;
+		public String text;
+		public int index;
+	}
 	
 	private class GlobalVariables {																// Level descended in form hierarchy
 		//HashMap<String, Integer> count = new HashMap<String, Integer> ();		// Record number at a location given by depth_length as a string
@@ -216,6 +225,8 @@ public class PDFSurveyManager {
 				FontFactory.register("/Library/Fonts/NotoSans-Bold.ttf", "notosansbold");
 				FontFactory.register("/Library/Fonts/NotoSansBengali-Regular.ttf", "bengali");
 				FontFactory.register("/Library/Fonts/NotoSansBengali-Bold.ttf", "bengalibold");
+				FontFactory.register("/Library/Fonts/NotoSansDevanagari-Light.ttf", "devanagari");
+				FontFactory.register("/Library/Fonts/NotoSansDevanagari-Bold.ttf", "devanagaribold");
 			} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
 				// Linux / Unix
 				FontFactory.register("/usr/share/fonts/truetype/fontawesome-webfont.ttf", "Symbols");
@@ -224,6 +235,8 @@ public class PDFSurveyManager {
 				FontFactory.register("/usr/share/fonts/truetype/NotoSans-Bold.ttf", "notosansbold");
 				FontFactory.register("/usr/share/fonts/truetype/NotoSansBengali-Regular.ttf", "bengali");
 				FontFactory.register("/usr/share/fonts/truetype/NotoSansBengali-Bold.ttf", "bengalibold");
+				FontFactory.register("/usr/share/fonts/truetype/NotoSansDevanagari-Light.ttf", "devanagari");
+				FontFactory.register("/usr/share/fonts/truetype/NotoSansDevanagari-Bold.ttf", "devanagaribold");
 			}
 
 			Symbols = FontFactory.getFont("Symbols", BaseFont.IDENTITY_H, 
@@ -239,6 +252,10 @@ public class PDFSurveyManager {
 			bengaliFont = FontFactory.getFont("bengali", BaseFont.IDENTITY_H, 
 					BaseFont.EMBEDDED, 10); 
 			bengaliFontBold = FontFactory.getFont("bengalibold", BaseFont.IDENTITY_H, 
+					BaseFont.EMBEDDED, 10); 
+			devanagariFont = FontFactory.getFont("devanagari", BaseFont.IDENTITY_H, 
+					BaseFont.EMBEDDED, 10); 
+			devanagariFontBold = FontFactory.getFont("devanagaribold", BaseFont.IDENTITY_H, 
 					BaseFont.EMBEDDED, 10); 
 
 			defaultFontLink.setColor(BaseColor.BLUE);
@@ -335,7 +352,12 @@ public class PDFSurveyManager {
 
 				writer.setInitialLeading(12);	
 
-				writer.setPageEvent(new PdfPageSizer(survey.displayName, survey.projectName, 
+				String title = survey.getInstanceName();
+				if(title.equals("survey")) {
+					title = survey.displayName;
+				}
+				
+				writer.setPageEvent(new PdfPageSizer(title, 
 						user, basePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2)); 
 				document.open();
@@ -361,7 +383,9 @@ public class PDFSurveyManager {
 							false,
 							parentRecords,
 							remoteUser,
-							oId);		
+							oId,
+							true		// show sub form index
+							);		
 				}
 
 				fillNonTemplateUserDetails(document, user, basePath);
@@ -386,7 +410,8 @@ public class PDFSurveyManager {
 								true, 
 								parentRecords,
 								remoteUser,
-								oId);		
+								oId,
+								false);		
 					}
 				}
 
@@ -730,6 +755,8 @@ public class PDFSurveyManager {
 			fontProvider.register("/Library/Fonts/NotoSansBengali-Bold.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/Library/Fonts/NotoSans-Regular.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/Library/Fonts/NotoSans-Bold.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/Library/Fonts/NotoSansDevanagari-Light.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/Library/Fonts/NotoSansDevanagari-Bold.ttf", BaseFont.IDENTITY_H);
 
 
 		} else if(os.indexOf("nix") >= 0 || os.indexOf("nux") >= 0 || os.indexOf("aix") > 0) {
@@ -739,14 +766,17 @@ public class PDFSurveyManager {
 			fontProvider.register("/usr/share/fonts/truetype/NotoNaskhArabic-Regular.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/usr/share/fonts/truetype/NotoSans-Regular.ttf", BaseFont.IDENTITY_H);
 			fontProvider.register("/usr/share/fonts/truetype/NotoSans-Bold.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/usr/share/fonts/truetype/NotoSansDevanagari-Light.ttf", BaseFont.IDENTITY_H);
+			fontProvider.register("/usr/share/fonts/truetype/NotoSansDevanagari-Bold.ttf", BaseFont.IDENTITY_H);
 		}
 
-		/*
-		 System.out.println("Fonts present in " + fontProvider.getClass().getName());
-	        Set<String> registeredFonts = fontProvider.getRegisteredFonts();
+		/* debug
+		System.out.println("Fonts present in " + fontProvider.getClass().getName());
+	    	Set<String> registeredFonts = fontProvider.getRegisteredFonts();
 	        for (String font : registeredFonts)
-	            System.out.println(font);
-		 */
+	        	System.out.println(font);
+	     */
+		 
 		CssAppliers cssAppliers = new CssAppliersImpl(fontProvider);
 
 		// HTML
@@ -782,7 +812,8 @@ public class PDFSurveyManager {
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
 			String remoteUser,
-			int oId) throws DocumentException, IOException, SQLException {
+			int oId,
+			boolean showSubFormIndex) throws DocumentException, IOException, SQLException {
 
 		// Check that the depth of repeats hasn't exceeded the maximum
 		if(depth > repIndexes.length - 1) {
@@ -818,6 +849,7 @@ public class PDFSurveyManager {
 
 				firstQuestion = true;			// Make sure there is a gap when we return from the sub form
 				// If this is a blank template check to see the number of times we should repeat this sub form
+				showSubFormIndex = showSubFormIndex(r.appearance);
 				if(generateBlank) {
 					int blankRepeats = getBlankRepeats(r.appearance);
 					for(int k = 0; k < blankRepeats; k++) {
@@ -836,7 +868,8 @@ public class PDFSurveyManager {
 								appendix,
 								null,
 								remoteUser,
-								oId);
+								oId,
+								showSubFormIndex);
 					}
 				} else {
 					for(int k = 0; k < r.subForm.size(); k++) {
@@ -857,7 +890,8 @@ public class PDFSurveyManager {
 								appendix,
 								parentRecords,
 								remoteUser,
-								oId);
+								oId,
+								showSubFormIndex);
 					} 
 				}
 			} else {
@@ -896,7 +930,8 @@ public class PDFSurveyManager {
 									gv,
 									remoteUser,
 									oId,
-									startGeopointValue);
+									startGeopointValue,
+									showSubFormIndex);
 	
 							newTable.setWidthPercentage(100);
 							newTable.setKeepTogether(true);
@@ -982,9 +1017,6 @@ public class PDFSurveyManager {
 			}
 		}
 
-		// Check appendix status
-
-
 		if(include) {
 			if(r.name == null) {
 				include = false;
@@ -997,7 +1029,9 @@ public class PDFSurveyManager {
 			} else if(r.name.startsWith("_")) {
 				// Don't include questions that start with "_",  these are only added to the letter head
 				//include = false;
-			} 
+			} else if(r.name.equals("prikey") || r.name.equals("parkey")) {
+				include = false;
+			}
 		}
 
 		return include;
@@ -1018,26 +1052,32 @@ public class PDFSurveyManager {
 			GlobalVariables gv,
 			String remoteUser,
 			int oId,
-			String startGeopointValue) throws BadElementException, MalformedURLException, IOException {
+			String startGeopointValue,
+			boolean showSubFormIndex) throws BadElementException, MalformedURLException, IOException {
 
-		PdfPTable table = new PdfPTable(depth + NUMBER_TABLE_COLS);	// Add a column for each level of repeats so that the repeat number can be shown
+		// Add a column for each level of repeats so that the repeat number can be shown
+		PdfPTable table = new PdfPTable((showSubFormIndex ? depth : 0) + NUMBER_TABLE_COLS);	
 
 		// Add the cells to record repeat indexes
-		for(int i = 0; i < depth; i++) {
-			PdfPCell c = new PdfPCell();
-			c.addElement(new Paragraph(String.valueOf(repIndexes[i] + 1), defaultFont));
-			c.setBackgroundColor(BaseColor.LIGHT_GRAY);
-			table.addCell(c);
-
-
+		if(showSubFormIndex) {
+			for(int i = 0; i < depth; i++) {
+				PdfPCell c = new PdfPCell();
+				c.addElement(new Paragraph(String.valueOf(repIndexes[i] + 1), defaultFont));
+				c.setBackgroundColor(BaseColor.LIGHT_GRAY);
+				table.addCell(c);
+			}
 		}
 
 		int spanCount = NUMBER_TABLE_COLS;
 		int numberItems = row.items.size();
 		for(DisplayItem di : row.items) {
 
+			boolean hideLabel = false;
+			if(di.hideRepeatingLabels && depth > 0 && repIndexes[depth - 1] > 0) {
+				hideLabel = true;
+			}
 			PdfPCell cell = new PdfPCell(addDisplayItem(parser, di, basePath, serverRoot, 
-					generateBlank, gv, remoteUser, oId, startGeopointValue));
+					generateBlank, gv, remoteUser, oId, startGeopointValue, hideLabel));
 			cell.setBorderColor(BaseColor.LIGHT_GRAY);
 
 			// Make sure the last cell extends to the end of the table
@@ -1313,6 +1353,27 @@ public class PDFSurveyManager {
 
 		return repeats;
 	}
+	
+	/*
+	 * Return true if sub form index should be shown
+	 */
+	boolean showSubFormIndex(String appearance) {
+		boolean show = true;
+
+		if(appearance != null) {
+			String [] appValues = appearance.split(" ");
+			if(appearance != null) {
+				for(int i = 0; i < appValues.length; i++) {
+					if(appValues[i].equals("pdfhideindex")) {
+						show = false;
+					}
+				}
+			}
+		}
+
+		return show;
+	}
+	
 	/*
 	 * Set the attributes for this question from keys set in the appearance column
 	 */
@@ -1359,6 +1420,8 @@ public class PDFSurveyManager {
 						di.isHyperlink = true;		
 					} else if(app.equals("signature")) {
 						di.isSignature = true;		
+					} else if(app.equals("pdfhiderepeatinglabels")) {
+						di.hideRepeatingLabels = true;		
 					}
 				}
 			}
@@ -1475,7 +1538,8 @@ public class PDFSurveyManager {
 			GlobalVariables gv,
 			String remoteUser,
 			int oId,
-			String startGeopointValue) throws BadElementException, MalformedURLException, IOException {
+			String startGeopointValue,
+			boolean hideLabel) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPCell labelCell = new PdfPCell();
 		PdfPCell valueCell = new PdfPCell();
@@ -1485,66 +1549,90 @@ public class PDFSurveyManager {
 		PdfPTable tItem = null;
 
 		// Add label
-		StringBuffer html = new StringBuffer();
-		html.append("<span class='label ");
-		if(di.labelbold) {
-			html.append(" lbold");
-		}
+		if(!hideLabel) {
 
-		// Get text value
-		String textValue = "";
-		if(di.text != null && di.text.trim().length() > 0) {
-			textValue = di.text;
-		} else {
-			textValue = di.name;
-		}
-		textValue = textValue.trim();
-		if(textValue.charAt(textValue.length() - 1) != ':') {
-			textValue += ":";
-		}
-		if(di.labelcaps) {
-			textValue = textValue.toUpperCase();
-		}
-
-		// Add language class
-		html.append(GeneralUtilityMethods.getLanguage(textValue));
-		html.append("'>");
-
-		// Add text value
-		html.append(GeneralUtilityMethods.unesc(textValue));
-		html.append("</span>");
-
-		// Only include hints if we are generating a blank template
-		if(generateBlank) {
-			html.append("<span class='hint ");
-			if(di.hint != null) {
-				html.append(GeneralUtilityMethods.getLanguage(di.hint));
-				html.append("'>");
-				html.append(GeneralUtilityMethods.unesc(di.hint));
+			// Get text value
+			String textValue = "";
+			if(di.text != null && di.text.trim().length() > 0) {
+				textValue = di.text;
+			} else {
+				textValue = di.name;
 			}
-			html.append("</span>");
-		}
-
-		parser.elements.clear();
-		try {
-			parser.xmlParser.parse(new StringReader(html.toString()));
+			textValue = textValue.trim();
 			
-			for(Element element : parser.elements) {
-				if(textValue != null && textValue.length() > 0) {
-					if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
-						labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-					}
-				} else if(di.hint != null && di.hint.length() > 0) {
-					if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
-						labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
-					}
-				}
-				labelCell.addElement(element);
+			if(di.labelcaps) {
+				textValue = textValue.toUpperCase();
 			}
-		} catch (Exception e) {
-			log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
-			lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
-			labelCell.addElement(getPara(html.toString(), di, gv, null, null));
+			
+			ArrayList<StringElement> elements = null;
+			/*
+			 * If the language does not use latin characters then break it up into 
+			 * elements and process each spearately.  However if pure latin then the
+			 * pdf parser seems to work better and does not add newlines after an html token
+			 */
+			if(GeneralUtilityMethods.getLanguage(textValue).equals("")) {
+				elements = new ArrayList<> ();
+				StringElement se = new StringElement();
+				se.htmlToken = false;
+				se.text = textValue;
+				elements.add(se);
+			} else {
+				elements = getStringElements(textValue);
+			}
+			
+			StringBuffer html = new StringBuffer();
+			for(StringElement se : elements) {
+				
+				if(se.htmlToken) {
+					html.append(se.text);
+				} else {
+					html.append("<span class='label ");
+					if(di.labelbold) {
+						html.append(" lbold");
+					}
+					
+					// Add language class
+					html.append(GeneralUtilityMethods.getLanguage(se.text));
+					html.append("'>");
+			
+					// Add text value
+					html.append(GeneralUtilityMethods.unesc(se.text));
+					html.append("</span>");
+				}
+			}
+
+			// Only include hints if we are generating a blank template
+			if(generateBlank) {
+				html.append("<span class='hint ");
+				if(di.hint != null) {
+					html.append(GeneralUtilityMethods.getLanguage(di.hint));
+					html.append("'>");
+					html.append(GeneralUtilityMethods.unesc(di.hint));
+				}
+				html.append("</span>");
+			}
+			
+			parser.elements.clear();
+			try {
+				parser.xmlParser.parse(new StringReader(html.toString()));
+				
+				for(Element element : parser.elements) {
+					if(textValue != null && textValue.length() > 0) {
+						if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
+							labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+						}
+					} else if(di.hint != null && di.hint.length() > 0) {
+						if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
+							labelCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
+						}
+					}
+					labelCell.addElement(element);
+				}
+			} catch (Exception e) {
+				log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
+				lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
+				labelCell.addElement(getPara(html.toString(), di, gv, null, null));
+			}
 		}
 
 
@@ -1784,7 +1872,9 @@ public class PDFSurveyManager {
 				f = arabicFont;
 			} else if(lang.equals("bengali")) {
 				f = bengaliFont;
-			}		
+			} else if(lang.equals("devanagari")) {
+				f = devanagariFont;
+			}	
 		} 
 
 		return f;
@@ -2008,6 +2098,64 @@ public class PDFSurveyManager {
 			para.add(new Chunk(GeneralUtilityMethods.unesc(value), f));
 			document.add(para);
 		}
+	}
+	
+	private ArrayList<StringElement> getStringElements(String in) {
+		ArrayList<StringElement> elements = new ArrayList<> ();
+		String elementString = null;
+		while(in != null && in.length() > 0) {
+			StringElement token = getNextToken(in);
+			if(token != null) {
+				elementString = in.substring(0, token.index);
+			} else {
+				elementString = in;
+			}
+			
+			int processed = 0;
+			if(elementString != null && elementString.length() > 0) {
+				StringElement e = new StringElement();
+				e.htmlToken = false;
+				e.index = 0;
+				e.text = elementString;
+				elements.add(e);
+				processed += elementString.length();
+			}
+			if(token != null) {
+				elements.add(token);
+				processed += token.text.length();
+			}
+			
+			if(processed == 0) {
+				in = null;
+			} else {
+				in = in.substring(processed);
+			}
+		}
+		return elements;
+	}
+	
+	private StringElement getNextToken(String in) {
+		StringElement token = null;
+		if(in != null && in.length() > 0) {
+			int idx = in.indexOf('<');
+			if(idx >= 0) {
+		
+				if(in.indexOf("<b>", idx) == idx) {
+					token = new StringElement();
+					token.index = idx;
+					token.text = "<b>";
+					token.htmlToken = true;
+				} else if(in.indexOf("</b>", idx) == idx) {
+					token = new StringElement();
+					token.index = idx;
+					token.text = "</b>";
+					token.htmlToken = true;
+				} else {
+					token = getNextToken(in.substring(idx + 1));
+				}
+			}
+		}
+		return token;
 	}
 
 }

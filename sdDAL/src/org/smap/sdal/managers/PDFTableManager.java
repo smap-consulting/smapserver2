@@ -212,7 +212,7 @@ public class PDFTableManager {
 			writer = PdfWriter.getInstance(document, outputStream);
 				
 			writer.setInitialLeading(12);	
-			writer.setPageEvent(new PdfPageSizer(title, project, 
+			writer.setPageEvent(new PdfPageSizer(title, 
 					user, basePath, 
 					tableHeader,
 					marginLeft, marginRight, marginTop_2, marginBottom_2)); 

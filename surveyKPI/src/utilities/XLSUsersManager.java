@@ -82,7 +82,7 @@ public class XLSUsersManager {
 				value = user.email;
 			} else if(isSecurityGroup) {
 				value = getGroupValue(user.groups, name);
-			} else if(name.equals("projects")) {
+			} else if(name.equals("projects") && user.projects != null) {
 				StringBuffer sb = new StringBuffer("");
 				for(Project p : user.projects) {
 					if(sb.length() > 0) {
@@ -102,9 +102,11 @@ public class XLSUsersManager {
 		}
 		
 		private String getGroupValue(ArrayList<UserGroup> groups, String in) {
-			for(UserGroup ug : groups) {
-				if(ug.name.equals(in)) {
-					return "yes";
+			if(groups != null) {
+				for(UserGroup ug : groups) {
+					if(ug.name != null && ug.name.equals(in)) {
+						return "yes";
+					}
 				}
 			}
 			return null;

@@ -310,6 +310,7 @@ public class MyAssignments extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String tz = "UTC";
+			String basepath = GeneralUtilityMethods.getBasePath(request);
 			
 			String sqlDeleteCancelled = "update assignments set status = 'deleted', deleted_date = now() where id = ?";
 			pstmtDeleteCancelled = sd.prepareStatement(sqlDeleteCancelled);
@@ -547,8 +548,6 @@ public class MyAssignments extends Application {
 	
 					for( ManifestValue m : manifestList) {
 	
-						String filepath = null;
-	
 						log.info("Linked file:" + m.fileName);
 	
 						/*
@@ -556,9 +555,7 @@ public class MyAssignments extends Application {
 						 *  restrict columns and rows per user
 						 */
 						ExternalFileManager efm = new ExternalFileManager(localisation);
-						String basepath = GeneralUtilityMethods.getBasePath(request);
 						String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
-						filepath =  dirPath + m.fileName;
 	
 						// Make sure the destination exists
 						File dir = new File(dirPath);
@@ -566,7 +563,7 @@ public class MyAssignments extends Application {
 	
 						log.info("CSV File is:  " + dirPath + " : directory path created");
 	
-						efm.createLinkedFile(sd, cRel, survey.id, m.fileName , filepath, userName, tz);
+						efm.createLinkedFile(sd, cRel, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
 					}
 				}
 

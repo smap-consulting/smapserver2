@@ -743,6 +743,7 @@ public class WebForm extends Application {
 				"</style>");
 		
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {
+			output.append("<link type='text/css' href='/build/css/theme-formhub.css' media='all' rel='stylesheet' />\n");
 			output.append("<link type='text/css' href='/build/css/grid.css' media='all' rel='stylesheet' />\n");
 			output.append("<link type='text/css' href='/build/css/grid-print.css' media='print' rel='stylesheet'/>\n");
 		} else {

@@ -45,6 +45,7 @@ import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
+import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.managers.SurveyTableManager;
@@ -1048,7 +1049,8 @@ public class GeneralUtilityMethods {
 				+ "timezone,"
 				+ "server_description,"
 				+ "e_id,"
-				+ "limits "
+				+ "limits,"
+				+ "refresh_rate "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
@@ -1102,7 +1104,8 @@ public class GeneralUtilityMethods {
 				org.server_description = resultSet.getString("server_description");
 				
 				String limits = resultSet.getString("limits");
-				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());				
+				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());
+				org.refresh_rate = resultSet.getInt("refresh_rate");
 			}
 
 	
@@ -3879,6 +3882,7 @@ public class GeneralUtilityMethods {
 						c.markup = getMarkup(sd, style_id);
 					}
 					c.parameters  = GeneralUtilityMethods.convertParametersToHashMap(parameters);
+					c.appearance = appearance;
 				}
 
 			}
@@ -5251,7 +5255,7 @@ public class GeneralUtilityMethods {
 
 		String sqlIns = "insert into form_dependencies (linker_s_id, linked_s_id) values (?, ?)";
 		PreparedStatement pstmtIns = null;
-
+		
 		try {
 
 			ResultSet rs = null;
@@ -5298,7 +5302,15 @@ public class GeneralUtilityMethods {
 					}
 
 					if (linked_sId > 0) {
-						linkedSurveys.put(linked_sId, linked_sId);
+						// Add links to any of the surveys in the linked surveys group.  That way this survey is linked to all the surveys that can affect its manifest
+						int groupSurveyId = getGroupSurveyId(sd, linked_sId );
+						HashMap<Integer, Integer> groupSurveys = getGroupSurveys(sd, groupSurveyId, linked_sId);
+
+						if(groupSurveys.size() > 0) {
+							for(int gSId : groupSurveys.keySet()) {
+								linkedSurveys.put(gSId, gSId);
+							}
+						}
 					}
 				}
 
@@ -5313,31 +5325,52 @@ public class GeneralUtilityMethods {
 				}
 			}
 
+
 		} catch (SQLException e) {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			if (pstmt != null) {
-				try {
-					pstmt.close();
-				} catch (SQLException e) {
-				}
-			}
-			if (pstmtDel != null) {
-				try {
-					pstmtDel.close();
-				} catch (SQLException e) {
-				}
-			}
-			if (pstmtIns != null) {
-				try {
-					pstmtIns.close();
-				} catch (SQLException e) {
-				}
-			}
+			if (pstmt != null) {try {pstmt.close();} catch (SQLException e) {}}
+			if (pstmtDel != null) {try {pstmtDel.close();} catch (SQLException e) {}}
+			if (pstmtIns != null) {try {pstmtIns.close();} catch (SQLException e) {}}
 		}
 	}
 
+	/*
+	 * Get the group surveys
+	 * Always add the survey corresponding to sId to the group
+	 */
+	public static HashMap<Integer, Integer> getGroupSurveys(Connection sd, 
+			int groupSurveyId,
+			int sId) throws SQLException {
+		
+		HashMap<Integer, Integer> groupSurveys = new HashMap<>();
+		
+		StringBuffer sql = new StringBuffer("select distinct s.s_id "
+				+ "from survey s "
+				+ "where not s.deleted "
+				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setInt(1, groupSurveyId);
+			pstmt.setInt(2,  groupSurveyId);
+			pstmt.setInt(3,  sId);
+				
+			log.info("Get group surveys ids: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupSurveys.put(rs.getInt(1), rs.getInt(1));
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+		return groupSurveys;
+	}
+	
 	/*
 	 * Get the questions referenced by a search function in a linked survey
 	 */
@@ -6297,6 +6330,8 @@ public class GeneralUtilityMethods {
 				lang = "arabic";
 			} else if (isLanguage(s, 0x0980, 0x09FF)) {
 				lang = "bengali";
+			} else if (isLanguage(s, 0x0900, 0x097F)) {
+				lang = "devanagari";
 			}
 		}
 		return lang;
@@ -8017,57 +8052,41 @@ public class GeneralUtilityMethods {
 				+ "and soft_deleted = 'false' ";
 		PreparedStatement pstmt = null;
 		
-		String sqlPublished = "select count(*) from information_schema.columns where table_name = ? " 
-				+ "and column_name = ?";
-		PreparedStatement pstmtPub = null;
-		
 		String sqlUpdate = "update question set published = 'true' where q_id = ?";
 		PreparedStatement pstmtUpdate = null;
 		
 		ResultSet rs = null;
-		ResultSet rsPub = null;
 		try {
-			pstmtPub = cResults.prepareStatement(sqlPublished);
-			pstmtPub.setString(1, tableName);
 			
-			pstmtUpdate = sd.prepareStatement(sqlUpdate);
-			
-			// Get unpublished
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, fId);
-		
-			log.info(pstmt.toString());
-			rs = pstmt.executeQuery();
-			while(rs.next()) {
-				int qId = rs.getInt(1);
-				String columnName = rs.getString(2);
-				String type = rs.getString(3);
-				boolean compressed = rs.getBoolean(4);
+			if(GeneralUtilityMethods.tableExists(cResults, tableName)) {
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
 				
-				pstmtPub.setString(2, columnName);	
-				rsPub = pstmtPub.executeQuery();
-				int count = 0;
-				if(rsPub.next()) {
-					count = rsPub.getInt(1);
-				}
-				if(count > 0) {
-					// Column has been published update the schema to reflect this
-					pstmtUpdate.setInt(1, qId);
-					pstmtUpdate.executeUpdate();
-				} else if(publish) {
+				// Get unpublished
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1, fId);
+			
+				log.info(pstmt.toString());
+				rs = pstmt.executeQuery();
+				while(rs.next()) {
+					int qId = rs.getInt(1);
+					String columnName = rs.getString(2);
+					String type = rs.getString(3);
+					boolean compressed = rs.getBoolean(4);
+					
 					if(!GeneralUtilityMethods.hasColumn(cResults, tableName, columnName)) {
 						GeneralUtilityMethods.alterColumn(cResults, tableName, type, columnName, compressed);
+						log.info("Adding column " + columnName + " to table " + tableName);
 					}
 					pstmtUpdate.setInt(1, qId);
+					log.info("Marking question " + columnName + " as published");
 					pstmtUpdate.executeUpdate();
+					
 				}
 			}
 			
 		} finally {
 			if(rs != null) {try{rs.close();} catch(Exception e) {}}
-			if(rsPub != null) {try{rsPub.close();} catch(Exception e) {}}
 			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}}
-			if(pstmtPub != null) {try{pstmtPub.close();} catch(Exception e) {}}
 			if(pstmtUpdate != null) {try{pstmtUpdate.close();} catch(Exception e) {}}
 		}
 	}
@@ -9324,6 +9343,45 @@ public class GeneralUtilityMethods {
 			pstmt.executeUpdate();		
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Clear entries for linked forms to force reload
+	 */
+	public static void clearLinkedForms(Connection sd, int sId, ResourceBundle localisation) throws SQLException {
+
+		String sqlGetLinkers = "select linker_s_id from form_dependencies where linked_s_id = ?";
+		PreparedStatement pstmtGetLinkers = null;
+
+		String sql = "delete from linked_forms where linked_s_id = ?";
+		PreparedStatement pstmt = null;
+
+		MessagingManager mm = new MessagingManager(localisation);
+
+		try {
+			// Create a notification message for any forms that link to this one
+			pstmtGetLinkers = sd.prepareStatement(sqlGetLinkers);
+			pstmtGetLinkers.setInt(1, sId);
+			ResultSet rs = pstmtGetLinkers.executeQuery();
+			while (rs.next()) {
+				int linker_s_id = rs.getInt(1);
+				mm.surveyChange(sd, sId, linker_s_id);
+			}
+			// Delete the linked form entries so that the CSV files will be regenerated when the linker form is downloaded
+			pstmt = sd.prepareStatement(sql);
+			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId );
+			HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyId, sId);
+			if(groupSurveys.size() > 0) {
+				for(int gSId : groupSurveys.keySet()) {
+					pstmt.setInt(1, gSId);
+					log.info("Clear entries in linked_forms: " + pstmt.toString());
+					pstmt.executeUpdate();
+				}
+			}
+		} finally {
+			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
+			if(pstmtGetLinkers != null) try{pstmtGetLinkers.close();}catch(Exception e) {}
 		}
 	}
 }

@@ -540,10 +540,7 @@ public class SubRelationalDB extends Subscriber {
 			
 			cResults.commit();
 
-			/*
-			 * Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
-			 */
-			clearLinkedForms(sd, sId);
+			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 			
 			/*
 			 * If this is a simple create without an HRK then write to the record event manager
@@ -870,39 +867,6 @@ public class SubRelationalDB extends Subscriber {
 
 		return keys;
 
-	}
-
-	/*
-	 * Clear entries for linked forms to force reload
-	 */
-	private void clearLinkedForms(Connection sd, int sId) throws SQLException {
-
-		String sqlGetLinkers = "select linker_s_id from form_dependencies where linked_s_id = ?";
-		PreparedStatement pstmtGetLinkers = null;
-
-		String sql = "delete from linked_forms where linked_s_id = ?";
-		PreparedStatement pstmt = null;
-
-		MessagingManager mm = new MessagingManager(localisation);
-
-		try {
-			// Create a notification message for any forms that link to this one
-			pstmtGetLinkers = sd.prepareStatement(sqlGetLinkers);
-			pstmtGetLinkers.setInt(1, sId);
-			ResultSet rs = pstmtGetLinkers.executeQuery();
-			while (rs.next()) {
-				int linker_s_id = rs.getInt(1);
-				mm.surveyChange(sd, sId, linker_s_id);
-			}
-			// Delete the linked form entries so that the CSV files will be regenerated when the linker form is downloaded
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, sId);
-			log.info("Clear entries in linked_forms: " + pstmt.toString());
-			pstmt.executeUpdate();
-		} finally {
-			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
-			if(pstmtGetLinkers != null) try{pstmtGetLinkers.close();}catch(Exception e) {}
-		}
 	}
 
 	/*

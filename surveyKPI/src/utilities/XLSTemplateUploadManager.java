@@ -1482,6 +1482,10 @@ public class XLSTemplateUploadManager {
 			// Check for a valid value
 			throw XLSUtilities.getApplicationException(localisation, "tu_cn",rowNumber, "choices", o.value, null, null);
 
+		} else if(!validChoiceName.matcher(o.optionList).matches()) {
+			// Check for a valid value
+			throw XLSUtilities.getApplicationException(localisation, "tu_ln",rowNumber, "choices", o.optionList, null, null);
+
 		} else if(listMap.get(o.value) != null) {
 			// Check for a duplicate value
 			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_do", rowNumber, "choices", o.value, o.optionList, null);

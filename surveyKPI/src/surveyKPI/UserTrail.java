@@ -88,25 +88,21 @@ public class UserTrail extends Application {
 	@Produces("application/json")
 	@Path("/trail")
 	public Response getTrail(@Context HttpServletRequest request, 
-			@QueryParam("projectId") int projectId,
 			@QueryParam("userId") int uId,
 			@QueryParam("startDate") long start_t,
 			@QueryParam("endDate") long end_t) {
-
 
 		Response response = null;
 
 		Timestamp startDate = new Timestamp(start_t);
 		Timestamp endDate = new Timestamp(end_t);
-			
-		log.info("Getting trail between" + startDate.toGMTString() + " and " + endDate.toGMTString());;
 
 		String user = request.getRemoteUser();
 		String connectionString = "usertrail - trail";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
-		a.isValidProject(sd, request.getRemoteUser(), projectId);
+		a.isValidUser(sd, user, uId);
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -117,23 +113,21 @@ public class UserTrail extends Application {
 						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +	
 						"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
 						"u.name as user_name " +	
-					"FROM user_trail ut, user_project up, users u  " +
-					"where up.p_id = ? " + 	
-					"and up.u_id = ut.u_id " +
-					"and up.u_id = u.id " +
+					"FROM user_trail ut, users u  " +
+					"where u.id = ut.u_id " +
 					"and ut.event_time >= ? " +
-					"and ut.event_time < ? " +
+					"and ut.event_time <  ? " +
 					"and ut.u_id = ? " +
 					"order by ut.event_time asc;";
 			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, projectId);
-			pstmt.setTimestamp(2, startDate);
-			pstmt.setTimestamp(3, endDate);
-			pstmt.setInt(4, uId);
+			pstmt.setTimestamp(1, startDate);
+			pstmt.setTimestamp(2, endDate);
+			pstmt.setInt(3, uId);
 
-			log.info("Events List: " + sql + " : " + uId + " : " + projectId + " : " + startDate + " : " + endDate);
+			log.info("Events List: " + sql + " : " + uId + " : " + startDate + " : " + endDate);
 
+			log.info("Get User Trail: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			 
 			Trail trail = new Trail();

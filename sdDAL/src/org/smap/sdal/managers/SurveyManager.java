@@ -2419,7 +2419,7 @@ public class SurveyManager {
 	/*
 	 * Apply add / delete questions
 	 */
-	public void applyQuestion(Connection connectionSD,
+	public void applyQuestion(Connection sd,
 			Connection cResults,
 			PreparedStatement pstmtChangeLog, 
 			ArrayList<ChangeItem> changeItemList, 
@@ -2433,8 +2433,11 @@ public class SurveyManager {
 		QuestionManager qm = new QuestionManager(localisation);
 		ArrayList<Question> questions = new ArrayList<Question> ();
 
+		String sqlCache = "delete from csvtable where filename = ?";
+		PreparedStatement pstmt = null;
+		
 		try {
-
+			
 			for(ChangeItem ci : changeItemList) {
 
 				questions.add(ci.question);
@@ -2453,14 +2456,21 @@ public class SurveyManager {
 			} 
 
 			if(action.equals("add")) {
-				qm.save(connectionSD, cResults, sId, questions);
+				qm.save(sd, cResults, sId, questions);
 			} else if(action.equals("delete")) {
-				qm.delete(connectionSD, cResults, sId, questions, false, true);
+				qm.delete(sd, cResults, sId, questions, false, true);
 			} else if(action.equals("move")) {
-				qm.moveQuestions(connectionSD, sId, questions);
+				qm.moveQuestions(sd, sId, questions);
 			} else {
 				log.info("Unkown action: " + action);
 			}
+			
+			// Clear the csvtable cache
+			String ident = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+			pstmt = sd.prepareStatement(sqlCache);
+			pstmt.setString(1, "linked_" + ident);
+			log.info("Clear csvtable cache: " + pstmt.toString());
+			pstmt.executeUpdate();
 
 		} catch (Exception e) {
 
@@ -2470,7 +2480,7 @@ public class SurveyManager {
 			}
 			throw e;
 		} finally {
-
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
 		}
 	}
 

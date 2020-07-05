@@ -35,6 +35,7 @@ public class DisplayItem {
 	public boolean isBarcode = false;
 	public boolean isSignature = false;
 	public boolean isHyperlink = false;
+	public boolean hideRepeatingLabels = false;
 	
 	public void debug() {
 		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );

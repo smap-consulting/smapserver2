@@ -110,6 +110,7 @@ public class OrganisationManager {
 				+ "can_sms = ?, "
 				+ "send_optin = ?, "
 				+ "limits = ?," 
+				+ "refresh_rate = ?,"
 				+ "changed_ts = now() " 
 				+ "where "
 				+ "id = ?";
@@ -154,7 +155,8 @@ public class OrganisationManager {
 			pstmt.setBoolean(28, o.can_sms);
 			pstmt.setBoolean(29, o.send_optin);
 			pstmt.setString(30, o.limits == null ? null : gson.toJson(o.limits));
-			pstmt.setInt(31, o.id);
+			pstmt.setInt(31, o.refresh_rate);
+			pstmt.setInt(32, o.id);
 					
 			log.info("Update organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
@@ -293,12 +295,12 @@ public class OrganisationManager {
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
-				+ "ft_high_res_video, changed_ts) "
+				+ "ft_high_res_video, refresh_rate, changed_ts) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, now());";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, now());";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -373,6 +375,7 @@ public class OrganisationManager {
 			pstmt.setBoolean(37, o.send_optin);
 			pstmt.setString(38, o.limits == null ? null : gson.toJson(o.limits));
 			pstmt.setString(39, "not set");		// High Resolution Video
+			pstmt.setInt(40, o.refresh_rate);
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			

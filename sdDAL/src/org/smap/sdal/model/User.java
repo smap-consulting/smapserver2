@@ -67,4 +67,5 @@ public class User {
 	public boolean set_as_theme;
 	public String navbar_color;
 	public String training;
+	public int refresh_rate;
 }
