@@ -45,8 +45,13 @@ public class PdfUtilities {
 			ad.setLayout(PushbuttonField.LAYOUT_ICON_ONLY);
 			ad.setProportionalIcon(true);
 			try {
-				ad.setImage(Image.getInstance(serverRoot + "/" + value));
-				//ad.setImage(Image.getInstance(basePath + "/" + value));
+				File f = new File(basePath + "/" + value);
+				if(f.exists()) {
+					ad.setImage(Image.getInstance(basePath + "/" + value));
+				} else {
+					// mus be on s3
+					ad.setImage(Image.getInstance(serverRoot + "/" + value));
+				}
 				pdfForm.replacePushbuttonField(fieldName, ad.getField());
 			} catch (Exception e) {
 				log.info("Error: Failed to add image " + basePath + "/" + value + " to pdf: " + e.getMessage());
