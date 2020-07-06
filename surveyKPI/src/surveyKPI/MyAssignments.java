@@ -752,7 +752,8 @@ public class MyAssignments extends Application {
 
 		// Authorisation not required a user can only update their own assignments
 
-		TaskResponse tr = new Gson().fromJson(assignInput, TaskResponse.class);
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
+		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
 
 		log.info("Device:" + tr.deviceId + " for user " + userName);
 
@@ -766,8 +767,6 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtEvents = null;
 		PreparedStatement pstmtUpdateId = null;
 		PreparedStatement pstmtUnassignedRejected = null;
-		
-		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		
 		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		try {	
@@ -871,6 +870,9 @@ public class MyAssignments extends Application {
 						pstmtTrail.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
 						pstmtTrail.setTimestamp(4, new Timestamp(pe.time));
 
+						if(pe.time == 0) {
+							log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmtTrail.toString());
+						}
 						pstmtTrail.executeUpdate();
 					}
 
