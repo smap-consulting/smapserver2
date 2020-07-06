@@ -180,7 +180,7 @@ public class CustomReports extends Application {
 	}
 	
 	/*
-	 * Add a custom report
+	 * Add or edit a custom report
 	 */
 	@Path("/{pId}/{sIdent}/{type}/{name}")
 	@POST
@@ -189,7 +189,8 @@ public class CustomReports extends Application {
 			@PathParam("sIdent") String sIdent,
 			@PathParam("type") int typeId,
 			@PathParam("name") String name,
-			@FormParam("report") String report) { 
+			@FormParam("report") String report,
+			@QueryParam("id") int id) { 
 		
 		Response response = null;	
 		
@@ -198,17 +199,25 @@ public class CustomReports extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), pId);
 		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, false);
+		if(id > 0) {
+			a.isValidCustomReport(sd, request.getRemoteUser(), id);
+		}
 		// End Authorisation
 		
 		try {
 			
 			// Get the users locale
-			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			CustomReportsManager crm = new CustomReportsManager();
+			
+			if(id > 0) {  // delete existing
+				crm.delete(sd, oId, id, localisation);
+			} 
 			crm.save(sd, name, report, oId, typeId, pId, sIdent);
+
 			
 			response = Response.ok().build();
 			
