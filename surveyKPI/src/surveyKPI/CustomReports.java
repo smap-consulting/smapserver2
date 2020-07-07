@@ -19,9 +19,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.DELETE;
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -29,21 +30,18 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.model.CustomReportItem;
-import org.smap.sdal.model.ReportConfig;
+import org.smap.sdal.model.CustomReportType;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import utilities.XLSCustomReportsManager;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -73,9 +71,38 @@ public class CustomReports extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	public Response getCustomREports(@Context HttpServletRequest request,
-			@QueryParam("negateType") boolean negateType,
-			@QueryParam("type") String type) { 
+	public Response getCustomReports(@Context HttpServletRequest request,
+			@QueryParam("pId") int pId) { 
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidProject(sd, request.getRemoteUser(), pId);
+		// End Authorisation
+		
+		Response response = null;
+		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
+		try {
+			CustomReportsManager crm = new CustomReportsManager();
+			ArrayList<CustomReportItem> reports = crm.getReports(sd, pId);
+			response = Response.ok(gson.toJson(reports)).build();	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Error", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection("surveyKPI-CustomReports", sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Return the custom report types
+	 */
+	@GET
+	@Path("/types")
+	@Produces("application/json")
+	public Response getCustomReportTypes(@Context HttpServletRequest request) { 
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
@@ -85,15 +112,10 @@ public class CustomReports extends Application {
 		Response response = null;
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			CustomReportsManager crm = new CustomReportsManager();
-			ArrayList<CustomReportItem> reports = crm.getList(sd, oId, type, negateType);
-			response = Response.ok(gson.toJson(reports)).build();
-		
+			ArrayList<CustomReportType> reportTypes = crm.getTypeList(sd);
+			response = Response.ok(gson.toJson(reportTypes)).build();	
 				
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-		    response = Response.serverError().entity(e.getMessage()).build();			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);
 		    response = Response.serverError().entity(e.getMessage()).build();
@@ -120,6 +142,7 @@ public class CustomReports extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
 		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidCustomReport(sd, request.getRemoteUser(), id);
 		// End Authorisation
 		
 		try {
@@ -157,68 +180,55 @@ public class CustomReports extends Application {
 	}
 	
 	/*
-	 * Export an oversight form to XLS
+	 * Add or edit a custom report
 	 */
-	@GET
-	@Path("/xls/{id}")
-	public Response exportOversightForm(@Context HttpServletRequest request,
-			@PathParam("id") int id,
-			@QueryParam("filetype") String filetype,
-			@QueryParam("filename") String filename,
-			
-			@Context HttpServletResponse response) { 
+	@Path("/{pId}/{sIdent}/{type}/{name}")
+	@POST
+	public Response createCustomReport(@Context HttpServletRequest request,
+			@PathParam("pId") int pId,
+			@PathParam("sIdent") String sIdent,
+			@PathParam("type") int typeId,
+			@PathParam("name") String name,
+			@FormParam("report") String report,
+			@QueryParam("id") int id) { 
 		
-		Response responseVal = null;
+		Response response = null;	
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ExportOversight");
+		Connection sd = SDDataSource.getConnection("surveyKPI-CustomReports");
 		a.isAuthorised(sd, request.getRemoteUser());
-		// End Authorisation
-		
-		// Set file type to "xlsx" unless "xls" has been specified
-		if(filetype == null || !filetype.equals("xls")) {
-			filetype = "xlsx";
+		a.isValidProject(sd, request.getRemoteUser(), pId);
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), sIdent, false, false);
+		if(id > 0) {
+			a.isValidCustomReport(sd, request.getRemoteUser(), id);
 		}
-		
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-ExportOversight");
+		// End Authorisation
 		
 		try {
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			CustomReportsManager crm = new CustomReportsManager ();
-			ReportConfig config = crm.get(sd, id, oId);
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			CustomReportsManager crm = new CustomReportsManager();
 			
-			GeneralUtilityMethods.setFilenameInResponse(filename + "." + filetype, response);
-			response.setHeader("Content-type",  "application/vnd.ms-excel; charset=UTF-8");
+			if(id > 0) {  // delete existing
+				crm.delete(sd, oId, id, localisation);
+			} 
+			crm.save(sd, name, report, oId, typeId, pId, sIdent);
+
 			
-			// Create XLS oversight form
-			XLSCustomReportsManager xcrm = new XLSCustomReportsManager();
-			xcrm.writeOversightDefinition(sd,
-					cResults,
-					oId,
-					filetype,
-					response.getOutputStream(), 
-					config, 
-					localisation);
-			
-			responseVal = Response.ok().build();
+			response = Response.ok().build();
 			
 		} catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			response.setHeader("Content-type",  "text/html; charset=UTF-8");
-			// Return an OK status so the message gets added to the web page
-			// Prepend the message with "Error: ", this will be removed by the client
-			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
-		} finally {
-			SDDataSource.closeConnection("surveyKPI-ExportOversight", sd);
-			ResultsDataSource.closeConnection("surveyKPI-ExportOversight", cResults);
+			log.log(Level.SEVERE,"SQL Exception", e);
+		    response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			SDDataSource.closeConnection("surveyKPI-CustomReports", sd);			
 		}
 
-		return responseVal;
+		return response;
 
 	}
 

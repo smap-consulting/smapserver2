@@ -1601,4 +1601,62 @@ public class Authorise {
 		return true;
 	}
 	
+	/*
+	 * Verify that the user is entitled to access this custom report id
+	 */
+	public boolean isValidCustomReport(Connection conn, String user, int id) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		String sql = "select count(*) from custom_report cr, users u, user_project up, project p, survey s "
+				+ "where u.id = up.u_id "
+				+ "and p.id = up.p_id "
+				+ "and p.id = cr.p_id "
+				+ "and cr.id = ? "
+				+ "and u.ident = ? ";
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.setString(2, user);
+			
+			log.info("Is valid custom report id: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+			
+			if(count == 0) {
+				log.info("Validation of cusom report failed: " + pstmt.toString());
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Custom report validation failed for: " + user + " custom report id was: " + id);
+ 			
+ 			SDDataSource.closeConnection("is Valid Custom Report", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException("Invalid Custom Report Id");
+			}
+		} 
+ 		
+		return true;
+	}
+	
 }

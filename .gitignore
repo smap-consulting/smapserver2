@@ -9,6 +9,7 @@ koboToolboxApi/.gitignore
 Servers/
 
 subscribers/target/
+tdh/target/
 subscribers/.aws/
 
 build/css.orig
@@ -17,6 +18,7 @@ build/css.orig
 *.pydevproject
 .metadata
 .classpath
+sdDAL/.classpath
 .gradle
 bin/
 tmp/

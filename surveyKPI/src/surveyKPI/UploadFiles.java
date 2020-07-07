@@ -31,9 +31,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import model.MediaResponse;
-import utilities.XLSCustomReportsManager;
+import utilities.JavaRosaUtilities;
 import utilities.XLSTemplateUploadManager;
-import utilities.XLSUtilities;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
@@ -50,21 +49,17 @@ import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CsvTableManager;
-import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.ChangeElement;
 import org.smap.sdal.model.ChangeItem;
-import org.smap.sdal.model.CustomReportItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
-import org.smap.sdal.model.LQAS;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
-import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.Survey;
 import org.smap.server.utilities.PutXForm;
 
@@ -746,7 +741,7 @@ public class UploadFiles extends Application {
 			boolean valid = true;
 			String errMsg = null;
 			try {
-				XLSUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
+				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
 			} catch (Exception e) {
 								
 				String msg = e.getMessage();
@@ -933,288 +928,6 @@ public class UploadFiles extends Application {
 		}
 		
 		return response;
-	}
-	
-	/*
-	 * Load oversight form
-	 */
-	@POST
-	@Produces("application/json")
-	@Path("/customreport")
-	public Response sendCustomReport(
-			@Context HttpServletRequest request
-			) throws IOException {
-
-		Response response = null;
-
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
-
-		fileItemFactory.setSizeThreshold(5*1024*1024);
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
-
-		Connection sd = null; 
-		
-		// Authorisation - Access
-		sd = SDDataSource.getConnection("Tasks-LocationUpload");
-		auth.isAuthorised(sd, request.getRemoteUser());
-		// End authorisation
-
-		try {
-			
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			/*
-			 * Parse the request
-			 */
-			List<?> items = uploadHandler.parseRequest(request);
-			Iterator<?> itr = items.iterator();
-			String fileName = null;
-			FileItem fileItem = null;
-			String filetype = null;
-			String fieldName = null;
-			String reportName = null;
-			String reportType = null;
-
-			while(itr.hasNext()) {
-
-				FileItem item = (FileItem) itr.next();
-				// Get form parameters	
-				if(item.isFormField()) {
-					fieldName = item.getFieldName();
-					if(fieldName.equals("name")) {
-						reportName = item.getString();
-					} else if(fieldName.equals("type")) {
-						reportType = item.getString();
-					} 
-				} else if(!item.isFormField()) {
-					// Handle Uploaded files.
-					log.info("Field Name = "+item.getFieldName()+
-							", File Name = "+item.getName()+
-							", Content type = "+item.getContentType()+
-							", File Size = "+item.getSize());
-
-					fieldName = item.getFieldName();
-					if(fieldName.equals("filename")) {
-						fileName = item.getName();
-						fileItem = item;
-						int idx = fileName.lastIndexOf('.');
-						if(reportName == null && idx > 0) {
-							reportName = fileName.substring(0, idx);
-						}
-
-						if(fileName.endsWith("xlsx")) {
-							filetype = "xlsx";
-						} else if(fileName.endsWith("xls")) {
-							filetype = "xls";
-						} else {
-							log.info("unknown file type for item: " + fileName);
-						}
-					}	
-				}
-			}
-
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-
-			if(fileName != null) {
-
-				// Process xls file
-				XLSCustomReportsManager xcr = new XLSCustomReportsManager();
-				ReportConfig config = xcr.getOversightDefinition(sd, 
-						oId, 
-						filetype, 
-						fileItem.getInputStream(), 
-						localisation, 
-						isSecurityManager);
-
-				/*
-				 * Only save configuration if we found some columns, otherwise its likely to be an error
-				 */
-				if(config.columns.size() > 0) {
-
-					// Save configuration to the database
-					log.info("userevent: " + request.getRemoteUser() + " : upload custom report from xls file: " + fileName + " for organisation: " + oId);
-					CustomReportsManager crm = new CustomReportsManager();
-
-					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-					String configString = gson.toJson(config);
-
-					crm.save(sd, reportName, configString, oId, reportType);
-					lm.writeLog(sd, 0, request.getRemoteUser(), "resources", config.columns.size() + " custom report definition uploaded from file " + fileName, 0);
-
-					ArrayList<CustomReportItem> reportsList = crm.getList(sd, oId, reportType, false);
-					// Return custom report list			 
-					String resp = gson.toJson(reportsList);
-
-					response = Response.ok(resp).build();
-
-				} else {
-					response = Response.serverError().entity(localisation.getString("mf_nrc")).build();
-				}
-			} else {
-				// This error shouldn't happen therefore no translation specified
-				response = Response.serverError().entity("no file specified").build();
-			}
-
-
-		} catch(FileUploadException ex) {
-			log.log(Level.SEVERE,ex.getMessage(), ex);
-			response = Response.serverError().entity(ex.getMessage()).build();
-		} catch(Exception ex) {
-			String msg = ex.getMessage();
-			if(msg!= null && msg.contains("duplicate")) {
-				msg = "A report with this name already exists";
-			}
-			log.log(Level.SEVERE,ex.getMessage(), ex);
-			response = Response.serverError().entity(msg).build();
-		} finally {
-
-			SDDataSource.closeConnection("Tasks-LocationUpload", sd);
-
-		}
-
-		return response;
-
-	}
-
-	/*
-	 * Load an LQAS report
-	 */
-	@POST
-	@Produces("application/json")
-	@Path("/lqasreport")
-	public Response sendLQASReport(
-			@Context HttpServletRequest request
-			) throws IOException {
-
-		Response response = null;
-
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();		
-
-		fileItemFactory.setSizeThreshold(5*1024*1024);
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
-
-		Connection sd = null; 
-
-		try {
-			/*
-			 * Parse the request
-			 */
-			List<?> items = uploadHandler.parseRequest(request);
-			Iterator<?> itr = items.iterator();
-			String fileName = null;
-			FileItem fileItem = null;
-			String filetype = null;
-			String fieldName = null;
-			String reportName = null;
-			String reportType = null;
-
-			while(itr.hasNext()) {
-
-				FileItem item = (FileItem) itr.next();
-				// Get form parameters	
-				if(item.isFormField()) {
-					fieldName = item.getFieldName();
-					if(fieldName.equals("name")) {
-						reportName = item.getString();
-					} else if(fieldName.equals("type")) {
-						reportType = item.getString();
-					} 
-				} else if(!item.isFormField()) {
-					// Handle Uploaded files.
-					log.info("Field Name = "+item.getFieldName()+
-							", File Name = "+item.getName()+
-							", Content type = "+item.getContentType()+
-							", File Size = "+item.getSize());
-
-					fieldName = item.getFieldName();
-					if(fieldName.equals("filename")) {
-						fileName = item.getName();
-						fileItem = item;
-						int idx = fileName.lastIndexOf('.');
-						if(reportName == null && idx > 0) {
-							reportName = fileName.substring(0, idx);
-						}
-
-						if(fileName.endsWith("xlsx")) {
-							filetype = "xlsx";
-						} else if(fileName.endsWith("xls")) {
-							filetype = "xls";
-						} else {
-							log.info("unknown file type for item: " + fileName);
-						}
-					}	
-				}
-			}
-
-			// Authorisation - Access
-			sd = SDDataSource.getConnection("Tasks-LocationUpload");
-			auth.isAuthorised(sd, request.getRemoteUser());
-			// End authorisation
-
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-
-			if(fileName != null) {
-
-				// Process xls file
-				XLSCustomReportsManager xcr = new XLSCustomReportsManager();
-				LQAS lqas = xcr.getLQASReport(sd, oId, filetype, fileItem.getInputStream(), localisation);
-
-
-				/*
-				 * Only save configuration if we found some columns, otherwise its likely to be an error
-				 */
-				if(lqas.dataItems.size() > 0) {
-
-					// Save configuration to the database
-					log.info("userevent: " + request.getRemoteUser() + " : upload custom report from xls file: " + fileName + " for organisation: " + oId);
-
-					Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
-					String configString = gson.toJson(lqas);
-
-					CustomReportsManager crm = new CustomReportsManager();
-					crm.save(sd, reportName, configString, oId, reportType);
-
-					ArrayList<CustomReportItem> reportsList = crm.getList(sd, oId, "lqas", false);
-					// Return custom report list			 
-					String resp = gson.toJson(reportsList);
-
-					response = Response.ok(resp).build();
-
-				} else {
-					response = Response.serverError().entity(localisation.getString("mf_nrc")).build();
-				}
-			} else {
-				// This error shouldn't happen therefore no translation specified
-				response = Response.serverError().entity("no file specified").build();
-			}
-
-
-		} catch(FileUploadException ex) {
-			log.log(Level.SEVERE,ex.getMessage(), ex);
-			response = Response.serverError().entity(ex.getMessage()).build();
-		} catch(Exception ex) {
-			String msg = ex.getMessage();
-			if(msg!= null && msg.contains("duplicate")) {
-				msg = "A report with this name already exists";
-			}
-			log.info(ex.getMessage());
-			response = Response.serverError().entity(msg).build();
-		} finally {
-
-			SDDataSource.closeConnection("Tasks-LocationUpload", sd);
-
-		}
-
-		return response;
-
 	}
 	
 	/*

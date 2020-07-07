@@ -31,6 +31,7 @@ import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.MailoutPerson;
 

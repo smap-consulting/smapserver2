@@ -1,6 +1,6 @@
 package utilities;
 
-import java.io.IOException;
+
 
 /*
 This file is part of SMAP.
@@ -21,25 +21,19 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.Action;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.LQAS;
@@ -50,104 +44,9 @@ import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnMarkup;
-import org.smap.sdal.model.TaskProperties;
 import org.smap.sdal.model.Role;
 
 public class XLSCustomReportsManager {
-	
-	
-	private class Column {
-		String name;
-		
-		public Column(ResourceBundle localisation, int col, String n) {
-			name = n;
-		}
-		
-		// Return the width of this column
-		public int getWidth() {
-			int width = 256 * 20;		// 20 characters is default
-			return width;
-		}
-		
-		/*
-		 * Return true if this table column is a question
-		 * All table/columns should probably be questions
-		 */
-		public boolean isQuestion(String type) {
-			boolean resp = false;
-			if(type != null &&
-					type.trim().length() > 0) {
-				resp = true;
-			}
-			return resp;
-		}
-		// Get a value for this column from the provided properties object
-		public String getValue(TableColumn props, Sheet sheet, 
-				ArrayList<Column> cols,
-				Map<String, CellStyle> styles) {
-			String value = null;
-			
-			if(name.equals("row type")) {
-				if(isQuestion(props.type)) {
-					value="column";
-				}
-			} else if(name.equals("data type")) {
-				value = props.type;
-			} else if(name.equals("name")) {
-				value = props.column_name;
-			} else if(name.equals("display name")) {
-				value = props.displayName;
-			} else if(name.equals("hide")) {
-				value = props.readonly ? "yes" : "no";
-			} else if(name.equals("filter")) {
-				value = props.filter ? "yes" : "no";
-			} else if(name.equals("calculation")) {
-				if(props.calculation != null) {
-					if(props.type != null && props.type.equals("calculate")) {
-						if(props.isCondition) {
-							value = "condition";
-						} else {
-							if(props.calculation.conditions != null) {
-								value = props.calculation.conditions.toString();
-							}
-						}
-					}	
-				}
-			} else if(name.equals("parameters")) {
-				value = "";
-				int count = 0;
-				if(props.parameters != null) {
-					for(String k : props.parameters.keySet()) {
-						if(count++ > 0) {
-							value += " ";
-						}
-						value += k;
-						value += "=";
-						value += props.parameters.get(k);
-					}
-				}
-			}
-			
-			if(value == null) {
-				value = "";
-			}
-			return value;
-		}
-	
-		// Get a date value for this column from the provided properties object
-		public Timestamp getDateValue(TaskProperties props) {
-			Timestamp value = null;
-			
-			if(name.equals("from")) {
-				value = props.from;
-			} else if(name.equals("to")) {
-				value = props.to;
-			} 
-			
-			return value;
-		}
-		
-	}
 	
 	private static Logger log =
 			 Logger.getLogger(SurveyInfo.class.getName());
@@ -542,47 +441,6 @@ public class XLSCustomReportsManager {
 			
 	}
 	
-	
-	/*
-	 * Export an oversight definition to an XLS file
-	 */
-	public void writeOversightDefinition(
-			Connection sd, 
-			Connection cResults,
-			int oId, 
-			String type, 
-			OutputStream outputStream, 
-			ReportConfig config,
-			ResourceBundle localisation) throws Exception {
-		
-        boolean isXLSX;
- 
-        if(type != null && type.equals("xls")) {
-			wb = new HSSFWorkbook();
-			isXLSX = false;
-		} else {
-			wb = new SXSSFWorkbook(10);
-			isXLSX = true;
-		}
-		
-		Sheet sheet = wb.createSheet("definition");
-		sheet.createFreezePane(2, 1);
-		Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
-		
-		ArrayList<Column> cols = getColumnList(localisation);
-		createHeader(cols, sheet, styles);	
-		processCustomReportListForXLS(config, sheet, styles, cols);
-		
-		wb.write(outputStream);
-		outputStream.close();
-		
-		// If XLSX then temporary streaming files need to be deleted
-		if(isXLSX) {
-			((SXSSFWorkbook) wb).dispose();
-		}
-
-	}
-	
 	/*
 	 * Create an LQAS definition from an XLS file
 	 */
@@ -592,7 +450,6 @@ public class XLSCustomReportsManager {
 		LQAS lqas = null;
 		String lot = null;
 		
-		ArrayList<TableColumn> defn = new ArrayList<TableColumn> ();
 		Sheet sheet = null;
 		Sheet settingsSheet = null;
         Row row = null;
@@ -643,7 +500,6 @@ public class XLSCustomReportsManager {
 			LQASGroup currentGroup = null;
 			LQASdataItem currentDataItem = null;
 			LQASItem currentItem = null;
-			TableColumn tc = new TableColumn();
 
 			
             for(int j = 0; j <= lastRowNum; j++) {
@@ -679,7 +535,6 @@ public class XLSCustomReportsManager {
 	                		} else if(rowType.equals("data")) {
 	                	
 	                			SqlFrag select = null; 
-	                			String[] sources = null; 
 	          			
 	                			// Get data type
 	                			String dataType = XLSUtilities.getColumn(row, "data type", header, lastCellNum, null);
@@ -869,181 +724,7 @@ public class XLSCustomReportsManager {
 		return markupString.toString().trim();
 	}
 	
-	/*
-	 * Convert an appearance to jquery classes
-	 * TODO markup should be handled in the client
-	 */
-	private String markupToAppearance(String markupString) {
 
-		StringBuffer appString = new StringBuffer("");
-		
-		if(markup != null) {
-			String [] markupArray = markupString.split(" ");
-			boolean hasApp = false;
-			for(int i = 0; i < markupArray.length; i++) {
-				for(int j = 0; j < markup.size(); j++) {
-					if(markup.get(j).v.equals(markupArray[i])) {
-						if(hasApp) {
-							appString.append(" ");
-						}
-						hasApp = true;
-						appString.append(markup.get(j).k);
-					}
-				}
-			}
-		}
-		
-		return appString.toString().trim();
-	}
-	
-
-	
-	/*
-	 * Get the columns for the oversight form definition sheet
-	 */
-	private ArrayList<Column> getColumnList(ResourceBundle localisation) {
-		
-		ArrayList<Column> cols = new ArrayList<Column> ();
-		
-		int colNumber = 0;
-	
-		cols.add(new Column(localisation, colNumber++, "row type"));
-		cols.add(new Column(localisation, colNumber++, "data type"));
-		cols.add(new Column(localisation, colNumber++, "name"));
-		cols.add(new Column(localisation, colNumber++, "display name"));
-		cols.add(new Column(localisation, colNumber++, "hide"));
-		cols.add(new Column(localisation, colNumber++, "readonly"));
-		cols.add(new Column(localisation, colNumber++, "filter"));
-		cols.add(new Column(localisation, colNumber++, "calculation"));
-		cols.add(new Column(localisation, colNumber++, "condition"));
-		cols.add(new Column(localisation, colNumber++, "value"));
-		cols.add(new Column(localisation, colNumber++, "appearance"));
-		cols.add(new Column(localisation, colNumber++, "parameters"));
-		
-		return cols;
-	}
-
-	/*
-	 * Create a header row and set column widths
-	 */
-	private void createHeader(ArrayList<Column> cols, Sheet sheet, Map<String, CellStyle> styles) {
-		// Set column widths
-		for(int i = 0; i < cols.size(); i++) {
-			sheet.setColumnWidth(i, cols.get(i).getWidth());
-		}
-				
-		// Create survey sheet header row
-		Row headerRow = sheet.createRow(0);
-		CellStyle headerStyle = styles.get("header");
-		for(int i = 0; i < cols.size(); i++) {
-			Column col = cols.get(i);
-			
-            Cell cell = headerRow.createCell(i);
-            cell.setCellStyle(headerStyle);
-            cell.setCellValue(col.name);
-        }
-	}
-
-	/*
-	 * Convert an oversight report configurationto XLS
-	 */
-	private void processCustomReportListForXLS(
-			ReportConfig config, 
-			Sheet sheet,
-			Map<String, CellStyle> styles,
-			ArrayList<Column> cols) throws IOException {
-		
-		for(TableColumn tc : config.columns)  {
-				
-			Row row = sheet.createRow(rowNumber++);
-			
-			// Add question rows
-			for(int i = 0; i < cols.size(); i++) {
-				Column col = cols.get(i);			
-				Cell cell = row.createCell(i);
-
-				cell.setCellStyle(styles.get("default"));	
-				cell.setCellValue(col.getValue(tc, sheet, cols, styles));	
-	        }	
-			
-			// Add condition rows
-			if(tc.calculation != null && tc.calculation.conditions != null && tc.isCondition) {
-				for(int j = 0; j < tc.calculation.conditions.size(); j++) {
-					
-					row = sheet.createRow(rowNumber++);
-					createCell(row, getIndexCol(cols, "row type"), "condition", styles.get("default"));
-					createCell(row, getIndexCol(cols, "condition"), tc.calculation.conditions.get(j), styles.get("default"));
-					createCell(row, getIndexCol(cols, "condition"), tc.calculation.conditions.get(j), styles.get("default"));
-					if(tc.markup != null) {
-						createCell(row, getIndexCol(cols, "value"), tc.markup.get(j).value, styles.get("default"));
-						createCell(row, getIndexCol(cols, "appearance"), markupToAppearance(tc.markup.get(j).classes), styles.get("default"));
-					}
-				}
-			}
-			
-			// Add choice rows
-			if(tc.choices != null) {
-				for(int j = 0; j < tc.choices.size(); j++) {
-					
-					KeyValue choice = tc.choices.get(j);
-					row = sheet.createRow(rowNumber++);
-					
-					createCell(row, getIndexCol(cols, "row type"), choice.isRole ? "user_role" : "choice", styles.get("default"));
-					createCell(row, getIndexCol(cols, "name"), choice.k, styles.get("default"));
-					createCell(row, getIndexCol(cols, "display name"), choice.v, styles.get("default"));
-					if(tc.markup != null && j < tc.markup.size()) {
-						createCell(row, getIndexCol(cols, "appearance"), markupToAppearance(tc.markup.get(j).classes), styles.get("default"));
-					}
-				}	
-			}
-			
-			// Add action rows
-			if(tc.actions != null) {
-				for(int j = 0; j < tc.actions.size(); j++) {
-					
-					Action a = tc.actions.get(j);
-					
-					row = sheet.createRow(rowNumber++);
-					createCell(row, getIndexCol(cols, "row type"), "action", styles.get("default"));
-					createCell(row, getIndexCol(cols, "action"), a.action, styles.get("default"));
-					createCell(row, getIndexCol(cols, "notify type"), a.notify_type, styles.get("default"));
-					createCell(row, getIndexCol(cols, "notify person"), a.notify_person, styles.get("default"));
-					StringBuffer roles = new StringBuffer("");
-					if(a.roles != null) {
-						for(int k = 0; k < a.roles.size(); k++) {
-							Role r = a.roles.get(k);
-							roles.append(r.name);
-						}
-					}
-					
-				}
-			}
-			
-
-		}
-		
-	}
-
-	private int getIndexCol(ArrayList<Column> cols, String name) {
-		int col = -1;
-		
-		for(int i = 0; i < cols.size(); i++) {
-			if(cols.get(i).name.equals(name)) {
-				col = i;
-				break;
-			}
-		}
-		
-		return col;
-	}
-
-	private void createCell(Row row, int colIdx, String value, CellStyle style) {
-		if(colIdx >= 0) {
-			Cell cell = row.createCell(colIdx);
-			cell.setCellStyle(style);	
-			cell.setCellValue(value);
-		}
-	}
 	
 	private HashMap<String, String> getParamObj(String parameters) {
 		
@@ -1059,6 +740,7 @@ public class XLSCustomReportsManager {
 				if(p.length > 1) {
 					if(p[0].equals("rows")) {
 						try {
+							@SuppressWarnings("unused")
 							int rows = Integer.valueOf(p[1]);   // Check that rows is an integer
 							paramObj.put(p[0], p[1]);
 						} catch (Exception e) {

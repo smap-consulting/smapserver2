@@ -869,6 +869,10 @@ public class MyAssignments extends Application {
 
 						pstmtTrail.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
 						pstmtTrail.setTimestamp(4, new Timestamp(pe.time));
+						
+						if(pe.time == 0) {
+							log.info("Error------------+++++++++++-------------++++++++++++++ Time is zero");
+						}
 
 						if(pe.time == 0) {
 							log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmtTrail.toString());
