@@ -107,16 +107,17 @@ public class MyAssignments extends Application {
 			@Context HttpServletRequest request) throws SQLException {
 
 		log.info("webserviceevent : getTaskskey");
+		String connection = "surveyKPI-getaskskey";
 
 		String user = null;		
-		Connection sd = SDDataSource.getConnection("surveyMobileAPI-Upload");
+		Connection sd = SDDataSource.getConnection(connection);
 
 		try {
 			user = GeneralUtilityMethods.getDynamicUser(sd, key);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyMobileAPI-Upload", sd);
+			SDDataSource.closeConnection(connection, sd);
 		}
 
 		if (user == null) {
@@ -138,16 +139,17 @@ public class MyAssignments extends Application {
 			@Context HttpServletRequest request) {
 
 		log.info("webserviceevent : updateTasksKey");
+		String connection = "surveyKPI-UpdateTasksKey";
 
 		String user = null;		
-		Connection sd = SDDataSource.getConnection("surveyKPI-UpdateTasksKey");
+		Connection sd = SDDataSource.getConnection(connection);
 
 		try {
 			user = GeneralUtilityMethods.getDynamicUser(sd, key);
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-UpdateTasksKey", sd);
+			SDDataSource.closeConnection(connection, sd);
 		}
 
 		if (user == null) {
@@ -248,13 +250,14 @@ public class MyAssignments extends Application {
 
 		Response response = null;
 
+		String connection = "surveyKPI-getTasks";
 		TaskResponse tr = new TaskResponse();
 		tr.message = "OK Task retrieved";	// Overwritten if there is an error
 		tr.status = "200";
 		tr.version = 1;
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-MyAssignments");
+		Connection sd = SDDataSource.getConnection(connection);
 		a.isAuthorised(sd, userName);
 		// End Authorisation
 
@@ -325,7 +328,7 @@ public class MyAssignments extends Application {
 			
 			boolean superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 
-			cRel = ResultsDataSource.getConnection("surveyKPI-MyAssignments");
+			cRel = ResultsDataSource.getConnection(connection);
 			sd.setAutoCommit(true);
 
 			// Get the assignments
@@ -700,8 +703,8 @@ public class MyAssignments extends Application {
 			try {if (pstmtNumberTasks != null) {pstmtNumberTasks.close();} } catch (Exception e) {}
 			try {if (pstmtDeleteCancelled != null) {pstmtDeleteCancelled.close();} } catch (Exception e) {}
 
-			SDDataSource.closeConnection("surveyKPI-MyAssignments", sd);
-			ResultsDataSource.closeConnection("surveyKPI-MyAssignments", cRel);	
+			SDDataSource.closeConnection(connection, sd);
+			ResultsDataSource.closeConnection(connection, cRel);	
 		}
 
 		return response;
@@ -752,6 +755,7 @@ public class MyAssignments extends Application {
 
 		// Authorisation not required a user can only update their own assignments
 
+		log.info("Input: " + assignInput);
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
 
@@ -869,10 +873,6 @@ public class MyAssignments extends Application {
 
 						pstmtTrail.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
 						pstmtTrail.setTimestamp(4, new Timestamp(pe.time));
-						
-						if(pe.time == 0) {
-							log.info("Error------------+++++++++++-------------++++++++++++++ Time is zero");
-						}
 
 						if(pe.time == 0) {
 							log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmtTrail.toString());
