@@ -1,7 +1,6 @@
 package org.smap.sdal.model;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 
 /*
  * Task Properties
