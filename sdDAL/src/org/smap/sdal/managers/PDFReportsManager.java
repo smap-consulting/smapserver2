@@ -9,6 +9,7 @@ import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -23,6 +24,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.model.FileDescription;
 import org.smap.sdal.model.Form;
+import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.Survey;
@@ -109,6 +111,7 @@ public class PDFReportsManager {
 
 			QueryForm startingForm = qm.getQueryTree(sd, queryList);	// Convert the query list into a tree
 			String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";	
+			HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
 			SqlDesc sqlDesc = QueryGenerator.gen(
 					sd, 
 					cResults,
@@ -121,7 +124,7 @@ public class PDFReportsManager {
 					true,
 					true,
 					false,
-					null,
+					labelListMap,
 					false,
 					false,			// suid
 					request.getServerName().toLowerCase(),

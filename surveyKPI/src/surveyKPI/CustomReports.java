@@ -218,7 +218,6 @@ public class CustomReports extends Application {
 			} 
 			crm.save(sd, name, report, oId, typeId, pId, sIdent);
 
-			
 			response = Response.ok().build();
 			
 		} catch (Exception e) {
