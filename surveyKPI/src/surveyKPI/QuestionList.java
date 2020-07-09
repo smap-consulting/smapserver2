@@ -93,6 +93,7 @@ public class QuestionList extends Application {
 			@QueryParam("exc_read_only") boolean exc_read_only,
 			@QueryParam("exc_ssc") boolean exc_ssc) { 
 		
+		
 		String connectionString = "surveyKPI-getQuestions";
 		// Authorisation - Access
 		Connection connectionSD = SDDataSource.getConnection(connectionString);
