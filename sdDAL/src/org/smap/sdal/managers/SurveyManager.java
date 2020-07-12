@@ -1515,7 +1515,7 @@ public class SurveyManager {
 
 						// Add the new text id to the question
 						if(isQuestion) {
-							pstmtNewQuestionHint.setString(1, ci.property.key);
+							pstmtNewQuestionHint.setString(1, text_id);
 							pstmtNewQuestionHint.setInt(2, ci.property.qId);
 							pstmtNewQuestionHint.executeUpdate();
 						}
@@ -1583,7 +1583,7 @@ public class SurveyManager {
 		}
 		pstmtLangOldVal.setString(5,  transType);
 
-		// (debug) log.info("Update question translation: " + pstmtLangOldVal.toString());
+		//log.info("Update question translation: " + pstmtLangOldVal.toString());
 
 		pstmtLangOldVal.executeUpdate();
 
