@@ -13,8 +13,6 @@ import java.util.logging.Logger;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -25,7 +23,6 @@ import org.smap.sdal.model.KeyFilter;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.TableColumn;
