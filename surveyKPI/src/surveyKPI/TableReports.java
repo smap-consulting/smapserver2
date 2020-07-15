@@ -38,6 +38,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
+import org.smap.sdal.managers.WordTableManager;
 import org.smap.sdal.model.ChartData;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
@@ -124,6 +125,7 @@ public class TableReports extends Application {
 		
 		boolean isXLS = format.toLowerCase().equals("xls") || format.toLowerCase().equals("xlsx");
 		boolean isPdf = format.toLowerCase().equals("pdf");
+		boolean isWord = format.toLowerCase().equals("docx");
 		boolean isImage = format.toLowerCase().equals("image");
 		if(title == null) {
 			title = "Results";
@@ -201,6 +203,7 @@ public class TableReports extends Application {
 				settings = new Gson().fromJson(settingsString, type);
 			}
 			
+			String basePath = GeneralUtilityMethods.getBasePath(request);
 			if(isXLS) {
 				XLSReportsManager xm = new XLSReportsManager(format);
 				xm.createXLSReportsFile(response.getOutputStream(), 
@@ -213,9 +216,23 @@ public class TableReports extends Application {
 						localisation, 
 						tz);
 			} else if(isPdf) {
-				String basePath = GeneralUtilityMethods.getBasePath(request);
 				PDFTableManager pm = new PDFTableManager();
 				pm.createPdf(
+						sd,
+						response.getOutputStream(), 
+						dArray, 
+						mfc, 
+						localisation, 
+						tz, 
+						false,	 // TBD set landscape and paper size from client
+						request.getRemoteUser(),
+						basePath,
+						title,
+						project);
+						
+			} else if(isWord) {
+				WordTableManager wm = new WordTableManager();
+				wm.create(
 						sd,
 						response.getOutputStream(), 
 						dArray, 
@@ -234,7 +251,6 @@ public class TableReports extends Application {
 					/*
 					 * 1. Create the target folder
 					 */
-					String basePath = GeneralUtilityMethods.getBasePath(request);
 					String filePath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
 					File folder = new File(filePath);
 					folder.mkdir();
