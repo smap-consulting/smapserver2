@@ -1972,15 +1972,16 @@ public class GetXForm {
 			item = record.get(j);
 
 			if (item.subForm != null) {
-				Instance iSub = null;
 				if(instance != null && instance.repeats != null) {
 					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
-					if(subInstanceList.size() > j - 1) {
-						iSub = subInstanceList.get(j - 1);
+					if(subInstanceList.size() > 0) {
+						for(Instance iSub : subInstanceList) {
+							populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
+									survey_ident, iSub, urlprefix, false, webform);	
+						}
 					}
 				}
-				populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
-						survey_ident, iSub, urlprefix, false, webform);		
+					
 
 			} else if (item.end_group) {
 				
