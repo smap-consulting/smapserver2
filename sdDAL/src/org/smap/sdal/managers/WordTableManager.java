@@ -1,20 +1,14 @@
 package org.smap.sdal.managers;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-
-import javax.servlet.ServletOutputStream;
 
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
@@ -23,53 +17,12 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.PdfPageSizer;
-import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.Label;
 import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.Option;
-import org.smap.sdal.model.Result;
-import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableReportsColumn;
 import org.smap.sdal.model.User;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-import com.itextpdf.text.BadElementException;
-import com.itextpdf.text.BaseColor;
-import com.itextpdf.text.Chunk;
-import com.itextpdf.text.Document;
-import com.itextpdf.text.DocumentException;
-import com.itextpdf.text.Font;
-import com.itextpdf.text.Font.FontFamily;
-import com.itextpdf.text.FontFactory;
-import com.itextpdf.text.Image;
-import com.itextpdf.text.List;
-import com.itextpdf.text.ListItem;
-import com.itextpdf.text.PageSize;
-import com.itextpdf.text.Paragraph;
-import com.itextpdf.text.pdf.BarcodeQRCode;
-import com.itextpdf.text.pdf.BaseFont;
-import com.itextpdf.text.pdf.PdfPCell;
-import com.itextpdf.text.pdf.PdfPTable;
-import com.itextpdf.text.pdf.PdfWriter;
-import com.itextpdf.tool.xml.ElementList;
-import com.itextpdf.tool.xml.XMLWorker;
-import com.itextpdf.tool.xml.XMLWorkerHelper;
-import com.itextpdf.tool.xml.css.CssFile;
-import com.itextpdf.tool.xml.css.StyleAttrCSSResolver;
-import com.itextpdf.tool.xml.html.Tags;
-import com.itextpdf.tool.xml.parser.XMLParser;
-import com.itextpdf.tool.xml.pipeline.css.CSSResolver;
-import com.itextpdf.tool.xml.pipeline.css.CssResolverPipeline;
-import com.itextpdf.tool.xml.pipeline.end.ElementHandlerPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipeline;
-import com.itextpdf.tool.xml.pipeline.html.HtmlPipelineContext;
 
 /*****************************************************************************
 
@@ -97,8 +50,6 @@ public class WordTableManager {
 	
 	private static Logger log =
 			 Logger.getLogger(WordTableManager.class.getName());
-	
-	private static int NUMBER_QUESTION_COLS = 10;
 	
 
 	/*
@@ -140,7 +91,6 @@ public class WordTableManager {
 				
 				// Write table header
 				ArrayList<TableReportsColumn> cols = TableReportUtilities.getTableReportColumnList(mfc, dArray, localisation);
-				ArrayList<String> tableHeader = new ArrayList<String> ();
 				
 				XWPFTable table = doc.createTable();
 				XWPFTableRow tableRow = table.getRow(0);
@@ -148,7 +98,6 @@ public class WordTableManager {
 				table.setWidth("100.00%");				
 				int idx = 0;
 				for(TableReportsColumn col : cols) {
-					tableHeader.add(col.displayName);
 					
 					XWPFTableCell cell = tableRow.getCell(idx++);
 					if(cell == null) {
@@ -163,6 +112,26 @@ public class WordTableManager {
 					run.setBold(true);
 					paragraph.setAlignment(ParagraphAlignment.CENTER);
 					run.setText(col.displayName);
+				}
+				
+				// Add Table Content
+				for(ArrayList<KeyValue> record : dArray) {
+					
+					tableRow = table.createRow();
+					idx = 0;
+					for(TableReportsColumn col : cols) {					
+						if(col.dataIndex >= 0) {
+							XWPFTableCell cell = tableRow.getCell(idx++);
+							if(cell == null) {
+								cell = tableRow.createCell();
+							}
+							
+							updateCell(cell, record.get(col.dataIndex), basePath, col.barcode, col.type);
+							
+						}
+
+					}
+					
 				}
 				doc.write(outputStream);
 			} finally {
@@ -183,155 +152,35 @@ public class WordTableManager {
 	
 	}
 	
-	
-	private class UserSettings {
-		String title;
-		String license;
-	}
-	
-
-
 	/*
-	 * Get the index into the data set for a column
+	 * Add the question value
 	 */
-	private int getDataIndex(ArrayList<KeyValue> record, String name) {
-		int idx = -1;
+	private void updateCell(XWPFTableCell cell, 
+			KeyValue kv, 
+			String basePath,
+			boolean barcode,
+			String type) throws MalformedURLException, IOException {
 		
-		for(int i = 0; i < record.size(); i++) {
-			if(record.get(i).k.equals(name)) {
-				idx = i;
-				break;
-			}
+		XWPFParagraph paragraph = cell.getParagraphArray(0);
+		if(paragraph == null) {
+			paragraph = cell.addParagraph();
 		}
-		return idx;
-	}
-	
-	/*
-	 * Get the number of blank repeats to generate
-	 */
-	int getBlankRepeats(String appearance) {
-		int repeats = 1;
-		
-		if(appearance != null) {
-			String [] appValues = appearance.split(" ");
-			if(appearance != null) {
-				for(int i = 0; i < appValues.length; i++) {
-					if(appValues[i].startsWith("pdfrepeat")) {
-						String [] parts = appValues[i].split("_");
-						if(parts.length >= 2) {
-							repeats = Integer.valueOf(parts[1]);
-						}
-						break;
-					}
-				}
-			}
-		}
-					
-		return repeats;
-	}
-	/*
-	 * Set the attributes for this question from keys set in the appearance column
-	 */
-	void setQuestionFormats(String appearance, DisplayItem di) {
-	
-		if(appearance != null) {
-			String [] appValues = appearance.split(" ");
-			if(appearance != null) {
-				for(int i = 0; i < appValues.length; i++) {
-					if(appValues[i].startsWith("pdflabelbg")) {
-						setColor(appValues[i], di, true);
-					} else if(appValues[i].startsWith("pdfvaluebg")) {
-						setColor(appValues[i], di, false);
-					} else if(appValues[i].startsWith("pdflabelw")) {
-						setWidths(appValues[i], di);
-					} else if(appValues[i].startsWith("pdfheight")) {
-						setHeight(appValues[i], di);
-					} else if(appValues[i].startsWith("pdfspace")) {
-						setSpace(appValues[i], di);
-					} else if(appValues[i].equals("pdflabelcaps")) {
-						di.labelcaps = true;
-					} else if(appValues[i].equals("pdflabelbold")) {
-						di.labelbold = true;
-					}
-				}
-			}
-		}
-	}
-	
-	/*
-	 * Get the color values for a single appearance value
-	 * Format is:  xxxx_0Xrr_0Xgg_0xbb
-	 */
-	void setColor(String aValue, DisplayItem di, boolean isLabel) {
-		
-		BaseColor color = null;
-		
-		String [] parts = aValue.split("_");
-		if(parts.length >= 4) {
-			if(parts[1].startsWith("0x")) {
-				color = new BaseColor(Integer.decode(parts[1]), 
-						Integer.decode(parts[2]),
-						Integer.decode(parts[3]));
+		XWPFRun run = paragraph.createRun();
+		paragraph.setAlignment(ParagraphAlignment.LEFT);
+		try {
+			if(type != null && type.equals("image")) {
+				
+			} else if(barcode && kv.v.trim().length() > 0) {
+				
 			} else {
-				color = new BaseColor(Integer.decode("0x" + parts[1]), 
-					Integer.decode("0x" + parts[2]),
-					Integer.decode("0x" + parts[3]));
+				run.setText(kv.v);
 			}
-		}
-		
-		if(isLabel) {
-			di.labelbg = color;
-		} else {
-			di.valuebg = color;
+		} catch (Exception e) {
+			log.info("Error updating value cell, continuing: " + basePath + " : " + kv.v);
+			log.log(Level.SEVERE, "Exception", e);
 		}
 
 	}
-	
-	/*
-	 * Set the widths of the label and the value
-	 * Appearance is:  pdflabelw_## where ## is a number from 0 to 10
-	 */
-	void setWidths(String aValue, DisplayItem di) {
-		
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			di.widthLabel = Integer.valueOf(parts[1]);   		
-		}
-		
-		// Do bounds checking
-		if(di.widthLabel < 0 || di.widthLabel > 10) {
-			di.widthLabel = 5;		
-		}
-		
-	}
-	
-	/*
-	 * Set the height of the value
-	 * Appearance is:  pdfheight_## where ## is the height
-	 */
-	void setHeight(String aValue, DisplayItem di) {
-		
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			di.valueHeight = Double.valueOf(parts[1]);   		
-		}
-		
-	}
-	
-	/*
-	 * Set space before this item
-	 * Appearance is:  pdfheight_## where ## is the height
-	 */
-	void setSpace(String aValue, DisplayItem di) {
-		
-		String [] parts = aValue.split("_");
-		if(parts.length >= 2) {
-			di.space = Integer.valueOf(parts[1]);   		
-		}
-		
-	}
-	
-
 	
 	
 	

@@ -417,7 +417,7 @@ public class PDFTableManager {
 	}
 	
 	/*
-	 * Add the question label, hint, and any media
+	 * Add the question value
 	 */
 	private PdfPCell addDisplayItem(Parser parser, 
 			KeyValue kv, 
