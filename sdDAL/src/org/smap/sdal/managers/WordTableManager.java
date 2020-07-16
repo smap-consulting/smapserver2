@@ -3,12 +3,14 @@ package org.smap.sdal.managers;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -21,16 +23,14 @@ import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFStyles;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.smap.sdal.Utilities.TableReportUtilities;
-import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableReportsColumn;
-import org.smap.sdal.model.User;
-
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
@@ -80,23 +80,21 @@ public class WordTableManager {
 			String title,
 			String project
 			) {
-
-		User user = null;
-		UserManager um = new UserManager(localisation);
 		
 		try {
 			
-			user = um.getByIdent(sd, remoteUser);
-			
+			XWPFDocument template = new XWPFDocument(new FileInputStream(new File("/smap_bin/resources/template.docx")));
 			XWPFDocument doc = new XWPFDocument();
-			XWPFParagraph p1 = doc.createParagraph();
-			p1.setWordWrapped(true);
-			p1.setSpacingAfterLines(1);
-			XWPFRun r1 = p1.createRun();
-			String t1 = "Sample Paragraph Post. is a sample Paragraph post. peru-duellmans-poison-dart-frog.";
-			r1.setText(t1);
-			r1.addBreak();
-			r1.setText("");
+			XWPFStyles newStyles = doc.createStyles();
+			newStyles.setStyles(template.getStyle());
+			template.close();
+					
+			int n = newStyles.getNumberOfStyles();
+			
+			XWPFParagraph para = doc.createParagraph();
+			para.setStyle("Title");			
+			XWPFRun run = para.createRun();
+			run.setText(title);
 	
 			// write to a docx file
 			try {
@@ -187,6 +185,17 @@ public class WordTableManager {
 		paragraph.setAlignment(ParagraphAlignment.LEFT);
 		try {
 			if(type != null && type.equals("image")) {
+				
+				URL url = new URL(kv.v);
+				BufferedImage image = ImageIO.read(url);
+				
+				ByteArrayOutputStream os = new ByteArrayOutputStream();
+				ImageIO.write(image, "png", os);
+				InputStream is = new ByteArrayInputStream(os.toByteArray());
+				    
+				run.addPicture(is, XWPFDocument.PICTURE_TYPE_PNG, null, Units.toEMU(bcWidth), Units.toEMU(bcHeight)); 
+				is.close();
+				os.close();
 				
 			} else if(barcode && kv.v.trim().length() > 0) {
 				BitMatrix matrix = qrCodeWriter.encode(kv.v, BarcodeFormat.QR_CODE, 100, 100);
