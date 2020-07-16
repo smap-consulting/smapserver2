@@ -20,6 +20,7 @@ build/css.orig
 .classpath
 sdDAL/.classpath
 .gradle
+.project
 bin/
 tmp/
 *.tmp

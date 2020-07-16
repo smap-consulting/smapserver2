@@ -9,20 +9,16 @@ import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
-import org.smap.sdal.Utilities.PdfUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.Label;
 import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.Option;
-import org.smap.sdal.model.Result;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableReportsColumn;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -37,8 +33,6 @@ import com.itextpdf.text.Font;
 import com.itextpdf.text.Font.FontFamily;
 import com.itextpdf.text.FontFactory;
 import com.itextpdf.text.Image;
-import com.itextpdf.text.List;
-import com.itextpdf.text.ListItem;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
 import com.itextpdf.text.pdf.BarcodeQRCode;
@@ -89,7 +83,6 @@ public class PDFTableManager {
 	public static Font Symbols = null;
 	public static Font defaultFont = null;
 	private static final String DEFAULT_CSS = "/smap_bin/resources/css/default_pdf.css";
-	private static int NUMBER_QUESTION_COLS = 10;
 	
 	Font font = new Font(FontFamily.HELVETICA, 10);
     Font fontbold = new Font(FontFamily.HELVETICA, 10, Font.BOLD);
@@ -99,43 +92,12 @@ public class PDFTableManager {
 		ElementList elements = null;
 	}
 	
-	private class PdfColumn {
-		String displayName;
-		int dataIndex;
-		boolean barcode = false;
-		String type;
-		
-		public PdfColumn(ResourceBundle localisation, int dataIndex, String n, boolean barcode, String type) {
-			this.dataIndex = dataIndex;
-			this.displayName = n;		
-			this.barcode = barcode;	
-			this.type = type;
-		}
-		
-		// Return the width of this column
-		public int getWidth() {
-			int width = 256 * 20;		// 20 characters is default
-			return width;
-		}
-
-	}
 	int marginLeft = 50;
 	int marginRight = 50;
 	int marginTop_1 = 130;
 	int marginBottom_1 = 100;
 	int marginTop_2 = 50;
 	int marginBottom_2 = 100;
-	
-
-	
-	private class GlobalVariables {																// Level descended in form hierarchy
-		//HashMap<String, Integer> count = new HashMap<String, Integer> ();		// Record number at a location given by depth_length as a string
-		int [] cols = {NUMBER_QUESTION_COLS};	// Current Array of columns
-		boolean hasAppendix = false;
-		
-		// Map of questions that need to have the results of another question appended to their results in a pdf report
-		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
-	}
 
 	/*
 	 * Call this function to create a PDF
@@ -185,9 +147,9 @@ public class PDFTableManager {
 				    BaseFont.EMBEDDED, 10); 
 
 			
-			ArrayList<PdfColumn> cols = getPdfColumnList(mfc, dArray, localisation);
+			ArrayList<TableReportsColumn> cols = getPdfColumnList(mfc, dArray, localisation);
 			ArrayList<String> tableHeader = new ArrayList<String> ();
-			for(PdfColumn col : cols) {
+			for(TableReportsColumn col : cols) {
 				tableHeader.add(col.displayName);
 			}
 			/*
@@ -287,7 +249,7 @@ public class PDFTableManager {
 			Parser parser,
 			Document document,  
 			ArrayList<ArrayList<KeyValue>> dArray, 
-			ArrayList<PdfColumn> cols,
+			ArrayList<TableReportsColumn> cols,
 			String basePath) throws DocumentException, IOException {
 		
 	
@@ -309,12 +271,12 @@ public class PDFTableManager {
 	 */
 	PdfPTable processRow(Parser parser, 
 			ArrayList<KeyValue> record, 
-			ArrayList<PdfColumn> cols, 
+			ArrayList<TableReportsColumn> cols, 
 			String basePath) throws BadElementException, MalformedURLException, IOException {
 
 		PdfPTable table = new PdfPTable(cols.size());	
 		
-		for(PdfColumn col : cols) {
+		for(TableReportsColumn col : cols) {
 			
 			if(col.dataIndex >= 0) {
 				PdfPCell cell = addDisplayItem(parser, record.get(col.dataIndex), basePath, col.barcode, col.type);
@@ -332,11 +294,11 @@ public class PDFTableManager {
 	/*
 	 * Get the columns for the Pdf file
 	 */
-	private ArrayList<PdfColumn> getPdfColumnList(SurveyViewDefn mfc, 
+	private ArrayList<TableReportsColumn> getPdfColumnList(SurveyViewDefn mfc, 
 			ArrayList<ArrayList<KeyValue>> dArray, 
 			ResourceBundle localisation) {
 		
-		ArrayList<PdfColumn> cols = new ArrayList<PdfColumn> ();
+		ArrayList<TableReportsColumn> cols = new ArrayList<> ();
 		ArrayList<KeyValue> record = null;
 		
 		if(dArray.size() > 0) {
@@ -350,7 +312,7 @@ public class PDFTableManager {
 				if(record != null) {
 					dataIndex = getDataIndex(record, tc.question_name);
 				}
-				cols.add(new PdfColumn(localisation, dataIndex, tc.question_name, tc.barcode, tc.type));
+				cols.add(new TableReportsColumn(dataIndex, tc.question_name, tc.barcode, tc.type));
 			}
 		}
 	

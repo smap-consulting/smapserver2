@@ -7,7 +7,6 @@
 		<project>sdDAL-P</project>
 		<project>sdDataAccess-P</project>
 		<project>amazon</project>
-		<project>customReports</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
