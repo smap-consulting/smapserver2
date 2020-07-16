@@ -16,12 +16,17 @@ import java.util.logging.Logger;
 
 import javax.servlet.ServletOutputStream;
 
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
 import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
+import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.Label;
@@ -29,6 +34,7 @@ import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Result;
 import org.smap.sdal.model.TableColumn;
+import org.smap.sdal.model.TableReportsColumn;
 import org.smap.sdal.model.User;
 
 import com.google.gson.Gson;
@@ -131,9 +137,33 @@ public class WordTableManager {
 	
 			// write to a docx file
 			try {
-				// create .docx file	
 				
-				// write to the .docx file
+				// Write table header
+				ArrayList<TableReportsColumn> cols = TableReportUtilities.getTableReportColumnList(mfc, dArray, localisation);
+				ArrayList<String> tableHeader = new ArrayList<String> ();
+				
+				XWPFTable table = doc.createTable();
+				XWPFTableRow tableRow = table.getRow(0);
+				XWPFParagraph paragraph = null;
+				table.setWidth("100.00%");				
+				int idx = 0;
+				for(TableReportsColumn col : cols) {
+					tableHeader.add(col.displayName);
+					
+					XWPFTableCell cell = tableRow.getCell(idx++);
+					if(cell == null) {
+						cell = tableRow.createCell();
+					}
+					
+					paragraph = cell.getParagraphArray(0);
+					if(paragraph == null) {
+						paragraph = cell.addParagraph();
+					}
+					XWPFRun run = paragraph.createRun();
+					run.setBold(true);
+					paragraph.setAlignment(ParagraphAlignment.CENTER);
+					run.setText(col.displayName);
+				}
 				doc.write(outputStream);
 			} finally {
 				if (doc != null) {try {doc.close();} catch (IOException e) {}}

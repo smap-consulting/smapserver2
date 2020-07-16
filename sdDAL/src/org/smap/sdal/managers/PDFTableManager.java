@@ -14,6 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
+import org.smap.sdal.Utilities.TableReportUtilities;
 import org.smap.sdal.model.DisplayItem;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
@@ -147,11 +148,12 @@ public class PDFTableManager {
 				    BaseFont.EMBEDDED, 10); 
 
 			
-			ArrayList<TableReportsColumn> cols = getPdfColumnList(mfc, dArray, localisation);
+			ArrayList<TableReportsColumn> cols = TableReportUtilities.getTableReportColumnList(mfc, dArray, localisation);
 			ArrayList<String> tableHeader = new ArrayList<String> ();
 			for(TableReportsColumn col : cols) {
 				tableHeader.add(col.displayName);
 			}
+			
 			/*
 			 * Create a PDF without the stationary
 			 */				
@@ -287,52 +289,6 @@ public class PDFTableManager {
 
 		}
 		return table;
-	}
-	
-
-
-	/*
-	 * Get the columns for the Pdf file
-	 */
-	private ArrayList<TableReportsColumn> getPdfColumnList(SurveyViewDefn mfc, 
-			ArrayList<ArrayList<KeyValue>> dArray, 
-			ResourceBundle localisation) {
-		
-		ArrayList<TableReportsColumn> cols = new ArrayList<> ();
-		ArrayList<KeyValue> record = null;
-		
-		if(dArray.size() > 0) {
-			 record = dArray.get(0);
-		}
-		
-		for(int i = 0; i < mfc.columns.size(); i++) {
-			TableColumn tc = mfc.columns.get(i);
-			if(!tc.hide && tc.include) {
-				int dataIndex = -1;
-				if(record != null) {
-					dataIndex = getDataIndex(record, tc.question_name);
-				}
-				cols.add(new TableReportsColumn(dataIndex, tc.question_name, tc.barcode, tc.type));
-			}
-		}
-	
-		
-		return cols;
-	}
-
-	/*
-	 * Get the index into the data set for a column
-	 */
-	private int getDataIndex(ArrayList<KeyValue> record, String name) {
-		int idx = -1;
-		
-		for(int i = 0; i < record.size(); i++) {
-			if(record.get(i).k.equals(name)) {
-				idx = i;
-				break;
-			}
-		}
-		return idx;
 	}
 	
 	/*
