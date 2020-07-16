@@ -31,7 +31,8 @@ public class TableReportUtilities {
 				if(record != null) {
 					dataIndex = getDataIndex(record, tc.question_name);
 				}
-				cols.add(new TableReportsColumn(dataIndex, tc.question_name, tc.barcode, tc.type));
+				cols.add(new TableReportsColumn(dataIndex, tc.question_name, tc.barcode, 
+						tc.includeText, tc.type));
 			}
 		}
 	

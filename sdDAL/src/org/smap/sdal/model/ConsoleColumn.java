@@ -22,4 +22,5 @@ package org.smap.sdal.model;
 public class ConsoleColumn {
 	public boolean hide;
 	public boolean barcode;
+	public boolean includeText;
 }

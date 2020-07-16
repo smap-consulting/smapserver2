@@ -109,21 +109,13 @@ public class WordTableManager {
 				XWPFParagraph paragraph = null;
 				table.setWidth("100.00%");				
 				int idx = 0;
-				for(TableReportsColumn col : cols) {
-					
-					XWPFTableCell cell = tableRow.getCell(idx++);
-					if(cell == null) {
-						cell = tableRow.createCell();
+				for(TableReportsColumn col : cols) {	
+					if(col.dataIndex >= 0) {	
+						addHeaderCell(tableRow, idx++, paragraph, col.displayName);							
+						if(col.includeText && (col.barcode || !col.type.equals("text"))) {
+							addHeaderCell(tableRow, idx++, paragraph, col.displayName);
+						}
 					}
-					
-					paragraph = cell.getParagraphArray(0);
-					if(paragraph == null) {
-						paragraph = cell.addParagraph();
-					}
-					XWPFRun run = paragraph.createRun();
-					run.setBold(true);
-					paragraph.setAlignment(ParagraphAlignment.CENTER);
-					run.setText(col.displayName);
 				}
 				
 				// Add Table Content
@@ -132,12 +124,11 @@ public class WordTableManager {
 					tableRow = table.createRow();
 					idx = 0;
 					for(TableReportsColumn col : cols) {					
-						if(col.dataIndex >= 0) {
-							XWPFTableCell cell = tableRow.getCell(idx++);
-							if(cell == null) {
-								cell = tableRow.createCell();
-							}							
-							updateCell(cell, record.get(col.dataIndex), basePath, col.barcode, col.type);
+						if(col.dataIndex >= 0) {		
+							updateCell(tableRow, idx++, record.get(col.dataIndex), basePath, col.barcode, col.type);
+							if(col.includeText && (col.barcode || !col.type.equals("text"))) {
+								updateCell(tableRow, idx++, record.get(col.dataIndex), basePath, false, "text");
+							}
 						}
 					}		
 				}
@@ -146,24 +137,34 @@ public class WordTableManager {
 				if (doc != null) {try {doc.close();} catch (IOException e) {}}
 			}
 				
-		
-
-				
-			
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-			
 		}  catch (Exception e) {
-			log.log(Level.SEVERE, "Exception", e);
-			
+			log.log(Level.SEVERE, "Exception", e);	
 		}
 	
+	}
+	
+	private void addHeaderCell(XWPFTableRow tableRow, int idx, XWPFParagraph paragraph, 
+			String value) {
+		XWPFTableCell cell = tableRow.getCell(idx);
+		if(cell == null) {
+			cell = tableRow.createCell();
+		}
+		
+		paragraph = cell.getParagraphArray(0);
+		if(paragraph == null) {
+			paragraph = cell.addParagraph();
+		}
+		XWPFRun run = paragraph.createRun();
+		run.setBold(true);
+		paragraph.setAlignment(ParagraphAlignment.CENTER);
+		run.setText(value);
 	}
 	
 	/*
 	 * Add the question value
 	 */
-	private void updateCell(XWPFTableCell cell, 
+	private void updateCell(XWPFTableRow tableRow, 
+			int idx,
 			KeyValue kv, 
 			String basePath,
 			boolean barcode,
@@ -172,6 +173,11 @@ public class WordTableManager {
 		int bcWidth = 100;
 		int bcHeight = 100;
 		QRCodeWriter qrCodeWriter = new QRCodeWriter();
+		
+		XWPFTableCell cell = tableRow.getCell(idx);
+		if(cell == null) {
+			cell = tableRow.createCell();
+		}					
 		
 		XWPFParagraph paragraph = cell.getParagraphArray(0);
 		if(paragraph == null) {

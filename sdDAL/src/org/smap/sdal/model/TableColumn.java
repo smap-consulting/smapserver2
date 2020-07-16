@@ -24,6 +24,7 @@ public class TableColumn {
 	public boolean del_reason_col;		// Column indicating reason for delete
 	public boolean hide;			// Only show on expand
 	public boolean barcode;		// Show as barcode
+	public boolean includeText;		// Include text value on download
 	public boolean mgmt = false;
 	public boolean filter = false;
 	public String filterValue;

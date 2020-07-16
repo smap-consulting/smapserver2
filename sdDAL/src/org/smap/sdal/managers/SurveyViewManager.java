@@ -213,6 +213,7 @@ public void populateSvd(
 			} else {
 				tc.hide = cc.hide;
 				tc.barcode = cc.barcode;
+				tc.includeText = cc.includeText;
 			}
 			tc.mgmt = !isMain;
 			tc.filter = c.filter;
