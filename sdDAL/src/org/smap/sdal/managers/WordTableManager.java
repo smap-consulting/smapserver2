@@ -1,6 +1,10 @@
 package org.smap.sdal.managers;
 
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.sql.Connection;
@@ -10,6 +14,9 @@ import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.imageio.ImageIO;
+
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -23,6 +30,11 @@ import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableReportsColumn;
 import org.smap.sdal.model.User;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 /*****************************************************************************
 
@@ -124,14 +136,10 @@ public class WordTableManager {
 							XWPFTableCell cell = tableRow.getCell(idx++);
 							if(cell == null) {
 								cell = tableRow.createCell();
-							}
-							
+							}							
 							updateCell(cell, record.get(col.dataIndex), basePath, col.barcode, col.type);
-							
 						}
-
-					}
-					
+					}		
 				}
 				doc.write(outputStream);
 			} finally {
@@ -161,6 +169,10 @@ public class WordTableManager {
 			boolean barcode,
 			String type) throws MalformedURLException, IOException {
 		
+		int bcWidth = 100;
+		int bcHeight = 100;
+		QRCodeWriter qrCodeWriter = new QRCodeWriter();
+		
 		XWPFParagraph paragraph = cell.getParagraphArray(0);
 		if(paragraph == null) {
 			paragraph = cell.addParagraph();
@@ -171,7 +183,16 @@ public class WordTableManager {
 			if(type != null && type.equals("image")) {
 				
 			} else if(barcode && kv.v.trim().length() > 0) {
-				
+				BitMatrix matrix = qrCodeWriter.encode(kv.v, BarcodeFormat.QR_CODE, 100, 100);
+				BufferedImage image = MatrixToImageWriter.toBufferedImage(matrix);
+
+				ByteArrayOutputStream os = new ByteArrayOutputStream();
+				ImageIO.write(image, "png", os);
+				InputStream is = new ByteArrayInputStream(os.toByteArray());
+				    
+				run.addPicture(is, XWPFDocument.PICTURE_TYPE_PNG, null, Units.toEMU(bcWidth), Units.toEMU(bcHeight)); 
+				is.close();
+				os.close();
 			} else {
 				run.setText(kv.v);
 			}
