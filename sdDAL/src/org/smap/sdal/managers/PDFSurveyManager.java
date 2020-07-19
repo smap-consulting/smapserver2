@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.TimeZone;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -901,7 +900,6 @@ public class PDFSurveyManager {
 				Question question = getQuestionFromResult(sd, r, form);
 				
 				if(question != null) {
-					
 					if(includeResult(r, question, appendix, gv, generateBlank, 
 							standardGeomIndex, startGeopointIndex, j)) {
 						if(question.type.equals("begin group")) {
@@ -1030,6 +1028,10 @@ public class PDFSurveyManager {
 				// Don't include questions that start with "_",  these are only added to the letter head
 				//include = false;
 			} else if(r.name.equals("prikey") || r.name.equals("parkey")) {
+				include = false;
+			} else if(r.name.equals("user")  && r.qIdx < 0) {
+				include = false;
+			} else if(r.name.equals("instancename")  && r.qIdx < 0) {
 				include = false;
 			}
 		}
