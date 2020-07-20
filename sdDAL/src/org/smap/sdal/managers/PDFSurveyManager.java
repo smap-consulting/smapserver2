@@ -398,7 +398,7 @@ public class PDFSurveyManager {
 							);		
 				}
 
-				fillNonTemplateUserDetails(document, user, basePath);
+				fillNonTemplateUserDetails(document, user, basePath, survey.getInstanceMeta().hrk);
 
 				// Add appendix
 				if(gv.hasAppendix) {
@@ -1035,14 +1035,13 @@ public class PDFSurveyManager {
 				include = false;
 			} else if(r.name.startsWith("meta_group")) {
 				include = false;
-			} else if(r.name.startsWith("_")) {
-				// Don't include questions that start with "_",  these are only added to the letter head
-				//include = false;
 			} else if(r.name.equals("prikey") || r.name.equals("parkey")) {
 				include = false;
 			} else if(r.name.equals("user")  && r.qIdx < 0) {
 				include = false;
 			} else if(r.name.equals("instancename")  && r.qIdx < 0) {
+				include = false;
+			} else if(r.name.equals("_hrk")) {
 				include = false;
 			}
 		}
@@ -2064,7 +2063,7 @@ public class PDFSurveyManager {
 	/*
 	 * Fill in user details for the output when their is no template
 	 */
-	private void fillNonTemplateUserDetails(Document document, User user, String basePath) throws IOException, DocumentException {
+	private void fillNonTemplateUserDetails(Document document, User user, String basePath, String key) throws IOException, DocumentException {
 
 		String settings = user.settings;
 		Type type = new TypeToken<UserSettings>(){}.getType();
@@ -2072,7 +2071,7 @@ public class PDFSurveyManager {
 		UserSettings us = gson.fromJson(settings, type);
 
 		float indent = (float) 20.0;
-		addValue(document, "Completed by:", (float) 0.0);
+		addValue(document, localisation.getString("pdf_completed_by") + ":", (float) 0.0);
 		if(user.signature != null && user.signature.trim().length() > 0) {
 			String fileName = null;
 			try {
@@ -2091,6 +2090,8 @@ public class PDFSurveyManager {
 			}
 		}
 		addValue(document, user.name, indent);
+		addValue(document, localisation.getString("cr_key") + ": ", (float) 0.0);
+		addValue(document, key, indent);
 		addValue(document, user.company_name, indent);
 		if(us != null) {
 			addValue(document, us.title, indent);
