@@ -55,6 +55,7 @@ import com.itextpdf.text.List;
 import com.itextpdf.text.ListItem;
 import com.itextpdf.text.PageSize;
 import com.itextpdf.text.Paragraph;
+import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.pdf.AcroFields;
 import com.itextpdf.text.pdf.BarcodeQRCode;
 import com.itextpdf.text.pdf.BaseFont;
@@ -346,15 +347,25 @@ public class PDFSurveyManager {
 				} else {
 					document = new Document(PageSize.A4);
 				}
-				document.setMargins(marginLeft, marginRight, marginTop_1, marginBottom_1);
-				writer = PdfWriter.getInstance(document, outputStream);
 
-				writer.setInitialLeading(12);	
-
+				// Get the title
 				String title = survey.getInstanceName();
 				if(title.equals("survey")) {
 					title = survey.displayName;
 				}
+				
+				// Determine the number of rows in the title and adjust the document margins accordingly
+				Font titleFont = new Font();
+				int fontHeight = 18;
+				titleFont.setSize(fontHeight);
+				float width = titleFont.getCalculatedBaseFont(true).getWidthPoint(title, titleFont.getCalculatedSize());
+				Rectangle pageRect = document.getPageSize();
+				// Calculate rows of title and substract 1 as maginTop_1 assumes 1 row already
+				int rows = Math.round((width / (pageRect.getWidth() - marginLeft - marginRight)) + 1) - 1;
+				
+				document.setMargins(marginLeft, marginRight, marginTop_1 + rows * fontHeight, marginBottom_1);
+				writer = PdfWriter.getInstance(document, outputStream);
+				writer.setInitialLeading(12);	
 				
 				writer.setPageEvent(new PdfPageSizer(title, 
 						user, basePath, null,

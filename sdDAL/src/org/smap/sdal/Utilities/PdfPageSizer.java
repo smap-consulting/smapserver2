@@ -21,6 +21,7 @@ import com.itextpdf.text.Phrase;
 import com.itextpdf.text.Rectangle;
 import com.itextpdf.text.Font.FontFamily;
 import com.itextpdf.text.pdf.ColumnText;
+import com.itextpdf.text.pdf.PdfContentByte;
 import com.itextpdf.text.pdf.PdfPCell;
 import com.itextpdf.text.pdf.PdfPTable;
 import com.itextpdf.text.pdf.PdfPageEventHelper;
@@ -116,9 +117,18 @@ public class PdfPageSizer extends PdfPageEventHelper {
 			Phrase titlePhrase = new Phrase();
 			titlePhrase.setFont(titleFont);
 			titlePhrase.add(title);
-			ColumnText.showTextAligned(writer.getDirectContent(), 
-					Element.ALIGN_CENTER, titlePhrase, 
-					(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getTop() - 100, 0);
+			
+			ColumnText ct = new ColumnText(writer.getDirectContent());
+			ct.setSimpleColumn(titlePhrase, marginLeft, 0, pageRect.getRight() - marginRight, pageRect.getTop() - 100, 20, Element.ALIGN_CENTER);
+			try {
+				ct.go();
+			} catch (DocumentException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+			//ColumnText.showTextAligned(writer.getDirectContent(), 
+			//		Element.ALIGN_CENTER, titlePhrase, 
+			//		(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getTop() - 100, 0);
 			
 			if(user != null) {
 				// Show the logo
