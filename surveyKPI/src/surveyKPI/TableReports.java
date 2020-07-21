@@ -25,7 +25,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import org.apache.commons.codec.binary.Base64;
@@ -33,7 +32,6 @@ import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFTableManager;
 import org.smap.sdal.managers.SurveySettingsManager;
@@ -42,7 +40,6 @@ import org.smap.sdal.managers.WordTableManager;
 import org.smap.sdal.model.ChartData;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.SurveyViewDefn;
-import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.SurveySettingsDefn;
 
 import com.google.gson.Gson;

@@ -29,9 +29,9 @@ public class TableReportUtilities {
 			if(!tc.hide && tc.include) {
 				int dataIndex = -1;
 				if(record != null) {
-					dataIndex = getDataIndex(record, tc.question_name);
+					dataIndex = getDataIndex(record, tc.displayName);
 				}
-				cols.add(new TableReportsColumn(dataIndex, tc.question_name, tc.barcode, 
+				cols.add(new TableReportsColumn(dataIndex, tc.displayName, tc.barcode, 
 						tc.includeText, tc.type));
 			}
 		}
