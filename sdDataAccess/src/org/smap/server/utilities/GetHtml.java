@@ -128,7 +128,7 @@ public class GetHtml {
 					.append(width);
 			elem.setAttribute("class", classVal.toString());
 			
-			addLabelContents(elem, headerQuestion, form);
+			addLabelContents(elem, headerQuestion, form, false);
 			currentParent.appendChild(elem);
 		}
 		
@@ -144,7 +144,7 @@ public class GetHtml {
 			
 			for(Question q : members) {
 				q.appearance = setWidth(q.appearance, 2);
-				processStandardQuestion(sd, form, q, currentParent);
+				processStandardQuestion(sd, form, q, currentParent, true);
 			}
 			
 		}
@@ -478,7 +478,7 @@ public class GetHtml {
 						Element extraFieldsetElement = outputDoc.createElement("fieldset");
 						bodyElement.appendChild(extraFieldsetElement);
 
-						addSelectContents(sd, extraFieldsetElement, qLabel, form, true);
+						addSelectContents(sd, extraFieldsetElement, qLabel, form, true, false);
 						currentParent.appendChild(bodyElement);
 					}
 
@@ -503,7 +503,7 @@ public class GetHtml {
 					currentParent = elementStack.pop();
 
 				} else {
-					processStandardQuestion(sd, form, q, currentParent);
+					processStandardQuestion(sd, form, q, currentParent, false);
 				}
 			}
 		}
@@ -511,9 +511,9 @@ public class GetHtml {
 	}
 	
 	/*
-	 * COnvert a sandard question (not a group or repeat) into HTML
+	 * Convert a standard question (not a group or repeat) into HTML
 	 */
-	private void processStandardQuestion(Connection sd, Form form, Question q, Element currentParent) throws Exception {
+	private void processStandardQuestion(Connection sd, Form form, Question q, Element currentParent, boolean hideLabels) throws Exception {
 		
 		Element bodyElement;
 		
@@ -541,13 +541,13 @@ public class GetHtml {
 
 				if (hasNodeset(sd, q, form)) {
 					if(q.appearance.contains("minimal") || q.type.equals("select")) {
-						addMinimalContents(sd, bodyElement, q, form, false);		// Not auto complete
+						addMinimalContents(sd, bodyElement, q, form, false, hideLabels);		// Not auto complete
 					} else {
-						addMinimalContents(sd, bodyElement, q, form, true);		// For autocomplete
+						addMinimalContents(sd, bodyElement, q, form, true, hideLabels);		// For autocomplete
 						//addAutoCompleteContentsItemset(sd, bodyElement, q, form);
 					}
 				} else {
-					addMinimalSelectContents(bodyElement, q, form);
+					addMinimalSelectContents(bodyElement, q, form, hideLabels);
 				}
 				currentParent.appendChild(bodyElement);
 
@@ -560,7 +560,7 @@ public class GetHtml {
 				Element extraFieldsetElement = outputDoc.createElement("fieldset");
 				bodyElement.appendChild(extraFieldsetElement);
 				
-				addSelectContents(sd, extraFieldsetElement, q, form, false);
+				addSelectContents(sd, extraFieldsetElement, q, form, false, hideLabels);
 				
 				// Add constraint message at end to the outer fieldset
 				addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
@@ -583,7 +583,9 @@ public class GetHtml {
 			fieldset.appendChild(legendElement);
 			
 			// Label
-			addLabels(legendElement, q, form);
+			if(!hideLabels) {
+				addLabels(legendElement, q, form);
+			}
 			
 			// control
 			Element controlElement = outputDoc.createElement("div");
@@ -635,7 +637,7 @@ public class GetHtml {
 			bodyElement = outputDoc.createElement("label");
 			setQuestionClass(q, bodyElement);
 
-			addLabelContents(bodyElement, q, form);
+			addLabelContents(bodyElement, q, form, hideLabels);
 			currentParent.appendChild(bodyElement);
 
 		}
@@ -870,10 +872,12 @@ public class GetHtml {
 	 * Add the contents of a select that does not have nodesets - minimal -
 	 * autocomplete - search
 	 */
-	private void addMinimalSelectContents(Element parent, Question q, Form form) throws Exception {
+	private void addMinimalSelectContents(Element parent, Question q, Form form, boolean hideLabels) throws Exception {
 
 		// Add labels
-		addLabels(parent, q, form);
+		if(!hideLabels) {
+			addLabels(parent, q, form);
+		}
 
 		Element textElement = null;
 		// Add input / select
@@ -935,11 +939,13 @@ public class GetHtml {
 	/*
 	 * Add the contents of a select that has nodesets - minimal 
 	 */
-	private void addMinimalContents(Connection sd, Element parent, Question q, Form form, boolean autoComplete) throws Exception {
+	private void addMinimalContents(Connection sd, Element parent, Question q, Form form, boolean autoComplete, boolean hideLabels) throws Exception {
 
 	
 		// Add labels
-		addLabels(parent, q, form);
+		if(!hideLabels) {
+			addLabels(parent, q, form);
+		}
 
 		// Add search
 		Element selectElement = null;
@@ -1034,13 +1040,13 @@ public class GetHtml {
 	 * Add the contents of a select
 	 * 
 	 */
-	private void addSelectContents(Connection sd, Element parent, Question q, Form form, boolean tableList)
+	private void addSelectContents(Connection sd, Element parent, Question q, Form form, boolean tableList, boolean hideLabels)
 			throws Exception {
 
 		// legend
 		Element bodyElement = outputDoc.createElement("legend");
 		parent.appendChild(bodyElement);
-		if (!tableList) {
+		if (!tableList && !hideLabels) {
 			addLabels(bodyElement, q, form);
 		}
 
@@ -1085,10 +1091,12 @@ public class GetHtml {
 	/*
 	 * Add the contents of a label
 	 */
-	private void addLabelContents(Element parent, Question q, Form form) throws Exception {
+	private void addLabelContents(Element parent, Question q, Form form, boolean hideLabels) throws Exception {
 
 		// span
-		addLabels(parent, q, form);
+		if(!hideLabels) {
+			addLabels(parent, q, form);
+		}
 
 		/*
 		 * Input
