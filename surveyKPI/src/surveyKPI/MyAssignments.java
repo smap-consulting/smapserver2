@@ -755,7 +755,6 @@ public class MyAssignments extends Application {
 
 		// Authorisation not required a user can only update their own assignments
 
-		log.info("Input: " + assignInput);
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
 
