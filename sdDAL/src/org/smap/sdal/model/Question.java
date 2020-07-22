@@ -73,11 +73,8 @@ public class Question {
 	public boolean isTableList = false;	// Temporary flag used during HTML generation
 	
 	public String style_list;			// The name of the style applied to this question
-	public int style_id;					// The id of the style as used in the database
+	public int style_id;				// The id of the style as used in the database
 	
-	private static Logger log =
-			 Logger.getLogger(Question.class.getName());
-
 	/*
 	 * Get the selectable choices for this question
 	 *  If the choices came from an external file then one of the choices will be a dummy choice describing the file

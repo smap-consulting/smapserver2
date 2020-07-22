@@ -707,6 +707,13 @@ public class XLSTemplateUploadManager {
 			q.name = "the_geom";
 		}	
 		
+		if(q.list_name == null) {
+			q.list_name = XLSUtilities.getTextColumn(row, "choice_list", surveyHeader, lastCellNum, null); 
+			if(q.list_name == null) {
+				q.style_list = XLSUtilities.getTextColumn(row, "choice list", surveyHeader, lastCellNum, null);
+			}
+		}
+		
 		// 3. Labels
 		getLabels(row, lastCellNum, surveyHeader, q.labels, q.type, false);	
 		
@@ -818,7 +825,6 @@ public class XLSTemplateUploadManager {
 		if(q.style_list == null) {
 			q.style_list = XLSUtilities.getTextColumn(row, "style list", surveyHeader, lastCellNum, null);
 		}
-
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {

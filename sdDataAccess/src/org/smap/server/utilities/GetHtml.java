@@ -51,6 +51,19 @@ public class GetHtml {
 	Document outputDoc = null;
 	private boolean gInTableList = false;
 	private HashMap<String, Integer> gRecordCounts = null;
+	
+	private class Matrix {
+		Question groupQuestion;
+		ArrayList<Question> members = new ArrayList<> ();
+		
+		Matrix(Question q) {
+			groupQuestion = q;
+		}
+		
+		void addMember(Question q) {
+			members.add(q);
+		}
+	}
 
 	private static Logger log = Logger.getLogger(GetHtml.class.getName());
 	
@@ -278,9 +291,11 @@ public class GetHtml {
 		Element currentParent = parent;
 		Stack<Element> elementStack = new Stack<>(); // Store the elements for non repeat groups
 
+		Matrix matrix = null;
+		boolean inMatrix = false;
 		for (Question q : form.questions) {
 
-			// Add a marker if this is a table list group
+			// Add a marker if this is a table list group or a matrix group
 			if (q.type.equals("begin group")) {
 				if (q.isTableList) {
 					gInTableList = true;
@@ -292,9 +307,35 @@ public class GetHtml {
 						q.appearance = appearance.replace("table-list", "field-list");
 					}
 				}
+				
+				// Check to see if we are entering a matrix
+				if(!inMatrix) {
+					String appearance = q.appearance;
+					if (appearance != null && appearance.contains("matrix")) {
+						inMatrix = true;
+						matrix = new Matrix(q);
+						q.appearance = appearance.replace("matrix", "");
+						System.out.println("Entering Matrix");
+						continue;
+					}
+				}
 			} else if (q.type.equals("end group")) {
 				gInTableList = false;
+				if(inMatrix) {
+					System.out.println("Leaving Matrix");
+					// TODO write out matrix object
+					inMatrix = false;
+					continue;
+				}
 			}
+			
+			if(inMatrix) {
+				matrix.addMember(q);
+				System.out.println("Adding Member: " + q.name);
+				continue;				
+			}
+			
+			System.out.println("Processing non matrix questions: " + q.name);
 
 			if (!q.inMeta && !q.name.equals("meta_groupEnd") && !q.isPreload() 
 					&& !q.type.equals("calculate")
