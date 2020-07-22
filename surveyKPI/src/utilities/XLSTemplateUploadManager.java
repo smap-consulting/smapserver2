@@ -707,11 +707,9 @@ public class XLSTemplateUploadManager {
 			q.name = "the_geom";
 		}	
 		
+		// Get the list name from the list_name column if it has not already been set
 		if(q.list_name == null) {
-			q.list_name = XLSUtilities.getTextColumn(row, "choice_list", surveyHeader, lastCellNum, null); 
-			if(q.list_name == null) {
-				q.style_list = XLSUtilities.getTextColumn(row, "choice list", surveyHeader, lastCellNum, null);
-			}
+			q.list_name = XLSUtilities.getTextColumn(row, "list_name", surveyHeader, lastCellNum, null); 
 		}
 		
 		// 3. Labels

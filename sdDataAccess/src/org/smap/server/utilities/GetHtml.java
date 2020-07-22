@@ -53,15 +53,131 @@ public class GetHtml {
 	private HashMap<String, Integer> gRecordCounts = null;
 	
 	private class Matrix {
+		Connection sd;
+		Form form;
 		Question groupQuestion;
 		ArrayList<Question> members = new ArrayList<> ();
 		
-		Matrix(Question q) {
+		Matrix(Connection c, Question q, Form f) {
+			sd = c;
 			groupQuestion = q;
+			form = f;
 		}
 		
 		void addMember(Question q) {
 			members.add(q);
+		}
+		
+		void generate(Survey s, Element currentParent) throws Exception {
+			
+			String n = paths.get(getRefName(groupQuestion.name, form));
+			
+			// Header
+			Element bodyElement = addSection(currentParent, n + "_header");
+			addHeader(bodyElement);
+			
+			// Write rows
+			for(Option o : groupQuestion.getValidChoices(s)) {
+				bodyElement = addSection(currentParent, n + "_" + o.value);
+				addRow(bodyElement, o);
+			}
+		}
+		
+		/*
+		 * Add the section for the header and each row in the matrix
+		 */
+		private Element addSection(Element currentParent, String name) {
+			Element elem = outputDoc.createElement("section");
+			currentParent.appendChild(elem);
+			
+			StringBuffer classVal = new StringBuffer("")
+				.append("or-group-data")
+				.append(" or-appearance-w")
+				.append(1 + members.size() * 2);		// Total width 1 for row label + 2 for each question
+			elem.setAttribute("class", classVal.toString());
+			elem.setAttribute("name", name);
+			return elem;
+		}
+		
+		/*
+		 * Add the heading labels
+		 */
+		private void addHeader(Element currentParent) throws Exception {
+			
+			Question hq = copyQuestion(groupQuestion);	// Copy the question so we can change its type
+			hq.type = "note";			
+			addHeaderColumn(hq, currentParent, 1);
+			
+			for(Question q : members) {
+				hq = copyQuestion(q);	// Copy the question so we can change its type
+				hq.type = "note";
+				addHeaderColumn(hq, currentParent, 2);
+			}
+		}
+		
+		/*
+		 * Add the heading labels
+		 * Convert the input question into a note type
+		 */
+		private void addHeaderColumn(Question headerQuestion, Element currentParent, int width) throws Exception {
+			
+			Element elem = outputDoc.createElement("label");
+			
+			StringBuffer classVal = new StringBuffer("")
+					.append("question non-select readonly or-appearance-w")
+					.append(width);
+			elem.setAttribute("class", classVal.toString());
+			
+			addLabelContents(elem, headerQuestion, form);
+			currentParent.appendChild(elem);
+		}
+		
+		/*
+		 * Add a row
+		 */
+		private void addRow(Element currentParent, Option o) throws Exception {
+			
+			Question hq = copyQuestion(groupQuestion);	// Copy the question so we can change its type
+			hq.type = "note";	
+			hq.labels = o.labels;
+			addHeaderColumn(hq, currentParent, 1);
+			
+			for(Question q : members) {
+				q.appearance = setWidth(q.appearance, 2);
+				processStandardQuestion(sd, form, q, currentParent);
+			}
+			
+		}
+		
+		private Question copyQuestion(Question in) {
+			Question out = new Question();
+			out.type = in.type;
+			out.labels = in.labels;
+			out.name = in.name;
+			return out;
+		}
+		
+		private String setWidth(String in, int width) {
+			
+			String regex = "w[0-9]*";
+			String out = in;
+			
+			if(in == null) {
+				in = "";
+			}
+			
+			
+				
+			if(out.contains(regex)) {
+				out.replaceAll(regex, "w" + width);
+			} else {
+				if(out.length() > 0) {
+					out += " ";
+				}
+				out += "w" + width;
+			}
+				
+			return out.toString();
 		}
 	}
 
@@ -313,7 +429,7 @@ public class GetHtml {
 					String appearance = q.appearance;
 					if (appearance != null && appearance.contains("matrix")) {
 						inMatrix = true;
-						matrix = new Matrix(q);
+						matrix = new Matrix(sd, q, form);
 						q.appearance = appearance.replace("matrix", "");
 						System.out.println("Entering Matrix");
 						continue;
@@ -323,7 +439,7 @@ public class GetHtml {
 				gInTableList = false;
 				if(inMatrix) {
 					System.out.println("Leaving Matrix");
-					// TODO write out matrix object
+					matrix.generate(survey, currentParent);
 					inMatrix = false;
 					continue;
 				}
@@ -386,131 +502,143 @@ public class GetHtml {
 					// Exit the group
 					currentParent = elementStack.pop();
 
-				} else if (q.isSelect()) {
-
-					if (gInTableList) {
-						if (q.appearance == null) {
-							q.appearance = "";
-						}
-						if (!q.appearance.contains("field-list")) {
-							q.appearance = q.appearance.trim();
-							if (q.appearance.length() > 0) {
-								q.appearance += " ";
-							}
-							q.appearance += "list-nolabel";
-						}
-					}
-
-					/*
-					 * Create fieldSet or Label depending on the attributes
-					 */
-					if (minSelect(q.appearance)) {
-						bodyElement = outputDoc.createElement("label");
-						setQuestionClass(q, bodyElement);
-
-						if (hasNodeset(sd, q, form)) {
-							if(q.appearance.contains("minimal") || q.type.equals("select")) {
-								addMinimalContents(sd, bodyElement, q, form, false);		// Not auto complete
-							} else {
-								addMinimalContents(sd, bodyElement, q, form, true);		// For autocomplete
-								//addAutoCompleteContentsItemset(sd, bodyElement, q, form);
-							}
-						} else {
-							addMinimalSelectContents(bodyElement, q, form);
-						}
-						currentParent.appendChild(bodyElement);
-
-					} else {
-						bodyElement = outputDoc.createElement("fieldset");
-						currentParent.appendChild(bodyElement);
-						
-						setQuestionClass(q, bodyElement);
-
-						Element extraFieldsetElement = outputDoc.createElement("fieldset");
-						bodyElement.appendChild(extraFieldsetElement);
-						
-						addSelectContents(sd, extraFieldsetElement, q, form, false);
-						
-						// Add constraint message at end to the outer fieldset
-						addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
-
-					}
-
-				} else if(q.type.equals("acknowledge") || q.type.equals("trigger")) {
-
-					// trigger questions
-					bodyElement = outputDoc.createElement("fieldset");
-					currentParent.appendChild(bodyElement);
-					setQuestionClass(q, bodyElement);
-					
-					// inner fieldSet
-					Element fieldset = outputDoc.createElement("fieldset");
-					bodyElement.appendChild(fieldset);
-					
-					// legend
-					Element legendElement = outputDoc.createElement("legend");
-					fieldset.appendChild(legendElement);
-					
-					// Label
-					addLabels(legendElement, q, form);
-					
-					// control
-					Element controlElement = outputDoc.createElement("div");
-					fieldset.appendChild(controlElement);
-					controlElement.setAttribute("class", "option-wrapper");
-					
-					// Control label
-					Element controlLabel = outputDoc.createElement("label");
-					controlElement.appendChild(controlLabel);
-					
-					// input
-					//addLabelContents(controlLabel, q, form);
-					Element input = outputDoc.createElement("input");
-					controlLabel.appendChild(input);
-					input.setAttribute("value", "OK");
-					input.setAttribute("type", "radio");
-					input.setAttribute("name", paths.get(getRefName(q.name, form)));
-					input.setAttribute("data-name", paths.get(getRefName(q.name, form)));
-					input.setAttribute("data-type-xml", "string");
-					if (q.readonly) {
-						input.setAttribute("readonly", "readonly");
-					}
-					if (q.required) {
-						input.setAttribute("data-required", "true()");
-					}
-					// relevant
-					if (q.relevant != null && q.relevant.trim().length() > 0) {
-						input.setAttribute("data-relevant",
-								UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
-					}
-					if (q.constraint != null && q.constraint.trim().length() > 0) {
-						input.setAttribute("data-constraint",
-								UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
-					}
-					// Dynamic Default
-					if (q.calculation != null && q.calculation.trim().length() > 0) {
-						bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
-					}
-			
-					// option label
-					Element option_label = outputDoc.createElement("span");
-					controlLabel.appendChild(option_label);
-					option_label.setAttribute("class", "option-label active");
-					option_label.setTextContent("OK");
-					
 				} else {
-
-					// Non select question
-					bodyElement = outputDoc.createElement("label");
-					setQuestionClass(q, bodyElement);
-
-					addLabelContents(bodyElement, q, form);
-					currentParent.appendChild(bodyElement);
-
+					processStandardQuestion(sd, form, q, currentParent);
 				}
 			}
 		}
 
+	}
+	
+	/*
+	 * COnvert a sandard question (not a group or repeat) into HTML
+	 */
+	private void processStandardQuestion(Connection sd, Form form, Question q, Element currentParent) throws Exception {
+		
+		Element bodyElement;
+		
+		if (q.isSelect()) {
+
+			if (gInTableList) {
+				if (q.appearance == null) {
+					q.appearance = "";
+				}
+				if (!q.appearance.contains("field-list")) {
+					q.appearance = q.appearance.trim();
+					if (q.appearance.length() > 0) {
+						q.appearance += " ";
+					}
+					q.appearance += "list-nolabel";
+				}
+			}
+
+			/*
+			 * Create fieldSet or Label depending on the attributes
+			 */
+			if (minSelect(q.appearance)) {
+				bodyElement = outputDoc.createElement("label");
+				setQuestionClass(q, bodyElement);
+
+				if (hasNodeset(sd, q, form)) {
+					if(q.appearance.contains("minimal") || q.type.equals("select")) {
+						addMinimalContents(sd, bodyElement, q, form, false);		// Not auto complete
+					} else {
+						addMinimalContents(sd, bodyElement, q, form, true);		// For autocomplete
+						//addAutoCompleteContentsItemset(sd, bodyElement, q, form);
+					}
+				} else {
+					addMinimalSelectContents(bodyElement, q, form);
+				}
+				currentParent.appendChild(bodyElement);
+
+			} else {
+				bodyElement = outputDoc.createElement("fieldset");
+				currentParent.appendChild(bodyElement);
+				
+				setQuestionClass(q, bodyElement);
+
+				Element extraFieldsetElement = outputDoc.createElement("fieldset");
+				bodyElement.appendChild(extraFieldsetElement);
+				
+				addSelectContents(sd, extraFieldsetElement, q, form, false);
+				
+				// Add constraint message at end to the outer fieldset
+				addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
+
+			}
+
+		} else if(q.type.equals("acknowledge") || q.type.equals("trigger")) {
+
+			// trigger questions
+			bodyElement = outputDoc.createElement("fieldset");
+			currentParent.appendChild(bodyElement);
+			setQuestionClass(q, bodyElement);
+			
+			// inner fieldSet
+			Element fieldset = outputDoc.createElement("fieldset");
+			bodyElement.appendChild(fieldset);
+			
+			// legend
+			Element legendElement = outputDoc.createElement("legend");
+			fieldset.appendChild(legendElement);
+			
+			// Label
+			addLabels(legendElement, q, form);
+			
+			// control
+			Element controlElement = outputDoc.createElement("div");
+			fieldset.appendChild(controlElement);
+			controlElement.setAttribute("class", "option-wrapper");
+			
+			// Control label
+			Element controlLabel = outputDoc.createElement("label");
+			controlElement.appendChild(controlLabel);
+			
+			// input
+			//addLabelContents(controlLabel, q, form);
+			Element input = outputDoc.createElement("input");
+			controlLabel.appendChild(input);
+			input.setAttribute("value", "OK");
+			input.setAttribute("type", "radio");
+			input.setAttribute("name", paths.get(getRefName(q.name, form)));
+			input.setAttribute("data-name", paths.get(getRefName(q.name, form)));
+			input.setAttribute("data-type-xml", "string");
+			if (q.readonly) {
+				input.setAttribute("readonly", "readonly");
+			}
+			if (q.required) {
+				input.setAttribute("data-required", "true()");
+			}
+			// relevant
+			if (q.relevant != null && q.relevant.trim().length() > 0) {
+				input.setAttribute("data-relevant",
+						UtilityMethods.convertAllxlsNames(q.relevant, false, paths, form.id, true, q.name, false));
+			}
+			if (q.constraint != null && q.constraint.trim().length() > 0) {
+				input.setAttribute("data-constraint",
+						UtilityMethods.convertAllxlsNames(q.constraint, false, paths, form.id, true, q.name, false));
+			}
+			// Dynamic Default
+			if (q.calculation != null && q.calculation.trim().length() > 0) {
+				bodyElement.setAttribute("data-calculate", UtilityMethods.convertAllxlsNames(q.calculation, false, paths, form.id, true, q.name, false));
+			}
+	
+			// option label
+			Element option_label = outputDoc.createElement("span");
+			controlLabel.appendChild(option_label);
+			option_label.setAttribute("class", "option-label active");
+			option_label.setTextContent("OK");
+			
+		} else {
+
+			// Non select question
+			bodyElement = outputDoc.createElement("label");
+			setQuestionClass(q, bodyElement);
+
+			addLabelContents(bodyElement, q, form);
+			currentParent.appendChild(bodyElement);
+
+		}
 	}
 
 	/*
