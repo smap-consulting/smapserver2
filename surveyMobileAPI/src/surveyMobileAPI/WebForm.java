@@ -733,6 +733,8 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
+		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin=\"\">");
+		
 		//output.append(
 		//		"<link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700,600&subset=latin,cyrillic-ext,cyrillic,greek-ext,greek,vietnamese,latin-ext' rel='stylesheet' type='text/css'>\n");
 		output.append("<link type=\"text/css\" rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:300,400,500,700\">");
