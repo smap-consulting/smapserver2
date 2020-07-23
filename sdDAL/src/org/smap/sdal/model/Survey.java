@@ -788,6 +788,10 @@ public class Survey {
 				name += "_groupEnd";
 				infotextId = null;
 				transId = null;
+			} else if(q.type.equals("end matrix")) {
+				name += "_matrixEnd";
+				infotextId = null;
+				transId = null;
 			} 
 			
 			/*

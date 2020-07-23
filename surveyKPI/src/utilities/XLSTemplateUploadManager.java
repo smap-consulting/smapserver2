@@ -842,7 +842,7 @@ public class XLSTemplateUploadManager {
 		/*
 		 * Handle Groups
 		 */
-		if(q.type.equals("begin group")) {
+		if(q.type.equals("begin group") || q.type.equals("begin matrix")) {
 			Stack<Question> groupStack = getGroupStack(formIndex);
 			groupStack.push(q);
 			if(q.appearance != null && q.appearance.contains("table-list")) {
@@ -853,7 +853,7 @@ public class XLSTemplateUploadManager {
 				inTableListGroup = false;
 			}
 		}
-		if(q.type.equals("end group")) {
+		if(q.type.equals("end group") || q.type.equals("end matrix")) {
 			Stack<Question> groupStack = getGroupStack(formIndex);
 			if(groupStack.isEmpty()) { 
 				Form f = survey.forms.get(formIndex);
@@ -898,6 +898,8 @@ public class XLSTemplateUploadManager {
 		// 1. Source
 		if(q.type.equals("begin group") 
 				|| q.type.equals("end group") 
+				|| q.type.equals("begin matrix") 
+				|| q.type.equals("end matrix") 
 				|| q.type.equals("server_calculate") 
 				|| q.type.equals("begin repeat")) {
 			q.source = null;
@@ -1054,6 +1056,7 @@ public class XLSTemplateUploadManager {
 	private String getDefaultLabel(String type) {
 		String def = "-";
 		if (type.equals("begin group") || type.equals("end group")
+				|| type.equals("begin matrix") || type.equals("end matrix")
 				|| type.equals("begin repeat") || type.equals("end repeat")) {
 			def = null;
 		}
@@ -1138,6 +1141,10 @@ public class XLSTemplateUploadManager {
 				validateGroup(f.questions, q, i);
 			}
 		}
+		
+		/*
+		 * TODO validate Matrices
+		 */
 	}
 	
 	private int validateGroup(ArrayList<Question> questions, Question groupQuestion, int start) throws ApplicationException {
@@ -1179,12 +1186,12 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 
-		} else if(!q.type.equals("end group") && qNameMap.get(q.name.toLowerCase()) != null && !q.name.equals("the_geom")) {
+		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMap.get(q.name.toLowerCase()) != null && !q.name.equals("the_geom")) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
 
 		}
-		if(!q.type.equals("end group")) {		
+		if(!q.type.equals("end group") && !q.type.equals("end matrix")) {		
 			qNameMap.put(q.name.toLowerCase(), rowNumber);
 		}
 		
@@ -1606,8 +1613,12 @@ public class XLSTemplateUploadManager {
 			out = "end repeat";
 		} else if (type.equals("begin group") || type.equals("begin_group")) {
 			out = "begin group";
+		} else if (type.equals("begin matrix") || type.equals("begin_matrix")) {
+			out = "begin matrix";
 		} else if (type.equals("end group") || type.equals("end_group")) {
 			out = "end group";
+		} else if (type.equals("end matrix") || type.equals("end_matrix")) {
+			out = "end matrix";
 		} else if (type.equals("start")) {
 			out = "start";
 		} else if (type.equals("end")) {
