@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.HourlyLogSummaryItem;
+import org.smap.sdal.model.OrgLogSummaryItem;
 
 /*****************************************************************************
 
@@ -207,12 +208,69 @@ public class LogManager {
 			
 				int dHour = rs.getInt("hour");
 				if(dHour != hour) {
-					if(item != null) {
-						items.add(item);
-					}
 					item = new HourlyLogSummaryItem();
+					items.add(item);
 					item.hour = dHour;
 					hour = dHour;
+				}
+				item.events.put(rs.getString("event"), rs.getInt("count"));
+
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
+	}
+	
+	/*
+	 * Get the summary data per orgaisation
+	 */
+	public ArrayList<OrgLogSummaryItem> getOrgSummaryLogEntriesForDay(
+			Connection sd, 
+			int year,
+			int month,
+			int day,
+			String tz) throws SQLException {
+		
+		ArrayList<OrgLogSummaryItem> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select  count(*) as count, "
+					+ "l.event, o.name "
+					+ "from log l, organisation o "
+					+ "where l.o_id = o.id "
+					+ "and extract(year from timezone(?, l.log_time)) = ? "
+					+ "and extract(month from timezone(?, l.log_time)) = ? "
+					+ "and extract(day from timezone(?, l.log_time)) = ? "
+					+ "group by name, event ";
+			
+			pstmt = sd.prepareStatement(sql);
+			int paramCount = 1;
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, year);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, month);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, day);
+			
+			log.info("Get data: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			String org = null;	
+			OrgLogSummaryItem item = null;
+			while (rs.next()) {
+			
+				String dOrg = rs.getString("name");
+				if(org == null || !dOrg.equals(org)) {
+					item = new OrgLogSummaryItem();
+					items.add(item);
+					item.organisation = dOrg;
+					org = dOrg;
 				}
 				item.events.put(rs.getString("event"), rs.getInt("count"));
 
