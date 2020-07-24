@@ -668,7 +668,7 @@ public class Survey {
 					}
 				}
 				
-				// Sort the column filters in order of increasing id to improve speed of matchint with questions
+				// Sort the column filters in order of increasing id to improve speed of matching with questions
 				if(r.column_filter != null) {
 					r.column_filter.sort(null);
 				}

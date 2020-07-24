@@ -247,7 +247,7 @@ public class Audit extends Application {
 		PrintWriter outWriter = null;
 		try {
 
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0);
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_AUDIT_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0);
 			
 			response.setContentType("text/html; charset=UTF-8");
 			response.setCharacterEncoding("UTF-8");

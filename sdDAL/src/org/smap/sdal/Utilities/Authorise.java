@@ -136,7 +136,7 @@ public class Authorise {
  			log.info(msg.toString());
  			
  			
- 			lm.writeLog(sd, 0, user, "error", msg.toString(), 0);		// Write the application log
+ 			lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0);		// Write the application log
  			
  			// Close the connection as throwing an exception will end the service call
 			

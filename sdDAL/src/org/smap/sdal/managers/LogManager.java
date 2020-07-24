@@ -2,11 +2,14 @@ package org.smap.sdal.managers;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.HourlyLogSummaryItem;
 
 /*****************************************************************************
 
@@ -39,6 +42,7 @@ public class LogManager {
 	public static String CREATE = "create";
 	public static String REPLACE = "replace";
 	public static String DELETE = "delete";
+	public static String RESTORE = "restore";
 	public static String EMAIL = "email";
 	public static String EMAIL_TASK = "email task";
 	public static String ERASE = "erase";
@@ -61,6 +65,11 @@ public class LogManager {
 	public static String ROLE = "role";
 	public static String LIMIT = "limit";
 	public static String SUBMISSION = "submissions";
+	public static String API_CSV_VIEW = "API CSV view";
+	public static String API_VIEW = "API view";
+	public static String API_AUDIT_VIEW = "API audit view";
+	public static String API_SINGLE_VIEW = "API single record view";
+	public static String MAPBOX_REQUEST = "Mapbox Request";
 	
 	/*
 	 * Write a log entry that includes the survey id
@@ -148,6 +157,72 @@ public class LogManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+	}
+	
+	/*
+	 * Get the summary data per hour
+	 */
+	public ArrayList<HourlyLogSummaryItem> getSummaryLogEntriesForDay(
+			Connection sd, 
+			int oId,
+			int year,
+			int month,
+			int day,
+			String tz) throws SQLException {
+		
+		ArrayList<HourlyLogSummaryItem> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select  count(*) as count, "
+					+ "extract(hour from timezone(?, log_time)) as hour, "
+					+ "event "
+					+ "from log l "
+					+ "where l.o_id = ? "
+					+ "and extract(year from timezone(?, log_time)) = ? "
+					+ "and extract(month from timezone(?, log_time)) = ? "
+					+ "and extract(day from timezone(?, log_time)) = ? "
+					+ "group by hour, event "
+					+ "order by hour asc";
+			
+			pstmt = sd.prepareStatement(sql);
+			int paramCount = 1;
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, oId);	
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, year);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, month);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, day);
+			
+			log.info("Get data: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			int hour = -1;	
+			HourlyLogSummaryItem item = null;
+			while (rs.next()) {
+			
+				int dHour = rs.getInt("hour");
+				if(dHour != hour) {
+					if(item != null) {
+						items.add(item);
+					}
+					item = new HourlyLogSummaryItem();
+					item.hour = dHour;
+					hour = dHour;
+				}
+				item.events.put(rs.getString("event"), rs.getInt("count"));
+
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
 	}
 	
 }
