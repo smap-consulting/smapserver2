@@ -41,6 +41,7 @@ public class LogManager {
 	
 	// Event types
 	public static String CREATE = "create";
+	public static String CREATE_PDF = "create pdf";
 	public static String REPLACE = "replace";
 	public static String DELETE = "delete";
 	public static String RESTORE = "restore";
@@ -57,6 +58,11 @@ public class LogManager {
 	public static String REMINDER = "reminder";
 	public static String MAILOUT = "mailout";
 	public static String VIEW = "view";
+	public static String USER_ACTIVITY_VIEW = "user acivity view";
+	public static String USER_LOCATION_VIEW = "user location view";
+	public static String DASHBOARD_VIEW = "dashboard view";
+	public static String INSTANCE_VIEW = "Access instance data for a task";
+	public static String GENERATE_REPORT_VIEW = "generate report view";
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
 	public static String TASK_REJECT = "reject task";
@@ -247,7 +253,8 @@ public class LogManager {
 					+ "and extract(year from timezone(?, l.log_time)) = ? "
 					+ "and extract(month from timezone(?, l.log_time)) = ? "
 					+ "and extract(day from timezone(?, l.log_time)) = ? "
-					+ "group by name, event ";
+					+ "group by name, event "
+					+ "order by name asc";
 			
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;

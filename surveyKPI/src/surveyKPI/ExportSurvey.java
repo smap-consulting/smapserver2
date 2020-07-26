@@ -198,7 +198,7 @@ public class ExportSurvey extends Application {
 
 		tz = (tz == null) ? "UTC" : tz;
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export to XLS", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export to XLS", 0);
 
 		String escapedFileName = null;
 		try {

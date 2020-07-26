@@ -159,7 +159,7 @@ public class ExportSurveyOSM extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export as OSM", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export as OSM", 0);
 		
 		String escapedFileName = null;
 		try {

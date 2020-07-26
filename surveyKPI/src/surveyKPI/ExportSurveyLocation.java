@@ -76,7 +76,7 @@ public class ExportSurveyLocation extends Application {
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), "view", "Export to " + format, 0);
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Export to " + format, 0);
 		
 		String escapedFileName = null;
 		try {

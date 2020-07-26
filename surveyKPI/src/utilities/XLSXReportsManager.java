@@ -108,7 +108,7 @@ public class XLSXReportsManager {
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
-		lm.writeLog(sd, sId, username, "view", "Export as: xlsx", 0);
+		lm.writeLog(sd, sId, username, LogManager.VIEW, "Export as: xlsx", 0);
 
 		String escapedFileName = null;
 		try {

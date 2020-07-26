@@ -134,7 +134,7 @@ public class ExportSurveyMedia extends Application {
 		}
 		// End Authorisation
 
-		lm.writeLog(sd, sId, request.getRemoteUser(), "view", "Export Media from a survey", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.VIEW, "Export Media from a survey", 0);
 		
 		String escapedFileName = null;
 		try {
