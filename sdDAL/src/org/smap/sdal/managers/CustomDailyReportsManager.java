@@ -9,6 +9,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -58,8 +59,6 @@ public class CustomDailyReportsManager {
 	private String tz;
 	
 	private class ChartItem {
-		String theDate;
-		Row dateRow;
 		ArrayList<Integer> bars = new ArrayList<> ();
 	}
 	private ArrayList<Row> chartDataRows = new ArrayList<> ();
@@ -139,17 +138,15 @@ public class CustomDailyReportsManager {
 			 * Create query
 			 */
 			StringBuilder sb = new StringBuilder("select ");
-			int idx = 0;
+			sb.append("extract(day from ").append(config.dateColumn).append(") as _day");
 			for(CustomReportColumn rc : config.columns) {
-				if(idx++ > 0) {
-					sb.append(",");
-				}
-				sb.append(rc.column);
+				sb.append(",")
+					.append(rc.column);
 			}
 	
 			for(CustomReportMultiColumn bar : config.bars) {
 				sb.append(",");
-				idx = 0;
+				int idx = 0;
 				for(String name : bar.columns) {
 					if(idx++ > 0) {
 						sb.append(" + ");
@@ -192,7 +189,7 @@ public class CustomDailyReportsManager {
 			/*
 			 * Write the data rows and accumulate the chart data
 			 */
-			ArrayList<ChartItem> chartItems = new ArrayList<> ();
+			HashMap<Integer, ChartItem> chartItems = new HashMap<>();
 			while(rs.next()) {
 				colNumber = 0;
 				Row row = sheet.createRow(rowNumber++);	
@@ -200,12 +197,25 @@ public class CustomDailyReportsManager {
 					Cell cell = row.createCell(colNumber++);
 					cell.setCellValue(rs.getString(rc.column));
 				}
-				ChartItem item = new ChartItem();
-				item.theDate = rs.getString(config.dateColumn);
-				for(CustomReportMultiColumn rmc : config.bars) {
-					item.bars.add(rs.getInt(rmc.name));
+				int day = rs.getInt("_day");
+				ChartItem item = chartItems.get(day);
+				if(item == null) {
+					item = new ChartItem();
+					chartItems.put(day,  item);
+					
+					for(CustomReportMultiColumn rmc : config.bars) {
+						item.bars.add(0);
+					}
 				}
-				chartItems.add(item);				
+
+				int i = 0;
+				ArrayList<Integer> updates = new ArrayList<> ();
+				for(CustomReportMultiColumn rmc : config.bars) {
+					int ib = item.bars.get(i++);
+					ib += rs.getInt(rmc.name);
+					updates.add(ib);
+				}			
+				item.bars=updates;
 			}
 			
 			/*
@@ -214,27 +224,30 @@ public class CustomDailyReportsManager {
 			rowNumber++;
 			int chartDataRow = rowNumber;
 			colNumber = 0;
-			for(ChartItem item : chartItems) {
-				Row row = getChartRow(chartDataRows, sheet, chartDataRow, 0);
-				Cell cell = row.createCell(colNumber + 1);
-				cell.setCellValue(item.theDate);
-				
-				if(colNumber == 0) {
-					cell = row.createCell(colNumber);
-					cell.setCellValue(localisation.getString("c_date"));
-				}
-				
-				for(int i = 0; i < item.bars.size(); i++) {
-					row = getChartRow(chartDataRows, sheet, chartDataRow, i + 1);
-					cell = row.createCell(colNumber + 1);
-					cell.setCellValue(item.bars.get(i));
+			for(int j = 1; j <= 31; j++) {
+				ChartItem item = chartItems.get(j);
+				if(item != null) {
+					Row row = getChartRow(chartDataRows, sheet, chartDataRow, 0);
+					Cell cell = row.createCell(colNumber + 1);
+					cell.setCellValue(j);
 					
 					if(colNumber == 0) {
 						cell = row.createCell(colNumber);
-						cell.setCellValue(config.bars.get(i).title);
+						cell.setCellValue(localisation.getString("c_date"));
 					}
+					
+					for(int i = 0; i < item.bars.size(); i++) {
+						row = getChartRow(chartDataRows, sheet, chartDataRow, i + 1);
+						cell = row.createCell(colNumber + 1);
+						cell.setCellValue(item.bars.get(i));
+						
+						if(colNumber == 0) {
+							cell = row.createCell(colNumber);
+							cell.setCellValue(config.bars.get(i).title);
+						}
+					}
+					colNumber++;
 				}
-				colNumber++;
 			}
 			rowNumber += 1 + config.bars.size();
 			

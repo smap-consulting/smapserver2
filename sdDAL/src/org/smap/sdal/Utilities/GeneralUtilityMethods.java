@@ -549,7 +549,7 @@ public class GeneralUtilityMethods {
 		log.info("Exec: " + cmd);
 		try {
 
-			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
+			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
 
 			//int code = proc.waitFor();
 			//log.info("Attachment processing finished with status:" + code);

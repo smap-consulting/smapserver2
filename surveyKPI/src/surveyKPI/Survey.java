@@ -750,6 +750,7 @@ public class Survey extends Application {
 				JSONObject jp = new JSONObject();
 				jp.put("id", di.qId);
 				jp.put("name", di.name);
+				jp.put("col", di.columnName);
 				jp.put("first", di.first);
 				jp.put("last", di.last);
 				ja.put(jp);
