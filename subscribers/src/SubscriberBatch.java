@@ -416,6 +416,8 @@ public class SubscriberBatch {
 									log.info("Stopping processing of subscriber: " + s.getSubscriberName());
 									break;
 								}
+								
+								lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION, se.getStatus(), 0);
 							}
 						}
 					} 
