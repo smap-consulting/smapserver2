@@ -77,6 +77,7 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -4750,7 +4751,7 @@ public class GeneralUtilityMethods {
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz);						
+								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz, null, null);						
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 								
 							} else {
@@ -9383,6 +9384,32 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
 			if(pstmtGetLinkers != null) try{pstmtGetLinkers.close();}catch(Exception e) {}
 		}
+	}
+	
+	public static int getLinkedSId(Connection sd, int sId, String filename) throws SQLException {
+		int linked_sId = 0;
+		String sIdent = null;
+		
+		if (filename.startsWith(SurveyTableManager.PD_IDENT)) {			
+			sIdent = filename.substring(SurveyTableManager.PD_IDENT.length());
+		} else if (filename.startsWith("linked_s")){
+			int idx = filename.indexOf('_');
+			sIdent = filename.substring(idx + 1);
+		} else if (filename.startsWith("chart_s")) {  // Form: chart_sxx_yyyy_keyname we want sxx_yyyy
+			int idx1 = filename.indexOf('_');
+			int idx2 = filename.indexOf('_', idx1 + 1);
+			idx2 = filename.indexOf('_', idx2 + 1);
+			sIdent = filename.substring(idx1 + 1, idx2);
+		}
+
+		if (sIdent != null && sIdent.equals("self")) {
+			linked_sId = sId;
+		} else {
+			linked_sId = getSurveyId(sd, sIdent);
+			
+		}
+		
+		return linked_sId;
 	}
 }
 

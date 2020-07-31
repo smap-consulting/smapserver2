@@ -21,6 +21,7 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
 
 import com.google.gson.Gson;
@@ -63,10 +64,11 @@ public class SurveyTableManager {
 		private ArrayList<String> qnames;
 		private boolean hasRbacFilter = false;
 		private ArrayList<SqlFrag> rfArray = null;
+		private ArrayList<SqlFrag> calcArray = null;
 	}
 	
 	LogManager lm = new LogManager(); // Application log
-	private static String PD_IDENT = "linked_s_pd_";
+	public static String PD_IDENT = "linked_s_pd_";
 	
 	Connection sd = null;
 	Connection cResults = null;
@@ -180,7 +182,9 @@ public class SurveyTableManager {
 			String selection, 
 			ArrayList<String> arguments, 
 			ArrayList<String> whereColumns,
-			String tz
+			String tz,
+			ArrayList<SqlFrag> qArray,
+			ArrayList<SqlFrag> fArray
 			) throws Exception {
 		
 		if(sqlDef != null && sqlDef.qnames != null && sqlDef.qnames.size() > 0) {
@@ -226,6 +230,15 @@ public class SurveyTableManager {
 			sql.append(sqlDef.order_by);
 			pstmt = cResults.prepareStatement(sql.toString());
 			int paramCount = 1;
+			if (sqlDef.calcArray != null) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.calcArray, paramCount, tz);
+			}
+			if (qArray != null) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, qArray, paramCount, tz);
+			}
+			if (fArray != null) {
+				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, fArray, paramCount, tz);
+			}
 			if (sqlDef.hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount, tz);
 			}
@@ -234,10 +247,9 @@ public class SurveyTableManager {
 					pstmt.setString(paramCount, key_value);
 				}
 			} else {
-				int paramIndex = 1;
 				if(arguments != null) {
 					for(String arg : arguments) {
-						pstmt.setString(paramIndex++, arg);
+						pstmt.setString(paramCount++, arg);
 					}
 				}
 			}
@@ -603,15 +615,17 @@ public class SurveyTableManager {
 		StringBuffer tabs = new StringBuffer("");
 		StringBuffer order_cols = new StringBuffer("");
 		String linked_s_pd_sel = null;
-		SqlDef sqlDef = new SqlDef();
+		SqlDef sqlDef = new SqlDef();		// TODO why does this override a global sqlDef?
 		ArrayList<String> colNames = new ArrayList<>();
 		ArrayList<String> validatedQuestionNames = new ArrayList<>();
 		ArrayList<String> subTables = new ArrayList<>();
 		HashMap<Integer, Integer> forms = new HashMap<>();
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		
 		ResultSet rs = null;
-		String sqlGetCol = "select column_name, f_id from question " 
+		String sqlGetCol = "select column_name, f_id, qtype, server_calculate from question " 
 				+ "where qname = ? " 
 				+ "and published "
 				+ "and f_id in (select f_id from form where s_id = ?)";
@@ -621,7 +635,7 @@ public class SurveyTableManager {
 				+ "where s_id = ? " 
 				+ "and parentform = ?";
 		PreparedStatement pstmtGetTable = null;
-
+		
 		try {
 			int fId;
 
@@ -644,6 +658,8 @@ public class SurveyTableManager {
 					continue; // Generated not extracted
 				}
 				String colName = null;
+				String colType = null;
+				String serverCalculate = null;
 				String[] multNames = name.split(",");		// Allow for comma separated labels
 				for(String n : multNames) {
 					n = n.trim();
@@ -653,13 +669,28 @@ public class SurveyTableManager {
 					if (rs.next()) {
 						colName = rs.getString(1);
 						fId = rs.getInt(2);
+						colType = rs.getString(3);
+						serverCalculate = rs.getString(4);
+						SqlFrag calculation = null;
+						
+						if(colType.equals("server_calculate") && serverCalculate != null) {
+							ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
+							calculation = new SqlFrag();
+							sc.populateSql(calculation, localisation);
+							colName = calculation.sql.toString();
+							if(sqlDef.calcArray == null) {
+								sqlDef.calcArray = new ArrayList<>();
+							}
+							sqlDef.calcArray.add(calculation);
+						} 
+						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
 						colName = n; // For columns that are not questions such as _hrk, _device
 						fId = topForm.id;
 					} else {
 						continue; // Name not found
 					}
-					colNames.add(colName);
+					colNames.add(n);
 					validatedQuestionNames.add(n);
 					forms.put(fId, fId);
 	
@@ -672,7 +703,7 @@ public class SurveyTableManager {
 					sql.append(n);
 					first = false;
 	
-					order_cols.append(colName);
+					order_cols.append(n);
 				}
 			}
 
