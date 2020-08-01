@@ -150,7 +150,7 @@ public class Lookup extends Application{
 			HashMap<String, String> results = null;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			if(fileName != null) {
-				if(fileName.startsWith("linked_s")) {
+				if(fileName.startsWith("linked_s") || fileName.startsWith("chart_s")) {
 					// Get data from a survey
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());

@@ -511,11 +511,24 @@ public class SurveyTableManager {
 				sIdent = filename.substring(idx + 1);
 			} else if (filename.startsWith("chart_s")) {  // Form: chart_sxx_yyyy_keyname we want sxx_yyyy
 				chart = true;
-				int idx1 = filename.indexOf('_');
-				int idx2 = filename.indexOf('_', idx1 + 1);
-				idx2 = filename.indexOf('_', idx2 + 1);
-				sIdent = filename.substring(idx1 + 1, idx2);
-				chart_key = filename.substring(idx2 + 1);
+				if(filename.startsWith("chart_self")) {
+					sIdent = "self";
+					int idx1 = filename.indexOf('_');
+					int idx2 = filename.indexOf('_', idx1 + 1);
+					if(idx2 > 0) {
+						chart_key = filename.substring(idx2 + 1);
+					}
+				} else {
+					int idx1 = filename.indexOf('_');
+					int idx2 = filename.indexOf('_', idx1 + 1);
+					idx2 = filename.indexOf('_', idx2 + 1);
+					if(idx2 > 0) {
+						sIdent = filename.substring(idx1 + 1, idx2);
+						chart_key = filename.substring(idx2 + 1);
+					} else {
+						sIdent = filename.substring(idx1 + 1);
+					}
+				}
 			}
 
 			if (sIdent != null && sIdent.equals("self")) {
