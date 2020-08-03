@@ -9411,5 +9411,29 @@ public class GeneralUtilityMethods {
 		
 		return linked_sId;
 	}
+	
+	/*
+	 * Check to see with the user is temporary
+	 */
+	public static boolean isTemporaryUser(Connection sd, String uIdent) throws SQLException {
+		
+		boolean temp = false;
+		
+		String sql = "select temporary from users where ident = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, uIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				temp = rs.getBoolean(1);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		
+		return temp;
+	}
 }
 

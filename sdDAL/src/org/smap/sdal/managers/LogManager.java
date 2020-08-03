@@ -72,6 +72,8 @@ public class LogManager {
 	public static String ROLE = "role";
 	public static String LIMIT = "limit";
 	public static String SUBMISSION = "submissions";
+	public static String SUBMISSION_ANON = "anonymous submissions";
+	public static String SUBMISSION_TASK = "task submissions";
 	public static String API_CSV_VIEW = "API CSV view";
 	public static String API_VIEW = "API view";
 	public static String API_AUDIT_VIEW = "API audit view";
