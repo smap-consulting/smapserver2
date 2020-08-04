@@ -4,10 +4,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -80,7 +83,8 @@ public class ResourceManager {
 	public int getUsageMeasure(Connection sd, int oId, int month, int year, String resource) throws SQLException {
 		
 		StringBuilder sb = new StringBuilder("select  sum(measure) as total from log where event = ?")
-				.append(" and extract(month from log_time) = ? and extract(year from log_time) = ?");
+				//.append(" and extract(month from log_time) = ? and extract(year from log_time) = ?");
+				.append(" and log_time >=  ? and log_time < ?");
 		
 		if(oId > 0) {
 			sb.append(" and o_id = ?");
@@ -90,14 +94,20 @@ public class ResourceManager {
 		int usage = 0;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmt = sd.prepareStatement(sb.toString());
 			pstmt.setString(1,  resource);
-			pstmt.setInt(2, month);
-			pstmt.setInt(3, year);
+			//pstmt.setInt(2, month);
+			//pstmt.setInt(3, year);
+			pstmt.setTimestamp(2, t1);
+			pstmt.setTimestamp(3, t2);
 			if(oId > 0) {
 				pstmt.setInt(4, oId);
 			}
 			
+			log.info("Get resource usage: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 		
 			if(rs.next()) {

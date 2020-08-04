@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.logging.Level;
@@ -17,6 +18,7 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.TaskFeature;
 import org.smap.sdal.model.TaskListGeoJson;
 import org.smap.sdal.model.TaskProperties;
@@ -162,8 +164,10 @@ public class MiscPDFManager {
 						+ "where ue.ue_id = se.ue_id "
 						+ "and se.status = 'success' "
 						+ "and se.subscriber = 'results_db' "
-						+ "and extract(month from upload_time) = ? " 	// current month
-						+ "and extract(year from upload_time) = ? " 		// current year
+						//+ "and extract(month from upload_time) = ? " 	// current month
+						//+ "and extract(year from upload_time) = ? " 		// current year
+						+ "and upload_time >=  ? "		// current month
+						+ "and upload_time < ? "		// next month
 						+ "and ue.user_name = users.ident) as month, "
 					+ "(select count (*) from upload_event ue, subscriber_event se "
 						+ "where ue.ue_id = se.ue_id "
@@ -175,9 +179,14 @@ public class MiscPDFManager {
 					+ "and not users.temporary " 
 					+ "order by users.ident;";
 			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
+			pstmt.setTimestamp(1, t1);
+			pstmt.setTimestamp(2, t2);
+			//pstmt.setInt(1, month);
+			//pstmt.setInt(2, year);
 			pstmt.setInt(3, o_id);
 			log.info("Get Usage Data: " + pstmt.toString());
 

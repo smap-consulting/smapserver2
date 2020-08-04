@@ -344,8 +344,10 @@ public class Billing extends Application {
 				+ "where ue.ue_id = se.ue_id "
 				+ "and se.status = 'success' "
 				+ "and subscriber = 'results_db' "
-				+ "and extract(month from upload_time) = ? "
-				+ "and extract(year from upload_time) = ? ";	
+				+ "and upload_time >=  ? "		// current month
+				+ "and upload_time < ? ";		// next month
+				//+ "and extract(month from upload_time) = ? "
+				//+ "and extract(year from upload_time) = ? ";	
 		if(oId > 0) {
 			sql += "and o_id = ?";
 		} else if(eId > 0) {
@@ -354,9 +356,14 @@ public class Billing extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
+			//pstmt.setInt(1, month);
+			//pstmt.setInt(2, year);
+			pstmt.setTimestamp(1, t1);
+			pstmt.setTimestamp(2, t2);
 			if(oId > 0) {
 				pstmt.setInt(3, oId);
 			} else if(eId > 0) {
@@ -445,14 +452,21 @@ public class Billing extends Application {
 		String sqlStaticMap = "select  count(*) as total "
 				+ "from log "
 				+ "where event = 'Mapbox Request' "
-				+ "and extract(month from log_time) = ? "
-				+ "and extract(year from log_time) = ?";
+				//+ "and extract(month from log_time) = ? "
+				//+ "and extract(year from log_time) = ?";
+				+ "and log_time >=  ? "		// current month
+				+ "and log_time < ? ";		// next month
 		PreparedStatement pstmt = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmt = sd.prepareStatement(sqlStaticMap);
-			pstmt.setInt(1, month);
-			pstmt.setInt(2, year);
+			//pstmt.setInt(1, month);
+			//pstmt.setInt(2, year);
+			pstmt.setTimestamp(1, t1);
+			pstmt.setTimestamp(2, t2);
 			
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
@@ -477,15 +491,22 @@ public class Billing extends Application {
 		String sqlRekognition = "select  count(*) as total "
 				+ "from log "
 				+ "where event = ? "
-				+ "and extract(month from log_time) = ? "
-				+ "and extract(year from log_time) = ?";
+				//+ "and extract(month from log_time) = ? "
+				//+ "and extract(year from log_time) = ?";
+				+ "and log_time >=  ? "		// current month
+				+ "and log_time < ? ";		// next month
 		PreparedStatement pstmt = null;
 		
 		try {
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, 1);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextMonth(t1);
+			
 			pstmt = sd.prepareStatement(sqlRekognition);
 			pstmt.setString(1, LogManager.REKOGNITION);
-			pstmt.setInt(2, month);
-			pstmt.setInt(3, year);
+			//pstmt.setInt(2, month);
+			//pstmt.setInt(3, year);
+			pstmt.setTimestamp(2, t1);
+			pstmt.setTimestamp(3, t2);
 			
 			ResultSet rs = pstmt.executeQuery();
 		

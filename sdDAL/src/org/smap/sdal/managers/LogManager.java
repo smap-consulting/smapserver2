@@ -1,9 +1,11 @@
 package org.smap.sdal.managers;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -190,22 +192,22 @@ public class LogManager {
 					+ "event "
 					+ "from log l "
 					+ "where l.o_id = ? "
-					+ "and extract(year from timezone(?, log_time)) = ? "
-					+ "and extract(month from timezone(?, log_time)) = ? "
-					+ "and extract(day from timezone(?, log_time)) = ? "
+					+ "and timezone(?, l.log_time) >=  ? "
+					+ "and timezone(?, l.log_time) < ? "
 					+ "group by hour, event "
 					+ "order by hour asc";
+			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
 			
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;
 			pstmt.setString(paramCount++, tz);
 			pstmt.setInt(paramCount++, oId);	
 			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, year);
+			pstmt.setTimestamp(paramCount++, t1);
 			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, month);
-			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, day);
+			pstmt.setTimestamp(paramCount++, t2);
 			
 			log.info("Get data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
@@ -252,20 +254,20 @@ public class LogManager {
 					+ "l.event, o.name "
 					+ "from log l, organisation o "
 					+ "where l.o_id = o.id "
-					+ "and extract(year from timezone(?, l.log_time)) = ? "
-					+ "and extract(month from timezone(?, l.log_time)) = ? "
-					+ "and extract(day from timezone(?, l.log_time)) = ? "
+					+ "and timezone(?, l.log_time) >=  ? "
+					+ "and timezone(?, l.log_time) < ? "
 					+ "group by name, event "
 					+ "order by name asc";
 			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+		
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;
 			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, year);
+			pstmt.setTimestamp(paramCount++, t1);
 			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, month);
-			pstmt.setString(paramCount++, tz);
-			pstmt.setInt(paramCount++, day);
+			pstmt.setTimestamp(paramCount++, t2);
 			
 			log.info("Get data: " + pstmt.toString());
 			rs = pstmt.executeQuery();
