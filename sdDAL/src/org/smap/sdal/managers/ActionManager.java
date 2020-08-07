@@ -664,7 +664,7 @@ public class ActionManager {
 							.append(f.tableName)
 							.append(" where instanceid = ?");
 					
-					try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+					try {if (pstmtGetValue != null) {pstmtGetValue.close();}} catch (Exception e) {}
 					pstmtGetValue = cResults.prepareStatement(sb.toString());
 					pstmtGetValue.setString(1, instanceId);
 					ResultSet rs = pstmtGetValue.executeQuery();
