@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response;
 
 import org.smap.model.SurveyTemplate;
 import org.smap.model.TableManager;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
@@ -52,6 +53,8 @@ import org.smap.sdal.model.SurveyViewDefn;
 import org.smap.sdal.model.TableColumn;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
+
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -133,7 +136,8 @@ public class ManagedForms extends Application {
 			@PathParam("groupSurvey") String groupSurvey,
 			@FormParam("groupForm") String groupForm,
 			@FormParam("updates") String updatesString,
-			@FormParam("instanceid") String instanceid
+			@FormParam("instanceid") String instanceid,
+			@FormParam("bulkInstances") String bulkInstanceString
 			) { 
 		
 		Response response = null;
@@ -161,8 +165,32 @@ public class ManagedForms extends Application {
 			String tz = "UTC";
 			
 			ActionManager am = new ActionManager(localisation, tz);
-			response = am.processUpdateGroupSurvey(request, sd, cResults, 
-					request.getRemoteUser(), sId, instanceid, groupSurvey, groupForm, updatesString);
+			
+			// Get records to update
+			ArrayList<String> instances = null;
+			boolean bulk = false;
+			if(bulkInstanceString != null) {
+				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+				instances = gson.fromJson(bulkInstanceString,  new TypeToken<ArrayList<String>>() {}.getType());
+				if(instances.size() > 0) {
+					bulk = true;
+				}
+			}
+			
+			if(instances == null || instances.size() == 0) {
+				if(instanceid != null) {
+					instances = new ArrayList<> ();
+					instances.add(instanceid);
+				}
+			}
+			if(instances == null || instances.size() == 0) {
+				throw(new ApplicationException("No instances to vulk update"));
+			}
+			for(String instance : instances) {
+				response = am.processUpdateGroupSurvey(request, sd, cResults, 
+						request.getRemoteUser(), sId, instance, groupSurvey, groupForm, updatesString, bulk);
+			}
+			
 			
 			GeneralUtilityMethods.clearLinkedForms(sd, sId, localisation);  // Clear any entries in linked_forms for this survey - The CSV files will need to be refreshed
 

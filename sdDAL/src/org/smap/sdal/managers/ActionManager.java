@@ -86,6 +86,7 @@ public class ActionManager {
 		String value;
 		String currentValue;
 		int prikey;
+		boolean clear;
 	}
 
 	/*
@@ -555,7 +556,8 @@ public class ActionManager {
 			String instanceId,
 			String groupSurvey, 
 			String groupForm,
-			String updateString) throws SQLException {
+			String updateString,
+			boolean bulk) throws SQLException {
 
 		Response response = null;
 
@@ -566,6 +568,7 @@ public class ActionManager {
 		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 		
 		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtGetValue = null;
 
 		try {
 
@@ -649,6 +652,14 @@ public class ActionManager {
 					throw new Exception(u.name + " " + localisation.getString("mf_nu"));
 				}
 
+				/*
+				 * If this is a bulk update then for a select question the specified value is
+				 * either set or cleared from the current value
+				 */
+				if(bulk && tc.type.equals("select")) {
+					StringBuilder sb = new StringBuilder("");
+				}
+				
 				String sqlUpdate = "update " + f.tableName;
 
 				if (u.value == null) {
@@ -660,7 +671,7 @@ public class ActionManager {
 						sqlUpdate += " set " + u.name + " = ? ";
 					}
 				}
-				sqlUpdate += "where " + "prikey = ? ";
+				sqlUpdate += "where instanceid = ? ";
 
 				try {
 					if (pstmtUpdate != null) {
@@ -697,7 +708,7 @@ public class ActionManager {
 						pstmtUpdate.setString(paramCount++, u.value);
 					}
 				}
-				pstmtUpdate.setInt(paramCount++, u.prikey);
+				pstmtUpdate.setString(paramCount++, instanceId);
 
 				log.info("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();
@@ -776,6 +787,7 @@ public class ActionManager {
 
 			try {log.info("Set autocommit true");cResults.setAutoCommit(true);} catch (Exception ex) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+			try {if (pstmtGetValue != null) {pstmtGetValue.close();}} catch (Exception e) {}
 
 		}
 
