@@ -653,10 +653,9 @@ public class ActionManager {
 				}
 
 				/*
-				 * If this is a bulk update then for a select question the specified value is
-				 * either set or cleared from the current value
+				 * If this is a bulk update then get the original value for this record
 				 */
-				if(bulk && tc.type.equals("select")) {
+				if(bulk) {
 					
 					StringBuilder sb = new StringBuilder("select ")
 							.append(u.name)
@@ -670,7 +669,13 @@ public class ActionManager {
 					ResultSet rs = pstmtGetValue.executeQuery();
 					if(rs.next()) {
 						String v = rs.getString(1);
-						u.value = mergeSelMultValue(v, u.value, u.clear);
+						u.currentValue = v;
+						/*
+						 * If this is a bulk change to a select question then he value is eiher set or cleared
+						 */
+						if(tc.type.equals("select")) {
+							u.value = mergeSelMultValue(v, u.value, u.clear);
+						}
 					}
 					rs.close();
 				}
