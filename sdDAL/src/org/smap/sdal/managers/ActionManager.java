@@ -657,7 +657,19 @@ public class ActionManager {
 				 * either set or cleared from the current value
 				 */
 				if(bulk && tc.type.equals("select")) {
-					StringBuilder sb = new StringBuilder("");
+					StringBuilder sb = new StringBuilder("select ")
+							.append(u.name)
+							.append(" from ")
+							.append(f.tableName)
+							.append(" where instanceid = ?");
+					pstmtGetValue = cResults.prepareStatement(sb.toString());
+					pstmtGetValue.setString(1, instanceId);
+					ResultSet rs = pstmtGetValue.executeQuery();
+					if(rs.next()) {
+						String v = rs.getString(1);
+						u.value = mergeSelMultValue(v, u.value, u.clear);
+					}
+					rs.close();
 				}
 				
 				String sqlUpdate = "update " + f.tableName;
@@ -673,12 +685,7 @@ public class ActionManager {
 				}
 				sqlUpdate += "where instanceid = ? ";
 
-				try {
-					if (pstmtUpdate != null) {
-						pstmtUpdate.close();
-					}
-				} catch (Exception e) {
-				}
+				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
 				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
 
 				// Set the parameters
@@ -858,5 +865,32 @@ public class ActionManager {
 		}
 		
 		return users;
+	}
+	
+	String mergeSelMultValue(String in, String change, boolean clear) {
+		
+		StringBuilder out = new StringBuilder("");
+		change = change.trim();
+		HashMap<String, String> inMap = new HashMap<>();
+		
+		if(in != null) {
+			String[] a = in.split(" ");
+			for(int i = 0; i < a.length; i++) {
+				inMap.put(a[i], a[i]);
+			}
+		}
+		
+		if(clear) {
+			inMap.remove(change);
+		} else {
+			inMap.put(change, change);
+		}
+		for(String k : inMap.keySet()) {
+			if(out.length() > 0) {
+				out.append(" ");
+			}
+			out.append(k);
+		}
+		return out.toString();
 	}
 }
