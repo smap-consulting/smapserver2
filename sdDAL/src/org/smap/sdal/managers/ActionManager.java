@@ -657,11 +657,14 @@ public class ActionManager {
 				 * either set or cleared from the current value
 				 */
 				if(bulk && tc.type.equals("select")) {
+					
 					StringBuilder sb = new StringBuilder("select ")
 							.append(u.name)
 							.append(" from ")
 							.append(f.tableName)
 							.append(" where instanceid = ?");
+					
+					try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
 					pstmtGetValue = cResults.prepareStatement(sb.toString());
 					pstmtGetValue.setString(1, instanceId);
 					ResultSet rs = pstmtGetValue.executeQuery();
@@ -672,21 +675,28 @@ public class ActionManager {
 					rs.close();
 				}
 				
-				String sqlUpdate = "update " + f.tableName;
+				StringBuilder sqlUpdate = new StringBuilder("update ")
+						.append(f.tableName);
 
 				if (u.value == null) {
-					sqlUpdate += " set " + u.name + " = null ";
+					sqlUpdate.append(" set ")
+						.append(u.name)
+						.append(" = null ");
 				} else {
 					if(tc.type.equals("geopoint")) {
-						sqlUpdate += " set " + u.name + " = ST_GeomFromText(? ,4326) "; 
+						sqlUpdate.append(" set ")
+							.append(u.name)
+							.append(" = ST_GeomFromText(? ,4326) "); 
 					} else {
-						sqlUpdate += " set " + u.name + " = ? ";
+						sqlUpdate.append(" set ")
+							.append(u.name)
+							.append(" = ? ");
 					}
 				}
-				sqlUpdate += "where instanceid = ? ";
+				sqlUpdate.append("where instanceid = ? ");
 
 				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
-				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
+				pstmtUpdate = cResults.prepareStatement(sqlUpdate.toString());
 
 				// Set the parameters
 				int paramCount = 1;
