@@ -601,6 +601,7 @@ public class MyAssignments extends Application {
 					+ "o.ft_odk_style_menus, "
 					+ "o.ft_specify_instancename, "
 					+ "o.ft_prevent_disable_track, "
+					+ "o.ft_enable_geofence, "
 					+ "o.ft_admin_menu, "
 					+ "o.ft_server_menu, "
 					+ "o.ft_meta_menu, "
@@ -623,30 +624,31 @@ public class MyAssignments extends Application {
 			resultSet = pstmtGetSettings.executeQuery();
 
 			if(resultSet.next()) {
-				tr.settings.ft_delete = resultSet.getString(1);
+				tr.settings.ft_delete = resultSet.getString("ft_delete");
 				tr.settings.ft_delete_submitted = Organisation.get_ft_delete_submitted(tr.settings.ft_delete);		// deprecated
-				tr.settings.ft_send_location = resultSet.getString(2);
+				tr.settings.ft_send_location = resultSet.getString("ft_send_location");
 				if(tr.settings.ft_send_location == null) {
 					tr.settings.ft_send_location = "off";
 				}
-				tr.settings.ft_sync_incomplete = resultSet.getBoolean(3);
-				tr.settings.ft_odk_style_menus = resultSet.getBoolean(4);
-				tr.settings.ft_specify_instancename = resultSet.getBoolean(5);
-				tr.settings.ft_prevent_disable_track = resultSet.getBoolean(6);
-				tr.settings.ft_admin_menu = resultSet.getBoolean(7);
-				tr.settings.ft_server_menu = resultSet.getBoolean(8);
-				tr.settings.ft_meta_menu = resultSet.getBoolean(9);
-				tr.settings.ft_exit_track_menu = resultSet.getBoolean(10);
-				tr.settings.ft_review_final = resultSet.getBoolean(11);
-				tr.settings.ft_send = resultSet.getString(12);
+				tr.settings.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
+				tr.settings.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
+				tr.settings.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
+				tr.settings.ft_prevent_disable_track = resultSet.getBoolean("ft_prevent_disable_track");
+				tr.settings.ft_enable_geofence = resultSet.getBoolean("ft_enable_geofence");
+				tr.settings.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
+				tr.settings.ft_server_menu = resultSet.getBoolean("ft_server_menu");
+				tr.settings.ft_meta_menu = resultSet.getBoolean("ft_meta_menu");
+				tr.settings.ft_exit_track_menu = resultSet.getBoolean("ft_exit_track_menu");
+				tr.settings.ft_review_final = resultSet.getBoolean("ft_review_final");
+				tr.settings.ft_send = resultSet.getString("ft_send");
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
 				tr.settings.ft_send_wifi_cell = Organisation.get_ft_send_wifi_cell(tr.settings.ft_send);
-				tr.settings.ft_image_size = resultSet.getString(13);
-				tr.settings.ft_backward_navigation = resultSet.getString(14);
-				tr.settings.ft_navigation = resultSet.getString(15);
-				tr.settings.ft_pw_policy = resultSet.getInt(16);
-				tr.settings.ft_high_res_video = resultSet.getString(17);
-				tr.settings.ft_guidance = resultSet.getString(18);
+				tr.settings.ft_image_size = resultSet.getString("ft_image_size");
+				tr.settings.ft_backward_navigation = resultSet.getString("ft_backward_navigation");
+				tr.settings.ft_navigation = resultSet.getString("ft_navigation");
+				tr.settings.ft_pw_policy = resultSet.getInt("ft_pw_policy");
+				tr.settings.ft_high_res_video = resultSet.getString("ft_high_res_video");
+				tr.settings.ft_guidance = resultSet.getString("ft_guidance");
 				tr.settings.ft_location_trigger = true;
 			}
 

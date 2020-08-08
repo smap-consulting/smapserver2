@@ -9,6 +9,7 @@ public class FieldTaskSettings {
 	public boolean ft_odk_style_menus;
 	public boolean ft_specify_instancename;
 	public boolean ft_prevent_disable_track;
+	public boolean ft_enable_geofence;
 	public boolean ft_admin_menu;
 	public boolean ft_server_menu;
 	public boolean ft_meta_menu;
