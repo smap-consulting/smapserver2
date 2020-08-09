@@ -634,7 +634,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
 				tr.settings.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
 				tr.settings.ft_prevent_disable_track = resultSet.getBoolean("ft_prevent_disable_track");
-				tr.settings.ft_enable_geofence = resultSet.getBoolean("ft_enable_geofence");
+				tr.settings.setFtEnableGeofence(resultSet.getBoolean("ft_enable_geofence"));
 				tr.settings.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
 				tr.settings.ft_server_menu = resultSet.getBoolean("ft_server_menu");
 				tr.settings.ft_meta_menu = resultSet.getBoolean("ft_meta_menu");
