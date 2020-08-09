@@ -383,13 +383,13 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+			log.info("Getting csv file name (survey lvl): " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
 				choices = readChoicesFromTable(rs.getInt(1), ovalue, items, matches, fileName, wfFilters);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
-				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+				log.info("Getting csv file name (organisational): " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					choices = readChoicesFromTable(rsx.getInt(1), ovalue, items, matches, fileName, wfFilters);	
@@ -423,17 +423,19 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+			log.info("Getting csv file name for lookup value: (survey level) " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
 				record = readRecordFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
-				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+				log.info("Getting csv file name fo lookup value: (organisation level) " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					record = readRecordFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName);	
-				}				
+				} else {
+					log.info("record not found");
+				}
 			}
 		} finally {
 			try {pstmtGetCsvTable.close();} catch(Exception e) {}
@@ -460,14 +462,14 @@ public class CsvTableManager {
 			pstmtGetCsvTable.setInt(1, oId);
 			pstmtGetCsvTable.setInt(2, sId);
 			pstmtGetCsvTable.setString(3, fileName);
-			log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+			log.info("Getting csv file name: (survey)" + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
 				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, fileName,
 						selection, arguments, whereColumns);	
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
-				log.info("Getting csv file name: " + pstmtGetCsvTable.toString());
+				log.info("Getting csv file name: (organisation)" + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
 					choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 

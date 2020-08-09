@@ -18,6 +18,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
+
 import model.LogItemDt;
 import model.LogsDt;
 
@@ -34,6 +35,7 @@ import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -42,6 +44,9 @@ import javax.ws.rs.core.Response;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.model.HourlyLogSummaryItem;
+import org.smap.sdal.model.OrgLogSummaryItem;
 
 /*
  * Provides access to collected data
@@ -50,6 +55,7 @@ import org.smap.sdal.Utilities.SDDataSource;
 public class Log extends Application {
 	
 	Authorise a = null;
+	Authorise aOrg = null;
 	
 	private static Logger log =
 			 Logger.getLogger(Log.class.getName());
@@ -59,6 +65,11 @@ public class Log extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
+		
+		 authorisations = new ArrayList<String> ();
+		 authorisations.add(Authorise.ORG);
+		 aOrg = new Authorise(authorisations, null);
+		 
 	}
 	
 	@GET
@@ -116,6 +127,7 @@ public class Log extends Application {
 		
 		return response;
 	}
+	
 	/*
 	 * DataTables API version 1 /log
 	 * Get log entries
@@ -194,6 +206,99 @@ public class Log extends Application {
 		
 		return response;
 		
+	}
+	
+	/*
+	 * Hourly summary log
+	 */
+	@GET
+	@Path("/hourly/{year}/{month}/{day}")
+	@Produces("application/json")
+	public Response getDailyLogs(@Context HttpServletRequest request,
+			@PathParam("year") int year,
+			@PathParam("month") int month,
+			@PathParam("day") int day,
+			@QueryParam("tz") String tz
+			) { 
+		
+		String connectionString = "API - get summary hourly logs";
+		Response response = null;
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		
+		PreparedStatement pstmt = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+		
+			LogManager lm = new LogManager();
+			ArrayList<HourlyLogSummaryItem> logs = lm.getSummaryLogEntriesForDay(sd, oId, year, month, day, tz);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.ok(e.getMessage()).build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Organisation summary log
+	 */
+	@GET
+	@Path("/organisation/{year}/{month}/{day}")
+	@Produces("application/json")
+	public Response getDailyOrgLogs(@Context HttpServletRequest request,
+			@PathParam("year") int year,
+			@PathParam("month") int month,
+			@PathParam("day") int day,
+			@QueryParam("tz") String tz
+			) { 
+		
+		String connectionString = "API - get summary org logs";
+		Response response = null;
+		
+		// Authorisation
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aOrg.isAuthorised(sd, request.getRemoteUser());
+		
+		PreparedStatement pstmt = null;
+		
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		try {
+			
+			LogManager lm = new LogManager();
+			ArrayList<OrgLogSummaryItem> logs = lm.getOrgSummaryLogEntriesForDay(sd, year, month, day, tz);
+			
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			response = Response.ok(gson.toJson(logs)).build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.ok(e.getMessage()).build();
+		} finally {
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+			
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
 	}
 	
 	/*
@@ -282,6 +387,7 @@ public class Log extends Application {
 		
 		return items;
 	}
+
 
 }
 

@@ -512,10 +512,6 @@ public class UtilityMethodsEmail {
 		boolean alreadySent = false;
 		interval = interval.replace("'", "''");	// Escape apostrophes
 
-		/*
-		 * Update the users table by adding the UUID and expiry time
-		 * Do a case insensitive test against email
-		 */
 		String sql = "select count(*) from users "
 				+ "where "
 				+ "one_time_password_expiry > (timestamp 'now' + interval '" + interval + "') "

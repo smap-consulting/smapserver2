@@ -77,6 +77,7 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -549,13 +550,13 @@ public class GeneralUtilityMethods {
 		log.info("Exec: " + cmd);
 		try {
 
-			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
+			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
 
-			int code = proc.waitFor();
-			log.info("Attachment processing finished with status:" + code);
-			if (code != 0) {
-				log.info("Error: Attachment processing failed");
-			}
+			//int code = proc.waitFor();
+			//log.info("Attachment processing finished with status:" + code);
+			//if (code != 0) {
+			//	log.info("Error: Attachment processing failed");
+			//}
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -573,13 +574,13 @@ public class GeneralUtilityMethods {
 		log.info("Exec: " + cmd);
 		try {
 
-			Process proc = Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
+			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
 
-			int code = proc.waitFor();
-			log.info("Attachment processing finished with status:" + code);
-			if (code != 0) {
-				log.info("Error: Attachment processing failed");
-			}
+			//int code = proc.waitFor();
+			//log.info("Attachment processing finished with status:" + code);
+			//if (code != 0) {
+			//	log.info("Error: Attachment processing failed");
+			//}
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -4750,7 +4751,7 @@ public class GeneralUtilityMethods {
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz);						
+								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz, null, null);						
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 								
 							} else {
@@ -9383,6 +9384,86 @@ public class GeneralUtilityMethods {
 			if(pstmt != null) try{pstmt.close();}catch(Exception e) {}
 			if(pstmtGetLinkers != null) try{pstmtGetLinkers.close();}catch(Exception e) {}
 		}
+	}
+	
+	public static int getLinkedSId(Connection sd, int sId, String filename) throws SQLException {
+		int linked_sId = 0;
+		String sIdent = null;
+		
+		if (filename.startsWith(SurveyTableManager.PD_IDENT)) {			
+			sIdent = filename.substring(SurveyTableManager.PD_IDENT.length());
+		} else if (filename.startsWith("linked_s")){
+			int idx = filename.indexOf('_');
+			sIdent = filename.substring(idx + 1);
+		} else if (filename.startsWith("chart_s")) {  // Form: chart_sxx_yyyy_keyname we want sxx_yyyy
+			int idx1 = filename.indexOf('_');
+			int idx2 = filename.indexOf('_', idx1 + 1);
+			idx2 = filename.indexOf('_', idx2 + 1);
+			sIdent = filename.substring(idx1 + 1, idx2);
+		}
+
+		if (sIdent != null && sIdent.equals("self")) {
+			linked_sId = sId;
+		} else {
+			linked_sId = getSurveyId(sd, sIdent);
+			
+		}
+		
+		return linked_sId;
+	}
+	
+	/*
+	 * Check to see with the user is temporary
+	 */
+	public static boolean isTemporaryUser(Connection sd, String uIdent) throws SQLException {
+		
+		boolean temp = false;
+		
+		String sql = "select temporary from users where ident = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, uIdent);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				temp = rs.getBoolean(1);
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		
+		return temp;
+	}
+	
+	public static Timestamp getTimestampFromParts(int year, int month, int day) {
+		
+		Calendar cal = Calendar.getInstance();
+		cal.set(Calendar.YEAR, year);
+		cal.set(Calendar.MONTH, month - 1);
+		cal.set(Calendar.DAY_OF_MONTH, day);
+		cal.set(Calendar.HOUR_OF_DAY, 0);
+		cal.set(Calendar.MINUTE, 0);
+		cal.set(Calendar.SECOND, 0);
+		cal.set(Calendar.MILLISECOND, 0);
+		return new Timestamp(cal.getTime().getTime());
+		
+	}
+	
+	public static Timestamp getTimestampNextDay(Timestamp tIn) {
+		
+		Calendar c = Calendar.getInstance(); 
+		c.setTime(tIn); 
+		c.add(Calendar.DATE, 1);
+		return new Timestamp(c.getTime().getTime());
+	}
+	
+public static Timestamp getTimestampNextMonth(Timestamp tIn) {
+		
+		Calendar c = Calendar.getInstance(); 
+		c.setTime(tIn); 
+		c.add(Calendar.MONTH, 1);
+		return new Timestamp(c.getTime().getTime());
 	}
 }
 

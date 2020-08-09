@@ -1,12 +1,18 @@
 package org.smap.sdal.managers;
 
 import java.sql.Connection;
+import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.model.HourlyLogSummaryItem;
+import org.smap.sdal.model.OrgLogSummaryItem;
 
 /*****************************************************************************
 
@@ -37,8 +43,10 @@ public class LogManager {
 	
 	// Event types
 	public static String CREATE = "create";
+	public static String CREATE_PDF = "create pdf";
 	public static String REPLACE = "replace";
 	public static String DELETE = "delete";
+	public static String RESTORE = "restore";
 	public static String EMAIL = "email";
 	public static String EMAIL_TASK = "email task";
 	public static String ERASE = "erase";
@@ -52,6 +60,11 @@ public class LogManager {
 	public static String REMINDER = "reminder";
 	public static String MAILOUT = "mailout";
 	public static String VIEW = "view";
+	public static String USER_ACTIVITY_VIEW = "user acivity view";
+	public static String USER_LOCATION_VIEW = "user location view";
+	public static String DASHBOARD_VIEW = "dashboard view";
+	public static String INSTANCE_VIEW = "Access instance data for a task";
+	public static String GENERATE_REPORT_VIEW = "generate report view";
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
 	public static String TASK_REJECT = "reject task";
@@ -61,6 +74,13 @@ public class LogManager {
 	public static String ROLE = "role";
 	public static String LIMIT = "limit";
 	public static String SUBMISSION = "submissions";
+	public static String SUBMISSION_ANON = "anonymous submissions";
+	public static String SUBMISSION_TASK = "task submissions";
+	public static String API_CSV_VIEW = "API CSV view";
+	public static String API_VIEW = "API view";
+	public static String API_AUDIT_VIEW = "API audit view";
+	public static String API_SINGLE_VIEW = "API single record view";
+	public static String MAPBOX_REQUEST = "Mapbox Request";
 	
 	/*
 	 * Write a log entry that includes the survey id
@@ -148,6 +168,130 @@ public class LogManager {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
 		}
+	}
+	
+	/*
+	 * Get the summary data per hour
+	 */
+	public ArrayList<HourlyLogSummaryItem> getSummaryLogEntriesForDay(
+			Connection sd, 
+			int oId,
+			int year,
+			int month,
+			int day,
+			String tz) throws SQLException {
+		
+		ArrayList<HourlyLogSummaryItem> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select  count(*) as count, "
+					+ "extract(hour from timezone(?, log_time)) as hour, "
+					+ "event "
+					+ "from log l "
+					+ "where l.o_id = ? "
+					+ "and timezone(?, l.log_time) >=  ? "
+					+ "and timezone(?, l.log_time) < ? "
+					+ "group by hour, event "
+					+ "order by hour asc";
+			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+			
+			pstmt = sd.prepareStatement(sql);
+			int paramCount = 1;
+			pstmt.setString(paramCount++, tz);
+			pstmt.setInt(paramCount++, oId);	
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t1);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t2);
+			
+			log.info("Get data: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			int hour = -1;	
+			HourlyLogSummaryItem item = null;
+			while (rs.next()) {
+			
+				int dHour = rs.getInt("hour");
+				if(dHour != hour) {
+					item = new HourlyLogSummaryItem();
+					items.add(item);
+					item.hour = dHour;
+					hour = dHour;
+				}
+				item.events.put(rs.getString("event"), rs.getInt("count"));
+
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
+	}
+	
+	/*
+	 * Get the summary data per orgaisation
+	 */
+	public ArrayList<OrgLogSummaryItem> getOrgSummaryLogEntriesForDay(
+			Connection sd, 
+			int year,
+			int month,
+			int day,
+			String tz) throws SQLException {
+		
+		ArrayList<OrgLogSummaryItem> items = new ArrayList<> ();
+		PreparedStatement pstmt = null;
+		ResultSet rs = null;
+		
+		try {
+
+			String sql = "select  count(*) as count, "
+					+ "l.event, o.name "
+					+ "from log l, organisation o "
+					+ "where l.o_id = o.id "
+					+ "and timezone(?, l.log_time) >=  ? "
+					+ "and timezone(?, l.log_time) < ? "
+					+ "group by name, event "
+					+ "order by name asc";
+			
+			Timestamp t1 = GeneralUtilityMethods.getTimestampFromParts(year, month, day);
+			Timestamp t2 = GeneralUtilityMethods.getTimestampNextDay(t1);
+		
+			pstmt = sd.prepareStatement(sql);
+			int paramCount = 1;
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t1);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setTimestamp(paramCount++, t2);
+			
+			log.info("Get data: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+				
+			String org = null;	
+			OrgLogSummaryItem item = null;
+			while (rs.next()) {
+			
+				String dOrg = rs.getString("name");
+				if(org == null || !dOrg.equals(org)) {
+					item = new OrgLogSummaryItem();
+					items.add(item);
+					item.organisation = dOrg;
+					org = dOrg;
+				}
+				item.events.put(rs.getString("event"), rs.getInt("count"));
+
+			}
+		} finally {
+			try {if (rs != null) {rs.close();}} catch (SQLException e) {	}
+			try {if (pstmt != null) {pstmt.close();	}} catch (SQLException e) {	}
+		}
+		
+		return items;
 	}
 	
 }

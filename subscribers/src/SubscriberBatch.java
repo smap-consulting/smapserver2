@@ -416,6 +416,14 @@ public class SubscriberBatch {
 									log.info("Stopping processing of subscriber: " + s.getSubscriberName());
 									break;
 								}
+								
+								if(ue.getAssignmentId() > 0) {
+									lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION_TASK, se.getStatus(), 0);
+								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
+									lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION_ANON, se.getStatus(), 0);
+								} else {
+									lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION, se.getStatus(), 0);
+								}
 							}
 						}
 					} 

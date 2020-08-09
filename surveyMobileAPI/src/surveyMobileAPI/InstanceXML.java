@@ -115,7 +115,7 @@ public class InstanceXML extends Application{
 		a.isValidSurvey(sd, user, survey.id, false, superUser);	// Validate that the user can access this survey
 		a.isBlocked(sd, survey.id, false);			// Validate that the survey is not blocked
 		
-		lm.writeLog(sd, survey.id, request.getRemoteUser(), "view", "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval, 0);
+		lm.writeLog(sd, survey.id, request.getRemoteUser(), LogManager.INSTANCE_VIEW, "Get results instance: priKey=" + priKey + " key=" + key + " keyval=" + keyval, 0);
 		
 		SDDataSource.closeConnection(connectionString, sd);
 		// End Authorisation

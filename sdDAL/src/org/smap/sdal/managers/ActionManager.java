@@ -86,6 +86,7 @@ public class ActionManager {
 		String value;
 		String currentValue;
 		int prikey;
+		boolean clear;
 	}
 
 	/*
@@ -555,7 +556,8 @@ public class ActionManager {
 			String instanceId,
 			String groupSurvey, 
 			String groupForm,
-			String updateString) throws SQLException {
+			String updateString,
+			boolean bulk) throws SQLException {
 
 		Response response = null;
 
@@ -566,6 +568,7 @@ public class ActionManager {
 		String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 		
 		PreparedStatement pstmtUpdate = null;
+		PreparedStatement pstmtGetValue = null;
 
 		try {
 
@@ -649,26 +652,56 @@ public class ActionManager {
 					throw new Exception(u.name + " " + localisation.getString("mf_nu"));
 				}
 
-				String sqlUpdate = "update " + f.tableName;
+				/*
+				 * If this is a bulk update then get the original value for this record
+				 */
+				if(bulk) {
+					
+					StringBuilder sb = new StringBuilder("select ")
+							.append(u.name)
+							.append(" from ")
+							.append(f.tableName)
+							.append(" where instanceid = ?");
+					
+					try {if (pstmtGetValue != null) {pstmtGetValue.close();}} catch (Exception e) {}
+					pstmtGetValue = cResults.prepareStatement(sb.toString());
+					pstmtGetValue.setString(1, instanceId);
+					ResultSet rs = pstmtGetValue.executeQuery();
+					if(rs.next()) {
+						String v = rs.getString(1);
+						u.currentValue = v;
+						/*
+						 * If this is a bulk change to a select question then he value is eiher set or cleared
+						 */
+						if(tc.type.equals("select")) {
+							u.value = mergeSelMultValue(v, u.value, u.clear);
+						}
+					}
+					rs.close();
+				}
+				
+				StringBuilder sqlUpdate = new StringBuilder("update ")
+						.append(f.tableName);
 
 				if (u.value == null) {
-					sqlUpdate += " set " + u.name + " = null ";
+					sqlUpdate.append(" set ")
+						.append(u.name)
+						.append(" = null ");
 				} else {
 					if(tc.type.equals("geopoint")) {
-						sqlUpdate += " set " + u.name + " = ST_GeomFromText(? ,4326) "; 
+						sqlUpdate.append(" set ")
+							.append(u.name)
+							.append(" = ST_GeomFromText(? ,4326) "); 
 					} else {
-						sqlUpdate += " set " + u.name + " = ? ";
+						sqlUpdate.append(" set ")
+							.append(u.name)
+							.append(" = ? ");
 					}
 				}
-				sqlUpdate += "where " + "prikey = ? ";
+				sqlUpdate.append("where instanceid = ? ");
 
-				try {
-					if (pstmtUpdate != null) {
-						pstmtUpdate.close();
-					}
-				} catch (Exception e) {
-				}
-				pstmtUpdate = cResults.prepareStatement(sqlUpdate);
+				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+				pstmtUpdate = cResults.prepareStatement(sqlUpdate.toString());
 
 				// Set the parameters
 				int paramCount = 1;
@@ -697,7 +730,7 @@ public class ActionManager {
 						pstmtUpdate.setString(paramCount++, u.value);
 					}
 				}
-				pstmtUpdate.setInt(paramCount++, u.prikey);
+				pstmtUpdate.setString(paramCount++, instanceId);
 
 				log.info("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();
@@ -776,6 +809,7 @@ public class ActionManager {
 
 			try {log.info("Set autocommit true");cResults.setAutoCommit(true);} catch (Exception ex) {}
 			try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
+			try {if (pstmtGetValue != null) {pstmtGetValue.close();}} catch (Exception e) {}
 
 		}
 
@@ -846,5 +880,32 @@ public class ActionManager {
 		}
 		
 		return users;
+	}
+	
+	String mergeSelMultValue(String in, String change, boolean clear) {
+		
+		StringBuilder out = new StringBuilder("");
+		change = change.trim();
+		HashMap<String, String> inMap = new HashMap<>();
+		
+		if(in != null) {
+			String[] a = in.split(" ");
+			for(int i = 0; i < a.length; i++) {
+				inMap.put(a[i], a[i]);
+			}
+		}
+		
+		if(clear) {
+			inMap.remove(change);
+		} else {
+			inMap.put(change, change);
+		}
+		for(String k : inMap.keySet()) {
+			if(out.length() > 0) {
+				out.append(" ");
+			}
+			out.append(k);
+		}
+		return out.toString();
 	}
 }

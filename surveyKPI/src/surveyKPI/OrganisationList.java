@@ -444,7 +444,7 @@ public class OrganisationList extends Application {
 		// End Authorisation
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
-				+ "ft_specify_instancename, ft_prevent_disable_track, ft_admin_menu, "
+				+ "ft_specify_instancename, ft_prevent_disable_track, ft_enable_geofence, ft_admin_menu, "
 				+ "ft_exit_track_menu, "
 				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation,"
 				+ "ft_navigation,"
@@ -468,24 +468,25 @@ public class OrganisationList extends Application {
 			
 			if(rs.next()) {
 				DeviceSettings d = new DeviceSettings();
-				d.ft_delete = rs.getString(1);
-				d.ft_send_location= rs.getString(2);
-				d.ft_odk_style_menus = rs.getBoolean(3);
-				d.ft_specify_instancename = rs.getBoolean(4);
-				d.ft_prevent_disable_track = rs.getBoolean(5);
-				d.ft_admin_menu = rs.getBoolean(6);
-				d.ft_exit_track_menu = rs.getBoolean(7);
-				d.ft_review_final = rs.getBoolean(8);
-				d.ft_send = rs.getString(9);
-				d.ft_number_tasks = rs.getInt(10);
-				d.ft_image_size = rs.getString(11);
-				d.ft_backward_navigation = rs.getString(12);
-				d.ft_navigation = rs.getString(13);
-				d.ft_pw_policy = rs.getInt(14);
-				d.ft_high_res_video = rs.getString(15);
-				d.ft_guidance = rs.getString(16);
-				d.ft_server_menu = rs.getBoolean(17);
-				d.ft_meta_menu = rs.getBoolean(18);
+				d.ft_delete = rs.getString("ft_delete");
+				d.ft_send_location = rs.getString("ft_send_location");
+				d.ft_odk_style_menus = rs.getBoolean("ft_odk_style_menus");
+				d.ft_specify_instancename = rs.getBoolean("ft_specify_instancename");
+				d.ft_prevent_disable_track = rs.getBoolean("ft_prevent_disable_track");
+				d.ft_enable_geofence = rs.getBoolean("ft_enable_geofence");
+				d.ft_admin_menu = rs.getBoolean("ft_admin_menu");
+				d.ft_exit_track_menu = rs.getBoolean("ft_exit_track_menu");
+				d.ft_review_final = rs.getBoolean("ft_review_final");
+				d.ft_send = rs.getString("ft_send");
+				d.ft_number_tasks = rs.getInt("ft_number_tasks");
+				d.ft_image_size = rs.getString("ft_image_size");
+				d.ft_backward_navigation = rs.getString("ft_backward_navigation");
+				d.ft_navigation = rs.getString("ft_navigation");
+				d.ft_pw_policy = rs.getInt("ft_pw_policy");
+				d.ft_high_res_video = rs.getString("ft_high_res_video");
+				d.ft_guidance = rs.getString("ft_guidance");
+				d.ft_server_menu = rs.getBoolean("ft_server_menu");
+				d.ft_meta_menu = rs.getBoolean("ft_meta_menu");
 				
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(d);
@@ -637,19 +638,20 @@ public class OrganisationList extends Application {
 		
 		String sql = "update organisation set "
 			
-				+ " ft_delete = ?, "
-				+ " ft_send_location = ?, "
-				+ " ft_odk_style_menus = ?, "
-				+ " ft_specify_instancename = ?, "
-				+ " ft_prevent_disable_track = ?, "
-				+ " ft_admin_menu = ?, "
-				+ " ft_exit_track_menu = ?, "
-				+ " ft_review_final = ?, "
-				+ " ft_send = ?, "
-				+ " ft_number_tasks = ?, "
-				+ " ft_image_size = ?, "
-				+ " ft_backward_navigation = ?, "
-				+ " ft_navigation = ?, "
+				+ "ft_delete = ?, "
+				+ "ft_send_location = ?, "
+				+ "ft_odk_style_menus = ?, "
+				+ "ft_specify_instancename = ?, "
+				+ "ft_prevent_disable_track = ?, "
+				+ "ft_enable_geofence = ?, "
+				+ "ft_admin_menu = ?, "
+				+ "ft_exit_track_menu = ?, "
+				+ "ft_review_final = ?, "
+				+ "ft_send = ?, "
+				+ "ft_number_tasks = ?, "
+				+ "ft_image_size = ?, "
+				+ "ft_backward_navigation = ?, "
+				+ "ft_navigation = ?, "
 				+ "ft_pw_policy = ?, "
 				+ "ft_high_res_video = ?, "
 				+ "ft_guidance = ?, "
@@ -669,27 +671,32 @@ public class OrganisationList extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			
 			DeviceSettings d = new Gson().fromJson(settings, DeviceSettings.class);
+			
+			if(d.ft_send_location != null && d.ft_send_location.equals("on")) {
+				d.ft_enable_geofence = true;
+			}
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, d.ft_delete);
 			pstmt.setString(2, d.ft_send_location);
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
 			pstmt.setBoolean(4, d.ft_specify_instancename);
 			pstmt.setBoolean(5, d.ft_prevent_disable_track);
-			pstmt.setBoolean(6, d.ft_admin_menu);
-			pstmt.setBoolean(7, d.ft_exit_track_menu);
-			pstmt.setBoolean(8, d.ft_review_final);
-			pstmt.setString(9, d.ft_send);
-			pstmt.setInt(10, d.ft_number_tasks);
-			pstmt.setString(11, d.ft_image_size);
-			pstmt.setString(12, d.ft_backward_navigation);
-			pstmt.setString(13, d.ft_navigation);
-			pstmt.setInt(14, d.ft_pw_policy);
-			pstmt.setString(15, d.ft_high_res_video);
-			pstmt.setString(16, d.ft_guidance);
-			pstmt.setBoolean(17, d.ft_server_menu);
-			pstmt.setBoolean(18, d.ft_meta_menu);
-			pstmt.setString(19, request.getRemoteUser());
-			pstmt.setInt(20, oId);
+			pstmt.setBoolean(6, d.ft_enable_geofence);
+			pstmt.setBoolean(7, d.ft_admin_menu);
+			pstmt.setBoolean(8, d.ft_exit_track_menu);
+			pstmt.setBoolean(9, d.ft_review_final);
+			pstmt.setString(10, d.ft_send);
+			pstmt.setInt(11, d.ft_number_tasks);
+			pstmt.setString(12, d.ft_image_size);
+			pstmt.setString(13, d.ft_backward_navigation);
+			pstmt.setString(14, d.ft_navigation);
+			pstmt.setInt(15, d.ft_pw_policy);
+			pstmt.setString(16, d.ft_high_res_video);
+			pstmt.setString(17, d.ft_guidance);
+			pstmt.setBoolean(18, d.ft_server_menu);
+			pstmt.setBoolean(19, d.ft_meta_menu);
+			pstmt.setString(20, request.getRemoteUser());
+			pstmt.setInt(21, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

@@ -63,7 +63,7 @@ public class Manager {
 		}
 		
 		log.info("Starting prop subscriber: " + smapId + " : " + fileLocn + " : " + subscriberType);
-		int delaySecs = 4;
+		int delaySecs = 2;
 		
 		// Forwarding can happen less frequently, this reduce the load due to searching for items to forward
 		if(subscriberType.equals("forward")) {
@@ -77,6 +77,7 @@ public class Manager {
 				log.info("######## Stopped");		
 				loop = false;
 			} else {
+				log.info("SSSSSSSSSSSSSSSSSSSSSSSSS Submission Processor");
 				SubscriberBatch batchJob = new SubscriberBatch();
 				batchJob.go(smapId, fileLocn, subscriberType);	// Run the batch job for the specified server
 

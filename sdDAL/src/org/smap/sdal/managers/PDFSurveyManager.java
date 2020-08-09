@@ -1641,8 +1641,12 @@ public class PDFSurveyManager {
 					labelCell.addElement(element);
 				}
 			} catch (Exception e) {
-				log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
-				lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
+				log.log(Level.SEVERE, "Error parsing: " + html.toString() + " : " + e.getMessage(), e);
+				String msg = e.getMessage();
+				if(msg == null) {
+					msg = "Error in PDF generation. Ignoring.";
+				}
+				lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0);
 				labelCell.addElement(getPara(html.toString(), di, gv, null, null));
 			}
 		}
@@ -2006,8 +2010,12 @@ public class PDFSurveyManager {
 				try {
 					parser.xmlParser.parse(new StringReader(html));
 				} catch (Exception e) {
-					log.info("Error parsing: " + html.toString() + " : " + e.getMessage());
-					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, e.getMessage() + " for: " + html.toString(), 0);
+					log.log(Level.SEVERE, "Error parsing: " + html.toString() + " : " + e.getMessage(), e);
+					String msg = e.getMessage();
+					if(msg == null) {
+						msg = "Error parsing PDF. Ignoring."; 
+					}
+					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0);
 					cell.addElement(getPara(html.toString(), di, gv, null, null));
 				}
 				for(Element element : parser.elements) {					

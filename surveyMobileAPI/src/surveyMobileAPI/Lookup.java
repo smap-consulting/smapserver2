@@ -23,6 +23,7 @@ import java.io.File;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -60,6 +61,8 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.SelectChoice;
+import org.smap.sdal.model.ServerCalculation;
+import org.smap.sdal.model.SqlFrag;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -84,6 +87,20 @@ public class Lookup extends Application{
 	private final String IN = "in";
 	private final String STARTS = "startswith";
 	private final String ENDS = "endswith";
+	
+	private class ColDetails {
+		String colName = null;
+		public ArrayList<SqlFrag> filterArray = null;
+		
+		public String getExpression() {
+			if(filterArray != null) {
+				SqlFrag frag = filterArray.get(0);
+				return frag.sql.toString();
+			} else {
+				return colName;
+			}
+		}
+	};
 	
 	/*
 	 * Get a record from the reference data identified by the filename and key column
@@ -131,11 +148,11 @@ public class Lookup extends Application{
 			HashMap<String, String> results = null;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			if(fileName != null) {
-				if(fileName.startsWith("linked_s")) {
+				if(fileName.startsWith("linked_s") || fileName.startsWith("chart_s")) {
 					// Get data from a survey
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, "lookup", keyColumn, keyValue, null, null, null, tz);
+					stm.initData(pstmt, "lookup", keyColumn, keyValue, null, null, null, tz, null, null);
 					results = stm.getLineAsHash();
 				} else {
 					// Get data from a csv file
@@ -231,14 +248,30 @@ public class Lookup extends Application{
 			String selectionString = null;
 			ArrayList<String> arguments = new ArrayList<String> ();
 			
+			// Convert qname into an expression
+			ColDetails qDetails = null;
+			ColDetails fDetails = null;
+			int linked_sId = 0;
+			if(fileName != null && fileName.startsWith("linked_s")) {
+				linked_sId = GeneralUtilityMethods.getLinkedSId(sd, sId, fileName);
+				qDetails = getColDetails(sd, gson, localisation, linked_sId, qColumn);
+				fDetails = getColDetails(sd, gson, localisation, linked_sId, fColumn);
+			} else {
+				qDetails = new ColDetails();
+				qDetails.colName = qColumn;
+				
+				fDetails = new ColDetails();
+				fDetails.colName = fColumn;
+			}
+			
 			if (searchType != null && fColumn != null) {
-	            selection.append("( ").append(createLikeExpression(qColumn, qValue, searchType, arguments)).append(" ) and ");
-	            selection.append(fColumn).append(" = ? ");
+	            selection.append("( ").append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)).append(" ) and ");
+	            selection.append(fDetails.getExpression()).append(" = ? ");
 	            arguments.add(fValue);
 	        } else if (searchType != null) {
-	            selection.append(createLikeExpression(qColumn, qValue, searchType, arguments));    // smap
+	            selection.append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)); 
 	        } else if (fColumn != null) {
-	            selection.append(fColumn).append(" = ? ");
+	            selection.append(fDetails.getExpression()).append(" = ? ");
 	            arguments.add(fValue);
 	        } else {
 	            arguments = null;
@@ -257,7 +290,7 @@ public class Lookup extends Application{
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
 					stm.initData(pstmt, "choices", null, null,
-							selectionString, arguments, whereColumns, tz);
+							selectionString, arguments, whereColumns, tz, qDetails.filterArray, fDetails.filterArray);
 					
 					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
 					HashMap<String, String> line = null;
@@ -406,42 +439,86 @@ public class Lookup extends Application{
 	}
 
 	// Based on function in odkCollect
-    private String createLikeExpression(String qColumn,  String qValue, String type, ArrayList<String> arguments) {
-    		
-	    	StringBuilder sb = new StringBuilder();
-    		type = type.trim().toLowerCase();
-    		
-    		if(type.equals(IN)) {
-    			sb.append(qColumn).append(" in (");
-    			
-    			String [] values = qValue.split(",");
-    			if(values.length == 1 && qValue.contains(" ")) {
-    				values = qValue.split(" ");
-    			}
-    			int idx = 0;
-    			for (String v : values) {
-    				if (idx++ > 0) {
-    					sb.append(", ");
-    				}
-    				sb.append("?");
-    				arguments.add(v);
-    			}
-    			sb.append(")");
-    			
-    		} else {
-    			sb.append(qColumn).append(" LIKE ? ");
-    			if(type.equals(MATCHES)) {
-    				arguments.add(qValue);
-    			} else if(type.equals(CONTAINS)) {
-    				arguments.add("%" + qValue + "%");
-    			} else if(type.equals(STARTS)) {
-    				arguments.add(qValue + "%");
-    			} else if(type.equals(ENDS)) {
-    				arguments.add("%" + qValue);
-    			}
-    		}
-    		return sb.toString();
+	private String createLikeExpression(String qColumn,  String qValue, String type, ArrayList<String> arguments) {
 
-    }
+		StringBuilder sb = new StringBuilder();
+		type = type.trim().toLowerCase();
+
+		if(type.equals(IN)) {
+			sb.append(qColumn).append(" in (");
+
+			String [] values = qValue.split(",");
+			if(values.length == 1 && qValue.contains(" ")) {
+				values = qValue.split(" ");
+			}
+			int idx = 0;
+			for (String v : values) {
+				if (idx++ > 0) {
+					sb.append(", ");
+				}
+				sb.append("?");
+				arguments.add(v);
+			}
+			sb.append(")");
+
+		} else {
+			sb.append(qColumn).append(" LIKE ? ");
+			if(type.equals(MATCHES)) {
+				arguments.add(qValue);
+			} else if(type.equals(CONTAINS)) {
+				arguments.add("%" + qValue + "%");
+			} else if(type.equals(STARTS)) {
+				arguments.add(qValue + "%");
+			} else if(type.equals(ENDS)) {
+				arguments.add("%" + qValue);
+			}
+		}
+		return sb.toString();
+
+	}
+	
+	private ColDetails getColDetails(Connection sd, Gson gson, ResourceBundle localisation, int sId, String qname) throws Exception {
+		
+	
+		String sql = "select q.column_name, q.qtype, q.server_calculate " 
+				+ " from question q, form f" 
+				+ " where q.f_id = f.f_id "
+				+ " and f.s_id = ? " 
+				+ " and q.qname = ?";
+		
+		ColDetails details = new ColDetails();
+		
+		String colType = null;
+		String serverCalculate = null;
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, qname);
+			ResultSet rs = pstmt.executeQuery();
+			log.info(pstmt.toString());
+			if (rs.next()) {
+				details.colName = rs.getString(1);
+				colType = rs.getString(2);
+				serverCalculate = rs.getString(3);
+				SqlFrag calculation = null;
+				
+				if(colType.equals("server_calculate") && serverCalculate != null) {
+					ServerCalculation sc = gson.fromJson(serverCalculate, ServerCalculation.class);
+					calculation = new SqlFrag();
+					sc.populateSql(calculation, localisation);
+					details.filterArray = new ArrayList<>();
+					details.filterArray.add(calculation);
+				} 
+			}
+			
+		} finally {
+			if (pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		
+		return details;
+	}
 }
 

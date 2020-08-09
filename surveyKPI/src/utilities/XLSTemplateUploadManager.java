@@ -998,18 +998,26 @@ public class XLSTemplateUploadManager {
 					lab.guidance_hint = XLSUtilities.getTextColumn(row, "guidance_hint::" + lang, header, lastCellNum, null);
 				}
 				
+				// Constraint message 
 				if(constraintMsgSet) {
 					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, "-");
 				} else {
 					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE + "::" + lang, header, lastCellNum, null);
 				}
+				if(lab.constraint_msg == null) {	// use the universal setting
+					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
+				}
+				if(lab.constraint_msg == null) {	// use the universal setting
+					lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint-msg", header, lastCellNum, null);
+				}
 				
+				// Required message
 				if(requiredMsgSet) {
 					lab.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE + "::" + lang, header, lastCellNum, "-");
 				} else {
 					lab.required_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.REQUIRED_MESSAGE + "::" + lang, header, lastCellNum, null);
 				}
-				
+			
 				// image - try various combination of headers
 				lab.image = XLSUtilities.getTextColumn(row, "media::image::" + lang, header, lastCellNum, null);
 				if(lab.image == null) {

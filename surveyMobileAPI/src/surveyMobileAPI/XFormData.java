@@ -152,7 +152,7 @@ public class XFormData {
 					// This will get a default location if one exists
 					templateName = si.getTemplateName();
 
-					saveDetails = saveToDisk(item, request, basePath, null, templateName, null, 0, 0);
+					saveDetails = saveToDisk(item, basePath, null, templateName, null, 0, 0);
 					log.info("Saved xml_submission file:" + saveDetails.fileName + " (FieldName: " + item.getFieldName()
 							+ ")");
 					
@@ -171,9 +171,6 @@ public class XFormData {
 					 */
 					
 					boolean debug = false;		// debug
-					if(survey.id == 3850) {		// debug
-						debug = true;			// debug
-					}							// debug
 					log.info("----------------------------- " + survey.displayName + " : " + debug);		// debug
 					
 					if(debug) {
@@ -266,7 +263,7 @@ public class XFormData {
 						incomplete = true;
 					} else if ((dataUrl = item.getString()).startsWith("data:")) {
 						// File Attachment from web forms
-						SaveDetails attachSaveDetails = saveToDisk(item, request, basePath, saveDetails.instanceDir,
+						SaveDetails attachSaveDetails = saveToDisk(item, basePath, saveDetails.instanceDir,
 								templateName, dataUrl.substring(dataUrl.indexOf("base64") + 7), iosImageCount,
 								iosVideoCount);
 						iosImageCount = attachSaveDetails.iosImageCount;
@@ -289,7 +286,7 @@ public class XFormData {
 					}
 				} else {
 					if (!fieldName.equals("xml_submission_file") && !fieldName.equals("xml_submission_data")) {
-						SaveDetails attachSaveDetails = saveToDisk(item, request, basePath, saveDetails.instanceDir,
+						SaveDetails attachSaveDetails = saveToDisk(item, basePath, saveDetails.instanceDir,
 								templateName, null, iosImageCount, iosVideoCount);
 						iosImageCount = attachSaveDetails.iosImageCount;
 						iosVideoCount = attachSaveDetails.iosVideoCount;
@@ -489,7 +486,7 @@ public class XFormData {
 
 	}
 
-	private SaveDetails saveToDisk(FileItem item, HttpServletRequest request, String basePath, String instanceDir,
+	private SaveDetails saveToDisk(FileItem item, String basePath, String instanceDir,
 			String templateName, String base64Data, int iosImageCount, int iosVideoCount) throws Exception {
 
 		SaveDetails saveDetails = new SaveDetails();

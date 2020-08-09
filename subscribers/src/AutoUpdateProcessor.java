@@ -68,7 +68,7 @@ public class AutoUpdateProcessor {
 
 		public void run() {
 
-			int delaySecs = 10;
+			int delaySecs = 20;
 			boolean loop = true;
 			while(loop) {
 				

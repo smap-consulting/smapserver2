@@ -136,7 +136,7 @@ public class Authorise {
  			log.info(msg.toString());
  			
  			
- 			lm.writeLog(sd, 0, user, "error", msg.toString(), 0);		// Write the application log
+ 			lm.writeLog(sd, 0, user, LogManager.ERROR, msg.toString(), 0);		// Write the application log
  			
  			// Close the connection as throwing an exception will end the service call
 			
@@ -179,12 +179,8 @@ public class Authorise {
 			sqlError = true;
 		} finally {		
 			// Close the result set and prepared statement
-			try{
-				if(resultSet != null) {resultSet.close();};
-				if(pstmt != null) {pstmt.close();};
-			} catch (Exception ex) {
-				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
-			}
+			if(resultSet != null) {try{resultSet.close();} catch (Exception ex) {}}
+			if(pstmt != null) {try{pstmt.close();} catch (Exception ex) {}}
 		}
 		
 		// Check to see if the user was authorised to access this service

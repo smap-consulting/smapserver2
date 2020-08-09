@@ -108,7 +108,7 @@ public class XLSXReportsManager {
 
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
-		lm.writeLog(sd, sId, username, "view", "Export as: xlsx", 0);
+		lm.writeLog(sd, sId, username, LogManager.VIEW, "Export as: xlsx", 0);
 
 		String escapedFileName = null;
 		try {
@@ -535,6 +535,38 @@ public class XLSXReportsManager {
 								rd.values.add(v);
 									
 							}
+						} else if(item.qType != null && item.qType.equals("select") && merge_select_multiple && item.choices != null  && item.compressed) {
+							
+							// Merge the select values into a single column
+							StringBuilder value = new StringBuilder("");
+							String [] vArray = null;
+							if(values.value != null) {
+								vArray = values.value.split(" ");
+							} 
+					
+							if(vArray != null) {
+							
+								for(int i = 0; i < item.choices.size(); i++) {		
+									
+									String choiceValue = item.choices.get(i).k;
+									for(int k = 0; k < vArray.length; k++) {
+										if(vArray[k].equals(choiceValue)) {
+											if(value.length() > 0) {
+												value.append(" ");
+											}
+											value.append(item.choices.get(i).v);
+											break;
+										}
+									}
+								}
+									
+							}
+							
+							ReadData rd = new ReadData(values.name, false, values.type);
+							dataItems.add(rd);
+							rd.values.add(value.toString());
+							rd.type = values.type;
+							
 						} else if(item.qType != null && item.qType.equals("rank") && !merge_select_multiple && item.choices != null) {
 							
 							String [] vArray = {""};
@@ -558,12 +590,11 @@ public class XLSXReportsManager {
 							String value = values.value;
 							// Convert the value into the display name
 							for(int i = 0; i < item.choices.size(); i++) {							
-									
 								String choiceValue = item.choices.get(i).k;
 								if(choiceValue != null && choiceValue.equals(value)) {
 									value = item.choices.get(i).v;
-								}
-									
+									break;
+								}	
 							}
 							
 							ReadData rd = new ReadData(values.name, false, values.type);
