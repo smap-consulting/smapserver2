@@ -127,11 +127,14 @@ public class XLSTemplateUploadManager {
 			ArrayList<Question> expanded = new ArrayList<Question> ();
 			
 			ArrayList<Option> choices = survey.optionLists.get(begin.list_name).options;
-			expanded.addAll(getGroupQuestions(true, begin.name, "header", 1 + 2 * member.size()));
+			expanded.addAll(getGroupQuestions(null, begin.name, "header", 1 + 2 * member.size()));
+			for(Option c : choices) {
+				expanded.addAll(getGroupQuestions(c, begin.name, c.value, 1 + 2 * member.size()));
+			}
 			
 			return expanded;
 		}
-		private ArrayList<Question> getGroupQuestions(boolean isHeader, String matrixName, String choiceName, int groupWidth) {
+		private ArrayList<Question> getGroupQuestions(Option choice, String matrixName, String choiceName, int groupWidth) {
 			ArrayList<Question> questions = new ArrayList<Question> ();
 			
 			Question qb = new Question();
@@ -143,28 +146,49 @@ public class XLSTemplateUploadManager {
 			
 			Question qb2 = new Question();
 			qb2.type = "note";
+			qb2.source = "user";
 			qb2.name = qb.name + "_note";
+			qb2.columnName = GeneralUtilityMethods.cleanName(qb2.name, true, true, true);
 			qb2.appearance = "w1";
-			qb2.labels = copyLabelsFrom(begin, isHeader);
+			if(choice == null) {
+				qb2.labels = copyLabelsFrom(begin.labels, "bold");
+			} else {
+				qb2.labels = copyLabelsFrom(choice.labels, "hash");
+			}
 			qNameMap.put(qb2.name.toLowerCase(), rowNumber);
 			questions.add(qb2);
 			
 			for(Question qm : member) {
 				Question qx = new Question();
 				qx.name = qb.name + "_" + qm.name;
-				if(isHeader) {
+				qx.source = "user";
+				qx.appearance = "w2";
+				qx.columnName = GeneralUtilityMethods.cleanName(qx.name, true, true, true);
+				if(choice == null) {
 					qx.type = "note";
+					
+					qx.labels = copyLabelsFrom(qm.labels, "bold");
 				} else {
 					qx.type = qm.type;
-					qx.appearance = "w2";
 					qx.required = qm.required;
 					qx.required_msg = qm.required_msg;
 					qx.relevant = qm.relevant;
 					qx.calculation = qm.calculation;
 					qx.constraint = qm.constraint;
 					qx.constraint_msg = qm.constraint_msg;
+					qx.l_id = qm.l_id;
+					qx.list_name = qm.list_name;
+					qx.display_name = qm.display_name;
+					qx.visible = qm.visible;
+					
+					if(qx.type.startsWith("select")) {
+						qx.appearance += "  horizontal-compact";
+					} else {
+						qx.appearance += "  no-label";
+					}
+					qx.labels = copyLabelsFrom(qm.labels, "empty");
 				}
-				qx.labels = copyLabelsFrom(qm, isHeader);
+				
 				
 				questions.add(qx);
 			}
@@ -177,12 +201,16 @@ public class XLSTemplateUploadManager {
 			return questions;
 		}
 		
-		private ArrayList<Label> copyLabelsFrom(Question q, boolean bold) {
+		private ArrayList<Label> copyLabelsFrom(ArrayList<Label> inLabels, String style) {
 			ArrayList<Label> labels = new ArrayList<Label> ();
-			for(Label l : q.labels) {
+			for(Label l : inLabels) {
 				Label nl = new Label();
-				if(bold) {
-					nl.text = "**" + l.text + "**";
+				if(style.equals("bold")) {
+					nl.text = "<h5>" + l.text + "</h5>";
+				} else if(style.equals("hash")) {
+					nl.text = "<h5>" + l.text + "</h5>";
+				} else if(style.equals("empty")) {
+					nl.text = "<span style='display:none'>" + l.text + "</span>";
 				} else {
 					nl.text = l.text;
 				}
@@ -749,7 +777,7 @@ public class XLSTemplateUploadManager {
 						if(q.type.equals("begin matrix")) {
 							matrix = new MatrixWidget(q, rowNumSurvey);
 							inMatrix = true;
-						} if(q.type.equals("end matrix")) {
+						} else if(q.type.equals("end matrix")) {
 							// TODO add all questions from matrix object
 							for(Question qm : matrix.getExpanded()) {
 								System.out.println(qm.name);
