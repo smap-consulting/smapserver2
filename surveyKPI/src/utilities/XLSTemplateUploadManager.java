@@ -111,6 +111,87 @@ public class XLSTemplateUploadManager {
 
 	Survey survey = null;
 
+	private class MatrixWidget {
+		private Question begin;
+		private ArrayList<Question> member = new ArrayList<Question> ();
+		private int rowNumber;
+		
+		public MatrixWidget(Question q, int row) {
+			begin = q;
+			rowNumber = row;
+		}
+		public void addMember(Question q) {
+			member.add(q);
+		}
+		public ArrayList<Question> getExpanded() {
+			ArrayList<Question> expanded = new ArrayList<Question> ();
+			
+			ArrayList<Option> choices = survey.optionLists.get(begin.list_name).options;
+			expanded.addAll(getGroupQuestions(true, begin.name, "header", 1 + 2 * member.size()));
+			
+			return expanded;
+		}
+		private ArrayList<Question> getGroupQuestions(boolean isHeader, String matrixName, String choiceName, int groupWidth) {
+			ArrayList<Question> questions = new ArrayList<Question> ();
+			
+			Question qb = new Question();
+			qb.type = "begin group";
+			qb.name = matrixName + "_" + choiceName;
+			qb.appearance = "w" + groupWidth;
+			qNameMap.put(qb.name.toLowerCase(), rowNumber);
+			questions.add(qb);
+			
+			Question qb2 = new Question();
+			qb2.type = "note";
+			qb2.name = qb.name + "_note";
+			qb2.appearance = "w1";
+			qb2.labels = copyLabelsFrom(begin, isHeader);
+			qNameMap.put(qb2.name.toLowerCase(), rowNumber);
+			questions.add(qb2);
+			
+			for(Question qm : member) {
+				Question qx = new Question();
+				qx.name = qb.name + "_" + qm.name;
+				if(isHeader) {
+					qx.type = "note";
+				} else {
+					qx.type = qm.type;
+					qx.appearance = "w2";
+					qx.required = qm.required;
+					qx.required_msg = qm.required_msg;
+					qx.relevant = qm.relevant;
+					qx.calculation = qm.calculation;
+					qx.constraint = qm.constraint;
+					qx.constraint_msg = qm.constraint_msg;
+				}
+				qx.labels = copyLabelsFrom(qm, isHeader);
+				
+				questions.add(qx);
+			}
+			
+			Question qe = new Question();
+			qe.type = "end group";
+			qe.name = qb.name;
+			questions.add(qe);
+			
+			return questions;
+		}
+		
+		private ArrayList<Label> copyLabelsFrom(Question q, boolean bold) {
+			ArrayList<Label> labels = new ArrayList<Label> ();
+			for(Label l : q.labels) {
+				Label nl = new Label();
+				if(bold) {
+					nl.text = "**" + l.text + "**";
+				} else {
+					nl.text = l.text;
+				}
+				labels.add(nl);
+			}
+			return labels;
+		}
+	}
+	
 	private class FunctionCheck {
 		String name;
 		int args;
@@ -635,7 +716,9 @@ public class XLSTemplateUploadManager {
 		survey.forms.add(f);
 		
 		int thisFormIndex = survey.forms.size() - 1;
-
+		boolean inMatrix = false;
+		MatrixWidget matrix = null;
+		
 		while(rowNumSurvey <= lastRowNumSurvey) {
 
 			Row row = surveySheet.getRow(rowNumSurvey++);
@@ -662,7 +745,26 @@ public class XLSTemplateUploadManager {
 						survey.manifest = mi.manifest;
 						
 						validateQuestion(q, rowNumSurvey, thisFormIndex);
-						f.questions.add(q);
+						
+						if(q.type.equals("begin matrix")) {
+							matrix = new MatrixWidget(q, rowNumSurvey);
+							inMatrix = true;
+						} if(q.type.equals("end matrix")) {
+							// TODO add all questions from matrix object
+							for(Question qm : matrix.getExpanded()) {
+								System.out.println(qm.name);
+								f.questions.add(qm);
+							}
+							inMatrix = false;
+						} else {
+							if(!inMatrix) {
+								f.questions.add(q);
+							} else {
+								matrix.addMember(q);
+							}
+						}				
+						
+						
 						
 						if(q.type.equals("begin repeat")) {
 							int repeatRowNumber = rowNumSurvey;
@@ -1150,9 +1252,6 @@ public class XLSTemplateUploadManager {
 			}
 		}
 		
-		/*
-		 * TODO validate Matrices
-		 */
 	}
 	
 	private int validateGroup(ArrayList<Question> questions, Question groupQuestion, int start) throws ApplicationException {
