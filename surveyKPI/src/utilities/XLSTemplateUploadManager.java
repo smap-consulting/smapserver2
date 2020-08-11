@@ -778,9 +778,8 @@ public class XLSTemplateUploadManager {
 							matrix = new MatrixWidget(q, rowNumSurvey);
 							inMatrix = true;
 						} else if(q.type.equals("end matrix")) {
-							// TODO add all questions from matrix object
+							// add all questions from matrix object
 							for(Question qm : matrix.getExpanded()) {
-								System.out.println(qm.name);
 								f.questions.add(qm);
 							}
 							inMatrix = false;
@@ -1421,6 +1420,14 @@ public class XLSTemplateUploadManager {
 		if(q.list_name != null) {
 			if(survey.optionLists.get(q.list_name) == null) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_lnf", rowNumber, "survey", q.list_name, null, null);
+			}
+		}
+		
+		// Matrix
+		if(q.type.equals("begin matrix")) {
+			// Missing list
+			if(q.list_name == null) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_mat_list", rowNumSurvey, "survey", null, null, null);
 			}
 		}
 		
