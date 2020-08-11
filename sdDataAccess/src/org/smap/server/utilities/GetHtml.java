@@ -525,10 +525,15 @@ public class GetHtml {
 			boolean inSearch = false;
 			int brackets = 0;
 			
+			boolean horizontal = false;
 			for (int i = 0; i < appList.length; i++) {
 				if (appList[i] != null && appList[i].trim().length() > 0) {
 					
 					String appItem = appList[i].toLowerCase().trim();
+					
+					if(appItem.equals("horizontal")) {
+						horizontal = true;
+					}
 					
 					if(appItem.startsWith("search(")) {
 						inSearch = true;
@@ -545,6 +550,9 @@ public class GetHtml {
 						}
 					}
 				}
+			}
+			if(horizontal) {
+				classVal.append(" or-appearance-columns");
 			}
 		}
 		elem.setAttribute("class", classVal.toString());
@@ -1159,9 +1167,36 @@ public class GetHtml {
 			}
 
 		}
+		
+		// If this widget is horizontal add filler labels to get spacing right
+		if(hasAppearance(q.appearance, "horizontal")) {
+			int nFillers = 3 - options.size() % 3;
+			
+			if(nFillers < 3 && nFillers > 0) {
+				for(int i = 0;  i < nFillers; i++) {
+					System.out.println(q.name);
+					labelElement = outputDoc.createElement("label");
+					parent.appendChild(labelElement);
+					labelElement.setAttribute("class", "filler");
+				}
+			}
+		}
 
 	}
 
+	private boolean hasAppearance(String app, String test) {
+		boolean result = false;
+		if(app != null) {
+			String[] appComp = app.split(" ");
+			for(int i = 0; i < appComp.length; i++) {
+				if(test.equals(appComp[i])) {
+					return true;
+				}
+			}
+		}
+		return result;
+	}
+	
 	private void addMinimalOptionLabels(Connection sd, Element parent, Question q, Form form) throws Exception {
 
 		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
