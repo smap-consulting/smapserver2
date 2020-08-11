@@ -917,7 +917,8 @@ public class PDFSurveyManager {
 							if(question.isNewPage()) {
 								document.newPage();
 							}
-						} else if(question.type.equals("end group")) {
+						}
+						if(question.type.equals("end group")) {
 							//ignore
 						} else {
 
