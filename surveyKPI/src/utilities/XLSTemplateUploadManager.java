@@ -349,6 +349,9 @@ public class XLSTemplateUploadManager {
 				if(row != null) {
 					int lastCellNum = row.getLastCellNum();	
 					String styleList = XLSUtilities.getTextColumn(row, "list_name", stylesHeader, lastCellNum, null);
+					if(styleList == null) {
+						styleList = XLSUtilities.getTextColumn(row, "list name", stylesHeader, lastCellNum, null);
+					}
 
 					if(styleList != null) {
 						StyleList sl = survey.styleLists.get(styleList);
