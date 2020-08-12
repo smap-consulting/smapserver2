@@ -68,6 +68,7 @@ public class LogManager {
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
 	public static String TASK_REJECT = "reject task";
+	public static String TASK_GET = "get tasks";
 	public static String OPTIN = "optin";
 	public static String EXPIRED = "expired";
 	public static String PROJECT = "project";
@@ -81,6 +82,7 @@ public class LogManager {
 	public static String API_AUDIT_VIEW = "API audit view";
 	public static String API_SINGLE_VIEW = "API single record view";
 	public static String MAPBOX_REQUEST = "Mapbox Request";
+	public static String RESOURCES = "resources";
 	
 	/*
 	 * Write a log entry that includes the survey id
