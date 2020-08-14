@@ -65,7 +65,7 @@ public class SurveyInstance {
 		String path = "/" + rootElement.getNodeName();
 		//String path = "/main";				// SMAP assumes path always starts with /main
 		topInstanceElement.setPath(path);
-		
+
 		processElement(rootElement, topInstanceElement, path);   	
  
 	}
@@ -207,9 +207,10 @@ public class SurveyInstance {
 					// Discard template elements
 					NamedNodeMap  node_map = n.getAttributes();
 					Node temp_att = null;
-					if(node_map != null) {
-						temp_att = node_map.getNamedItem("template");	// enketo returns just template (no jr:) fieldTask/odkCollect do not return the template
-					}
+					// comment out as even webform templates now contain data
+					//if(node_map != null) {
+					//	temp_att = node_map.getNamedItem("template");	
+					//}
 					if(temp_att == null) {
 						IE ie = new IE(n.getNodeName(), n.getTextContent());
 	
