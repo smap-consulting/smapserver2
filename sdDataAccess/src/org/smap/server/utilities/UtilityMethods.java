@@ -248,9 +248,16 @@ public class UtilityMethods {
 				}
 				int pathDepth = cfSteps.length - idx;
 				
-				StringBuffer path = new StringBuffer("current()");
+				StringBuffer path = new StringBuffer("");
+				if(!webform) {
+					path = path.append("current()/");
+				}
 				for(int i = 0; i < pathDepth; i++) {
-					path.append("/..");
+					if(webform && i == 0) {
+						path.append("..");
+					} else {
+						path.append("/..");
+					}
 				}
 				for(int i = idx; i < qSteps.length; i++) {
 					path.append("/").append(qSteps[i]);

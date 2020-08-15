@@ -683,7 +683,7 @@ public class GetHtml {
 				calculation = q.calculation;
 			}
 
-			if (calculation != null && calculation.trim().length() > 0) {
+			if (calculation != null && calculation.trim().length() > 0 &&(q.type.equals("calculate") || q.type.equals("begin repeat"))) {
 
 				calculationLabel = outputDoc.createElement("label");
 				calculationLabel.setAttribute("class", "calculation non-select");
@@ -697,12 +697,13 @@ public class GetHtml {
 				} else {
 					calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)));
 				}
-				
+
 				calculationInput.setAttribute("data-calculate",
 						" " + UtilityMethods.convertAllxlsNames(calculation, false, paths, form.id, true, q.name, false) + " ");
 
 				calculationInput.setAttribute("data-type-xml", "string"); // Always use string for calculate
 				calculationLabel.appendChild(calculationInput);
+
 			}
 			
 			// Process calculations in repeats
@@ -1745,7 +1746,7 @@ public class GetHtml {
 	 */
 	private String getNodeset(Question q, Form form) throws Exception {		
 		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
-				false /*(form.parentform > 0)*/);		// In our version of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
+				false /*(form.parentform > 0)*/);		// XXXXXX In our version of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
 		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
 				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray)); 
 		return adjustedNodeset;
