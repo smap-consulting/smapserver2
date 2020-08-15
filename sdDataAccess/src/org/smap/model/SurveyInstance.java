@@ -204,13 +204,12 @@ public class SurveyInstance {
 			for (int i = 0; i < eList.getLength(); i++) {
 				Node n = eList.item(i);			
 				if(n.getNodeType() == Node.ELEMENT_NODE) {
-					// Discard template elements
+					// Discard template elements, this is only for legacy webforms - new webforms do not submit the template as per fieldTask
 					NamedNodeMap  node_map = n.getAttributes();
 					Node temp_att = null;
-					// comment out as even webform templates now contain data
-					//if(node_map != null) {
-					//	temp_att = node_map.getNamedItem("template");	
-					//}
+					if(node_map != null) {
+						temp_att = node_map.getNamedItem("template");	
+					}
 					if(temp_att == null) {
 						IE ie = new IE(n.getNodeName(), n.getTextContent());
 	

@@ -649,15 +649,16 @@ public class GetXForm {
 						currentParent.appendChild(questionElement);
 					}
 
-					Element formElement_template = outputDoc.createElement(subForm.getName());
-
-					if (modelInstanceOnly) {
-						formElement_template.setAttribute("template", ""); // The model requires a local name only
-					} else {
-						formElement_template.setAttribute("jr:template", "");
-					}
-					populateForm(sd, outputDoc, formElement_template, INSTANCE, subForm);
-					currentParent.appendChild(formElement_template);
+					// Add template
+					Element template = outputDoc.createElement(subForm.getName());
+					template.setAttribute("jr:template", ""); // The model requires a local name only
+					populateForm(sd, outputDoc, template, INSTANCE, subForm);
+					currentParent.appendChild(template);
+					
+					// Add the real form
+					Element form = outputDoc.createElement(subForm.getName());
+					populateForm(sd, outputDoc, form, INSTANCE, subForm);
+					currentParent.appendChild(form);
 
 				} else if (qType.equals("begin group")) {
 
@@ -1835,9 +1836,10 @@ public class GetXForm {
 		// Append this new form to its parent (if the parent is null append to output
 		// doc)
 		if (parentElement != null) {
-			if (isTemplate) {
-				currentParent.setAttribute("jr:template", "");
-			}
+			// Template no longer set in data model
+			//if (isTemplate) {
+			//	currentParent.setAttribute("jr:template", "");
+			//}
 			parentElement.appendChild(currentParent);
 		} else {
 			currentParent.setAttribute("id", survey_ident);
