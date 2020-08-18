@@ -996,7 +996,7 @@ public class WebForm extends Application {
 		output.append("</div>\n");
 		output.append("<div class='modal-footer'>\n");
 		output.append("<span class='self-destruct-timer'></span>\n");
-		output.append("<button class='btn-primary lang close-dialog' data-lang='alert.default.button' data-dismiss='modal' aria-hidden='true'>Close</button>\n");
+		output.append("<button class='btn btn-primary lang close-dialog' data-lang='alert.default.button' data-dismiss='modal' aria-hidden='true'>Close</button>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
 		output.append("</div>\n");
