@@ -945,6 +945,7 @@ public class WebForm extends Application {
 		if(debug != null && debug.equals("yes")) {
 			output.append("<script src='/build/js/webform-bundle.js'></script>\n");
 		} else {
+			//output.append("<script src='/build/js/webform-bundle.js'></script>\n");	// TODO Fix compression
 			output.append("<script src='/build/js/webform-bundle.min.js'></script>\n");
 		}
 
