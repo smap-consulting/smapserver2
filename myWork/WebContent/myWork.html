@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+	<meta charset="utf-8">
+
+	<title class="lang" data-lang="m_web_forms">wf</title>
+
+	<link rel="manifest" href="manifest.json">
+
+	<link href="/css/bootstrap.v4.5.min.css" rel="stylesheet">
+	<link href="/font-awesome/css/font-awesome.css" rel="stylesheet">
+	<link href="/css/smap2.css" rel="stylesheet">
+
+	<script> if (!window.console) console = {log: function() {}}; </script>
+
+	<script src="/js/libs/modernizr.js"></script>
+	<script src="/js/app/theme2.js"></script>
+	<script src="/js/libs/jquery-2.1.1.js"></script>
+	<script src="/js/libs/bootstrap.bundle.v4.5.min.js"></script>
+	<script src="/js/app/custom.js"></script>  <!-- Override this in custom code to apply changes at run time -->
+
+	<script data-main="js/myWork" src="/js/libs/require.js"></script>
+
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-smap bg-navbar-smap">
+	<a class="navbar-brand lang" data-lang="m_web_forms" href="#">forms</a>
+	<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+		<span class="navbar-toggler-icon"></span>
+	</button>
+
+	<div class="collapse navbar-collapse" id="navbarSupportedContent">
+		<ul class="navbar-nav ml-auto">
+			<li class="nav-item dropdown active">
+				<a class="nav-link dropdown-toggle" href="#" id="m_modules" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+					<span class="lang" data-lang="m_modules">modules</span>
+				</a>
+				<div class="dropdown-menu" aria-labelledby="m_modules">
+					<a class="dropdown-item lang" data-lang="m_home" href="/?loggedin=yes">home</a>
+					<a class="dropdown-item restrict_role admin_role analyst_role" href="/edit.html"> <span class="lang" data-lang="c_edit">Edit</span></a>
+					<a class="dropdown-item restrict_role admin_role analyst_role" href="/fieldManager/surveyManagement.html"><span class="lang" data-lang="m_admin">Admin</span></a>
+					<a class="dropdown-item restrict_role manage_role admin_role analyst_role" href="/tasks/managed_forms.html"><span class="lang" data-lang="m_console"></span></a>
+					<a class="dropdown-item restrict_role analyst_role data_role" href="/fieldAnalysis/index.html"><span class="lang" data-lang="m_analysis">Analysis</span></a>
+					<a class="dropdown-item restrict_role admin_role analyst_role manage_role task_role" href="/tasks/taskManagement.html"><span class="nav-label lang" data-lang="m_assign">assign</span></a>
+					<a id="c_campaigns" class="dropdown-item restrict_role admin_role analyst_role" href="/tasks/campaign.html"><span class="lang" data-lang="c_campaigns">m</span></a>
+					<a class="dropdown-item restrict_role admin_role analyst_role" href="/api.html"><span class="lang" data-lang="c_api">api</span></a>
+					<a class="dropdown-item restrict_role billing_role" href="/fieldManager/billing.html" style="display:none;"><span class="lang" data-lang="m_billing">billing</span></a>
+				</div>
+			</li>
+
+			<li id="m_mf" class="restrict_role admin_role manage_role"><a class="nav-link" href="/tasks/managed_forms.html"><span class="lang" data-lang="m_console">r</span></a></li>
+			<li id="m_duplicates" class="restrict_role admin_role"><a class="nav-link" href="/tasks/duplicates.html"><span class="lang" data-lang="mon_dup"></span></a></li>
+			<li id="m_refresh"><a class="nav-link" href="/reports.html"><span class="lang" data-lang="m_refresh">r</span></a></li>
+
+			<li id="m_help" class="nav-item"><a class="nav-link" href="https://www.smap.com.au/docs" target="_blank"><span class="nav-label lang" data-lang="m_help">help</span></a></li>
+			<li id="m_training" class="nav-item" style="display:none;"><a class="nav-link" id="train_link" href="#" target="_blank"></i> <span class="nav-label lang" data-lang="m_training">training</span></a></li>
+			<li class="nav-item"><a class="nav-link"  id="username" data-toggle="modal" data-target="#modify_me_popup" aria-label="User"><i class="fa fa-user"></i> </a></li>
+		</ul>
+
+	</div>
+</nav>
+
+<div class="container-fluid">
+
+	<!-- Header -->
+	<div class="card text-center">
+		<div class="col-sm-10">
+			<form class="form-group row">
+				<div class="col-sm-6 pt-4">
+					<div class="form-group row">
+						<label class="lang col-md-4"  data-lang="c_project"  for="project_name"></label>
+						<select class="project_list form-control form-control-lg col-md-8" id="project_name"></select>
+					</div>
+				</div>
+			</form>
+
+		</div>
+	</div>
+
+	<!-- Main panel -->
+	<div class="card text-center mt-10">
+		<div class="card-header">
+			<ul class="nav nav-tabs card-header-tabs">
+				<li id="formsTab" class="nav-item"><a class="nav-link active" href="#formsPanel" data-toggle="tab" role="tab" aria-controls="formsPanel" aria-selected="true">
+					<span class="lang" data-lang="m_web_forms"></span> <span id="forms_count">(0)</span></a>
+				</li>
+				<li id="tasksTab" class="nav-item"><a class="nav-link" href="#tasksPanel" data-toggle="tab" role="tab" aria-controls="tasksPanel" aria-selected="false">
+					<span class="lang" data-lang="t_tasks"></span> <span id="tasks_count">(0)</span></a>
+				</li>
+			</ul>
+		</div>
+		<div class="card-body">
+			<div class="tab-content">
+				<div id="formsPanel" class="tab-pane fade show active" role="tabpanel" aria-labelledby="formsTab">
+					<div class="panel-body">
+						<div id="form_list"></div>
+					</div>
+				</div>
+
+				<div id="tasksPanel" class="tab-pane fade" role="tabpanel" aria-labelledby="tasksTab">
+					<div class="panel-body">
+						<div id="task_list"></div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+
+
+
+</div>
+
+</body>
+</html>
