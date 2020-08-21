@@ -284,7 +284,7 @@ public class GetXForm {
 
 		// Add forms to bind elements
 		if (firstForm != null && !modelInstanceOnly) {
-			populateForm(sd, outputDoc, parent, BIND, firstForm);
+			populateForm(sd, outputDoc, parent, BIND, firstForm, false, false);
 		}
 	}
 
@@ -470,7 +470,7 @@ public class GetXForm {
 			if (!isWebForms) {
 				formElement.setAttribute("project", String.valueOf(template.getProject().getName()));
 			}
-			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm); // Process the top form
+			populateForm(sd, outputDoc, formElement, INSTANCE, firstForm, false, false); // Process the top form
 			parent.appendChild(formElement);
 		}
 	}
@@ -487,7 +487,7 @@ public class GetXForm {
 			gSurveyClass = surveyClass;
 		}
 		if (firstForm != null) {
-			populateForm(sd, outputDoc, bodyElement, BODY, firstForm); // Process the top level form
+			populateForm(sd, outputDoc, bodyElement, BODY, firstForm, false, false); // Process the top level form
 		}
 
 		parent.appendChild(bodyElement);
@@ -507,7 +507,7 @@ public class GetXForm {
 	 * 
 	 * @param parentXPath
 	 */
-	public void populateForm(Connection sd, Document outputDoc, Element parentElement, int location, Form f)
+	public void populateForm(Connection sd, Document outputDoc, Element parentElement, int location, Form f, boolean inTemplate, boolean inRealForm)
 			throws Exception {
 
 		Element currentParent = parentElement;
@@ -650,15 +650,19 @@ public class GetXForm {
 					}
 
 					// Add template
-					Element template = outputDoc.createElement(subForm.getName());
-					template.setAttribute("jr:template", ""); // The model requires a local name only
-					populateForm(sd, outputDoc, template, INSTANCE, subForm);
-					currentParent.appendChild(template);
+					if(!inRealForm) {
+						Element template = outputDoc.createElement(subForm.getName());
+						template.setAttribute("jr:template", ""); // The model requires a local name only
+						populateForm(sd, outputDoc, template, INSTANCE, subForm, true, false);
+						currentParent.appendChild(template);
+					}
 					
 					// Add the real form
-					Element form = outputDoc.createElement(subForm.getName());
-					populateForm(sd, outputDoc, form, INSTANCE, subForm);
-					currentParent.appendChild(form);
+					if(!inTemplate) {
+						Element form = outputDoc.createElement(subForm.getName());
+						populateForm(sd, outputDoc, form, INSTANCE, subForm, false, true);
+						currentParent.appendChild(form);
+					}
 
 				} else if (qType.equals("begin group")) {
 
@@ -710,7 +714,7 @@ public class GetXForm {
 
 					// Process sub form
 
-					populateForm(sd, outputDoc, currentParent, BIND, subForm);
+					populateForm(sd, outputDoc, currentParent, BIND, subForm, false, false);
 					if (subForm.getRepeats(true, template.getQuestionPaths()) != null) {
 						// Add the calculation for repeat count
 						questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), true);
@@ -773,7 +777,7 @@ public class GetXForm {
 					}
 					groupElement.appendChild(repeatElement);
 
-					populateForm(sd, outputDoc, repeatElement, BODY, subForm);
+					populateForm(sd, outputDoc, repeatElement, BODY, subForm, false, false);
 
 				} else if(qType.equals("end group")) { 
 					// Ignore end group
