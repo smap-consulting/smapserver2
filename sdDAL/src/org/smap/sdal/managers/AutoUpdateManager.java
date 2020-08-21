@@ -571,7 +571,8 @@ public class AutoUpdateManager {
 						rs.getInt("s_id"),
 						rs.getBoolean("reference"),
 						rs.getBoolean("published"),
-						rs.getInt("f_id"));
+						rs.getInt("f_id"),
+						rs.getString("server_calculate"));
 					
 				auQuestions.add(qt);
 

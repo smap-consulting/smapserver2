@@ -105,7 +105,8 @@ public class SurveyManager {
 	public static String KP_MERGE = "merge";
 	public static String KP_DISCARD = "discard";
 	
-	private static String sqlGetGroupQuestions = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference, q.published, f.f_id "
+	private static String sqlGetGroupQuestions = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, "
+			+ "q.qtype, f.s_id, f.reference, q.published, f.f_id, q.server_calculate "
 			+ "from question q, form f "
 			+ "where q.f_id = f.f_id "
 			+ "and (q.f_id in "
@@ -3511,7 +3512,8 @@ public class SurveyManager {
 						rs.getInt("s_id"),
 						rs.getBoolean("reference"),
 						rs.getBoolean("published"),
-						rs.getInt("f_id"));
+						rs.getInt("f_id"),
+						rs.getString("server_calculate"));
 				if(useColumnName) {
 					groupQuestions.put(rs.getString("column_name"), qt);
 				} else {
