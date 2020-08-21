@@ -623,8 +623,7 @@ public class ExternalFileManager {
 			int fId;
 
 			// 1. Get the columns in the group
-			SurveyManager sm = new SurveyManager(localisation, "UTC");			
-			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");					
 			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId);
 			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyId, null, false);
 			
@@ -647,14 +646,10 @@ public class ExternalFileManager {
 				String qType = null;
 				
 				QuestionForm qf = refQuestionMap.get(name);
-				if (qf != null) {
-					if(qf.published) {
-						colName = qf.columnName;
-						fId = qf.f_id;;
-						qType = qf.qType;
-					} else {
-						continue;	// Ignore if not published
-					}
+				if (qf != null && qf.published) {
+					colName = qf.columnName;
+					fId = qf.f_id;
+					qType = qf.qType;				
 				} else if(SmapServerMeta.isServerReferenceMeta(name)) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;
