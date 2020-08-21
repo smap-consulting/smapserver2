@@ -116,9 +116,10 @@ public class AutoUpdateManager {
 							SurveyManager sm = new SurveyManager(localisation, "UTC");			
 							
 							int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, qf.s_id);
-							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestions(sd, 
+							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, 
 									groupSurveyId, 
-									" q.column_name = '" + refColumn + "'");
+									" q.column_name = '" + refColumn + "'",
+									true);
 							
 							QuestionForm refQf = refQuestionMap.get(refColumn);
 							
@@ -541,7 +542,7 @@ public class AutoUpdateManager {
 		
 		ArrayList<QuestionForm> auQuestions = new ArrayList<> ();
 
-		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
+		String sql = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference, q.published, f.f_id "
 				+ "from question q, form f, survey s, autoupdate_questions auq "
 				+ "where q.f_id = f.f_id "
 				+ "and f.s_id = s.s_id "
@@ -568,7 +569,9 @@ public class AutoUpdateManager {
 						rs.getString("parameters"),
 						rs.getString("qtype"),
 						rs.getInt("s_id"),
-						rs.getBoolean("reference"));
+						rs.getBoolean("reference"),
+						rs.getBoolean("published"),
+						rs.getInt("f_id"));
 					
 				auQuestions.add(qt);
 

@@ -593,7 +593,7 @@ public class UploadFiles extends Application {
 				
 				merge = true;
 				groupForms = sm.getGroupForms(sd, surveyId);
-				questionNames = sm.getGroupQuestions(sd, surveyId, null);
+				questionNames = sm.getGroupQuestionsMap(sd, surveyId, null, true);
 				optionNames = sm.getGroupOptions(sd, surveyId);
 			}
 			
