@@ -21,6 +21,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.SqlFrag;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -613,13 +614,6 @@ public class ExternalFileManager {
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 		String dateColumn = null;
 
-		ResultSet rs = null;
-		String sqlGetCol = "select column_name, f_id, qtype from question " 
-				+ "where qname = ? " 
-				+ "and published "
-				+ "and f_id in (select f_id from form where s_id = ?)";
-		PreparedStatement pstmtGetCol = null;
-
 		String sqlGetTable = "select f_id, table_name from form " 
 				+ "where s_id = ? " 
 				+ "and parentform = ?";
@@ -628,10 +622,12 @@ public class ExternalFileManager {
 		try {
 			int fId;
 
-			// 1. Add the columns
-			pstmtGetCol = sd.prepareStatement(sqlGetCol);
-			pstmtGetCol.setInt(2, sId);
-
+			// 1. Get the columns in the group
+			SurveyManager sm = new SurveyManager(localisation, "UTC");			
+			
+			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId);
+			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyId, null, false);
+			
 			boolean first = true;
 			
 			if (linked_s_pd) {
@@ -649,12 +645,16 @@ public class ExternalFileManager {
 				}
 				String colName = null;
 				String qType = null;
-				pstmtGetCol.setString(1, name);
-				rs = pstmtGetCol.executeQuery();
-				if (rs.next()) {
-					colName = rs.getString(1);
-					fId = rs.getInt(2);
-					qType = rs.getString(3);
+				
+				QuestionForm qf = refQuestionMap.get(name);
+				if (qf != null) {
+					if(qf.published) {
+						colName = qf.columnName;
+						fId = qf.f_id;;
+						qType = qf.qType;
+					} else {
+						continue;	// Ignore if not published
+					}
 				} else if(SmapServerMeta.isServerReferenceMeta(name)) {
 					colName = name; // For columns that are not questions such as _hrk, _device
 					fId = topForm.id;
@@ -746,17 +746,8 @@ public class ExternalFileManager {
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
 			throw e;
-		} finally {
-			if (pstmtGetCol != null)
-				try {
-					pstmtGetCol.close();
-				} catch (Exception e) {
-				}
-			if (pstmtGetTable != null)
-				try {
-					pstmtGetTable.close();
-				} catch (Exception e) {
-				}
+		} finally {			
+			if (pstmtGetTable != null) try {pstmtGetTable.close();} catch (Exception e) {}
 		}
 
 		sqlDef.sql = sql.toString();

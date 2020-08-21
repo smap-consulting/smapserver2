@@ -105,7 +105,7 @@ public class SurveyManager {
 	public static String KP_MERGE = "merge";
 	public static String KP_DISCARD = "discard";
 	
-	private static String sqlGetGroupQuestions = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference "
+	private static String sqlGetGroupQuestions = "select q.qname, q.column_name, f.name, f.table_name, q.parameters, q.qtype, f.s_id, f.reference, q.published, f.f_id "
 			+ "from question q, form f "
 			+ "where q.f_id = f.f_id "
 			+ "and (q.f_id in "
@@ -3479,9 +3479,10 @@ public class SurveyManager {
 	/*
 	 * Get the group Questions
 	 */
-	public HashMap<String, QuestionForm> getGroupQuestions(Connection sd, 
+	public HashMap<String, QuestionForm> getGroupQuestionsMap(Connection sd, 
 			int groupSurveyId,
-			String filter) throws SQLException {
+			String filter,
+			boolean useColumnName) throws SQLException {
 		
 		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
 
@@ -3508,8 +3509,14 @@ public class SurveyManager {
 						rs.getString("parameters"),
 						rs.getString("qtype"),
 						rs.getInt("s_id"),
-						rs.getBoolean("reference"));
-				groupQuestions.put(rs.getString("column_name"), qt);
+						rs.getBoolean("reference"),
+						rs.getBoolean("published"),
+						rs.getInt("f_id"));
+				if(useColumnName) {
+					groupQuestions.put(rs.getString("column_name"), qt);
+				} else {
+					groupQuestions.put(rs.getString("qname"), qt);
+				}
 			}
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
