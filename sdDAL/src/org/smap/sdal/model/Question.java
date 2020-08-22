@@ -26,7 +26,6 @@ public class Question {
 	public String type;
 	public String text_id;
 	public String hint_id;
-	//public String path;
 	public int l_id;				// Id for listname identifying list of options
 	public String list_name;		// A reference to the list of options 
 	public int seq;
@@ -74,6 +73,44 @@ public class Question {
 	
 	public String style_list;			// The name of the style applied to this question
 	public int style_id;				// The id of the style as used in the database
+	
+	public Question() {
+		
+	}
+	
+	// CLone a question
+	// Note: the cloning is not complete but it is adequate for uploading matrix types
+	public Question(Question q) {
+		this.fId = q.fId;
+		this.name = q.name;
+		this.columnName = q.columnName;
+		this.display_name = q.display_name;
+		this.type = q.type;
+		this.text_id = q.text_id;
+		this.hint_id = q.hint_id;		
+		this.l_id = q.l_id;
+		this.list_name = q.list_name;
+		this.defaultanswer = q.defaultanswer;	
+		this.appearance = q.appearance;
+		this.app_choices = q.app_choices;
+		this.parameters = q.parameters;
+		this.choice_filter = q.choice_filter;
+		this.source = q.source;
+		this.source_param = q.source_param;
+		this.calculation = q.calculation;
+		this.required = q.required;
+		this.required_msg = q.required_msg;
+		this.relevant = q.relevant;
+		this.constraint = q.constraint;
+		this.constraint_msg = q.constraint_msg;
+		this.visible = q.visible;	
+		this.readonly = q.readonly;
+		this.required = q.required;
+		this.compressed = q.compressed;
+		this.autoplay = q.autoplay;
+		this.accuracy = q.accuracy;
+		this.intent = q.intent;
+	}
 	
 	/*
 	 * Get the selectable choices for this question

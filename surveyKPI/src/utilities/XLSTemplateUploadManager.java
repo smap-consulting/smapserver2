@@ -159,28 +159,16 @@ public class XLSTemplateUploadManager {
 			questions.add(qb2);
 			
 			for(Question qm : member) {
-				Question qx = new Question();
+				// Clone the question so that the original members can be preservef
+				Question qx = new Question(qm);
 				qx.name = qb.name + "_" + qm.name;
 				qx.source = "user";
 				qx.appearance = "w2";
 				qx.columnName = GeneralUtilityMethods.cleanName(qx.name, true, true, true);
 				if(choice == null) {
-					qx.type = "note";
-					
+					qx.type = "note";					
 					qx.labels = copyLabelsFrom(qm.labels, "bold");
 				} else {
-					qx.type = qm.type;
-					qx.required = qm.required;
-					qx.required_msg = qm.required_msg;
-					qx.relevant = qm.relevant;
-					qx.calculation = qm.calculation;
-					qx.constraint = qm.constraint;
-					qx.constraint_msg = qm.constraint_msg;
-					qx.l_id = qm.l_id;
-					qx.list_name = qm.list_name;
-					qx.display_name = qm.display_name;
-					qx.visible = qm.visible;
-					
 					if(qx.type.startsWith("select")) {
 						qx.appearance += "  horizontal-compact";
 					} else {
@@ -188,8 +176,6 @@ public class XLSTemplateUploadManager {
 					}
 					qx.labels = copyLabelsFrom(qm.labels, "empty");
 				}
-				
-				
 				questions.add(qx);
 			}
 			
