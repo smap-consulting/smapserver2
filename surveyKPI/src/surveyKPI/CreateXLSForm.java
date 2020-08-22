@@ -52,9 +52,6 @@ public class CreateXLSForm extends Application {
 	
 	Authorise a = null;
 	
-	private static Logger log =
-			 Logger.getLogger(CreateXLSForm.class.getName());
-	
 	public CreateXLSForm() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
