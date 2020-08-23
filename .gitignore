@@ -6,6 +6,8 @@ fieldManager/build
 surveyMobileAPI/build/classes/.gitignore
 koboToolboxApi/.gitignore
 
+surveyKPI/WebContent/WEB-INF/lib/
+
 Servers/
 
 subscribers/target/
