@@ -59,23 +59,6 @@ public class JavaRosaUtilities {
 		GetXForm xForm = new GetXForm(localisation, user, tz);
 
 		String xmlForm = xForm.get(template, false, true, false, user);
-		/*
-		 * Replace Smap custom functions with methods that will pass in java rosa
-		 * lookup  --> pulldata
-		 * lookup_choices  --> search
-		 * lookup_image_labels(...)  --> dummy fn round(1.1)
-		 * get_media(....)  --> dummy fn round(1.1)
-		 * 
-		 * TODO validate these functions
-		 * Also this does not allow for nested functions, however if a match
-		 * does not happen here then the error will be caught and discarded.  This might
-		 * mean that other errors in the form are also discarded.
-		 * Probably this call to java rosa validation should be replaced by our own validation
-		 */
-		xmlForm = xmlForm.replace("lookup(", "pulldata(");  // lookup
-		xmlForm = xmlForm.replace("lookup_choices(", "search(");  // lookup_choices
-		xmlForm = xmlForm.replaceAll("lookup_image_labels\\([a-zA-Z0-9$,\\.{}\'/ ]*\\)", "round(1.1)");	// lookup_imag_labels
-		xmlForm = xmlForm.replaceAll("get_media\\([a-zA-Z0-9$,\\.{}\'/ ]*\\)", "round(1.1)");	// lookup_imag_labels
 		
 		// Remove any actions
 		xmlForm = xmlForm.replaceAll("\\<odk:setgeopoint [a-zA-Z0-9$,\\\\.{}=\\'\\-\"/ ]*\\/\\>", "");	
@@ -88,10 +71,22 @@ public class JavaRosaUtilities {
 		fd.getPreloader().addPreloadHandler(new FakePreloadHandler("property"));
 
 		// update evaluation context for function handlers
-		fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
+		addHandler(fd, "pulldata");
+		addHandler(fd, "lookup_image_labels");
+		addHandler(fd, "get_media");
+		addHandler(fd, "lookup");
+		addHandler(fd, "lookup_choices");
+
+		fd.initialize(false, new InstanceInitializationFactory());
+
+	}
+    
+    private static void addHandler(org.javarosa.core.model.FormDef fd, String name) {
+    	
+    	fd.getEvaluationContext().addFunctionHandler(new IFunctionHandler() {
 
 			public String getName() {
-				return "pulldata";
+				return name;
 			}
 
 			public List<Class[]> getPrototypes() {
@@ -112,8 +107,5 @@ public class JavaRosaUtilities {
 				return arg0[0];
 			}
 		});
-
-		fd.initialize(false, new InstanceInitializationFactory());
-
-	}
+    }
 }

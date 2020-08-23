@@ -733,9 +733,6 @@ public class UploadFiles extends Application {
 			/*
 			 * Validate the survey:
 			 * 	 using the JavaRosa API
-			 * 		Ignore invalid function errors for extended functions
-			 *    		lookup
-			 *    		lookup_image_labels
 			 *    Ensure that it fits within the limit of 1,600 columns
 			 */
 			boolean valid = true;
@@ -744,22 +741,15 @@ public class UploadFiles extends Application {
 				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
 			} catch (Exception e) {
 								
-				String msg = e.getMessage();
-				if(msg != null && !msg.contains("cannot handle function 'lookup'") &&
-						!msg.contains("cannot handle function 'lookup_image_labels'") &&
-						!msg.contains("cannot handle function 'get_media'")) {
-					// Error! Delete the survey we just created
-					log.log(Level.SEVERE, e.getMessage(), e);
-					valid = false;
+				// Error! Delete the survey we just created
+				log.log(Level.SEVERE, e.getMessage(), e);
+				valid = false;
 					
-					errMsg = e.getMessage();			
-					if(errMsg.startsWith("no <translation>s defined")) {
-						errMsg = localisation.getString("tu_nl");
-					}
-							
-				} else if(msg == null) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				} 
+				errMsg = e.getMessage();			
+				if(errMsg != null && errMsg.startsWith("no <translation>s defined")) {
+					errMsg = localisation.getString("tu_nl");
+				}					
+				
 			}
 			if(valid) {
 				ArrayList<FormLength> formLength = GeneralUtilityMethods.getFormLengths(sd, s.id);
