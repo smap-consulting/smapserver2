@@ -54,6 +54,8 @@ import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.SurveySummary;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -241,10 +243,7 @@ public class Surveys extends Application {
 			response = Response.ok(resp).build();
 			
 			
-		} catch (SQLException e) {
-			log.log(Level.SEVERE, "SQL Error", e);
-			response = Response.serverError().build();
-		}  catch (Exception e) {
+		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().build();
 		} finally {
@@ -252,6 +251,46 @@ public class Surveys extends Application {
 			SDDataSource.closeConnection(connectionString , sd);	
 			ResultsDataSource.closeConnection(connectionString , cResults);
 			
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get high level details on a survey given its ident
+	 */
+	@GET
+	@Path("/summary/{sIdent}")
+	@Produces("application/json")
+	public Response getSurveySummary(@Context HttpServletRequest request,
+			@PathParam("sIdent") String sIdent
+			) { 
+		
+		String connectionString = "surveyKPI - Get Survey Summary";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString );	
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		aUpdate.surveyInUsersOrganisation(sd, request.getRemoteUser(), sIdent);
+		// End Authorisation
+		
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			SurveySummary summary = sm.getSummary(sd, sIdent);
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String resp = gson.toJson(summary);
+			response = Response.ok(resp).build();			
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString , sd);				
 		}
 
 		return response;

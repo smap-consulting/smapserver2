@@ -1282,8 +1282,6 @@ public class Authorise {
 				" where p.id = ? " +
 				" and p.o_id = ?;";
 		
-		
-		
 		try {
 			int oId = GeneralUtilityMethods.getOrganisationId(conn, user);
 			
@@ -1309,6 +1307,57 @@ public class Authorise {
 		
  		if(count == 0) {
  			log.info("Project in organisation validation failed for: " + user + " project was: " + pId);
+ 			
+ 			SDDataSource.closeConnection("isValidProject", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
+	 * Verify that the survey is in the users organisation
+	 */
+	public boolean surveyInUsersOrganisation(Connection conn, String user, String sIdent) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+		String sql = "select count(*) from survey s, project p "
+				+ "where p.id = s.p_id "
+				+ "and s.ident = ? "
+				+ "and p.o_id = ?;";
+		
+		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(conn, user);
+			
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+			pstmt.setInt(2, oId);
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Survey in organisation validation failed for: " + user + " survey ident was: " + sIdent);
  			
  			SDDataSource.closeConnection("isValidProject", conn);
 			
