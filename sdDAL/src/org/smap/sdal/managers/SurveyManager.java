@@ -79,6 +79,7 @@ import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.SurveyLinks;
+import org.smap.sdal.model.SurveySummary;
 import org.smap.sdal.model.TableColumn;
 import org.smap.sdal.model.TableColumnMarkup;
 import org.smap.sdal.model.User;
@@ -4684,5 +4685,34 @@ public class SurveyManager {
 
 		return result;
 		
+	}
+	
+	/*
+	 * If a form is replaced the form will need to be replaced in the report
+	 */
+	public SurveySummary getSummary(Connection sd, String sIdent) throws SQLException {
+		
+		String sql = "select s.display_name, s.version, p.name "
+				+ "from survey s, project p "
+				+ "where s.p_id = p.id "
+				+ "and s.ident = ? ";
+		PreparedStatement pstmt = null;
+		SurveySummary summary = new SurveySummary();
+		
+		try {
+	
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, sIdent);
+
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				summary.ident = sIdent;
+				summary.displayName = rs.getString("display_name");
+				summary.projectName = rs.getString("name");
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
+		}
+		return summary;
 	}
 }
