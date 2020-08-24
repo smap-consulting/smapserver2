@@ -1117,6 +1117,7 @@ public class GetXForm {
 					formIdentifier = kv.v;
 				}
 			}
+			// Process initial data parameter for launching forms
 			if(initial != null && formIdentifier != null) {
 				int sId = GeneralUtilityMethods.getSurveyId(sd, formIdentifier);
 				SurveyTemplate template = new SurveyTemplate(localisation);
