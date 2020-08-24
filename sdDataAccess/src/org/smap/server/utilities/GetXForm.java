@@ -1119,11 +1119,18 @@ public class GetXForm {
 			}
 			// Process initial data parameter for launching forms
 			if(initial != null && formIdentifier != null) {
-				int sId = GeneralUtilityMethods.getSurveyId(sd, formIdentifier);
-				SurveyTemplate template = new SurveyTemplate(localisation);
-				template.readDatabase(sId, false);
-				GetXForm xForm = new GetXForm(localisation, remoteUser, tz);
-				String model = xForm.get(template, true, true, true, remoteUser);
+				int launchSid = GeneralUtilityMethods.getSurveyId(sd, formIdentifier);
+				SurveyTemplate launchTemplate = new SurveyTemplate(localisation);
+				launchTemplate.readDatabase(launchSid, false);
+				GetXForm launchXForm = new GetXForm(localisation, remoteUser, tz);
+				String model = launchXForm.getInstanceXml(launchSid, formIdentifier, launchTemplate, null, null, 0,
+						false,	// simplify media 
+						false, 0, 
+						"",		// url prefix 
+						null,
+						true);
+				
+				System.out.println("Launch model: " + model);
 				
 				// Populate model with data
 				String [] a = initial.split(",");
@@ -1134,9 +1141,9 @@ public class GetXForm {
 						String k = b[0].trim();
 						String v = b[1].trim();
 						model = model.replace("<" + k + "/>", "<" + k + ">" + v + "</" + k + ">");
-					}
-					
+					}	
 				}
+				System.out.println("Launch model: " + model);
 				questionElement.setAttribute("initial", model);
 			}
 		}
@@ -1530,7 +1537,8 @@ public class GetXForm {
 			boolean isWebForms, 
 			int taskKey,
 			String urlprefix,
-			Instance initialData) 
+			Instance initialData,
+			boolean createBlank) 
 			throws ParserConfigurationException, ClassNotFoundException, SQLException, TransformerException, ApplicationException {
 
 		this.isWebForms = isWebForms;
@@ -1603,7 +1611,9 @@ public class GetXForm {
 			} else if(initialData != null) {
 				hasData = true;
 				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true, isWebForms);
-
+			} else if(createBlank) {
+				hasData = true;
+				populateBlankForm(outputXML, firstForm, sd, template, null, sId, null, null, templateName, false);
 			}
 
 			// Write the survey to a string and return it to the calling program

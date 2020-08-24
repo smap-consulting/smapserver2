@@ -133,7 +133,7 @@ public class InstanceXML extends Application{
 					template, 
 					key, 
 					keyval, 
-					priKey, false, false, taskKey, urlprefix, null);	
+					priKey, false, false, taskKey, urlprefix, null, false);	
 			
 			response = Response.ok(instanceXML).build();
 		
