@@ -576,7 +576,7 @@ public class WebForm extends Application {
 				String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 				GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 				instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, datakey, datakeyvalue, 0, simplifyMedia,
-						isWebForm, taskKey, urlprefix, initialData);
+						isWebForm, taskKey, urlprefix, initialData, false);
 				instanceStrToEditId = xForm.getInstanceId();
 				gRecordCounts = xForm.getRecordCounts();
 			} 
@@ -1255,14 +1255,13 @@ public class WebForm extends Application {
 			SurveyTemplate template = new SurveyTemplate(localisation);
 			template.readDatabase(survey.id, false);
 
-			// If required get the instance data
 			String instanceXML = null;
 			String dataKey = "instanceid";
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			GetXForm xForm = new GetXForm(localisation, userIdent, tz);
 			instanceXML = xForm.getInstanceXml(survey.id, formIdent, template, dataKey, updateid, 0, simplifyMedia, 
-					false, taskKey, urlprefix, null);
+					false, taskKey, urlprefix, null, false);
 
 			SurveyData surveyData = new SurveyData();
 			surveyData.instanceStrToEdit = instanceXML.replace("\n", "").replace("\r", "");
