@@ -1104,9 +1104,39 @@ public class GetXForm {
 
 		// Add Body Parameters
 		ArrayList<KeyValueSimp> parameters = q.getParameters();
+		String formIdentifier = null;
+		String initial = null;
 		if (parameters != null) {
 			for(KeyValueSimp kv : parameters) {
-				questionElement.setAttribute(kv.k, kv.v);
+				if(!kv.k.equals("initial")) {
+					questionElement.setAttribute(kv.k, kv.v);
+				} else {
+					initial = kv.v;
+				}
+				if(kv.k.equals("form_identifier")) {
+					formIdentifier = kv.v;
+				}
+			}
+			if(initial != null && formIdentifier != null) {
+				int sId = GeneralUtilityMethods.getSurveyId(sd, formIdentifier);
+				SurveyTemplate template = new SurveyTemplate(localisation);
+				template.readDatabase(sId, false);
+				GetXForm xForm = new GetXForm(localisation, remoteUser, tz);
+				String model = xForm.get(template, true, true, true, remoteUser);
+				
+				// Populate model with data
+				String [] a = initial.split(",");
+				for(int i = 0; i < a.length; i++) {
+					String item = a[i].trim();
+					String[] b = item.split(":");
+					if(b.length > 1) {
+						String k = b[0].trim();
+						String v = b[1].trim();
+						model = model.replace("<" + k + "/>", "<" + k + ">" + v + "</" + k + ">");
+					}
+					
+				}
+				questionElement.setAttribute("initial", model);
 			}
 		}
 
