@@ -1120,29 +1120,31 @@ public class GetXForm {
 			// Process initial data parameter for launching forms
 			if(initial != null && formIdentifier != null) {
 				int launchSid = GeneralUtilityMethods.getSurveyId(sd, formIdentifier);
-				SurveyTemplate launchTemplate = new SurveyTemplate(localisation);
-				launchTemplate.readDatabase(launchSid, false);
-				GetXForm launchXForm = new GetXForm(localisation, remoteUser, tz);
-
-				String model = launchXForm.getInstanceXml(launchSid, formIdentifier, launchTemplate, null, null, 0,
-						false,	// simplify media 
-						false, 0, 
-						"",		// url prefix 
-						null,
-						true);
-				
-				// Populate model with data
-				String [] a = initial.split(",");
-				for(int i = 0; i < a.length; i++) {
-					String item = a[i].trim();
-					String[] b = item.split(":");
-					if(b.length > 1) {
-						String k = b[0].trim();
-						String v = b[1].trim();
-						model = model.replace("<" + k + "/>", "<" + k + ">" + v + "</" + k + ">");
-					}	
+				if(launchSid != 0) {	// Check for valid survey to launch
+					SurveyTemplate launchTemplate = new SurveyTemplate(localisation);
+					launchTemplate.readDatabase(launchSid, false);
+					GetXForm launchXForm = new GetXForm(localisation, remoteUser, tz);
+	
+					String model = launchXForm.getInstanceXml(launchSid, formIdentifier, launchTemplate, null, null, 0,
+							false,	// simplify media 
+							false, 0, 
+							"",		// url prefix 
+							null,
+							true);
+					
+					// Populate model with data
+					String [] a = initial.split(",");
+					for(int i = 0; i < a.length; i++) {
+						String item = a[i].trim();
+						String[] b = item.split(":");
+						if(b.length > 1) {
+							String k = b[0].trim();
+							String v = b[1].trim();
+							model = model.replace("<" + k + "/>", "<" + k + ">" + v + "</" + k + ">");
+						}	
+					}
+					questionElement.setAttribute("initial", model);
 				}
-				questionElement.setAttribute("initial", model);
 			}
 		}
 
