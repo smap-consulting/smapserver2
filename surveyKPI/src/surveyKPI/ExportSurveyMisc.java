@@ -250,7 +250,9 @@ public class ExportSurveyMisc extends Application {
 						null,			// transform
 						true,
 						false,
-						tz);			// Get all columns (not just instanceid)
+						tz,
+						false			// Accuracy and ALtitude
+						);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique

@@ -611,7 +611,8 @@ public class Data extends Application {
 						false,				// TODO include HXL
 						audit,
 						tz,
-						mgmt				// If this is a management request then include the assigned user after prikey
+						mgmt,				// If this is a management request then include the assigned user after prikey
+						false				// Accuracy and Altitude
 						);
 	
 			}
@@ -1068,7 +1069,8 @@ public class Data extends Application {
 					false,		// Only include HXL with CSV and Excel output
 					false,
 					tz,
-					false		// mgmt
+					false,		// mgmt
+					false		// Accuracy and Altitude
 					);
 
 			if(mgmt) {

@@ -325,7 +325,8 @@ public class Audit extends Application {
 					false,		// TODO include HXL
 					true,
 					tz,
-					false
+					false,
+					false		//Accuracy and Altitude
 					);
 
 			if(mgmt) {

@@ -238,7 +238,9 @@ public class ExportSurveyMedia extends Application {
 						null,			// transform
 						true,
 						false,
-						tz);		// Get all columns (not just instanceid)
+						tz,
+						false		// Accuracy and Altitude
+						);		
 				
 				/*
 				 * 1. Create the target folder

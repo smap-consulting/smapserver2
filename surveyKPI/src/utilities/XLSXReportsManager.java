@@ -85,6 +85,7 @@ public class XLSXReportsManager {
 			int sId, 
 			String filename, 
 			boolean split_locn, 
+			boolean get_acc_alt,
 			boolean merge_select_multiple,
 			String language,
 			boolean exp_ro,
@@ -225,7 +226,8 @@ public class XLSXReportsManager {
 						transform,
 						meta,
 						false,
-						tz);
+						tz,
+						get_acc_alt);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				
@@ -269,7 +271,7 @@ public class XLSXReportsManager {
 								}
 							}
 								
-						} else if(split_locn && values.name.equals("the_geom")) {
+						} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.label);
@@ -353,7 +355,7 @@ public class XLSXReportsManager {
 							}
 						}
 							
-					} else if(split_locn && values.name.equals("the_geom")) {
+					} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Latitude");

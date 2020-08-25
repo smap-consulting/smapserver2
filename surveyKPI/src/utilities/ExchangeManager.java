@@ -207,7 +207,8 @@ public class ExchangeManager {
 							false,
 							false,		// Don't include audit data
 							tz,
-							false		// mgmt
+							false,		// mgmt
+							false		// Accuracy and Altitude
 							);
 						
 					// Get the list of spreadsheet columns

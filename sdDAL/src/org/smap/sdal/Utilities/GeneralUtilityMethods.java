@@ -3422,7 +3422,8 @@ public class GeneralUtilityMethods {
 			boolean hxl,
 			boolean audit,
 			String tz,
-			boolean mgmt)	// If set substitute display name for the question name if it is not null, also publish un published
+			boolean mgmt,			// If set substitute display name for the question name if it is not null, also publish un published
+			boolean get_acc_alt)	
 					throws Exception {
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -3699,7 +3700,6 @@ public class GeneralUtilityMethods {
 			columnList.add(c);
 		}
 
-
 		try {
 			
 			pstmtQuestions.setInt(1, f_id);
@@ -3825,6 +3825,24 @@ public class GeneralUtilityMethods {
 						}
 					} else {
 						realQuestions.add(c);
+					}
+					
+					if(get_acc_alt && qType.equals("geopoint")) {
+						if(GeneralUtilityMethods.columnType(cResults, table_name, "the_geom_acc") != null) {
+							c = new TableColumn();
+							c.column_name = "the_geom_acc";
+							c.displayName = "Accuracy";
+							c.question_name = "accuracy";
+							c.type = "decimal";
+							realQuestions.add(c);
+							
+							c = new TableColumn();
+							c.column_name = "the_geom_alt";
+							c.displayName = "Altitude";
+							c.question_name = "altitude";
+							c.type = "decimal";
+							realQuestions.add(c);
+						}
 					}
 					
 					if (qType.equals("select1") || qType.equals("select") || qType.equals("rank")) {

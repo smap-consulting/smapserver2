@@ -105,6 +105,7 @@ public class ExportSurveyXlsx extends Application {
 					sId,
 					filename,
 					split_locn,
+					true,
 					merge_select_multiple,
 					language,
 					exp_ro,
