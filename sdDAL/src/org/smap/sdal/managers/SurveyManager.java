@@ -4228,7 +4228,8 @@ public class SurveyManager {
 					false,			// include HXL
 					false,
 					tz,
-					false		// mgmt
+					false,		// mgmt
+					false		// Accuracy and Altitude
 					);
 
 			/*

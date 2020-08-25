@@ -533,7 +533,8 @@ public class SubscriberBatch {
 											false,		// Don't include HXL
 											true	,		// include audit data
 											tz,
-											false		// mgmt
+											false,		// mgmt
+											false 		// Altitude and Accuracy
 											);
 	
 									if(mgmt) {

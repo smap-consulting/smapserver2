@@ -190,7 +190,8 @@ public void populateSvd(
 			false,		// HXL only include with XLS exports
 			false,		// Don't include audit data
 			tz,
-			isMain		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+			isMain,		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+			false		// Accuracy and Altitude
 			);		
 
 	// If this is a group form track which duplicate main questions need to be removed

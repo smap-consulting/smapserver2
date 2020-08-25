@@ -329,7 +329,8 @@ public class Data_CSV extends Application {
 					superUser, false, 	// TODO include HXL
 					audit,
 					tz,
-					false				// mgmt
+					false,				// mgmt
+					false				// Accuracy and Altitude
 					);
 
 			if (mgmt) {

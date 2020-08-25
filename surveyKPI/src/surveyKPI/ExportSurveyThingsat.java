@@ -222,7 +222,9 @@ public class ExportSurveyThingsat extends Application {
 					null,			// transform
 					true,
 					false,
-					tz);		// Get all columns (not just instanceid)
+					tz,
+					false			// Accuracy and Altitude
+					);
 			
 			pstmt = connectionResults.prepareStatement(sqlDesc.sql + ";");
 			ResultSet rs = pstmt.executeQuery();

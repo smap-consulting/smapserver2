@@ -422,7 +422,8 @@ public class ExportSurvey extends Application {
 							false,		// TODO add HXL export processing
 							false,		// Don't include audit data
 							tz,
-							false		// mgmt
+							false,		// mgmt
+							false		// Accuracy and Altitude
 							);
 
 

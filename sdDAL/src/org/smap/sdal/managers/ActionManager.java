@@ -617,7 +617,8 @@ public class ActionManager {
 					false,		// HXL only include with XLS exports
 					false,		// Don't include audit data
 					tz,
-					false		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+					false,		// mgmt - Only the main survey request should result in the addition of the mgmt columns
+					false		// Accuracy and Altitude
 					);		
 			
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");

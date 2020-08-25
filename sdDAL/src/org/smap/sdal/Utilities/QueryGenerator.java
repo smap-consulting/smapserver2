@@ -78,7 +78,8 @@ public class QueryGenerator {
 			Transform transform,
 			boolean meta,
 			boolean includeKeys,
-			String tz) throws Exception {
+			String tz,
+			boolean get_acc_alt) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
 		ArrayList<String> tables = new ArrayList<String> ();
@@ -164,7 +165,8 @@ public class QueryGenerator {
 					meta,
 					includeKeys,
 					false,				// have geometry
-					tz
+					tz,
+					get_acc_alt
 					);
 		
 			/*
@@ -431,7 +433,8 @@ public class QueryGenerator {
 			boolean meta,
 			boolean includeKeys,
 			boolean haveGeometry,
-			String tz
+			String tz,
+			boolean get_acc_alt
 			) throws Exception {
 		
 		int colLimit = 10000;
@@ -468,7 +471,8 @@ public class QueryGenerator {
 				false,				// HXL only include with XLS exports
 				false,				// Don't include audit data
 				tz,
-				false				// mgmt
+				false,				// mgmt
+				get_acc_alt
 				);
 			
 		StringBuffer colBuf = new StringBuffer();
@@ -756,7 +760,8 @@ public class QueryGenerator {
 						meta,
 						includeKeys,
 						haveGeometry,
-						tz
+						tz,
+						get_acc_alt
 						);
 			}
 		}

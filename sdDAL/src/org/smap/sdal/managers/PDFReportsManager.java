@@ -140,7 +140,9 @@ public class PDFReportsManager {
 					null,			// transform
 					true,
 					true,
-					tz);		// Include the keys instanceid, instancename, prikey, hrk
+					tz,
+					false		// Accuracy and Altitude
+					);
 			
 			pstmt = cResults.prepareStatement(sqlDesc.sql);
 			log.info("Get records to convert to PDF's: " + pstmt.toString());

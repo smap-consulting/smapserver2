@@ -580,7 +580,8 @@ public class ManagedForms extends Application {
 						false,		// HXL only include with XLS exports
 						false,		// Don't include audit data
 						tz,
-						false		// mgmt
+						false,		// mgmt
+						false		// Accuracy and Altitude
 						);
 				
 				for(TableColumn mc : svd.columns) {
