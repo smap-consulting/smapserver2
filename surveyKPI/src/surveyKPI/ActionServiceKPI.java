@@ -179,7 +179,7 @@ public class ActionServiceKPI extends Application {
 						a.sId,
 						a.name,		// File name
 						split_locn,
-						false,
+						meta,		// Get altitude and location
 						merge_select_multiple,
 						language,
 						exp_ro,
