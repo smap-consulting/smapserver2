@@ -250,7 +250,7 @@ public class UtilityMethods {
 				
 				StringBuffer path = new StringBuffer("");
 				if(!webform) {
-					path = path.append("current()/");
+					path = path.append("current()");
 				}
 				for(int i = 0; i < pathDepth; i++) {
 					if(webform && i == 0) {
