@@ -1123,14 +1123,13 @@ public class GetXForm {
 				SurveyTemplate launchTemplate = new SurveyTemplate(localisation);
 				launchTemplate.readDatabase(launchSid, false);
 				GetXForm launchXForm = new GetXForm(localisation, remoteUser, tz);
+
 				String model = launchXForm.getInstanceXml(launchSid, formIdentifier, launchTemplate, null, null, 0,
 						false,	// simplify media 
 						false, 0, 
 						"",		// url prefix 
 						null,
 						true);
-				
-				System.out.println("Launch model: " + model);
 				
 				// Populate model with data
 				String [] a = initial.split(",");
@@ -1143,7 +1142,6 @@ public class GetXForm {
 						model = model.replace("<" + k + "/>", "<" + k + ">" + v + "</" + k + ">");
 					}	
 				}
-				System.out.println("Launch model: " + model);
 				questionElement.setAttribute("initial", model);
 			}
 		}
@@ -1601,7 +1599,7 @@ public class GetXForm {
 			} else if (key != null && keyval != null) {
 				// Create a blank form containing only the key values
 				hasData = true;
-				populateBlankForm(outputXML, firstForm, sd, template, null, sId, key, keyval, templateName, false);
+				populateBlankForm(outputXML, firstForm, sd, template, null, sId, key, keyval, templateName, false, false);
 			} else if(taskKey > 0) {
 				// Create a form containing only the initial task data
 				hasData = true;
@@ -1613,7 +1611,7 @@ public class GetXForm {
 				populateTaskDataForm(outputXML, firstForm, sd, template, null, sId, templateName, initialData, urlprefix, true, isWebForms);
 			} else if(createBlank) {
 				hasData = true;
-				populateBlankForm(outputXML, firstForm, sd, template, null, sId, null, null, templateName, false);
+				populateBlankForm(outputXML, firstForm, sd, template, null, sId, null, null, templateName, false, true);
 			}
 
 			// Write the survey to a string and return it to the calling program
@@ -1805,12 +1803,35 @@ public class GetXForm {
 	 * @param outputDoc
 	 */
 	public void populateBlankForm(Document outputDoc, Form form, Connection sd, SurveyTemplate template,
-			Element parentElement, int sId, String key, String keyval, String survey_ident, boolean isTemplate)
+			Element parentElement, int sId, String key, String keyval, String survey_ident, boolean isTemplate, 
+			boolean addMeta)
 					throws SQLException {
 
 		List<Results> record = new ArrayList<Results>();
 
 		List<Question> questions = form.getQuestions(sd, form.getPath(null));
+		if(addMeta) {		// Add meta group
+			Question q = new Question();
+			q.setType("begin group");
+			q.setName("meta");
+			questions.add(q);
+			
+			q = new Question();
+			q.setType("text");
+			q.setName("instanceID");
+			questions.add(q);
+			
+			q = new Question();
+			q.setType("text");
+			q.setName("instanceName");
+			questions.add(q);
+			
+			q = new Question();
+			q.setType("end group");
+			q.setName("meta");
+			questions.add(q);
+			
+		}
 		for (Question q : questions) {
 
 			String qName = q.getName();
@@ -1853,7 +1874,7 @@ public class GetXForm {
 
 			if (item.subForm != null) {
 				populateBlankForm(outputDoc, item.subForm, sd, template, currentParent, sId, key, keyval, survey_ident,
-						isTemplate);
+						isTemplate, false);
 			} else if (item.begin_group) {
 
 				Element childElement = null;
@@ -1879,12 +1900,7 @@ public class GetXForm {
 		}
 
 		// Append this new form to its parent (if the parent is null append to output
-		// doc)
 		if (parentElement != null) {
-			// Template no longer set in data model
-			//if (isTemplate) {
-			//	currentParent.setAttribute("jr:template", "");
-			//}
 			parentElement.appendChild(currentParent);
 		} else {
 			currentParent.setAttribute("id", survey_ident);

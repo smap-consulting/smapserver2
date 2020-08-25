@@ -1836,9 +1836,10 @@ public class SubRelationalDB extends Subscriber {
 
 		ArrayList<Integer> duplicateKeys = new ArrayList<Integer> ();
 		PreparedStatement pstmt = null;
-		uuid = uuid.replace("'", "''");	// Escape apostrophes
+		
 
 		if(uuid != null && uuid.trim().length() > 0) {
+			uuid = uuid.replace("'", "''");	// Escape apostrophes
 			try {
 
 				String colTest1 = "select column_name from information_schema.columns " +
