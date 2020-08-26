@@ -10,6 +10,7 @@
      	async: '../../../../smapServer/WebContent/js/libs/async',
      	localise: '../../../../smapServer/WebContent/js/app/localise',
     	jquery: '../../../../smapServer/WebContent/js/libs/jquery-2.1.1',
+	bootstrap: '../../../../smapServer/WebContent/js/libs/bootstrap.min',
     	modernizr: '../../../../smapServer/WebContent/js/libs/modernizr',
     	rmm: '../../../../smapServer/WebContent/js/libs/responsivemobilemenu',
     	common: '../../../../smapServer/WebContent/js/app/common',
@@ -26,7 +27,8 @@
     dir: '../myWork',
     modules: [
         {
-            name: '../my_work'
+            name: '../my_work',
+	    exclude: ['jquery', 'bootstrap']
         }
     ]
 })
