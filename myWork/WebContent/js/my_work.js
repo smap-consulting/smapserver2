@@ -32,23 +32,25 @@ requirejs.config({
 	locale: gUserLocale,
 	paths: {
 		app: '../app',
-		jquery: 'jquery',
-		lang_location: '../'
+		i18n: '../../../../js/libs/i18n',
+		async: '../../../../js/libs/async',
+		localise: '../../../../js/app/localise',
+		modernizr: '../../../../js/libs/modernizr',
+		common: '../../../../js/app/common',
+		globals: '../../../../js/app/globals',
+		lang_location: '../../../../js'
 	},
 	shim: {
-		'app/common': ['jquery'],
-		'slimscroll': ['jquery']
+		'common': ['jquery']
 	}
 });
 
 require([
-	'smapServer/WebContent/js/libs/jquery',
-	'app/common',
-	'app/globals',
-	'app/localise',
-	'bootstrap',
-	'pace'
-], function($, common, globals, localise, bootstrap) {
+	'jquery',
+	'common',
+	'globals',
+	'localise'
+], function($, common, globals, localise) {
 
 	$(document).ready(function() {
 
