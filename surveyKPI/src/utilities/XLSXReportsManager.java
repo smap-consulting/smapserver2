@@ -271,7 +271,7 @@ public class XLSXReportsManager {
 								}
 							}
 								
-						} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
+						} else if(split_locn && values.name.equals("the_geom")) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.label);
@@ -355,7 +355,7 @@ public class XLSXReportsManager {
 							}
 						}
 							
-					} else if(split_locn && values.value != null && values.value.startsWith("POINT")) {
+					} else if(split_locn && values.name.equals("the_geom")) {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Latitude");
