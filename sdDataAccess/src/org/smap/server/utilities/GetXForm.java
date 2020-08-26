@@ -1007,7 +1007,22 @@ public class GetXForm {
 				if(sv.value != null) {
 					String value = null;
 					if(sv.value.contains("last-saved#")) {
-						value = "instance('__last-saved')" + reference;
+						int idx1 = sv.value.indexOf('#');
+						int idx2 = sv.value.indexOf('}', idx1);
+						if(idx2 > 0) {
+							HashMap<String, String> questionPaths = template.getQuestionPaths();
+							String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
+							if(sourceQuestion.equals("the_geom")) {
+								sourceQuestion = q.getFormId() + sourceQuestion;	// Deal (badly) with the_geom not being unique
+							}
+							String sourcePath = questionPaths.get(sourceQuestion);
+							if(sourcePath != null) {
+								value = "instance('__last-saved')" + sourcePath;
+							} else {
+								log.info("Error: Source question in " + sv.value + " not found");
+								// Ignore error as throwing an exception may stop previously functioning surveys from working
+							}
+						}
 					} else {
 						value = UtilityMethods.convertAllxlsNames(sv.value, false, template.getQuestionPaths(), q.getFormId(), false, q.getName(), false);
 						if (value != null && value.trim().length() > 0) {

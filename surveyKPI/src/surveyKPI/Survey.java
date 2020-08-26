@@ -237,6 +237,7 @@ public class Survey extends Application {
 						log.info("Written xml file to: " + f.getAbsoluteFile());
 					} catch (Exception e) {
 						log.log(Level.SEVERE, "", e);
+						throw e;
 					}
 
 
@@ -289,6 +290,9 @@ public class Survey extends Application {
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"No data available", e);
 			response = Response.serverError().entity("No data available").build();
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error", e);
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
