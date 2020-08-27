@@ -481,14 +481,18 @@ public class AutoUpdateManager {
 									
 									if(lcm.isSupported(sd, item.fromLang, LanguageCodeManager.LT_TRANSLATE)) {
 										if(lcm.isSupported(sd, item.toLang, LanguageCodeManager.LT_TRANSLATE)) {
-											output = tp.getTranslatian(source, item.fromLang, item.toLang);
-											String msg = localisation.getString("aws_t_au")
-													.replace("%s1", item.fromLang)
-													.replace("%s2", item.toLang)
-													.replace("%s3", item.tableName)
-													.replace("%s4", item.targetColName);
-											rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
-													"auto_update", source.length());					
+											try {
+												output = tp.getTranslatian(source, item.fromLang, item.toLang);
+												String msg = localisation.getString("aws_t_au")
+														.replace("%s1", item.fromLang)
+														.replace("%s2", item.toLang)
+														.replace("%s3", item.tableName)
+														.replace("%s4", item.targetColName);
+												rm.recordUsage(sd, item.oId, 0, LogManager.TRANSLATE, msg, 
+														"auto_update", source.length());
+											} catch(Exception e) {
+												output = "[Error: " + e.getMessage() + "]";
+											}
 										} else {
 											if(item.toLang == null) {
 												output = "[" + localisation.getString("aws_t_np").replace("%s1", "to_lang") + "]";
