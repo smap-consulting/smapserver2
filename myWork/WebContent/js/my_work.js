@@ -24,7 +24,7 @@ if (Modernizr.localstorage) {
 	gUserLocale = localStorage.getItem('user_locale') || navigator.language;
 }
 
-var gDelSig = false;
+var webforms = {};      // legacy webform functions
 
 requirejs.config({
 	baseUrl: 'js/libs',
@@ -49,8 +49,9 @@ require([
 	'jquery',
 	'common',
 	'globals',
-	'localise'
-], function($, common, globals, localise) {
+	'localise',
+	'app/db-storage'
+], function($, common, globals, localise, dbstorage) {
 
 	$(document).ready(function() {
 
@@ -58,9 +59,13 @@ require([
 		setupUserProfile(true);
 		localise.setlang();		// Localise HTML
 
+		dbstorage.init();
+		enableLegacyWebforms();     // Get pending / draft webforms
+
 		// Get the user details
 		globals.gIsAdministrator = false;
 		getLoggedInUser(projectSet, false, true, undefined);
+		getPendingList(globals.gCurrentProject);                // Get queued and pending jobs
 
 		// Set change function on projects
 		$('#project_name').change(function() {
@@ -115,7 +120,7 @@ require([
 
 	function getSurveysForList(projectId) {
 
-		url="/surveyKPI/myassignments";
+		var url="/surveyKPI/myassignments";
 
 		addHourglass();
 		$.ajax({
@@ -199,7 +204,7 @@ require([
 		for(i = 0; i < taskList.length; i++) {
 
 			if(!filterProjectId || filterProjectId == taskList[i].task.pid) {
-				repeat = taskList[i].task.repeat;	// Can complete the task multiple times
+				var repeat = taskList[i].task.repeat;	// Can complete the task multiple times
 				h[++idx] = '<div class="btn-group btn-block btn-group-lg d-flex" role="group" aria-label="Button group for task selection or rejection">';
 				h[++idx] = '<a id="a_';
 				h[++idx] = taskList[i].assignment.assignment_id;
@@ -325,6 +330,102 @@ require([
 		});
 
 
+	}
+
+	function getPendingList(projectId) {
+		var formList = webforms.getRecordList();
+		var x = 1;
+	}
+
+
+	/*
+	 * -----------------------------------
+	 * Functions to handle legacy webforms
+	 */
+	function enableLegacyWebforms() {
+
+		webforms.RESERVED_KEYS = ['user_locale', '__settings', 'null', '__history', 'Firebug', 'undefined', '__bookmark', '__counter',
+			'__current_server', '__loadLog', '__writetest', '__maxSize'
+		];
+
+		webforms.getSurveyRecords = function (finalOnly, excludeName) {
+			var i,
+				key,
+				localStorage = window.localStorage,
+				record = {},
+				records = [];
+
+
+			for (i = 0; i < localStorage.length; i++) {
+				key = localStorage.key(i);
+				if (!webforms.isReservedKey(key) && !key.startsWith("fs::")) {
+
+					// get record -
+					record = webforms.getRecord(key);
+					if (record) {
+
+						try {
+							record.key = key;
+							//=== true comparison breaks in Google Closure compiler.
+							if (key !== excludeName && (!finalOnly || !record.draft)) {
+								if (record.form) {		// If there is a form then this should be record data (Smap)
+									records.push(record);
+								}
+							}
+						} catch (e) {
+							console.log('record found that was probably not in the expected JSON format' +
+								' (e.g. Firebug settings or corrupt record) (error: ' + e.message + '), record was ignored');
+						}
+					}
+				}
+			}
+
+			return records;
+		};
+
+		webforms.isReservedKey = function (k) {
+			var i;
+			for (i = 0; i < webforms.RESERVED_KEYS.length; i++) {
+				if (k === webforms.RESERVED_KEYS[i]) {
+					return true;
+				}
+			}
+			return false;
+		};
+
+		webforms.getRecord = function(key) {
+			var record,
+				localStorage = window.localStorage;
+			try {
+				var x = localStorage.getItem(key);
+				if(x && x.trim().startsWith('{')) {
+					record = JSON.parse(localStorage.getItem(key));
+				}
+				return record;
+			} catch (e) {
+				console.error('error with loading data from store: ' + e.message);
+				return null;
+			}
+		};
+
+		webforms.getRecordList = function () {
+			var formList = [],
+				records = webforms.getSurveyRecords(false);
+
+			records.forEach(function (record) {
+				formList.push({
+					'key': record.key,
+					'draft': record.draft,
+					'lastSaved': record.lastSaved
+				});
+			});
+
+			//order formList by lastSaved timestamp
+			formList.sort(function (a, b) {
+				return a['lastSaved'] - b['lastSaved'];
+			});
+			return formList;
+		}
 	}
 
 });

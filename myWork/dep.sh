@@ -1,7 +1,8 @@
 #!/bin/sh
 
 # Minify
-node tools/r.js -o tools/build.js
+#node tools/r.js -o tools/build.js
+node tools/r_2_3_6.js -o tools/build.js
 
 # Create a tar file and copy to the deploy directory
 export COPYFILE_DISABLE=true

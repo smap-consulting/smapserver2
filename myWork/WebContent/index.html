@@ -8,8 +8,8 @@
 
 	<link rel="manifest" href="manifest.json">
 
-	<link href="/css/bootstrap.v4.5.min.css" rel="stylesheet">
-	<link href="/font-awesome/css/font-awesome.css" rel="stylesheet">
+	<link href="./css/bootstrap.v4.5.min.css" rel="stylesheet">
+	<link href="./css/font-awesome.css" rel="stylesheet">
 	<!--<link href="/css/smap2.css" rel="stylesheet">-->
 
 	<script> if (!window.console) console = {log: function() {}}; </script>
@@ -25,7 +25,7 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-smap bg-navbar-smap">
+<nav class="navbar navbar-expand-lg navbar-smap navbar-light bg-light bg-navbar-smap">
 	<a class="navbar-brand lang" data-lang="m_web_forms" href="#">forms</a>
 	<button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
 		<span class="navbar-toggler-icon"></span>
@@ -89,6 +89,9 @@
 				<li id="tasksTab" class="nav-item"><a class="nav-link" href="#tasksPanel" data-toggle="tab" role="tab" aria-controls="tasksPanel" aria-selected="false">
 					<span class="lang" data-lang="t_tasks"></span> <span id="tasks_count">(0)</span></a>
 				</li>
+				<li id="mapTab" class="nav-item"><a class="nav-link" href="#mapPanel" data-toggle="tab" role="tab" aria-controls="mapPanel" aria-selected="false">
+					<span class="lang" data-lang="c_map"></span> <span id="pending_count">(0)</span></a>
+				</li>
 			</ul>
 		</div>
 		<div class="card-body">
@@ -102,6 +105,12 @@
 				<div id="tasksPanel" class="tab-pane fade" role="tabpanel" aria-labelledby="tasksTab">
 					<div class="panel-body">
 						<div id="task_list"></div>
+					</div>
+				</div>
+
+				<div id="mapPanel" class="tab-pane fade" role="tabpanel" aria-labelledby="mapTab">
+					<div class="panel-body">
+						<div id="map_view"></div>
 					</div>
 				</div>
 			</div>
