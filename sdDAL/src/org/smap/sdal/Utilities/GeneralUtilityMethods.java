@@ -2552,8 +2552,20 @@ public class GeneralUtilityMethods {
 	/*
 	 * Add nodeset functions to a nodeset
 	 */
-	public static String addNodesetFunctions(String nodeset, String randomize) {
-		if (parameterIsSet(randomize)) {
+	public static String addNodesetFunctions(String nodeset, String randomize, String seed) {
+		
+		int seedInt = 0;
+		if(seed != null) {
+			try {
+				seedInt = Integer.valueOf(seed);
+			} catch(Exception e) {
+				
+			}
+		}
+		
+		if (seed != null && parameterIsSet(randomize)) {
+			return "randomize(" + nodeset + "," + seedInt + ")";
+		} else if (parameterIsSet(randomize)) {
 			return "randomize(" + nodeset + ")";
 		} else {
 			return nodeset;

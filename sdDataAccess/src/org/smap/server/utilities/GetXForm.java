@@ -1237,7 +1237,8 @@ public class GetXForm {
 				cascade = true;
 				Element isElement = outputXML.createElement("itemset");
 				String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
-						GeneralUtilityMethods.getSurveyParameter("randomize", q.getParameters())); 
+						GeneralUtilityMethods.getSurveyParameter("randomize", q.getParameters()),
+						GeneralUtilityMethods.getSurveyParameter("seed", q.getParameters())); 
 				isElement.setAttribute("nodeset", adjustedNodeset);
 
 				Element vElement = outputXML.createElement("value");
