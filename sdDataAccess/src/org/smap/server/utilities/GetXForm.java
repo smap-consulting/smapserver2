@@ -1941,8 +1941,9 @@ public class GetXForm {
 
 		List<Results> record = new ArrayList<Results>();
 
-		List<Question> questions = form.getQuestions(sd, form.getPath(null));
-		if(isTopLevel) {		// Add meta group
+		// Get a copy of the array of questions in the form as we don't want to add to them here
+		List<Question> questions = new ArrayList<> (form.getQuestions(sd, form.getPath(null)));
+		if(isTopLevel) {		// Add meta group and prelaods
 			Question q = new Question();
 			q.setType("begin group");
 			q.setName("meta");
@@ -1962,6 +1963,18 @@ public class GetXForm {
 			q.setType("end group");
 			q.setName("meta");
 			questions.add(q);
+			
+			ArrayList<MetaItem> preloads = template.getSurvey().getMeta();
+			if(preloads != null) {
+				for(MetaItem mi : preloads) {
+					if(mi.isPreload) {
+						q = new Question();
+						q.setName(mi.name);
+						q.setType(mi.type);
+						questions.add(q);
+					}
+				}
+			}
 			
 		}
 		for (Question q : questions) {
