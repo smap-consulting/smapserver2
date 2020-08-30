@@ -1,14 +1,12 @@
 
-var cachename = 'v3';
-var databaseName = 'mywork';
-var dbversion = 1;
-var idbSupported = typeof indexedDB !== 'undefined';
+var CACHE_NAME = 'v4';
+var ASSIGNMENTS = '/surveyKPI/myassignments';
 
 // During the installation phase, you'll usually want to cache static assets.
 self.addEventListener('install', function(e) {
 	// Once the service worker is installed, go ahead and fetch the resources to make this work offline.
 	e.waitUntil(
-		caches.open(cachename).then(function(cache) {
+		caches.open(CACHE_NAME).then(function(cache) {
 			return cache.addAll([
 				'./index.html',
 				'./css/bootstrap.v4.5.min.css',
@@ -26,8 +24,10 @@ self.addEventListener('install', function(e) {
 // when the browser fetches a URL…
 self.addEventListener('fetch', function(event) {
 
-	if (event.request.url.includes("/surveyKPI/")) {
-		// response to API requests, Cache Update Refresh strategy
+	if (event.request.url.includes(ASSIGNMENTS)) {
+		// response to request for forms and tasks. Cache Update Refresh strategy
+		event.respondWith(caches.match(ASSIGNMENTS));
+		event.waitUntil(update_assignments(event.request).then(refresh).then(precacheforms));
 	} else {
 		// response to static files requests, Cache-First strategy
 		event.respondWith(
@@ -41,7 +41,7 @@ self.addEventListener('fetch', function(event) {
 });
 
 self.addEventListener('activate', function (event) {
-	var cacheKeeplist = [cachename];
+	var cacheKeeplist = [CACHE_NAME];
 
 	event.waitUntil(
 		caches.keys().then(function (keyList) {
@@ -53,33 +53,64 @@ self.addEventListener('activate', function (event) {
 		})
 	);
 
-	event.waitUntil(
-		createDB()
-	);
 });
 
-function createDB() {
-	return new Promise((resolve, reject) => {
+function cache(request, response) {
+	if (response.type === "error" || response.type === "opaque") {
+		return Promise.resolve(); // do not put in cache network errors
+	}
 
-		if(idbSupported) {
-			var request = indexedDB.open(databaseName, dbversion);
+	return caches
+		.open(CACHE_NAME)
+		.then(cache => cache.put(request, response.clone()));
+}
 
-			request.onerror = function (event) {
-				reject();
-			};
+function update(request) {
+	return fetch(request.url).then(
+		response =>
+			cache(request, response) // we can put response in cache
+				.then(() => response) // resolve promise with the Response object
+	);
+}
 
-			request.onsuccess = function (event) {
-				resolve();
-			};
+function refresh(response) {
+	return response
+		.json() // read and parse JSON response
+		.then(jsonResponse => {
+			self.clients.matchAll().then(clients => {
+				clients.forEach(client => {
+					// report and send new data to client
+					client.postMessage(
+						JSON.stringify({
+							type: response.url,
+							data: jsonResponse
+						})
+					);
+				});
+			});
+			return jsonResponse; // resolve promise with new data
+		});
+}
 
-			request.onupgradeneeded = function(event) {
-				var db = event.target.result;
-				db.createObjectStore("forms");
-			};
 
-		} else {
-			resolve();
+
+/*
+ * Refresh assignments cache using data from the network
+ */
+function update_assignments(request) {
+	return fetch(request.url).then(
+		response =>
+
+			cache(ASSIGNMENTS, response) // we can put response in cache
+				.then(() => response) // resolve promise with the Response object
+	);
+}
+
+function precacheforms(response) {
+	console.log("-------" + JSON.stringify(response));
+	if(response && response.forms) {
+		for(var i = 0; i < response.forms.length; i++) {
+			console.log(response.forms[i].ident);
 		}
-
-	});
+	}
 }
