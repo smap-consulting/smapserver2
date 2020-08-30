@@ -672,7 +672,7 @@ public class ActionManager {
 						String v = rs.getString(1);
 						u.currentValue = v;
 						/*
-						 * If this is a bulk change to a select question then he value is eiher set or cleared
+						 * If this is a bulk change to a select question then he value is either set or cleared
 						 */
 						if(tc.type.equals("select")) {
 							u.value = mergeSelMultValue(v, u.value, u.clear);

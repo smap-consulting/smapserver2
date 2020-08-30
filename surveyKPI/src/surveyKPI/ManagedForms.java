@@ -172,7 +172,7 @@ public class ManagedForms extends Application {
 			if(bulkInstanceString != null) {
 				Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 				instances = gson.fromJson(bulkInstanceString,  new TypeToken<ArrayList<String>>() {}.getType());
-				if(instances.size() > 0) {
+				if(instances.size() > 1) {
 					bulk = true;
 				}
 			}
