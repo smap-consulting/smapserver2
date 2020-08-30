@@ -58,6 +58,7 @@ import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumnMarkup;
+import org.smap.sdal.model.SetValue;
 
 public class XLSTemplateUploadManager {
 
@@ -159,7 +160,7 @@ public class XLSTemplateUploadManager {
 			questions.add(qb2);
 			
 			for(Question qm : member) {
-				// Clone the question so that the original members can be preservef
+				// Clone the question so that the original members can be preserved
 				Question qx = new Question(qm);
 				qx.name = qb.name + "_" + qm.name;
 				qx.source = "user";
@@ -1289,7 +1290,7 @@ public class XLSTemplateUploadManager {
 		}
 		
 		if(!hasVisibleQuestion) {
-			Integer rowNumber = qNameMap.get(name.toLowerCase());
+			Integer rowNumber = qNameMap.get(name);
 			ApplicationException e = XLSUtilities.getApplicationException(localisation, "tu_er", rowNumber, "survey", null, null, null);
 			warnings.add(new ApplicationWarning(e.getMessage()));
 		}
@@ -1309,13 +1310,13 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 
-		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMap.get(q.name.toLowerCase()) != null && !q.name.equals("the_geom")) {
+		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMap.get(q.name) != null && !q.name.equals("the_geom")) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
 
 		}
 		if(!q.type.equals("end group") && !q.type.equals("end matrix")) {		
-			qNameMap.put(q.name.toLowerCase(), rowNumber);
+			qNameMap.put(q.name, rowNumber);
 		}
 		
 		// check relevance
@@ -1360,8 +1361,25 @@ public class XLSTemplateUploadManager {
 		// check appearance
 		if(q.appearance != null) {
 			checkParentheses(localisation, q.appearance, rowNumber, "survey", "appearance", q.name);
-			testXExprFunctions(q.appearance, localisation, true, rowNumber, "appearance");
-			
+			testXExprFunctions(q.appearance, localisation, true, rowNumber, "appearance");		
+		}
+		
+		// check default
+		if(q.setValues != null) {
+			for(SetValue sv : q.setValues) {
+				if(sv.value.contains("last-saved#")) {
+					int idx1 = sv.value.indexOf('#');
+					int idx2 = sv.value.indexOf('}', idx1);
+					if(idx2 > 0) {
+						String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
+						if(sourceQuestion != null) {
+							ArrayList<String> refs = new ArrayList<String> ();
+							refs.add(sourceQuestion);
+							questionInSurvey(refs, "default", q);
+						}
+					}
+				}
+			}
 		}
 		
 		// Check choice filter
@@ -1510,7 +1528,7 @@ public class XLSTemplateUploadManager {
 		// Validate forms and questions
 		for(Form f : survey.forms) {
 			if(f.reference) {
-				Integer rowNumber = qNameMap.get(f.name.toLowerCase());
+				Integer rowNumber = qNameMap.get(f.name);
 				if(f.name.equals(f.referenceName)) {
 					throw XLSUtilities.getApplicationException(localisation, "tu_ref_self", rowNumber, "survey", f.name, null, null);
 				} else {
@@ -1565,7 +1583,7 @@ public class XLSTemplateUploadManager {
 							questionInSurvey(refs, "label::" + survey.languages.get(idx).name, q);
 							
 							if(refs.contains(q.name)) {		// Check for self reference
-								Integer rowNumber = qNameMap.get(q.name.toLowerCase());
+								Integer rowNumber = qNameMap.get(q.name);
 								throw XLSUtilities.getApplicationException(localisation, "tu_cr", rowNumber, "survey", 
 										"label::" + survey.languages.get(idx).name, q.name, q.relevant);
 							}
@@ -1602,7 +1620,7 @@ public class XLSTemplateUploadManager {
 		
 			if(!groupStack.isEmpty()) {
 				String groupName = groupStack.pop().name;
-				Integer rowNumber = qNameMap.get(groupName.toLowerCase());
+				Integer rowNumber = qNameMap.get(groupName);
 				throw XLSUtilities.getApplicationException(localisation, "tu_meg", rowNumber, "survey", groupName, null, null);
 			}
 		}
@@ -1654,8 +1672,8 @@ public class XLSTemplateUploadManager {
 	
 	private void questionInSurvey(ArrayList<String> names, String context, Question q) throws ApplicationException {
 		for(String name : names) {
-			if(qNameMap.get(name.toLowerCase()) == null) {
-				Integer rowNumber = qNameMap.get(q.name.toLowerCase());
+			if(qNameMap.get(name) == null) {
+				Integer rowNumber = qNameMap.get(q.name);
 				throw XLSUtilities.getApplicationException(localisation, "tu_mq", rowNumber, "survey", context, name, null);
 			}
 		}
@@ -1671,7 +1689,7 @@ public class XLSTemplateUploadManager {
 	
 	private void settingsQuestionInSurvey(ArrayList<String> names, String colname) throws ApplicationException {
 		for(String name : names) {
-			if(qNameMap.get(name.toLowerCase()) == null) {
+			if(qNameMap.get(name) == null) {
 				String msg = localisation.getString("tu_mq");
 				msg = msg.replace("%s1", colname);
 				msg = msg.replace("%s2", "settings");
