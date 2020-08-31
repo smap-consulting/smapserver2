@@ -873,10 +873,13 @@ public class MyAssignments extends Application {
 					for(PointEntry pe : tr.userTrail) {
 
 						pstmtTrail.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
-						pstmtTrail.setTimestamp(4, new Timestamp(pe.time));
-
+						
 						if(pe.time == 0) {
 							log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmtTrail.toString());
+							// Seting to now
+							pstmtTrail.setTimestamp(4, new Timestamp(System.currentTimeMillis()));		// Hack
+						} else {						
+							pstmtTrail.setTimestamp(4, new Timestamp(pe.time));
 						}
 						pstmtTrail.executeUpdate();
 					}
