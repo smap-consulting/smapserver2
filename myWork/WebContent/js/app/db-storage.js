@@ -82,7 +82,7 @@ define([],
                     };
 
                 } else {
-                    resolve();
+                    reject();
                 }
 
             });
