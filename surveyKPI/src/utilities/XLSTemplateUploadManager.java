@@ -95,6 +95,7 @@ public class XLSTemplateUploadManager {
 	boolean merge;
 
 	HashMap<String, Integer> qNameMap = new HashMap<> ();							// Use in question name validation
+	HashMap<String, Integer> qNameMapCaseInsensitive = new HashMap<> ();			// Use in question name uniqueness
 	HashMap<String, HashMap<String, Integer>> oNameMap = new HashMap<> ();		// Use in option name validation
 	Pattern validQname = Pattern.compile("^[A-Za-z_][A-Za-z0-9_\\-\\.]*$");
 	Pattern validChoiceName = Pattern.compile("^[A-Za-z0-9_@\\-\\.\\+%,():/]*$");
@@ -142,7 +143,8 @@ public class XLSTemplateUploadManager {
 			qb.type = "begin group";
 			qb.name = matrixName + "_" + choiceName;
 			qb.appearance = "w" + groupWidth;
-			qNameMap.put(qb.name.toLowerCase(), rowNumber);
+			qNameMap.put(qb.name, rowNumber);
+			qNameMapCaseInsensitive.put(qb.name.toLowerCase(), rowNumber);
 			questions.add(qb);
 			
 			Question qb2 = new Question();
@@ -156,7 +158,8 @@ public class XLSTemplateUploadManager {
 			} else {
 				qb2.labels = copyLabelsFrom(choice.labels, "hash");
 			}
-			qNameMap.put(qb2.name.toLowerCase(), rowNumber);
+			qNameMap.put(qb2.name, rowNumber);
+			qNameMapCaseInsensitive.put(qb2.name.toLowerCase(), rowNumber);
 			questions.add(qb2);
 			
 			for(Question qm : member) {
@@ -1310,13 +1313,14 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 
-		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMap.get(q.name) != null && !q.name.equals("the_geom")) {
+		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.name.toLowerCase()) != null && !q.name.equals("the_geom")) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
 
 		}
 		if(!q.type.equals("end group") && !q.type.equals("end matrix")) {		
 			qNameMap.put(q.name, rowNumber);
+			qNameMapCaseInsensitive.put(q.name.toLowerCase(), rowNumber);
 		}
 		
 		// check relevance
