@@ -190,9 +190,9 @@ require([
 
 		for(i = 0; i < formList.length; i++) {
 			if(!filterProjectId || filterProjectId == formList[i].pid) {
-				h[++idx] = '<a role="button" class="btn btn-primary btn-block btn-lg" target="_blank" href="/webForm/';
+				h[++idx] = '<a role="button" class="btn btn-primary btn-block btn-lg" target="_blank" href="/myWork/webForm/';
 				h[++idx] = formList[i].ident;
-				h[++idx] = '">';
+				h[++idx] = '?myWork=true">';
 				h[++idx] = formList[i].name;
 				h[++idx] = '</a>';
 				count++;

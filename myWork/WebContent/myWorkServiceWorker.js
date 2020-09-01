@@ -1,6 +1,7 @@
 
 var CACHE_NAME = 'v4';
 var ASSIGNMENTS = '/surveyKPI/myassignments';
+var WEBFORM = "/webForm";
 
 // During the installation phase, you'll usually want to cache static assets.
 self.addEventListener('install', function(e) {
@@ -28,6 +29,28 @@ self.addEventListener('fetch', function(event) {
 		// response to request for forms and tasks. Cache Update Refresh strategy
 		event.respondWith(caches.match(ASSIGNMENTS));
 		event.waitUntil(update_assignments(event.request).then(refresh).then(precacheforms));
+
+	} else if (event.request.url.includes(WEBFORM)) {
+		// response to a webform request.  Network then cache strategy
+		event.respondWith(
+			fetch(event.request).then(function(response) {
+				if (!response.ok || response.type === "error" || response.type === "opaque") {
+					// An HTTP error response code (40x, 50x) won't cause the fetch() promise to reject.
+					// We need to explicitly throw an exception to trigger the catch() clause.
+					throw Error('response status ' + response.status);
+				}
+
+				return caches
+					.open(CACHE_NAME)
+					.then(cache => {
+						cache.put(event.request, response.clone());
+						return response;
+					});
+			}).catch( function () {
+				return caches.match(event.request);
+			})
+		);
+
 	} else {
 		// response to static files requests, Cache-First strategy
 		event.respondWith(
