@@ -681,7 +681,7 @@ public class UploadFiles extends Application {
 					for(Question q : f.questions) {
 						QuestionForm qt = questionNames.get(q.name);
 						if(qt != null) {
-							if(!qt.reference && !qt.formName.equals(f.name)) {
+							if(!qt.reference && !qt.formName.equals(f.name)  && !q.name.equals("the_geom")) {
 								String msg = localisation.getString("tu_gq");
 								msg = msg.replace("%s1", q.name);
 								msg = msg.replace("%s2", f.name);
