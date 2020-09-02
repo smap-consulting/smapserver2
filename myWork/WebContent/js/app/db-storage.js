@@ -26,6 +26,7 @@ define([],
         let databaseVersion = 1;
         let databaseName = "webform";
 
+        var dbPromise;
         var db;                     // indexedDb
 
         let mediaStoreName = "media";
@@ -38,7 +39,9 @@ define([],
 
         return {
             isSupported: isSupported,
-            init: init
+            open: open,
+            addRecord: addRecord,
+            getTask: getTask
         };
 
 
@@ -49,52 +52,49 @@ define([],
          */
         function isSupported() {
             return idbSupported;
-        };
+        }
 
         /**
-         * Initialize indexdDb
+         * Open the database
          */
-        function init() {
-            return new Promise((resolve, reject) => {
+        function open() {
 
-                if(idbSupported) {
-                    var request = window.indexedDB.open(databaseName, databaseVersion);
+            dbPromise = new Promise((resolve, reject) => {
+                var request = window.indexedDB.open(databaseName, databaseVersion);
 
-                    request.onerror = function (event) {
-                        reject();
+                request.onupgradeneeded = function(event) {
+                    var upgradeDb = event.target.result;
+                    var oldVersion = upgradeDb.oldVersion || 0;
+
+                    switch (oldVersion) {
+                        case 0:
+                            mediaStore = upgradeDb.createObjectStore(mediaStoreName);
+
+                            recordStore = upgradeDb.createObjectStore(recordStoreName, {keyPath: 'id', autoIncrement: true});
+                            recordStore.createIndex('assignment', 'assignment.assignment_id', {unique: false});
+                    }
+                };
+
+                request.onsuccess = function (event) {
+                    var openDb = event.target.result;
+
+                    openDb.onerror = function (event) {
+                        // Generic error handler for all errors targeted at this database's
+                        // requests!
+                        console.error("Database error: " + event.target.errorCode);
                     };
 
-                    request.onsuccess = function (event) {
-                        db = event.target.result;
+                    resolve(openDb);
+                };
 
-                        db.onerror = function (event) {
-                            // Generic error handler for all errors targeted at this database's
-                            // requests!
-                            console.error("Database error: " + event.target.errorCode);
-                        };
+                request.onerror = function (e) {
+                    console.log('Error', e.target.error.name);
+                    alert('Error', e.target.error.name);
+                };
 
-                        resolve();
-                    };
-
-                    request.onupgradeneeded = function(event) {
-                        var db = event.target.result;
-                        var oldVersion = db.oldVersion || 0;
-
-                        switch (oldVersion) {
-                            case 0:
-                                mediaStore = db.createObjectStore(mediaStoreName);
-
-                                recordStore = db.createObjectStore(recordStoreName, {keyPath: 'id', autoIncrement: true});
-                                recordStore.createIndex('assignment', 'assignment.assignment_id', {unique: false});
-                        }
-                    };
-
-                } else {
-                    reject();
-                }
 
             });
-        };
+        }
 
 
         /*
@@ -102,7 +102,7 @@ define([],
 		 * Assumes db has been initialised
 		 * An explicit boolean "all" is added in case the function is called accidnetially with an undefined directory
 		 */
-        fileStore.deleteMedia = function(dirname, all) {
+        function deleteMedia(dirname, all) {
 
             if(typeof dirname !== "undefined" || all) {
 
@@ -133,30 +133,29 @@ define([],
                 };
 
             }
-        };
+        }
 
         /*
 		 * Save an attachment
 		 */
-        fileStore.saveFile = function(media, dirname) {
+        function saveFile(media, dirname) {
 
             console.log("save file: " + media.name + " : " + dirname);
 
             var transaction = db.transaction([mediaStoreName], "readwrite");
             transaction.onerror = function(event) {
-                // Don't forget to handle errors!
                 alert("Error: failed to save " + media.name);
             };
 
             var objectStore = transaction.objectStore(mediaStoreName);
             var request = objectStore.put(media.dataUrl, dirname + "/" + media.name);
 
-        };
+        }
 
         /*
 		 * Get a file from idb
 		 */
-        fileStore.getFile = function(name, dirname) {
+        function getFile(name, dirname) {
 
             return new Promise((resolve, reject) => {
 
@@ -177,12 +176,44 @@ define([],
                 });
             });
 
-        };
+        }
+
+        /*
+         * Add a record
+         */
+        function addRecord(record) {
+
+            console.log("add a record: ");
+
+            dbPromise.then(function(db) {
+                var transaction = db.transaction([recordStoreName], "readwrite");
+                transaction.onerror = function (event) {
+                    alert("Error: failed to add record ");
+                };
+
+                var objectStore = transaction.objectStore(recordStoreName);
+                var request = objectStore.add(record);
+            });
+
+        }
+
+        /*
+		 * Get a specific task from the records sore identified by he assignment id
+		 */
+        function getTask(assignment_id) {
+
+            return new Promise((resolve, reject) => {
+
+               resolve();
+
+            });
+
+        }
 
         /*
 		 * Obtains blob for specified file
 		 */
-        fileStore.retrieveFile = function(dirname, file) {
+        function retrieveFile(dirname, file) {
 
             return new Promise((resolve, reject) => {
 
@@ -199,10 +230,10 @@ define([],
 
             });
 
-        };
+        }
 
         // From: http://stackoverflow.com/questions/6850276/how-to-convert-dataurl-to-file-object-in-javascript
-        fileStore.dataURLtoBlob = function(dataurl) {
+        function dataURLtoBlob(dataurl) {
             var arr = dataurl.split(',');
             var mime;
             var bstr;

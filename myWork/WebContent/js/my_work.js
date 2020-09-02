@@ -24,7 +24,13 @@ if (Modernizr.localstorage) {
 	gUserLocale = localStorage.getItem('user_locale') || navigator.language;
 }
 
-var webforms = {};      // legacy webform functions
+var STATUS_T_ACCEPTED = "accepted";
+var STATUS_T_REJECTED = "rejected";
+var STATUS_T_COMPLETE = "complete";
+var STATUS_T_SUBMITTED = "submitted";
+var STATUS_T_CANCELLED = "cancelled";
+var STATUS_T_CLOSED = "closed";
+var STATUS_T_NEW = "new";
 
 requirejs.config({
 	baseUrl: 'js/libs',
@@ -59,7 +65,7 @@ require([
 		setupUserProfile(true);
 		localise.setlang();		// Localise HTML
 
-		dbstorage.init();
+		dbstorage.open();
 
 		// Get the user details
 		globals.gIsAdministrator = false;
@@ -205,6 +211,27 @@ require([
 
 	function saveTasks(tasks) {
 		return new Promise((resolve, reject) => {
+			var i;
+			if(tasks) {
+				for (i = 0; i < tasks.length; i++) {
+					var task = tasks[i];
+					var assignment = task.assignment;
+
+					dbstorage.getTask(assignment.assignment_id).then(current => {
+						if (!current) {
+							// new task
+							if (assignment.assignment_status === STATUS_T_ACCEPTED ||
+								assignment.assignment_status === STATUS_T_NEW) {
+
+								dbstorage.addRecord(task);
+
+							}
+						} else {
+							alert("exising task");
+						}
+					});
+				}
+			}
 			resolve();
 		});
 	}
