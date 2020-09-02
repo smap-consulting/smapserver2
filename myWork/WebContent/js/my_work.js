@@ -120,15 +120,14 @@ require([
 		navigator.serviceWorker.onmessage = event => {
 			const message = JSON.parse(event.data);
 			if(message.data.status === "200") {
-				completeSurveyList(message.data, globals.gCurrentProject);
+				surveyDataFromNetwork(message.data, globals.gCurrentProject);
 			} else {
 				alert("Error updating assignments: " + message.data.message);
 			}
 		};
 
 	});
-
-
+	
 	function projectSet() {
 		getSurveysForList();			// Get surveys
 	}
@@ -144,7 +143,7 @@ require([
 			cache: false,
 			success: function(data) {
 				removeHourglass();
-				completeSurveyList(data, globals.gCurrentProject);
+				surveyDataFromCache(data, globals.gCurrentProject);
 			},
 			error: function(xhr, textStatus, err) {
 				removeHourglass();
@@ -159,8 +158,38 @@ require([
 
 	/*
 	 * Fill in the survey list
+	 * This is called using cache data, hence no need to update data store
 	 */
-	function completeSurveyList(surveyList, filterProjectId) {
+	function surveyDataFromCache(surveyList, filterProjectId) {
+
+		var i,
+			h = [],
+			idx = -1,
+			formList = surveyList.forms,
+			taskList = surveyList.data;
+
+
+		// Save the tasks then refresh view
+		if (taskList) {
+			showTaskList(taskList, filterProjectId);
+		} else {
+			$('#tasks_count').html('(0)');
+			$('#task_list').html('');
+		}
+
+		// Refresh the view of forms
+		if (formList) {
+			addFormList(formList, filterProjectId);
+		} else {
+			$('#forms_count').html('(0)');
+			$('#form_list').html('');
+		}
+	}
+
+	/*
+     * Fill in the survey list
+    */
+	function surveyDataFromNetwork(surveyList, filterProjectId) {
 
 		var i,
 			h = [],
@@ -171,7 +200,7 @@ require([
 		// Save the tasks then refresh view
 		saveTasks(surveyList.data).then( taskList => {
 			if (taskList) {
-				addTaskList(taskList, filterProjectId);
+				showTaskList(taskList, filterProjectId);
 			} else {
 				$('#tasks_count').html('(0)');
 				$('#task_list').html('');
@@ -214,29 +243,40 @@ require([
 			var i;
 			if(tasks) {
 				for (i = 0; i < tasks.length; i++) {
-					var task = tasks[i];
-					var assignment = task.assignment;
-
-					dbstorage.getTask(assignment.assignment_id).then(current => {
-						if (!current) {
-							// new task
-							if (assignment.assignment_status === STATUS_T_ACCEPTED ||
-								assignment.assignment_status === STATUS_T_NEW) {
-
-								dbstorage.addRecord(task);
-
-							}
-						} else {
-							alert("exising task");
-						}
-					});
+					processServerTask(tasks[i]);
 				}
 			}
 			resolve();
 		});
 	}
 
-	function addTaskList(taskList, filterProjectId) {
+	async function processServerTask(task) {
+
+		var assignment = task.assignment;
+
+		let promise = new Promise((resolve, reject) => {
+			dbstorage.getTask(assignment.assignment_id).then(current => {
+				if (!current) {
+					// new task
+					if (assignment.assignment_status === STATUS_T_ACCEPTED ||
+						assignment.assignment_status === STATUS_T_NEW) {
+
+						dbstorage.addRecord(task).then(() => {
+							resolve();
+						});
+
+					}
+				} else {
+					console.log("exising task");
+					resolve();
+				}
+			});
+		});
+
+		await promise;
+	}
+
+	function showTaskList(taskList, filterProjectId) {
 		var i,
 			h = [],
 			idx = -1,

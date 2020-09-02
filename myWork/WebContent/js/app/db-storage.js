@@ -183,16 +183,25 @@ define([],
          */
         function addRecord(record) {
 
-            console.log("add a record: ");
+            return new Promise((resolve, reject) => {
+                console.log("add a record: ");
 
-            dbPromise.then(function(db) {
-                var transaction = db.transaction([recordStoreName], "readwrite");
-                transaction.onerror = function (event) {
-                    alert("Error: failed to add record ");
-                };
+                dbPromise.then(function (db) {
+                    var transaction = db.transaction([recordStoreName], "readwrite");
+                    transaction.onerror = function (event) {
+                        alert("Error: failed to add record ");
+                    };
 
-                var objectStore = transaction.objectStore(recordStoreName);
-                var request = objectStore.add(record);
+                    var objectStore = transaction.objectStore(recordStoreName);
+                    var request = objectStore.add(record);
+                    request.onsuccess = function (event) {
+                        resolve();
+                    };
+                    request.onerror = function (event) {
+                        console.log('Error', e.target.error.name);
+                        reject();
+                    };
+                });
             });
 
         }
