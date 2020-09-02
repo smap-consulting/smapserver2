@@ -20,25 +20,27 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 define([],
     function() {
 
-        return {
-            init: init
-        };
-
-
         /*
 		 * Variables for indexedDB Storage
 		 */
-        let webformDbVersion = 3;
+        let webformDbVersion = 4;
         let databaseName = "webform";
-        let mediaStoreName = "media";
+
         var db;                     // indexedDb
+
+        let mediaStoreName = "media";
         var mediaStore;
+
+        let recordStoreName = "records";
+        var recordStore;
+
         var idbSupported = typeof window.indexedDB !== 'undefined';
 
-        /*
-		 * Variables for fall back local storage
-		 */
-        var FM_STORAGE_PREFIX = "fs::";
+        return {
+            isSupported: isSupported,
+            init: init
+        };
+
 
         /**
          * Return true if indexedDB is supported
@@ -51,7 +53,6 @@ define([],
 
         /**
          * Initialize indexdDb
-         * @return {[type]} promise boolean or rejection with Error
          */
         function init() {
             return new Promise((resolve, reject) => {
@@ -78,7 +79,12 @@ define([],
                     request.onupgradeneeded = function(event) {
                         var db = event.target.result;
 
-                        mediaStore = db.createObjectStore("media");
+                        if (!db.objectStoreNames.contains(mediaStoreName)) {
+                            mediaStore = db.createObjectStore(mediaStoreName);
+                        }
+                        if (!db.objectStoreNames.contains(recordStoreName)) {
+                            recordStore = db.createObjectStore(recordStoreName);
+                        }
                     };
 
                 } else {
@@ -94,17 +100,17 @@ define([],
 		 * Assumes db has been initialised
 		 * An explicit boolean "all" is added in case the function is called accidnetially with an undefined directory
 		 */
-        fileStore.delete = function(dirname, all) {
+        fileStore.deleteMedia = function(dirname, all) {
 
             if(typeof dirname !== "undefined" || all) {
 
                 if(dirname) {
-                    console.log("delete directory: " + dirname);
+                    console.log("delete media for: " + dirname);
                 } else {
                     console.log("delete all attachments");
                 }
 
-                var prefix = FM_STORAGE_PREFIX + "/" + dirname;
+                var prefix = dirname;
 
                 // indexeddb first
                 var objectStore = db.transaction([mediaStoreName], "readwrite").objectStore(mediaStoreName);
@@ -124,23 +130,11 @@ define([],
                     }
                 };
 
-                // Delete any entries in localstorage
-                for (var key in localStorage) {
-                    if ((all && key.startsWith(FM_STORAGE_PREFIX)) || key.startsWith()) {
-
-                        var item = localStorage.getItem(key);
-                        if(item) {
-                            window.URL.revokeObjectURL(item);
-                        }
-                        console.log("Delete item: " + key);
-                        localStorage.removeItem(key);
-                    }
-                }
             }
         };
 
         /*
-		 * Save an attachment to idb
+		 * Save an attachment
 		 */
         fileStore.saveFile = function(media, dirname) {
 
@@ -153,36 +147,27 @@ define([],
             };
 
             var objectStore = transaction.objectStore(mediaStoreName);
-            var request = objectStore.put(media.dataUrl, FM_STORAGE_PREFIX + "/" + dirname + "/" + media.name);
+            var request = objectStore.put(media.dataUrl, dirname + "/" + media.name);
 
         };
 
         /*
-		 * Get a file from idb or local storage
+		 * Get a file from idb
 		 */
         fileStore.getFile = function(name, dirname) {
 
             return new Promise((resolve, reject) => {
 
-                var key = FM_STORAGE_PREFIX + "/" + dirname + "/" + name;
+                var key = dirname + "/" + name;
 
-                console.log("get file: " + key);
 
-                /*
-				 * Try indxeddb first
-				 */
                 getFileFromIdb(key).then(function (file) {
 
                     if (file) {
                         resolve(file);
 
                     } else {
-                        // Fallback to local storage for backward compatability
-                        try {
-                            resolve(localStorage.getItem(key));
-                        } catch (err) {
-                            reject("Error: " + err.message);
-                        }
+                        reject("Error: " + err.message);
                     }
 
                 }).catch(function (reason) {
