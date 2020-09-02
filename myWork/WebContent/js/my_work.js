@@ -60,12 +60,10 @@ require([
 		localise.setlang();		// Localise HTML
 
 		dbstorage.init();
-		enableLegacyWebforms();     // Get pending / draft webforms
 
 		// Get the user details
 		globals.gIsAdministrator = false;
 		getLoggedInUser(projectSet, false, true, undefined);
-		getPendingList(globals.gCurrentProject);                // Get queued and pending jobs
 
 		// Set change function on projects
 		$('#project_name').change(function() {
@@ -115,18 +113,21 @@ require([
 		 */
 		navigator.serviceWorker.onmessage = event => {
 			const message = JSON.parse(event.data);
-			//TODO: detect the type of message and refresh the view
+			if(message.data.status === "200") {
+				completeSurveyList(message.data, globals.gCurrentProject);
+			} else {
+				alert("Error updating assignments: " + message.data.message);
+			}
 		};
 
 	});
 
 
 	function projectSet() {
-		getSurveysForList(globals.gCurrentProject);			// Get surveys
-		//getAlerts();
+		getSurveysForList();			// Get surveys
 	}
 
-	function getSurveysForList(projectId) {
+	function getSurveysForList() {
 
 		var url="/surveyKPI/myassignments";
 
@@ -136,9 +137,8 @@ require([
 			dataType: 'json',
 			cache: false,
 			success: function(data) {
-				var filterProject = projectId;
 				removeHourglass();
-				completeSurveyList(data, filterProject);
+				completeSurveyList(data, globals.gCurrentProject);
 			},
 			error: function(xhr, textStatus, err) {
 				removeHourglass();
@@ -159,20 +159,21 @@ require([
 		var i,
 			h = [],
 			idx = -1,
-			formList = surveyList.forms,
-			taskList = surveyList.data;
+			formList = surveyList.forms;
 
 
+		// Save the tasks then refresh view
+		saveTasks(surveyList.data).then( taskList => {
+			if (taskList) {
+				addTaskList(taskList, filterProjectId);
+			} else {
+				$('#tasks_count').html('(0)');
+				$('#task_list').html('');
+			}
+		});
 
-		// Add the tasks
-		if (taskList) {
-			addTaskList(taskList, filterProjectId);
-		} else {
-			$('#tasks_count').html('(0)');
-			$('#task_list').html('');
-		}
 
-		// Add the forms
+		// Refresh the view of forms
 		if (formList) {
 			addFormList(formList, filterProjectId);
 		} else {
@@ -200,6 +201,12 @@ require([
 		}
 		$('#forms_count').html('(' + count+ ')');
 		$formList.html(h.join(''));
+	}
+
+	function saveTasks(tasks) {
+		return new Promise((resolve, reject) => {
+			resolve();
+		});
 	}
 
 	function addTaskList(taskList, filterProjectId) {

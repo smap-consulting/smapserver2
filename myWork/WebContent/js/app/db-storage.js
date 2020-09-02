@@ -23,7 +23,7 @@ define([],
         /*
 		 * Variables for indexedDB Storage
 		 */
-        let webformDbVersion = 4;
+        let databaseVersion = 1;
         let databaseName = "webform";
 
         var db;                     // indexedDb
@@ -58,7 +58,7 @@ define([],
             return new Promise((resolve, reject) => {
 
                 if(idbSupported) {
-                    var request = window.indexedDB.open(databaseName, webformDbVersion);
+                    var request = window.indexedDB.open(databaseName, databaseVersion);
 
                     request.onerror = function (event) {
                         reject();
@@ -78,12 +78,14 @@ define([],
 
                     request.onupgradeneeded = function(event) {
                         var db = event.target.result;
+                        var oldVersion = db.oldVersion || 0;
 
-                        if (!db.objectStoreNames.contains(mediaStoreName)) {
-                            mediaStore = db.createObjectStore(mediaStoreName);
-                        }
-                        if (!db.objectStoreNames.contains(recordStoreName)) {
-                            recordStore = db.createObjectStore(recordStoreName);
+                        switch (oldVersion) {
+                            case 0:
+                                mediaStore = db.createObjectStore(mediaStoreName);
+
+                                recordStore = db.createObjectStore(recordStoreName, {keyPath: 'id', autoIncrement: true});
+                                recordStore.createIndex('assignment', 'assignment.assignment_id', {unique: false});
                         }
                     };
 
