@@ -165,17 +165,18 @@ require([
 		var i,
 			h = [],
 			idx = -1,
-			formList = surveyList.forms,
-			taskList = surveyList.data;
+			formList = surveyList.forms;
 
 
-		// Save the tasks then refresh view
-		if (taskList) {
-			showTaskList(taskList, filterProjectId);
-		} else {
-			$('#tasks_count').html('(0)');
-			$('#task_list').html('');
-		}
+		// Get the presaved records and refresh the task view
+		dbstorage.getRecords().then( records => {
+			if (records) {
+				showTaskList(records, filterProjectId);
+			} else {
+				$('#tasks_count').html('(0)');
+				$('#task_list').html('');
+			}
+		});
 
 		// Refresh the view of forms
 		if (formList) {
@@ -198,13 +199,15 @@ require([
 
 
 		// Save the tasks then refresh view
-		saveTasks(surveyList.data).then( taskList => {
-			if (taskList) {
-				showTaskList(taskList, filterProjectId);
-			} else {
-				$('#tasks_count').html('(0)');
-				$('#task_list').html('');
-			}
+		saveTasks(surveyList.data).then( () => {
+			dbstorage.getRecords().then( records => {
+				if (taskList) {
+					showTaskList(taskList, filterProjectId);
+				} else {
+					$('#tasks_count').html('(0)');
+					$('#task_list').html('');
+				}
+			});
 		});
 
 
@@ -267,7 +270,7 @@ require([
 
 					}
 				} else {
-					console.log("exising task");
+					console.log("existing task");
 					resolve();
 				}
 			});

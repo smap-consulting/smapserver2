@@ -32,7 +32,9 @@ define([],
         let mediaStoreName = "media";
         var mediaStore;
 
-        let recordStoreName = "records";
+        let recordStoreName = 'records';
+        let assignmentIdx = 'assignment';
+        let assignmentIdxPath = 'assignment.assignment_id';
         var recordStore;
 
         var idbSupported = typeof window.indexedDB !== 'undefined';
@@ -40,7 +42,10 @@ define([],
         return {
             isSupported: isSupported,
             open: open,
+
             addRecord: addRecord,
+            getRecords: getRecords,
+
             getTask: getTask
         };
 
@@ -71,7 +76,7 @@ define([],
                             mediaStore = upgradeDb.createObjectStore(mediaStoreName);
 
                             recordStore = upgradeDb.createObjectStore(recordStoreName, {keyPath: 'id', autoIncrement: true});
-                            recordStore.createIndex('assignment', 'assignment.assignment_id', {unique: false});
+                            recordStore.createIndex(assignmentIdx, assignmentIdxPath, {unique: false});
                     }
                 };
 
@@ -212,8 +217,53 @@ define([],
         function getTask(assignment_id) {
 
             return new Promise((resolve, reject) => {
+                console.log("Get task with assignment id: " + assignment_id);
 
-               resolve();
+                dbPromise.then(function (db) {
+                    var transaction = db.transaction([recordStoreName], "readonly");
+                    transaction.onerror = function (event) {
+                        alert("Error: failed to get record ");
+                    };
+
+                    var objectStore = transaction.objectStore(recordStoreName);
+                    var idx = objectStore.index(assignmentIdx);
+                    var request = idx.get(assignment_id);
+                    request.onsuccess = function (event) {
+                        resolve(request.result);
+                    };
+                    request.onerror = function (event) {
+                        console.log('Error', e.target.error.name);
+                        reject();
+                    };
+                });
+
+            });
+        }
+
+        /*
+         * Get all he records from the records database
+         */
+        function getRecords() {
+
+            return new Promise((resolve, reject) => {
+                console.log("Get records ");
+
+                dbPromise.then(function (db) {
+                    var transaction = db.transaction([recordStoreName], "readonly");
+                    transaction.onerror = function (event) {
+                        alert("Error: failed to get record ");
+                    };
+
+                    var objectStore = transaction.objectStore(recordStoreName);
+                    var request = objectStore.getAll();
+                    request.onsuccess = function (event) {
+                        resolve(request.result);
+                    };
+                    request.onerror = function (event) {
+                        console.log('Error', e.target.error.name);
+                        reject();
+                    };
+                });
 
             });
 
