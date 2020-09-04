@@ -26,8 +26,7 @@ define([],
         let databaseVersion = 1;
         let databaseName = "webform";
 
-        var dbPromise;
-        var db;                     // indexedDb
+        var dbPromise;  // Promise that returns the database
 
         let mediaStoreName = "media";
         var mediaStore;
