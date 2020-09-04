@@ -6235,6 +6235,7 @@ public class GeneralUtilityMethods {
 			pstmt = sd.prepareStatement(sqlLaunched);
 			pstmt.setInt(1, sId);
 			
+			log.info("Get linked forms----------------: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			while (rs.next()) {
 				String name = rs.getString(1);
@@ -6257,6 +6258,8 @@ public class GeneralUtilityMethods {
 				
 				if(qName != null && childSurveyId != null) {
 					formLinks.add(new FormLink(name, parent, type, childSurveyId, qName));
+				} else {
+					log.info("Failed to add child survey: qname" + qName + " sIdent: " + sIdent + " iChildSurveyId: " + iChildSurveyId);
 				}
 			}
 			
