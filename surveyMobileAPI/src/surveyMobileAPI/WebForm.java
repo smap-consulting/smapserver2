@@ -115,6 +115,7 @@ public class WebForm extends Application {
 	HashMap<String, Integer> gRecordCounts = null;
 	private WebformOptions options;
 	String debug = "no";
+	boolean myWork = false;
 
 	/*
 	 * Get instance data Respond with JSON
@@ -272,6 +273,7 @@ public class WebForm extends Application {
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
+			@QueryParam("myWork") boolean mw,
 			@QueryParam("callback") String callback) throws IOException {
 
 		Response response = null;
@@ -283,6 +285,7 @@ public class WebForm extends Application {
 		}
 		viewOnly = vo;
 		debug = d;
+		myWork = mw;
 
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
@@ -828,6 +831,7 @@ public class WebForm extends Application {
 			output.append(serverData.google_key);
 			output.append("\";");
 		}
+		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		output.append("</script>");
 		output.append("</head>\n");
 
