@@ -6259,7 +6259,7 @@ public class GeneralUtilityMethods {
 				if(qName != null && childSurveyId != null) {
 					formLinks.add(new FormLink(name, parent, type, childSurveyId, qName));
 				} else {
-					log.info("Failed to add child survey: qname" + qName + " sIdent: " + sIdent + " iChildSurveyId: " + iChildSurveyId);
+					log.info("Failed to add child survey. qname: " + qName + " sIdent: " + sIdent + " iChildSurveyId: " + iChildSurveyId);
 				}
 			}
 			
