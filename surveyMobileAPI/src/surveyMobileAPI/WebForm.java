@@ -736,7 +736,7 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin=\"\">");
+		output.append("<link as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin=\"\">");
 		
 		output.append("<link type=\"text/css\" rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:300,400,500,700\">");
 		output.append("<style type=\"text/css\">.gm-style .gm-style-cc span,.gm-style .gm-style-cc a,.gm-style .gm-style-mtc div{font-size:10px}\n" + 
