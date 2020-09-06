@@ -251,7 +251,7 @@ public class EventList extends Application {
 				sql = "SELECT se.se_id, ue.ue_id, ue.s_id, ue.upload_time, ue.user_name, ue.imei, ue.file_name, ue.survey_name, ue.location, "
 						+ "se.status as se_status, se.reason as se_reason, "
 						+ "se.dest as dest, ue.ident,"
-						+"ue.status as upload_status, ue.reason as upload_reason "
+						+"ue.status as upload_status, ue.reason as upload_reason, ue.incomplete "
 						+ "from upload_event ue "
 						+ "left outer join subscriber_event se "
 						+ "on ue.ue_id = se.ue_id "
@@ -281,9 +281,8 @@ public class EventList extends Application {
 			} else {
 				sql = "SELECT se.se_id, ue.ue_id, ue.s_id, ue.upload_time, ue.user_name, ue.imei, ue.file_name, ue.survey_name, ue.location, " +
 						"se.status as se_status, se.reason as se_reason, " +
-						//"ue.status as ue_status, ue.reason as ue_reason, " +
 						"se.dest as dest, ue.ident, " +
-						"ue.status as upload_status, ue.reason as upload_reason " +
+						"ue.status as upload_status, ue.reason as upload_reason, ue.incomplete " +
 						"FROM upload_event ue " +
 						"left outer join subscriber_event se " +
 						"on ue.ue_id = se.ue_id " +
@@ -374,6 +373,7 @@ public class EventList extends Application {
 					jp.put("dest", resultSet.getString("dest"));
 					jp.put("imei", resultSet.getString("imei"));
 					jp.put("ident", resultSet.getString("ident"));
+					jp.put("complete", (resultSet.getBoolean("incomplete")) ? "c_no" : "c_yes");
 					if(upload_status != null && upload_status.equals("error")) {
 						jp.put("status", "upload error");
 						jp.put("reason", upload_reason);
