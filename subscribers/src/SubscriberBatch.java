@@ -300,7 +300,8 @@ public class SubscriberBatch {
 										// instance.getTopElement().printIEModel("   ");	// Debug
 
 										// Get attachments from incomplete submissions
-										getAttachmentsFromIncompleteSurveys(sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent());
+										getAttachmentsFromIncompleteSurveys(sd, s.getSubscriberName(), ue.getFilePath(), ue.getOrigSurveyIdent(), ue.getIdent(), 
+												ue.getInstanceId());
 
 										is3 = new FileInputStream(uploadFile);	// Get an input stream for the file in case the subscriber uses that rather than an Instance object
 										mediaChanges = s.upload(instance, 
@@ -915,15 +916,17 @@ public class SubscriberBatch {
 			String subscriberName, 
 			String finalPath, 
 			String origIdent, 
-			String ident) {
+			String ident,
+			String instanceId) {
 
 
-		String sql = "select ue.ue_id, ue.file_path from upload_event ue " +
-				"where ue.status = 'success' " +
-				" and ue.orig_survey_ident = ? " +
-				" and ue.ident = ? " +
-				" and ue.incomplete = 'true'" +
-				" and not ue.results_db_applied ";
+		String sql = "select ue.ue_id, ue.file_path from upload_event ue "
+				+ "where ue.status = 'success' "
+				+ "and ue.orig_survey_ident = ? "
+				+ "and ue.ident = ? "
+				+ "and ue.incomplete = 'true' "
+				+ "and ue.instanceid = ? "
+				+ "and not ue.results_db_applied ";
 
 		String sqlUpdate = "insert into subscriber_event (se_id, ue_id, subscriber, status, reason) values (nextval('se_seq'), ?, ?, ?, ?);";
 
@@ -933,6 +936,7 @@ public class SubscriberBatch {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, origIdent);
 			pstmt.setString(2, ident);
+			pstmt.setString(3, instanceId);
 
 			pstmtUpdate = sd.prepareStatement(sqlUpdate);
 
