@@ -1154,6 +1154,7 @@ public class WebForm extends Application {
 			output.append("<header class='form-header clearfix'>\n");
 			output.append("<div class='offline-enabled'>\n");
 			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
+			output.append("<div><img id=\"hour_glass\" src=\"/images/ajax-loader.gif\" style=\"display:none;\" alt=\"hourglass\" height=\"34\" width=\"34\"></div>\n");
 			output.append("</div>\n");
 			output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
 			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
