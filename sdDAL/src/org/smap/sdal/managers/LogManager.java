@@ -60,7 +60,7 @@ public class LogManager {
 	public static String REMINDER = "reminder";
 	public static String MAILOUT = "mailout";
 	public static String VIEW = "view";
-	public static String USER_ACTIVITY_VIEW = "user acivity view";
+	public static String USER_ACTIVITY_VIEW = "user activity view";
 	public static String USER_LOCATION_VIEW = "user location view";
 	public static String DASHBOARD_VIEW = "dashboard view";
 	public static String INSTANCE_VIEW = "Access instance data for a task";
