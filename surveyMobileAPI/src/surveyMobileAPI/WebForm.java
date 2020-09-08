@@ -736,24 +736,28 @@ public class WebForm extends Application {
 
 		// head
 		output.append("<head>\n");
-		output.append("<link as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin=\"\">");
+		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/OpenSans-Regular-webfont.woff\" type=\"font/woff\" crossorigin>");
+		output.append("<link rel=\"preload\"as=\"font\" href=\"/fonts/OpenSans-Bold-webfont.woff\" type=\"font/woff\" crossorigin>");
+		output.append("<link rel=\"preload\" as=\"font\" href=\"/fonts/fontawesome-webfont.woff\" type=\"font/woff\" crossorigin>");
 		
+		/*
 		output.append("<link type=\"text/css\" rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:300,400,500,700\">");
 		output.append("<style type=\"text/css\">.gm-style .gm-style-cc span,.gm-style .gm-style-cc a,.gm-style .gm-style-mtc div{font-size:10px}\n" + 
 				"</style>");
 		output.append("<style type=\"text/css\">@media print {  .gm-style .gmnoprint, .gmnoprint {    display:none  }}@media screen {  .gm-style .gmnoscreen, .gmnoscreen {    display:none  }}</style>");
 		output.append("<style type=\"text/css\">.gm-style-pbc{transition:opacity ease-in-out;background-color:rgba(0,0,0,0.45);text-align:center}.gm-style-pbt{font-size:22px;color:white;font-family:Roboto,Arial,sans-serif;position:relative;margin:0;top:50%;-webkit-transform:translateY(-50%);-ms-transform:translateY(-50%);transform:translateY(-50%)}\n" + 
 				"</style>");
-		
+		*/
 		
 		if (surveyClass != null && surveyClass.trim().contains("theme-grid")) {		
 			output.append("<link type='text/css' href='/build/css/theme-grid.css' media='all' rel='stylesheet' />\n");
 			output.append("<link type='text/css' href='/build/css/grid-print.css' media='print' rel='stylesheet'/>\n");
 		} else {
-			output.append("<link type='text/css' href='/build/css/formhub.css' media='all' rel='stylesheet' />\n");
-			output.append("<link type='text/css' href='/build/css/theme-formhub.print.css' media='print' rel='stylesheet'/>\n");
+			output.append("<link type='text/css' href='/build/css/theme-smap.css' media='all' rel='stylesheet' />\n");
+			output.append("<link type='text/css' href='/build/css/theme-smap.print.css' media='print' rel='stylesheet'/>\n");
 		}
 		output.append("<link type='text/css' href='/build/css/webform.css' media='all' rel='stylesheet' />\n");
+		output.append("<link type='text/css' href='/build/css/webform.print.css' media='print' rel='stylesheet' />\n");
 
 		/*
 		 * Add organisation specific css settings
@@ -1156,7 +1160,8 @@ public class WebForm extends Application {
 			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
 			output.append("<div><img id=\"hour_glass\" src=\"/images/ajax-loader.gif\" style=\"display:none;\" alt=\"hourglass\" height=\"34\" width=\"34\"></div>\n");
 			output.append("</div>\n");
-			output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
+			//output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
+			output.append("<button class=\"print form-header__button--print btn-bg-icon-only\" onclick=\"return false;\"></button>");
 			output.append("<span class='form-language-selector'><span class='lang' data-lang='form.chooseLanguage'>language</span></span>\n");
 			output.append("<div class='form-progress'></div>\n");
 
