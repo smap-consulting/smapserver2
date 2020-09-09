@@ -1457,23 +1457,20 @@ public class SurveyManager {
 					ResultSet rs = pstmtGetQuestionTextId.executeQuery();
 					if(rs.next()) {
 						text_id = rs.getString(1);
-						if(ci.property.propType.equals("constraint_msg")) {
-							text_id = text_id.replace(":label", ":constraint");
-						} else if(ci.property.propType.equals("required_msg")) {
-							text_id = text_id.replace(":label", ":required");
-						} else if(ci.property.propType.equals("hint")) {
-							text_id = text_id.replace(":label", ":hint");
-						} else if(ci.property.propType.equals("guidance_hint")) {
-							text_id = text_id.replace(":label", ":guidance_hint");
-						} 
-						if(text_id == null || text_id.trim().length() == 0) {
-							text_id = ci.property.key;
-							updateTextId = true;
-						}
-					} else {
-						text_id = ci.property.key;		// For question we can rely on the key?
+					}
+					if(text_id == null || text_id.trim().length() == 0) {
+						text_id = sId + "_question_" + ci.property.name  + ":label";
 						updateTextId = true;
 					}
+					if(ci.property.propType.equals("constraint_msg")) {
+						text_id = text_id.replace(":label", ":constraint");
+					} else if(ci.property.propType.equals("required_msg")) {
+						text_id = text_id.replace(":label", ":required");
+					} else if(ci.property.propType.equals("hint")) {
+						text_id = text_id.replace(":label", ":hint");
+					} else if(ci.property.propType.equals("guidance_hint")) {
+						text_id = text_id.replace(":label", ":guidance_hint");
+					} 
 				}
 
 				if(ci.property.oldVal != null && ci.property.newVal != null) {
@@ -1495,12 +1492,13 @@ public class SurveyManager {
 							|| ci.property.propType.equals("constraint_msg")
 							|| ci.property.propType.equals("required_msg")
 							|| ci.property.propType.equals("guidance_hint")) {
+						
 						addLabel(connectionSD, ci, ci.property.languageName, pstmtLangNew, sId, pstmtDeleteLabel, text_id);
 
 						// Add the new text id to the question
 						if(updateTextId) {
 							if(isQuestion) {
-								pstmtNewQuestionLabel.setString(1, ci.property.key);
+								pstmtNewQuestionLabel.setString(1, text_id);
 								pstmtNewQuestionLabel.setInt(2, ci.property.qId);
 								log.info("Update question table with text_id: " + pstmtNewQuestionLabel.toString());
 								pstmtNewQuestionLabel.executeUpdate();
