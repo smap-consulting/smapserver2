@@ -24,6 +24,7 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
+import org.smap.sdal.model.SqlFragParam;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -183,6 +184,7 @@ public class SurveyTableManager {
 			String selection, 
 			ArrayList<String> arguments, 
 			ArrayList<String> whereColumns,
+			SqlFrag expressionFrag,		// A more general approach than using "whereColumns". The latter should probably be deprecated
 			String tz,
 			ArrayList<SqlFrag> qArray,
 			ArrayList<SqlFrag> fArray
@@ -248,7 +250,9 @@ public class SurveyTableManager {
 					pstmt.setString(paramCount, key_value);
 				}
 			} else {
-				if(arguments != null) {
+				if(expressionFrag != null) {
+					paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
+				} else if(arguments != null) {
 					for(String arg : arguments) {
 						pstmt.setString(paramCount++, arg);
 					}

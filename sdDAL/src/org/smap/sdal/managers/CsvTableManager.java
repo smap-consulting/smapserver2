@@ -27,6 +27,7 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.SelectChoice;
+import org.smap.sdal.model.SqlFrag;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -452,7 +453,8 @@ public class CsvTableManager {
 			String label_columns,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
+			ArrayList<String> whereColumns,
+			SqlFrag frag) throws SQLException, ApplicationException {
 		
 		ArrayList<SelectChoice> choices = null;
 

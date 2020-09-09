@@ -4781,7 +4781,9 @@ public class GeneralUtilityMethods {
 								}
 								// Get data from another form
 								SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, filename, remoteUser);
-								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, tz, null, null);						
+								stm.initData(pstmt, "choices", null, null, selection, matches, matchCols, 
+										null,	// expression fragment
+										tz, null, null);						
 								choices = stm.getChoices(ovalue, languageItems, wfFilters);
 								
 							} else {
