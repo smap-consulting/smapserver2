@@ -152,7 +152,9 @@ public class Lookup extends Application{
 					// Get data from a survey
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, "lookup", keyColumn, keyValue, null, null, null, tz, null, null);
+					stm.initData(pstmt, "lookup", keyColumn, keyValue, null, null, null, 
+							null, 		// expression Fragment
+							tz, null, null);
 					results = stm.getLineAsHash();
 				} else {
 					// Get data from a csv file
@@ -192,7 +194,8 @@ public class Lookup extends Application{
 			@QueryParam("q_column") String qColumn,
 			@QueryParam("q_value") String qValue,
 			@QueryParam("f_column") String fColumn,
-			@QueryParam("f_value") String fValue			
+			@QueryParam("f_value") String fValue,
+			@QueryParam("expression") String expression	
 			) throws IOException {
 
 		Response response = null;
@@ -263,8 +266,15 @@ public class Lookup extends Application{
 				fDetails = new ColDetails();
 				fDetails.colName = fColumn;
 			}
-			
-			if (searchType != null && fColumn != null) {
+			SqlFrag frag = null;
+			if(expression != null) {
+				// Convert #{qname} syntax to ${qname} syntax
+				expression = expression.replace("#{", "${");
+				// TODO convert expression into a selection
+				frag = new SqlFrag();
+				frag.addSqlFragment(expression, false, localisation, 0);
+				selection.append("( ").append(frag.sql).append(")");
+			} else if (searchType != null && fColumn != null) {
 	            selection.append("( ").append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)).append(" ) and ");
 	            selection.append(fDetails.getExpression()).append(" = ? ");
 	            arguments.add(fValue);
@@ -290,7 +300,7 @@ public class Lookup extends Application{
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
 					stm.initData(pstmt, "choices", null, null,
-							selectionString, arguments, whereColumns, tz, qDetails.filterArray, fDetails.filterArray);
+							selectionString, arguments, whereColumns, frag, tz, qDetails.filterArray, fDetails.filterArray);
 					
 					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
 					HashMap<String, String> line = null;
@@ -319,7 +329,7 @@ public class Lookup extends Application{
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
 					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, 
-							selectionString, arguments, whereColumns);
+							selectionString, arguments, whereColumns, frag);
 				}
 			}
 			if (results == null) {
