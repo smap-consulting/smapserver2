@@ -116,6 +116,7 @@ public class Items extends Application {
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("filter") String sFilter,
 			@QueryParam("advanced_filter") String advanced_filter,
+			@QueryParam("inc_ro") boolean inc_ro,
 			@QueryParam("tz") String tz) { 
 		
 		JSONObject jo = new JSONObject();
@@ -241,7 +242,7 @@ public class Items extends Application {
 						parent,
 						fId,
 						tName,
-						false,	// Don't include Read only
+						inc_ro,	// Read only
 						true,	// Include parent key
 						true,	// Include "bad"
 						true,	// Include instanceId
