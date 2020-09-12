@@ -264,8 +264,8 @@ public class SurveyTableManager {
 				rs = pstmt.executeQuery();
 			} catch (Exception e) {
 				String msg = e.getMessage();
-				if(msg != null && e.getMessage().contains("does not exist")) {
-					log.info("Attempting to get data from a survey that has had no data submitted");
+				if(msg != null && msg.contains("does not exist")) {
+					log.info("Attempting to get data from a survey that has had no data submitted. " + msg);
 				} else {
 					log.log(Level.SEVERE, msg, e);
 				}
