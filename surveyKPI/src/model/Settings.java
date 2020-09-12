@@ -33,4 +33,5 @@ public class Settings {
 	public Date toDate;
 	public String filter;
 	public String advanced_filter;
+	public boolean inc_ro;
 }
