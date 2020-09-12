@@ -272,6 +272,7 @@ public class Lookup extends Application{
 				expression = expression.replace("#{", "${");
 				// TODO convert expression into a selection
 				frag = new SqlFrag();
+				log.info("Lookup with expression: " + expression);
 				frag.addSqlFragment(expression, false, localisation, 0);
 				selection.append("( ").append(frag.sql).append(")");
 			} else if (searchType != null && fColumn != null) {

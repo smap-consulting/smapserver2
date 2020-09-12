@@ -183,6 +183,12 @@ public class SqlFrag {
 				token.equals("is") || 
 				token.equals("null") || 
 				token.equals("not") || 
+				token.equals("to_timestamp") || 
+				token.equals("::timestamptz") || 
+				token.equals("::timestamp") || 
+				token.equals("to_date") || 
+				token.equals("::date") || 
+				token.equals("::integer") || 
 				token.equals("like") || 
 				token.equals("cast") || 
 				token.equals("as") || 
