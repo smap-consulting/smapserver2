@@ -116,6 +116,7 @@ public class WebForm extends Application {
 	private WebformOptions options;
 	String debug = "no";
 	boolean myWork = false;
+	String gFormIdent = null;
 
 	/*
 	 * Get instance data Respond with JSON
@@ -479,6 +480,8 @@ public class WebForm extends Application {
 		String accessKey = null;
 		String requester = "surveyMobileAPI-getWebForm";
 		boolean superUser = false;
+		
+		gFormIdent = formIdent;
 		
 		/*
 		 * Get the media manifest so we can set the url's of media files used the form
@@ -855,9 +858,8 @@ public class WebForm extends Application {
 		output.append("settings = {};\n");
 
 		output.append("surveyData = {};\n");
-
+		output.append("surveyData.surveyIdent=\"").append(gFormIdent).append("\";\n");
 		// Data model
-
 		output.append("surveyData.modelStr=\"");
 		output.append(getModelStr(request));
 		output.append("\";\n");
