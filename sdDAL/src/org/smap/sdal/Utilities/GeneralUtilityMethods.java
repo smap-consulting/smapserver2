@@ -6645,7 +6645,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the search question from appearance Used when converting searches into
 	 * cascading selects
-	 */
+	 *
 	public static String getFirstSearchQuestionFromAppearance(String appearance) {
 		String filterQuestion = null;
 
@@ -6667,6 +6667,7 @@ public class GeneralUtilityMethods {
 
 		return filterQuestion;
 	}
+	*/
 	
 	/*
 	 * Get the search filter questions
