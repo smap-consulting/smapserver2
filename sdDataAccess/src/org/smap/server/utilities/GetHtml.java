@@ -722,10 +722,17 @@ public class GetHtml {
 				calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)) + "__dynamic");
 				String fn = GeneralUtilityMethods.extractFn("lookup_choices", q.appearance);
 				
-				calculationInput.setAttribute("data-calculate"," " + UtilityMethods.convertAllxlsNames(fn, false, paths, form.id, true, q.name, false) + " ");
+				if(fn != null && fn.length() > 1) {
+					// Add additional parameters required for webforms
+					fn = fn.trim();
+					fn = fn.substring(0, fn.length() - 1);
+					fn += ",'" + q.name + "')";
+				
+					calculationInput.setAttribute("data-calculate"," " + UtilityMethods.convertAllxlsNames(fn, false, paths, form.id, true, q.name, false) + " ");
 
-				calculationInput.setAttribute("data-type-xml", "string"); // Always use string for calculate
-				calculationLabel.appendChild(calculationInput);
+					calculationInput.setAttribute("data-type-xml", "string"); // Always use string for calculate
+					calculationLabel.appendChild(calculationInput);
+				}
 			}
 			
 			// Process calculations in repeats

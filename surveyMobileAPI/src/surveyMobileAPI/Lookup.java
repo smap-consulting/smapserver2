@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -61,6 +62,7 @@ import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.model.SelectChoice;
+import org.smap.sdal.model.SelectKeys;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
 
@@ -203,7 +205,7 @@ public class Lookup extends Application{
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 		int sId = 0;
 		
-		log.info("Lookup choices: Filename=" + fileName + " value_column=" + valueColumn + " label_column=" + labelColumns);
+ 		log.info("Lookup choices: Filename=" + fileName + " value_column=" + valueColumn + " label_column=" + labelColumns);
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);		
@@ -216,139 +218,114 @@ public class Lookup extends Application{
 		}
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
-		Connection cResults = null;
-		PreparedStatement pstmt = null;
-		
+			
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		// Extract the data
 		try {
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
-		
-			String tz = "UTC";
-			
-			// Clean the data
-			ArrayList<String> whereColumns = new ArrayList<String> ();
-			if(searchType != null) {
-				searchType = searchType.trim().toLowerCase();
-			}
-			if(qColumn != null) {
-				qColumn = qColumn.trim();
-				whereColumns.add(qColumn);
-			}
-			if(qValue != null) {
-				qValue = qValue.trim();
-			}
-			if(fValue != null) {
-				fValue = fValue.trim();
-			}
-			if(fColumn != null) {
-				fColumn = fColumn.trim();
-				whereColumns.add(fColumn);
-			}
-			// Create a where clause and where parameters
-			StringBuffer selection = new StringBuffer("");
-			String selectionString = null;
-			ArrayList<String> arguments = new ArrayList<String> ();
-			
-			// Convert qname into an expression
-			ColDetails qDetails = null;
-			ColDetails fDetails = null;
-			int linked_sId = 0;
-			if(fileName != null && fileName.startsWith("linked_s")) {
-				linked_sId = GeneralUtilityMethods.getLinkedSId(sd, sId, fileName);
-				qDetails = getColDetails(sd, gson, localisation, linked_sId, qColumn);
-				fDetails = getColDetails(sd, gson, localisation, linked_sId, fColumn);
-			} else {
-				qDetails = new ColDetails();
-				qDetails.colName = qColumn;
-				
-				fDetails = new ColDetails();
-				fDetails.colName = fColumn;
-			}
-			SqlFrag frag = null;
-			if(expression != null) {
-				// Convert #{qname} syntax to ${qname} syntax
-				expression = expression.replace("#{", "${");
-				// TODO convert expression into a selection
-				frag = new SqlFrag();
-				log.info("Lookup with expression: " + expression);
-				frag.addSqlFragment(expression, false, localisation, 0);
-				selection.append("( ").append(frag.sql).append(")");
-			} else if (searchType != null && fColumn != null) {
-	            selection.append("( ").append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)).append(" ) and ");
-	            selection.append(fDetails.getExpression()).append(" = ? ");
-	            arguments.add(fValue);
-	        } else if (searchType != null) {
-	            selection.append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)); 
-	        } else if (fColumn != null) {
-	            selection.append(fDetails.getExpression()).append(" = ? ");
-	            arguments.add(fValue);
-	        } else {
-	            arguments = null;
-	        }
-			if(selection.length() > 0) {
-				selectionString = selection.toString();
-			} else {
-				selectionString = null;
-			}
-			
-			ArrayList<SelectChoice> results = null;
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			if(fileName != null) {
-				if(fileName.startsWith("linked_s")) {
-					// Get data from a survey
-					cResults = ResultsDataSource.getConnection(connectionString);				
-					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, "choices", null, null,
-							selectionString, arguments, whereColumns, frag, tz, qDetails.filterArray, fDetails.filterArray);
-					
-					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
-					HashMap<String, String> line = null;
-					int idx = 0;
-					results = new ArrayList<SelectChoice> ();
-					while((line = stm.getLineAsHash()) != null) {
-						String[] lArray = labelColumns.split(",");
-						StringBuffer lOutput = new StringBuffer("");
-						for(String l : lArray) {
-							if(lOutput.length() > 0) {
-								lOutput.append(", ");
-							}
-							lOutput.append(line.get(l.trim()));
-						}
-						String value = line.get(valueColumn);
-						if(value != null) {
-							value = value.trim();
-							if(choiceMap.get(value) == null) {		// Only add unique values
-								SelectChoice choice = new SelectChoice(value, lOutput.toString(), idx++);
-								choiceMap.put(value, value);
-								results.add(choice);
-							}
-						}
-					}
-				} else {
-					// Get data from a csv file
-					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, 
-							selectionString, arguments, whereColumns, frag);
-				}
-			}
-			if (results == null) {
-				results =  new ArrayList<SelectChoice> ();
-			}
+			ArrayList<SelectChoice> results = getChoices(sd, cResults, request, gson, sId,
+					surveyIdent,		// Survey that needs to lookup some data
+					fileName,				// CSV filename, could be the identifier of another survey
+					valueColumn,
+					labelColumns,
+					null,			// multi language label columns
+					searchType,
+					qColumn,
+					qValue,
+					fColumn,
+					fValue,
+					expression);         	
+
 			response = Response.ok(gson.toJson(results)).build();
 		
 		}  catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		}  finally {
-			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}} 
 			SDDataSource.closeConnection(connectionString, sd);
 			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 				
 		return response;
 	}
+	
+	/*
+	 * Get external choices (Multi Language Version)
+	 */
+	@GET
+	@Path("/mlchoices/{survey_ident}/{filename}/{question}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response mlchoices(@Context HttpServletRequest request,
+			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
+			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
+			@PathParam("question") String questionName,
+			@QueryParam("search_type") String searchType,
+			@QueryParam("q_column") String qColumn,
+			@QueryParam("q_value") String qValue,
+			@QueryParam("f_column") String fColumn,
+			@QueryParam("f_value") String fValue,
+			@QueryParam("expression") String expression	
+			) throws IOException {
+
+		Response response = null;
+		String connectionString = "surveyMobileAPI-Lookup-multilangugage-choices";
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		int sId = 0;
+		
+ 		log.info("Lookup multi language choices: Filename=" + fileName + " questionName=" + questionName);
+
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);		
+		a.isAuthorised(sd, request.getRemoteUser());
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+			sId = GeneralUtilityMethods.getSurveyId(sd, surveyIdent);
+		} catch (Exception e) {
+		}
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+			
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
+		// Extract the data
+		try {
+			
+			/*
+			 * Get the columns
+			 */
+			SelectKeys sk = GeneralUtilityMethods.getSelectKeys(sd, sId,questionName);
+			if(sk.valueColumn == null) {
+				throw new Exception("Cannot find choices for question: " + questionName);
+			}
+			/*
+			 * Get the choices
+			 */
+			ArrayList<SelectChoice> results = getChoices(sd, cResults, request, gson, sId,
+					surveyIdent,			// Survey that needs to lookup some data
+					fileName,				// CSV filename, could be the identifier of another survey
+					sk.valueColumn,
+					null,					// Single language label columns
+					sk.labelColumns,
+					searchType,
+					qColumn,
+					qValue,
+					fColumn,
+					fValue,
+					expression);         	
+
+			response = Response.ok(gson.toJson(results)).build();
+		
+		}  catch (Exception e) {
+			log.log(Level.SEVERE,"Exception", e);
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
+		}  finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
+		}
+				
+		return response;
+	}
+
 	
 	/*
 	 * Get get labels from an image
@@ -530,6 +507,142 @@ public class Lookup extends Application{
 		}
 		
 		return details;
+	}
+	
+	private ArrayList<SelectChoice> getChoices(Connection sd, Connection cResults, HttpServletRequest request, Gson gson, int sId,
+			String surveyIdent,
+			String fileName,
+			String valueColumn,
+			String labelColumns,
+			HashMap<String, String> mlLabelColumns,
+			String searchType,
+			String qColumn,
+			String qValue,
+			String fColumn,
+			String fValue,
+			String expression) throws Exception {
+		
+		ArrayList<SelectChoice> results = null;
+		
+		PreparedStatement pstmt = null;
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
+		
+			String tz = "UTC";
+			
+			// Clean the data
+			ArrayList<String> whereColumns = new ArrayList<String> ();
+			if(searchType != null) {
+				searchType = searchType.trim().toLowerCase();
+			}
+			if(qColumn != null) {
+				qColumn = qColumn.trim();
+				whereColumns.add(qColumn);
+			}
+			if(qValue != null) {
+				qValue = qValue.trim();
+			}
+			if(fValue != null) {
+				fValue = fValue.trim();
+			}
+			if(fColumn != null) {
+				fColumn = fColumn.trim();
+				whereColumns.add(fColumn);
+			}
+			// Create a where clause and where parameters
+			StringBuffer selection = new StringBuffer("");
+			String selectionString = null;
+			ArrayList<String> arguments = new ArrayList<String> ();
+			
+			// Convert qname into an expression
+			ColDetails qDetails = null;
+			ColDetails fDetails = null;
+			int linked_sId = 0;
+			if(fileName != null && fileName.startsWith("linked_s")) {
+				linked_sId = GeneralUtilityMethods.getLinkedSId(sd, sId, fileName);
+				qDetails = getColDetails(sd, gson, localisation, linked_sId, qColumn);
+				fDetails = getColDetails(sd, gson, localisation, linked_sId, fColumn);
+			} else {
+				qDetails = new ColDetails();
+				qDetails.colName = qColumn;
+				
+				fDetails = new ColDetails();
+				fDetails.colName = fColumn;
+			}
+			SqlFrag frag = null;
+			if(expression != null) {
+				// Convert #{qname} syntax to ${qname} syntax
+				expression = expression.replace("#{", "${");
+				// TODO convert expression into a selection
+				frag = new SqlFrag();
+				log.info("Lookup with expression: " + expression);
+				frag.addSqlFragment(expression, false, localisation, 0);
+				selection.append("( ").append(frag.sql).append(")");
+			} else if (searchType != null && fColumn != null) {
+	            selection.append("( ").append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)).append(" ) and ");
+	            selection.append(fDetails.getExpression()).append(" = ? ");
+	            arguments.add(fValue);
+	        } else if (searchType != null) {
+	            selection.append(createLikeExpression(qDetails.getExpression(), qValue, searchType, arguments)); 
+	        } else if (fColumn != null) {
+	            selection.append(fDetails.getExpression()).append(" = ? ");
+	            arguments.add(fValue);
+	        } else {
+	            arguments = null;
+	        }
+			if(selection.length() > 0) {
+				selectionString = selection.toString();
+			} else {
+				selectionString = null;
+			}
+			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			if(fileName != null) {
+				if(fileName.startsWith("linked_s")) {
+					// Get data from a survey				
+					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
+					stm.initData(pstmt, "choices", null, null,
+							selectionString, arguments, whereColumns, frag, tz, qDetails.filterArray, fDetails.filterArray);
+					
+					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
+					HashMap<String, String> line = null;
+					int idx = 0;
+					results = new ArrayList<SelectChoice> ();
+					while((line = stm.getLineAsHash()) != null) {
+						String[] lArray = labelColumns.split(",");
+						StringBuffer lOutput = new StringBuffer("");
+						for(String l : lArray) {
+							if(lOutput.length() > 0) {
+								lOutput.append(", ");
+							}
+							lOutput.append(line.get(l.trim()));
+						}
+						String value = line.get(valueColumn);
+						if(value != null) {
+							value = value.trim();
+							if(choiceMap.get(value) == null) {		// Only add unique values
+								SelectChoice choice = new SelectChoice(value, lOutput.toString(), idx++);
+								choiceMap.put(value, value);
+								results.add(choice);
+							}
+						}
+					}
+				} else {
+					// Get data from a csv file
+					CsvTableManager ctm = new CsvTableManager(sd, localisation);
+					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, 
+							selectionString, arguments, whereColumns, frag);
+				}
+			}
+			if (results == null) {
+				results =  new ArrayList<SelectChoice> ();
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
+		}
+		
+		return results;
 	}
 }
 

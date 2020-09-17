@@ -82,6 +82,7 @@ import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.Search;
+import org.smap.sdal.model.SelectKeys;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
@@ -4692,6 +4693,55 @@ public class GeneralUtilityMethods {
 		}
 
 		return hasExternal;
+	}
+	
+	/*
+	 *  Get key_name and label_
+	 */
+	public static SelectKeys getSelectKeys(Connection sd, int sId, String qName) throws SQLException {
+		
+		SelectKeys sk = new SelectKeys ();
+		
+		String sqlChoices = "select ovalue, label_id "
+				+ "from option "
+				+ "where l_id = (select l_id from question where qname = ? and f_id in (select f_id from form where s_id = ?)) "
+				+ "and not externalfile "
+				+ "and ovalue !~ '^[0-9]+$'";
+		PreparedStatement pstmtChoices = null;
+			
+		String sqlLabels = "select t.value, t.language " 
+						+ "from translation t "
+						+ "where t.text_id = ? "
+						+ "and t.type = 'none' "
+						+ "and t.s_id = ? "
+						+ "order by t.language asc";
+		PreparedStatement pstmtLabels = null;
+		
+		try {
+			pstmtChoices = sd.prepareStatement(sqlChoices);
+			pstmtChoices.setString(1, qName);
+			pstmtChoices.setInt(2,  sId);
+			log.info(pstmtChoices.toString());
+			ResultSet rs = pstmtChoices.executeQuery();
+			if(rs.next()) {
+				sk.valueColumn = rs.getString(1);
+				
+				pstmtLabels = sd.prepareStatement(sqlLabels);
+				pstmtLabels.setString(1,rs.getString(2));
+				pstmtLabels.setInt(2, sId);
+				log.info(pstmtLabels.toString());
+				ResultSet rsl = pstmtLabels.executeQuery();
+				while(rsl.next()) {
+					sk.labelColumns.put(rsl.getString(2), rsl.getString(1));
+				}
+			}
+			
+		} finally {
+			try {if (pstmtChoices != null) {pstmtChoices.close();}} catch (SQLException e) {}
+			try {if (pstmtLabels != null) {pstmtLabels.close();}} catch (SQLException e) {}
+		}
+		
+		return sk;
 	}
 	
 	/*

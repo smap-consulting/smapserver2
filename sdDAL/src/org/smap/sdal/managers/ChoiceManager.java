@@ -7,8 +7,6 @@ import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
-import org.smap.sdal.model.Label;
-import org.smap.sdal.model.LanguageItem;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.Question;
 
@@ -32,9 +30,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
  ******************************************************************************/
 
 public class ChoiceManager {
-	
-	private static Logger log =
-			 Logger.getLogger(ChoiceManager.class.getName());
 
 	private ResourceBundle localisation;
 	private String tz;
