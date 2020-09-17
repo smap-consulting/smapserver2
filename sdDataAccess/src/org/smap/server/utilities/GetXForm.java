@@ -699,6 +699,15 @@ public class GetXForm {
 					}
 
 					currentParent.appendChild(questionElement);
+					
+					// If this is webforms add a placeholder for dynamic calculations
+					if(isWebForms) {
+						String app = q.getAppearance(false, null);
+						if(app.contains("lookup_choices(")) {
+							questionElement = outputDoc.createElement(q.getName() + "__dynamic");
+							currentParent.appendChild(questionElement);
+						}
+					}
 				}
 
 			} else if (location == BIND) {

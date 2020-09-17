@@ -6341,7 +6341,44 @@ public class GeneralUtilityMethods {
 		return val;
 
 	}
+	
+	/*
+	 * Get a function from a string
+	 */
+	public static String extractFn(String name, String in) {
+		String fn = null;
+		int idx;
+		int idx2;
+		int depth = 0;
 
+		if (in != null) {
+			idx = in.indexOf(name + "(");
+			if (idx >= 0) {
+				// Get closing bracket index
+				idx2 = -1;
+				for(int i = idx; i < in.length(); i++) {
+					 char c = in.charAt(i);
+					 if(c == '(') {
+						 depth++;
+					 } else if(c == ')') {
+						 depth--;
+						 if(depth == 0) {
+							 idx2 = i;
+							 break;
+						 }
+					 }
+					 
+				}
+				if (idx2 >= 0) {
+					fn = in.substring(idx, idx2 + 1);
+				}
+
+			}
+		}
+
+		return fn;
+
+	}
 	/*
 	 * Get the index in the language array for the provided language
 	 */
