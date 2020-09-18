@@ -712,10 +712,10 @@ public class SurveyTableManager {
 					}
 					sql.append(colName);
 					sql.append(" as ");
-					sql.append(n);
+					sql.append("\"" + n + "\"");
 					first = false;
 	
-					order_cols.append(n);
+					order_cols.append("\"" + n + "\"" );
 				}
 			}
 

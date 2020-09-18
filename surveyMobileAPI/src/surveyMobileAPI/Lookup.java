@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -609,20 +608,41 @@ public class Lookup extends Application{
 					HashMap<String, String> line = null;
 					int idx = 0;
 					results = new ArrayList<SelectChoice> ();
+					
 					while((line = stm.getLineAsHash()) != null) {
-						String[] lArray = labelColumns.split(",");
-						StringBuffer lOutput = new StringBuffer("");
-						for(String l : lArray) {
-							if(lOutput.length() > 0) {
-								lOutput.append(", ");
+						SelectChoice choice = new SelectChoice();
+						if(mlLabelColumns != null) {  // multi language request
+							choice.mlChoices = new HashMap<>();
+							for(String lang : mlLabelColumns.keySet()) {
+								String lc = mlLabelColumns.get(lang);
+								
+								String[] lArray = lc.split(",");
+								StringBuffer lOutput = new StringBuffer("");
+								for(String l : lArray) {
+									if(lOutput.length() > 0) {
+										lOutput.append(", ");
+									}
+									lOutput.append(line.get(l.trim()));
+									choice.mlChoices.put(lang, lOutput.toString());
+								}
 							}
-							lOutput.append(line.get(l.trim()));
+						} else {
+							String[] lArray = labelColumns.split(",");
+							StringBuffer lOutput = new StringBuffer("");
+							for(String l : lArray) {
+								if(lOutput.length() > 0) {
+									lOutput.append(", ");
+								}
+								lOutput.append(line.get(l.trim()));
+							}
+							choice.labelInnerText = lOutput.toString();
 						}
 						String value = line.get(valueColumn);
 						if(value != null) {
 							value = value.trim();
 							if(choiceMap.get(value) == null) {		// Only add unique values
-								SelectChoice choice = new SelectChoice(value, lOutput.toString(), idx++);
+								choice.value = value;
+								choice.index = idx++;
 								choiceMap.put(value, value);
 								results.add(choice);
 							}
