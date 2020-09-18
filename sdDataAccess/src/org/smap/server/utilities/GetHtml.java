@@ -727,6 +727,7 @@ public class GetHtml {
 					fn = fn.trim();
 					fn = fn.substring(0, fn.length() - 1);
 					fn += ",'" + q.name + "')";
+					fn = GeneralUtilityMethods.escapeSingleQuotesInFn(fn);
 				
 					calculationInput.setAttribute("data-calculate"," " + UtilityMethods.convertAllxlsNames(fn, false, paths, form.id, true, q.name, false) + " ");
 

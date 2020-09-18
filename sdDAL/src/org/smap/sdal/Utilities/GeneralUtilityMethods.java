@@ -9581,12 +9581,51 @@ public class GeneralUtilityMethods {
 		return new Timestamp(c.getTime().getTime());
 	}
 	
-public static Timestamp getTimestampNextMonth(Timestamp tIn) {
+	public static Timestamp getTimestampNextMonth(Timestamp tIn) {
 		
 		Calendar c = Calendar.getInstance(); 
 		c.setTime(tIn); 
 		c.add(Calendar.MONTH, 1);
 		return new Timestamp(c.getTime().getTime());
 	}
+	
+	 /*
+     * Replace single quotes inside a functions parameter with ##
+     * The objective is to prevent an error when the xpath of a function is evaluated
+     * Currently his is only required for search in appearances of type 'eval':
+     *   the parameter to be escaped contains pseudo SQL
+     *   all occurrences of a single quote within that parameter should be escaped
+     */
+    public static String escapeSingleQuotesInFn(String in) {
+        StringBuilder paramsOut = new StringBuilder("");
+        String out = "";
+        if(in != null) {
+
+            int idx1 = in.indexOf('(');
+            int idx2 = in.lastIndexOf(')');
+            if(idx1 >= 0 && idx2 > idx1) {
+                String fn = in.substring(0, idx1);
+                String params = in.substring(idx1, idx2);
+                String end = in.substring(idx2);
+
+                String[] eList = params.split(",");
+                for (String s : eList) {
+                    s = s.trim();
+                    if (s.length() > 2 && s.charAt(0) == '\'' && s.charAt(s.length() - 1) == '\'') {
+                        s = s.substring(1, s.length() - 1);
+                        s = s.replace("'", "##");
+                        s = "'" + s + "'";
+                    }
+
+                    if (paramsOut.length() > 0) {
+                        paramsOut.append(",");
+                    }
+                    paramsOut.append(s);
+                }
+                out = fn + paramsOut.toString() + end;
+            }
+        }
+        return out;
+    }
 }
 
