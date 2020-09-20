@@ -451,6 +451,7 @@ public class CsvTableManager {
 	public ArrayList<SelectChoice> lookupChoices(int oId, int sId, String fileName, 
 			String value_column, 
 			String label_columns,
+			HashMap<String, String> mlLabelColumns,
 			String selection,
 			ArrayList<String> arguments,
 			ArrayList<String> whereColumns,
@@ -467,16 +468,29 @@ public class CsvTableManager {
 			log.info("Getting csv file name: (survey)" + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, fileName,
-						selection, arguments, whereColumns);	
+				if(mlLabelColumns != null) {
+					choices = mlReadChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, 
+							mlLabelColumns, fileName,
+							selection, arguments, whereColumns);	
+				} else {
+					choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, 
+							fileName,
+							selection, arguments, whereColumns);	
+				}
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name: (organisation)" + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
-							value_column, label_columns, fileName,
-							selection, arguments, whereColumns);	
+					if(mlLabelColumns != null) {
+						choices= mlReadChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
+								value_column, mlLabelColumns, fileName,
+								selection, arguments, whereColumns);	
+					} else {
+						choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
+								value_column, label_columns, fileName,
+								selection, arguments, whereColumns);	
+					}
 				}				
 			}
 		} finally {
@@ -731,9 +745,11 @@ public class CsvTableManager {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
 		
+	
 		ArrayList<String> labelColumnArray = new ArrayList<String> ();
 		String [] a = label_columns.split(",");
 		for(String v : a) {
+			v = v.trim();
 			labelColumnArray.add(v);
 		}
 		
@@ -832,6 +848,145 @@ public class CsvTableManager {
 					if(choiceMap.get(value) == null) {		// Only add unique values
 						choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
 						choiceMap.put(value, value);
+					}
+				}			
+			}	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			throw new ApplicationException("Error getting choices from csv file: " + filename + " " + e.getMessage());
+		} finally {
+			try {pstmt.close();} catch(Exception e) {}
+		}
+		return choices;
+	}
+	
+	/*
+	 * Do a multi language lookup of choices - online dynamic request
+	 */
+	private ArrayList<SelectChoice> mlReadChoicesFromTable(int tableId, String sHeaders, String value_column, 
+			HashMap<String, String> mlLabelColumns,
+			String filename,
+			String selection,
+			ArrayList<String> arguments,
+			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
+			
+		ArrayList<SelectChoice> choices = new ArrayList<> ();
+		
+		
+		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
+		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+		ArrayList<CsvHeader> headers = gson.fromJson(sHeaders, headersType);
+		
+		String table = "csv.csv" + tableId;
+		HashMap<String, String> choiceMap = new HashMap<>();
+		boolean hasSortBy = false;
+		PreparedStatement pstmt = null;
+		try {
+			
+			StringBuffer sql = new StringBuffer("select ");
+			boolean foundValue = false;
+			
+			// Map value column to table column and flag if there is a sortby column
+			for(CsvHeader item : headers) {
+				if(item.fName.equals(value_column)) {
+					sql.append(item.tName);
+					foundValue = true;
+				}
+				if(item.fName.equals("sortby")) {
+					hasSortBy = true;
+				}
+				if(hasSortBy && foundValue) {
+					break;	// no need to go on
+				}
+			}
+			
+			// Map label columnns to table columns
+			sql.append(",");
+			boolean firstLang = true;
+			for(String lang : mlLabelColumns.keySet()) {
+				if(!firstLang) {
+					sql.append(",");
+				}
+				boolean first = true;
+				int foundLabel = 0;
+				String label_columns = mlLabelColumns.get(lang).trim();
+				ArrayList<String> labelColumnArray = new ArrayList<String> ();
+				String [] a = label_columns.split(",");
+				for(String v : a) {
+					v = v.trim();
+					labelColumnArray.add(v);
+				}
+				for(String label : labelColumnArray) {
+					for(CsvHeader item : headers) {
+						if(item.fName.equals(label)) {
+							if(!first) {
+								sql.append(" || ',' || ");
+							}
+							first = false;
+							sql.append(item.tName);				
+							foundLabel++;
+							break;
+						}
+					}
+				}
+				sql.append(" as __label_").append(lang).append(" ");
+				
+				if(!foundValue) {
+					throw new ApplicationException("Column " + value_column + " not found in table " + table);
+				} else if(foundLabel != labelColumnArray.size()) {
+					throw new ApplicationException("Columns " + label_columns + " not found in table " + table);
+				}
+				firstLang = false;
+			}
+			
+			// Check the where columns
+			for(String col : whereColumns) {
+				boolean foundCol = false;
+				for(CsvHeader item : headers) {
+					if(item.fName.equals(col)) {
+						foundCol = true;
+						break;
+					}
+				}
+				if(!foundCol) {
+					throw new ApplicationException("Column " + col + " not found in table " + table);
+				}
+			}
+			
+			sql.append(" from ").append(table);
+			if(selection != null) {
+				sql.append(" where ").append(selection);
+			}
+			
+			if(hasSortBy) {
+				sql.append(" order by sortby::real asc");
+			}
+				
+			pstmt = sd.prepareStatement(sql.toString());	
+			int paramIndex = 1;
+			if(arguments != null) {
+				for(String arg : arguments) {
+					pstmt.setString(paramIndex++, arg);
+				}
+			}
+			log.info("Get CSV choices: " + pstmt.toString());
+			ResultSet rsx = pstmt.executeQuery();
+			
+			int idx = 0;
+			while(rsx.next()) {
+				String value = rsx.getString(value_column);
+				if(value != null) {
+					value = value.trim();
+					if(choiceMap.get(value) == null) {		// Only add unique values
+						SelectChoice choice = new SelectChoice();
+						choice.index = idx++;
+						choice.value = value;
+						choice.mlChoices = new HashMap<>();
+						for(String lang : mlLabelColumns.keySet()) {
+							choice.mlChoices.put(lang, rsx.getString("__label_" + lang));
+						}
+						choices.add(choice)
+;						choiceMap.put(value, value);
 					}
 				}			
 			}	
