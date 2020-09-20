@@ -651,7 +651,7 @@ public class Lookup extends Application{
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, 
+					results = ctm.lookupChoices(oId, sId, fileName + ".csv", valueColumn, labelColumns, mlLabelColumns,
 							selectionString, arguments, whereColumns, frag);
 				}
 			}
