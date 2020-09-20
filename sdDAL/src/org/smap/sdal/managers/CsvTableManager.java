@@ -455,7 +455,7 @@ public class CsvTableManager {
 			String selection,
 			ArrayList<String> arguments,
 			ArrayList<String> whereColumns,
-			SqlFrag frag) throws SQLException, ApplicationException {
+			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 		
 		ArrayList<SelectChoice> choices = null;
 
@@ -471,11 +471,11 @@ public class CsvTableManager {
 				if(mlLabelColumns != null) {
 					choices = mlReadChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, 
 							mlLabelColumns, fileName,
-							selection, arguments, whereColumns);	
+							selection, arguments, whereColumns, expressionFrag);	
 				} else {
 					choices = readChoicesFromTable(rs.getInt(1), rs.getString(2), value_column, label_columns, 
 							fileName,
-							selection, arguments, whereColumns);	
+							selection, arguments, whereColumns, expressionFrag);	
 				}
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
@@ -485,11 +485,11 @@ public class CsvTableManager {
 					if(mlLabelColumns != null) {
 						choices= mlReadChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
 								value_column, mlLabelColumns, fileName,
-								selection, arguments, whereColumns);	
+								selection, arguments, whereColumns, expressionFrag);	
 					} else {
 						choices= readChoicesFromTable(rsx.getInt(1), rsx.getString(2), 
 								value_column, label_columns, fileName,
-								selection, arguments, whereColumns);	
+								selection, arguments, whereColumns, expressionFrag);	
 					}
 				}				
 			}
@@ -741,7 +741,8 @@ public class CsvTableManager {
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
+			ArrayList<String> whereColumns,
+			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
 		
@@ -832,7 +833,9 @@ public class CsvTableManager {
 				
 			pstmt = sd.prepareStatement(sql.toString());	
 			int paramIndex = 1;
-			if(arguments != null) {
+			if(expressionFrag != null) {
+				paramIndex = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramIndex, "UTC");
+			} else if(arguments != null) {
 				for(String arg : arguments) {
 					pstmt.setString(paramIndex++, arg);
 				}
@@ -868,7 +871,8 @@ public class CsvTableManager {
 			String filename,
 			String selection,
 			ArrayList<String> arguments,
-			ArrayList<String> whereColumns) throws SQLException, ApplicationException {
+			ArrayList<String> whereColumns,
+			SqlFrag expressionFrag) throws SQLException, ApplicationException {
 			
 		ArrayList<SelectChoice> choices = new ArrayList<> ();
 		
@@ -964,11 +968,14 @@ public class CsvTableManager {
 				
 			pstmt = sd.prepareStatement(sql.toString());	
 			int paramIndex = 1;
-			if(arguments != null) {
+			if(expressionFrag != null) {
+				paramIndex = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramIndex, "UTC");
+			} else if(arguments != null) {
 				for(String arg : arguments) {
 					pstmt.setString(paramIndex++, arg);
 				}
 			}
+
 			log.info("Get CSV choices: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
