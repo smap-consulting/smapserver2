@@ -4302,7 +4302,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Convert names in xls format ${ } to an SQL query
 	 */
-	public static String convertAllxlsNamesToQuery(String input, int sId, Connection sd) throws SQLException {
+	public static String convertAllxlsNamesToQuery(String input, int sId, Connection sd) throws SQLException, ApplicationException {
 
 		if (input == null) {
 			return null;
@@ -4336,6 +4336,9 @@ public class GeneralUtilityMethods {
 					|| qname.equals(SmapServerMeta.SCHEDULED_START_NAME)
 					|| qname.equals("_end") || qname.equals("device") || qname.equals("instancename"))) {
 				columnName = qname;
+			}
+			if(columnName == null) {
+				throw new ApplicationException("Column does not exist");
 			}
 			output.append(columnName);
 

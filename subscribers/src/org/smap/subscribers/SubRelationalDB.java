@@ -484,13 +484,17 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk.executeUpdate();
 				}
 
-				String sql = "update " + topLevelForm.tableName + " set _hrk = "
-						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
-
-				sql += " where _hrk is null;";
-				pstmtHrk = cResults.prepareStatement(sql);
-				log.info("Adding HRK: " + pstmtHrk.toString());
-				pstmtHrk.executeUpdate();
+				try {
+					String sql = "update " + topLevelForm.tableName + " set _hrk = "
+							+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
+	
+					sql += " where _hrk is null;";
+					pstmtHrk = cResults.prepareStatement(sql);
+					log.info("Adding HRK: " + pstmtHrk.toString());
+					pstmtHrk.executeUpdate();
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
 			}
 
 			/*
