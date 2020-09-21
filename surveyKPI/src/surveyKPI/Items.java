@@ -513,7 +513,7 @@ public class Items extends Application {
 				if(rec_limit > 0) {
 					sqlLimit = "limit " + rec_limit;
 				}
-				StringBuffer sql2 = new StringBuffer("select distinct ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
+				StringBuffer sql2 = new StringBuffer("select ");		// Add distinct as filter by values in a subform would otherwise result in duplicate tables
 				StringBuffer sqlFC = new StringBuffer("select count(*) ");	
 				sql2.append(cols);
 				sql2.append(" from ");
@@ -553,7 +553,13 @@ public class Items extends Application {
 				}
 				sql2.append(whereClause);
 				sqlFC.append(whereClause);
-				sql2.append(" order by ").append(tName).append(".parkey desc, ").append(tName).append(".prikey desc ").append(sqlLimit);
+				
+				// Add oder by and limit
+				sql2.append(" order by ");
+				if(parent > 0) {
+					sql2.append(tName).append(".parkey desc, ");
+				}
+				sql2.append(tName).append(".prikey desc ").append(sqlLimit);
 				
 				// Get the number of filtered records			
 				if(sqlFC.length() > 0) {
