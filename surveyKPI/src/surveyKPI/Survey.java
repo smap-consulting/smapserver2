@@ -513,6 +513,8 @@ public class Survey extends Application {
 			surveys.push(new Integer(sId));
 			completedSurveys.put(new Integer(sId), new Integer(sId));
 
+			log.info("Get Survey Meta: " + sId);
+			
 			/*
 			 * Get Forms and row counts the next survey
 			 */
