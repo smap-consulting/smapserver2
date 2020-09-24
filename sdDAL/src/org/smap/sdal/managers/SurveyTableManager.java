@@ -179,8 +179,6 @@ public class SurveyTableManager {
 	public void initData(
 			PreparedStatement pstmt, 
 			String type, 
-			String key_column, 
-			String key_value,
 			String selection, 
 			ArrayList<String> arguments, 
 			ArrayList<String> whereColumns,
@@ -193,43 +191,30 @@ public class SurveyTableManager {
 		if(sqlDef != null && sqlDef.qnames != null && sqlDef.qnames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
-			// Add filter
-			String filter = null;
-			if(type.equals("lookup")) {
-				filter = getFilter(key_column, key_value);
-				if(filter.length() > 0) {
-					if(sqlDef.hasWhere) {
-						sql.append(" and ");
-					} else {
-						sql.append(" where ");
-					}
-					sql.append(filter);
-				}
-			} else if (type.equals("choices")) {
-				// Check the where questions
-				if(whereColumns != null) {
-					for(String col : whereColumns) {
-						boolean foundCol = false;
-						for(String h : sqlDef.qnames) {
-							if(h.equals(col)) {
-								foundCol = true;
-								break;
-							}
-						}
-						if(!foundCol) {
-							throw new ApplicationException("Question " + col + " not found in table ");
+			// Check the where questions
+			if(whereColumns != null) {
+				for(String col : whereColumns) {
+					boolean foundCol = false;
+					for(String h : sqlDef.qnames) {
+						if(h.equals(col)) {
+							foundCol = true;
+							break;
 						}
 					}
-				}
-				if(selection != null) {
-					if(sqlDef.hasWhere) {
-						sql.append(" and ");
-					} else {
-						sql.append(" where ");
+					if(!foundCol) {
+						throw new ApplicationException("Question " + col + " not found in table ");
 					}
-					sql.append(selection);
 				}
 			}
+			if(selection != null) {
+				if(sqlDef.hasWhere) {
+					sql.append(" and ");
+				} else {
+					sql.append(" where ");
+				}
+				sql.append(selection);
+			}
+
 			sql.append(sqlDef.order_by);
 			pstmt = cResults.prepareStatement(sql.toString());
 			int paramCount = 1;
@@ -245,19 +230,14 @@ public class SurveyTableManager {
 			if (sqlDef.hasRbacFilter) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.rfArray, paramCount, tz);
 			}
-			if(type.equals("lookup")) {
-				if(filter.length() > 0) {
-					pstmt.setString(paramCount, key_value);
+			
+			if(expressionFrag != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
+			} else if(arguments != null) {
+				for(String arg : arguments) {
+					pstmt.setString(paramCount++, arg);
 				}
-			} else {
-				if(expressionFrag != null) {
-					paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
-				} else if(arguments != null) {
-					for(String arg : arguments) {
-						pstmt.setString(paramCount++, arg);
-					}
-				}
-			}
+			}		
 			
 			log.info("Init data: " + pstmt.toString());
 			try {

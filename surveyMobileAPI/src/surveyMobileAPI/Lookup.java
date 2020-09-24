@@ -113,7 +113,9 @@ public class Lookup extends Application{
 			@PathParam("survey_ident") String surveyIdent,		// Survey that needs to lookup some data
 			@PathParam("filename") String fileName,				// CSV filename, could be the identifier of another survey
 			@PathParam("key_column") String keyColumn,
-			@PathParam("key_value") String keyValue
+			@PathParam("key_value") String keyValue,
+			@QueryParam("index") int index,
+			@QueryParam("searchType") String searchType
 			) throws IOException {
 
 		Response response = null;
@@ -143,8 +145,18 @@ public class Lookup extends Application{
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
-		
+
+			if(searchType == null) {
+				searchType = "matches";
+				index = 1;
+			}
+			
 			String tz = "UTC";
+			ArrayList<String> arguments = new ArrayList<> ();
+			ArrayList<String> whereColumns = new ArrayList<> ();
+			ColDetails colDetails = getDetails(sd, gson, localisation, sId, keyColumn, fileName);		
+			StringBuffer selection = new StringBuffer(createLikeExpression(colDetails.getExpression(), keyValue, searchType, arguments));
+			whereColumns.add(keyColumn);
 			
 			HashMap<String, String> results = null;
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
@@ -153,10 +165,40 @@ public class Lookup extends Application{
 					// Get data from a survey
 					cResults = ResultsDataSource.getConnection(connectionString);				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, "lookup", keyColumn, keyValue, null, null, null, 
+					stm.initData(pstmt, "lookup", selection.toString(), arguments, whereColumns, 
 							null, 		// expression Fragment
 							tz, null, null);
-					results = stm.getLineAsHash();
+					HashMap<String, String> line = null;
+					int count = 0;
+					while((line = stm.getLineAsHash()) != null) {
+						count++;
+						if(count == index) {
+							results = line;
+							break;
+						} else if(index == 0) {
+							if(results == null) {
+								results = line;
+							} else {
+								for(String k : line.keySet()) {
+									String v = line.get(k);
+									String l = results.get(k);
+									if(l == null) {
+										l = "";
+									}
+									if(l.length() == 0) {
+										results.put(k,  v);
+									} else {
+										results.put(k, l + " " + v);
+									}
+								}
+							}
+						}
+					}
+					
+					if(index == -1) {
+						results = new HashMap<String, String> ();
+						results.put("_count", String.valueOf(count));
+					}
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
@@ -601,7 +643,7 @@ public class Lookup extends Application{
 				if(fileName.startsWith("linked_s")) {
 					// Get data from a survey				
 					SurveyTableManager stm = new SurveyTableManager(sd, cResults, localisation, oId, sId, fileName, request.getRemoteUser());
-					stm.initData(pstmt, "choices", null, null,
+					stm.initData(pstmt, "choices",
 							selectionString, arguments, whereColumns, frag, tz, qDetails.filterArray, fDetails.filterArray);
 					
 					HashMap<String, String> choiceMap = new HashMap<>();	// Use for uniqueness
@@ -663,6 +705,20 @@ public class Lookup extends Application{
 		}
 		
 		return results;
+	}
+	
+	private ColDetails getDetails(Connection sd, Gson gson, ResourceBundle localisation, int sId, String colName, String fileName) throws Exception {
+		ColDetails colDetails = null;
+		
+		int linked_sId = 0;
+		if(fileName != null && fileName.startsWith("linked_s")) {
+			linked_sId = GeneralUtilityMethods.getLinkedSId(sd, sId, fileName);
+			colDetails = getColDetails(sd, gson, localisation, linked_sId, colName);
+		} else {
+			colDetails = new ColDetails();
+			colDetails.colName = colName;
+		}
+		return colDetails;
 	}
 }
 
