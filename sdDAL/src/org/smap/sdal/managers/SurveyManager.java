@@ -78,6 +78,7 @@ import org.smap.sdal.model.SetValue;
 import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
+import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveyLinks;
 import org.smap.sdal.model.SurveySummary;
 import org.smap.sdal.model.TableColumn;
@@ -4713,5 +4714,42 @@ public class SurveyManager {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}};
 		}
 		return summary;
+	}
+	
+	public ArrayList<SurveyIdent> getSurveyIdentList(Connection sd, String user, boolean superUser) throws SQLException {
+		
+		ArrayList<SurveyIdent> surveys = new ArrayList<> ();
+		
+		StringBuffer sql = new StringBuffer("");
+		sql.append("select p.name as project_name, s.display_name, s.ident "
+				+ "from survey s, users u, user_project up, project p, organisation o "
+				+ "where u.id = up.u_id "
+				+ "and p.id = up.p_id "
+				+ "and s.p_id = up.p_id "
+				+ "and p.o_id = u.o_id "
+				+ "and u.o_id = o.id "
+				+ "and u.ident = ? "
+				+ "and s.deleted = 'false' "
+				+ "and s.hidden = 'false' ");
+
+		if(!superUser) {					// Add RBAC
+			sql.append(GeneralUtilityMethods.getSurveyRBAC());
+		}
+	
+		sql.append("order by p.name, s.display_name ");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql.toString());	
+			pstmt.setString(1,  user);
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				surveys.add(new SurveyIdent(rs.getString(1), rs.getString(2), rs.getString(3)));
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
+		}
+		
+		return surveys;
 	}
 }

@@ -54,6 +54,7 @@ import org.smap.sdal.model.ChangeSet;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Pulldata;
+import org.smap.sdal.model.SurveyIdent;
 import org.smap.sdal.model.SurveySummary;
 
 import com.google.gson.Gson;
@@ -284,6 +285,49 @@ public class Surveys extends Application {
 			SurveySummary summary = sm.getSummary(sd, sIdent);
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			String resp = gson.toJson(summary);
+			response = Response.ok(resp).build();			
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString , sd);				
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Get a list of surveys with their idents that are accessible to a user
+	 */
+	@GET
+	@Path("/idents")
+	@Produces("application/json")
+	public Response getSurveyIdents(@Context HttpServletRequest request) { 
+		
+		String connectionString = "surveyKPI - Get Survey Idents";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString );	
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			ArrayList<SurveyIdent> surveyIdents = sm.getSurveyIdentList(sd, request.getRemoteUser(), superUser);
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String resp = gson.toJson(surveyIdents);
 			response = Response.ok(resp).build();			
 			
 		} catch (Exception e) {
