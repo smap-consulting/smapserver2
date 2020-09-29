@@ -72,7 +72,7 @@ public class AutoUpdateProcessor {
 			boolean loop = true;
 			while(loop) {
 				
-				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
+				String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/smap/settings/subscriber");
 				if(subscriberControl != null && subscriberControl.equals("stop")) {
 					log.info("========== Auto update Processor Stopped");
 					loop = false;

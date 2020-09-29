@@ -4455,7 +4455,7 @@ public class SurveyManager {
 					);
 			
 			// Get the text processor
-			TextProcessing tp = new TextProcessing(GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region"));	
+			TextProcessing tp = new TextProcessing(GeneralUtilityMethods.getSettingFromFile("/smap/settings/region"));		// TODO get base path
 
 			ArrayList<ChangeSet> changes = new ArrayList<ChangeSet> ();
 			ChangeSet cs = new ChangeSet();
