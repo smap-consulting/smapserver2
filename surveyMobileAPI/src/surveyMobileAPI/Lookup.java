@@ -440,7 +440,7 @@ public class Lookup extends Application{
 			//Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			//ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);				
 
-			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+			String region = GeneralUtilityMethods.getSettingFromFile("/smap/settings/region");
 			ImageProcessing ip = new ImageProcessing(region);
 			try {
 				log.info("xxxxxxxx Image lookup: " + tempFileName + " : " + region);

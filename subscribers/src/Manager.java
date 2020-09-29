@@ -54,8 +54,8 @@ public class Manager {
 			mp.go(smapId, fileLocn);
 
 			// Start the AWS service processor
-			String mediaBucket = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/bucket");
-			String region = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/region");
+			String mediaBucket = GeneralUtilityMethods.getSettingFromFile("fileLocn + /settings/bucket");
+			String region = GeneralUtilityMethods.getSettingFromFile("fileLocn + /settings/region");
 			log.info("Auto Update:  S3 Bucket is: " + region + " : " + mediaBucket);
 			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();
@@ -72,7 +72,7 @@ public class Manager {
 		
 		boolean loop = true;
 		while(loop) {
-			String subscriberControl = GeneralUtilityMethods.getSettingFromFile("/home/ubuntu/subscriber");
+			String subscriberControl = GeneralUtilityMethods.getSettingFromFile("fileLocn + /settings/subscriber");
 			if(subscriberControl != null && subscriberControl.equals("stop")) {
 				log.info("######## Stopped");		
 				loop = false;
@@ -92,7 +92,4 @@ public class Manager {
 				
 	}
 	
-	
-
-
 }
