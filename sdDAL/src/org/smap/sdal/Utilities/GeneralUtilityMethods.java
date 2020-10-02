@@ -5815,6 +5815,7 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, tablename);
 			pstmt.setString(2, columnName);
 
+			log.info("++++++++++++++++= Has column: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				hasColumn = true;
@@ -5842,25 +5843,7 @@ public class GeneralUtilityMethods {
 			try {
 				pstmt.executeUpdate();
 			} catch (Exception e) {
-				String msg = e.getMessage();
-				if(msg.contains("already exists")) {
-					log.info("Column already exists");
-				} else if(msg.contains("does not exist")) {
-					log.info("Table does not exist");
-				} else if(msg.contains("syntax error at or near \"not\"")) {
-					log.info("Obsolete version of postgres");
-					// A hack to allow an old version of Postgres to still work
-					sql = "alter table " + tablename + " add column " + columnName + " " + type;
-					try {
-						try {if (pstmt != null) {pstmt.close();}} catch (Exception exx) {}
-						pstmt = conn.prepareStatement(sql);
-						pstmt.executeUpdate();
-					} catch (Exception ex) {
-						// Ignore
-					}
-				} else {
-					throw e;
-				}
+				log.log(Level.SEVERE, e.getMessage(), e);
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 			}
