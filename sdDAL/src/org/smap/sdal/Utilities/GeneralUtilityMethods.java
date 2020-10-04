@@ -5887,7 +5887,6 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, tablename);
 			pstmt.setString(2, columnName);
 
-			log.info("++++++++++++++++= Has column: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
 				hasColumn = true;
@@ -5908,6 +5907,7 @@ public class GeneralUtilityMethods {
 	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
 
 		if(!GeneralUtilityMethods.hasColumn(conn, tablename, columnName)) {
+			String sql = "alter table " + tablename + " add column " + columnName + " " + type;
 	
 			PreparedStatement pstmt = conn.prepareStatement(sql);
 			log.info("Adding column: " + pstmt.toString());
@@ -8193,7 +8193,6 @@ public class GeneralUtilityMethods {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, fId);
 			
-				log.info(pstmt.toString());
 				rs = pstmt.executeQuery();
 				while(rs.next()) {
 					int qId = rs.getInt(1);
@@ -8203,10 +8202,8 @@ public class GeneralUtilityMethods {
 					
 					if(!GeneralUtilityMethods.hasColumn(cResults, tableName, columnName)) {
 						GeneralUtilityMethods.alterColumn(cResults, tableName, type, columnName, compressed);
-						log.info("Adding column " + columnName + " to table " + tableName);
 					}
 					pstmtUpdate.setInt(1, qId);
-					log.info("Marking question " + columnName + " as published");
 					pstmtUpdate.executeUpdate();
 					
 				}
