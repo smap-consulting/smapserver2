@@ -825,9 +825,6 @@ public class XLSTemplateUploadManager {
 		}
 		
 		q.type = convertType(type, q);			
-		if(q.type.equals("geopoint") || q.type.equals("geotrace") || q.type.equals("geoshape")) {
-			q.name = "the_geom";
-		}	
 		
 		// Get the list name from the list_name column if it has not already been set
 		if(q.list_name == null) {
@@ -1313,7 +1310,7 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 
-		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.name.toLowerCase()) != null && !q.name.equals("the_geom")) {
+		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.name.toLowerCase()) != null) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
 

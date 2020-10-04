@@ -417,10 +417,6 @@ public class Data extends Application {
 			isGeoJson = true;
 		}
 		
-		if(geomQuestion == null) {
-			geomQuestion = "the_geom";
-		}
-		
 		boolean mergeSelectMultiple = false;
 		if(merge != null && (merge.equals("yes") || merge.equals("true"))) {
 			mergeSelectMultiple = true;
@@ -667,8 +663,12 @@ public class Data extends Application {
 			outWriter.print("[");
 			errorMsgAddClosingArray = true;
 			
+			if(geomQuestion == null) {
+				geomQuestion = GeneralUtilityMethods.getFirstGeometryColumnName(columns);
+			}
+			
 			if(pstmt != null) {
-				log.info("KoboAPI data: " + pstmt.toString());
+				log.info("DataAPI data: " + pstmt.toString());
 				/*
 				 * Get the data record by record so it can be streamed
 				 */

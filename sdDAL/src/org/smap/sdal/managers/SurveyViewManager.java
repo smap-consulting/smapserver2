@@ -227,9 +227,7 @@ public void populateSvd(
 			tc.parameters = c.parameters;		// Add parameters
 			tc.appearance = c.appearance;		// Add appearance
 			
-			if(tc.column_name.equals("the_geom")) {
-				tc.displayName = "_geolocation";
-			} else if(tc.column_name.equals("_bad")) {
+			if(tc.column_name.equals("_bad")) {
 				tc.displayName = localisation.getString("c_del");
 				tc.del_col = true;
 			} else if(tc.column_name.equals("_bad_reason")) {
@@ -592,7 +590,6 @@ private boolean hideDefault(String name) {
 			name.equals("project") ||
 			name.equals("Instance Name") ||
 			name.equals("instanceid") ||
-			name.equals("the_geom") ||
 			name.equals("_end") 
 			) {
 		hide = true;

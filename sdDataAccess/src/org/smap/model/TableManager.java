@@ -447,8 +447,9 @@ public class TableManager {
 					if(colType.equals("geopoint")) {
 
 						// Add geometry columns after the table is created using AddGeometryColumn()
-						geoms.add(new GeometryColumn(tableName, "the_geom", "POINT"));
-						sql.append(", the_geom_alt double precision, the_geom_acc double precision");
+						geoms.add(new GeometryColumn(tableName, q.getColumnName(false), "POINT"));
+						sql.append(", " + q.getColumnName(false) + "_alt double precision, " 
+								+ q.getColumnName(false) + "_acc double precision");
 						continue;
 
 					} else if(colType.equals("geopolygon") || colType.equals("geoshape")) {
@@ -459,7 +460,7 @@ public class TableManager {
 						if(idx > 0) {
 							qName = qName.substring(0, idx);
 						}
-						GeometryColumn gc = new GeometryColumn(tableName, "the_geom", "POLYGON");
+						GeometryColumn gc = new GeometryColumn(tableName, q.getColumnName(false), "POLYGON");
 						geoms.add(gc);
 						continue;
 
@@ -470,7 +471,7 @@ public class TableManager {
 						if(idx > 0) {
 							qName = qName.substring(0, idx);
 						}
-						GeometryColumn gc = new GeometryColumn(tableName, "the_geom", "LINESTRING");
+						GeometryColumn gc = new GeometryColumn(tableName, q.getColumnName(false), "LINESTRING");
 						geoms.add(gc);
 						continue;
 

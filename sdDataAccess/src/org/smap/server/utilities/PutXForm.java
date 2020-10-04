@@ -336,13 +336,11 @@ public class PutXForm {
 		    	    	if(newFormName.startsWith("geopolygon")) {
 		    	    		lastGroupQuestion.setSource("user");
 		    	    		lastGroupQuestion.setType("geopolygon");
-		    	    		//lastGroupQuestion.setName("the_geom");	// Geometry types are always called "the_geom"
-		    	    		lastGroupQuestion.setColumnName("the_geom");
+		    	    		lastGroupQuestion.setColumnName(newFormName);
 		    	    	} else if(newFormName.startsWith("geolinestring")) {
 		    	    		lastGroupQuestion.setSource("user");
 		    	    		lastGroupQuestion.setType("geolinestring");
-		    	    		//lastGroupQuestion.setName("the_geom");	// Geometry types are always called "the_geom"
-		    	    		lastGroupQuestion.setColumnName("the_geom");
+		    	    		lastGroupQuestion.setColumnName(newFormName); 
 		    	    	}
 		    	    	
 		    	    	// set last group question as the parent of the repeating form
@@ -1042,11 +1040,6 @@ public class PutXForm {
 	    			if(!type.equals("binary")) {	// binary types set to audio, image or video by the question
 	    				q.setType(type);  
 	    				q.setDataType(type);
-	    			}
-	    			
-	    			
-	    			if(type.equals("geopoint") || type.equals("geoshape") || type.equals("geotrace")) {	// Geo point data types will be named "the_geom"
-	    				q.setName("the_geom");
 	    			}
 	    			
 	    		} else if (name.equals("relevant")) {

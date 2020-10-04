@@ -3841,18 +3841,25 @@ public class GeneralUtilityMethods {
 					}
 					
 					if(get_acc_alt && qType.equals("geopoint")) {
-						if(GeneralUtilityMethods.columnType(cResults, table_name, "the_geom_acc") != null) {
+						String accColumn = c.column_name + "_acc";
+						String accDisplay = c.displayName + " Accuracy";
+						String accName = c.question_name + "_acc";
+						
+						String altColumn = c.column_name + "_alt";
+						String altDisplay = c.displayName + " Altitude";
+						String altName = c.question_name + "_alt";
+						if(GeneralUtilityMethods.columnType(cResults, table_name, accName) != null) {
 							c = new TableColumn();
-							c.column_name = "the_geom_acc";
-							c.displayName = "Accuracy";
-							c.question_name = "accuracy";
+							c.column_name = accColumn;
+							c.displayName = accDisplay;
+							c.question_name = accName;
 							c.type = "decimal";
 							realQuestions.add(c);
 							
 							c = new TableColumn();
-							c.column_name = "the_geom_alt";
-							c.displayName = "Altitude";
-							c.question_name = "altitude";
+							c.column_name = altColumn;
+							c.displayName = altDisplay;
+							c.question_name = altName;
 							c.type = "decimal";
 							realQuestions.add(c);
 						}
@@ -3927,6 +3934,18 @@ public class GeneralUtilityMethods {
 		columnList.addAll(realQuestions); // Add the real questions after the property questions
 
 		return columnList;
+	}
+	
+	/*
+	 * Get the name of the first geometry column in the list of columns
+	 */
+	static public String getFirstGeometryColumnName(ArrayList<TableColumn> columns) {
+		for(TableColumn tc : columns) {
+			if(tc.isGeometry()) {
+				return tc.column_name;
+			}
+		}
+		return "";
 	}
 	
 	/*
