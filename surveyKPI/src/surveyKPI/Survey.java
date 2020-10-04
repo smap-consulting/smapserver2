@@ -571,9 +571,7 @@ public class Survey extends Application {
 					int rowCount = 0;
 					boolean has_geom = false;
 					String geom_id = null;
-					String bounds = null;
 
-					log.info("meta: processing table: " + tableName);
 					try {
 						sql = "select count(*) from " + tableName;
 						try {if (pstmt2 != null) {pstmt2.close();}} catch (SQLException e) {}
@@ -591,7 +589,6 @@ public class Survey extends Application {
 					pstmtGeom = sd.prepareStatement(sqlGeom);
 					pstmtGeom.setInt(1, fId);
 					pstmtGeom.setInt(2, sId);
-					log.info("meta: get geometry questions");
 					resultSetTable = pstmtGeom.executeQuery();
 					if(resultSetTable.next()) {
 						geom_id = resultSetTable.getString(1);
