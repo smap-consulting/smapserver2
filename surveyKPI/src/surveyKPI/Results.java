@@ -580,7 +580,7 @@ public class Results extends Application {
 							matchingGroups.add(timeValue + groupValue);
 						}
 					} else if(isGeom(group.getType())) {
-						theGeom = resultSet.getString("the_geom");
+						theGeom = resultSet.getString(group.getColumnName());
 						if(externalGeom) {
 							groupValue = resultSet.getString(geoTable + "_name");
 						} else {

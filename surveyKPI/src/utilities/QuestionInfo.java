@@ -578,11 +578,8 @@ public class QuestionInfo {
 				String oName = aO.getColumnName();
 				sqlFrag += "," + tableName + "." + oName + " as " + oName;
 			}
-		} else if(isGeom && columnName.equals("the_geom")) {
-			sqlFrag = "ST_AsGeoJSON(" + tableName + ".the_geom) as the_geom"; 
-		} else if (isGeom) {
-			// Include the table name in name of result set item as otherwise geometry col name may clash with q question name
-			sqlFrag = tableName + "." + columnName  + " as " + tableName + "_" + columnName;
+		} else if(isGeom) {
+			sqlFrag = "ST_AsGeoJSON(" + getSelectExpression()  + ") as " + columnName;
 		} else {
 			// Add primary key with each question, assume only one question per query
 			sqlFrag = tableName + ".prikey as prikey," + getSelectExpression()  + " as " + columnName;
