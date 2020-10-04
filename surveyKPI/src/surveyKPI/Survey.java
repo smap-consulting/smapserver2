@@ -448,8 +448,6 @@ public class Survey extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-Survey-getSurveyMeta");
 		aManage.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
-
-		log.info("--------------- Get Survey Meta: " + sId);
 		
 		JSONObject jo = new JSONObject();
 
@@ -739,7 +737,6 @@ public class Survey extends Application {
 			}
 			
 			// Add preloads
-			log.info("meta: add preloads");
 			int metaId = MetaItem.INITIAL_ID;		// Backward compatability to when meta items did not have an id
 			for(MetaItem mi : preloads) {
 				if(mi.type.equals("dateTime") || mi.type.equals("date")) {
@@ -758,7 +755,6 @@ public class Survey extends Application {
 				}
 			}
 
-			log.info("meta: adding dates to response. count: " + dateInfoList.size());
 			ja = new JSONArray();
 			for (int i = 0; i < dateInfoList.size(); i++) {
 				DateInfo di = dateInfoList.get(i);
@@ -836,8 +832,6 @@ public class Survey extends Application {
 			SDDataSource.closeConnection("surveyKPI-Survey-getSurveyMeta", sd);
 			ResultsDataSource.closeConnection("surveyKPI-Survey-getSurveyMeta", connectionRel);
 		}
-
-		log.info("meta: ============== Finished Get Survey Meta: " + sId);
 		
 		return response;
 	}

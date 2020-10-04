@@ -339,7 +339,6 @@ public class Items extends Application {
 						" order by ssc.id;";
 				pstmtSSC = sd.prepareStatement(sqlSSC);	 
 				pstmtSSC.setString(1, tName);
-				log.info("SQL Get SSC: " + pstmtSSC.toString());
 				resultSet = pstmtSSC.executeQuery();
 				while(resultSet.next()) {
 					String sscName = resultSet.getString(1);
