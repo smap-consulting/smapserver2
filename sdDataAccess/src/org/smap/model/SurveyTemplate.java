@@ -605,11 +605,9 @@ public class SurveyTemplate {
 
 	/*
 	 * Method to count total questions per form and  table columns per form
-	 * Geometry questions are limited to 1 per form
 	 * Total table columns are limited by Postgres to 1,600
 	 */
 	private class FormDesc {
-		int geoms = 0;
 		int questions = 0;
 		int options = 0;
 	}
@@ -631,11 +629,6 @@ public class SurveyTemplate {
 			if(fd == null) {
 				fd = new FormDesc();
 				forms.put(fName, fd);					
-			}
-			
-			String qName = q.getName();
-			if(qName.equals("the_geom")) {	
-				fd.geoms++;
 			}
 			
 			// Count the questions ignoring select multiple as the number of columns created by a select multiple is
@@ -677,9 +670,6 @@ public class SurveyTemplate {
 		while(itr.hasNext()) {
 			String k = itr.next().toString();
 			FormDesc fd = forms.get(k);
-			if(fd.geoms > 1) {
-				badForms.add("Error: Multiple Geometries have been specified in the form:" + k);
-			}
 			if((fd.questions + fd.options) > MAX_COLUMNS) {
 				badForms.add("Error: There are " + fd.questions + " questions and " + fd.options + 
 						" multiple choice options in form:" + k +
@@ -706,25 +696,22 @@ public class SurveyTemplate {
 		List<Question> questionList = new ArrayList<Question>(questions.values());
 		for (Question q : questionList) {
 			String qName = q.getName();
-			
-			if(!qName.equals("the_geom")) {
-				Form f = getForm(q.getFormRef());
-				String fName = null;
-				if(f != null) {
-					fName = f.getName();
-				} else {
-					fName = "_topLevelForm";
-				}
-				
-				String existingQuestion = questionMap.get(qName.trim().toLowerCase());
-				if(existingQuestion != null) {
-					badNames.add(qName + " in forms(" + fName + "," + existingQuestion + ")");
-					log.info("Duplicate Question:" + qName + " in form:" + fName);
-				} else {
-					questionMap.put(qName.trim().toLowerCase(), fName);
-				}
+
+			Form f = getForm(q.getFormRef());
+			String fName = null;
+			if(f != null) {
+				fName = f.getName();
+			} else {
+				fName = "_topLevelForm";
 			}
-			
+
+			String existingQuestion = questionMap.get(qName.trim().toLowerCase());
+			if(existingQuestion != null) {
+				badNames.add(qName + " in forms(" + fName + "," + existingQuestion + ")");
+				log.info("Duplicate Question:" + qName + " in form:" + fName);
+			} else {
+				questionMap.put(qName.trim().toLowerCase(), fName);
+			}
 		}
 		
 		return badNames;
@@ -1033,11 +1020,6 @@ public class SurveyTemplate {
 					q.setFormId(f.getId());
 					q.setSeq(f.qSeq++);
 					q.setListId(sd, survey.getId());
-					if(q.getName().equals("the_geom")) {		// OK lets allow more than one geom - since this is an XML file otherwise how can it be fixed?
-						if(f.geomCount++ > 0) {
-							q.setName(q.getName() + f.geomCount);
-						}
-					}
 					if(!q.isRepeatCount()) {
 						qm.write(q, getXFormFormName());
 					}
@@ -1336,11 +1318,7 @@ public class SurveyTemplate {
 					
 					questions.put(qRef, q);
 					String qName = q.getName();
-					if(qName.equals("the_geom")) {
-						questionPaths.put(f_id + qName, qRef);		// Geometries should be the only questions with a non unique name
-					} else {
-						questionPaths.put(qName, qRef);
-					}
+					questionPaths.put(qName, qRef);
 					
 					boolean cascade = false;
 					String listName = q.getListName();
@@ -1591,11 +1569,8 @@ public class SurveyTemplate {
 			//String questionPath = q.getPath();
 			String qName = q.getName();
 			String questionPath = null;
-			if(qName.equals("the_geom")) {
-				questionPath = questionPaths.get(q.getFormId() + qName);
-			} else {
-				questionPath = questionPaths.get(q.getName());
-			}
+			questionPath = questionPaths.get(q.getName());
+			
 			// Set the question type for "begin group" questions
 			if(q.getType() != null && q.getType().equals("begin group")) {
 				
