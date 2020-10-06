@@ -823,9 +823,10 @@ public class WebForm extends Application {
 		output.append("<meta charset='utf-8' />\n");
 		output.append("<meta name='viewport' content='width=device-width, initial-scale=1.0' />\n");
 		output.append("<meta name='apple-mobile-web-app-capable' content='yes' />\n");
-		output.append("<!--[if lt IE 10]>");
-		output.append("<script type='text/javascript'>window.location = 'modern_browsers';</script>\n");
-		output.append("<![endif]-->\n");
+		output.append("<script>");
+		output.append("if ( navigator.userAgent.indexOf( 'Trident/' ) >= 0 ) {");
+		output.append("window.location.href = '/browser-support.html'}");
+		output.append("</script>");
 
 		output.append("<script src='/js/libs/modernizr.js'></script>");
 		//output.append("<script src='/js/libs/textile.js'></script>");		in browser markdown - don't currently use
