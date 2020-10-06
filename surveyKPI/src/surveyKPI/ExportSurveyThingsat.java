@@ -223,6 +223,7 @@ public class ExportSurveyThingsat extends Application {
 					true,
 					false,
 					tz,
+					null,			// geomQuestion
 					false			// Accuracy and Altitude
 					);
 			

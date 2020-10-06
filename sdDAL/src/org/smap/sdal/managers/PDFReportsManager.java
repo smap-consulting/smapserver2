@@ -57,7 +57,6 @@ public class PDFReportsManager {
 
 	// Global values set in constructor
 	private ResourceBundle localisation;
-	private Survey survey;
 	
 	// Other global values
 	int languageIdx = 0;
@@ -141,6 +140,7 @@ public class PDFReportsManager {
 					true,
 					true,
 					tz,
+					null,
 					false		// Accuracy and Altitude
 					);
 			

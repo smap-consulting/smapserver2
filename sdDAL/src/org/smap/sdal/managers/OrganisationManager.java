@@ -498,8 +498,6 @@ public class OrganisationManager {
 		try {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, user);
-					
-			log.info("Get organisation sensitivity details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();

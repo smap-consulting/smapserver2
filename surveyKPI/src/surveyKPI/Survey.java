@@ -467,7 +467,7 @@ public class Survey extends Application {
 					+ "order by f.table_name";		
 			pstmtTables = sd.prepareStatement(sqlTables);	
 
-			String sqlGeom = "select q.q_id "
+			String sqlGeom = "select q.q_id, q.qname "
 					+ "from form f, question q "
 					+ "where f.f_id = q.f_id "
 					+ "and (q.qtype='geopoint' "
@@ -568,7 +568,7 @@ public class Survey extends Application {
 					String p_id = resultSet.getString(4);
 					int rowCount = 0;
 					boolean has_geom = false;
-					String geom_id = null;
+					ArrayList<String> geomQuestions = new ArrayList<String> ();
 
 					try {
 						sql = "select count(*) from " + tableName;
@@ -588,32 +588,10 @@ public class Survey extends Application {
 					pstmtGeom.setInt(1, fId);
 					pstmtGeom.setInt(2, sId);
 					resultSetTable = pstmtGeom.executeQuery();
-					if(resultSetTable.next()) {
-						geom_id = resultSetTable.getString(1);
+					while(resultSetTable.next()) {
+						geomQuestions.add(resultSetTable.getString(2));
 						has_geom = true;
 					}
-
-					// Get the table bounding box
-					/* No longer used and can be slow
-					try {
-						if(has_geom) {
-							sql = "select ST_Extent(the_geom) as table_extent "
-									+ "from " + tableName;
-							try {if (pstmt3 != null) {pstmt3.close();}} catch (SQLException e) {}
-							pstmt3 = connectionRel.prepareStatement(sql);
-							log.info("meta: get table extent: " + pstmt3.toString());
-							resultSetBounds = pstmt3.executeQuery();
-							if(resultSetBounds.next()) {
-								bounds = resultSetBounds.getString(1);
-								if(bounds != null) {
-									addToSurveyBounds(bbox, bounds);
-								}
-							}
-						}
-					} catch (Exception e) {
-						// If the table has not been created don't set the table bounds
-						log.log(Level.SEVERE, e.getMessage(), e);
-					}*/
 
 					/*
 					 * Get first last record of any date fields
@@ -654,7 +632,7 @@ public class Survey extends Application {
 						topTableName = tableName;
 						jo.put("top_table", tableName);
 					}
-					jp.put("geom_id", geom_id);
+					jp.put("geomQuestions", geomQuestions);
 					ja.put(jp);
 
 				} 	
@@ -704,7 +682,6 @@ public class Survey extends Application {
 
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, sId);
-			log.info("meta: get date information: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 
 			while (resultSet.next()) {	

@@ -1106,6 +1106,66 @@ public class Authorise {
 	}
 	
 	/*
+	 * Verify that the question passed by name is in the survey
+	 */
+	public boolean isValidQuestionName(Connection conn, String user, int sId, String qName)
+			throws ServerException, AuthorisationException, NotFoundException {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+		/*
+		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
+		 *    that it has been soft deleted and exists
+		 * 2) Make sure survey is in a project that the user has access to
+		 */
+
+		String sql = "select count(*) from question q, form f " +
+				" where q.f_id = f.f_id" +
+				" and f.s_id = ?" +
+				" and q.qname = ?;"; 
+		
+		try {
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			pstmt.setString(2, qName);
+			
+			log.info("IsValidQuestion: " + pstmt.toString());
+			
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Question name validation failed for question: " + qName + " survey was: " + sId);
+ 			
+ 			SDDataSource.closeConnection("isValidQuestion", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new NotFoundException();	// Not found rather than not authorised as we could not find a resource that the user had access to
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the survey is not blocked
 	 */
 	public boolean isBlocked(Connection conn, int sId, boolean isBlocked)
