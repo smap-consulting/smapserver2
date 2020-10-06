@@ -239,6 +239,7 @@ public class ExportSurveyMedia extends Application {
 						true,
 						false,
 						tz,
+						null,		// geomQuestion
 						false		// Accuracy and Altitude
 						);		
 				

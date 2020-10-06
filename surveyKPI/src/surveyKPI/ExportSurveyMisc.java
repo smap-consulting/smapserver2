@@ -115,6 +115,7 @@ public class ExportSurveyMisc extends Application {
 			@QueryParam("dateId") int dateId,
 			@QueryParam("query") boolean query,			// Set true if the value in sId is a query id rather than a survey id
 			@QueryParam("filter") String filter,
+			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("merge_select_multiple") boolean merge_select_multiple,
 			@Context HttpServletResponse response) {
 
@@ -143,6 +144,7 @@ public class ExportSurveyMisc extends Application {
 			a.isValidQuery(sd, request.getRemoteUser(), targetId);
 		} else {
 			a.isValidSurvey(sd, request.getRemoteUser(), targetId, false, superUser);
+			a.isValidQuestionName(sd, request.getRemoteUser(), targetId, geomQuestion);
 		}
 		// End Authorisation
 
@@ -251,6 +253,7 @@ public class ExportSurveyMisc extends Application {
 						true,
 						false,
 						tz,
+						geomQuestion,
 						false			// Accuracy and ALtitude
 						);
 

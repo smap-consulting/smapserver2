@@ -79,6 +79,7 @@ public class QueryGenerator {
 			boolean meta,
 			boolean includeKeys,
 			String tz,
+			String geomQuestion,
 			boolean get_acc_alt) throws Exception {
 		
 		SqlDesc sqlDesc = new SqlDesc();
@@ -232,7 +233,7 @@ public class QueryGenerator {
 			
 			
 			if(format.equals("shape") && sqlDesc.geometry_type != null) {
-				shpSqlBuf.append(" and " + sqlDesc.target_table + ".the_geom is not null");
+				shpSqlBuf.append(" and " + sqlDesc.target_table + "." + geomQuestion + " is not null");
 			}
 			
 			/*

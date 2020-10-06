@@ -596,8 +596,6 @@ public class OrganisationList extends Application {
 		try {
 			pstmt = sd.prepareStatement(sql);	
 			pstmt.setString(1, request.getRemoteUser());
-					
-			log.info("Get organisation sensitivity details: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			
 			if(rs.next()) {

@@ -227,6 +227,7 @@ public class XLSXReportsManager {
 						meta,
 						false,
 						tz,
+						null,			// geomQuestion
 						get_acc_alt);
 
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
