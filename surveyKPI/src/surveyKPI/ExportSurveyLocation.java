@@ -51,7 +51,7 @@ public class ExportSurveyLocation extends Application {
 	
 	@GET
 	@Produces("application/x-download")
-	public Response exportShape (@Context HttpServletRequest request, 
+	public Response exportSurveyLocation (@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("filename") String filename,
 			@QueryParam("form") int fId,
@@ -141,9 +141,23 @@ public class ExportSurveyLocation extends Application {
 						sqlDesc.target_table + " " +
 						"\"" + sqlDesc.sql + "\" " +
         				filepath + 
-        				" " + format +
-        				" >> /var/log/subscribers/survey.log 2>&1"});
+        				" " + format});
 				code = proc.waitFor();
+				if(code > 0) {
+					int len;
+					if ((len = proc.getErrorStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getErrorStream().read(buf);
+						log.info("Command error:\t\"" + new String(buf) + "\"");
+					}
+				} else {
+					int len;
+					if ((len = proc.getInputStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getInputStream().read(buf);
+						log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+					}
+				}
 					
 	            log.info("Process exitValue: " + code);
 	        		

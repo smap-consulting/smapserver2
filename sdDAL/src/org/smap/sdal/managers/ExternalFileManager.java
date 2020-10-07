@@ -419,12 +419,25 @@ public class ExternalFileManager {
 
 					String[] cmd = { "/bin/sh", "-c",
 							"/smap_bin/getshape.sh " + "results linked " + "\"" + pstmtData.toString() + "\" "
-									+ filepath + " csvnozip" + " >> /var/log/subscribers/survey.log 2>&1" };
+									+ filepath + " csvnozip" };
 					log.info("Getting linked data: " + cmd[2]);
 					Process proc = Runtime.getRuntime().exec(cmd);
 					code = proc.waitFor();
-
-					log.info("Process exitValue: " + code);
+					if(code > 0) {
+						int len;
+						if ((len = proc.getErrorStream().available()) > 0) {
+							byte[] buf = new byte[len];
+							proc.getErrorStream().read(buf);
+							log.info("Command error:\t\"" + new String(buf) + "\"");
+						}
+					} else {
+						int len;
+						if ((len = proc.getInputStream().available()) > 0) {
+							byte[] buf = new byte[len];
+							proc.getInputStream().read(buf);
+							log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+						}
+					}
 				}
 
 			}

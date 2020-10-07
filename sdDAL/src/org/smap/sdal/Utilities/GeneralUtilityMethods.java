@@ -546,18 +546,13 @@ public class GeneralUtilityMethods {
 	 */
 	private static void processAttachment(String fileName, String destDir, String contentType, String ext) {
 
+		// note this function is called from subscriber hence can echo to the attachments log
 		String cmd = "/smap_bin/processAttachment.sh " + fileName + " " + destDir + " \"" + contentType + "\" " + ext
 				+ " >> /var/log/subscribers/attachments.log 2>&1";
 		log.info("Exec: " + cmd);
 		try {
 
 			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
-
-			//int code = proc.waitFor();
-			//log.info("Attachment processing finished with status:" + code);
-			//if (code != 0) {
-			//	log.info("Error: Attachment processing failed");
-			//}
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -570,18 +565,13 @@ public class GeneralUtilityMethods {
 	 */
 	public static void sendToS3(String filePath) {
 
+		// note this function is called from subscriber and hence can still echo to attachments log
 		String cmd = "/smap_bin/sendToS3.sh " + filePath 
 				+ " >> /var/log/subscribers/attachments.log 2>&1";
 		log.info("Exec: " + cmd);
 		try {
 
 			Runtime.getRuntime().exec(new String[] { "/bin/sh", "-c", cmd });
-
-			//int code = proc.waitFor();
-			//log.info("Attachment processing finished with status:" + code);
-			//if (code != 0) {
-			//	log.info("Error: Attachment processing failed");
-			//}
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -8407,28 +8397,51 @@ public class GeneralUtilityMethods {
 	 */
 	public static void restoreUploadedFiles(String ident, String type) throws InterruptedException, IOException {
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
-				ident + 	" " + type + " >> /var/log/subscribers/survey.log 2>&1"});
+				ident + " " + type});
 		
 		/*
 		 * If type is uploadedSurveys then also get attachments as raw media are no longer saved
 		 */
 		if(type.equals("uploadedSurveys")) {
 			Process proc2 = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/restoreFiles.sh " + 
-					ident + 	" attachments >> /var/log/subscribers/survey.log 2>&1"});
+					ident + 	" attachments"});
 			
 			int code2 = proc2.waitFor();
-			if(code2 != 0) {
-				log.info("Error:  Failed to restore attachments from s3 for ident " + ident + " error code: " + code2);
+			if(code2 > 0) {
+				int len;
+				if ((len = proc2.getErrorStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc2.getErrorStream().read(buf);
+					log.info("Command error:\t\"" + new String(buf) + "\"");
+				}
+			} else {
+				int len;
+				if ((len = proc2.getInputStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc2.getInputStream().read(buf);
+					log.info("Completed restore media atachments process:\t\"" + new String(buf) + "\"");
+				}
 			}
 		}
 		
-		
+		// wait for restore media
 		int code = proc.waitFor();
-
-		if(code != 0) {
-			log.info("Error:  Failed to restore files from s3 for ident " + ident + "and type: " + type + " error code: " + code);
+		if(code > 0) {
+			int len;
+			if ((len = proc.getErrorStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getErrorStream().read(buf);
+				log.info("Command error:\t\"" + new String(buf) + "\"");
+			}
+		} else {
+			int len;
+			if ((len = proc.getInputStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getInputStream().read(buf);
+				log.info("Completed 54tore media process:\t\"" + new String(buf) + "\"");
+			}
 		}
-
+		
 	}
 	
 	/*
