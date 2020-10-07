@@ -199,15 +199,41 @@ public class Thingsat {
 		int code = 0;
 		
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod +x " + 
-				filepath + "/import.sh " +
-				" >> /var/log/subscribers/survey.log 2>&1"});
+				filepath + "/import.sh "});
 		code = proc.waitFor();	
-        log.info("Process create local load - 1 exitValue: " + code);
+		if(code > 0) {
+			int len;
+			if ((len = proc.getErrorStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getErrorStream().read(buf);
+				log.info("Command error:\t\"" + new String(buf) + "\"");
+			}
+		} else {
+			int len;
+			if ((len = proc.getInputStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getInputStream().read(buf);
+				log.info("Completed chmod process:\t\"" + new String(buf) + "\"");
+			}
+		}
         
-		proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", filepath + "/import.sh " + filepath + 
-				" >> /var/log/subscribers/survey.log 2>&1"});
+		proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", filepath + "/import.sh " + filepath});
 		code = proc.waitFor();	
-        log.info("Process create local load - 2 exitValue: " + code);
+		if(code > 0) {
+			int len;
+			if ((len = proc.getErrorStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getErrorStream().read(buf);
+				log.info("Command error:\t\"" + new String(buf) + "\"");
+			}
+		} else {
+			int len;
+			if ((len = proc.getInputStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getInputStream().read(buf);
+				log.info("Completed import process:\t\"" + new String(buf) + "\"");
+			}
+		}
 	};
 	
 	public void writeDataHeaders() {

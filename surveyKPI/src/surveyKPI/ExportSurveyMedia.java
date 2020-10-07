@@ -314,16 +314,12 @@ public class ExportSurveyMedia extends Application {
 				/*
 				 * 3. Zip the file up
 				 */
-				int code = 0;
-				//Process proc = Runtime.getRuntime().exec(new String [] {"/usr/bin/zip -rj ",filePath + ".zip ",filePath});
-				
+				int code = 0;				
 				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
 							database_name + " " +
 							sqlDesc.target_table + " " +
 							"\"" + sqlDesc.sql + "\" " +
-        					filePath + 
-        					" " + "media" +
-        					" >> /var/log/subscribers/survey.log 2>&1"});
+        					filePath + " media"});
         					
 				code = proc.waitFor();
 					
@@ -331,6 +327,13 @@ public class ExportSurveyMedia extends Application {
 	        		
 	            if(code == 0) {
 	            	
+	            	int len;
+					if ((len = proc.getInputStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getInputStream().read(buf);
+						log.info("Completed process:\t\"" + new String(buf) + "\"");
+					}
+					
 	            	File file = new File(filePath + ".zip");
 	            	if(file.exists()) {
 		            	builder = Response.ok(file);
@@ -341,7 +344,12 @@ public class ExportSurveyMedia extends Application {
 	            	}
 		            
 				} else {
-	                log.info("Error exporting media files file");
+					int len;
+					if ((len = proc.getErrorStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getErrorStream().read(buf);
+						log.info("Command error:\t\"" + new String(buf) + "\"");
+					}
 	                responseVal = Response.serverError().entity("Error exporting media files").build();
 	            }
 			
