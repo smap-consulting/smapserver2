@@ -173,11 +173,24 @@ public class Thingsat {
 		int code = 0;
 		
 		Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "zip -rj " + 
-				filepath + ".zip " +
-				filepath  +
-				" >> /var/log/subscribers/survey.log 2>&1"});
+				filepath + ".zip " + filepath});
 		code = proc.waitFor();
 		
+		if(code > 0) {
+			int len;
+			if ((len = proc.getErrorStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getErrorStream().read(buf);
+				log.info("Command error:\t\"" + new String(buf) + "\"");
+			}
+		} else {
+			int len;
+			if ((len = proc.getInputStream().available()) > 0) {
+				byte[] buf = new byte[len];
+				proc.getInputStream().read(buf);
+				log.info("Completed zip process:\t\"" + new String(buf) + "\"");
+			}
+		}
 		
         log.info("Process create zip exitValue: " + code);
 	};
