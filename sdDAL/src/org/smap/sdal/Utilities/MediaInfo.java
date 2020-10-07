@@ -113,13 +113,24 @@ public class MediaInfo {
 			
 			// Set access writes to the top level organisation folder down
 			Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod -R 777 " + 
-					basePath + "/" + "media/organisation/" + organisationId + " " +
-					" >> /var/log/subscribers/survey.log 2>&1"});
+					basePath + "/" + "media/organisation/" + organisationId});
 			int code = proc.waitFor();				
         	
-            if(code != 0) {
-                log.info("Error setting access to organisation folder: " + code);
-            }
+			if(code > 0) {
+				int len;
+				if ((len = proc.getErrorStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc.getErrorStream().read(buf);
+					log.info("Command error:\t\"" + new String(buf) + "\"");
+				}
+			} else {
+				int len;
+				if ((len = proc.getInputStream().available()) > 0) {
+					byte[] buf = new byte[len];
+					proc.getInputStream().read(buf);
+					log.info("Completed setting organisation folder process:\t\"" + new String(buf) + "\"");
+				}
+			}
 				
 			status = true;
 							

@@ -440,15 +440,24 @@ public class OrganisationManager {
 				savedFile.setReadable(true);
 				savedFile.setWritable(true);
 				
-				// Set access writes to the tnew file
-				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod -R 777 " + 
-						filePath + " " +
-						" >> /var/log/subscribers/survey.log 2>&1"});
-				int code = proc.waitFor();				
-	        	
-	            if(code != 0) {
-	                log.info("Error setting access to organisation folder: " + code);
-	            }
+				// Set access writes to the new file
+				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "chmod -R 777 " + filePath});
+				int code = proc.waitFor();					        	
+				if(code > 0) {
+					int len;
+					if ((len = proc.getErrorStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getErrorStream().read(buf);
+						log.info("Command error:\t\"" + new String(buf) + "\"");
+					}
+				} else {
+					int len;
+					if ((len = proc.getInputStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getInputStream().read(buf);
+						log.info("Completed setting access rights to new file process:\t\"" + new String(buf) + "\"");
+					}
+				}
 	            
 			} catch (Exception e) {
 				e.printStackTrace();

@@ -498,6 +498,60 @@ public class Authorise {
 	}
 	
 	/*
+	 * Use with anonymous requests to verify that the survey exists only
+	 */
+	public boolean surveyExists(Connection conn, String sIdent)
+			throws ServerException, AuthorisationException, NotFoundException {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+		
+		/*
+		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
+		 *    that it has been soft deleted and exists
+		 * 2) Make sure survey is in a project that the user has access to
+		 */
+
+		StringBuffer sql = new StringBuffer("select count(*) from survey s "
+				+ "where s.ident = ? "
+				+ "and s.deleted = false ");
+		
+		try {		
+			
+			pstmt = conn.prepareStatement(sql.toString());
+			pstmt.setString(1, sIdent);
+			
+			resultSet = pstmt.executeQuery();
+			if(resultSet.next()) {
+				count = resultSet.getInt(1);
+			}
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			if(resultSet != null) {try{resultSet.close();}catch(Exception e) {}};
+			if(pstmt != null) {try{pstmt.close();} catch(Exception e) {}};
+		}
+		
+ 		if(count == 0) {
+			log.info("IsValidSurvey: " + pstmt.toString());
+ 			log.info("Survey validation failed for survey: " + sIdent);
+ 			
+ 			SDDataSource.closeConnection("isValidSurvey", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException("Survey validation failed for survey: " + sIdent);	 
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the user is in the same organisation as the message
 	 */
 	public boolean isValidMessage(Connection conn, String user, int messageId)

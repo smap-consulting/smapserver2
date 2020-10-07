@@ -97,7 +97,7 @@ public class PDFReportsManager {
 		String tz = "UTC";		// Default to UTC
 		File folder = null;
 		ArrayList<FileDescription> files = new ArrayList<> ();
-		
+		sId = GeneralUtilityMethods.getLatestSurveyId(sd, sId);
 		try {
 					
 			/*
