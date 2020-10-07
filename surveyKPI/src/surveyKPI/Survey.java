@@ -260,10 +260,23 @@ public class Survey extends Application {
 					int code = 0;
 					if(type.equals("codebook")) {
 						Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/gettemplate.sh " + sourceName +
-								" " + language +
-						" >> /var/log/subscribers/survey.log 2>&1"});
+								" " + language});
 						code = proc.waitFor();
-						log.info("Process exitValue: " + code);
+						if(code > 0) {
+							int len;
+							if ((len = proc.getErrorStream().available()) > 0) {
+								byte[] buf = new byte[len];
+								proc.getErrorStream().read(buf);
+								log.info("Command error:\t\"" + new String(buf) + "\"");
+							}
+						} else {
+							int len;
+							if ((len = proc.getInputStream().available()) > 0) {
+								byte[] buf = new byte[len];
+								proc.getInputStream().read(buf);
+								log.info("Completed codebook process:\t\"" + new String(buf) + "\"");
+							}
+						}
 					}
 
 					builder = Response.ok(outputFile);
