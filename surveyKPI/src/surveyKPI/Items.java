@@ -117,6 +117,7 @@ public class Items extends Application {
 			@QueryParam("filter") String sFilter,
 			@QueryParam("advanced_filter") String advanced_filter,
 			@QueryParam("inc_ro") boolean inc_ro,
+			@QueryParam("geom_questions") String geomQuestions,
 			@QueryParam("tz") String tz) { 
 		
 		JSONObject jo = new JSONObject();
@@ -157,6 +158,17 @@ public class Items extends Application {
 		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, "View Results", 0);
 	
 		tz = (tz == null) ? "UTC" : tz;
+		
+		HashMap<String, String> geomQuestionMap = null;
+		if(geomQuestions != null) {
+			String [] a = geomQuestions.split(",");
+			if(a.length > 0) {
+				geomQuestionMap = new HashMap<> ();
+				for(int i = 0; i < a.length; i++) {
+					geomQuestionMap.put(a[i].trim(), "yes");
+				}
+			}
+		}
 		
 		Tables tables = new Tables(sId);
 		boolean hasRbacRowFilter = false;
@@ -275,9 +287,11 @@ public class Items extends Application {
 							|| c.type.equals("geolinestring") || c.type.equals("geotrace")
 							|| c.type.equals("geoshape"))) {
 						
-						geomIdx = newColIdx;
+						if(geomQuestionMap == null || geomQuestionMap.get(c.question_name) != null) {		// Not fussy about geom question or requested this one
+							geomIdx = newColIdx;
+							geomType = c.type;
+						}
 						cols.append("ST_AsGeoJSON(" + tName + "." + c.column_name + ") ");
-						geomType = c.type;
 					
 					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
 							cols.append("'" + urlprefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
