@@ -167,7 +167,8 @@ public class QueryGenerator {
 					includeKeys,
 					false,				// have geometry
 					tz,
-					get_acc_alt
+					get_acc_alt,
+					geomQuestion
 					);
 		
 			/*
@@ -232,7 +233,7 @@ public class QueryGenerator {
 			}
 			
 			
-			if(format.equals("shape") && sqlDesc.geometry_type != null) {
+			if(format.equals("shape") && sqlDesc.geometry_type != null && geomQuestion != null) {
 				shpSqlBuf.append(" and " + sqlDesc.target_table + "." + geomQuestion + " is not null");
 			}
 			
@@ -435,7 +436,8 @@ public class QueryGenerator {
 			boolean includeKeys,
 			boolean haveGeometry,
 			String tz,
-			boolean get_acc_alt
+			boolean get_acc_alt,
+			String geomQuestion
 			) throws Exception {
 		
 		int colLimit = 10000;
@@ -521,13 +523,17 @@ public class QueryGenerator {
 			}
 			
 			// Ignore geometries in parent forms for shape, VRT, KML, Stata exports (needs to be a unique geometry)
-			if(type.equals("geometry") && haveGeometry && (
+			// Also if geomQuestion is set then ignore geometries other than that geometry question
+			log.info("Question: " + geomQuestion + " : " + column_name);
+			if(type.equals("geometry") && (
 					format.equals(SmapExportTypes.SHAPE) 
 					|| format.equals(SmapExportTypes.STATA)
 					|| format.equals(SmapExportTypes.VRT)
 					|| format.equals(SmapExportTypes.KML)
 					|| format.equals(SmapExportTypes.SPSS))) {	
-				continue;
+				if(haveGeometry || (geomQuestion != null && !geomQuestion.equals(column_name))) {
+					continue;
+				}
 			}
 			
 			if(type.equals("geometry")) {
@@ -762,7 +768,8 @@ public class QueryGenerator {
 						includeKeys,
 						haveGeometry,
 						tz,
-						get_acc_alt
+						get_acc_alt,
+						geomQuestion
 						);
 			}
 		}
