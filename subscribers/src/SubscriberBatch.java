@@ -532,10 +532,11 @@ public class SubscriberBatch {
 											true,		// include survey duration
 											true,		// Super user
 											false,		// Don't include HXL
-											true	,		// include audit data
+											true,		// include audit data
 											tz,
 											false,		// mgmt
-											false 		// Altitude and Accuracy
+											false, 		// Altitude and Accuracy
+											true		// Server calculates
 											);
 	
 									if(mgmt) {

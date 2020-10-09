@@ -191,7 +191,8 @@ public void populateSvd(
 			false,		// Don't include audit data
 			tz,
 			isMain,		// mgmt - Only the main survey request should result in the addition of the mgmt columns
-			false		// Accuracy and Altitude
+			false,		// Accuracy and Altitude
+			true		// Server calculates
 			);		
 
 	// If this is a group form track which duplicate main questions need to be removed

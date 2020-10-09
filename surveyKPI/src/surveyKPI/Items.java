@@ -268,7 +268,8 @@ public class Items extends Application {
 						false,		// Don't include audit data
 						tz,
 						false,		// mgmt
-						false		// Accuracy and Altitude
+						false,		// Accuracy and Altitude
+						true		// Server calculates
 						);		
 				
 				// Construct a new query that retrieves a geometry object as geoJson

@@ -4228,7 +4228,8 @@ public class SurveyManager {
 					false,
 					tz,
 					false,		// mgmt
-					false		// Accuracy and Altitude
+					false,		// Accuracy and Altitude
+					true		// Server calculates
 					);
 
 			/*
