@@ -326,7 +326,8 @@ public class Audit extends Application {
 					true,
 					tz,
 					false,
-					false		//Accuracy and Altitude
+					false,		//Accuracy and Altitude
+					true		// Server calculates
 					);
 
 			if(mgmt) {

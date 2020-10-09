@@ -3435,7 +3435,8 @@ public class GeneralUtilityMethods {
 			boolean audit,
 			String tz,
 			boolean mgmt,			// If set substitute display name for the question name if it is not null, also publish un published
-			boolean get_acc_alt)	
+			boolean get_acc_alt,
+			boolean includeServerCalculates)	
 					throws Exception {
 
 		Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
@@ -3484,13 +3485,21 @@ public class GeneralUtilityMethods {
 				+ "server_calculate, parameters " 
 				+ "from question "
 				+ "where f_id = ? "
-				+ "and (source is not null or qtype = 'server_calculate') "
-				+ "and (published = 'true' or qtype = 'server_calculate') "
 				+ "and soft_deleted = 'false' ";
+		
+		String sqlSC =
+				"and (source is not null or qtype = 'server_calculate') "
+				+ "and (published = 'true' or qtype = 'server_calculate') ";
+		
+		String sqlNonSC =
+				"and (source is not null) "
+				+ "and (published = 'true') ";
 		
 		String sqlQuestion2 = colList.toString();
 		String sqlQuestion3 = "order by seq";
-		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 + sqlQuestion2 + sqlQuestion3);
+		PreparedStatement pstmtQuestions = sd.prepareStatement(sqlQuestion1 
+				+ (includeServerCalculates ? sqlSC : sqlNonSC)
+				+ sqlQuestion2 + sqlQuestion3);
 
 		// Get column names for select multiple questions in an uncompressed legacy select multiple
 		String sqlSelectMultipleNotCompressed = "select distinct o.column_name, o.ovalue, o.seq, o.display_name " 

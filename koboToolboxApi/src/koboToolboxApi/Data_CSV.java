@@ -330,7 +330,8 @@ public class Data_CSV extends Application {
 					audit,
 					tz,
 					false,				// mgmt
-					false				// Accuracy and Altitude
+					false,				// Accuracy and Altitude
+					true		// Server calculates
 					);
 
 			if (mgmt) {
