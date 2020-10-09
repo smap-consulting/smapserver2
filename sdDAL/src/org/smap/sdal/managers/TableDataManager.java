@@ -526,16 +526,16 @@ public class TableDataManager {
 				}
 				
 				if (c.isGeometry() && c.question_name.equals(geomQuestion)) {
-					// Add Geometry (assume one geometry type per table)
+					// Add Geometry 
 					String geomValue = rs.getString(i + 1);
 					if (geomValue == null) {
 						geomValue = "{}";
 					}
+					jf.put(name, new JSONObject(geomValue));
 					if(isGeoJson) {
 						jGeom = new JSONObject(geomValue);
 					} else {
-						name = "_geolocation";
-						jf.put(name, new JSONObject(geomValue));
+						jf.put("_geolocation", new JSONObject(geomValue));
 					}
 
 				} else if (c.isGeometry()) {
