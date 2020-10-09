@@ -272,7 +272,8 @@ public class ExportSurveyOSM extends Application {
 							false,		// Don't include audit data
 							tz,
 							false,		// mgmt
-							false		// Accuracy and Altitude
+							false,		// Accuracy and Altitude
+							true		// Server calculates
 							);
 					
 					for(TableColumn col : f.cols) {

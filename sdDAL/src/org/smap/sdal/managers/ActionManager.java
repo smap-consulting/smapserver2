@@ -618,7 +618,8 @@ public class ActionManager {
 					false,		// Don't include audit data
 					tz,
 					false,		// mgmt - Only the main survey request should result in the addition of the mgmt columns
-					false		// Accuracy and Altitude
+					false,		// Accuracy and Altitude
+					true		// Server calculates
 					);		
 			
 			DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");

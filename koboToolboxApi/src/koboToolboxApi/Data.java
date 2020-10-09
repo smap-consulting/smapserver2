@@ -609,7 +609,8 @@ public class Data extends Application {
 						audit,
 						tz,
 						mgmt,				// If this is a management request then include the assigned user after prikey
-						false				// Accuracy and Altitude
+						false,				// Accuracy and Altitude
+						true		// Server calculates
 						);
 	
 			}
@@ -1071,7 +1072,8 @@ public class Data extends Application {
 					false,
 					tz,
 					false,		// mgmt
-					false		// Accuracy and Altitude
+					false,		// Accuracy and Altitude
+					true		// Server calculates
 					);
 
 			if(mgmt) {
