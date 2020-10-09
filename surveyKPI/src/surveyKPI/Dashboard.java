@@ -306,8 +306,8 @@ public class Dashboard extends Application {
 					+ "ds_lang, ds_q_id, ds_date_question_id, ds_question, ds_fn, ds_table, ds_key_words, ds_q1_function, "
 					+ "ds_group_question_id, ds_group_question_text, ds_group_type, ds_user_ident, ds_time_group,"
 					+ "ds_from_date, ds_to_date, ds_q_is_calc, ds_filter, ds_advanced_filter, ds_subject_type, ds_u_id,"
-					+ "ds_inc_ro) values ("
-					+ "?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+					+ "ds_inc_ro, ds_geom_questions) values ("
+					+ "?, ?, ?, ?, ?, ?, ?, ?, ? ,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 			pstmtAddView = connectionSD.prepareStatement(sqlAddView);	 			
 			
 			String sqlReplaceView = "update dashboard_settings set " +
