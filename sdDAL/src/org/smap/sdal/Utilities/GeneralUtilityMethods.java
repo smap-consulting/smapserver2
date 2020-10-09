@@ -3929,10 +3929,10 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get the name of the first geometry column in the list of columns
 	 */
-	static public String getFirstGeometryColumnName(ArrayList<TableColumn> columns) {
+	static public String getFirstGeometryQuestionName(ArrayList<TableColumn> columns) {
 		for(TableColumn tc : columns) {
 			if(tc.isGeometry()) {
-				return tc.column_name;
+				return tc.question_name;
 			}
 		}
 		return "";

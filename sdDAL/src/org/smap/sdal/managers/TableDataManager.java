@@ -525,7 +525,7 @@ public class TableDataManager {
 					name = c.displayName;
 				}
 				
-				if (c.isGeometry() && c.column_name.equals(geomQuestion)) {
+				if (c.isGeometry() && c.question_name.equals(geomQuestion)) {
 					// Add Geometry (assume one geometry type per table)
 					String geomValue = rs.getString(i + 1);
 					if (geomValue == null) {

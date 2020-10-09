@@ -235,6 +235,17 @@ public class QueryManager {
 		
 	}
 	
+	public QueryForm getQueryForm(ArrayList<QueryForm> queryList, int targetId) throws SQLException {
+		
+		for(QueryForm qf : queryList) {
+			if(qf.form == targetId) {
+				return qf;
+			}
+		}
+		
+		return queryList.get(0);		
+	}
+	
 	private ArrayList<QueryForm> parentsToForm(
 			PreparedStatement pstmt, 
 			ArrayList<QueryForm> orderedList,

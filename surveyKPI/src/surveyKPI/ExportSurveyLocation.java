@@ -114,17 +114,18 @@ public class ExportSurveyLocation extends Application {
 				String dbUrl = databaseMetaData.getURL();
 				String database_name = dbUrl.substring(dbUrl.lastIndexOf('/') + 1);
 
-				SqlDesc sqlDesc = new SqlDesc();
+				String targetTable = null;
+				String sql = null;
 				
 				if(type.equals("trail")) {
-					sqlDesc.target_table = "user_trail";
-					sqlDesc.sql = "select u.name, ut.device_id, timezone('UTC', ut.event_time), " +
+					targetTable = "user_trail";
+					sql = "select u.name, ut.device_id, timezone('UTC', ut.event_time), " +
 							" ut.the_geom as the_geom " +
 							" from users u, user_trail ut " +
 							" where u.id = ut.u_id " +
 							" order by ut.id asc";
 				} else if(type.equals("event")) {
-					sqlDesc.target_table = "task_completion";
+					targetTable = "task_completion";
 					log.info("Location export error: un supported type: " + type);
 				} else {
 					log.info("Location export error: unknown type: " + type);
@@ -133,13 +134,13 @@ public class ExportSurveyLocation extends Application {
 				String basePath = GeneralUtilityMethods.getBasePath(request);
 				String filepath = basePath + "/temp/" + String.valueOf(UUID.randomUUID());	// Use a random sequence to keep survey name unique
 				
-				log.info("Table: " + sqlDesc.target_table);
-				log.info("SQL: " + sqlDesc.sql);
+				log.info("Table: " + targetTable);
+				log.info("SQL: " + sql);
 				int code = 0;
 				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
 						database_name + " " +
-						sqlDesc.target_table + " " +
-						"\"" + sqlDesc.sql + "\" " +
+						targetTable + " " +
+						"\"" + sql + "\" " +
         				filepath + 
         				" " + format});
 				code = proc.waitFor();

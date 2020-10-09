@@ -664,7 +664,7 @@ public class Data extends Application {
 			errorMsgAddClosingArray = true;
 			
 			if(geomQuestion == null) {
-				geomQuestion = GeneralUtilityMethods.getFirstGeometryColumnName(columns);
+				geomQuestion = GeneralUtilityMethods.getFirstGeometryQuestionName(columns);
 			}
 			
 			if(pstmt != null) {
