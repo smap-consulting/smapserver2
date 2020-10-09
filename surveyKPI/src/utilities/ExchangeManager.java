@@ -208,7 +208,8 @@ public class ExchangeManager {
 							false,		// Don't include audit data
 							tz,
 							false,		// mgmt
-							false		// Accuracy and Altitude
+							false,		// Accuracy and Altitude
+							false		// server calculates
 							);
 						
 					// Get the list of spreadsheet columns
@@ -216,6 +217,7 @@ public class ExchangeManager {
 					for(int j = 0; j < f.columnList.size(); j++) {
 
 						c = f.columnList.get(j);
+						
 						//String name = c.column_name;
 						String qType = c.type;
 						String questionName;

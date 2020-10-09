@@ -472,7 +472,8 @@ public class QueryGenerator {
 				false,				// Don't include audit data
 				tz,
 				false,				// mgmt
-				get_acc_alt
+				get_acc_alt,
+				true		// Server calculates
 				);
 			
 		StringBuffer colBuf = new StringBuffer();
