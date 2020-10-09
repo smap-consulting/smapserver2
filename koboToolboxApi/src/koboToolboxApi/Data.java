@@ -213,6 +213,7 @@ public class Data extends Application {
 		if(meta != null && (meta.equals("false") || meta.equals("no"))) {
 			includeMeta = false;
 		}
+		
 		// Authorisation is done in getDataRecords
 		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
