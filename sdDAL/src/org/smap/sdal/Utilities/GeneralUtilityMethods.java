@@ -9650,5 +9650,31 @@ public class GeneralUtilityMethods {
         }
         return out;
     }
+    
+    public static boolean hasTheGeom(Connection sd, int sId, int fId) throws SQLException {
+    	
+    	boolean hasTheGeom = false;
+    	String sql = "select count(*) from question q, form f "
+    			+ "where q.f_id = f.f_id "
+    			+ "and f.s_id = ? "
+    			+ "and f.table_name in (select table_name from form where f_id = ?) "
+    			+ "and q.qname = 'the_geom' "
+    			+ "and (q.qtype = 'geopoint' or q.qtype = 'geotrace' or q.qtype = 'geoshape')";
+    	PreparedStatement pstmt = null;
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setInt(1,  sId);
+    		pstmt.setInt(2,  fId);
+    		log.info(pstmt.toString());
+    		ResultSet rs = pstmt.executeQuery();
+    		if(rs.next() && rs.getInt(1) > 0) {
+    			hasTheGeom = true;
+    		}
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+ 
+    	return hasTheGeom;
+    }
 }
 

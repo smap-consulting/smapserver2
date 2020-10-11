@@ -58,7 +58,6 @@ import org.smap.sdal.model.SqlFrag;
 import org.smap.sdal.model.StyleList;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.TableColumnMarkup;
-import org.smap.sdal.model.SetValue;
 
 public class XLSTemplateUploadManager {
 

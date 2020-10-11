@@ -184,29 +184,14 @@ public class UtilityMethods {
 				output.append(' ');
 			}
 			
-			// Add the question path
-			String searchName = qname;
-			if(searchName.equals("the_geom")) {
-				searchName = f_id + searchName;
-			}
-			
 			String qPath = questionPaths.get(qname);			
 			
-			if(qPath == null) {
-				if(qname.equals("the_geom")) {
-					// Try and find any geometry in the survey
-					for (String key : questionPaths.keySet()) {
-					    if(key.endsWith("the_geom")) {
-					    	qPath = questionPaths.get(key);
-					    	break;
-					    }
-					}
-				}
+		
 				
-				if(qPath == null) {
-					throw new Exception("Question path not found for question: " + qname + " in " + input + 
+			if(qPath == null) {
+				throw new Exception("Question path not found for question: " + qname + " in " + input + 
 							" of " + calledForQuestion);
-				}
+
 			
 			} else if(relativePath && calledForQuestion != null && questionPaths.get(calledForQuestion) != null) {
 

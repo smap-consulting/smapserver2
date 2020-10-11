@@ -1021,9 +1021,6 @@ public class GetXForm {
 						if(idx2 > 0) {
 							HashMap<String, String> questionPaths = template.getQuestionPaths();
 							String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
-							if(sourceQuestion.equals("the_geom")) {
-								sourceQuestion = q.getFormId() + sourceQuestion;	// Deal (badly) with the_geom not being unique
-							}
 							String sourcePath = questionPaths.get(sourceQuestion);
 							if(sourcePath != null) {
 								value = "instance('__last-saved')" + sourcePath;
@@ -2556,18 +2553,10 @@ public class GetXForm {
 	}
 
 	/*
-	 * Get the question reference This adds the form id to geometry questions since
-	 * these questions do not have unique names and the path is found through f_id +
-	 * qname
+	 * Get the question reference 
 	 */
 	private String getQuestionReference(HashMap<String, String> paths, int fId, String qName) {
-		String key = qName;
-
-		if (key.equals("the_geom")) {
-			key = fId + key;
-		}
-
-		return paths.get(key);
+		return paths.get(qName);
 	}
 
 	/*
