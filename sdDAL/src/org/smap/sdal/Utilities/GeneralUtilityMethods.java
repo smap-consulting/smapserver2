@@ -293,7 +293,7 @@ public class GeneralUtilityMethods {
 
 		boolean locationServer = false;
 		if(host.contains("kontrolid") || host.equals("localhost")
-				|| host.equals("ubuntu1804.smap.com.au")) {
+				|| host.equals("demo.smap.com.au")) {
 			locationServer = true;
 		}
 		log.info("++++++++++++++++ Is location Server Host: " + host);

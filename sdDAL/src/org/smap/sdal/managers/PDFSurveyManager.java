@@ -503,19 +503,6 @@ public class PDFSurveyManager {
 			PdfStamper stamper,
 			int oId) throws IOException, DocumentException {
 		try {
-
-			/*
-			 * Hide any start geopoints if we have a standard geometry in this form
-			 */
-			String startGeopointValue = null;
-			for(int j = 0; j < record.size(); j++) {
-				Result r = record.get(j);
-				if(r.type.equals("geopoint")) {
-					if(!r.name.equals("the_geom")) {
-						startGeopointValue = r.value;
-					}
-				}
-			}
 			
 			for(Result r : record) {
 
@@ -587,8 +574,6 @@ public class PDFSurveyManager {
 				} else {
 					value = r.value;
 				}
-
-				
 				
 				/*
 				 * Add the value to the form
@@ -606,7 +591,7 @@ public class PDFSurveyManager {
 					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
 					if(ad != null) {
 						Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, 
-								startGeopointValue,
+								r.value,
 								di.location, di.zoom,gv.mapbox_key,
 								survey.id,
 								user,
@@ -833,18 +818,21 @@ public class PDFSurveyManager {
 		/*
 		 * Hide any start geopoints if we have a standard geometry in this form
 		 */
-		int startGeopointIndex = -1;
-		int standardGeomIndex = -1;
 		String startGeopointValue = null;
+		boolean hideStartGeopoint = false;
+		int startGeopointIndex = -1;
 		for(int j = 0; j < record.size(); j++) {
 			Result r = record.get(j);
+			
 			if(r.type.equals("geopoint")) {
-				if(r.name.equals("the_geom")) {
-					standardGeomIndex = j;
-				} else {
-					startGeopointIndex = j;
+				Form form = survey.forms.get(r.fIdx);
+				Question question = getQuestionFromResult(sd, r, form);
+				if(!question.visible) {
 					startGeopointValue = r.value;
-					r.value = null;
+					startGeopointIndex = j;
+				} else {
+					hideStartGeopoint = true;
+					startGeopointValue = r.value;
 				}
 			}
 		}
@@ -911,8 +899,8 @@ public class PDFSurveyManager {
 				Question question = getQuestionFromResult(sd, r, form);
 				
 				if(question != null) {
-					if(includeResult(r, question, appendix, gv, generateBlank, 
-							standardGeomIndex, startGeopointIndex, j)) {
+					if(includeResult(r, question, appendix, gv, generateBlank, startGeopointIndex,
+							hideStartGeopoint, j)) {
 						if(question.type.equals("begin group")) {
 							if(question.isNewPage()) {
 								document.newPage();
@@ -925,9 +913,8 @@ public class PDFSurveyManager {
 							Row row = prepareRow(record, survey, j, gv, length, appendix, 
 									parentRecords, 
 									generateBlank,
-									startGeopointValue,
-									standardGeomIndex,
-									startGeopointIndex);
+									startGeopointIndex,
+									hideStartGeopoint);
 							
 							PdfPTable newTable = processRow(
 									parser, 
@@ -995,14 +982,14 @@ public class PDFSurveyManager {
 			boolean appendix,
 			GlobalVariables gv,
 			boolean generateBlank,
-			int standardGeomIndex,
 			int startGeopointIndex,
+			boolean hideStartGeopoint,
 			int index) {
 
 		boolean include = true;
 		boolean inMeta = question.inMeta;
 
-		if(index == startGeopointIndex && standardGeomIndex >= 0) {
+		if(index == startGeopointIndex && hideStartGeopoint) {
 			// Don't include if the question is a start geopoint and there is a conventional geometry object in this form
 			include = false;
 		} else if(!generateBlank && mExcludeEmpty && isSkipped(question, r) ) {
@@ -1146,9 +1133,8 @@ public class PDFSurveyManager {
 			boolean appendix,
 			ArrayList<ArrayList<Result>> parentRecords,
 			boolean generateBlank,
-			String startGeopointValue,
-			int standardGeomIndex,
-			int startGeopointIndex) throws SQLException {
+			int startGeopointIndex,
+			boolean hideStartGeopoint) throws SQLException {
 
 		Row row = new Row();
 		row.groupWidth = gv.cols.length;
@@ -1198,8 +1184,8 @@ public class PDFSurveyManager {
 				if(updateCols == null || isNewPage) {
 					if(includeResult(r, question, appendix, gv, 
 							generateBlank,
-							standardGeomIndex,
 							startGeopointIndex,
+							hideStartGeopoint,
 							i)) {
 						includeQuestion(row.items, 
 								gv, 

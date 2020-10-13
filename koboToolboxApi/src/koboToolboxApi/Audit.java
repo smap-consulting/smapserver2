@@ -613,7 +613,7 @@ public class Audit extends Application {
 		
 			if(isGeoJson) {
 				outWriter.print("{\"type\":\"FeatureCollection\",");		// type
-				outWriter.print("\"features\":");						// Features
+				outWriter.print("\"features\":");							// Features
 			}
 			
 			outWriter.print("[");
@@ -652,7 +652,7 @@ public class Audit extends Application {
 					if(isGeoJson) {
 						String geomValue = rs.getString("geo_point");	
 						if(geomValue != null) {	
-							jf.put("the_geom", new JSONObject(geomValue));
+							jf.put("the_geom", new JSONObject(geomValue));		// Keep the_geom
 						}
 					} else {
 						
