@@ -9651,6 +9651,10 @@ public class GeneralUtilityMethods {
         return out;
     }
     
+    /*
+     * Check to see if a form has a question called the_geom of type geometry
+     * This is temporary code to warn the user if they are inadvertantly changing the name of a geometry question
+     */
     public static boolean hasTheGeom(Connection sd, int sId, int fId) throws SQLException {
     	
     	boolean hasTheGeom = false;
@@ -9675,6 +9679,59 @@ public class GeneralUtilityMethods {
     	}
  
     	return hasTheGeom;
+    }
+    
+    /*
+     * Get a geometry question that can be used to determine the rough location of the data
+     * In order of preference the location to get is:
+     *   1) First geopoint question
+     *   2) A start location preload
+     *   3) First geotrace or geoshape question
+     */
+    public static String getGeomColumnFromForm(Connection sd, int sId, int fId) throws SQLException {
+    	
+    	String geomColumn = null;
+    	String sql = "select column_name,qtype from question "
+    			+ "where f_id = ? "
+    			+ "and (qtype = 'geopoint' or qtype = 'geotrace' or qtype = 'geoshape') "
+    			+ "and published "
+    			+ "and not soft_deleted" ;
+    	PreparedStatement pstmt = null;
+    	
+    	String nonGeoPointColumn = null;
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setInt(1,  fId);
+    		log.info(pstmt.toString());
+    		ResultSet rs = pstmt.executeQuery();
+    		while(rs.next()) {
+    			if(rs.getString(2).equals("geopoint")) {
+    				geomColumn = rs.getString(1);
+    				break;
+    			} else {
+    				nonGeoPointColumn = rs.getString(1);
+    			}
+    		}
+    		
+    		// Now check preloads
+    		if(geomColumn == null) {
+    			ArrayList<MetaItem> preloads = getPreloads(sd, sId);
+    			for(MetaItem mi : preloads) {
+    				if(mi.type.equals("geopoint")) {
+    					geomColumn = mi.columnName;
+    					break;
+    				}
+    			}
+    		}
+    		
+    		if(geomColumn == null) {
+    			geomColumn = nonGeoPointColumn;
+    		}
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+ 
+    	return geomColumn;
     }
 }
 

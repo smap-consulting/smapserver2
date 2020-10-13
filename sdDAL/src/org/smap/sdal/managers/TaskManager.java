@@ -1384,9 +1384,9 @@ public class TaskManager {
 
 			StringBuffer sql = new StringBuffer("select prikey, instancename");
 			
-			boolean hasGeom = GeneralUtilityMethods.hasColumn(cResults, topForm.tableName, "the_geom");
-			if(hasGeom) {
-				sql.append(", ST_AsGeoJson(the_geom)");
+			String geomColumn = GeneralUtilityMethods.getGeomColumnFromForm(sd, sId, topForm.id);
+			if(geomColumn != null) {
+				sql.append(", ST_AsGeoJson(" + geomColumn + ")");
 			}
 			if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 				SqlFrag frag = new SqlFrag();
@@ -1441,7 +1441,7 @@ public class TaskManager {
 				if(as.assign_data != null && as.assign_data.trim().length() > 0) {
 					tid.ident = rsData.getString("_assign_key");
 				}
-				if(hasGeom) {
+				if(geomColumn != null) {
 					tid.location = rsData.getString(colIdx++);
 				}
 				if(addressCount > 0) {
