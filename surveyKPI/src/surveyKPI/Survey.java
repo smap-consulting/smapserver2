@@ -578,7 +578,7 @@ public class Survey extends Application {
 					String tableName = resultSet.getString(1);
 					String formName = resultSet.getString(2);
 					int fId = resultSet.getInt(3);
-					String p_id = resultSet.getString(4);
+					int p_id = resultSet.getInt(4);
 					int rowCount = 0;
 					boolean has_geom = false;
 					ArrayList<String> geomQuestions = new ArrayList<String> ();
@@ -604,6 +604,15 @@ public class Survey extends Application {
 					while(resultSetTable.next()) {
 						geomQuestions.add(resultSetTable.getString(2));
 						has_geom = true;
+					}
+					// Add any location meta data
+					if(p_id == 0) {
+						for(MetaItem mi : preloads) {
+							if(mi.type.equals("geopoint")) {
+								geomQuestions.add(mi.name);
+								has_geom = true;
+							}
+						}
 					}
 
 					/*
@@ -641,7 +650,7 @@ public class Survey extends Application {
 					jp.put("s_id", currentSurveyId);
 					jp.put("f_id", fId);
 					jp.put("p_id", p_id);
-					if(p_id == null || p_id.equals("0")) {
+					if(p_id == 0) {
 						topTableName = tableName;
 						jo.put("top_table", tableName);
 					}
