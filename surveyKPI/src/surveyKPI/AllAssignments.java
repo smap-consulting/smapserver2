@@ -154,7 +154,6 @@ public class AllAssignments extends Application {
 
 		Connection cResults = null; 
 		PreparedStatement pstmt = null;
-		PreparedStatement pstmtCheckGeom = null;
 		
 		PreparedStatement pstmtGetSurveyIdent = null;
 
@@ -220,9 +219,6 @@ public class AllAssignments extends Application {
 				String sql = null;
 				ResultSet resultSet = null;
 
-				String checkGeomSQL = "select count(*) from information_schema.columns where table_name = ? and column_name = 'the_geom'";
-				pstmtCheckGeom = cResults.prepareStatement(checkGeomSQL);
-
 				String getSurveyIdentSQL = "select ident from survey where s_id = ?;";
 				pstmtGetSurveyIdent = sd.prepareStatement(getSurveyIdentSQL);
 
@@ -237,7 +233,7 @@ public class AllAssignments extends Application {
 					/*
 					 * Get Forms and row counts in this survey
 					 */
-					sql = "select distinct f.table_name, f.parentform from form f " +
+					sql = "select distinct f.table_name, f.parentform, f.f_id from form f " +
 							"where f.s_id = ? " + 
 							"order by f.table_name;";		
 
@@ -252,10 +248,10 @@ public class AllAssignments extends Application {
 					 */
 					while (resultSet.next()) {
 						
-						String tableName2 = null;
 						String tableName = resultSet.getString(1);
-						String p_id = resultSet.getString(2);
-						if(p_id == null || p_id.equals("0")) {	// The top level form
+						int p_id = resultSet.getInt(2);
+						int fId = resultSet.getInt(3);
+						if(p_id == 0) {	// The top level form
 							
 							/*
 							 * Check the filters
@@ -310,27 +306,20 @@ public class AllAssignments extends Application {
 								assignSql = frag.sql.toString();
 							}
 							
-							// Check to see if this form has geometry columns
-							boolean hasGeom = false;
-							pstmtCheckGeom.setString(1, tableName);
-							log.info("Check for geometry coulumn: " + pstmtCheckGeom.toString());
-							ResultSet resultSetGeom = pstmtCheckGeom.executeQuery();
-							if(resultSetGeom.next()) {
-								if(resultSetGeom.getInt(1) > 0) {
-									hasGeom = true;
-								}
-							}
+							// Check to see if this form has geometry columns						
+							String geomColumn = GeneralUtilityMethods.getGeomColumnFromForm(sd, sId, fId);
+							boolean hasGeom = (geomColumn == null) ? false : true;
 
 							// Get the primary key, location and address columns from this top level table
 							StringBuffer getTaskSql = new StringBuffer("");
 							StringBuffer getTaskSqlWhere = new StringBuffer("");
-							StringBuffer getTaskSqlEnd = new StringBuffer("");
+					
 							boolean hasInstanceName = GeneralUtilityMethods.hasColumn(cResults, tableName, "instancename");
 
 							if(hasGeom) {
 								log.info("Has geometry");
 								getTaskSql.append("select ").append(tableName)
-										.append(".prikey, ST_AsGeoJson(").append(tableName).append(".the_geom) as the_geom,")
+										.append(".prikey, ST_AsGeoJson(ST_Centroid(").append(tableName).append("." + geomColumn +")) as geomvalue,")
 										.append(tableName).append(".instanceid");
 								
 								if(hasInstanceName) {
@@ -340,45 +329,7 @@ public class AllAssignments extends Application {
 								getTaskSqlWhere.append(" from ").append(tableName).append(" where ")
 										.append(tableName).append("._bad = 'false'");	
 
-							} else {
-								log.info("No geom found");
-								// Get a subform that has geometry
-
-								PreparedStatement pstmt2 = sd.prepareStatement(sql);	 
-								pstmt2.setInt(1, sId);
-
-								log.info("Get subform with geometry: " + pstmt2.toString());
-								ResultSet resultSet2 = pstmt2.executeQuery();
-
-								while (resultSet2.next()) {
-									String aTable = resultSet2.getString(1);
-									pstmtCheckGeom.setString(1, aTable);
-									log.info("Check geom: " + pstmtCheckGeom.toString());
-									resultSetGeom = pstmtCheckGeom.executeQuery();
-									if(resultSetGeom.next()) {
-										if(resultSetGeom.getInt(1) > 0) {
-											hasGeom = true;
-											tableName2 = aTable;
-										}
-									}
-								}
-								pstmt2.close();
-								resultSet2.close();
-								getTaskSql.append("select ").append(tableName) 
-										.append(".prikey, ST_AsText(ST_MakeLine(").append(tableName2)
-										.append(".the_geom)) as the_geom, ").append(tableName).append(".instanceid");
-								
-								if(hasInstanceName) {
-									getTaskSql.append(", ").append(tableName).append(".instancename");
-								}
-
-								getTaskSqlWhere.append(" from ").append(tableName).append(" left outer join ")
-										.append(tableName2).append(" on ").append(tableName).append(".prikey = ")
-										.append(tableName2).append(".parkey ")
-										.append(" where ").append(tableName).append("._bad = 'false'");	
-								
-								getTaskSqlEnd.append("group by ").append(tableName).append(".prikey ");
-							}
+							} 
 
 							// Finally if we still haven't found a geometry column then set all locations to 0, 0
 							if(!hasGeom) {
@@ -386,9 +337,8 @@ public class AllAssignments extends Application {
 								
 								getTaskSql = new StringBuffer("");
 								getTaskSqlWhere = new StringBuffer("");
-								getTaskSqlEnd = new StringBuffer("");
 
-								getTaskSql.append("select ").append(tableName).append(".prikey, 'POINT(0 0)' as the_geom, ")
+								getTaskSql.append("select ").append(tableName).append(".prikey, 'POINT(0 0)' as geomvalue, ")
 											.append(tableName).append(".instanceid");
 								
 								if(hasInstanceName) {
@@ -437,7 +387,6 @@ public class AllAssignments extends Application {
 							if(filterSql != null && filterSql.trim().length() > 0) {
 								getTaskSql.append(" and ").append(filterSql);
 							}
-							getTaskSql.append(getTaskSqlEnd);
 
 							if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
 							pstmt = cResults.prepareStatement(getTaskSql.toString());	
@@ -466,7 +415,7 @@ public class AllAssignments extends Application {
 
 								// location (tid)
 								if(hasGeom) {
-									tid.location = resultSet.getString("the_geom");
+									tid.location = resultSet.getString("geomvalue");
 								} 
 
 								// instanceName (tid)
@@ -551,7 +500,7 @@ public class AllAssignments extends Application {
 
 		} catch (Exception e) {
 			log.info("Error: " + e.getMessage());
-			if(e.getMessage() != null && e.getMessage().contains("\"the_geom\" does not exist")) {
+			if(e.getMessage() != null && e.getMessage().contains("\"geomvalue\" does not exist")) {
 				String msg = "The survey results do not have coordinates " + as.source_survey_name;
 				response = Response.status(Status.NO_CONTENT).entity(msg).build();
 			} else if(e.getMessage() != null && e.getMessage().contains("does not exist")) {
