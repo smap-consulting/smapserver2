@@ -534,6 +534,7 @@ public class QueryGenerator {
 			}
 			
 			if(type.equals("geometry")) {
+				// This is a geometry question, which for shape exports, has the same name as the specified geometry question
 				String sqlGeom = "SELECT GeometryType(" + column_name + ") FROM " + form.table + ";";
 
 				pstmtGeom = cResults.prepareStatement(sqlGeom);
@@ -549,7 +550,7 @@ public class QueryGenerator {
 					if(geomName == null) {
 						continue;
 					} else {
-						if(geomName.equals("POLYGON")) {
+						if(geomName.startsWith("POLYGON")) {
 							sqlDesc.geometry_type = "wkbPolygon";
 						} else if(geomName.startsWith("LINESTRING")) {
 							sqlDesc.geometry_type = "wkbLineString";

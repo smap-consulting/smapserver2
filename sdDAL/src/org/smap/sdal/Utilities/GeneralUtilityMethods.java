@@ -8645,14 +8645,13 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Starting from the past in question get all the tables up to the highest
-	 * parent that are part of this survey
+	 * Create a location record
 	 */
 	public static void createLocation(Connection sd, int oId, 
 			String group, String uid, String name, double lon, double lat) throws SQLException {
 
 		PreparedStatement pstmt = null;
-		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "
+		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "	// keep this
 				+ "values (?, ?, 'nfc', ?, ?, ST_GeomFromText(?, 4326))";
 
 		try {
@@ -8677,8 +8676,7 @@ public class GeneralUtilityMethods {
 	}
 
 	/*
-	 * Starting from the past in question get all the tables up to the highest
-	 * parent that are part of this survey
+	 *update a location record with a new uid
 	 */
 	public static void updateLocation(Connection sd, 
 			int oId, 
@@ -8691,7 +8689,7 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmt = null;
 		String sql = "update locations "
 				+ "set uid = ?,"
-				+ "the_geom = ST_GeomFromText(?, 4326) "
+				+ "the_geom = ST_GeomFromText(?, 4326) "	// keep this
 				+ "where o_id = ? "
 				+ "and locn_group = ? "
 				+ "and name = ?";
@@ -9662,7 +9660,7 @@ public class GeneralUtilityMethods {
     			+ "where q.f_id = f.f_id "
     			+ "and f.s_id = ? "
     			+ "and f.table_name in (select table_name from form where f_id = ?) "
-    			+ "and q.qname = 'the_geom' "
+    			+ "and q.qname = 'the_geom' "	// keep this
     			+ "and (q.qtype = 'geopoint' or q.qtype = 'geotrace' or q.qtype = 'geoshape')";
     	PreparedStatement pstmt = null;
     	try {
@@ -9733,5 +9731,36 @@ public class GeneralUtilityMethods {
  
     	return geomColumn;
     }
+    
+    /*
+     * Get a geometry question of a specific type form a form
+     */
+    public static String getGeomColumnOfType(Connection sd, int sId, int fId, String type) throws SQLException {
+    	
+    	String geomColumn = null;
+    	String sql = "select column_name,qtype from question "
+    			+ "where f_id = ? "
+    			+ "and qtype = ? "
+    			+ "and published "
+    			+ "and not soft_deleted" ;
+    	PreparedStatement pstmt = null;
+    	
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setInt(1,  fId);
+    		pstmt.setString(2, type);
+    		log.info(pstmt.toString());
+    		ResultSet rs = pstmt.executeQuery();
+    		if(rs.next()) {
+    			geomColumn = rs.getString(1);
+    		}
+    		
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+ 
+    	return geomColumn;
+    }
+
 }
 
