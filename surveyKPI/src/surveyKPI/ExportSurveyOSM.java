@@ -127,6 +127,7 @@ public class ExportSurveyOSM extends Application {
 
 	ArrayList<StringBuffer> parentRows = null;
 	private int idcounter;
+	String geomColumn = null;
 	
 	@GET
 	@Produces(MediaType.APPLICATION_XML)
@@ -135,6 +136,7 @@ public class ExportSurveyOSM extends Application {
 			@PathParam("filename") String filename,
 			@QueryParam("ways") String waylist,
 			@QueryParam("exp_ro") boolean exp_ro,
+			@QueryParam("geom_question") String geomQuestion,
 			@QueryParam("language") String language) {
 		
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
@@ -277,29 +279,27 @@ public class ExportSurveyOSM extends Application {
 							);
 					
 					for(TableColumn col : f.cols) {
-						String name = col.column_name;
+						
 						String qType = col.type;
 						
 						// Ignore the following columns
-						if(name.equals("parkey") ||	name.startsWith("_")) {
+						if(col.column_name.equals("parkey") ||	col.column_name.startsWith("_")) {
 							continue;
 						}
 							
 						// Set the sql selection text for this column 			
 						String selName = null;
-						if(qType.equals("geopoint") || qType.equals("geoshape") 
-								|| qType.equals("geotrace")
-								|| qType.equals("geolinestring")
-								|| qType.equals("geopolygon")) {
-							selName = "ST_AsTEXT(" + name + ") as the_geom ";
+						if(col.isGeometry() && col.question_name.equals(geomQuestion)) {
+							selName = "ST_AsTEXT(" + col.column_name + ") as " + col.column_name;
+							geomColumn = col.column_name;
 						} else if(qType.equals("dateTime")) {	// Return all timestamps at UTC with no time zone
-							selName = "timezone('UTC', " + name + ") as " + name;	
+							selName = "timezone('UTC', " + col.column_name + ") as " + col.column_name;	
 						} else {
 							boolean isAttachment = GeneralUtilityMethods.isAttachmentType(qType);
 							if(isAttachment) {
-								selName = "'" + urlprefix + "' || " + name + " as " + name;
+								selName = "'" + urlprefix + "' || " + col.column_name + " as " + col.column_name;
 							} else {
-								selName = name;
+								selName = col.column_name;
 							}
 						}
 						
@@ -487,7 +487,7 @@ public class ExportSurveyOSM extends Application {
 					String value = resultSet.getString(key);
 					
 					if(value != null) { 
-						if(key.equals("the_geom")) {  // Get the location
+						if(geomColumn != null && key.equals(geomColumn)) {  // Get the location
 							points = getLonLat(value);
 						} else if(!key.startsWith("_")) {	
 							tags.add(new Tag(key, value));
