@@ -843,8 +843,8 @@ public class TaskManager {
 	public ArrayList<Location>  getLocations(Connection sd, int oId) throws SQLException {
 
 		String sql = "select id, locn_group, locn_type, uid, name, "
-				+ "ST_x(the_geom) as lon,"
-				+ "ST_Y(the_geom) as lat "
+				+ "ST_x(the_geom) as lon,"		// keep the_geom
+				+ "ST_Y(the_geom) as lat "		// keep the_geom
 				+ "from locations "
 				+ "where o_id = ? "
 				+ "order by locn_group asc, name asc;";
@@ -887,8 +887,8 @@ public class TaskManager {
 	public Location  getLocation(Connection sd, int oId, String group, String name) throws SQLException {
 
 		String sql = "select id, locn_group, locn_type, uid, name, "
-				+ "ST_x(the_geom) as lon,"
-				+ "ST_Y(the_geom) as lat "
+				+ "ST_x(the_geom) as lon,"		// keep the_geom
+				+ "ST_Y(the_geom) as lat "		// keep the_geom
 				+ "from locations "
 				+ "where o_id = ? "
 				+ "and locn_group = ? "
@@ -938,7 +938,7 @@ public class TaskManager {
 				+ "where o_id = ?";
 		PreparedStatement pstmtDelete = null;
 
-		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "
+		String sql = "insert into locations (o_id, locn_group, locn_type, uid, name, the_geom) "		// keep the_geom
 				+ "values (?, ?, ?, ?, ?, ST_GeomFromText(?, 4326));";
 		PreparedStatement pstmt = null;
 		

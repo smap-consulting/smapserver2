@@ -120,7 +120,7 @@ public class ExportSurveyLocation extends Application {
 				if(type.equals("trail")) {
 					targetTable = "user_trail";
 					sql = "select u.name, ut.device_id, timezone('UTC', ut.event_time), " +
-							" ut.the_geom as the_geom " +
+							" ut.the_geom as the_geom " +		// keep this
 							" from users u, user_trail ut " +
 							" where u.id = ut.u_id " +
 							" order by ut.id asc";

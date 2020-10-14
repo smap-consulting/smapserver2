@@ -81,7 +81,7 @@ public class ExportSurvey extends Application {
 	}
 
 	private class FormDesc {
-		String f_id;
+		int f_id;
 		String parent;
 		String table_name;
 		String columns = null;
@@ -305,13 +305,13 @@ public class ExportSurvey extends Application {
 				while (resultSet.next()) {
 
 					FormDesc fd = new FormDesc();
-					fd.f_id = resultSet.getString("f_id");
+					fd.f_id = resultSet.getInt("f_id");
 					fd.parent = resultSet.getString("parentform");
 					fd.table_name = resultSet.getString("table_name");
 					if(inc_id != null) {
 						boolean showForm = false;
 						boolean setFlat = false;
-						int fId = Integer.parseInt(fd.f_id);
+						int fId = fd.f_id;
 						for(int i = 0; i < inc_id.length; i++) {
 							if(fId == inc_id[i]) {
 								showForm = true;
@@ -322,14 +322,14 @@ public class ExportSurvey extends Application {
 						fd.visible = showForm;
 						fd.flat = setFlat;
 					}
-					forms.put(fd.f_id, fd);
+					forms.put(String.valueOf(fd.f_id), fd);
 					if(fd.parent == null || fd.parent.equals("0")) {
 						topForm = fd;
 					}
 					// Get max records for flat export
 					fd.maxRepeats = 1;	// Default
 					if(fd.flat && fd.parent != null) {
-						fd.maxRepeats = getMaxRepeats(sd, connectionResults, sId, Integer.parseInt(fd.f_id));
+						fd.maxRepeats = getMaxRepeats(sd, connectionResults, sId, fd.f_id);
 					}
 				}
 
@@ -407,7 +407,7 @@ public class ExportSurvey extends Application {
 							request.getRemoteUser(),
 							null,		// Roles to apply
 							parentId,
-							Integer.parseInt(f.f_id),
+							f.f_id,
 							f.table_name,
 							exp_ro,
 							false,		// Don't include parent key
@@ -577,23 +577,30 @@ public class ExportSurvey extends Application {
 
 								if(sscFn.equals("area")) {
 
-									selName = "ST_Area(geography(the_geom), true)";
-									if(sscUnits.equals("hectares")) {
-										selName += " / 10000";
+									String geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, f.f_id, "geoshape");
+									if(geomColumn != null) {
+										selName = "ST_Area(geography(" + geomColumn + "), true)";
+										if(sscUnits.equals("hectares")) {
+											selName += " / 10000";
+										}
+										selName += " as \"" + colName + "\"";
 									}
-									selName += " as \"" + colName + "\"";
 
 								} else if (sscFn.equals("length")) {
 
-									if(geomType.equals("geopolygon") || geomType.equals("geoshape")) {
-										selName = "ST_Length(geography(the_geom), true)";
-									} else {
-										selName = "ST_Length(geography(the_geom), true)";
+									String geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, f.f_id, "geoshape");
+									if(geomColumn == null) {
+										geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, f.f_id, "geotrace");
 									}
-									if(sscUnits.equals("km")) {
-										selName += " / 1000";
+									if(geomColumn != null) {
+									
+										selName = "ST_Length(geography(" + geomColumn + "), true)";
+										
+										if(sscUnits.equals("km")) {
+											selName += " / 1000";
+										}
+										selName += " as \"" + colName + "\"";
 									}
-									selName += " as \"" + colName + "\"";
 
 								} else {
 									selName= sscName;
@@ -1361,7 +1368,7 @@ public class ExportSurvey extends Application {
 					" AND q.column_name = ?;";
 
 			pstmt = conn.prepareStatement(sql);
-			pstmt.setInt(1, Integer.parseInt(form.f_id));
+			pstmt.setInt(1, form.f_id);
 			pstmt.setString(2, language);
 			pstmt.setInt(3, sId);
 			pstmt.setString(4, qColName);

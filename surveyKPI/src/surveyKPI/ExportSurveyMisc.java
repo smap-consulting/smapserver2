@@ -300,12 +300,12 @@ public class ExportSurveyMisc extends Application {
 					e = outputXML.createElement("GeometryField");
 					e.setAttribute("encoding", "WKT");	// WKB not supported by google maps
 					e.setAttribute("reportSrcColumn", "false");
-					e.setAttribute("field", "the_geom");
+					e.setAttribute("field", "the_geom");	// keep this
 					layerElement.appendChild(e);
 
 					for(int i = 0; i < sqlDesc.column_details.size(); i++) {
 						ColDesc cd = sqlDesc.column_details.get(i);
-						if(!cd.column_name.equals("the_geom")) {
+						if(!cd.column_name.equals(sqlDesc.geometry_column)) {
 							e = outputXML.createElement("Field");
 							e.setAttribute("name", cd.column_name);
 							e.setAttribute("src", cd.column_name);
@@ -488,7 +488,7 @@ public class ExportSurveyMisc extends Application {
 								merge_select_multiple,
 								surveyName);	
 							
-						if(split_locn && values.name.equals("the_geom")) {
+						if(split_locn && geomQuestion != null && values.name.equals(geomQuestion)) {
 							addValueToBuf(header, "Latitude");
 							addValueToBuf(header, "Longitude");
 						} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null && item.compressed) {
