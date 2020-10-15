@@ -140,8 +140,7 @@ public class Regions extends Application {
 		if(settings != null) {
 			settings = settings.replace("'", "''"); 
 		} 
-		
-		Type type = new TypeToken<ArrayList<Settings>>(){}.getType();		
+				
 		GenRegion region = new Gson().fromJson(settings, GenRegion.class);
 		PreparedStatement pstmt = null;
 
@@ -189,7 +188,7 @@ public class Regions extends Application {
 			
 			
 			// Add the geometry column
-			sql = "SELECT addgeometrycolumn(?,'the_geom', 4326, 'POLYGON', 2);";
+			sql = "SELECT addgeometrycolumn(?,'the_geom', 4326, 'POLYGON', 2)";		// keep this
 			log.info(sql);
 			pstmt = connection.prepareStatement(sql);
 			pstmt.setString(1, tableName);
@@ -213,14 +212,14 @@ public class Regions extends Application {
 			
 			// Generate the grid using the function from http://trac.osgeo.org/postgis/wiki/UsersWikiGenerateHexagonalGrid
 			String polygon = "0 0," + hr + " " +  hr + "," + hr + " " + r + ", 0 " + (hr*3) + "," + (-hr) + " " + r + "," + (-hr) + " " + hr + ",0 0";
-			sql = "INSERT INTO " + tableName + " (the_geom) " +
-					" SELECT st_transform(st_translate(the_geom, x_series, y_series), 4326)" +
+			sql = "INSERT INTO " + tableName + " (the_geom) " +		// keep this
+					" SELECT st_transform(st_translate(the_geom, x_series, y_series), 4326)" +	// keep this
 					" from generate_series(" + (startX - r) + "," + (stopX + r) + "," + r + ") as x_series," +
 					" generate_series(" + (startY - r) + "," + (stopY + r) + "," + w + ") as y_series, " + 
 						" (" +
-						" SELECT ST_GeomFromEWKT('srid=900913;POLYGON((" + polygon + "))') as the_geom" +
+						" SELECT ST_GeomFromEWKT('srid=900913;POLYGON((" + polygon + "))') as the_geom" +	// keep this
 						" UNION" +
-						" SELECT st_translate(ST_GeomFromEWKT('srid=900913;POLYGON((" + polygon + "))'), " + hr + ", " + r + ")  as the_geom" +
+						" SELECT st_translate(ST_GeomFromEWKT('srid=900913;POLYGON((" + polygon + "))'), " + hr + ", " + r + ")  as the_geom" +		// keep this
 						" ) as two_hex;";
 			
 			log.info(sql);
