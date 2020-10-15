@@ -115,7 +115,7 @@ public class ReportListSvcDeprecate extends Application {
 			"r.author, " +
 			"r.p_id, " + 
 			"r.ident, " +
-			"Box2D(the_geom) as locn, " +
+			"Box2D(the_geom) as locn, " +	// keep this
 			"r.url, " +
 			"r.thumb_url, " +
 			"r.data_url, " +
@@ -132,7 +132,7 @@ public class ReportListSvcDeprecate extends Application {
 	String sqlReportListBounded =
 			" where r.p_id = ? " +
 			" and extract(epoch from r.pub_date) > ? and extract(epoch from r.pub_date) <= ? " +
-			" and ST_Intersects(the_geom, ST_GeomFromText(?, 4326)) " +
+			" and ST_Intersects(the_geom, ST_GeomFromText(?, 4326)) " +		// keep this
 			" order by r.pub_date desc;";
 	
 	String sqlReportSpecific =
@@ -522,7 +522,7 @@ public class ReportListSvcDeprecate extends Application {
 							"community, " +
 							"pub_date, " +
 							"author," +
-							"the_geom, " +
+							"the_geom, " +	// keep this
 							"ident, " +
 							"p_id, " +
 							"url, " + 
@@ -590,7 +590,7 @@ public class ReportListSvcDeprecate extends Application {
 						"community = ?, " +
 						"pub_date = now(), " +
 						"author = ?, " +
-						"the_geom = ST_GeomFromText(?, 4326) " +
+						"the_geom = ST_GeomFromText(?, 4326) " +	// keep this
 						"where ident = ? " +
 						"and p_id = ?;";
 						

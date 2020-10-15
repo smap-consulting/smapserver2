@@ -724,7 +724,7 @@ public class UploadFiles extends Application {
 						ArrayList<String> newGeomQuestions = new ArrayList<> ();
 						for(Question q : f.questions) {
 							if(q.type.equals("geopoint") || q.type.equals("geotrace") || q.type.equals("geoshape")) {
-								if(q.name.equals("the_geom")) {
+								if(q.name.equals("the_geom")) {	// keep this
 									newTheGeom = true;
 								} else {
 									newNonTheGeom = true;

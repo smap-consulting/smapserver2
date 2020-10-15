@@ -390,6 +390,7 @@ public class ExchangeManager {
 	 * Load data from a file into the form
 	 */
 	public int loadFormDataFromCsvFile(
+			Connection sd,
 			Connection results,
 			PreparedStatement pstmtGetCol, 
 			PreparedStatement pstmtGetColGS,
@@ -435,7 +436,10 @@ public class ExchangeManager {
 			
 			if(line != null && line.length > 0) {
 				
-				processHeader(results, 
+				processHeader(
+						sd,
+						results,
+						sIdent,
 						pstmtGetCol, 
 						pstmtGetChoices,
 						pstmtGetColGS,
@@ -884,7 +888,10 @@ public class ExchangeManager {
 	 * Check to see if a question is in a form
 	 */
 	private ExchangeColumn getColumn(
+			Connection sd,
 			Connection cResults,
+			String sIdent,
+			int fId,
 			String tableName,
 			PreparedStatement pstmtGetCol, 
 			PreparedStatement pstmtGetChoices, 
@@ -899,10 +906,12 @@ public class ExchangeManager {
 		String geomCol = null;
 		
 		// Cater for lat, lon columns which map to a geopoint
+		// This is the old format which assumes a single geometry in a form
 		if(qName.equals("lat") || qName.equals("lon") 
 				|| qName.equals("plotgpsLatitude") || qName.equals("plotgpsLongitude")) {
 			geomCol = qName;
-			qName = "the_geom";
+			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			qName = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geopoint");
 		} 
 		
 		// Only add this question if it has not previously been added, questions can only be updated once in a single transaction
@@ -1050,7 +1059,9 @@ public class ExchangeManager {
 	}
 	
 	public void processHeader(
+			Connection sd,
 			Connection results,
+			String sIdent,
 			PreparedStatement pstmtGetCol,
 			PreparedStatement pstmtGetChoices,
 			PreparedStatement pstmtGetColGS,
@@ -1072,7 +1083,7 @@ public class ExchangeManager {
 				}
 				// If this column is in the survey then add it to the list of columns to be processed
 				// Do this test for a load from excel
-				ExchangeColumn col = getColumn(results, form.table_name, pstmtGetCol, 
+				ExchangeColumn col = getColumn(sd, results, sIdent, form.f_id, form.table_name, pstmtGetCol, 
 						pstmtGetChoices, colName, eh.columns, 
 						responseMsg, localisation, preloads);
 				if(col != null) {
@@ -1089,7 +1100,7 @@ public class ExchangeManager {
 					}
 				} else {
 					// Perform test for a load from a google sheets export
-					col = getColumn(results, form.table_name, pstmtGetColGS, pstmtGetChoices, colName, eh.columns, responseMsg, localisation, preloads);
+					col = getColumn(sd, results, sIdent, form.f_id, form.table_name, pstmtGetColGS, pstmtGetChoices, colName, eh.columns, responseMsg, localisation, preloads);
 					if(col != null) {
 						col.index = i;
 						if(col.geomCol != null) {
