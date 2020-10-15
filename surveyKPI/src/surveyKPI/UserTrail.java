@@ -109,8 +109,8 @@ public class UserTrail extends Application {
 		ResultSet resultSet = null;
 		try {
 			
-			String sql = "SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +
-						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +	
+			String sql = "SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +			// keep this
+						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +	// keep this
 						"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
 						"u.name as user_name " +	
 					"FROM user_trail ut, users u  " +
@@ -198,8 +198,8 @@ public class UserTrail extends Application {
 		ResultSet resultSet = null;
 		try {
 			
-			String sql = "SELECT t.id as id, ST_X(ST_Transform(t.the_geom, 3857)) as x, " +
-						"ST_Y(ST_Transform(t.the_geom, 3857)) as y, t.completion_time as completion_time, " +	
+			String sql = "SELECT t.id as id, ST_X(ST_Transform(t.the_geom, 3857)) as x, " +		// keep this
+						"ST_Y(ST_Transform(t.the_geom, 3857)) as y, t.completion_time as completion_time, " +	// keep this	
 						"u.name as user_name " +	
 					"FROM task_completion t, user_project up, users u  " +
 					"where up.p_id = ? " + 	

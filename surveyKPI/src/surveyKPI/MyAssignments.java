@@ -835,7 +835,7 @@ public class MyAssignments extends Application {
 						"form_ident, " +
 						"form_version, " +
 						"uuid,"	+
-						"the_geom," +
+						"the_geom," +		// keep this
 						"completion_time" +
 						") " +
 						"values(?, ?, ?, ?, ?, ST_GeomFromText(?, 4326), ?)";
@@ -863,7 +863,7 @@ public class MyAssignments extends Application {
 					String sqlTrail = "insert into user_trail (" +
 							"u_id, " +
 							"device_id, " +			
-							"the_geom," +
+							"the_geom," +		// keep this
 							"event_time" +
 							") " +
 							"values(?, ?, ST_GeomFromText(?, 4326), ?);";

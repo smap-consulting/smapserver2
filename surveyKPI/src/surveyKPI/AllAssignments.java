@@ -1031,26 +1031,30 @@ public class AllAssignments extends Application {
 
 					int count = 0;
 					if(isCSV) {
-						count = xm.loadFormDataFromCsvFile(results, 
-							pstmtGetCol, 
-							pstmtGetColGS,
-							pstmtGetChoices, 
-							f, 
-							formDesc, 
-							sIdent,
-							mediaFiles,
-							responseMsg,
-							basePath,
-							localisation,
-							preloads,
-							uploadedFileName,
-							importTime,
-							request.getServerName(),
-							sdf);
+						count = xm.loadFormDataFromCsvFile(
+								sd,
+								results, 
+								pstmtGetCol, 
+								pstmtGetColGS,
+								pstmtGetChoices, 
+								f, 
+								formDesc, 
+								sIdent,
+								mediaFiles,
+								responseMsg,
+								basePath,
+								localisation,
+								preloads,
+								uploadedFileName,
+								importTime,
+								request.getServerName(),
+								sdf);
 					} else {
 						 try (OPCPackage p = OPCPackage.open(f.getPath(), PackageAccess.READ)) {
 					            XLSXEventParser ep = new XLSXEventParser(p);
-					            count = ep.processSheet(results, 
+					            count = ep.processSheet(
+					            		sd,
+					            		results, 
 					            		pstmtGetCol,
 					            		pstmtGetChoices,
 					            		pstmtGetColGS,

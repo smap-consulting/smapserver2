@@ -56,6 +56,7 @@ public class XLSXEventParser {
 		ExchangeHeader eh = new ExchangeHeader();
 		boolean hasError = false;;
 
+		Connection sd;
 		Connection results;
 		PreparedStatement pstmtGetCol;
 		PreparedStatement pstmtGetChoices;
@@ -72,7 +73,9 @@ public class XLSXEventParser {
 		HashMap<String, File> mediaFiles;
 		SimpleDateFormat sdf;
 
-		ProcessSheetHandler(Connection results,
+		ProcessSheetHandler(
+				Connection sd,
+				Connection results,
 				FormDesc form,
 				PreparedStatement pstmtGetCol,
 				PreparedStatement pstmtGetChoices,
@@ -88,6 +91,7 @@ public class XLSXEventParser {
 				HashMap<String, File> mediaFiles,
 				SimpleDateFormat sdf) {
 
+			this.sd = sd;
 			this.results = results;
 			this.pstmtGetCol = pstmtGetCol;
 			this.pstmtGetChoices = pstmtGetChoices;
@@ -121,7 +125,10 @@ public class XLSXEventParser {
 			if(line.length > 0 && !hasError) {
 				if(isHeader) {
 					try {
-						em.processHeader(results, 
+						em.processHeader(
+								sd,
+								results, 
+								sIdent,
 								pstmtGetCol, 
 								pstmtGetChoices,
 								pstmtGetColGS,
@@ -230,7 +237,9 @@ public class XLSXEventParser {
 	 * @throws SAXException if parsing the XML data fails.
 	 * @throws SQLException 
 	 */
-	public int processSheet(Connection results, 
+	public int processSheet(
+			Connection sd,
+			Connection results, 
 			PreparedStatement pstmtGetCol, 
 			PreparedStatement pstmtGetChoices,
 			PreparedStatement pstmtGetColGS, 
@@ -268,7 +277,7 @@ public class XLSXEventParser {
 						XMLReader sheetParser = SAXHelper.newXMLReader();
 						ContentHandler handler = new SmapSheetXMLHandler(
 								styles, null, strings, 
-								(SheetContentsHandler) new ProcessSheetHandler(results, form,
+								(SheetContentsHandler) new ProcessSheetHandler(sd, results, form,
 										pstmtGetCol, pstmtGetChoices, pstmtGetColGS, responseMsg, 
 										preloads, em,
 										importSource,

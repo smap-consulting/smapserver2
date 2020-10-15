@@ -234,7 +234,7 @@ public class Results extends Application {
 			
 			// Get the geo table data
 			if(geoTable != null) {
-				q.add(new QuestionInfo(geoTable, "the_geom", true, "the_geom"));
+				q.add(new QuestionInfo(geoTable, "the_geom", true, "the_geom"));		// keep this for now
 				q.add(new QuestionInfo(geoTable, "name", true, "name"));
 				tables.add(geoTable, -1, -1);
 			}
@@ -930,18 +930,20 @@ public class Results extends Application {
 	private String getGeometryJoin(ArrayList<QuestionInfo> q) {
 		String sqlFrag = null;
 		String geomInternalTable = null;
+		String geomInternalColumn = null;
 		String geomExternalTable = null;
 		
 		for(int i = 0; i < q.size(); i++) {
 			QuestionInfo aQuestion = q.get(i);
 			if(isGeom(aQuestion.getType())) {
 				geomInternalTable = aQuestion.getTableName();
+				geomInternalColumn = aQuestion.getColumnName();
 			} else if(aQuestion.isGeom()) {
 				geomExternalTable = aQuestion.getTableName();
 			}
 		}
 		if(geomInternalTable != null && geomExternalTable != null) {
-			sqlFrag = "ST_Within(" + geomInternalTable + ".the_geom, " + geomExternalTable + ".the_geom)"; 
+			sqlFrag = "ST_Within(" + geomInternalTable + "." + geomInternalColumn + ", " + geomExternalTable + ".the_geom)"; 
 		}
 		return sqlFrag;
 	}
