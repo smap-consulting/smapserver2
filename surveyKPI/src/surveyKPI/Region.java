@@ -94,7 +94,7 @@ public class Region extends Application {
 			
 			connection = ResultsDataSource.getConnection("surveyKPI-Region");
 			
-			sql = "select name, ST_AsGeoJSON(the_geom) " +
+			sql = "select name, ST_AsGeoJSON(the_geom) " +		// keep this for now
 					"from " + tableName + ";"; 
 		
 			log.info("SQL: " + sql + " : " + region);
