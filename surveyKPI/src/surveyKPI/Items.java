@@ -279,20 +279,23 @@ public class Items extends Application {
 				JSONArray columns = new JSONArray();
 				JSONArray types = new JSONArray();
 				ArrayList<String> sscList = new ArrayList<String> ();
+				boolean hasGeometry = false;
+				String geomColumn = null;
 				
 				for(TableColumn c : columnList) {
 					if(newColIdx > 0) {
 						cols.append(",");
 					}
-					if(bGeom && (c.type.equals("geopoint") || c.type.equals("geopolygon") 
-							|| c.type.equals("geolinestring") || c.type.equals("geotrace")
-							|| c.type.equals("geoshape"))) {
+					if(bGeom && c.isGeometry()) {
 						
-						if(geomQuestionMap == null || geomQuestionMap.get(c.question_name) != null) {		// Not fussy about geom question or requested this one
-							geomIdx = newColIdx;
-							geomType = c.type;
+						cols.append("ST_AsText(" + tName + "." + c.column_name + ") " + " as " +  c.column_name);
+						if(geomQuestionMap != null && geomQuestionMap.size() > 0) {
+							if(geomQuestionMap.get(c.question_name) != null) {		// requested this one
+								geomColumn = c.column_name;
+								hasGeometry = true;
+								geomType = c.type;
+							}						
 						}
-						cols.append("ST_AsGeoJSON(" + tName + "." + c.column_name + ") ");
 					
 					} else if(GeneralUtilityMethods.isAttachmentType(c.type)) {
 							cols.append("'" + urlprefix + "' || " + tName + "." + c.column_name + " as " + c.column_name);
@@ -334,6 +337,10 @@ public class Items extends Application {
 					types.put(c.type);
 					newColIdx++;
 				}
+				if(hasGeometry) {	// Put the geojson select of teh geometry at the end
+					geomIdx = newColIdx;
+					cols.append(",ST_AsGeoJSON(" + tName + "." + geomColumn + ") " + " as geomvalue");
+				}
 				
 				boolean hasImportSourceColumn = GeneralUtilityMethods.hasColumn(cResults, tName, "_import_source");
 				if(hasImportSourceColumn) {
@@ -362,31 +369,40 @@ public class Items extends Application {
 
 					if(geomType != null) {
 						if(sscFn.equals("area")) {
-							String colName = sscName + " (" + sscUnits + ")";
-							if(newColIdx != 0 ) {cols.append(",");}
-							cols.append("ST_Area(geography(the_geom), true)");
-							if(sscUnits.equals("hectares")) {
-								cols.append(" / 10000");
+							geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geoshape");
+							if(geomColumn != null) {
+								String colName = sscName + " (" + sscUnits + ")";
+								if(newColIdx != 0 ) {
+									cols.append(",");
+								}
+								cols.append("ST_Area(geography(" + geomColumn + "), true)");
+								if(sscUnits.equals("hectares")) {
+									cols.append(" / 10000");
+								}
+								cols.append(" as \"" + colName + "\"");
+								columns.put(colName);
+								newColIdx++;
+								sscList.add(colName);
 							}
-							cols.append(" as \"" + colName + "\"");
-							columns.put(colName);
-							newColIdx++;
-							sscList.add(colName);
 						} else if (sscFn.equals("length")) {
-							String colName = sscName + " (" + sscUnits + ")";
-							if(newColIdx != 0 ) {cols.append(",");}
-							if(geomType.equals("geopolygon") || geomType.equals("geoshape")) {
-								cols.append("ST_Length(geography(the_geom), true)");
-							} else {
-								cols.append("ST_Length(geography(the_geom), true)");
+							geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geoshape");
+							if(geomColumn == null) {
+								geomColumn = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geotrace");
 							}
-							if(sscUnits.equals("km")) {
-								cols.append(" / 1000");
+							if(geomColumn != null) {
+								String colName = sscName + " (" + sscUnits + ")";
+								if(newColIdx != 0 ) {
+									cols.append(",");
+								}
+								cols.append("ST_Length(geography(" + geomColumn + "), true)");
+								if(sscUnits.equals("km")) {
+									cols.append(" / 1000");
+								}
+								cols.append(" as \"" + colName + "\"");
+								columns.put(colName);
+								newColIdx++;
+								sscList.add(colName);
 							}
-							cols.append(" as \"" + colName + "\"");
-							columns.put(colName);
-							newColIdx++;
-							sscList.add(colName);
 						} else {
 							log.info("Invalid SSC function: " + sscFn);
 						}
@@ -658,53 +674,51 @@ public class Items extends Application {
 					
 					jr.put("type", "Feature");
 
+					if(geomIdx > 0) {
+						// Add Geometry
+						String geomValue = resultSet.getString(geomIdx + 1);	
+						if(geomValue != null) {	
+							jg = new JSONObject(geomValue);
+						}
+					}
 					for(int i = 0; i < colNames.size(); i++) {	
-						
-						if(i == geomIdx) {							
-							// Add Geometry (assume one geometry type per table)
-							String geomValue = resultSet.getString(i + 1);	
-							if(geomValue != null) {	
-								jg = new JSONObject(geomValue);
-							}
-						} else {
-							
-							//String name = rsMetaData.getColumnName(i);	
-							String name = colNames.get(i);
-							String headerName = columns.getString(i);
-							String value = resultSet.getString(i + 1);	
-							if(value == null) {
-								value = "";
-							}
-							
-							if(name.equals("prikey")) {
-								JSONArray prikeys = new JSONArray();
-								jp.put("prikeys", prikeys);
-								prikeys.put(resultSet.getString("prikey"));
-								maxRec = resultSet.getInt("prikey");
-							} else if(name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
-								// Get the display name
-								String displayName = "";
-								if(value.length() > 0 && !value.equals("0")) {
-									displayName = surveyNames.get(value);
-									if(displayName == null) {
-										displayName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(value));
-										surveyNames.put(value, displayName);
-									}
-								} else {
-									if(hasImportSourceColumn) {
-										displayName = resultSet.getString("_import_source");
-										if(displayName == null) {
-											displayName = "";
-										}
-									} 
+
+						//String name = rsMetaData.getColumnName(i);	
+						String name = colNames.get(i);
+						String headerName = columns.getString(i);
+						String value = resultSet.getString(i + 1);	
+						if(value == null) {
+							value = "";
+						}
+
+						if(name.equals("prikey")) {
+							JSONArray prikeys = new JSONArray();
+							jp.put("prikeys", prikeys);
+							prikeys.put(resultSet.getString("prikey"));
+							maxRec = resultSet.getInt("prikey");
+						} else if(name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+							// Get the display name
+							String displayName = "";
+							if(value.length() > 0 && !value.equals("0")) {
+								displayName = surveyNames.get(value);
+								if(displayName == null) {
+									displayName = GeneralUtilityMethods.getSurveyName(sd, Integer.parseInt(value));
+									surveyNames.put(value, displayName);
 								}
-								jp.put(headerName, displayName);
 							} else {
-								jp.put(headerName, value);
+								if(hasImportSourceColumn) {
+									displayName = resultSet.getString("_import_source");
+									if(displayName == null) {
+										displayName = "";
+									}
+								} 
 							}
+							jp.put(headerName, displayName);
+						} else {
+							jp.put(headerName, value);
 						}
 					} 
-					
+
 					/*
 					 * Get the server side calculates
 					 */
