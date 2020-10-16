@@ -9762,5 +9762,34 @@ public class GeneralUtilityMethods {
     	return geomColumn;
     }
 
+    /*
+     * Get a geometry question name of a specific type form a form
+     */
+    public static String getGeomNameOfType(Connection sd, int sId, int fId, String type) throws SQLException {
+    	
+    	String geomColumn = null;
+    	String sql = "select qname, qtype from question "
+    			+ "where f_id = ? "
+    			+ "and qtype = ? "
+    			+ "and published "
+    			+ "and not soft_deleted" ;
+    	PreparedStatement pstmt = null;
+    	
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setInt(1,  fId);
+    		pstmt.setString(2, type);
+    		log.info(pstmt.toString());
+    		ResultSet rs = pstmt.executeQuery();
+    		if(rs.next()) {
+    			geomColumn = rs.getString(1);
+    		}
+    		
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+ 
+    	return geomColumn;
+    }
 }
 
