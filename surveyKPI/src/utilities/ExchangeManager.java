@@ -116,7 +116,9 @@ public class ExchangeManager {
 			boolean superUser,
 			boolean incMedia,
 			int startRec,
-			int endRec) throws Exception {
+			int endRec,
+			ArrayList<String> responseMsg
+			) throws Exception {
 		
 		wb = new SXSSFWorkbook(10);
 		Sheet sheet = null;
@@ -283,7 +285,8 @@ public class ExchangeManager {
 								incMedia,
 								startRec,
 								endRec,
-								level);
+								level,
+								responseMsg);
 						
 					} catch(Exception e) {
 						// Ignore errors if the only problem is that the tables have not been created yet
@@ -626,7 +629,8 @@ public class ExchangeManager {
 			boolean incMedia,
 			int startRec,
 			int endRec,
-			int level) throws Exception {
+			int level,
+			ArrayList<String> responseMsg) throws Exception {
 		
 		StringBuffer sql = new StringBuffer();
 		PreparedStatement pstmt = null;
@@ -725,7 +729,7 @@ public class ExchangeManager {
 						// Write out the previous multiple choice value before continuing with the non multiple choice value
 						if(currentSelectMultipleQuestionName != null) {
 							ArrayList<String> values = getContent(sd, multipleChoiceValue, false, 
-									currentSelectMultipleQuestionName, "select");
+									currentSelectMultipleQuestionName, "select", responseMsg);
 							for(int j = 0; j < values.size(); j++) {
 								writeValue(row, colIndex++, values.get(j), sheet, styles);
 							}
@@ -768,7 +772,7 @@ public class ExchangeManager {
 					}
 					
 					if(writeValue) {
-						ArrayList<String> values = getContent(sd, value, false, columnName, columnType);
+						ArrayList<String> values = getContent(sd, value, false, columnName, columnType, responseMsg);
 						for(int j = 0; j < values.size(); j++) {
 							writeValue(row, colIndex++, values.get(j), sheet, styles);
 						}
@@ -811,7 +815,8 @@ public class ExchangeManager {
 	 * Return the text
 	 */
 	private ArrayList<String> getContent(Connection con, String value, boolean firstCol, String columnName,
-			String columnType) throws NumberFormatException, SQLException {
+			String columnType,
+			ArrayList<String> responseMsg) throws NumberFormatException, SQLException {
 
 		ArrayList<String> out = new ArrayList<String>();
 		if(value == null) {
@@ -840,6 +845,11 @@ public class ExchangeManager {
 				out.add(value.substring(idx + 1, idx2));
 			} else {
 				out.add("");
+			}
+			if(idx < 0 || idx2 < 0 || idx2 < idx) {
+				responseMsg.add(
+						localisation.getString("imp_mfg") +
+						" " + value);
 			}
 
 			
@@ -1032,7 +1042,6 @@ public class ExchangeManager {
 			col.type = "decimal";
 		} else {
 			pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
-			log.info("Get column: " + pstmtGetCol.toString());
 			ResultSet rs = pstmtGetCol.executeQuery();
 			if(rs.next()) {
 				// This column name is in the survey
@@ -1183,7 +1192,7 @@ public class ExchangeManager {
 				if(col.write) {
 					if(col.type.equals("geoshape")) {
 						sqlInsert.append(",").append("ST_GeomFromText('POLYGON((' || ? || '))', 4326)");
-						
+					
 					} else if(col.type.equals("geotrace")) {
 						sqlInsert.append(",").append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
 					
@@ -1410,6 +1419,11 @@ public class ExchangeManager {
 					
 					Time tVal = new Time(hour, minute, second);
 					eh.pstmtInsert.setTime(index++, tVal);
+				} else if(col.type.equals("geoshape")) {
+					if(!notEmpty(value)) {		
+						value = null;
+					}
+					eh.pstmtInsert.setString(index++, value);
 				} else {
 					eh.pstmtInsert.setString(index++, value);
 				}
