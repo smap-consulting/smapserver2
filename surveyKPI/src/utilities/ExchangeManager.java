@@ -442,7 +442,7 @@ public class ExchangeManager {
 						line, 
 						form);	
 				
-				if(eh.columns.size() > 0 || (eh.lonIndex >= 0 && eh.latIndex >= 0)) {
+				if(eh.columns.size() > 0) {
 					
 					/*
 					 * Get the data
@@ -548,11 +548,12 @@ public class ExchangeManager {
 			boolean merge_select_multiple) throws SQLException {
 		
 		if(qType != null && qType.equals("geopoint")) {
-			cols.add(new ExchangeColumn("lat"));
-			cols.add(new ExchangeColumn("lon"));
+			cols.add(new ExchangeColumn(human_name + "__lat"));
+			cols.add(new ExchangeColumn(human_name + "__lon"));
 		} else {
 			ExchangeColumn col = new ExchangeColumn(human_name);
 			if(qType.equals("image")) {
+				// TODO ??
 			}
 			cols.add(col);
 			
@@ -888,167 +889,208 @@ public class ExchangeManager {
 			ArrayList<ExchangeColumn> columns,
 			ArrayList<String> responseMsg,
 			ResourceBundle localisation,
-			ArrayList<MetaItem> preloads
+			ArrayList<MetaItem> preloads,
+			int index,
+			boolean incTwiceMsg
 			) throws SQLException {
 		
 		ExchangeColumn col = null;
 		String geomCol = null;
 		String geomColumnName = null;
 		int sId;
+		int latIndex = -1;
+		int lonIndex = -1;
 		
 		// Cater for lat, lon columns which map to a geopoint
 		// This is the old format which assumes a single geometry in a form
 		if(qName.equals("lat") || qName.equals("lon") 
 				|| qName.equals("plotgpsLatitude") || qName.equals("plotgpsLongitude")) {
-			geomCol = qName;
 			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
 			geomColumnName = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geopoint");
 			if(qName.equals("lat") || qName.equals("lon")) {
-				qName = geomColumnName;
+				qName = GeneralUtilityMethods.getGeomNameOfType(sd, sId, fId, "geopoint");
+			}
+			geomCol = qName;
+			if(qName.equals("lat")) {
+				latIndex = index;
+			} else {
+				lonIndex = index;
 			}
 		} 
 		
+		// Handle new geopoints which append the __lat and __lon values
+		if(qName.endsWith("__lat") || qName.endsWith("__lon")) {
+			int idx = qName.lastIndexOf("__");
+			
+			if(qName.endsWith("__lat")) {
+				latIndex = index;
+			} else {
+				lonIndex = index;
+			}
+			
+			qName = qName.substring(0, idx);
+			geomCol = qName;
+		}
+		
 		// Only add this question if it has not previously been added, questions can only be updated once in a single transaction
-		boolean questionExists = false;
 		for(ExchangeColumn haveColumn : columns) {
 			if(haveColumn.name.equals(qName)) {
-				questionExists = true;
-				break;
+				// Add the geopoint column information
+				if(latIndex >= 0) {
+					haveColumn.latIndex = latIndex;
+				} else if(lonIndex >= 0) {
+					haveColumn.lonIndex = lonIndex;
+				} else if(incTwiceMsg) {
+					responseMsg.add(
+							localisation.getString("mf_col") +
+							" " + qName + " " +
+							localisation.getString("imp_i2"));
+				}
+				return null;
 			}
 		}
 		
-		if(!questionExists) {
-			if(qName.equals("prikey") || qName.equals("metainstanceid")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "prikey";
-				col.type = "int";
-				col.write = false;					// Don't write the primary key a new one will be generated
-			} else if(qName.equals("parkey") || qName.equals("parentuid")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "parkey";
-				col.type = "int";
-			} else if(qName.equals("Key") || qName.equals("_hrk")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "_hrk";
-				col.type = "string";
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
-					GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "text");
-				}
-			} else if(qName.equals("User") || qName.equals("_user")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "_user";
-				col.type = "string";
-			} else if(qName.equals("Survey Name") || qName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = SmapServerMeta.SURVEY_ID_NAME;
-				col.type = "int";
-			} else if(qName.equals("Survey Notes") || qName.equals("_survey_notes")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "_survey_notes";
-				col.type = "int";
-			} else if(qName.equals("Location Trigger") || qName.equals("_location_trigger")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "_location_trigger";
-				col.type = "int";
-			} else if(qName.equals("Upload Time") || qName.equals(SmapServerMeta.UPLOAD_TIME_NAME) || qName.equals("metasubmissiondate")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = SmapServerMeta.UPLOAD_TIME_NAME;
-				col.type = "dateTime";
-			} else if(qName.equals(SmapServerMeta.SCHEDULED_START_NAME)) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = SmapServerMeta.SCHEDULED_START_NAME;
-				col.type = "dateTime";
-				if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
-					GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "timestamp with time zone");
-				}
-			} else if(qName.equals("Version") || qName.equals("_version")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "_version";
-				col.type = "int";
-			} else if(qName.equals("Complete") || qName.equals("_complete") || qName.equals("metaiscomplete")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "_complete";
-				col.type = "boolean";
-			} else if(qName.equals("Instance Name") || qName.equals("instancename")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = "instancename";
-				col.type = "string";
-			} else if(qName.toLowerCase().equals("instanceid")) {
-				// Don't add a column, instanceid is added by default, however record the column for this data
-			} else if(qName.equals("plotgpsAltitude")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = geomColumnName + "_alt";
-				col.type = "decimal";
-			} else if(qName.equals("plotgpsAccuracy")) {
-				col = new ExchangeColumn();
-				col.name = qName;
-				col.columnName = geomColumnName + "_acc";
-				col.type = "decimal";
-			} else {
-				pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
-				log.info("Get column: " + pstmtGetCol.toString());
-				ResultSet rs = pstmtGetCol.executeQuery();
-				if(rs.next()) {
-					// This column name is in the survey
-					col = new ExchangeColumn();
-					col.name = qName;
-					col.columnName = rs.getString("column_name");
-					col.geomCol = geomCol;				// This column holds the latitude, longitude, Altitude, Accuracy or none of these
-					col.type = rs.getString("qtype");
-					
-					if(col.type.startsWith("select")) {
-						
-						// Get choices for this select question
-						int qId = rs.getInt("q_id");
-						
-						col.choices = new ArrayList<Option> ();
-						pstmtGetChoices.setInt(1, qId);
-						log.info("Get choices:" + pstmtGetChoices.toString());
-						ResultSet rsChoices = pstmtGetChoices.executeQuery();
-						while(rsChoices.next()) {
-							Option o = new Option();
-							o.columnName = rsChoices.getString("column_name");
-							o.value = rsChoices.getString("ovalue");
-							col.choices.add(o);
-						}
-					}
-				} else {
-					// Check to see if it is a preload
-					
-					for(MetaItem mi : preloads) {
-						if(mi.isPreload) {
-							if(mi.name.equals(qName)) {
-								col = new ExchangeColumn();
-								col.name = qName;
-								col.columnName = mi.columnName;
-								col.type = mi.type;
-								break;
-							}
-						}
-					}
-				}
-			}
-		} else {
-			responseMsg.add(
-					localisation.getString("mf_col") +
-					" " + qName + " " +
-					localisation.getString("imp_i2"));
 
+		if(qName.equals("prikey") || qName.equals("metainstanceid")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "prikey";
+			col.type = "int";
+			col.write = false;					// Don't write the primary key a new one will be generated
+		} else if(qName.equals("parkey") || qName.equals("parentuid")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "parkey";
+			col.type = "int";
+		} else if(qName.equals("Key") || qName.equals("_hrk")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_hrk";
+			col.type = "string";
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
+				GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "text");
+			}
+		} else if(qName.equals("User") || qName.equals("_user")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_user";
+			col.type = "string";
+		} else if(qName.equals("Survey Name") || qName.equals(SmapServerMeta.SURVEY_ID_NAME)) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = SmapServerMeta.SURVEY_ID_NAME;
+			col.type = "int";
+		} else if(qName.equals("Survey Notes") || qName.equals("_survey_notes")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_survey_notes";
+			col.type = "int";
+		} else if(qName.equals("Location Trigger") || qName.equals("_location_trigger")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_location_trigger";
+			col.type = "int";
+		} else if(qName.equals("Upload Time") || qName.equals(SmapServerMeta.UPLOAD_TIME_NAME) || qName.equals("metasubmissiondate")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = SmapServerMeta.UPLOAD_TIME_NAME;
+			col.type = "dateTime";
+		} else if(qName.equals(SmapServerMeta.SCHEDULED_START_NAME)) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = SmapServerMeta.SCHEDULED_START_NAME;
+			col.type = "dateTime";
+			if(!GeneralUtilityMethods.hasColumn(cResults, tableName, col.columnName)) {			// Add this column if it is not already in the table
+				GeneralUtilityMethods.addColumn(cResults, tableName, col.columnName, "timestamp with time zone");
+			}
+		} else if(qName.equals("Version") || qName.equals("_version")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_version";
+			col.type = "int";
+		} else if(qName.equals("Complete") || qName.equals("_complete") || qName.equals("metaiscomplete")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "_complete";
+			col.type = "boolean";
+		} else if(qName.equals("Instance Name") || qName.equals("instancename")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = "instancename";
+			col.type = "string";
+		} else if(qName.toLowerCase().equals("instanceid")) {
+			// Don't add a column, instanceid is added by default, however record the column for this data
+		} else if(qName.equals("plotgpsAltitude")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = geomColumnName + "_alt";
+			col.type = "decimal";
+		} else if(qName.equals("plotgpsAccuracy")) {
+			col = new ExchangeColumn();
+			col.name = qName;
+			col.columnName = geomColumnName + "_acc";
+			col.type = "decimal";
+		} else {
+			pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
+			log.info("Get column: " + pstmtGetCol.toString());
+			ResultSet rs = pstmtGetCol.executeQuery();
+			if(rs.next()) {
+				// This column name is in the survey
+				col = new ExchangeColumn();
+				col.name = qName;
+				col.columnName = rs.getString("column_name");
+				if(geomCol != null) {
+					col.geomCol = geomCol;				// This column holds the latitude, longitude, Altitude, Accuracy or none of these
+				}
+
+				col.type = rs.getString("qtype");
+				if(latIndex >= 0) {
+					col.latIndex = latIndex;
+				} else {
+					col.lonIndex = lonIndex;
+				}
+
+				if(col.type.startsWith("select")) {
+
+					// Get choices for this select question
+					int qId = rs.getInt("q_id");
+
+					col.choices = new ArrayList<Option> ();
+					pstmtGetChoices.setInt(1, qId);
+					log.info("Get choices:" + pstmtGetChoices.toString());
+					ResultSet rsChoices = pstmtGetChoices.executeQuery();
+					while(rsChoices.next()) {
+						Option o = new Option();
+						o.columnName = rsChoices.getString("column_name");
+						o.value = rsChoices.getString("ovalue");
+						col.choices.add(o);
+					}
+				}
+			} else {
+				// Check to see if it is a preload
+
+				for(MetaItem mi : preloads) {
+					if(mi.isPreload) {
+						if(mi.name.equals(qName)) {
+							col = new ExchangeColumn();
+							col.name = qName;
+							col.columnName = mi.columnName;
+							col.type = mi.type;
+							break;
+						}
+					}
+				}
+			}
 		}
-		
+
+		if(col == null && incTwiceMsg) {
+			responseMsg.add(
+					localisation.getString("imp_qn") +
+					" " + qName + " " +
+					localisation.getString("imp_nfi") +
+					": " + tableName);  
+		}
+	
 		return col;
 	}
 	
@@ -1079,41 +1121,17 @@ public class ExchangeManager {
 				// Do this test for a load from excel
 				ExchangeColumn col = getColumn(sd, results, sIdent, form.f_id, form.table_name, pstmtGetCol, 
 						pstmtGetChoices, colName, eh.columns, 
-						responseMsg, localisation, preloads);
+						responseMsg, localisation, preloads, i, true);
 				if(col != null) {
 					col.index = i;
-					if(col.geomCol != null) {
-						// Do not add the geom columns to the list of columns to be parsed
-						if(col.geomCol.equals("lon") || col.geomCol.equals("plotgpsLongitude")) {
-							eh.lonIndex = i;
-						} else if(col.geomCol.equals("lat") || col.geomCol.equals("plotgpsLatitude")) {
-							eh.latIndex = i;
-						} 
-					} else {
-						eh.columns.add(col);
-					}
+					eh.columns.add(col);
 				} else {
 					// Perform test for a load from a google sheets export
-					col = getColumn(sd, results, sIdent, form.f_id, form.table_name, pstmtGetColGS, pstmtGetChoices, colName, eh.columns, responseMsg, localisation, preloads);
+					col = getColumn(sd, results, sIdent, form.f_id, form.table_name, pstmtGetColGS, pstmtGetChoices, colName, eh.columns, responseMsg, localisation, preloads, i, false);
 					if(col != null) {
 						col.index = i;
-						if(col.geomCol != null) {
-							// Do not add the geom columns to the list of columns to be parsed
-							if(col.geomCol.equals("lon") || col.geomCol.equals("plotgpsLongitude")) {
-								eh.lonIndex = i;
-							} else if(col.geomCol.equals("lat") || col.geomCol.equals("plotgpsLatitude")) {
-								eh.latIndex = i;
-							} 
-						} else {
-							eh.columns.add(col);
-						}
-					} else {
-						responseMsg.add(
-								localisation.getString("imp_qn") +
-								" " + colName + " " +
-								localisation.getString("imp_nfi") +
-								": " + form.name);  
-					}
+						eh.columns.add(col);
+					} 
 				}
 			}
 
@@ -1121,7 +1139,7 @@ public class ExchangeManager {
 		
 		log.info("Loading data from " + eh.columns.size() + " columns out of " + line.length + " columns in the data file");
 		
-		if(eh.columns.size() > 0 || (eh.lonIndex >= 0 && eh.latIndex >= 0)) {
+		if(eh.columns.size() > 0) {
 				
 			/*
 			 * Add the source column if it is not already in the results table
@@ -1146,15 +1164,7 @@ public class ExchangeManager {
 				if(col.write) {
 					sqlInsert.append(",").append(col.columnName);
 				} 
-			}
-			
-			// Add the geopoint column if latitude and longitude were provided in the data file
-			if(eh.lonIndex >= 0 && eh.latIndex >= 0 ) {
-				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-				String geomColumnName = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, form.f_id, "geopoint");
-				sqlInsert.append(",").append(geomColumnName);;
-				eh.hasGeopoint = true;
-			}
+			}			
 			
 			/*
 			 * Add place holders for the data
@@ -1176,16 +1186,16 @@ public class ExchangeManager {
 						
 					} else if(col.type.equals("geotrace")) {
 						sqlInsert.append(",").append("ST_GeomFromText('LINESTRING(' || ? || ')', 4326)");
+					
+					}  else if(col.type.equals("geopoint")) {
+						sqlInsert.append(",").append("ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326)");
+					
 					} else {
 						sqlInsert.append(",").append("?");
 					}
 				}
 			}
 			
-			// Add the geopoint value
-			if(eh.hasGeopoint) {
-				sqlInsert.append(",").append("ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326)");
-			}
 			sqlInsert.append(")");
 			
 			eh.pstmtInsert = results.prepareStatement(sqlInsert.toString(), Statement.RETURN_GENERATED_KEYS);
@@ -1246,165 +1256,165 @@ public class ExchangeManager {
 				continue;
 			}
 			
-			String value = line[col.index].trim();	
 
-			if(col.name.equals("prikey") || col.name.equals("metainstanceid")) {
-				prikey = value;
-			} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
-				if(form.parent == 0) {
-					eh.pstmtInsert.setInt(index++, 0);
-				} else {
-					String parkey = value;
-					String newParKey = form.parentForm.keyMap.get(parkey);
-					int iParKey = -1;
-					try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
-					if(newParKey == null || iParKey == -1) {
-						responseMsg.add(
-								localisation.getString("pk_nf") +
-								" " + parkey + " " +
-								localisation.getString("pk_if") +
-								" " + form.name);
-						writeRecord = false;
-					} else {
-						eh.pstmtInsert.setInt(index++, iParKey);
-					}
+			if(col.type.equals("geopoint") && col.lonIndex >=0 && col.latIndex >= 0) {
+				String lon = null;
+				String lat = null;
+				if(col.lonIndex < line.length && col.latIndex < line.length) {
+					lon = line[col.lonIndex];
+					lat = line[col.latIndex];
 				}
-			} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
+				if(lon == null || lon.length() == 0) {
+					lon = "0.0";
+				}
+				if(lat == null || lat.length() == 0) {
+					lat = "0.0";
+				}
+				eh.pstmtInsert.setString(index++, lon);
+				eh.pstmtInsert.setString(index++, lat);
+			} else {
 				
-				// If the data references a media file then process the attachment
-				File srcPathFile = null;
-				String srcUrl = null;
-				if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
-					
-					// If the link is to a file on the same server (or this is localhost) do not duplicate the media
-					value = value.trim();
-					String serverHttpsUrl = "https://" + serverName + "/";
-					String serverHttpUrl = "http://" + serverName + "/";
-					if(serverName.equals("localhost") || value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
-						int idx = value.indexOf(serverName) + serverName.length();
-						value = value.substring(idx);
-					} else {
-						// Get the attachment from the link so it can be loaded
-						srcUrl = value;
-						value = UUID.randomUUID().toString();	// Create a random name for the initial download
-					}
-				} else {
-					// Attachment should have been loaded with the zip file
-					srcPathFile = mediaFiles.get(value);
-				}
+				String value = line[col.index].trim();	
 				
-				// Copy the attachments to the target location and get the new name
-				if(srcPathFile != null || srcUrl != null) {
-					value = GeneralUtilityMethods.createAttachments(
-						value, 
-						srcPathFile, 
-						basePath, 
-						sIdent,
-						srcUrl,
-						null);
-				}
-				if(value != null && value.trim().length() == 0) {
-					value = null;
-				}
-				eh.pstmtInsert.setString(index++, value);
-			} else if(col.type.equals("int")) {
-				int iVal = 0;
-				if(notEmpty(value)) {
-					try { iVal = Integer.parseInt(value);} catch (Exception e) {}
-				}
-				eh.pstmtInsert.setInt(index++, iVal);
-			} else if(col.type.equals("decimal") || col.type.equals("range")) {
-				double dVal = 0.0;
-				if(notEmpty(value)) {
-					try { dVal = Double.parseDouble(value);} catch (Exception e) {}
-				}
-				eh.pstmtInsert.setDouble(index++, dVal);
-			} else if(col.type.equals("boolean")) {
-				boolean bVal = false;
-				if(notEmpty(value)) {
-					try { bVal = Boolean.parseBoolean(value);} catch (Exception e) {}
-				}
-				eh.pstmtInsert.setBoolean(index++, bVal);
-			} else if(col.type.equals("date")) {
-				Date dateVal = null;
-				if(notEmpty(value)) {
-					try {
-						dateVal = Date.valueOf(value); 
-						
-					} catch (Exception e) {
-						try {
-							java.util.Date uDate = sdf.parse(value);		
-							dateVal = new Date(uDate.getTime());
-						} catch (Exception ex) {
-							log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+				if(col.name.equals("prikey") || col.name.equals("metainstanceid")) {
+					prikey = value;
+				} else if(col.name.equals("parkey") || col.name.equals("parentuid")) {
+					if(form.parent == 0) {
+						eh.pstmtInsert.setInt(index++, 0);
+					} else {
+						String parkey = value;
+						String newParKey = form.parentForm.keyMap.get(parkey);
+						int iParKey = -1;
+						try {iParKey = Integer.parseInt(newParKey); } catch (Exception e) {}
+						if(newParKey == null || iParKey == -1) {
+							responseMsg.add(
+									localisation.getString("pk_nf") +
+									" " + parkey + " " +
+									localisation.getString("pk_if") +
+									" " + form.name);
+							writeRecord = false;
+						} else {
+							eh.pstmtInsert.setInt(index++, iParKey);
 						}
 					}
-				}
-				eh.pstmtInsert.setDate(index++, dateVal);
-			} else if(col.type.equals("dateTime")) {
-				Timestamp tsVal = null;
-				if(notEmpty(value)) {
-					try {
-						java.util.Date uDate = sdf.parse(value);
-						tsVal = new Timestamp(uDate.getTime());
-					} catch (Exception e) {
+				} else if(GeneralUtilityMethods.isAttachmentType(col.type)) {
+					
+					// If the data references a media file then process the attachment
+					File srcPathFile = null;
+					String srcUrl = null;
+					if(value != null && (value.trim().startsWith("https://") || value.trim().startsWith("http://"))) {
+						
+						// If the link is to a file on the same server (or this is localhost) do not duplicate the media
+						value = value.trim();
+						String serverHttpsUrl = "https://" + serverName + "/";
+						String serverHttpUrl = "http://" + serverName + "/";
+						if(serverName.equals("localhost") || value.startsWith(serverHttpUrl) || value.startsWith(serverHttpsUrl)) {
+							int idx = value.indexOf(serverName) + serverName.length();
+							value = value.substring(idx);
+						} else {
+							// Get the attachment from the link so it can be loaded
+							srcUrl = value;
+							value = UUID.randomUUID().toString();	// Create a random name for the initial download
+						}
+					} else {
+						// Attachment should have been loaded with the zip file
+						srcPathFile = mediaFiles.get(value);
+					}
+					
+					// Copy the attachments to the target location and get the new name
+					if(srcPathFile != null || srcUrl != null) {
+						value = GeneralUtilityMethods.createAttachments(
+							value, 
+							srcPathFile, 
+							basePath, 
+							sIdent,
+							srcUrl,
+							null);
+					}
+					if(value != null && value.trim().length() == 0) {
+						value = null;
+					}
+					eh.pstmtInsert.setString(index++, value);
+				} else if(col.type.equals("int")) {
+					int iVal = 0;
+					if(notEmpty(value)) {
+						try { iVal = Integer.parseInt(value);} catch (Exception e) {}
+					}
+					eh.pstmtInsert.setInt(index++, iVal);
+				} else if(col.type.equals("decimal") || col.type.equals("range")) {
+					double dVal = 0.0;
+					if(notEmpty(value)) {
+						try { dVal = Double.parseDouble(value);} catch (Exception e) {}
+					}
+					eh.pstmtInsert.setDouble(index++, dVal);
+				} else if(col.type.equals("boolean")) {
+					boolean bVal = false;
+					if(notEmpty(value)) {
+						try { bVal = Boolean.parseBoolean(value);} catch (Exception e) {}
+					}
+					eh.pstmtInsert.setBoolean(index++, bVal);
+				} else if(col.type.equals("date")) {
+					Date dateVal = null;
+					if(notEmpty(value)) {
 						try {
-							java.util.Date uDate = sdf.parse(value);		
+							dateVal = Date.valueOf(value); 
+							
+						} catch (Exception e) {
+							try {
+								java.util.Date uDate = sdf.parse(value);		
+								dateVal = new Date(uDate.getTime());
+							} catch (Exception ex) {
+								log.info("Error parsing date: " + col.columnName + " : " + value + " : " + e.getMessage());
+							}
+						}
+					}
+					eh.pstmtInsert.setDate(index++, dateVal);
+				} else if(col.type.equals("dateTime")) {
+					Timestamp tsVal = null;
+					if(notEmpty(value)) {
+						try {
+							java.util.Date uDate = sdf.parse(value);
 							tsVal = new Timestamp(uDate.getTime());
-						} catch (Exception ex) {
+						} catch (Exception e) {
+							try {
+								java.util.Date uDate = sdf.parse(value);		
+								tsVal = new Timestamp(uDate.getTime());
+							} catch (Exception ex) {
+								log.info("Error parsing datetime: " + value + " : " + e.getMessage());
+							}
+						}
+					}
+					
+					eh.pstmtInsert.setTimestamp(index++, tsVal);
+				} else if(col.type.equals("time")) {
+					
+					int hour = 0;
+					int minute = 0;
+					int second = 0;
+					if(notEmpty(value)) {
+						try {
+							String [] tVals = value.split(":");
+							if(tVals.length > 0) {
+								hour = Integer.parseInt(tVals[0]);
+							}
+							if(tVals.length > 1) {
+								minute = Integer.parseInt(tVals[1]);
+							}
+							if(tVals.length > 2) {
+								second = Integer.parseInt(tVals[2]);
+							}
+						} catch (Exception e) {
 							log.info("Error parsing datetime: " + value + " : " + e.getMessage());
 						}
 					}
+					
+					Time tVal = new Time(hour, minute, second);
+					eh.pstmtInsert.setTime(index++, tVal);
+				} else {
+					eh.pstmtInsert.setString(index++, value);
 				}
 				
-				eh.pstmtInsert.setTimestamp(index++, tsVal);
-			} else if(col.type.equals("time")) {
-				
-				int hour = 0;
-				int minute = 0;
-				int second = 0;
-				if(notEmpty(value)) {
-					try {
-						String [] tVals = value.split(":");
-						if(tVals.length > 0) {
-							hour = Integer.parseInt(tVals[0]);
-						}
-						if(tVals.length > 1) {
-							minute = Integer.parseInt(tVals[1]);
-						}
-						if(tVals.length > 2) {
-							second = Integer.parseInt(tVals[2]);
-						}
-					} catch (Exception e) {
-						log.info("Error parsing datetime: " + value + " : " + e.getMessage());
-					}
-				}
-				
-				Time tVal = new Time(hour, minute, second);
-				eh.pstmtInsert.setTime(index++, tVal);
-			} else {
-				eh.pstmtInsert.setString(index++, value);
 			}
-			
-		}
-		
-		// Add the geopoint value if it exists
-		if(eh.hasGeopoint) {
-			String lon = null;
-			String lat = null;
-			if(eh.lonIndex < line.length && eh.latIndex < line.length) {
-				lon = line[eh.lonIndex];
-				lat = line[eh.latIndex];
-			}
-			if(lon == null || lon.length() == 0) {
-				lon = "0.0";
-			}
-			if(lat == null || lat.length() == 0) {
-				lat = "0.0";
-			}
-			eh.pstmtInsert.setString(index++, lon);
-			eh.pstmtInsert.setString(index++, lat);
-
 		}
 		
 		if(writeRecord) {

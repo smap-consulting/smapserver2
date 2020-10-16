@@ -24,8 +24,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 // Deprecated - remove speed
 public class ExchangeHeader {
 	public ArrayList<ExchangeColumn> columns = new ArrayList<ExchangeColumn> ();
-	public int lonIndex = -1;			// Column containing longitude
-	public int latIndex = -1;			// Column containing latitude
 	public int instanceIdColumn = -1;
 	public boolean hasGeopoint = false;
 	

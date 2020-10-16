@@ -1,6 +1,8 @@
 package model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+
 import org.smap.sdal.model.Option;
 
 /*
@@ -21,11 +23,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 */
 
-// Deprecated - remove speed
 public class ExchangeColumn {
 	public String humanName;
 	
 	public int index;
+	public int lonIndex;
+	public int latIndex;
 	public String name;
 	public String columnName;
 	public String type;
