@@ -411,7 +411,6 @@ public class ExchangeManager {
 		
 		CSVReader reader = null;
 		XlsReader xlsReader = null;
-		//FileInputStream fis = null;
 		
 		int recordsWritten = 0;
 		
@@ -421,18 +420,12 @@ public class ExchangeManager {
 		try {
 			
 			form.keyMap = new HashMap<String, String> ();
-			pstmtGetCol.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
+			pstmtGetCol.setInt(1, form.f_id);
 			pstmtGetColGS.setInt(1, form.f_id);		// Prepare the statement to get column names for the form
 			
 			String [] line;
-			//if(isCSV) {
-				reader = new CSVReader(new FileReader(file));
-				line = reader.readNext();
-			//} else {
-			//	fis = new FileInputStream(file);
-			//	xlsReader = new XlsReader(fis, form.name);
-			//	line = xlsReader.readNext(true);
-			//}
+			reader = new CSVReader(new FileReader(file));
+			line = reader.readNext();
 			
 			if(line != null && line.length > 0) {
 				
@@ -456,11 +449,7 @@ public class ExchangeManager {
 					 */
 					while (true) {
 						
-						//if(isCSV) {
-							line = reader.readNext();
-						//} else {
-						//	line = xlsReader.readNext(false);
-						//}
+						line = reader.readNext();					
 						if(line == null) {
 							break;
 						}
@@ -904,14 +893,19 @@ public class ExchangeManager {
 		
 		ExchangeColumn col = null;
 		String geomCol = null;
+		String geomColumnName = null;
+		int sId;
 		
 		// Cater for lat, lon columns which map to a geopoint
 		// This is the old format which assumes a single geometry in a form
 		if(qName.equals("lat") || qName.equals("lon") 
 				|| qName.equals("plotgpsLatitude") || qName.equals("plotgpsLongitude")) {
 			geomCol = qName;
-			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-			qName = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geopoint");
+			sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+			geomColumnName = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, fId, "geopoint");
+			if(qName.equals("lat") || qName.equals("lon")) {
+				qName = geomColumnName;
+			}
 		} 
 		
 		// Only add this question if it has not previously been added, questions can only be updated once in a single transaction
@@ -996,12 +990,12 @@ public class ExchangeManager {
 			} else if(qName.equals("plotgpsAltitude")) {
 				col = new ExchangeColumn();
 				col.name = qName;
-				col.columnName = "the_geom_alt";
+				col.columnName = geomColumnName + "_alt";
 				col.type = "decimal";
 			} else if(qName.equals("plotgpsAccuracy")) {
 				col = new ExchangeColumn();
 				col.name = qName;
-				col.columnName = "the_geom_acc";
+				col.columnName = geomColumnName + "_acc";
 				col.type = "decimal";
 			} else {
 				pstmtGetCol.setString(2, qName.toLowerCase());		// Search for a question
@@ -1156,7 +1150,9 @@ public class ExchangeManager {
 			
 			// Add the geopoint column if latitude and longitude were provided in the data file
 			if(eh.lonIndex >= 0 && eh.latIndex >= 0 ) {
-				sqlInsert.append(",").append("the_geom");;
+				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				String geomColumnName = GeneralUtilityMethods.getGeomColumnOfType(sd, sId, form.f_id, "geopoint");
+				sqlInsert.append(",").append(geomColumnName);;
 				eh.hasGeopoint = true;
 			}
 			
