@@ -35,6 +35,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.SetValue;
 
+import model.GeomQuestions;
 import model.Settings;
 
 import com.google.gson.Gson;
@@ -392,8 +393,8 @@ public class Dashboard extends Application {
 						pstmtAddView.setBoolean(29, s.inc_ro);
 						
 						String gQuestions = null;
-						if(s.geomQuestions != null) {
-							gQuestions = gson.toJson(s.geomQuestions);
+						if(s.geomFormQuestions != null) {
+							gQuestions = gson.toJson(s.geomFormQuestions);
 						}
 						pstmtAddView.setString(30, gQuestions);
 						
@@ -433,8 +434,8 @@ public class Dashboard extends Application {
 						pstmtReplaceView.setBoolean(28, s.inc_ro);
 						
 						String gQuestions = null;
-						if(s.geomQuestions != null) {
-							gQuestions = gson.toJson(s.geomQuestions);
+						if(s.geomFormQuestions != null) {
+							gQuestions = gson.toJson(s.geomFormQuestions);
 						}
 						pstmtReplaceView.setString(29, gQuestions);
 						
@@ -576,7 +577,9 @@ public class Dashboard extends Application {
 		
 		String gQuestions = resultSet.getString("geom_questions");;
 		if(gQuestions != null) {
-			s.geomQuestions = gson.fromJson(gQuestions, new TypeToken<String []>() {}.getType());
+			try {
+				s.geomFormQuestions = gson.fromJson(gQuestions, new TypeToken<GeomQuestions []>() {}.getType());
+			} catch (Exception e) {}
 		} 
 	
 		return s;
