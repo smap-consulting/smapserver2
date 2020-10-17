@@ -15,6 +15,7 @@ public class ColDesc {
 	public ArrayList<KeyValue>  choices = null;			// Used for compressing select multiples
 	public boolean compressed;
 	public boolean selectDisplayNames = false;
+	public String rawQuestionType;	// This is needed because qType gets modified to convert any geometry type to just "geometry"
 	
 	public ColDesc(String n, String db_type, String qType, String label, 
 			ArrayList<OptionDesc> optionLabels,
@@ -23,7 +24,8 @@ public class ColDesc {
 			ArrayList<KeyValue> choices,
 			boolean compressed,
 			String displayName,
-			boolean selMultipleDisplayNames) {
+			boolean selMultipleDisplayNames,
+			String questionType) {
 		
 		column_name = n;
 		this.db_type = db_type;
@@ -36,6 +38,7 @@ public class ColDesc {
 		this.compressed = compressed;
 		this.displayName = displayName;
 		this.selectDisplayNames = selMultipleDisplayNames;
+		this.rawQuestionType = questionType;
 		
 		// Google Maps Engine supports the types "String", "Integer", and "Real"
 		if(db_type.startsWith("int") || db_type.equals("serial")) {

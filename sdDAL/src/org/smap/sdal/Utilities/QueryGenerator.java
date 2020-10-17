@@ -499,6 +499,7 @@ public class QueryGenerator {
 			sqlDesc.colNameLookup.put(col.question_name, col.column_name);
 			
 			String column_name = null;
+			String questionType = null;
 			String type = null;
 			String label = null;
 			String text_id = null;
@@ -509,6 +510,7 @@ public class QueryGenerator {
 			int qId = col.qId;			
 			column_name = col.column_name;
 			type = col.type;
+			questionType = col.type;
 
 			if(GeneralUtilityMethods.isGeometry(type)) {
 				type = "geometry";
@@ -645,13 +647,13 @@ public class QueryGenerator {
 					if(sqlDesc.geometry_type.equals("wkbPoint") && (format.equals("csv") || format.equals("stata") || format.equals("spss")) ) {		// Split location into Lon, Lat
 						colBuf.append("ST_Y(" + form.table + "." + column_name + ") as lat, ST_X(" + form.table + "." + column_name + ") as lon");
 						sqlDesc.column_details.add(new ColDesc("lat", type, type, label, null, false, col.question_name, null, false, 
-								col.displayName, col.selectDisplayNames));
+								col.displayName, col.selectDisplayNames, questionType));
 						sqlDesc.column_details.add(new ColDesc("lon", type, type, label, null, false, col.question_name, null, false, 
-								col.displayName, col.selectDisplayNames));
+								col.displayName, col.selectDisplayNames, questionType));
 					} else {																								// Use well known text
-						colBuf.append("ST_AsText(" + form.table + "." + column_name + ") as the_geom");
-						sqlDesc.column_details.add(new ColDesc("the_geom", type, type, label, null, false, col.question_name, null, false, 
-								col.displayName, col.selectDisplayNames));
+						colBuf.append("ST_AsText(" + form.table + "." + column_name + ") as " + column_name);
+						sqlDesc.column_details.add(new ColDesc(column_name, type, type, label, null, false, col.question_name, null, false, 
+								col.displayName, col.selectDisplayNames, questionType));
 					}
 				} else {
 				
@@ -709,7 +711,7 @@ public class QueryGenerator {
 					
 					sqlDesc.column_details.add(new ColDesc(column_name, type, type, label, 
 							optionListLabels, needsReplace, col.question_name,
-							col.choices, col.compressed, col.displayName, col.selectDisplayNames));
+							col.choices, col.compressed, col.displayName, col.selectDisplayNames, questionType));
 					sqlDesc.column_names.add(col.column_name);
 				}
 				

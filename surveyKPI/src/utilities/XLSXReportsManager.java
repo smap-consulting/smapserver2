@@ -272,7 +272,7 @@ public class XLSXReportsManager {
 								}
 							}
 								
-						} else if(split_locn && values.name.equals("the_geom")) {
+						} else if(split_locn && item.qType != null && item.rawQuestionType.equals("geopoint")) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
 							cell.setCellValue(values.label);
@@ -356,7 +356,7 @@ public class XLSXReportsManager {
 							}
 						}
 							
-					} else if(split_locn && values.name.equals("the_geom")) {
+					} else if(split_locn && item.qType != null && item.rawQuestionType.equals("geopoint")) {
 						Cell cell = headerRow.createCell(colNumber++);
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Latitude");
@@ -498,10 +498,9 @@ public class XLSXReportsManager {
 
 						} else if(split_locn && values.value != null && (values.value.startsWith("POLYGON") || values.value.startsWith("LINESTRING"))) {
 
-							// Can't split linestrings and polygons, leave latitude and longitude as blank
+							// Can't split linestrings and polygons
 							ReadData rd = new ReadData(values.name, false, "string");
 							dataItems.add(rd);
-							rd.values.add(values.value);
 							rd.values.add(values.value);
 
 
