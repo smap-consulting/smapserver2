@@ -514,7 +514,7 @@ public class QuestionInfo {
 					units = "square meters";
 					divBy = 1;
 				}
-				return "ST_Area(geography(" + tableName + ".the_geom), true) / " + divBy;
+				return "ST_Area(geography(" + tableName + "." + columnName + "), true) / " + divBy;
 			} else if(fn.equals("length")) {
 				if(units != null && units.equals("km")) {
 					divBy = 1000;
@@ -525,7 +525,7 @@ public class QuestionInfo {
 					units = "meters";
 					divBy = 1;
 				}
-				return "ST_Length(geography(" + tableName + ".the_geom), true) / " + divBy;
+				return "ST_Length(geography(" + tableName + "." + columnName + "), true) / " + divBy;
 			} else {
 				log.info("getSelectExpression: Unknown function: " + fn);
 				return tableName + "." + columnName;
