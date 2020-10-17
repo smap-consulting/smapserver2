@@ -93,6 +93,7 @@ public class Roles extends Application {
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.MANAGE);
 		authorisations.add(Authorise.MANAGE_TASKS);
+		authorisations.add(Authorise.VIEW_DATA);
 		aLowPriv = new Authorise(authorisations, null);
 	}
 	
