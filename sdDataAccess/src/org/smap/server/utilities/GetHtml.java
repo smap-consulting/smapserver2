@@ -719,7 +719,8 @@ public class GetHtml {
 				calculationInput = outputDoc.createElement("input");
 				calculationInput.setAttribute("type", "hidden");
 
-				calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)) + "__dynamic");
+				calculationInput.setAttribute("name", paths.get(getRefName(q.name, form)) + "__dynamic"
+						+ (q.type.equals("select") ? "_mult" : ""));
 				String fn = GeneralUtilityMethods.extractFn("lookup_choices", q.appearance);
 				
 				if(fn != null && fn.length() > 1) {
