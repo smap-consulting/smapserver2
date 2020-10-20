@@ -27,6 +27,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.model.MetaItem;
 
 public class Authorise {
 	
@@ -1162,7 +1163,8 @@ public class Authorise {
 	/*
 	 * Verify that the question passed by name is in the survey
 	 */
-	public boolean isValidQuestionName(Connection conn, String user, int sId, String qName)
+	public boolean isValidQuestionName(Connection conn, String user, int sId, 
+			String qName, boolean checkPreloads)
 			throws ServerException, AuthorisationException, NotFoundException {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
@@ -1191,6 +1193,19 @@ public class Authorise {
 			resultSet.next();
 			
 			count = resultSet.getInt(1);
+			
+			if(count == 0 && checkPreloads) {
+				ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(conn, sId);
+				if(preloads != null) {
+					for(MetaItem item : preloads) {
+						if(item.name != null && item.name.equals(qName)) {
+							count++;
+							break;
+						}
+					}
+				}
+			}
+			
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error in Authorisation", e);
 			sqlError = true;

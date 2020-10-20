@@ -144,7 +144,7 @@ public class ExportSurveyMisc extends Application {
 			a.isValidQuery(sd, request.getRemoteUser(), targetId);
 		} else {
 			a.isValidSurvey(sd, request.getRemoteUser(), targetId, false, superUser);
-			a.isValidQuestionName(sd, request.getRemoteUser(), targetId, geomQuestion);
+			a.isValidQuestionName(sd, request.getRemoteUser(), targetId, geomQuestion, true);
 		}
 		// End Authorisation
 
