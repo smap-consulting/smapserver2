@@ -86,6 +86,7 @@ public class Lookup extends Application{
 	private final String CONTAINS = "contains";
 	private final String MATCHES = "matches";
 	private final String IN = "in";
+	private final String NOT_IN = "not in";
 	private final String STARTS = "startswith";
 	private final String ENDS = "endswith";
 	
@@ -473,8 +474,12 @@ public class Lookup extends Application{
 		StringBuilder sb = new StringBuilder();
 		type = type.trim().toLowerCase();
 
-		if(type.equals(IN)) {
-			sb.append(qColumn).append(" in (");
+		if(type.equals(IN) || type.equals(NOT_IN)) {
+			if(type.equals(IN)) {
+				sb.append(qColumn).append(" not in (");
+			} else {
+				sb.append(qColumn).append(" in (");
+			}
 
 			String [] values = qValue.split(",");
 			if(values.length == 1 && qValue.contains(" ")) {

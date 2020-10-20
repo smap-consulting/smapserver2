@@ -704,7 +704,8 @@ public class GetXForm {
 					if(isWebForms) {
 						String app = q.getAppearance(false, null);
 						if(app.contains("lookup_choices(")) {
-							questionElement = outputDoc.createElement(q.getName() + "__dynamic");
+							questionElement = outputDoc.createElement(q.getName() + "__dynamic"
+									+ (q.getType().equals("select") ? "_mult" : ""));
 							currentParent.appendChild(questionElement);
 						}
 					}
