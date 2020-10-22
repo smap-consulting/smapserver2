@@ -72,7 +72,7 @@ public class UserManager {
 	 * Get the user details
 	 */
 	public User getByIdent(
-			Connection connectionSD,
+			Connection sd,
 			String ident
 			) throws Exception {
 
@@ -124,7 +124,7 @@ public class UserManager {
 					+ "and o.e_id = e.id "
 					+ "order by u.ident"; 
 
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ident);
 			log.info("Get user details: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -176,7 +176,7 @@ public class UserManager {
 			/*
 			 * Set a flag if email is enabled on the server
 			 */
-			user.sendEmail = UtilityMethodsEmail.getSmtpHost(connectionSD, null, ident) != null;
+			user.sendEmail = UtilityMethodsEmail.getSmtpHost(sd, null, ident) != null;
 
 			/*
 			 * Get the groups that the user belongs to
@@ -188,7 +188,7 @@ public class UserManager {
 					" order by g.name;";
 
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
 			log.info("SQL: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
@@ -213,7 +213,7 @@ public class UserManager {
 					" order by p.name;";
 
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
 
 			log.info("SQL: " + pstmt.toString());
@@ -232,28 +232,7 @@ public class UserManager {
 			/*
 			 * Get the roles that the user belongs to
 			 */
-			sql = "SELECT r.id as id, r.name as name " +
-					" from role r, user_role ur " +
-					" where r.id = ur.r_id " +
-					" and ur.u_id = ? " +
-					" order by r.name asc";
-
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = connectionSD.prepareStatement(sql);
-			pstmt.setInt(1, user.id);
-
-			log.info("SQL: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-
-			while(resultSet.next()) {
-				if(user.roles == null) {
-					user.roles = new ArrayList<Role> ();
-				}
-				Role role = new Role();
-				role.id = resultSet.getInt("id");
-				role.name = resultSet.getString("name");
-				user.roles.add(role);
-			}
+			user.roles = getUserRoles(sd, user.id);
 			
 			/*
 			 * Get the current survey - group survey relationships
@@ -263,7 +242,7 @@ public class UserManager {
 					" where u_ident = ?";
 
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, ident);
 
 			resultSet = pstmt.executeQuery();
@@ -285,7 +264,7 @@ public class UserManager {
 					" order by o.name asc";
 
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = connectionSD.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, user.id);
 
 			log.info("SQL: " + pstmt.toString());
@@ -316,6 +295,42 @@ public class UserManager {
 
 	}
 
+	/*
+	 * Get the roles a user belongs to
+	 */
+	public ArrayList<Role> getUserRoles(Connection sd, int uId) throws SQLException {
+
+		ArrayList<Role> roles = null;
+		
+		String sql = "SELECT r.id as id, r.name as name " +
+				" from role r, user_role ur " +
+				" where r.id = ur.r_id " +
+				" and ur.u_id = ? " +
+				" order by r.name asc";
+		PreparedStatement pstmt = null;
+		
+		try {
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, uId);
+	
+			log.info("SQL: " + pstmt.toString());
+			ResultSet resultSet = pstmt.executeQuery();
+	
+			while(resultSet.next()) {
+				if(roles == null) {
+					roles = new ArrayList<Role> ();
+				}
+				Role role = new Role();
+				role.id = resultSet.getInt("id");
+				role.name = resultSet.getString("name");
+				roles.add(role);
+			}
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+		return roles;
+	}
 
 	/*
 	 * Get alerts for a user
