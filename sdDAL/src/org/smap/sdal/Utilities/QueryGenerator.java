@@ -32,7 +32,6 @@ import java.util.logging.Logger;
 import org.smap.sdal.constants.SmapExportTypes;
 import org.smap.sdal.managers.RoleManager;
 import org.smap.sdal.model.ColDesc;
-import org.smap.sdal.model.ExportForm;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.SqlDesc;

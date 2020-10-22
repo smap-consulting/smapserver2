@@ -138,7 +138,7 @@ public class UserList extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
 			
 			UserManager um = new UserManager(localisation);
 			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
@@ -439,7 +439,7 @@ public class UserList extends Application {
 			String adminEmail = null;
 			ResultSet resultSet = null;
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
 			boolean isEnterpriseManager = GeneralUtilityMethods.isEntUser(sd, request.getRemoteUser());
 			boolean isServerOwner = GeneralUtilityMethods.isServerOwner(sd, request.getRemoteUser());
 			
@@ -644,7 +644,7 @@ public class UserList extends Application {
 			UserManager um = new UserManager(localisation);
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
-			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityRole(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
 
 			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
 			
