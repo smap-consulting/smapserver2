@@ -653,8 +653,8 @@ public class GeneralUtilityMethods {
 	/*
 	 * Return true if the user has the security group
 	 */
-	static public boolean hasSecurityRole(Connection sd, String user) throws SQLException {
-		boolean securityRole = false;
+	static public boolean hasSecurityGroup(Connection sd, String user) throws SQLException {
+		boolean securityGroup = false;
 
 		String sql = "select count(*) " 
 				+ "from users u, user_group ug " 
@@ -670,14 +670,14 @@ public class GeneralUtilityMethods {
 			pstmt.setString(1, user);
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
-				securityRole = (rs.getInt(1) > 0);
+				securityGroup = (rs.getInt(1) > 0);
 			}
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
 
-		return securityRole;
+		return securityGroup;
 	}
 
 	/*

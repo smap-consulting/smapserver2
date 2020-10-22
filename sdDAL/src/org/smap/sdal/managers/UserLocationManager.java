@@ -18,6 +18,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.DataItemChange;
 import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.SubmissionMessage;
 import org.smap.sdal.model.TaskEventChange;
 import org.smap.sdal.model.TaskItemChange;
@@ -74,7 +75,7 @@ public class UserLocationManager {
 			String remoteUser,
 			boolean forDashboard
 			) throws SQLException {
-
+		
 		StringBuffer message = new StringBuffer("");
 		JSONObject jo = new JSONObject();
 		JSONArray columns = new JSONArray();
@@ -83,6 +84,7 @@ public class UserLocationManager {
 
 		int maxRec = 0;
 		int recCount = 0;	
+		int idx = 1;		// Prepared statment index
 
 			PreparedStatement pstmt = null;
 
@@ -92,15 +94,35 @@ public class UserLocationManager {
 
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, remoteUser);
 
+				// As per change request: https://github.com/nap2000/prop-smapserver/issues/32
+				// If the user only has the 'view data" security group they will be restricted to seeing other users with the same security role
+				/*
+				 * Two cases
+				 * 1) The user has no security role -> They can only see other users who do not have a security role
+				 * 2) The user can only see other users who have the same security roles
+				 */
+				ArrayList<Role> roles = null;
+				ArrayList<Integer> roleids = new ArrayList<> ();
+				boolean viewDataOnly = GeneralUtilityMethods.isOnlyViewData(sd, remoteUser);
+				if(viewDataOnly) {					
+					int uId = GeneralUtilityMethods.getUserId(sd, remoteUser);
+					UserManager um = new UserManager(localisation);
+					roles = um.getUserRoles(sd, uId);
+				}
+
 				if(forDashboard) {
 					jo.put("totals", jTotals);
 					jTotals.put("start_key", start_key);
 				}
 
 				// Get the number of records
-				StringBuffer sqlCount = new StringBuffer("select count(*) "
-						+ "from last_refresh lr, users u "
-						+ "where u.o_id = ? "
+				StringBuilder sqlCount = new StringBuilder("select count(*) ");
+				if(viewDataOnly && roles != null && roles.size() > 0) {
+					sqlCount.append("from last_refresh lr, users u, user_role ur ");
+				} else {
+					sqlCount.append("from last_refresh lr, users u ");
+				}
+				sqlCount.append("where u.o_id = ? "
 						+ "and lr.o_id = ? "
 						+ "and lr.geo_point is not null "
 						+ "and (st_x(geo_point) != 0 or st_y(geo_point) != 0) "
@@ -111,13 +133,31 @@ public class UserLocationManager {
 							+ "(select ident from users ux, user_project upx "
 							+ "where ux.id = upx.u_id "
 							+ "and upx.p_id = ?) ");
+				}				
+				if(viewDataOnly) {					
+					if(roles == null || roles.size() == 0) {
+						sqlCount.append(" and u.id not in (select u_id from user_role ur, users u2 where ur.u_id = u2.id and u2.o_id = ?) ");
+					} else {
+						sqlCount.append(" and ur.u_id = u.id and ur.r_id = any (?) ");
+						
+						for(Role r : roles) {		// Create an array of role ids for the any clause
+							roleids.add(r.id);
+						}
+					}
 				}
 				
 				pstmt = sd.prepareStatement(sqlCount.toString());	
-				pstmt.setInt(1, oId);
-				pstmt.setInt(2, oId);
+				pstmt.setInt(idx++, oId);
+				pstmt.setInt(idx++, oId);
 				if(pId > 0) {
-					pstmt.setInt(3, pId);
+					pstmt.setInt(idx++, pId);
+				}
+				if(viewDataOnly) {	
+					if(roles == null || roles.size() == 0) {
+						pstmt.setInt(idx++, oId);
+					} else {
+						pstmt.setArray(idx++, sd.createArrayOf("integer", roleids.toArray(new Integer[roleids.size()])));
+					}
 				}
 				log.info("Get the number of records: " + pstmt.toString());	
 				ResultSet resultSet = pstmt.executeQuery();
@@ -125,19 +165,24 @@ public class UserLocationManager {
 					totalCount = resultSet.getInt(1);
 					jTotals.put("total_count", totalCount);
 				}
-
 				if(forDashboard && rec_limit > 0) {
 					jTotals.put("rec_limit", rec_limit);
 				}
-
-				StringBuffer sqlData = new StringBuffer("select "
+				/*
+				 * Get the data
+				 */
+				StringBuilder sqlData = new StringBuilder("select "
 						+ "lr.id,"
 						+ "lr.user_ident, "
 						+ "timezone(?, lr.refresh_time) as refresh_time, "
 						+ "lr.refresh_time as utc_time,"  
-						+ "ST_AsGeoJSON(lr.geo_point) as geo_point "
-						+ "from last_refresh lr, users u "
-						+ "where u.o_id = ? "
+						+ "ST_AsGeoJSON(lr.geo_point) as geo_point ");
+				if(viewDataOnly && roles != null && roles.size() > 0) {
+					sqlData.append("from last_refresh lr, users u, user_role ur ");
+				} else {
+					sqlData.append("from last_refresh lr, users u ");
+				}
+				sqlData.append("where u.o_id = ? "
 						+ "and lr.geo_point is not null "
 						+ "and (st_x(geo_point) != 0 or st_y(geo_point) != 0) "
 						+ "and lr.o_id = ? "
@@ -150,21 +195,39 @@ public class UserLocationManager {
 							+ "and upx.p_id = ?) ");
 				}
 				if(start_key > 0) {
-					sqlData.append(" and lr.id < ").append(start_key);
+					sqlData.append(" and lr.id < " ).append(start_key);
 				}
-				sqlData.append(" order by lr.id desc");
+				if(viewDataOnly) {				
+					if(roles == null || roles.size() == 0) {
+						sqlData.append(" and u.id not in (select u_id from user_role ur, users u2 where ur.u_id = u2.id and u2.o_id = ?) ");
+					} else {
+						sqlData.append(" and ur.u_id = u.id and ur.r_id = any (?) ");
+					}
+				}
+				sqlData.append("order by lr.id desc ");
 
 				if(rec_limit > 0) {
-					sqlData.append(" limit ").append(rec_limit);
+					sqlData.append("limit ").append(rec_limit);
 				}
 				// Get the prepared statement to retrieve data
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				try {if (resultSet != null) {resultSet.close();}} catch (SQLException e) {}
+				idx = 1;
+
 				pstmt = sd.prepareStatement(sqlData.toString());
-				pstmt.setString(1, tz);
-				pstmt.setInt(2, oId);
-				pstmt.setInt(3, oId);
+				pstmt.setString(idx++, tz);
+				pstmt.setInt(idx++, oId);
+				pstmt.setInt(idx++, oId);
 				if(pId > 0) {
-					pstmt.setInt(4, pId);
+					pstmt.setInt(idx++, pId);
+				}
+
+				if(viewDataOnly) {	
+					if(roles == null || roles.size() == 0) {
+						pstmt.setInt(idx++, oId);
+					} else {
+						pstmt.setArray(idx++, sd.createArrayOf("integer", roleids.toArray(new Integer[roleids.size()])));
+					}
 				}
 
 				// Request the data
@@ -232,15 +295,23 @@ public class UserLocationManager {
 					types.put("string");
 					types.put("dateTime");
 
-
 					sqlCount.append(" and lr.id < ").append(maxRec);
 	
 					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+					try {if (resultSet != null) {resultSet.close();}} catch (SQLException e) {}
+					idx = 1;
 					pstmt = sd.prepareStatement(sqlCount.toString());	
-					pstmt.setInt(1, oId);
-					pstmt.setInt(2, oId);
+					pstmt.setInt(idx++, oId);
+					pstmt.setInt(idx++, oId);
 					if(pId > 0) {
-						pstmt.setInt(3, pId);
+						pstmt.setInt(idx++, pId);
+					}
+					if(viewDataOnly) {	
+						if(roles == null || roles.size() == 0) {
+							pstmt.setInt(idx++, oId);
+						} else {
+							pstmt.setArray(idx++, sd.createArrayOf("integer", roleids.toArray(new Integer[roleids.size()])));
+						}
 					}
 					resultSet = pstmt.executeQuery();
 					if(resultSet.next()) {
@@ -261,7 +332,7 @@ public class UserLocationManager {
 			} catch (SQLException e) {
 
 				String msg = e.getMessage();
-				if(msg.contains("does not exist") && !msg.contains("column")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
+				if(msg.contains("does not exist") && !msg.contains("column") && !msg.contains("operator")) {	// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
 					// Don't do a stack dump if the table did not exist that just means no one has submitted results yet
 				} else {
 					message.append(msg);

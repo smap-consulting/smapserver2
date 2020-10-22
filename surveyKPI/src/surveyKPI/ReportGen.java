@@ -28,7 +28,6 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.DocumentDataManager;
 import org.smap.sdal.model.KeyValue;
-import org.smap.sdal.model.Project;
 import org.smap.sdal.model.Report2;
 
 import com.google.gson.Gson;
