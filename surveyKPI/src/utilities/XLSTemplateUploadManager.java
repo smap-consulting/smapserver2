@@ -781,9 +781,7 @@ public class XLSTemplateUploadManager {
 							} else {
 								matrix.addMember(q);
 							}
-						}				
-						
-						
+						}						
 						
 						if(q.type.equals("begin repeat")) {
 							int repeatRowNumber = rowNumSurvey;
@@ -1309,14 +1307,15 @@ public class XLSTemplateUploadManager {
 			// Check for a valid name
 			throw XLSUtilities.getApplicationException(localisation, "tu_qn", rowNumber, "survey", q.name, null, null);
 
-		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.name.toLowerCase()) != null) {
+		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.columnName) != null) {
 			// Check for a duplicate name
 			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
 
 		}
+		
 		if(!q.type.equals("end group") && !q.type.equals("end matrix")) {		
 			qNameMap.put(q.name, rowNumber);
-			qNameMapCaseInsensitive.put(q.name.toLowerCase(), rowNumber);
+			qNameMapCaseInsensitive.put(q.columnName, rowNumber);
 		}
 		
 		// check relevance
