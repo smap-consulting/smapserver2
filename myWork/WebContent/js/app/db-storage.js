@@ -93,7 +93,7 @@ define([],
 
                 request.onerror = function (e) {
                     console.log('Error', e.target.error.name);
-                    alert('Error', e.target.error.name);
+                    alert('Error opening idb: ' + e.target.error.name);
                 };
 
 
