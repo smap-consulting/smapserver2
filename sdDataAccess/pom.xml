@@ -42,13 +42,5 @@
 			<scope>provided</scope>
 		</dependency>
 		
-		<!-- Local -->
-		
-		<dependency>
-			<groupId>au.com.smap</groupId>
-			<artifactId>sdDAL</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-		
 	</dependencies>
 </project>
