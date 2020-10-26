@@ -23,7 +23,7 @@ define([],
         /*
 		 * Variables for indexedDB Storage
 		 */
-        let databaseVersion = 1;
+        let databaseVersion = window.idbConfig.version;
         let databaseName = "webform";
 
         var dbPromise;  // Promise that returns the database

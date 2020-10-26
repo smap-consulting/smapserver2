@@ -231,7 +231,8 @@ require([
 			if(!filterProjectId || filterProjectId == formList[i].pid) {
 				h[++idx] = '<a role="button" class="btn btn-primary btn-block btn-lg" target="_blank" href="/myWork/webForm/';
 				h[++idx] = formList[i].ident;
-				h[++idx] = '?myWork=true">';
+				//h[++idx] = '?myWork=true">';      // use the webofrm interal submit process
+				h[++idx] = '">';
 				h[++idx] = formList[i].name;
 				h[++idx] = '</a>';
 				count++;
