@@ -52,11 +52,9 @@ self.addEventListener('fetch', function(event) {
 		);
 
 	} else {
-		// response to static files requests, Cache-First strategy
+		// Always fethc
 		event.respondWith(
-			caches.match(event.request).then(function(response) {
-				return response || fetch(event.request);
-			})
+			fetch(event.request)
 		);
 	}
 

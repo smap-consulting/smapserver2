@@ -201,7 +201,7 @@ require([
 		// Save the tasks then refresh view
 		saveTasks(surveyList.data).then( () => {
 			dbstorage.getRecords().then( records => {
-				if (taskList) {
+				if (typeof taskList !== "undefined") {
 					showTaskList(taskList, filterProjectId);
 				} else {
 					$('#tasks_count').html('(0)');
