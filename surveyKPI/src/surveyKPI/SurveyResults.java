@@ -83,8 +83,6 @@ public class SurveyResults extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results", 0);
-		
 		// Escape any quotes
 		if(sId > 0) {
 
@@ -136,6 +134,7 @@ public class SurveyResults extends Application {
 					sql = "drop TABLE " + tableName + ";";
 					log.info("*********************************  Delete table contents and drop table: " + sql);
 					
+					
 					try {if (stmtRel != null) {stmtRel.close();}} catch (SQLException e) {}
 					stmtRel = connectionRel.createStatement();
 					try {
@@ -144,6 +143,7 @@ public class SurveyResults extends Application {
 						log.info("Error deleting table: " + e.getMessage());
 					}
 					log.info("userevent: " + request.getRemoteUser() + " : delete results : " + tableName + " in survey : "+ sId); 
+					lm.writeLog(sd, sId, request.getRemoteUser(), "delete", "Delete results: " + tableName  + " in survey : "+ sId, 0);
 				}
 				
 				/*
