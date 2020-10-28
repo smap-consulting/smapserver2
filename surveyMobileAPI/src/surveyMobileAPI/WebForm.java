@@ -116,6 +116,7 @@ public class WebForm extends Application {
 	private WebformOptions options;
 	String debug = "no";
 	boolean isApp = false;
+	boolean myWork = false;			// When set use the myWork app to submit data rather than the form
 	String gFormIdent = null;
 
 	/*
@@ -840,7 +841,7 @@ public class WebForm extends Application {
 			output.append(serverData.google_key);
 			output.append("\";");
 		}
-		output.append("window.smapConfig.myWork=" + (isApp ? "true" : "false") + ";");
+		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
 		output.append("</script>");
 		output.append("</head>\n");
 
