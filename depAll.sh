@@ -14,3 +14,7 @@ cd ..
 cd fieldManagerClient
 ./dep.sh
 cd ..
+
+cd myWork
+./dep.sh
+cd ..
