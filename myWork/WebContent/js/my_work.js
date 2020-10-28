@@ -31,6 +31,7 @@ var STATUS_T_SUBMITTED = "submitted";
 var STATUS_T_CANCELLED = "cancelled";
 var STATUS_T_CLOSED = "closed";
 var STATUS_T_NEW = "new";
+let gIsApp = false;
 
 requirejs.config({
 	baseUrl: 'js/libs',
@@ -101,7 +102,6 @@ require([
 			}
 		});
 
-
 		/*
 		 * Rgister for messages from the service worker
 		 */
@@ -113,6 +113,9 @@ require([
 				alert("Error updating assignments: " + message.data.message);
 			}
 		};
+
+		// set a flag if launched as an app
+		gIsApp = (window.matchMedia('(display-mode: standalone)').matches) || (window.navigator.standalone) || document.referrer.includes('android-app://');
 
 	});
 	
@@ -217,9 +220,15 @@ require([
 
 		for(i = 0; i < formList.length; i++) {
 			if(!filterProjectId || filterProjectId == formList[i].pid) {
-				h[++idx] = '<a role="button" class="btn btn-primary btn-block btn-lg" target="_blank" href="/myWork/webForm/';
+				h[++idx] = '<a role="button" class="btn btn-primary btn-block btn-lg" href="/myWork/webForm/';
 				h[++idx] = formList[i].ident;
-				//h[++idx] = '?myWork=true">';      // use the webofrm interal submit process
+
+				//h[++idx] = '?myWork=true">';      // use the webform internal submit process
+				if(gIsApp) {
+					h[++idx] = '?app=true';
+				} else {
+					h[++idx] = '" target="_blank';      // If launched as an app do not create new windows
+				}
 				h[++idx] = '">';
 				h[++idx] = formList[i].name;
 				h[++idx] = '</a>';
@@ -282,8 +291,12 @@ require([
 				h[++idx] = '<div class="btn-group btn-block btn-group-lg d-flex" role="group" aria-label="Button group for task selection or rejection">';
 				h[++idx] = '<a id="a_';
 				h[++idx] = taskList[i].assignment.assignment_id;
-				h[++idx] = '" class="task btn btn-warning w-80" role="button" target="_blank" data-repeat="';
+				h[++idx] = '" class="task btn btn-warning w-80" role="button"';
+				if(!gIsApp) {
+					h[++idx] = ' target="_blank"';      // If launched as an app do not create new windows
+				}
 
+				h[++idx] = ' data-repeat="';
 				if(repeat) {
 					h[++idx] = 'true';
 				} else {
@@ -312,6 +325,11 @@ require([
 				h[++idx] = (hasParam ? '&' : '?');
 				h[++idx] = 'assignment_id=';
 				h[++idx] = taskList[i].assignment.assignment_id;
+
+				if(gIsApp) {
+					h[++idx] = (hasParam ? '&' : '?');
+					h[++idx] = 'app=true';
+				}
 
 				h[++idx] = '">';
 				h[++idx] = taskList[i].task.title + " (" + localise.set["c_id"] + ": " + taskList[i].assignment.assignment_id + ")";

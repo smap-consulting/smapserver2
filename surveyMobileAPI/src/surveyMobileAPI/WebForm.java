@@ -115,7 +115,7 @@ public class WebForm extends Application {
 	HashMap<String, Integer> gRecordCounts = null;
 	private WebformOptions options;
 	String debug = "no";
-	boolean myWork = false;
+	boolean isApp = false;
 	String gFormIdent = null;
 
 	/*
@@ -274,7 +274,7 @@ public class WebForm extends Application {
 			@QueryParam("taskkey") int taskKey,	// Task id, if set initial data is from task
 			@QueryParam("viewOnly") boolean vo,
 			@QueryParam("debug") String d,
-			@QueryParam("myWork") boolean mw,
+			@QueryParam("app") boolean app,
 			@QueryParam("callback") String callback) throws IOException {
 
 		Response response = null;
@@ -286,7 +286,7 @@ public class WebForm extends Application {
 		}
 		viewOnly = vo;
 		debug = d;
-		myWork = mw;
+		isApp = app;
 
 		userIdent = request.getRemoteUser();
 		isTemporaryUser = false;
@@ -840,7 +840,7 @@ public class WebForm extends Application {
 			output.append(serverData.google_key);
 			output.append("\";");
 		}
-		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
+		output.append("window.smapConfig.myWork=" + (isApp ? "true" : "false") + ";");
 		output.append("</script>");
 		output.append("</head>\n");
 
@@ -1127,7 +1127,7 @@ public class WebForm extends Application {
 
 		output.append("<div id='feedback-bar' class='alert alert-warning'>\n");
 		output.append("<span class='glyphicon glyphicon-info-sign'></span>\n");
-		output.append("<button class='close'>&times;</button>\n");
+		output.append("<button class='close'><span class='glyphicon glyphicon-step-backward'></span></button>\n");
 		output.append("</div>\n");
 
 		output.append("<aside class='side-slider'>\n");
@@ -1162,6 +1162,9 @@ public class WebForm extends Application {
 			output.append("<header class='form-header clearfix'>\n");
 			output.append("<div class='offline-enabled'>\n");
 			output.append("<div title='Records Queued' class='queue-length side-slider-toggle'>0</div>\n");
+			if(isApp) {		// include back button
+				output.append("<div style=' font-size: large;'><button onclick='window.history.back();'><i class='fa fa-arrow-left' aria-hidden='true'></i></button></div>\n");
+			}
 			output.append("<div><img id=\"hour_glass\" src=\"/images/ajax-loader.gif\" style=\"display:none;\" alt=\"hourglass\" height=\"34\" width=\"34\"></div>\n");
 			output.append("</div>\n");
 			//output.append("<button onclick='window.print();' class='print' title='Print this Form'> </button>\n");
