@@ -101,18 +101,6 @@ require([
 			}
 		});
 
-		/*
-		 * Register service worker
-		 */
-		if ('serviceWorker' in navigator) {
-				navigator.serviceWorker.register('/myWork/myWorkServiceWorker.js').then(function(registration) {
-					// Registration was successful
-					console.log('ServiceWorker registration successful with scope: ', registration.scope);
-				}, function(err) {
-					// registration failed :(
-					console.log('ServiceWorker registration failed: ', err);
-				});
-		}
 
 		/*
 		 * Rgister for messages from the service worker
