@@ -604,6 +604,7 @@ public class GetXForm {
 				}
 			} 
 		}
+		
 		/*
 		 * Add the questions from the template
 		 */
@@ -737,7 +738,7 @@ public class GetXForm {
 					currentParent.appendChild(questionElement);
 
 				} else if (q.getType().equals("end group")) {
-
+					// no action
 				} else {
 
 					questionElement = populateBindQuestion(outputDoc, f, q, f.getPath(null), false);
@@ -2557,7 +2558,11 @@ public class GetXForm {
 	 * Get the question reference 
 	 */
 	private String getQuestionReference(HashMap<String, String> paths, int fId, String qName) {
-		return paths.get(qName);
+		if(qName.equals("the_geom")) {
+			return paths.get(qName + fId);	// temporary support for legacy the_geom names
+		} else {
+			return paths.get(qName);
+		}
 	}
 
 	/*

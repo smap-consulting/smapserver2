@@ -1309,8 +1309,10 @@ public class XLSTemplateUploadManager {
 
 		} else if(!q.type.equals("end group") && !q.type.equals("end matrix") && qNameMapCaseInsensitive.get(q.columnName) != null) {
 			// Check for a duplicate name
-			throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
-
+			// Temporary - allow multiple question names of the_geom
+			if(!q.name.equals("the_geom")) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_dq", rowNumber, "survey", q.name, null, null);
+			}
 		}
 		
 		if(!q.type.equals("end group") && !q.type.equals("end matrix")) {		

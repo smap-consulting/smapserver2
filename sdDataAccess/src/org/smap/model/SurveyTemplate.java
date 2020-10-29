@@ -1318,7 +1318,11 @@ public class SurveyTemplate {
 					
 					questions.put(qRef, q);
 					String qName = q.getName();
-					questionPaths.put(qName, qRef);
+					if(qName.equals("the_geom")) {
+						questionPaths.put(qName + f_id, qRef);		// temporary support for multiple the_geoms
+					} else {
+						questionPaths.put(qName, qRef);
+					}
 					
 					boolean cascade = false;
 					String listName = q.getListName();
@@ -1566,10 +1570,12 @@ public class SurveyTemplate {
 		
 		for(Question q : questionList) {
 			
-			//String questionPath = q.getPath();
-			String qName = q.getName();
 			String questionPath = null;
-			questionPath = questionPaths.get(q.getName());
+			if(q.getName().equals("the_geom")) {				
+				questionPath = questionPaths.get(q.getName() + q.getFormId());	// Temp support for multiple the_geom
+			} else {
+				questionPath = questionPaths.get(q.getName());
+			}
 			
 			// Set the question type for "begin group" questions
 			if(q.getType() != null && q.getType().equals("begin group")) {
