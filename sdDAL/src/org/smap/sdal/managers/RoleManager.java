@@ -8,6 +8,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -172,6 +173,8 @@ public class RoleManager {
 				if(rs.next()) {
 					rId = rs.getInt(1);
 				}
+				
+				setUsersForRole(sd, rId, r.users);
 			}
 			
 		}  finally {		
@@ -184,7 +187,7 @@ public class RoleManager {
 	}
 	
 	/*
-	 * Update a new Role
+	 * Update a Role
 	 */
 	public void updateRole(Connection sd, 
 			Role r, 
@@ -213,6 +216,7 @@ public class RoleManager {
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
+			setUsersForRole(sd, r.id, r.users);
 			
 		}  finally {		
 			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}
@@ -355,9 +359,7 @@ public class RoleManager {
 				}
 				
 				roles.add(role);
-			}
-			
-
+			}		
 					    
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
@@ -704,4 +706,43 @@ public class RoleManager {
 		return cfArray;
 	}
 
+	private void setUsersForRole(Connection sd, int rId, ArrayList<Integer> users) {
+		
+		String sqlDelete = "delete from user_role where r_id = ?";
+		PreparedStatement pstmtDelete = null;
+		
+		String sql = "insert into user_role (u_id, r_id) values (?, ?)";
+		PreparedStatement pstmt = null;
+		
+		
+		try {
+			sd.setAutoCommit(false);
+			
+			// delete existing
+			pstmtDelete = sd.prepareStatement(sqlDelete);
+			pstmtDelete.setInt(1, rId);
+			pstmtDelete.executeUpdate();
+			
+			// add new
+			if(users != null && users.size() > 0) {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(2, rId);
+				for(int uId : users) {
+					pstmt.setInt(1, uId);
+					pstmt.executeUpdate();
+				}
+			}
+				
+			sd.commit();
+			
+		} catch (Exception e) {
+			try {sd.rollback();} catch(Exception ex) {}
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			try {sd.setAutoCommit(true);} catch(Exception e) {}
+			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+		}
+		
+	}
 }
