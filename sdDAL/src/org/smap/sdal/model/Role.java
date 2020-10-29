@@ -29,6 +29,7 @@ public class Role {
 	public int linkid;
 	public ArrayList<RoleColumnFilter> column_filter;	// Columns that are allowed to be seen by people with this role
 	public ArrayList<RoleColumnFilterRef> column_filter_ref;	// Columns that are allowed to be seen by people with this role
+	public ArrayList<Integer> users;
 	public String row_filter;							// String row filter sent to client
 	public String changed_by;
 	public String changed_ts;

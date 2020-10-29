@@ -1639,7 +1639,11 @@ public class GetHtml {
 	}
 
 	private String getRefName(String qName, Form form) {
-		return qName;
+		if(qName.equals("the_geom")) {
+			return qName + form.id;
+		} else {
+			return qName;
+		}
 	}
 
 	/*
