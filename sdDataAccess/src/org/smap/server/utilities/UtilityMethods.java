@@ -184,7 +184,13 @@ public class UtilityMethods {
 				output.append(' ');
 			}
 			
-			String qPath = questionPaths.get(qname);			
+			String qPath = null;
+			if(qname.equals("the_geom")) {
+				qPath = questionPaths.get(qname + f_id);
+			} else {
+				qPath = questionPaths.get(qname);
+			}
+			 			
 			
 		
 				
