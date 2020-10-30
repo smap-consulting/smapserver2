@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -157,7 +158,8 @@ public class MediaInfo {
 	/*
 	 * Getters
 	 */
-	public ArrayList<MediaItem> get(int sId) {
+	public ArrayList<MediaItem> get(int sId, HashMap<String, String> exclude) {
+		
 		ArrayList<MediaItem> media = new ArrayList<MediaItem> ();
 		
 		if(folder != null) {
@@ -185,6 +187,9 @@ public class MediaInfo {
 				
 				MediaItem mi = new MediaItem();
 				mi.name = fileName;
+				if(exclude != null && exclude.get(mi.name) != null) {
+					continue;
+				}
 				mi.size = f.length();
 				mi.modified = df.format(new Date(f.lastModified()));
 				if(server != null) {
@@ -193,10 +198,8 @@ public class MediaInfo {
 					} else {
 						mi.url = "/surveyKPI/file/" + fileName + "/organisation";
 					}
-					//mi.url = server + folderUrl + "/" + mi.name;
 					
 					String contentType = UtilityMethodsEmail.getContentType(mi.name);
-					String thumbName = mi.name;
 					
 					// Set type
 					if(contentType.startsWith("image")) {
@@ -219,21 +222,12 @@ public class MediaInfo {
 						mi.type = "unknown";
 					}
 					
-					if(!contentType.startsWith("image")) {		// Thumbnail has extension jpg
-						
-						int idx = mi.name.lastIndexOf('.');
-						if(idx > 0) {
-							thumbName = mi.name.substring(0, idx + 1) + "jpg";
-						}
-					}
-					
 					if(contentType.startsWith("text") || mi.type.startsWith("xls")) {
 						mi.thumbnailUrl = "/images/csv.png";
 					} else if(contentType.startsWith("audio")) {
 						mi.thumbnailUrl = "/images/audio.png";
 					} else {
 						mi.thumbnailUrl = mi.url + "?thumbs=true";
-						//mi.thumbnailUrl = server + folderUrl + "/thumbs/" + thumbName;
 					}
 					mi.deleteUrl = server + "surveyKPI/upload" + "/" + folderUrl + "/" + mi.name; 
 				} else {
