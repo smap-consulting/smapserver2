@@ -179,7 +179,7 @@ public class PDFTableManager {
 			writer.setPageEvent(new PdfPageSizer(title, 
 					user, basePath, 
 					tableHeader,
-					marginLeft, marginRight, marginTop_2, marginBottom_2)); 
+					marginLeft, marginRight, marginTop_2, marginBottom_2, null, null)); 
 			
 			document.open();
 			document.add(new Chunk(""));	// Ensure there is something in the page so at least a blank document will be created
