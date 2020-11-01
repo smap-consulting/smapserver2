@@ -425,7 +425,8 @@ public class SurveyManager {
 				+ "s.audit_location_data, "
 				+ "s.track_changes,"
 				+ "s.auto_translate,"
-				+ "s.pdf_template ");
+				+ "s.pdf_template,"
+				+ "s.default_logo ");
 				
 		String userIdentifiedSql = "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
@@ -521,6 +522,8 @@ public class SurveyManager {
 						s.pdfTemplateName = templateFile.getName();
 					}
 				}
+				s.default_logo = resultSet.getString(34);
+				
 			} else {
 				log.info("Error: survey not found");
 			}

@@ -59,6 +59,7 @@ public class Survey {
 	public HashMap<String, Role> roles = new HashMap<> ();
 	public InstanceResults instance = new InstanceResults();	// Data from an instance (a submitted survey)
 	public String pdfTemplateName;
+	public String default_logo;
 	public int version;			// Default to 1
 	public boolean loadedFromXLS;
 	public ArrayList<Pulldata> pulldata;

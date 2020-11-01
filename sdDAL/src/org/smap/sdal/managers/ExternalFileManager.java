@@ -786,24 +786,26 @@ public class ExternalFileManager {
 
 				// Update table list
 				if (tabs.length() > 0) {
-					tabs.append(",");
+					tabs.append(" left outer join ");
+					tabs.append(table);
+					tabs.append(" on ");
+					tabs.append(table);
+					tabs.append(".parkey = ");
+					tabs.append(parentTable);
+					tabs.append(".prikey");
+					//tabs.append(",");
+				} else {
+					tabs.append(table);
 				}
-				tabs.append(table);
 
 				// update where statement
-				if (where.length() > 0) {
-					where.append(" and ");
-				}
 				if (parentId == 0) {
+					if (where.length() > 0) {
+						where.append(" and ");
+					}
 					where.append(table);
 					where.append("._bad = 'false'");
-				} else {
-					where.append(table);
-					where.append(".parkey = ");
-					where.append(parentTable);
-					where.append(".prikey");
-					subTables.add(table);
-				}
+				} 
 				parents.add(fId);
 				parentTables.add(table);
 			}
