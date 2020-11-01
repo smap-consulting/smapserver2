@@ -813,19 +813,21 @@ public class Surveys extends Application {
 			sd.setAutoCommit(false);
 			
 			// Get the existing survey display name, plain old name and project id
-			String sqlGet = "select name, display_name, p_id, version from survey where s_id = ?";
+			String sqlGet = "select name, display_name, p_id, version, default_logo from survey where s_id = ?";
 			pstmtGet = sd.prepareStatement(sqlGet);	
 			pstmtGet.setInt(1, sId);
 			
 			String originalDisplayName = null;
 			String originalName = null;
 			int originalProjectId = 0;
+			String originalDefaultLogo = null;
 			ResultSet rs = pstmtGet.executeQuery();
 			if(rs.next()) {
 				originalName = rs.getString(1);
 				originalDisplayName = rs.getString(2);
 				originalProjectId = rs.getInt(3);
 				version = rs.getInt(4) + 1;
+				originalDefaultLogo = rs.getString(5);
 			}
 			
 			if(originalName != null) {
@@ -883,7 +885,8 @@ public class Surveys extends Application {
 					+ "data_survey = ?, "
 					+ "oversight_survey = ?, "
 					+ "audit_location_data = ?, "
-					+ "track_changes = ? ";
+					+ "track_changes = ?,"
+					+ "default_logo = ? ";
 			String sql2 = ",pdf_template = ? ";
 			String sql3 = "where s_id = ?";
 			String sql = sql1 + (updatePDFName ? sql2 : "") + sql3;
@@ -909,11 +912,12 @@ public class Surveys extends Application {
 			pstmt.setBoolean(15, survey.oversightSurvey);
 			pstmt.setBoolean(16, survey.audit_location_data);
 			pstmt.setBoolean(17, survey.track_changes);
+			pstmt.setString(18, survey.default_logo);
 			if(updatePDFName) {
-				pstmt.setString(18, fileName);
-				pstmt.setInt(19, sId);
+				pstmt.setString(19, fileName);
+				pstmt.setInt(20, sId);
 			} else {
-				pstmt.setInt(18, sId);
+				pstmt.setInt(19, sId);
 			}
 			
 			log.info("Saving survey: " + pstmt.toString());
@@ -936,7 +940,8 @@ public class Surveys extends Application {
 						+ ", " + localisation.getString("ar_project") + ": " 
 								+ GeneralUtilityMethods.getProjectName(sd, survey.p_id) 
 						+ ", " + localisation.getString("cr_key") + ": " + survey.hrk 
-						+ ", " + localisation.getString("cr_kp") + ": " + survey.key_policy;
+						+ ", " + localisation.getString("cr_kp") + ": " + survey.key_policy
+						+ ", " + localisation.getString("cr_default_logo") + ": " + survey.default_logo;
 				
 				// Write to the change log
 				pstmtChangeLog = sd.prepareStatement(sqlChangeLog);

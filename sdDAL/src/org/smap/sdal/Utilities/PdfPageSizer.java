@@ -39,6 +39,8 @@ public class PdfPageSizer extends PdfPageEventHelper {
 	int marginRight;
 	int marginTop_2;
 	int marginBottom_2;
+	String surveyIdent;
+	String defaultLogo;
 	ArrayList<String> tableHeader;
 	
 	private static Logger log =
@@ -51,7 +53,9 @@ public class PdfPageSizer extends PdfPageEventHelper {
 			int marginLeft,
 			int marginRight,
 			int marginTop_2,
-			int marginBottom_2) {
+			int marginBottom_2,
+			String surveyIdent,
+			String defaultLogo) {
 		
 		super();
 		
@@ -63,6 +67,8 @@ public class PdfPageSizer extends PdfPageEventHelper {
 		this.marginTop_2 = marginTop_2;
 		this.marginBottom_2 = marginBottom_2;
 		this.tableHeader = tableHeader;
+		this.surveyIdent = surveyIdent;
+		this.defaultLogo = defaultLogo;
 		
 	}
 	
@@ -126,26 +132,45 @@ public class PdfPageSizer extends PdfPageEventHelper {
 				// TODO Auto-generated catch block
 				e1.printStackTrace();
 			}
-			//ColumnText.showTextAligned(writer.getDirectContent(), 
-			//		Element.ALIGN_CENTER, titlePhrase, 
-			//		(pageRect.getLeft() + pageRect.getRight()) /2, pageRect.getTop() - 100, 0);
 			
 			if(user != null) {
 				// Show the logo
 				String fileName = null;
+				File f = null;
 				try {
-					fileName = basePath + File.separator + "media" + File.separator +
-						"organisation" + File.separator + user.o_id + File.separator +
-						"settings" + File.separator + "bannerLogo";
-
-						Image img = Image.getInstance(fileName);
+					
+					if(defaultLogo != null && !defaultLogo.equals("none")) {
+						// Try survey folder
+						fileName = basePath + File.separator + "media" + File.separator +
+								surveyIdent + File.separator + defaultLogo;
+						f = new File(fileName);
+						
+						// Try organisation folder
+						if(!f.exists()) {
+							fileName = basePath + File.separator + "media" + File.separator +
+									"organisation" + File.separator + user.o_id + File.separator +
+									defaultLogo;
+						}
+						f = new File(fileName);
+					}
+					if(f == null || !f.exists()) {
+						// try banner logo
+						fileName = basePath + File.separator + "media" + File.separator +
+								"organisation" + File.separator + user.o_id + File.separator +
+								"settings" + File.separator + "bannerLogo";
+						f = new File(fileName);
+					}
+						
+					if(f.exists()) {
+						Image img = Image.getInstance(f.getAbsolutePath());
 						img.scaleToFit(200, 50);
 						float w = img.getScaledWidth();
 						img.setAbsolutePosition(
-					            pageRect.getRight() - (marginRight + w),
-					            pageRect.getTop() - 75);
-					        document.add(img);
-						
+								pageRect.getRight() - (marginRight + w),
+								pageRect.getTop() - 75);
+						document.add(img);
+					}
+
 				} catch (Exception e) {
 					log.info("Error: Failed to add image " + fileName + " to pdf");
 				}

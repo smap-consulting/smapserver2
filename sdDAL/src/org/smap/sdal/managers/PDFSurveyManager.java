@@ -369,7 +369,8 @@ public class PDFSurveyManager {
 				
 				writer.setPageEvent(new PdfPageSizer(title, 
 						user, basePath, null,
-						marginLeft, marginRight, marginTop_2, marginBottom_2)); 
+						marginLeft, marginRight, marginTop_2, marginBottom_2,
+						survey.ident, survey.default_logo)); 
 				document.open();
 
 				// If this form has data maintain a list of parent records to lookup ${values}

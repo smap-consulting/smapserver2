@@ -58,6 +58,7 @@ import org.smap.sdal.model.ChangeItem;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.FormLength;
 import org.smap.sdal.model.Language;
+import org.smap.sdal.model.MediaItem;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.Survey;
@@ -237,7 +238,7 @@ public class UploadFiles extends Application {
 			
 			if(getlist) {
 				MediaResponse mResponse = new MediaResponse ();
-				mResponse.files = mediaInfo.get(sId);			
+				mResponse.files = mediaInfo.get(sId, null);			
 				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 				String resp = gson.toJson(mResponse);
 				log.info("Responding with " + mResponse.files.size() + " files");
@@ -295,7 +296,7 @@ public class UploadFiles extends Application {
 			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, sd, false);				 
 
 			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get(0);			
+			mResponse.files = mediaInfo.get(0, null);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();	
@@ -349,7 +350,7 @@ public class UploadFiles extends Application {
 			mediaInfo.setFolder(basePath, 0, sIdent, sd);
 
 			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get(0);			
+			mResponse.files = mediaInfo.get(0, null);			
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();	
@@ -373,7 +374,8 @@ public class UploadFiles extends Application {
 	@Path("/media")
 	public Response getMedia(
 			@Context HttpServletRequest request,
-			@QueryParam("survey_id") int sId
+			@QueryParam("survey_id") int sId,
+			@QueryParam("getall") boolean getall
 			) throws IOException {
 
 		Response response = null;
@@ -421,7 +423,19 @@ public class UploadFiles extends Application {
 			log.info("Media query on: " + mediaInfo.getPath());
 
 			MediaResponse mResponse = new MediaResponse();
-			mResponse.files = mediaInfo.get(sId);			
+			mResponse.files = mediaInfo.get(sId, null);	
+			
+			if(sId > 0 && getall) {
+				// Get a hashmap of the names to exclude
+				HashMap<String, String> exclude = new HashMap<> ();
+				for(MediaItem mi : mResponse.files) {
+					exclude.put(mi.name, mi.name);
+				}
+				// Add the organisation level media
+				mediaInfo.setFolder(basePath, user, oId, sd, false);
+				mResponse.files.addAll(mediaInfo.get(0, exclude));
+				
+			}
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			String resp = gson.toJson(mResponse);
 			response = Response.ok(resp).build();		
