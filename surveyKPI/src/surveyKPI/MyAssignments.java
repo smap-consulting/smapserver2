@@ -726,7 +726,15 @@ public class MyAssignments extends Application {
 
 		// 1. Get the current array
 		if(jIn != null && jIn.trim().length() > 0 && !jIn.equals("[ ]")) {
-			kvArray = new Gson().fromJson(jIn, type);
+			if(!jIn.trim().startsWith("[")) {
+				jIn = "[" + jIn + "]";
+			}
+			try {
+				kvArray = new Gson().fromJson(jIn, type);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, jIn, e);
+				kvArray = new ArrayList<KeyValueTask> ();
+			}
 		} else {
 			kvArray = new ArrayList<KeyValueTask> ();
 		}
