@@ -980,7 +980,7 @@ public class Items extends Application {
 				types.put("string");
 				types.put("string");
 				types.put("dateTime");
-				types.put("string");	
+				types.put("geometry");	
 				types.put("string");	
 				types.put("string");	
 				types.put("dateTime");
