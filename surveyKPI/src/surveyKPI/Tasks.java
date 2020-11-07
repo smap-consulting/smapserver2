@@ -606,7 +606,9 @@ public class Tasks extends Application {
 						oId, 
 						false, 
 						request.getRemoteUser(),
-						false);
+						false,
+						false		// preserve initial data
+						);
 				
 				/*
 				 * Get the tasks out of the database

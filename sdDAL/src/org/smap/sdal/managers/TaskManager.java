@@ -815,13 +815,14 @@ public class TaskManager {
 			int oId,
 			boolean autosendEmails,
 			String remoteUser,
-			boolean temporaryUser) throws Exception {
+			boolean temporaryUser,
+			boolean preserveInitialData) throws Exception {
 
 		HashMap<String, String> userIdents = new HashMap<>();
 
 		for(TaskServerDefn tsd : tl) {
 			writeTask(sd, cResults, tgId, tsd, urlPrefix, updateResources, 
-					oId, autosendEmails, remoteUser, temporaryUser, urlPrefix);
+					oId, autosendEmails, remoteUser, temporaryUser, urlPrefix, preserveInitialData);
 			for(AssignmentServerDefn asd : tsd.assignments) {
 				if(asd.assignee_ident != null) {
 					userIdents.put(asd.assignee_ident, asd.assignee_ident);
@@ -1478,7 +1479,8 @@ public class TaskManager {
 			boolean autosendEmails,
 			String remoteUser,
 			boolean temporaryUser,
-			String urlprefix
+			String urlprefix,
+			boolean preserveInitialData
 			) throws Exception {
 
 		CreateTaskResp resp = new CreateTaskResp();
@@ -1619,7 +1621,7 @@ public class TaskManager {
 			}
 			
 			if(tsd.id > 0) {
-				pstmt = getUpdateTaskStatement(sd);
+				pstmt = getUpdateTaskStatement(sd, preserveInitialData);
 				updateTask(
 						pstmt,
 						tsd.id,
@@ -1639,7 +1641,8 @@ public class TaskManager {
 						tsd.guidance,
 						tsd.initial_data_source,
 						initial_data,
-						tsd.show_dist);
+						tsd.show_dist,
+						preserveInitialData);
 			} else {
 				pstmt = getInsertTaskStatement(sd);
 				insertTask(
@@ -2608,9 +2611,9 @@ public class TaskManager {
 	/*
 	 * Get the preparedStatement for updating a task
 	 */
-	public PreparedStatement getUpdateTaskStatement(Connection sd) throws SQLException {
+	public PreparedStatement getUpdateTaskStatement(Connection sd, boolean preserveInitialData) throws SQLException {
 
-		String sql = "update tasks set "
+		StringBuilder sql = new StringBuilder("update tasks set "
 				+ "title = ?, "
 				+ "survey_ident = ?, "
 				+ "survey_name = (select display_name from survey where ident = ?), "
@@ -2625,13 +2628,15 @@ public class TaskManager {
 				+ "complete_all = ?,"
 				+ "assign_auto = ?,"
 				+ "guidance = ?,"
-				+ "initial_data_source = ?,"
-				+ "initial_data = ?, "
-				+ "show_dist = ? "
+				+ "initial_data_source = ?,");
+		if(!preserveInitialData) {
+			sql.append("initial_data = ?, ");
+		}
+		sql.append("show_dist = ? "
 				+ "where id = ? "
-				+ "and tg_id = ?";		// authorisation
+				+ "and tg_id = ?");		// authorisation
 		
-		return sd.prepareStatement(sql);
+		return sd.prepareStatement(sql.toString());
 	}
 	/*
 	 * Update a task
@@ -2655,27 +2660,31 @@ public class TaskManager {
 			String guidance,
 			String initial_data_source,
 			String initial_data,
-			int show_dist) throws SQLException {
+			int show_dist,
+			boolean preserveInitialData) throws SQLException {
 		
-		pstmt.setString(1, title);
-		pstmt.setString(2,  target_s_ident);
-		pstmt.setString(3,  target_s_ident);			// To set survey name				
-		pstmt.setString(4, location);			// geopoint
-		pstmt.setString(5, address);
-		pstmt.setTimestamp(6, taskStart);
-		pstmt.setTimestamp(7, taskFinish);
-		pstmt.setString(8, locationTrigger);
-		pstmt.setString(9, locationGroup);
-		pstmt.setString(10, locationName);
-		pstmt.setBoolean(11, repeat);	
-		pstmt.setBoolean(12, complete_all);	
-		pstmt.setBoolean(13, assign_auto);	
-		pstmt.setString(14, guidance);
-		pstmt.setString(15, initial_data_source);
-		pstmt.setString(16, initial_data);
-		pstmt.setInt(17, show_dist);
-		pstmt.setInt(18, tId);
-		pstmt.setInt(19, tgId);
+		int idx = 1;
+		pstmt.setString(idx++, title);
+		pstmt.setString(idx++,  target_s_ident);
+		pstmt.setString(idx++,  target_s_ident);			// To set survey name				
+		pstmt.setString(idx++, location);			// geopoint
+		pstmt.setString(idx++, address);
+		pstmt.setTimestamp(idx++, taskStart);
+		pstmt.setTimestamp(idx++, taskFinish);
+		pstmt.setString(idx++, locationTrigger);
+		pstmt.setString(idx++, locationGroup);
+		pstmt.setString(idx++, locationName);
+		pstmt.setBoolean(idx++, repeat);	
+		pstmt.setBoolean(idx++, complete_all);	
+		pstmt.setBoolean(idx++, assign_auto);	
+		pstmt.setString(idx++, guidance);
+		pstmt.setString(idx++, initial_data_source);
+		if(!preserveInitialData) {
+			pstmt.setString(idx++, initial_data);
+		}		
+		pstmt.setInt(idx++, show_dist);
+		pstmt.setInt(idx++, tId);
+		pstmt.setInt(idx++, tgId);
 
 		log.info("Update a task: " + pstmt.toString());
 		return(pstmt.executeUpdate());
