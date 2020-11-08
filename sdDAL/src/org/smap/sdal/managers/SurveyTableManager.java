@@ -389,7 +389,7 @@ public class SurveyTableManager {
 	}
 	
 	/*
-	 * Delete entries in csv table for a use
+	 * Delete entries in csv table for a user
 	 */
 	public void deleteForUsers(String user) throws SQLException {
 		
@@ -705,7 +705,7 @@ public class SurveyTableManager {
 			getTables(pstmtGetTable, 0, null, tabs, where, forms, subTables);
 
 			// 2.5 Add the primary keys of sub tables so they can be sorted on
-			if (linked_s_pd && subTables.size() > 0) {
+			if (subTables.size() > 0) {
 				for (String subTable : subTables) {
 					sql.append(",");
 					sql.append(subTable);
