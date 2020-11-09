@@ -617,7 +617,7 @@ public class SurveyTableManager {
 		ArrayList<String> colNames = new ArrayList<>();
 		ArrayList<String> validatedQuestionNames = new ArrayList<>();
 		ArrayList<String> subTables = new ArrayList<>();
-		HashMap<Integer, Integer> forms = new HashMap<>();
+		HashMap<String, String> tables = new HashMap<>();
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
 
 		Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
@@ -628,12 +628,13 @@ public class SurveyTableManager {
 		PreparedStatement pstmtGetTable = null;
 		
 		try {
-			int fId;
 
 			// 1. Get the columns in the group
 			SurveyManager sm = new SurveyManager(localisation, "UTC");					
 			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId);
 			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyId, null, false);
+
+			log.info("Question forms: " + refQuestionMap.toString());
 
 			boolean first = true;
 			if (linked_s_pd) {
@@ -643,7 +644,7 @@ public class SurveyTableManager {
 				first = false;
 			}
 
-			forms.put(topForm.id, topForm.id); // Always add top level form
+			tables.put(topForm.tableName, topForm.tableName); // Always add top level form
 			for (int i = 0; i < qnames.size(); i++) {
 				String name = qnames.get(i);
 				if (name.equals("_data_key") || name.equals("_count")) {
@@ -655,12 +656,13 @@ public class SurveyTableManager {
 				String[] multNames = name.split(",");		// Allow for comma separated labels
 				for(String n : multNames) {
 					n = n.trim();
+					String tableName;
 					
 					QuestionForm qf = refQuestionMap.get(n);
 					
 					if (qf != null && qf.published) {
 						colName = qf.columnName;
-						fId = qf.f_id;
+						tableName = qf.tableName;
 						colType = qf.qType;
 						serverCalculate = qf.serverCalculate;
 						SqlFrag calculation = null;
@@ -678,13 +680,13 @@ public class SurveyTableManager {
 						
 					} else if (SmapServerMeta.isServerReferenceMeta(n)) {
 						colName = n; // For columns that are not questions such as _hrk, _device
-						fId = topForm.id;
+						tableName = topForm.tableName;
 					} else {
 						continue; // Name not found
 					}
 					colNames.add(n);
 					validatedQuestionNames.add(n);
-					forms.put(fId, fId);
+					tables.put(tableName, tableName);
 	
 					if (!first) {
 						sql.append(",");
@@ -702,8 +704,10 @@ public class SurveyTableManager {
 			// 2. Add the tables
 			pstmtGetTable = sd.prepareStatement(sqlGetTable);
 			pstmtGetTable.setInt(1, sId);
-			getTables(pstmtGetTable, 0, null, tabs, where, forms, subTables);
-
+			log.info("Tables: " + tables.size() + " : " + tables.toString());
+			getTables(pstmtGetTable, 0, null, tabs, where, tables, subTables);
+			log.info("Subtables: " + subTables.size());
+			
 			// 2.5 Add the primary keys of sub tables so they can be sorted on
 			if (subTables.size() > 0) {
 				for (String subTable : subTables) {
@@ -784,7 +788,7 @@ public class SurveyTableManager {
 	 * Get table details
 	 */
 	private void getTables(PreparedStatement pstmt, int parentId, String parentTable, StringBuffer tabs,
-			StringBuffer where, HashMap<Integer, Integer> forms, ArrayList<String> subTables) throws SQLException {
+			StringBuffer where, HashMap<String, String> tables, ArrayList<String> subTables) throws SQLException {
 
 		ArrayList<Integer> parents = new ArrayList<>();
 		ArrayList<String> parentTables = new ArrayList<>();
@@ -796,10 +800,13 @@ public class SurveyTableManager {
 			int fId = rs.getInt(1);
 			String table = rs.getString(2);
 
+			log.info("Processing form: " + fId + " : " + table + " : " + parentId);
+			log.info(tables.toString());
+			
 			/*
-			 * Ignore forms that where no questions have been asked for
+			 * Ignore tables that where no questions have been asked for
 			 */
-			if (forms.get(fId) != null) {
+			if (tables.get(table) != null) {
 
 				// Update table list
 				if (tabs.length() > 0) {
@@ -820,6 +827,7 @@ public class SurveyTableManager {
 					where.append(parentTable);
 					where.append(".prikey");
 					subTables.add(table);
+					log.info("+++++ adding sub table: " + table);
 				}
 				parents.add(fId);
 				parentTables.add(table);
@@ -830,7 +838,7 @@ public class SurveyTableManager {
 		for (int i = 0; i < parents.size(); i++) {
 			int fId = parents.get(i);
 			String table = parentTables.get(i);
-			getTables(pstmt, fId, table, tabs, where, forms, subTables);
+			getTables(pstmt, fId, table, tabs, where, tables, subTables);
 		}
 
 	}
