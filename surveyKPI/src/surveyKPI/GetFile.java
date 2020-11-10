@@ -275,11 +275,7 @@ public class GetFile extends Application {
 			
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, sId);
-			String filepath = basepath + "/media/" + sIdent+ "/";
-			if(filename.startsWith("linked_s") || filename.startsWith("linked_s_pd_s") || filename.startsWith("chart_s")) {
-				filepath += request.getRemoteUser() + "/";
-			}
-			filepath += filename;
+			String filepath = basepath + "/media/" + sIdent+ "/" + filename;
 			
 			log.info("File path: " + filepath);
 			FileManager fm = new FileManager();
