@@ -554,11 +554,16 @@ public class MyAssignments extends Application {
 						log.info("Linked file:" + m.fileName);
 	
 						/*
-						 * The file is unique per survey and by user name due to the use of roles to
+						 * The file is unique per survey, user roles are ignored due to performance issues of roles to
 						 *  restrict columns and rows per user
 						 */
 						ExternalFileManager efm = new ExternalFileManager(localisation);
-						String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
+						String dirPath = basepath
+								+ File.separator
+								+ "media" 
+								+ File.separator 
+								+ survey.ident 
+								+ File.separator;
 	
 						// Make sure the destination exists
 						File dir = new File(dirPath);
