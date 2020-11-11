@@ -133,7 +133,10 @@ public class MessagingManagerApply {
 				if(topic.equals("survey")) {
 					
 					if(count % 20 != 0) { 
+						log.info("xsxsxsxsxsxs: skipping survey message: " + count);
 						continue;
+					} else {
+						log.info("xsxsxsxsxsxs: processing survey message: " + count);
 					}
 					
 				}
