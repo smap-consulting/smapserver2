@@ -6226,7 +6226,7 @@ public class GeneralUtilityMethods {
 
 		Form f = new Form();
 
-		String sql = "select f_id, table_name " 
+		String sql = "select f_id, table_name, parentform " 
 				+ "from form " 
 				+ "where s_id = ? " 
 				+ "and f_id = ?";
@@ -6241,6 +6241,7 @@ public class GeneralUtilityMethods {
 			if (rs.next()) {
 				f.id = rs.getInt("f_id");
 				f.tableName = rs.getString("table_name");
+				f.parentform = rs.getInt("parentform");
 			}
 
 		} finally {
