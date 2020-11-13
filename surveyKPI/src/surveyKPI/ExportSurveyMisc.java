@@ -129,9 +129,10 @@ public class ExportSurveyMisc extends Application {
 		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
 
 		String tz = "UTC";		// Default to UTC
+		String connectionString = "surveyKPI-ExportSurveyMisc";
 
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -144,7 +145,9 @@ public class ExportSurveyMisc extends Application {
 			a.isValidQuery(sd, request.getRemoteUser(), targetId);
 		} else {
 			a.isValidSurvey(sd, request.getRemoteUser(), targetId, false, superUser);
-			a.isValidQuestionName(sd, request.getRemoteUser(), targetId, geomQuestion, true);
+			if(geomQuestion != null) {
+				a.isValidQuestionName(sd, request.getRemoteUser(), targetId, geomQuestion, true);
+			}
 		}
 		// End Authorisation
 
@@ -180,7 +183,7 @@ public class ExportSurveyMisc extends Application {
 				/*
 				 * Get the name of the database
 				 */
-				connectionResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");
+				connectionResults = ResultsDataSource.getConnection(connectionString);
 				DatabaseMetaData databaseMetaData = connectionResults.getMetaData();
 				String dbUrl = databaseMetaData.getURL();
 				String database_name = dbUrl.substring(dbUrl.lastIndexOf('/') + 1);
@@ -628,8 +631,8 @@ public class ExportSurveyMisc extends Application {
 				try {if (pstmtDefLang2 != null) {pstmtDefLang2.close();}} catch (SQLException e) {}	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
 
-				SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
-				ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", connectionResults);
+				SDDataSource.closeConnection(connectionString, sd);
+				ResultsDataSource.closeConnection(connectionString, connectionResults);
 			}
 		}
 
