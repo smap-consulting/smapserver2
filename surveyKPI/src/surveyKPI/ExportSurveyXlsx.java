@@ -73,9 +73,10 @@ public class ExportSurveyXlsx extends Application {
 			@Context HttpServletResponse response) throws Exception {
 
 		Response responseVal;
+		String connectionString = "surveyKPI-ExportSurveyXlsx";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-ExportSurveyMisc");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -90,7 +91,7 @@ public class ExportSurveyXlsx extends Application {
 		
 		Connection cResults = null;
 		try {
-			cResults = ResultsDataSource.getConnection("surveyKPI-ExportSurvey");		
+			cResults = ResultsDataSource.getConnection(connectionString);		
 			
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -126,8 +127,8 @@ public class ExportSurveyXlsx extends Application {
 			lm.writeLog(sd, sId, request.getRemoteUser(), "error", e.getMessage(), 0);
 			responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-ExportSurvey", sd);
-			ResultsDataSource.closeConnection("surveyKPI-ExportSurvey", cResults);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 		
 		return responseVal;
