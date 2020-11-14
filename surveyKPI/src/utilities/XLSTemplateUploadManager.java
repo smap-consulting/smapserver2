@@ -940,6 +940,16 @@ public class XLSTemplateUploadManager {
 			q.style_list = XLSUtilities.getTextColumn(row, "style list", surveyHeader, lastCellNum, null);
 		}
 		
+		// 21. Literacy Flash Interval
+		String flashInterval = XLSUtilities.getTextColumn(row, "body::kb:flash", surveyHeader, lastCellNum, null); 
+		if(flashInterval != null) {
+			try {
+				q.flash = Integer.valueOf(flashInterval);
+			} catch (Exception e) {
+				throw XLSUtilities.getApplicationException(localisation, "tu_if", rowNumSurvey, "survey", null, null, null);
+			}
+		}
+		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
 			for(String h : columnRoleHeader.keySet()) {
