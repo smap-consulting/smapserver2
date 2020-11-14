@@ -733,11 +733,12 @@ public class Survey {
 				+ "intent,"
 				+ "style_id,"
 				+ "server_calculate,"
-				+ "set_value"
+				+ "set_value,"
+				+ "flash"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			
@@ -853,6 +854,7 @@ public class Survey {
 			}
 			pstmt.setString(33,  serverCalculation);
 			pstmt.setString(34, q.getSetValueArrayAsString(gson));
+			pstmt.setInt(35, q.flash);
 				
 			pstmt.executeUpdate();
 			
