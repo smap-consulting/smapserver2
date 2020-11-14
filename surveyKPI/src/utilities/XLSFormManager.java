@@ -90,6 +90,7 @@ public class XLSFormManager {
 		public static final int COL_INTENT = 23;
 		public static final int COL_GUIDANCE_HINT = 24;
 		public static final int COL_STYLE_LIST = 25;
+		public static final int COL_FLASH = 26;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -342,6 +343,9 @@ public class XLSFormManager {
 
 			} else if(type == COL_STYLE_LIST) {				
 				value = q.style_list;
+
+			} else if(type == COL_FLASH) {				
+				value = String.valueOf(q.flash);
 
 			} else {
 				log.info("Unknown column type for survey: " + type);
@@ -944,7 +948,9 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
+		cols.add(new Column(colNumber++,"body::kb:flash", Column.COL_FLASH, 0, "body::kb:flash"));
 		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
+
 		
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
