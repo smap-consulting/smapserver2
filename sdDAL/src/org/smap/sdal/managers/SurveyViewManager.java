@@ -227,6 +227,7 @@ public void populateSvd(
 			
 			tc.parameters = c.parameters;		// Add parameters
 			tc.appearance = c.appearance;		// Add appearance
+			tc.choices = c.choices;				// Add choices
 			
 			if(tc.column_name.equals("_bad")) {
 				tc.displayName = localisation.getString("c_del");
