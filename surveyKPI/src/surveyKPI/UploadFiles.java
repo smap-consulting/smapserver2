@@ -606,9 +606,10 @@ public class UploadFiles extends Application {
 				surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
 				
 				merge = true;
-				groupForms = sm.getGroupForms(sd, surveyId);
-				questionNames = sm.getGroupQuestionsMap(sd, surveyId, null, false);	
-				optionNames = sm.getGroupOptions(sd, surveyId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
+				groupForms = sm.getGroupForms(sd, groupSurveyIdent);
+				questionNames = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);	
+				optionNames = sm.getGroupOptions(sd, groupSurveyIdent);
 			}
 			
 			if(action == null) {
@@ -679,11 +680,11 @@ public class UploadFiles extends Application {
 			 */
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
-					s.groupSurveyId = surveyId;
+					s.groupSurveyIdent = existingSurvey.ident;
 					
 				} else {
-					// Set the group survey id to the same value as the original survey
-					s.groupSurveyId = existingSurvey.groupSurveyId;
+					// Set the group survey ident to the same value as the original survey
+					s.groupSurveyIdent = existingSurvey.groupSurveyIdent;
 					s.publicLink = existingSurvey.publicLink;
 				}
 

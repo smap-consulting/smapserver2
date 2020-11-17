@@ -691,8 +691,8 @@ public class ManagedForms extends Application {
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("prikey") int prikey,
-			@QueryParam("roles") String roles,
-			@QueryParam("groupSurvey") String groupSurvey
+			@QueryParam("roles") String roles
+			//@QueryParam("groupSurvey") String groupSurvey
 			) { 
 		
 		Response response = null;

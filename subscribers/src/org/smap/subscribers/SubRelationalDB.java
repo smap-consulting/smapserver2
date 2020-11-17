@@ -519,14 +519,14 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							replace, remoteUser, instance.getUuid());
+							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
@@ -891,7 +891,9 @@ public class SubRelationalDB extends Subscriber {
 			int sourceKey,
 			boolean replace,
 			String user,
-			String newInstance) throws SQLException, Exception {
+			String newInstance,
+			String groupSurveyIdent,
+			String ident) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -910,8 +912,7 @@ public class SubRelationalDB extends Subscriber {
 		String sqlChildTablesInGroup = "select distinct table_name from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
-				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
-				+ "or s_id = ?)";
+				+ "and (s_id in (select s_id from survey where group_survey_ident = ? and deleted='false'))) ";
 		PreparedStatement pstmtChildTablesInGroup = null;
 		
 		String sqlGetFormDetails = "select distinct f_id, name  from form "
@@ -992,11 +993,9 @@ public class SubRelationalDB extends Subscriber {
 				
 				// Add the child records from the merged survey to the new survey
 				ResultSet rsc = null;
-				int groupId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				if(groupId > 0) {
+				if(!ident.equals(groupSurveyIdent)) {
 					pstmtChildTablesInGroup = sd.prepareStatement(sqlChildTablesInGroup);
-					pstmtChildTablesInGroup.setInt(1,  groupId);
-					pstmtChildTablesInGroup.setInt(2,  groupId);
+					pstmtChildTablesInGroup.setString(1,  groupSurveyIdent);
 					log.info("Get child tables for group: " + pstmtChildTablesInGroup.toString());
 					rsc = pstmtChildTablesInGroup.executeQuery();
 				
@@ -1018,7 +1017,7 @@ public class SubRelationalDB extends Subscriber {
 					int child_f_id = 0;
 					String formname = null;
 					
-					if(groupId > 0) {
+					if(!ident.equals(groupSurveyIdent)) {
 						pstmtFormDetails.setString(1, tableName);
 						ResultSet rsFD = pstmtFormDetails.executeQuery();
 						if(rsFD.next()) {
