@@ -980,7 +980,7 @@ public class Authorise {
 	 * Verify that the user is entitled to access this group survey ident
 	 *  
 	 */
-	public boolean isValidGroupSurvey(Connection conn, String user, int sId, String groupSurveyIdent)
+	public boolean isValidOversightSurvey(Connection conn, String user, int sId, String oversightSurveyIdent)
 			throws ServerException, AuthorisationException, NotFoundException {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
@@ -996,13 +996,14 @@ public class Authorise {
 				+ "where s.p_id = up.p_id "
 				+ "and up.u_id = u.id "
 				+ "and u.ident = ? "
-				+ "and s.group_survey_ident = ? "
-				+ "and s.s_id = ? ";
+				+ "and s.ident = ? "
+				+ "and s.group_survey_ident is not null "
+				+ "and s.group_survey_ident = (select group_survey_ident from survey where s_id = ?) ";
 
 		try {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setString(1, user);
-			pstmt.setString(2,  groupSurveyIdent);
+			pstmt.setString(2,  oversightSurveyIdent);
 			pstmt.setInt(3,  sId);
 			
 			log.info("IsValidGroupSurvey: " + pstmt.toString());
@@ -1025,7 +1026,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " custom survey was: " + groupSurveyIdent);
+ 			log.info("Survey validation failed for: " + user + " custom survey was: " + oversightSurveyIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			

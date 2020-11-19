@@ -189,7 +189,7 @@ public class SurveyManager {
 			sql.append("and s.blocked = 'false' ");
 		}
 		if(onlyGroup) {
-			sql.append("and s.group_survey_ident = ident ");
+			sql.append("and s.group_survey_ident = s.ident ");
 		}
 		if(onlyDataSurvey) {
 			sql.append("and s.data_survey = 'true' ");

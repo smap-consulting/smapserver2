@@ -289,7 +289,8 @@ public class Survey {
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
-				+ "ident = ? "
+				+ "ident = ?, "
+				+ "group_survey_ident = ?"
 				+ "where s_id = ?;";
 		PreparedStatement pstmtUpdate = null;
 
@@ -331,12 +332,15 @@ public class Survey {
 				if(rs.next()) {
 					id = rs.getInt(1);
 				
-					String surveyName = "s" + p_id + "_" + id;
-					ident = surveyName;
+					ident = "s" + p_id + "_" + id;
+					if(groupSurveyIdent == null) {
+						groupSurveyIdent = ident;
+					}
 					
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
 					pstmtUpdate.setString(1, ident);
-					pstmtUpdate.setInt(2, id);
+					pstmtUpdate.setString(2, groupSurveyIdent);
+					pstmtUpdate.setInt(3, id);
 					pstmtUpdate.executeUpdate();
 				}
 			}
