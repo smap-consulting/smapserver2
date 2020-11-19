@@ -153,7 +153,7 @@ public class ManagedForms extends Application {
 		}
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
 		// End Authorisation
 
 		Connection cResults = ResultsDataSource.getConnection(requester);
@@ -691,8 +691,8 @@ public class ManagedForms extends Application {
 			@Context HttpServletRequest request, 
 			@PathParam("sId") int sId,
 			@PathParam("prikey") int prikey,
-			@QueryParam("roles") String roles
-			//@QueryParam("groupSurvey") String groupSurvey
+			@QueryParam("roles") String roles,
+			@QueryParam("groupSurvey") String groupSurvey
 			) { 
 		
 		Response response = null;
@@ -707,7 +707,7 @@ public class ManagedForms extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(groupSurvey != null) {
-			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+			a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
 		}
 		// End Authorisation
 		

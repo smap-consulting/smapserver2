@@ -116,7 +116,7 @@ public class TableReports extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		if(groupSurvey != null) {
-			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+			a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
 		}
 		// End Authorisation
 		
