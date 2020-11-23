@@ -2674,6 +2674,8 @@ public class SurveyManager {
 						}
 					} else if(q.type != null && q.type.equals("server_calculate")) {
 						continue;		// Sever calculations do not need to be published
+					} else if(q.type != null && q.type.equals("begin group")) {
+						continue;		// groups do not need to be published
 					}
 					questions.remove(i);
 				}
