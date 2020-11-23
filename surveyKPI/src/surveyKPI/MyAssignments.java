@@ -980,7 +980,7 @@ public class MyAssignments extends Application {
 				+ "assignee = ?,"
 				+ "assignee_name = (select name from users where id = ?) "
 				+ "where a.id = ? "
-				+ "and ((a.status = 'new' and task_id in (select id from tasks where id = task_id and assign_auto)) "
+				+ "and (a.assignee < 0 and ((a.status = 'new' or a.status = 'submitted') and task_id in (select id from tasks where id = task_id and assign_auto)) "
 				+ "or a.assignee = ?)";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;
