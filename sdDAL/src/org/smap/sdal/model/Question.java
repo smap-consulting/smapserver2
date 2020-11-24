@@ -73,6 +73,7 @@ public class Question {
 	
 	public String style_list;			// The name of the style applied to this question
 	public int style_id;				// The id of the style as used in the database
+	public int flash;					// flash interval for literacy questions
 	
 	public Question() {
 		

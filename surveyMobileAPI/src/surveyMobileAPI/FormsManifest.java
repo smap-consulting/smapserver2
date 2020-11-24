@@ -147,8 +147,7 @@ public class FormsManifest {
 				String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, survey.id);
 				
 				if(m.type.equals("linked")) {
-					filepath = basepath + "/media/" + sIdent+ "/" + 
-							request.getRemoteUser() + "/" + m.fileName;
+					filepath = basepath + "/media/" + sIdent+ "/" + m.fileName;
 					filepath += ".csv";
 					m.fileName += ".csv";
 				} else {

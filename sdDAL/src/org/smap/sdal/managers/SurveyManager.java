@@ -2674,6 +2674,8 @@ public class SurveyManager {
 						}
 					} else if(q.type != null && q.type.equals("server_calculate")) {
 						continue;		// Sever calculations do not need to be published
+					} else if(q.type != null && q.type.equals("begin group")) {
+						continue;		// groups do not need to be published
 					}
 					questions.remove(i);
 				}
@@ -3501,7 +3503,7 @@ public class SurveyManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, groupSurveyId);
 			pstmt.setInt(2, groupSurveyId);
-			// log.info("Getting group questions: " + pstmt.toString());
+			log.info("Getting group questions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {

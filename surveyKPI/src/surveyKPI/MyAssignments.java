@@ -554,11 +554,16 @@ public class MyAssignments extends Application {
 						log.info("Linked file:" + m.fileName);
 	
 						/*
-						 * The file is unique per survey and by user name due to the use of roles to
+						 * The file is unique per survey, user roles are ignored due to performance issues of roles to
 						 *  restrict columns and rows per user
 						 */
 						ExternalFileManager efm = new ExternalFileManager(localisation);
-						String dirPath = basepath + "/media/" + survey.ident + "/" + userName + "/";
+						String dirPath = basepath
+								+ File.separator
+								+ "media" 
+								+ File.separator 
+								+ survey.ident 
+								+ File.separator;
 	
 						// Make sure the destination exists
 						File dir = new File(dirPath);
@@ -726,7 +731,15 @@ public class MyAssignments extends Application {
 
 		// 1. Get the current array
 		if(jIn != null && jIn.trim().length() > 0 && !jIn.equals("[ ]")) {
-			kvArray = new Gson().fromJson(jIn, type);
+			if(!jIn.trim().startsWith("[")) {
+				jIn = "[" + jIn + "]";
+			}
+			try {
+				kvArray = new Gson().fromJson(jIn, type);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, jIn, e);
+				kvArray = new ArrayList<KeyValueTask> ();
+			}
 		} else {
 			kvArray = new ArrayList<KeyValueTask> ();
 		}
@@ -967,7 +980,7 @@ public class MyAssignments extends Application {
 				+ "assignee = ?,"
 				+ "assignee_name = (select name from users where id = ?) "
 				+ "where a.id = ? "
-				+ "and ((a.status = 'new' and task_id in (select id from tasks where id = task_id and assign_auto)) "
+				+ "and (a.assignee < 0 and ((a.status = 'new' or a.status = 'submitted') and task_id in (select id from tasks where id = task_id and assign_auto)) "
 				+ "or a.assignee = ?)";
 		PreparedStatement pstmt = sd.prepareStatement(sql);
 		return pstmt;

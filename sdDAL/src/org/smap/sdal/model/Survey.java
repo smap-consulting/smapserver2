@@ -283,9 +283,10 @@ public class Survey {
 				+ "timing_data,"
 				+ "audit_location_data,"
 				+ "track_changes,"
-				+ "auto_translate) "
+				+ "auto_translate,"
+				+ "default_logo) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -323,6 +324,7 @@ public class Survey {
 			pstmt.setBoolean(21, audit_location_data);
 			pstmt.setBoolean(22, track_changes);
 			pstmt.setBoolean(23, autoTranslate);
+			pstmt.setString(24, default_logo);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id
@@ -733,11 +735,12 @@ public class Survey {
 				+ "intent,"
 				+ "style_id,"
 				+ "server_calculate,"
-				+ "set_value"
+				+ "set_value,"
+				+ "flash"
 				+ ") "
 				+ "values (nextval('q_seq'), ?, ?, ?, ?, ?, ?, ?, ?"
 					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+					+ ", ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 		
 		try {
 			
@@ -853,6 +856,7 @@ public class Survey {
 			}
 			pstmt.setString(33,  serverCalculation);
 			pstmt.setString(34, q.getSetValueArrayAsString(gson));
+			pstmt.setInt(35, q.flash);
 				
 			pstmt.executeUpdate();
 			

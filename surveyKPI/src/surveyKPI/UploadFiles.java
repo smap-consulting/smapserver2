@@ -661,7 +661,7 @@ public class UploadFiles extends Application {
 				if(displayName != null && displayName.length() != 0) {
 					model.getSurvey().setDisplayName(displayName);
 				} else {
-					throw new Exception("No Suvey name");
+					throw new Exception("No Survey name");
 				}
 
 				// Set the project id to the one entered by the user 
@@ -728,7 +728,7 @@ public class UploadFiles extends Application {
 				/*
 				 * If the survey is being replaced and if it has an existing  geometry called the_geom and there is no
 				 * geometry of that name in the new form then create a warning
-				 * This warnig can be removed in version 21.06
+				 * This warning can be removed in version 21.06
 				 */
 				if(action.equals("replace")) {
 					for(Form f : s.forms) {
@@ -841,8 +841,7 @@ public class UploadFiles extends Application {
 						basePath,
 						"no",		// Do not delete the tables
 						s.id		   // New Survey Id for replacement 
-					);	
-				
+					);		
 			}
 			
 			/*

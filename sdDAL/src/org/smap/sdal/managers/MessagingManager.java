@@ -242,7 +242,7 @@ public class MessagingManager {
 						.append("</p>");
 				
 				content.append("<br/><p>").append(localisation.getString("c_goto"))
-					.append("<a href=\"").append(scheme).append("://").append(server)
+					.append(" <a href=\"").append(scheme).append("://").append(server)
 					.append("/subscriptions.html?subscribe=yes&token=")
 					.append(emailKey)
 					.append("\">")

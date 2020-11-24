@@ -554,6 +554,7 @@ public class ActionManager {
 			String userIdent,
 			int sId, 
 			String instanceId,
+			int subFormPrimaryKey,
 			String groupSurvey, 
 			String groupForm,
 			String updateString,
@@ -583,6 +584,7 @@ public class ActionManager {
 			
 			Form f = null;
 			Form topLevelForm = null;
+			boolean isSubForm = false;
 			if(groupForm == null || groupForm.equals("_none")) {
 				 f = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId ); // Get formId of top level form and its table name
 				 topLevelForm = f;
@@ -590,6 +592,9 @@ public class ActionManager {
 				int fId = GeneralUtilityMethods.getFormId(sd, groupSurveyId, groupForm);
 				f = GeneralUtilityMethods.getForm(sd, groupSurveyId, fId);
 				topLevelForm = GeneralUtilityMethods.getTopLevelForm(sd, groupSurveyId );
+			}
+			if(f.parentform > 0) {
+				isSubForm = true;
 			}
 		
 			ArrayList<TableColumn> columnList = GeneralUtilityMethods.getColumnsInForm(
@@ -700,7 +705,11 @@ public class ActionManager {
 							.append(" = ? ");
 					}
 				}
-				sqlUpdate.append("where instanceid = ? ");
+				if(isSubForm) {
+					sqlUpdate.append("where prikey = ? ");
+				} else {
+					sqlUpdate.append("where instanceid = ? ");
+				}
 
 				try {if (pstmtUpdate != null) {pstmtUpdate.close();}} catch (Exception e) {}
 				pstmtUpdate = cResults.prepareStatement(sqlUpdate.toString());
@@ -732,7 +741,12 @@ public class ActionManager {
 						pstmtUpdate.setString(paramCount++, u.value);
 					}
 				}
-				pstmtUpdate.setString(paramCount++, instanceId);
+				if(isSubForm) {
+					pstmtUpdate.setInt(paramCount++, subFormPrimaryKey);
+				} else {
+					pstmtUpdate.setString(paramCount++, instanceId);
+				}
+				
 
 				log.info("Updating managed survey: " + pstmtUpdate.toString());
 				int count = pstmtUpdate.executeUpdate();

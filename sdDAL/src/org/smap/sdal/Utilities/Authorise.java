@@ -111,7 +111,9 @@ public class Authorise {
 			count = resultSet.getInt(1);
 		} catch (Exception e) {
 			log.info("Authorisation failed for: " + user + " groups required were one of: " );
-			log.info("isAuthorised: " + pstmt.toString());
+			if(pstmt!=null) {
+				log.info("isAuthorised: " + pstmt.toString());
+			}
 			for(int i = 0; i < permittedGroups.size(); i++) {
 				log.info("  ==== " + permittedGroups.get(i));
 			}

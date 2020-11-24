@@ -90,6 +90,7 @@ public class XLSFormManager {
 		public static final int COL_INTENT = 23;
 		public static final int COL_GUIDANCE_HINT = 24;
 		public static final int COL_STYLE_LIST = 25;
+		public static final int COL_FLASH = 26;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -114,6 +115,7 @@ public class XLSFormManager {
 		public static final int COL_DATA_SURVEY = 212;
 		public static final int COL_OVERSIGHT_SURVEY = 213;
 		public static final int COL_AUTO_TRANSLATE = 214;
+		public static final int COL_REPORT_LOGO = 215;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -343,6 +345,9 @@ public class XLSFormManager {
 			} else if(type == COL_STYLE_LIST) {				
 				value = q.style_list;
 
+			} else if(type == COL_FLASH) {				
+				value = String.valueOf(q.flash);
+
 			} else {
 				log.info("Unknown column type for survey: " + type);
 			}
@@ -475,8 +480,11 @@ public class XLSFormManager {
 			} else if(type == COL_AUTO_TRANSLATE) {				
 				value = survey.autoTranslate ? "yes" : "no";
 
-			} else if(type == COL_TIMING_DATA) {				
-				value = survey.timing_data ? "yes" : "no";
+			} else if(type == COL_AUTO_TRANSLATE) {				
+				value = survey.autoTranslate ? "yes" : "no";
+
+			} else if(type == COL_REPORT_LOGO) {				
+				value = survey.default_logo;
 
 			} else if(type == COL_AUDIT_LOCATION_DATA) {				
 				value = survey.audit_location_data ? "yes" : "no";
@@ -944,7 +952,9 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
+		cols.add(new Column(colNumber++,"body::kb:flash", Column.COL_FLASH, 0, "body::kb:flash"));
 		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
+
 		
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
@@ -1069,6 +1079,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "track_changes", Column.COL_TRACK_CHANGES, 0, "track_changes"));
 		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
 		cols.add(new Column(colNumber++, "auto_translate", Column.COL_AUTO_TRANSLATE, 0, "auto_translate"));
+		cols.add(new Column(colNumber++, "report_logo", Column.COL_REPORT_LOGO, 0, "report_logo"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
