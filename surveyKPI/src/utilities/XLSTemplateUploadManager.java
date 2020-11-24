@@ -445,6 +445,7 @@ public class XLSTemplateUploadManager {
 					throw new ApplicationException(msg);
 				}
 				survey.autoTranslate = getBooleanColumn(row, "auto_translate", settingsHeader, lastCellNum, false);
+				survey.default_logo = XLSUtilities.getTextColumn(row, "report_logo", settingsHeader, lastCellNum, null);
 				
 				String pdRepeats = XLSUtilities.getTextColumn(row, "pulldata_repeat", settingsHeader, lastCellNum, null);
 				if(pdRepeats != null) {
