@@ -1811,7 +1811,8 @@ public class QuestionManager {
 				+ "q.intent, "
 				+ "st.name as style_name, "
 				+ "q.server_calculate,"
-				+ "q.set_value "
+				+ "q.set_value,"
+				+ "q.flash "
 				+ "from question q "
 				+ "left outer join listname l on q.l_id = l.l_id "
 				+ "left outer join style st on q.style_id = st.id "
@@ -1912,6 +1913,7 @@ public class QuestionManager {
 						q.defaultanswer = q.getDefaultSetValue();
 					}
 				}
+				q.flash = rsGetQuestions.getInt(38);
 				
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					GeneralUtilityMethods.setExternalFileValues(sd, q);

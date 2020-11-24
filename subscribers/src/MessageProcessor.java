@@ -59,7 +59,8 @@ public class MessageProcessor {
 
 		public void run() {
 
-			int delaySecs = 5;
+			int delaySecs = 10;
+			int count = 0;
 		
 			boolean loop = true;
 			while(loop) {
@@ -78,7 +79,7 @@ public class MessageProcessor {
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
-						mma.applyOutbound(sd, cResults, serverName, basePath);
+						mma.applyOutbound(sd, cResults, serverName, basePath, count++);
 						mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
 						
 					} catch (Exception e) {

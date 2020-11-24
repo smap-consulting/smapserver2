@@ -62,10 +62,11 @@ public class MessagingManagerApply {
 
 	LogManager lm = new LogManager(); // Application log
 	
+	
 	/*
 	 * Apply any outbound messages
 	 */
-	public void applyOutbound(Connection sd, Connection cResults, String serverName, String basePath) {
+	public void applyOutbound(Connection sd, Connection cResults, String serverName, String basePath, int count) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -127,6 +128,19 @@ public class MessagingManagerApply {
 				ArrayList<String> unsubscribedList = new ArrayList<>();
 				
 				/*
+				 * For performance reason only process survey changes every 20 times through the loop
+				 */
+				if(topic.equals("survey")) {
+					
+					if(count % 20 != 0) { 
+						log.info("xsxsxsxsxsxs: skipping survey message: " + count);
+						continue;
+					} else {
+						log.info("xsxsxsxsxsxs: processing survey message: " + count);
+					}
+					
+				}
+				/*
 				 * Record that the message is being processed
 				 * After this point it will not be processed again even if it fails unless there is manual intervention
 				 */
@@ -140,6 +154,7 @@ public class MessagingManagerApply {
 					changedTasks.put(tm.id, tm);
 					
 				} else if(topic.equals("survey")) {
+					
 					SurveyMessage sm = gson.fromJson(data, SurveyMessage.class);
 					
 					changedSurveys.put(sm.id, sm);

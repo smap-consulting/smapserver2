@@ -219,7 +219,7 @@ public class ExternalFileManager {
 
 			// 2. Determine whether or not the file needs to be regenerated
 			log.info("Test for regenerate of file: " + f.getAbsolutePath() + " File exists: " + f.exists());
-			regenerate = regenerateFile(sd, cRel, linked_sId, sId, f, userName);
+			regenerate = regenerateFile(sd, cRel, linked_sId, sId, f);
 
 			// 3.Get columns from appearance
 			if (regenerate) {
@@ -260,10 +260,10 @@ public class ExternalFileManager {
 					}
 				}
 
-				// 5. Get the sql
+				// 5. Get the sql, ignore user specific role based access
 				log.info("------------------------------------ get sql");
 				RoleManager rm = new RoleManager(localisation);
-				SqlDef sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, userName, rm, chart_key);
+				SqlDef sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, null, rm, chart_key);
 				log.info("------------------------------------ sql retrieved");
 				pstmtData = cRel.prepareStatement(sqlDef.sql);
 				int paramCount = 1;
@@ -514,7 +514,7 @@ public class ExternalFileManager {
 	 * then also increment the version of the linking form so that it will get the
 	 * new version
 	 */
-	private boolean regenerateFile(Connection sd, Connection cRel, int linked_sId, int linker_sId, File f, String user) throws SQLException {
+	private boolean regenerateFile(Connection sd, Connection cRel, int linked_sId, int linker_sId, File f) throws SQLException {
 
 		boolean fileExists = f.exists();
 		String filepath = f.getAbsolutePath();
@@ -529,8 +529,8 @@ public class ExternalFileManager {
 		PreparedStatement pstmt = null;
 
 		String sqlInsert = "insert into linked_forms "
-				+ "(Linked_s_id, linker_s_id, link_file, user_ident, download_time) " 
-				+ "values(?, ?, ?, ?, now())";
+				+ "(Linked_s_id, linker_s_id, link_file, download_time) " 
+				+ "values(?, ?, ?, now())";
 		PreparedStatement pstmtInsert = null;
 
 		try {
@@ -566,7 +566,6 @@ public class ExternalFileManager {
 								pstmtInsert.setInt(1, gSId);
 								pstmtInsert.setInt(2, linker_sId);
 								pstmtInsert.setString(3, filepath);
-								pstmtInsert.setString(4, user);
 								pstmtInsert.executeUpdate();
 								log.info("Insert record: " + pstmtInsert.toString());
 							}
@@ -597,7 +596,9 @@ public class ExternalFileManager {
 		}
 
 		log.info("Result of regenerate question is: " + regenerate);
-
+		if(regenerate) {
+			log.info("xoxoxoxoxoxoxo regenerate: " + f.getAbsolutePath());
+		}
 		return regenerate;
 	}
 
@@ -712,16 +713,18 @@ public class ExternalFileManager {
 
 			// 4. Add the RBAC/Row filter
 			// Add RBAC/Role Row Filter
-			sqlDef.rfArray = null;
-			sqlDef.hasRbacFilter = false;
-			// Apply roles for super user as well
-			sqlDef.rfArray = rm.getSurveyRowFilter(sd, sId, user);
-			if (sqlDef.rfArray.size() > 0) {
-				String rFilter = rm.convertSqlFragsToSql(sqlDef.rfArray);
-				if (rFilter.length() > 0) {
-					sql.append(" and ");
-					sql.append(rFilter);
-					sqlDef.hasRbacFilter = true;
+			if(user != null) {
+				sqlDef.rfArray = null;
+				sqlDef.hasRbacFilter = false;
+				// Apply roles for super user as well
+				sqlDef.rfArray = rm.getSurveyRowFilter(sd, sId, user);
+				if (sqlDef.rfArray.size() > 0) {
+					String rFilter = rm.convertSqlFragsToSql(sqlDef.rfArray);
+					if (rFilter.length() > 0) {
+						sql.append(" and ");
+						sql.append(rFilter);
+						sqlDef.hasRbacFilter = true;
+					}
 				}
 			}
 

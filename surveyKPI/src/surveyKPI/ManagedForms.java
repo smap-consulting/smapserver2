@@ -137,6 +137,7 @@ public class ManagedForms extends Application {
 			@FormParam("groupForm") String groupForm,
 			@FormParam("updates") String updatesString,
 			@FormParam("instanceid") String instanceid,
+			@FormParam("prikey") int prikey,	// Needed for sub forms
 			@FormParam("bulkInstances") String bulkInstanceString
 			) { 
 		
@@ -177,10 +178,15 @@ public class ManagedForms extends Application {
 				}
 			}
 			
+			int subFormPrimaryKey = 0;
 			if(instances == null || instances.size() == 0) {
 				if(instanceid != null) {
 					instances = new ArrayList<> ();
 					instances.add(instanceid);
+					/*
+					 * In the case of a single edit we can also update subforms hence add the primary key
+					 */
+					subFormPrimaryKey = prikey;
 				}
 			}
 			if(instances == null || instances.size() == 0) {
@@ -188,7 +194,7 @@ public class ManagedForms extends Application {
 			}
 			for(String instance : instances) {
 				response = am.processUpdateGroupSurvey(request, sd, cResults, 
-						request.getRemoteUser(), sId, instance, groupSurvey, groupForm, updatesString, bulk);
+						request.getRemoteUser(), sId, instance, subFormPrimaryKey, groupSurvey, groupForm, updatesString, bulk);
 			}
 			
 			

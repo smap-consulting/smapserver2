@@ -407,6 +407,10 @@ public class GetHtml {
 				
 				// Add constraint message at end to the outer fieldset
 				addConstraintMsg(q.constraint_msg, null, bodyElement, 0);
+				
+				if(q.appearance.contains("literacy") && q.flash > 0) {
+					bodyElement.setAttribute("data-flash", String.valueOf(q.flash));
+				}
 
 			}
 
