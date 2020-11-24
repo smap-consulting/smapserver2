@@ -115,6 +115,7 @@ public class XLSFormManager {
 		public static final int COL_DATA_SURVEY = 212;
 		public static final int COL_OVERSIGHT_SURVEY = 213;
 		public static final int COL_AUTO_TRANSLATE = 214;
+		public static final int COL_REPORT_LOGO = 215;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -479,8 +480,11 @@ public class XLSFormManager {
 			} else if(type == COL_AUTO_TRANSLATE) {				
 				value = survey.autoTranslate ? "yes" : "no";
 
-			} else if(type == COL_TIMING_DATA) {				
-				value = survey.timing_data ? "yes" : "no";
+			} else if(type == COL_AUTO_TRANSLATE) {				
+				value = survey.autoTranslate ? "yes" : "no";
+
+			} else if(type == COL_REPORT_LOGO) {				
+				value = survey.default_logo;
 
 			} else if(type == COL_AUDIT_LOCATION_DATA) {				
 				value = survey.audit_location_data ? "yes" : "no";
@@ -1075,6 +1079,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "track_changes", Column.COL_TRACK_CHANGES, 0, "track_changes"));
 		cols.add(new Column(colNumber++, "pulldata_repeat", Column.COL_PULLDATA_REPEAT, 0, "pulldata_repeat"));
 		cols.add(new Column(colNumber++, "auto_translate", Column.COL_AUTO_TRANSLATE, 0, "auto_translate"));
+		cols.add(new Column(colNumber++, "report_logo", Column.COL_REPORT_LOGO, 0, "report_logo"));
 
 		// Add role columns
 		for(String role : survey.roles.keySet()) {
