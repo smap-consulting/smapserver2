@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -16,7 +17,7 @@ import org.smap.sdal.constants.SmapServerMeta;
 public class SqlFrag {
 	public ArrayList<String> conditions = null;	// The original conditions used to create it
 	
-	public StringBuffer sql = new StringBuffer("");
+	public StringBuilder sql = new StringBuilder("");
 	public ArrayList<SqlFragParam> params = new ArrayList<SqlFragParam> ();
 	public ArrayList<String> columns = new ArrayList<String> ();
 	public ArrayList<String> humanNames = new ArrayList<String> ();
@@ -139,6 +140,51 @@ public class SqlFrag {
 				sql.append(" ? ");
 			}
 		}
+		
+		sql = convertToGeography(sql, "st_area");
+		sql = convertToGeography(sql, "st_length");
+		sql = convertToGeography(sql, "st_perimeter");
+	}
+	
+	/*
+	 * convert st_area and st_length functions into using geography
+	 */
+	StringBuilder convertToGeography(StringBuilder sql, String fn) {
+		StringBuilder out = null;
+		String in = sql.toString();
+		int idx = in.indexOf(fn);
+		if(idx < 0) {
+			out = new StringBuilder(in);
+		} else {
+			out = new StringBuilder("");
+			Pattern pattern = Pattern.compile(fn + " *\\(.+?\\)");
+			java.util.regex.Matcher matcher = pattern.matcher(in);
+			int start = 0;
+			while (matcher.find()) {
+
+				String matched = matcher.group();
+				int idx2 = matched.indexOf("(");
+				String qname = matched.substring(idx2 + 1, matched.length() - 1).trim();
+
+				// Add any text before the match
+				int startOfGroup = matcher.start();
+				out.append(in.substring(start, startOfGroup));
+				out.append(fn)
+					.append("(geography(")
+					.append(qname)
+					.append("), true) ");
+							
+
+				// Reset the start
+				start = matcher.end();
+			}
+			// Get the remainder of the string
+			if(start < in.length()) {
+				out.append(in.substring(start));		
+			}
+		}
+		
+		return out;
 	}
 	
 	/*
@@ -196,6 +242,12 @@ public class SqlFrag {
 				token.equals("current_date") ||
 				token.equals("now()")) {
 			out = token;
+		} else if (token.equals("area")) {
+			out = "st_area";
+		} else if (token.equals("distance")) {
+			out = "st_length";
+		} else if (token.equals("perimeter")) {
+			out = "st_perimeter";
 		} else if (token.equals("empty")) {
 			out = "is null";
 		} else if (token.equals("all")) {
@@ -246,10 +298,10 @@ public class SqlFrag {
 						log.log(Level.SEVERE,"Error", e);
 					}	
 				} else if(contentArray2.length == 3) {
-					try {
-						Integer hValue = Integer.parseInt(contentArray2[0]);
-						Integer mValue = Integer.parseInt(contentArray2[1]);
-						Integer sValue = Integer.parseInt(contentArray2[2]);
+					try {   // Validate content array
+						Integer.parseInt(contentArray2[0]);
+						Integer.parseInt(contentArray2[1]);
+						Integer.parseInt(contentArray2[2]);
 						out = " interval '" + content +"'";		// all looks good
 					} catch (Exception e) {
 						log.log(Level.SEVERE,"Error", e);

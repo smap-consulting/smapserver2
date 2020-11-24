@@ -489,7 +489,7 @@ public class TaskManager {
 					status = STATUS_T_DELETED;
 				} else if(status == null) {
 					status = "new";
-				} else if(assignee < 0 && !status.equals(STATUS_T_CANCELLED)) {
+				} else if(assignee < 0 && !status.equals(STATUS_T_CANCELLED)  && !status.equals(STATUS_T_SUBMITTED)) {
 					status = "new";
 				} else if(status.equals(STATUS_T_ACCEPTED) && (to != null && to.getTime() < now)) {
 					status = STATUS_T_LATE;
