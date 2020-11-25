@@ -60,6 +60,11 @@
 			<artifactId>aws-java-sdk-translate</artifactId>
 		</dependency>
 		
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-quicksight</artifactId>
+		</dependency>
+		
 		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-rekognition -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
