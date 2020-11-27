@@ -21,63 +21,26 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import java.io.IOException;
 import java.sql.Connection;
 import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.smap.notifications.interfaces.AudioProcessing;
 import org.smap.notifications.interfaces.QuickSight;
 import org.smap.notifications.interfaces.STS;
 import org.smap.sdal.Utilities.Authorise;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MiscPDFManager;
-import org.smap.sdal.managers.TaskManager;
-import org.smap.sdal.model.Location;
-import org.smap.sdal.model.Organisation;
-import org.smap.sdal.model.TaskBulkAction;
-import org.smap.sdal.model.TaskEmailDetails;
-import org.smap.sdal.model.TaskFeature;
-import org.smap.sdal.model.TaskGroup;
-import org.smap.sdal.model.TaskListGeoJson;
-import org.smap.sdal.model.TaskServerDefn;
-
-import utilities.XLSTaskManager;
-
 import com.amazonaws.auth.BasicSessionCredentials;
-import com.amazonaws.services.quicksight.model.GetDashboardEmbedUrlRequest;
-import com.amazonaws.services.quicksight.model.GetDashboardEmbedUrlResult;
-import com.amazonaws.services.quicksight.model.IdentityType;
-import com.amazonaws.services.quicksight.model.RegisterUserResult;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 /*
- * Manages Tasks
+ * Manages access to quicksight dashboard
  */
 
 @Path("/quicksight")
@@ -93,9 +56,6 @@ public class QuicksightService extends Application {
 	public QuicksightService() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
-		authorisations.add(Authorise.ADMIN);
-		authorisations.add(Authorise.MANAGE);
-		authorisations.add(Authorise.MANAGE_TASKS);
 		a = new Authorise(authorisations, null);
 	}
 	
