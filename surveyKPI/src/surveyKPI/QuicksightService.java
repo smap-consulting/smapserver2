@@ -123,29 +123,18 @@ public class QuicksightService extends Application {
 			String region = "us-east-1";
 			STS sts = new STS(region);
 			BasicSessionCredentials credentials = sts.getSessionCredentials();
-			System.out.println("======================================================");
-			System.out.println("Credentials");
-			System.out.println("       access: " + credentials.getAWSAccessKeyId());
-			System.out.println("       secret: " + credentials.getAWSSecretKey());
-			System.out.println("       session: " + credentials.getSessionToken());
+			log.info("xoxoxoxoxo accessKey: " + credentials.getAWSAccessKeyId());
 			
 			QuickSight quicksight = new QuickSight(region, credentials);
 			
 			String userArn = quicksight.registerUser(request.getRemoteUser());
-			System.out.println("======================================================");
-			System.out.println("User");
-			System.out.println("       ARN:  " + userArn);
-			
+			log.info("xoxoxoxoxo User ARN:  " + userArn);			
 			
 			String url = quicksight.getDashboardUrl(userArn);		
-			System.out.println("======================================================");
-			System.out.println("URL");
-			System.out.println("       URL:  " + url);
+			log.info("xoxoxoxoxo Dashboard URL:  " + url);
 			      
 			response = Response.ok(url).build();
-
-
-			
+	
 		} catch(Exception ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
