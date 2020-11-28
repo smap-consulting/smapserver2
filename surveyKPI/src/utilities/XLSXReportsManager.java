@@ -547,9 +547,8 @@ public class XLSXReportsManager {
 							if(values.value != null) {
 								vArray = values.value.split(" ");
 							} 
-						
-							
-							ReadData rd = new ReadData(values.name, false, values.type);
+										
+							ReadData rd = new ReadData(values.name, false, "int");		// write out as integer
 							dataItems.add(rd);
 							
 							if(item.literacy) {
@@ -599,12 +598,15 @@ public class XLSXReportsManager {
 									
 							}
 							
-							ReadData rd = new ReadData(values.name, false, values.type);
+							
 							
 							if(item.literacy) {
+								ReadData rd = new ReadData(values.name, false, "int");
+								dataItems.add(rd);
 								addLiteracyColumns(vArray, rd);
 							}
 							
+							ReadData rd = new ReadData(values.name, false, values.type);
 							dataItems.add(rd);
 							rd.values.add(value.toString());
 							rd.type = values.type;
