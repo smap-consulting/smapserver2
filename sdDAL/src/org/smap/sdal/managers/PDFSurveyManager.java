@@ -1808,14 +1808,13 @@ public class PDFSurveyManager {
 						Date date = df.parse(di.value);
 						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
 
-						bsValue.append(dateBS.getDay())
-							.append("-")
-							.append(dateBS.getMonth())
-							.append("-")
-							.append(dateBS.getYear());
-						
-						bsValue
-						.append(" ")
+						bsValue.append(dateBS.getYear())
+							.append("/")
+							.append(dateBS.getMonth() + 1)
+							.append("/")
+							.append(dateBS.getDay() + 1);
+
+						bsValue.append(" ")
 							.append(date.getHours())
 							.append(":")
 							.append(date.getMinutes())
@@ -1826,11 +1825,11 @@ public class PDFSurveyManager {
 						Date date = dfDateOnly.parse(di.value);  
 						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
 						
-						bsValue.append(dateBS.getDay())
-						.append("-")
-						.append(dateBS.getMonth())
-						.append("-")
-						.append(dateBS.getYear());
+						bsValue.append(dateBS.getYear())
+						.append("/")
+						.append(dateBS.getMonth() + 1)
+						.append("/")
+						.append(dateBS.getDay() + 1);
 					}
 					
 					value = bsValue.toString();
