@@ -421,17 +421,6 @@ public class XLSUtilities {
 				Hyperlink url = createHelper.createHyperlink(HyperlinkType.URL);
 				url.setAddress(value);
 				cell.setHyperlink(url);
-				/*
-				if(isXLSX) {
-					XSSFHyperlink url = (XSSFHyperlink)createHelper.createHyperlink(Hyperlink.LINK_URL);
-					url.setAddress(value);
-					cell.setHyperlink(url);
-				} else {
-					HSSFHyperlink url = new HSSFHyperlink(HSSFHyperlink.LINK_URL);
-					url.setAddress(value);
-					cell.setHyperlink(url);
-				}
-				*/
 			} 
 			cell.setCellValue(value);
 			
@@ -440,12 +429,6 @@ public class XLSUtilities {
 			CreationHelper createHelper = wb.getCreationHelper();
 			if(embedImages) {
 				if(value.endsWith(".jpg") || value.endsWith(".png")) {
-					//int idx = value.indexOf("attachments");
-					//int idxName = value.lastIndexOf('/');
-					//if(idx > 0 && idxName > 0) {
-						//String fileName = value.substring(idxName);
-						//String stem = basePath + "/" + value.substring(idx, idxName);
-						//String imageName = stem + "/thumbs" + fileName + ".jpg";
 						try {
 							//InputStream inputStream = new FileInputStream(imageName);
 							InputStream inputStream = new URL(value).openStream();
@@ -466,7 +449,7 @@ public class XLSUtilities {
 						} catch (Exception e) {
 							log.info("Error: Missing image file: " + value);
 						}
-					//}
+
 				}
 			} 
 
