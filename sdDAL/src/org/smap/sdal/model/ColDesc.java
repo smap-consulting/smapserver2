@@ -14,6 +14,7 @@ public class ColDesc {
 	public ArrayList<OptionDesc> optionLabels = null;		// Used for Stata generation
 	public ArrayList<KeyValue>  choices = null;			// Used for compressing select multiples
 	public boolean compressed;
+	public boolean literacy;
 	public boolean selectDisplayNames = false;
 	public String rawQuestionType;	// This is needed because qType gets modified to convert any geometry type to just "geometry"
 	
@@ -25,7 +26,8 @@ public class ColDesc {
 			boolean compressed,
 			String displayName,
 			boolean selMultipleDisplayNames,
-			String questionType) {
+			String questionType,
+			boolean literacy) {
 		
 		column_name = n;
 		this.db_type = db_type;
@@ -36,6 +38,7 @@ public class ColDesc {
 		this.question_name = question_name;
 		this.choices = choices;
 		this.compressed = compressed;
+		this.literacy = literacy;
 		this.displayName = displayName;
 		this.selectDisplayNames = selMultipleDisplayNames;
 		this.rawQuestionType = questionType;

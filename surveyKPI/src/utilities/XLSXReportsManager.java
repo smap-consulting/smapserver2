@@ -254,6 +254,15 @@ public class XLSXReportsManager {
 								merge_select_multiple,
 								surveyName);	
 						
+						// Add literacy specific columns if required
+						if(item.qType != null && item.qType.equals("select") && item.literacy) {
+							for(int i = 0; i < 4; i++) {
+								Cell cell = headerRow.createCell(colNumber++);
+								cell.setCellStyle(headerStyle);
+								cell.setCellValue("");
+							}
+						}
+						
 						// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't write the label here
 						if(isWideColumn(transform, values.name)) {
 							continue;
@@ -337,6 +346,26 @@ public class XLSXReportsManager {
 							merge_select_multiple,
 							surveyName);	
 						
+					// Add literacy specific columns if required
+					if(item.qType != null && item.qType.equals("select") && item.literacy) {
+						Cell cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue(values.name + " - Time");
+						
+						cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue(values.name + " - Flash Index");
+						
+						cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue(values.name + " - Final Index");
+						
+						
+						cell = headerRow.createCell(colNumber++);
+						cell.setCellStyle(headerStyle);
+						cell.setCellValue(values.name + " - Error Count");
+					}
+					
 					// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't write the label here
 					if(isWideColumn(transform, values.name)) {
 						continue;
@@ -365,6 +394,7 @@ public class XLSXReportsManager {
 						cell.setCellStyle(headerStyle);
 						cell.setCellValue("Longitude");
 					} else if(item.qType != null && item.qType.equals("select") && !merge_select_multiple && item.choices != null  && item.compressed) {
+						
 						for(int i = 0; i < item.choices.size(); i++) {
 							Cell cell = headerRow.createCell(colNumber++);
 							cell.setCellStyle(headerStyle);
@@ -449,7 +479,7 @@ public class XLSXReportsManager {
 								sqlDesc.column_details, 
 								merge_select_multiple,
 								surveyName);						
-
+						
 						
 						// Wide columns in a long to wide transformation are replaced by repeating versions of themselves so don't add the data
 						if(isWideColumn(transform, values.name)) {
@@ -517,9 +547,13 @@ public class XLSXReportsManager {
 							if(values.value != null) {
 								vArray = values.value.split(" ");
 							} 
-							
-							ReadData rd = new ReadData(values.name, false, values.type);
+										
+							ReadData rd = new ReadData(values.name, false, "int");		// write out as integer
 							dataItems.add(rd);
+							
+							if(item.literacy) {
+								addLiteracyColumns(vArray, rd);
+							}
 							
 							for(int i = 0; i < item.choices.size(); i++) {			
 								
@@ -562,6 +596,14 @@ public class XLSXReportsManager {
 									}
 								}
 									
+							}
+							
+							
+							
+							if(item.literacy) {
+								ReadData rd = new ReadData(values.name, false, "int");
+								dataItems.add(rd);
+								addLiteracyColumns(vArray, rd);
 							}
 							
 							ReadData rd = new ReadData(values.name, false, values.type);
@@ -656,6 +698,39 @@ public class XLSXReportsManager {
 		}
 
 		return responseVal;
+	}
+	
+	private void addLiteracyColumns(String [] vArray, ReadData rd) {
+		
+		String time = "";
+		String flashIndex = "";
+		String finalIndex = "";
+		int errorCount = 0;
+		
+		if(vArray != null) {
+			if(vArray.length > 0) {
+				flashIndex = vArray[0];
+			}
+			if(vArray.length > 1) {
+				time = vArray[1];
+			}
+			if(vArray.length > 2) {
+				finalIndex = vArray[2];
+			}
+			
+			// Get error count
+			if(vArray.length > 3) {
+				for(int i = 3; i < vArray.length; i++) {
+					if(vArray[i] != null && !vArray[i].equals("null")) {
+						errorCount++;
+					}
+				}
+			}
+			rd.values.add(time);
+			rd.values.add(flashIndex);
+			rd.values.add(finalIndex);
+			rd.values.add(String.valueOf(errorCount));
+		}
 	}
 	
 	private void writeOutData(ArrayList<ReadData> dataItems, Transform transform, 
