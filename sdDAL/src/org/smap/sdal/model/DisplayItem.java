@@ -25,6 +25,7 @@ public class DisplayItem {
 	public String markerColor;
 	public boolean labelcaps = false;
 	public boolean labelbold = false;
+	public boolean bs = false;
 	public int fIdx = 0;
 	public int qIdx = 0;
 	public int rec_number = 0;

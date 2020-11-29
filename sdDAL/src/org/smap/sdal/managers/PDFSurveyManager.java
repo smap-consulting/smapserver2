@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.joda.time.DateTime;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
@@ -38,6 +39,8 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
 
+import com.github.binodnme.dateconverter.converter.DateConverter;
+import com.github.binodnme.dateconverter.utils.DateBS;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -1398,6 +1401,8 @@ public class PDFSurveyManager {
 						setSpace(app, di);
 					} else if(app.equals("pdflabelcaps")) {
 						di.labelcaps = true;
+					} else if(app.equals("pdfbs")) {
+						di.bs = true;
 					} else if(app.equals("pdflabelbold")) {
 						di.labelbold = true;
 					} else if(app.startsWith("pdfmap")) {			// mapbox map id
@@ -1698,6 +1703,9 @@ public class PDFSurveyManager {
 			String startGeopointValue
 			) throws Exception {
 
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
+		
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
@@ -1779,9 +1787,7 @@ public class PDFSurveyManager {
 					}
 				}
 				
-				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time
-					
-					DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time				
 					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					Date date = df.parse(di.value);
 					df.setTimeZone(TimeZone.getTimeZone(tz));
@@ -1789,6 +1795,44 @@ public class PDFSurveyManager {
 					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tz);
 				} else {
 					value = di.value;
+				}
+				
+				// If Bikram Sambat date output is required convert  
+				if(di.bs && (di.type.equals("date") || di.type.equals("dateTime") || di.type.equals("timestamp"))) {		// Set date time to local time
+				
+					StringBuilder bsValue = new StringBuilder("");
+					
+					
+					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+						
+						Date date = df.parse(di.value);
+						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
+
+						bsValue.append(dateBS.getYear())
+							.append("/")
+							.append(dateBS.getMonth() + 1)
+							.append("/")
+							.append(dateBS.getDay() + 1);
+
+						bsValue.append(" ")
+							.append(date.getHours())
+							.append(":")
+							.append(date.getMinutes())
+							.append(":")
+							.append(date.getSeconds());					
+					} else {
+						
+						Date date = dfDateOnly.parse(di.value);  
+						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
+						
+						bsValue.append(dateBS.getYear())
+						.append("/")
+						.append(dateBS.getMonth() + 1)
+						.append("/")
+						.append(dateBS.getDay() + 1);
+					}
+					
+					value = bsValue.toString();
 				}
 
 			}
