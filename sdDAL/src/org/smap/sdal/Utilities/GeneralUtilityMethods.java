@@ -3649,21 +3649,25 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 			}
 
-			if (uptodateTable) {
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
 				c = new TableColumn();
 				c.column_name = "_survey_notes";
 				c.displayName = localisation.getString("a_sn");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
-
+			}
+			
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_location_trigger") != null) {
 				c = new TableColumn();
 				c.column_name = "_location_trigger";
 				c.displayName = localisation.getString("a_lt");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
+			}
 
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "instancename") != null) {
 				c = new TableColumn();
 				c.column_name = "instancename";
 				c.displayName = localisation.getString("a_in");
