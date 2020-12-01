@@ -609,6 +609,7 @@ public class SurveyManager {
 		boolean existingDataSurvey = true;
 		boolean existingOversightSurvey = true;
 		String existingInstanceName = null;
+		String existingSurveyIdent = null;
 		
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
@@ -616,12 +617,12 @@ public class SurveyManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
-				+ "based_on, group_survey_ident, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
-				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, ?, now(), "
+				+ "based_on, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
+				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now(), "
 				+ "?, ?, ?, ?, ?)";
 		PreparedStatement pstmtCreateSurvey = null;
 
-		String sqlUpdateSurvey = "update survey set name = ?, ident = ? where s_id = ?";
+		String sqlUpdateSurvey = "update survey set name = ?, ident = ?, group_survey_ident = ? where s_id = ?";
 		PreparedStatement pstmtUpdateSurvey = null;
 
 		String sqlCreateForm = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
@@ -629,7 +630,7 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.instance_name "
+				+ "s.data_survey, s.oversight_survey, s.instance_name, s.ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
@@ -651,6 +652,7 @@ public class SurveyManager {
 					existingDataSurvey = rsGetSource.getBoolean(6);
 					existingOversightSurvey = rsGetSource.getBoolean(7);
 					existingInstanceName = rsGetSource.getString(8);
+					existingSurveyIdent = rsGetSource.getString(9);
 				}
 			}
 			if(sd.getAutoCommit()) {
@@ -668,13 +670,8 @@ public class SurveyManager {
 			} else {
 				pstmtCreateSurvey.setString(3, null);
 			}
-			if(sharedResults) {
-				pstmtCreateSurvey.setInt(4, existingSurveyId);
-			} else {
-				pstmtCreateSurvey.setInt(4, 0);
-			}
 			if(existing) {
-				pstmtCreateSurvey.setString(5,  existingMeta);
+				pstmtCreateSurvey.setString(4,  existingMeta);
 			} else {
 				int metaId = -1000;
 				meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null, null));
@@ -682,14 +679,14 @@ public class SurveyManager {
 				meta.add(new MetaItem(metaId--, "dateTime", "_start", "start", "_start", "timestamp", true, "start", null));
 				meta.add(new MetaItem(metaId--, "dateTime", "_end", "end", "_end", "timestamp", true, "end", null));
 				meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device", null));
-				pstmtCreateSurvey.setString(5,  gson.toJson(meta));
+				pstmtCreateSurvey.setString(4,  gson.toJson(meta));
 			}
 
-			pstmtCreateSurvey.setString(6, existingClass);
-			pstmtCreateSurvey.setString(7, existingKeyPolicy);
-			pstmtCreateSurvey.setBoolean(8, existingDataSurvey);
-			pstmtCreateSurvey.setBoolean(9, existingOversightSurvey);
-			pstmtCreateSurvey.setString(10, existingInstanceName);
+			pstmtCreateSurvey.setString(5, existingClass);
+			pstmtCreateSurvey.setString(6, existingKeyPolicy);
+			pstmtCreateSurvey.setBoolean(7, existingDataSurvey);
+			pstmtCreateSurvey.setBoolean(8, existingOversightSurvey);
+			pstmtCreateSurvey.setString(9, existingInstanceName);
 			
 			log.info("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
@@ -703,7 +700,12 @@ public class SurveyManager {
 			pstmtUpdateSurvey = sd.prepareStatement(sqlUpdateSurvey);
 			pstmtUpdateSurvey.setString(1, ident);
 			pstmtUpdateSurvey.setString(2,  ident);
-			pstmtUpdateSurvey.setInt(3,  sId);
+			if(sharedResults) {
+				pstmtUpdateSurvey.setString(3, existingSurveyIdent);
+			} else {
+				pstmtUpdateSurvey.setString(3, ident);
+			}
+			pstmtUpdateSurvey.setInt(4,  sId);
 
 			log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
 			pstmtUpdateSurvey.execute();
