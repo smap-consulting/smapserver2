@@ -1620,7 +1620,7 @@ public class SubRelationalDB extends Subscriber {
 
 		String qType = col.getQType();
 		String value = col.getValue();	
-		String colName = col.getName();
+		String colName = col.getColumnName();
 
 		// If the deviceId is not in the form results add it from the form meta data
 		if(colName != null && colName.equals("_device")) {
@@ -1670,6 +1670,7 @@ public class SubRelationalDB extends Subscriber {
 					// To store as a Point in the db this order needs to be reversed
 					String params[] = value.split(" ");
 					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, colName + "_alt");
+					log.info("Has altitude: " + tableName + " : " + colName + " : " + hasAltitude);
 					if(params.length > 1) {
 						try {
 							value = "ST_SetSRID(ST_MakePoint(" 
@@ -1687,7 +1688,7 @@ public class SubRelationalDB extends Subscriber {
 								}
 							}
 						} catch (Exception e) {
-							log.info("Error: Invalid geometry point detected: " + value);
+							log.info("Error: Invalid geometry point detected: " + tableName + " : " + colName + " : " + value);
 							if(hasAltitude) {
 								value = "null, null, null";
 							} else {
@@ -1696,7 +1697,7 @@ public class SubRelationalDB extends Subscriber {
 						}
 
 					} else {
-						log.info("Error: Invalid geometry point detected: " + value);
+						log.info("Info: Empty geometry point detected: " + tableName + " : " + colName + " : " + value);
 						if(hasAltitude) {
 							value = "null, null, null";
 						} else {
