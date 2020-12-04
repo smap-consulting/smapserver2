@@ -710,12 +710,15 @@ public class XLSXReportsManager {
 		if(vArray != null) {
 			if(vArray.length > 0) {
 				flashIndex = vArray[0];
+				vArray[0] = "";  // Make sure this value does not later match a numeric choice
 			}
 			if(vArray.length > 1) {
 				time = vArray[1];
+				vArray[1] = "";
 			}
 			if(vArray.length > 2) {
 				finalIndex = vArray[2];
+				vArray[2] = "";
 			}
 			
 			// Get error count
