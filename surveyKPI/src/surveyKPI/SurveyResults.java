@@ -124,9 +124,9 @@ public class SurveyResults extends Application {
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
-				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId, superUser);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
 				
 				/*
 				 * Delete data from each form
@@ -275,9 +275,9 @@ public class SurveyResults extends Application {
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
-				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyId, request.getRemoteUser(), sId, superUser);
-				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyId, oId, request.getRemoteUser(), sId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> surveys = sm.getGroupDetails(sd, groupSurveyIdent, request.getRemoteUser(), superUser);
+				ArrayList<String> tableList = sm.getGroupTables(sd, groupSurveyIdent, oId, request.getRemoteUser(), sId);
 				
 				/*
 				 * Delete data from each form ready for reload
@@ -389,9 +389,9 @@ public class SurveyResults extends Application {
 				 * Get the surveys and tables that are part of the group that this survey belongs to
 				 */
 				SurveyManager sm = new SurveyManager(localisation, "UTC");
-				int groupSurveyId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyId, 
-						request.getRemoteUser(), sId, superUser);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+				ArrayList<GroupDetails> groups = sm.getGroupDetails(sd, groupSurveyIdent, 
+						request.getRemoteUser(),superUser);
 				
 				Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				response = Response.ok(gson.toJson(groups)).build();

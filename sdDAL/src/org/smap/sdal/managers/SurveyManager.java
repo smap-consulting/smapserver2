@@ -111,9 +111,8 @@ public class SurveyManager {
 			+ "q.qtype, f.s_id, f.reference, q.published, f.f_id, q.server_calculate "
 			+ "from question q, form f "
 			+ "where q.f_id = f.f_id "
-			+ "and (q.f_id in "
-			+ "(select f_id from form where s_id in (select s_id from survey where group_survey_id = ? and deleted = 'false')) or "
-			+ "q.f_id in (select f_id from form where s_id = ?))";
+			+ "and q.f_id in "
+			+ "(select f_id from form where s_id in (select s_id from survey where group_survey_ident = ? and deleted = 'false'))";
 	
 	public SurveyManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -142,7 +141,7 @@ public class SurveyManager {
 			boolean getBlocked,
 			int projectId,			// Set to 0 to get all surveys regardless of project
 			boolean superUser,
-			boolean onlyGroup,		// Only get surveys that are available to be used as groups
+			boolean onlyGroup,		// Only get surveys that are available to be used as groups (Not attached to another group but can have group surveys attaached to them)
 			boolean getGroupDetails,
 			boolean onlyDataSurvey,	// Only get data surveys (ie no oversight surveys)
 			boolean links,			// Return links to other services
@@ -154,7 +153,7 @@ public class SurveyManager {
 		StringBuffer sqlGetGroupDetails = new StringBuffer("select p.name, s.display_name "
 				+ "from survey s, project p "
 				+ "where s.p_id = p.id "
-				+ "and s.s_id = ?");
+				+ "and s.ident = ?");
 		PreparedStatement pstmtGetGroupDetails = null;
 		
 		ResultSet resultSet = null;
@@ -162,7 +161,7 @@ public class SurveyManager {
 		sql.append("select distinct s.s_id, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
-				+ "s.group_survey_id, s.public_link, o.can_submit, s.hide_on_device,"
+				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device,"
 				+ "s.data_survey, s.oversight_survey "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
@@ -190,7 +189,7 @@ public class SurveyManager {
 			sql.append("and s.blocked = 'false' ");
 		}
 		if(onlyGroup) {
-			sql.append("and s.group_survey_id = 0 ");
+			sql.append("and s.group_survey_ident = s.ident ");
 		}
 		if(onlyDataSurvey) {
 			sql.append("and s.data_survey = 'true' ");
@@ -232,14 +231,14 @@ public class SurveyManager {
 				s.setLoadedFromXLS(resultSet.getBoolean("loaded_from_xls"));
 				s.setProjectName(resultSet.getString("project_name"));
 				s.setProjectId(resultSet.getInt("project_id"));
-				s.groupSurveyId = resultSet.getInt("group_survey_id");
+				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
 				s.publicLink = resultSet.getString("public_link");
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
 				
-				if(getGroupDetails && s.groupSurveyId > 0) {
-					pstmtGetGroupDetails.setInt(1, s.groupSurveyId);
+				if(getGroupDetails && !s.ident.equals(s.groupSurveyIdent)) {
+					pstmtGetGroupDetails.setString(1, s.groupSurveyIdent);
 					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
 					if(rsGroup.next()) {
 						s.groupSurveyDetails = rsGroup.getString(1) + " : " + rsGroup.getString(2);
@@ -416,7 +415,7 @@ public class SurveyManager {
 				+ "s.key_policy, "
 				+ "s.exclude_empty,"
 				+ "s.meta,"
-				+ "s.group_survey_id,"
+				+ "s.group_survey_ident,"
 				+ "s.public_link, "
 				+ "o.e_id,"
 				+ "s.hide_on_device, "
@@ -501,7 +500,7 @@ public class SurveyManager {
 				} else {
 					getLegacyMeta();
 				}
-				s.groupSurveyId = resultSet.getInt(24);
+				s.groupSurveyIdent = resultSet.getString(24);
 				s.publicLink = resultSet.getString(25);
 				s.e_id = resultSet.getInt(26);
 				s.setHideOnDevice(resultSet.getBoolean(27));
@@ -610,6 +609,7 @@ public class SurveyManager {
 		boolean existingDataSurvey = true;
 		boolean existingOversightSurvey = true;
 		String existingInstanceName = null;
+		String existingSurveyIdent = null;
 		
 		int existingFormId = 0;
 		boolean sdAutoCommitSetFalse = false;
@@ -617,12 +617,12 @@ public class SurveyManager {
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 
 		String sqlCreateSurvey = "insert into survey ( s_id, display_name, deleted, p_id, version, last_updated_time, "
-				+ "based_on, group_survey_id, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
-				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, ?, now(), "
+				+ "based_on, meta, created, class, key_policy, data_survey, oversight_survey, instance_name) "
+				+ "values (nextval('s_seq'), ?, 'false', ?, 1, now(), ?, ?, now(), "
 				+ "?, ?, ?, ?, ?)";
 		PreparedStatement pstmtCreateSurvey = null;
 
-		String sqlUpdateSurvey = "update survey set name = ?, ident = ? where s_id = ?";
+		String sqlUpdateSurvey = "update survey set name = ?, ident = ?, group_survey_ident = ? where s_id = ?";
 		PreparedStatement pstmtUpdateSurvey = null;
 
 		String sqlCreateForm = "insert into form ( f_id, s_id, name, table_name, parentform, repeats, path) " +
@@ -630,7 +630,7 @@ public class SurveyManager {
 		PreparedStatement pstmtCreateForm = null;
 
 		String sqlGetSource = "select s.display_name, f.f_id, s.meta, s.class, s.key_policy,"
-				+ "s.data_survey, s.oversight_survey, s.instance_name "
+				+ "s.data_survey, s.oversight_survey, s.instance_name, s.ident "
 				+ "from survey s, form f "
 				+ "where s.s_id = f.s_id "
 				+ "and s.s_id = ? "
@@ -652,6 +652,7 @@ public class SurveyManager {
 					existingDataSurvey = rsGetSource.getBoolean(6);
 					existingOversightSurvey = rsGetSource.getBoolean(7);
 					existingInstanceName = rsGetSource.getString(8);
+					existingSurveyIdent = rsGetSource.getString(9);
 				}
 			}
 			if(sd.getAutoCommit()) {
@@ -669,13 +670,8 @@ public class SurveyManager {
 			} else {
 				pstmtCreateSurvey.setString(3, null);
 			}
-			if(sharedResults) {
-				pstmtCreateSurvey.setInt(4, existingSurveyId);
-			} else {
-				pstmtCreateSurvey.setInt(4, 0);
-			}
 			if(existing) {
-				pstmtCreateSurvey.setString(5,  existingMeta);
+				pstmtCreateSurvey.setString(4,  existingMeta);
 			} else {
 				int metaId = -1000;
 				meta.add(new MetaItem(metaId--, "string", "instanceID", null, "instanceid", null, false, null, null));
@@ -683,14 +679,14 @@ public class SurveyManager {
 				meta.add(new MetaItem(metaId--, "dateTime", "_start", "start", "_start", "timestamp", true, "start", null));
 				meta.add(new MetaItem(metaId--, "dateTime", "_end", "end", "_end", "timestamp", true, "end", null));
 				meta.add(new MetaItem(metaId--, "string", "_device", "deviceid", "_device", "property", true, "device", null));
-				pstmtCreateSurvey.setString(5,  gson.toJson(meta));
+				pstmtCreateSurvey.setString(4,  gson.toJson(meta));
 			}
 
-			pstmtCreateSurvey.setString(6, existingClass);
-			pstmtCreateSurvey.setString(7, existingKeyPolicy);
-			pstmtCreateSurvey.setBoolean(8, existingDataSurvey);
-			pstmtCreateSurvey.setBoolean(9, existingOversightSurvey);
-			pstmtCreateSurvey.setString(10, existingInstanceName);
+			pstmtCreateSurvey.setString(5, existingClass);
+			pstmtCreateSurvey.setString(6, existingKeyPolicy);
+			pstmtCreateSurvey.setBoolean(7, existingDataSurvey);
+			pstmtCreateSurvey.setBoolean(8, existingOversightSurvey);
+			pstmtCreateSurvey.setString(9, existingInstanceName);
 			
 			log.info("Create new survey: " + pstmtCreateSurvey.toString());
 			pstmtCreateSurvey.execute();
@@ -704,7 +700,12 @@ public class SurveyManager {
 			pstmtUpdateSurvey = sd.prepareStatement(sqlUpdateSurvey);
 			pstmtUpdateSurvey.setString(1, ident);
 			pstmtUpdateSurvey.setString(2,  ident);
-			pstmtUpdateSurvey.setInt(3,  sId);
+			if(sharedResults) {
+				pstmtUpdateSurvey.setString(3, existingSurveyIdent);
+			} else {
+				pstmtUpdateSurvey.setString(3, ident);
+			}
+			pstmtUpdateSurvey.setInt(4,  sId);
 
 			log.info("Create new survey part 2: " + pstmtUpdateSurvey.toString());
 			pstmtUpdateSurvey.execute();
@@ -1176,7 +1177,7 @@ public class SurveyManager {
 				+ "p.o_id,"
 				+ "o.e_id,"
 				+ "o.can_submit,"
-				+ "s.group_survey_id "
+				+ "s.group_survey_ident "
 				+ "from survey s,"
 				+ "project p,"
 				+ "organisation o "
@@ -1216,7 +1217,7 @@ public class SurveyManager {
 				}
 				s.o_id = resultSet.getInt("o_id");
 				s.e_id = resultSet.getInt("e_id");
-				s.groupSurveyId = resultSet.getInt("group_survey_id");
+				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
 				
 			}
 		} catch (SQLException e) {
@@ -3309,9 +3310,8 @@ public class SurveyManager {
 	 * Always add the survey corresponding to sId to the group
 	 */
 	public ArrayList<GroupDetails> getGroupDetails(Connection sd, 
-			int groupSurveyId, 
+			String groupSurveyIdent, 
 			String user, 
-			int sId,
 			boolean superUser) throws SQLException {
 		
 		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
@@ -3323,7 +3323,7 @@ public class SurveyManager {
 				+ "and up.u_id = u.id "
 				+ "and u.ident = ? "
 				+ "and not s.deleted "
-				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)");
+				+ "and group_survey_ident = ?");
 
 		if(!superUser) {
 			sql.append(GeneralUtilityMethods.getSurveyRBAC());
@@ -3333,11 +3333,9 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setString(1, user);
-			pstmt.setInt(2, groupSurveyId);
-			pstmt.setInt(3,  groupSurveyId);
-			pstmt.setInt(4,  sId);
+			pstmt.setString(2, groupSurveyIdent);
 			if(!superUser) {
-				pstmt.setString(5, user);	// Second user entry for RBAC
+				pstmt.setString(3, user);	// Second user entry for RBAC
 			}
 				
 			log.info("Get group surveys: " + pstmt.toString());
@@ -3365,18 +3363,17 @@ public class SurveyManager {
 	 * Get the group forms
 	 * Get the forms for the passed in group surveyId
 	 */
-	public HashMap<String, String> getGroupForms(Connection sd, int groupSurveyId) throws SQLException {
+	public HashMap<String, String> getGroupForms(Connection sd, String groupSurveyIdent) throws SQLException {
 		
 		HashMap<String, String> groupForms = new HashMap<> ();
 		
 		String sql = "select name, table_name from form where s_id in "
-				+ "(select s_id from survey where group_survey_id = ? and group_survey_id > 0) or s_id = ?";
+				+ "(select s_id from survey where group_survey_ident = ?)";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2, groupSurveyId);
+			pstmt.setString(1, groupSurveyIdent);
 			log.info("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
@@ -3399,7 +3396,7 @@ public class SurveyManager {
 	 * Get the group tables
 	 * Get all the tables that are part of the passed in group surveyId
 	 */
-	public ArrayList<String> getGroupTables(Connection sd, int groupSurveyId, int oId, String user, int sId) throws SQLException {
+	public ArrayList<String> getGroupTables(Connection sd, String groupSurveyIdent, int oId, String user, int sId) throws SQLException {
 		
 		ArrayList<String> groupForms = new ArrayList<> ();
 		
@@ -3411,17 +3408,16 @@ public class SurveyManager {
 				+ "and s.p_id = up.p_id "
 				+ "and u.id = up.u_id "
 				+ "and u.ident = ? "
-				+ "and (f.s_id in "
-				+ "(select s_id from survey where group_survey_id > 0 and group_survey_id = ?) or f.s_id = ? or f.s_id = ?)";
+				+ "and f.s_id in "
+				+ "(select s_id from survey where group_survey_ident = ?)";
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
 			pstmt.setString(2, user);
-			pstmt.setInt(3, groupSurveyId);
-			pstmt.setInt(4, groupSurveyId);
-			pstmt.setInt(5, sId);
+			pstmt.setString(3, groupSurveyIdent);
+			
 			log.info("Get group forms: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
@@ -3486,7 +3482,7 @@ public class SurveyManager {
 	 * Get the group Questions
 	 */
 	public HashMap<String, QuestionForm> getGroupQuestionsMap(Connection sd, 
-			int groupSurveyId,
+			String groupSurveyIdent,
 			String filter,
 			boolean useColumnName) throws SQLException {
 		
@@ -3501,8 +3497,7 @@ public class SurveyManager {
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2, groupSurveyId);
+			pstmt.setString(1, groupSurveyIdent);
 			log.info("Getting group questions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
@@ -3537,7 +3532,7 @@ public class SurveyManager {
 	 * Note the group survey id of a survey must be passed not the survey's id
 	 */
 	public ArrayList<QuestionLite> getGroupQuestionsArray(Connection sd, 
-			int groupSurveyId,
+			String groupSurveyIdent,
 			String filter) throws SQLException {
 		
 		ArrayList<QuestionLite> groupQuestions = new ArrayList<> ();
@@ -3552,8 +3547,7 @@ public class SurveyManager {
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2, groupSurveyId);
+			pstmt.setString(1, groupSurveyIdent);
 			log.info("++++++++ Get Group Questions: " + pstmt.toString());
 			
 			ResultSet rs = pstmt.executeQuery();
@@ -3574,21 +3568,20 @@ public class SurveyManager {
 	/*
 	 * Get the group Options
 	 */
-	public HashMap<String, String> getGroupOptions(Connection sd, int groupSurveyId) throws SQLException {
+	public HashMap<String, String> getGroupOptions(Connection sd, String groupSurveyIdent) throws SQLException {
 		
 		HashMap<String, String> groupOptions = new HashMap<> ();
 		
 		String sql = "select o.ovalue, o.column_name, l.name from option o, listname l "
 				+ "where o.l_id = l.l_id "
 				+ "and l.s_id in "
-				+ "(select s_id from survey where group_survey_id = ? union all select ? ) "
+				+ "(select s_id from survey where group_survey_ident = ? ) "
 				+ "order by o.o_id desc";	// newest first
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2, groupSurveyId);
+			pstmt.setString(1, groupSurveyIdent);
 			log.info("Getting group options: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
@@ -3876,23 +3869,26 @@ public class SurveyManager {
 			 * Update group ids
 			 */
 			if(newSurveyId == 0) {
-				sql = "update survey "
-						+ "set group_survey_id = 0 "
-						+ "where group_survey_id = ?";	
-				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, sId);
-				log.info("Update group survey ids: " + pstmt.toString());
-				pstmt.executeUpdate();
+				// Deleting survey
+				//sql = "update survey "
+				//		+ "set group_survey_id = 0 "
+				//		+ "where group_survey_id = ?";	
+				//try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+				//pstmt = sd.prepareStatement(sql);
+				//pstmt.setInt(1, sId);
+				//log.info("Update group survey ids: " + pstmt.toString());
+				//pstmt.executeUpdate();
 			} else {
-				
+				// Replacing survey
+				String newGroupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, newSurveyId);
+				String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
 				sql = "update survey "
-						+ "set group_survey_id = ? "
-						+ "where group_survey_id = ?";	
+						+ "set group_survey_ident = ? "
+						+ "where group_survey_ident = ?";	
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 				pstmt = sd.prepareStatement(sql);
-				pstmt.setInt(1, newSurveyId);
-				pstmt.setInt(2, sId);
+				pstmt.setString(1, newGroupSurveyIdent);
+				pstmt.setString(2, groupSurveyIdent);
 				log.info("Update group survey ids: " + pstmt.toString());
 				pstmt.executeUpdate();
 			}

@@ -631,8 +631,8 @@ public class SurveyTableManager {
 
 			// 1. Get the columns in the group
 			SurveyManager sm = new SurveyManager(localisation, "UTC");					
-			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId);
-			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyId, null, false);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);
 
 			log.info("Question forms: " + refQuestionMap.toString());
 
