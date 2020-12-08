@@ -166,7 +166,7 @@ public class Data extends Application {
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("mgmt") boolean mgmt,
-			@QueryParam("groupSurvey") String groupSurvey,	// Console
+			@QueryParam("oversightSurvey") String oversightSurvey,	// Console
 			@PathParam("view") int viewId,					// Console
 			@QueryParam("schema") boolean schema,			// Console return schema with the data
 			@QueryParam("group") boolean group,			// If set include a dummy group value in the response, used by duplicate query
@@ -215,7 +215,7 @@ public class Data extends Application {
 		}
 		
 		// Authorisation is done in getDataRecords
-		getDataRecords(request, response, sIdent, start, limit, mgmt, groupSurvey, viewId, 
+		getDataRecords(request, response, sIdent, start, limit, mgmt, oversightSurvey, viewId, 
 				schema, group, sort, dirn, formName, start_parkey,
 				parkey, hrk, format, include_bad, audit_set, merge, geojson, geomQuestion,
 				tz, incLinks, 
@@ -316,7 +316,7 @@ public class Data extends Application {
 			int start,				// Primary key to start from
 			int limit,				// Number of records to return
 			boolean mgmt,
-			String groupSurvey,		// Console
+			String oversightSurvey,		// Console
 			int viewId,				// Console
 			boolean schema,			// Console - return schema
 			boolean group,			// If set include a dummy group value in the response, used by duplicate query
@@ -382,8 +382,8 @@ public class Data extends Application {
 		if(viewId > 0) {
 			a.isValidView(sd, request.getRemoteUser(), viewId, false);
 		}
-		if(groupSurvey != null) {
-			a.isValidGroupSurvey(sd, request.getRemoteUser(), sId, groupSurvey);
+		if(oversightSurvey != null) {
+			a.isValidOversightSurvey(sd, request.getRemoteUser(), sId, oversightSurvey);
 		}		
 		// End Authorisation
 
@@ -541,7 +541,7 @@ public class Data extends Application {
 						request.getRemoteUser(), 
 						oId, 
 						superUser,
-						groupSurvey,
+						oversightSurvey,
 						ssd.include_bad.equals("yes") || ssd.include_bad.equals("only"));	
 				columns = sv.columns;
 				table_name = sv.tableName;			
