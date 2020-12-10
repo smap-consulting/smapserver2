@@ -126,7 +126,7 @@ public class XFormData {
 
 		try {
 			sd = SDDataSource.getConnection("surveyMobileAPI-XFormData");
-			cResults = SDDataSource.getConnection("surveyMobileAPI-XFormData");
+			cResults = ResultsDataSource.getConnection("surveyMobileAPI-XFormData");
 			
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
