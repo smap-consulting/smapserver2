@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -566,11 +567,24 @@ public class PDFSurveyManager {
 					value = null;
 					if(r.value != null) {
 						// Convert date to local time
-						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						Date date = df.parse(r.value);					
-						df.setTimeZone(TimeZone.getTimeZone(tz));
-						value = df.format(date);
+						try {
+							DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+							df.setTimeZone(TimeZone.getTimeZone("UTC"));
+							Date date = df.parse(r.value);					
+							df.setTimeZone(TimeZone.getTimeZone(tz));
+							value = df.format(date);
+						} catch (Exception e) {
+							// Try alternate date format
+							try {
+								DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+								Calendar c = javax.xml.bind.DatatypeConverter.parseDateTime(r.value);
+								c.setTimeZone(TimeZone.getTimeZone(tz));
+								value = df.format(c.getTime());
+							} catch (Exception ex) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+							}				
+							
+						}
 						log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
 					}
 
