@@ -222,5 +222,11 @@
   			<artifactId>date-converter</artifactId>
   			<version>1.0.1</version>
 		</dependency>
+		
+		<dependency>
+    		<groupId>net.bull.javamelody</groupId>
+    		<artifactId>javamelody-core</artifactId>
+    		<version>1.86.0</version>
+		</dependency>
 	</dependencies>
 </project>
