@@ -1441,6 +1441,8 @@ public class PDFSurveyManager {
 						di.isSignature = true;		
 					} else if(app.equals("pdfhiderepeatinglabels")) {
 						di.hideRepeatingLabels = true;		
+					} else if(app.equals("thousands-sep")) {
+						di.tsep = true;		
 					}
 				}
 			}
@@ -1788,8 +1790,25 @@ public class PDFSurveyManager {
 
 			valueCell.addElement((qrcodeImage));
 			
+		} else if(di.tsep && di.type.equals("int")) {
+			long iValue = 0;
+			try {
+				iValue = Long.parseLong(di.value);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			String value = String.format("%,d", iValue);
+			valueCell.addElement(getPara(value, di, gv, deps, null));
+		} else if(di.tsep && di.type.equals("decimal")) {
+			Double dValue = 0.0;
+			try {
+				dValue = Double.parseDouble(di.value);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			String value = String.format("%,f", dValue);
+			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else {
-			// Todo process other question types
 			String value = null;
 			
 			if(di.value == null || di.value.trim().length() == 0) {
