@@ -576,10 +576,11 @@ public class PDFSurveyManager {
 						} catch (Exception e) {
 							// Try alternate date format
 							try {
-								DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-								Calendar c = javax.xml.bind.DatatypeConverter.parseDateTime(r.value);
-								c.setTimeZone(TimeZone.getTimeZone(tz));
-								value = df.format(c.getTime());
+								DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+								df.setTimeZone(TimeZone.getTimeZone("UTC"));
+								Date date = df.parse(r.value);					
+								df.setTimeZone(TimeZone.getTimeZone(tz));
+								value = df.format(date);
 							} catch (Exception ex) {
 								log.log(Level.SEVERE, e.getMessage(), e);
 							}				
@@ -589,6 +590,23 @@ public class PDFSurveyManager {
 					}
 
 
+				} else if(di.tsep && di.type.equals("int")) {
+					long iValue = 0;
+					try {
+						iValue = Long.parseLong(di.value);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					value = String.format("%,d", iValue);
+				} else if(di.tsep && di.type.equals("decimal")) {
+					Double dValue = 0.0;
+					try {
+						dValue = Double.parseDouble(di.value);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					value = String.format("%,f", dValue);
+					
 				} else {
 					value = r.value;
 				}
