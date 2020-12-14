@@ -225,6 +225,9 @@ public class ForeignKeyManager {
 												pstmtResult.executeUpdate();
 											}
 										} else {
+											pstmtResult.setString(1, "error: Error: foreign key question is in a subform which is not supported " + keyQuestion);
+											pstmtResult.setInt(2, id);
+											pstmtResult.executeUpdate();
 											log.info("Error: foreign key question is in a subform which is not supported");
 										}
 									} else {
