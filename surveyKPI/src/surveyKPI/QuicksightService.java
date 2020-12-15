@@ -55,7 +55,7 @@ public class QuicksightService extends Application {
 
 	public QuicksightService() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
-		authorisations.add(Authorise.ANALYST);
+		authorisations.add(Authorise.DASHBOARD);
 		a = new Authorise(authorisations, null);
 	}
 	
