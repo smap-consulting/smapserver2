@@ -559,8 +559,8 @@ public class ExternalFileManager {
 						pstmtInsert = sd.prepareStatement(sqlInsert);
 						
 						// Create an entry in linked forms for all grouped surveys that this this survey links to
-						int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, linked_sId );
-						HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyId, linked_sId);
+						String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, linked_sId );
+						HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyIdent);
 						if(groupSurveys.size() > 0) {
 							for(int gSId : groupSurveys.keySet()) {
 								pstmtInsert.setInt(1, gSId);
@@ -638,8 +638,8 @@ public class ExternalFileManager {
 
 			// 1. Get the columns in the group
 			SurveyManager sm = new SurveyManager(localisation, "UTC");					
-			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId);
-			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyId, null, false);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);
 			
 			boolean first = true;
 			

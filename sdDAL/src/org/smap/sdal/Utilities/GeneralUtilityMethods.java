@@ -3649,21 +3649,25 @@ public class GeneralUtilityMethods {
 				columnList.add(c);
 			}
 
-			if (uptodateTable) {
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_survey_notes") != null) {
 				c = new TableColumn();
 				c.column_name = "_survey_notes";
 				c.displayName = localisation.getString("a_sn");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
-
+			}
+			
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "_location_trigger") != null) {
 				c = new TableColumn();
 				c.column_name = "_location_trigger";
 				c.displayName = localisation.getString("a_lt");
 				c.type = SmapQuestionTypes.STRING;
 				c.isMeta = true;
 				columnList.add(c);
+			}
 
+			if (uptodateTable || GeneralUtilityMethods.columnType(cResults, table_name, "instancename") != null) {
 				c = new TableColumn();
 				c.column_name = "instancename";
 				c.displayName = localisation.getString("a_in");
@@ -5407,8 +5411,8 @@ public class GeneralUtilityMethods {
 
 					if (linked_sId > 0) {
 						// Add links to any of the surveys in the linked surveys group.  That way this survey is linked to all the surveys that can affect its manifest
-						int groupSurveyId = getGroupSurveyId(sd, linked_sId );
-						HashMap<Integer, Integer> groupSurveys = getGroupSurveys(sd, groupSurveyId, linked_sId);
+						String groupSurveyIdent = getGroupSurveyIdent(sd, linked_sId );
+						HashMap<Integer, Integer> groupSurveys = getGroupSurveys(sd, groupSurveyIdent);
 
 						if(groupSurveys.size() > 0) {
 							for(int gSId : groupSurveys.keySet()) {
@@ -5445,22 +5449,19 @@ public class GeneralUtilityMethods {
 	 * Always add the survey corresponding to sId to the group
 	 */
 	public static HashMap<Integer, Integer> getGroupSurveys(Connection sd, 
-			int groupSurveyId,
-			int sId) throws SQLException {
+			String groupSurveyIdent) throws SQLException {
 		
 		HashMap<Integer, Integer> groupSurveys = new HashMap<>();
 		
 		StringBuffer sql = new StringBuffer("select distinct s.s_id "
 				+ "from survey s "
 				+ "where not s.deleted "
-				+ "and ((group_survey_id = ? and group_survey_id > 0) or s_id = ? or s_id = ?)");
+				+ "and group_survey_ident = ?");
 
 		PreparedStatement pstmt = null;
 		try {
 			pstmt = sd.prepareStatement(sql.toString());
-			pstmt.setInt(1, groupSurveyId);
-			pstmt.setInt(2,  groupSurveyId);
-			pstmt.setInt(3,  sId);
+			pstmt.setString(1, groupSurveyIdent);
 				
 			log.info("Get group surveys ids: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
@@ -7743,49 +7744,6 @@ public class GeneralUtilityMethods {
 
 	}
 
-	/*
-	 * Get survey group
-	 */
-	public static int getSurveyGroup(Connection sd, int sId) throws SQLException {
-
-		int group = 0;
-		String sql = "select group_survey_id from survey where s_id = ?";
-		PreparedStatement pstmt = null;
-		
-		String sql2 = "select count(*) from survey where group_survey_id = ?";
-		PreparedStatement pstmt2 = null;
-
-		try {
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1,  sId);
-			log.info("Check if this survey is in a group: " + pstmt.toString());
-			ResultSet rs = pstmt.executeQuery();
-			if(rs.next())  {
-				group = rs.getInt(1);
-			}
-			
-			if(group == 0) {
-				// Perhaps this survey is the main survey in the group
-				pstmt2 = sd.prepareStatement(sql2);
-				pstmt2.setInt(1,  sId);
-				log.info("Check if this survey is the main survey: " + pstmt2.toString());
-				rs = pstmt2.executeQuery();			
-				if(rs.next())  {
-					if(rs.getInt(1) > 0) {
-						// Its the parent form
-						group = sId;
-					}
-				}
-			}
-
-		} finally {
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
-			if(pstmt2 != null) try {pstmt2.close();} catch(Exception e) {}
-		}
-
-		return group;
-	}
-
 	public static String getSurveyParameter(String param, ArrayList<KeyValueSimp> params) {
 		
 		String value = null;
@@ -9418,12 +9376,12 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Get the group survey id for a question
+	 * Get the group survey id for a survey
 	 */
-	public static int getGroupSurveyId(Connection sd, int sId) throws SQLException {
-		int groupSurveyId = sId;
+	public static String getGroupSurveyIdent(Connection sd, int sId) throws SQLException {
+		String groupSurveyIdent = null;
 		
-		String sql = "select group_survey_id from survey where s_id = ?";
+		String sql = "select group_survey_ident from survey where s_id = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -9431,15 +9389,12 @@ public class GeneralUtilityMethods {
 			pstmt.setInt(1, sId);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				int id = rs.getInt(1);
-				if(id > 0) {
-					groupSurveyId = id;
-				}
+				groupSurveyIdent = rs.getString(1);
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 		}
-		return groupSurveyId;
+		return groupSurveyIdent;
 	}
 	
 	/*
@@ -9516,8 +9471,8 @@ public class GeneralUtilityMethods {
 			}
 			// Delete the linked form entries so that the CSV files will be regenerated when the linker form is downloaded
 			pstmt = sd.prepareStatement(sql);
-			int groupSurveyId = GeneralUtilityMethods.getGroupSurveyId(sd, sId );
-			HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyId, sId);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId );
+			HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyIdent);
 			if(groupSurveys.size() > 0) {
 				for(int gSId : groupSurveys.keySet()) {
 					pstmt.setInt(1, gSId);

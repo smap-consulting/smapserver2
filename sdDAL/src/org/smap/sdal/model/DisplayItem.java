@@ -25,6 +25,7 @@ public class DisplayItem {
 	public String markerColor;
 	public boolean labelcaps = false;
 	public boolean labelbold = false;
+	public boolean bs = false;
 	public int fIdx = 0;
 	public int qIdx = 0;
 	public int rec_number = 0;
@@ -36,6 +37,7 @@ public class DisplayItem {
 	public boolean isSignature = false;
 	public boolean isHyperlink = false;
 	public boolean hideRepeatingLabels = false;
+	public boolean tsep = false;		// Thousands separator
 	
 	public void debug() {
 		log.info("======== Display Item:   width: " + width + "   value: " + value + " text: " + text + " : " + type  );

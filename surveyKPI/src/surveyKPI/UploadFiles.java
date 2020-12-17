@@ -493,6 +493,7 @@ public class UploadFiles extends Application {
 		String user = request.getRemoteUser();
 		String action = null;
 		int existingSurveyId = 0;	// The ID of a survey that is being replaced
+		String groupSurveyIdent = null;
 
 		fileItemFactory.setSizeThreshold(5*1024*1024); 
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
@@ -606,9 +607,10 @@ public class UploadFiles extends Application {
 				surveyId = GeneralUtilityMethods.getLatestSurveyId(sd, surveyId);
 				
 				merge = true;
-				groupForms = sm.getGroupForms(sd, surveyId);
-				questionNames = sm.getGroupQuestionsMap(sd, surveyId, null, false);	
-				optionNames = sm.getGroupOptions(sd, surveyId);
+				groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, surveyId);
+				groupForms = sm.getGroupForms(sd, groupSurveyIdent);
+				questionNames = sm.getGroupQuestionsMap(sd, groupSurveyIdent, null, false);	
+				optionNames = sm.getGroupOptions(sd, groupSurveyIdent);
 			}
 			
 			if(action == null) {
@@ -679,11 +681,11 @@ public class UploadFiles extends Application {
 			 */
 			if(surveyId > 0) {
 				if(!action.equals("replace")) {
-					s.groupSurveyId = surveyId;
+					s.groupSurveyIdent = groupSurveyIdent;
 					
 				} else {
-					// Set the group survey id to the same value as the original survey
-					s.groupSurveyId = existingSurvey.groupSurveyId;
+					// Set the group survey ident to the same value as the original survey
+					s.groupSurveyIdent = existingSurvey.groupSurveyIdent;
 					s.publicLink = existingSurvey.publicLink;
 				}
 
@@ -705,7 +707,7 @@ public class UploadFiles extends Application {
 						}
 					}
 				}
-			}
+			} 
 			
 			/*
 			 * Save the survey to the database

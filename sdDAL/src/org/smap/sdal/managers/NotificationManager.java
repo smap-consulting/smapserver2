@@ -628,11 +628,7 @@ public class NotificationManager {
 				}
 				
 				if(!proceed) {
-					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
-							localisation.getString("filter_reject")
-							.replace("%s1", survey.displayName)
-							.replace("%s2", filter)
-							.replace("%s3", instanceId), 0);
+					log.info("Notification not sent");
 				} else {
 		
 					SubmissionMessage subMsg = new SubmissionMessage(
@@ -657,6 +653,12 @@ public class NotificationManager {
 							serverName,
 							basePath);
 					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
+					
+					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
+							localisation.getString("filter_applied")
+							.replace("%s1", survey.displayName)
+							.replace("%s2", filter)
+							.replace("%s3", instanceId), 0);
 					
 				}
 			}
