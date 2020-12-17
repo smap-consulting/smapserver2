@@ -519,14 +519,14 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							replace, remoteUser, instance.getUuid());
+							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
@@ -708,18 +708,9 @@ public class SubRelationalDB extends Subscriber {
 					}
 
 					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
-					//log.info("+++++++++++++ " + tableName + " : _audit : " + hasAudit);
-					//if(!hasAudit && recCounter <= 1) {
-					//	GeneralUtilityMethods.addColumn(cResults, tableName, "_audit", "text");
-					//}
 					hasAudit = true;
 					boolean hasAuditRaw = GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME);
-					//log.info("+++++++++++++ " + tableName + " : " + AuditData.AUDIT_RAW_COLUMN_NAME + " : " + hasAuditRaw);
-					//if(!hasAuditRaw && recCounter <= 1) {
-					//	GeneralUtilityMethods.addColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME, "text");
-					//}
 					hasAuditRaw = true;
-					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, "the_geom_alt"); 
 
 					if(hasAudit && parent_key == 0 && gAuditFilePath != null) {
 						File auditFile = new File(gAuditFilePath);
@@ -753,7 +744,7 @@ public class SubRelationalDB extends Subscriber {
 						sql += ", _audit_raw";
 					}
 
-					sql += addSqlColumns(columns, hasAltitude);
+					sql += addSqlColumns(columns, cResults, tableName);
 
 					sql += ") VALUES (?"; // parent key
 					if (parent_key == 0) {
@@ -782,7 +773,7 @@ public class SubRelationalDB extends Subscriber {
 						sql += ", ?";
 					}
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
-					sql += addSqlValues(columns, sIdent, device, server, false, hasAltitude, thisTableKeys);
+					sql += addSqlValues(columns, sIdent, device, server, false, thisTableKeys, cResults, tableName);
 					sql += ");";
 
 					pstmt = cResults.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
@@ -891,7 +882,9 @@ public class SubRelationalDB extends Subscriber {
 			int sourceKey,
 			boolean replace,
 			String user,
-			String newInstance) throws SQLException, Exception {
+			String newInstance,
+			String groupSurveyIdent,
+			String ident) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -910,8 +903,7 @@ public class SubRelationalDB extends Subscriber {
 		String sqlChildTablesInGroup = "select distinct table_name from form "
 				+ "where reference = 'false' "
 				+ "and parentform in (select f_id from form where parentform = 0 "
-				+ "and (s_id in (select s_id from survey where group_survey_id = ? and deleted='false')) "
-				+ "or s_id = ?)";
+				+ "and (s_id in (select s_id from survey where group_survey_ident = ? and deleted='false'))) ";
 		PreparedStatement pstmtChildTablesInGroup = null;
 		
 		String sqlGetFormDetails = "select distinct f_id, name  from form "
@@ -992,11 +984,9 @@ public class SubRelationalDB extends Subscriber {
 				
 				// Add the child records from the merged survey to the new survey
 				ResultSet rsc = null;
-				int groupId = GeneralUtilityMethods.getSurveyGroup(sd, sId);
-				if(groupId > 0) {
+				if(!ident.equals(groupSurveyIdent)) {
 					pstmtChildTablesInGroup = sd.prepareStatement(sqlChildTablesInGroup);
-					pstmtChildTablesInGroup.setInt(1,  groupId);
-					pstmtChildTablesInGroup.setInt(2,  groupId);
+					pstmtChildTablesInGroup.setString(1,  groupSurveyIdent);
 					log.info("Get child tables for group: " + pstmtChildTablesInGroup.toString());
 					rsc = pstmtChildTablesInGroup.executeQuery();
 				
@@ -1018,7 +1008,7 @@ public class SubRelationalDB extends Subscriber {
 					int child_f_id = 0;
 					String formname = null;
 					
-					if(groupId > 0) {
+					if(!ident.equals(groupSurveyIdent)) {
 						pstmtFormDetails.setString(1, tableName);
 						ResultSet rsFD = pstmtFormDetails.executeQuery();
 						if(rsFD.next()) {
@@ -1548,7 +1538,7 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Generate the sql for the column names
 	 */
-	String addSqlColumns(List<IE> columns, boolean hasAltitude) {
+	String addSqlColumns(List<IE> columns, Connection cResults, String tableName) {
 		StringBuffer sql = new StringBuffer("");
 
 		for(IE col : columns) {
@@ -1566,13 +1556,13 @@ public class SubRelationalDB extends Subscriber {
 			} else if(colType.equals("geopolygon") || colType.equals("geolinestring") || colType.equals("geopoint")
 					|| colType.equals("geoshape") || colType.equals("geotrace")) {
 				sql.append(",").append(col.getColumnName());
-				if(colType.equals("geopoint") && hasAltitude) {
+				if(colType.equals("geopoint") && GeneralUtilityMethods.hasColumn(cResults, tableName, col.getColumnName() + "_alt")) {
 					// Geopoint also has altitude and accuracy
 					sql.append(",").append(col.getColumnName()).append("_alt,").append(col.getColumnName()).append("_acc");
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				sql.append(addSqlColumns(col.getQuestions(), hasAltitude));
+				sql.append(addSqlColumns(col.getQuestions(), cResults, tableName));
 			} else {
 				String colName = col.getColumnName();
 				sql.append(",").append(colName);
@@ -1585,8 +1575,9 @@ public class SubRelationalDB extends Subscriber {
 	String addSqlValues(List<IE> columns, String sName, String device, 
 			String server, 
 			boolean phoneOnly, 
-			boolean hasAltitude,
-			ArrayList<ForeignKey> foreignKeys) {
+			ArrayList<ForeignKey> foreignKeys,
+			Connection cResults,
+			String tableName) {
 		
 		StringBuffer sql = new StringBuffer("");
 		for(IE col : columns) {
@@ -1605,9 +1596,9 @@ public class SubRelationalDB extends Subscriber {
 				}
 			} else if(colType.equals("begin group")) {
 				// Non repeating group, process these child columns at the same level as the parent
-				sql.append(addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, hasAltitude, foreignKeys));
+				sql.append(addSqlValues(col.getQuestions(), sName, device, server, colPhoneOnly, foreignKeys, cResults, tableName));
 			} else {
-				sql.append(",").append(getDbString(col, sName, device, server, colPhoneOnly, hasAltitude));
+				sql.append(",").append(getDbString(col, sName, device, server, colPhoneOnly, cResults, tableName));
 				// Check for a foreign key, the value will start with :::::
 				if(col.getValue() != null && col.getValue().startsWith(":::::") && col.getValue().length() > 5) {
 					ForeignKey fl = new ForeignKey();
@@ -1624,11 +1615,11 @@ public class SubRelationalDB extends Subscriber {
 	/*
 	 * Format the value into a string appropriate to its type
 	 */
-	String getDbString(IE col, String surveyName, String device, String server, boolean phoneOnly, boolean hasAltitude) {
+	String getDbString(IE col, String surveyName, String device, String server, boolean phoneOnly, Connection cResults, String tableName) {
 
 		String qType = col.getQType();
 		String value = col.getValue();	
-		String colName = col.getName();
+		String colName = col.getColumnName();
 
 		// If the deviceId is not in the form results add it from the form meta data
 		if(colName != null && colName.equals("_device")) {
@@ -1677,6 +1668,8 @@ public class SubRelationalDB extends Subscriber {
 					// Geo point parameters are separated by a space and in the order Y X Altitude Accuracy
 					// To store as a Point in the db this order needs to be reversed
 					String params[] = value.split(" ");
+					boolean hasAltitude = GeneralUtilityMethods.hasColumn(cResults, tableName, colName + "_alt");
+					log.info("Has altitude: " + tableName + " : " + colName + " : " + hasAltitude);
 					if(params.length > 1) {
 						try {
 							value = "ST_SetSRID(ST_MakePoint(" 
@@ -1694,7 +1687,7 @@ public class SubRelationalDB extends Subscriber {
 								}
 							}
 						} catch (Exception e) {
-							log.info("Error: Invalid geometry point detected: " + value);
+							log.info("Error: Invalid geometry point detected: " + tableName + " : " + colName + " : " + value);
 							if(hasAltitude) {
 								value = "null, null, null";
 							} else {
@@ -1703,7 +1696,7 @@ public class SubRelationalDB extends Subscriber {
 						}
 
 					} else {
-						log.info("Error: Invalid geometry point detected: " + value);
+						log.info("Info: Empty geometry point detected: " + tableName + " : " + colName + " : " + value);
 						if(hasAltitude) {
 							value = "null, null, null";
 						} else {

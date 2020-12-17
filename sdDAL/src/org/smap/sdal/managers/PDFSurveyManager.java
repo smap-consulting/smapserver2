@@ -12,6 +12,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -22,6 +23,7 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.joda.time.DateTime;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
@@ -38,6 +40,8 @@ import org.smap.sdal.model.ServerData;
 import org.smap.sdal.model.Survey;
 import org.smap.sdal.model.User;
 
+import com.github.binodnme.dateconverter.converter.DateConverter;
+import com.github.binodnme.dateconverter.utils.DateBS;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -563,15 +567,46 @@ public class PDFSurveyManager {
 					value = null;
 					if(r.value != null) {
 						// Convert date to local time
-						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-						df.setTimeZone(TimeZone.getTimeZone("UTC"));
-						Date date = df.parse(r.value);					
-						df.setTimeZone(TimeZone.getTimeZone(tz));
-						value = df.format(date);
+						try {
+							DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+							df.setTimeZone(TimeZone.getTimeZone("UTC"));
+							Date date = df.parse(r.value);					
+							df.setTimeZone(TimeZone.getTimeZone(tz));
+							value = df.format(date);
+						} catch (Exception e) {
+							// Try alternate date format
+							try {
+								DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+								df.setTimeZone(TimeZone.getTimeZone("UTC"));
+								Date date = df.parse(r.value);					
+								df.setTimeZone(TimeZone.getTimeZone(tz));
+								value = df.format(date);
+							} catch (Exception ex) {
+								log.log(Level.SEVERE, e.getMessage(), e);
+							}				
+							
+						}
 						log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
 					}
 
 
+				} else if(di.tsep && di.type.equals("int")) {
+					long iValue = 0;
+					try {
+						iValue = Long.parseLong(di.value);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					value = String.format("%,d", iValue);
+				} else if(di.tsep && di.type.equals("decimal")) {
+					Double dValue = 0.0;
+					try {
+						dValue = Double.parseDouble(di.value);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					value = String.format("%,f", dValue);
+					
 				} else {
 					value = r.value;
 				}
@@ -1398,6 +1433,8 @@ public class PDFSurveyManager {
 						setSpace(app, di);
 					} else if(app.equals("pdflabelcaps")) {
 						di.labelcaps = true;
+					} else if(app.equals("pdfbs")) {
+						di.bs = true;
 					} else if(app.equals("pdflabelbold")) {
 						di.labelbold = true;
 					} else if(app.startsWith("pdfmap")) {			// mapbox map id
@@ -1422,6 +1459,8 @@ public class PDFSurveyManager {
 						di.isSignature = true;		
 					} else if(app.equals("pdfhiderepeatinglabels")) {
 						di.hideRepeatingLabels = true;		
+					} else if(app.equals("thousands-sep")) {
+						di.tsep = true;		
 					}
 				}
 			}
@@ -1698,6 +1737,9 @@ public class PDFSurveyManager {
 			String startGeopointValue
 			) throws Exception {
 
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
+		
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
@@ -1766,8 +1808,25 @@ public class PDFSurveyManager {
 
 			valueCell.addElement((qrcodeImage));
 			
+		} else if(di.tsep && di.type.equals("int")) {
+			long iValue = 0;
+			try {
+				iValue = Long.parseLong(di.value);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			String value = String.format("%,d", iValue);
+			valueCell.addElement(getPara(value, di, gv, deps, null));
+		} else if(di.tsep && di.type.equals("decimal")) {
+			Double dValue = 0.0;
+			try {
+				dValue = Double.parseDouble(di.value);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			String value = String.format("%,f", dValue);
+			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else {
-			// Todo process other question types
 			String value = null;
 			
 			if(di.value == null || di.value.trim().length() == 0) {
@@ -1779,9 +1838,7 @@ public class PDFSurveyManager {
 					}
 				}
 				
-				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time
-					
-					DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time				
 					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					Date date = df.parse(di.value);
 					df.setTimeZone(TimeZone.getTimeZone(tz));
@@ -1789,6 +1846,44 @@ public class PDFSurveyManager {
 					log.info("Convert date to local time: " + di.name + " : " + di.value + " : " + " : " + value + " : " + di.type + " : " + tz);
 				} else {
 					value = di.value;
+				}
+				
+				// If Bikram Sambat date output is required convert  
+				if(di.bs && (di.type.equals("date") || di.type.equals("dateTime") || di.type.equals("timestamp"))) {		// Set date time to local time
+				
+					StringBuilder bsValue = new StringBuilder("");
+					
+					
+					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
+						
+						Date date = df.parse(di.value);
+						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
+
+						bsValue.append(dateBS.getYear())
+							.append("/")
+							.append(dateBS.getMonth() + 1)
+							.append("/")
+							.append(dateBS.getDay() + 1);
+
+						bsValue.append(" ")
+							.append(date.getHours())
+							.append(":")
+							.append(date.getMinutes())
+							.append(":")
+							.append(date.getSeconds());					
+					} else {
+						
+						Date date = dfDateOnly.parse(di.value);  
+						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
+						
+						bsValue.append(dateBS.getYear())
+						.append("/")
+						.append(dateBS.getMonth() + 1)
+						.append("/")
+						.append(dateBS.getDay() + 1);
+					}
+					
+					value = bsValue.toString();
 				}
 
 			}

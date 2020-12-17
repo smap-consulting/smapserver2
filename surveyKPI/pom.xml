@@ -60,6 +60,16 @@
 			<artifactId>aws-java-sdk-translate</artifactId>
 		</dependency>
 		
+		<dependency>
+		    <groupId>com.amazonaws</groupId>
+		    <artifactId>aws-java-sdk-quicksight</artifactId>
+		</dependency>
+		
+		<dependency>
+    		<groupId>com.amazonaws</groupId>
+   			 <artifactId>aws-java-sdk-sts</artifactId>
+		</dependency>
+		
 		<!-- https://mvnrepository.com/artifact/com.amazonaws/aws-java-sdk-rekognition -->
 		<dependency>
 			<groupId>com.amazonaws</groupId>
@@ -207,5 +217,18 @@
     			<version>2.3.1</version>
 		</dependency>
 		
+		<dependency>
+  			<groupId>com.github.binodnme</groupId>
+  			<artifactId>date-converter</artifactId>
+  			<version>1.0.1</version>
+		</dependency>
+		
+		<!--
+		<dependency>
+    		<groupId>net.bull.javamelody</groupId>
+    		<artifactId>javamelody-core</artifactId>
+    		<version>1.86.0</version>
+		</dependency>
+		-->
 	</dependencies>
 </project>

@@ -47,6 +47,7 @@ public class Authorise {
 	public static String OWNER = "server owner";
 	public static String VIEW_OWN_DATA = "view own data";
 	public static String MANAGE_TASKS = "manage tasks";
+	public static String DASHBOARD = "dashboard";
 	
 	public static int ADMIN_ID = 1;
 	public static int ANALYST_ID = 2;
@@ -59,6 +60,7 @@ public class Authorise {
 	public static final int OWNER_ID = 9;
 	public static final int VIEW_OWN_DATA_ID = 10;
 	public static final int MANAGE_TASKS_ID = 11;
+	public static final int DASHBOARD_ID = 12;
 	
 	//private String requiredGroup;
 	ArrayList<String> permittedGroups; 
@@ -979,9 +981,10 @@ public class Authorise {
 	}
 	
 	/*
-	 * Verify that the user is entitled to access this group from
+	 * Verify that the user is entitled to access this group survey ident
+	 *  
 	 */
-	public boolean isValidGroupSurvey(Connection conn, String user, int sId, String groupSurveyIdent)
+	public boolean isValidOversightSurvey(Connection conn, String user, int sId, String oversightSurveyIdent)
 			throws ServerException, AuthorisationException, NotFoundException {
 		ResultSet resultSet = null;
 		PreparedStatement pstmt = null;
@@ -989,9 +992,7 @@ public class Authorise {
 		boolean sqlError = false;
 		
 		/*
-		 * 1) Make sure the survey has not been soft deleted and exists or alternately 
-		 *    that it has been soft deleted and exists
-		 * 2) Make sure survey is in a project that the user has access to
+		 * 1) Ensure group survey matches survey id
 		 */
 
 		String sql = "select count(*) "
@@ -1000,17 +1001,14 @@ public class Authorise {
 				+ "and up.u_id = u.id "
 				+ "and u.ident = ? "
 				+ "and s.ident = ? "
-				+ "and (s.group_survey_id != 0 and s.group_survey_id = (select group_survey_id from survey where s_id = ?) "
-				+ "or s.group_survey_id = ? "
-				+ "or s.s_id = (select group_survey_id from survey where s_id = ?)) ";
+				+ "and s.group_survey_ident is not null "
+				+ "and s.group_survey_ident = (select group_survey_ident from survey where s_id = ?) ";
 
 		try {
 			pstmt = conn.prepareStatement(sql);
 			pstmt.setString(1, user);
-			pstmt.setString(2,  groupSurveyIdent);
+			pstmt.setString(2,  oversightSurveyIdent);
 			pstmt.setInt(3,  sId);
-			pstmt.setInt(4,  sId);
-			pstmt.setInt(5,  sId);
 			
 			log.info("IsValidGroupSurvey: " + pstmt.toString());
 			
@@ -1032,7 +1030,7 @@ public class Authorise {
 		}
 		
  		if(count == 0) {
- 			log.info("Survey validation failed for: " + user + " custom survey was: " + groupSurveyIdent);
+ 			log.info("Survey validation failed for: " + user + " custom survey was: " + oversightSurveyIdent);
  			
  			SDDataSource.closeConnection("isValidSurvey", conn);
 			

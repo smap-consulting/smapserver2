@@ -72,7 +72,7 @@ public class Survey {
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
 	public boolean dataSurvey = true;
 	public boolean oversightSurvey = true;
-	public int groupSurveyId;
+	public String groupSurveyIdent;
 	public String groupSurveyDetails;
 	public String publicLink;
 	
@@ -271,7 +271,7 @@ public class Survey {
 				+ "loaded_from_xls,"
 				+ "meta,"
 				+ "task_file,"
-				+ "group_survey_id,"
+				+ "group_survey_ident,"
 				+ "hrk,"
 				+ "key_policy,"
 				+ "created,"
@@ -290,7 +290,8 @@ public class Survey {
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
-				+ "ident = ? "
+				+ "ident = ?, "
+				+ "group_survey_ident = ?"
 				+ "where s_id = ?;";
 		PreparedStatement pstmtUpdate = null;
 
@@ -308,7 +309,7 @@ public class Survey {
 			pstmt.setBoolean(9, loadedFromXLS);
 			pstmt.setString(10, gson.toJson(meta));
 			pstmt.setBoolean(11, task_file);
-			pstmt.setInt(12, groupSurveyId);
+			pstmt.setString(12, groupSurveyIdent);
 			pstmt.setString(13, hrk);	// Key
 			pstmt.setString(14, key_policy);
 			pstmt.setString(15, publicLink);
@@ -333,12 +334,15 @@ public class Survey {
 				if(rs.next()) {
 					id = rs.getInt(1);
 				
-					String surveyName = "s" + p_id + "_" + id;
-					ident = surveyName;
+					ident = "s" + p_id + "_" + id;
+					if(groupSurveyIdent == null) {
+						groupSurveyIdent = ident;
+					}
 					
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
 					pstmtUpdate.setString(1, ident);
-					pstmtUpdate.setInt(2, id);
+					pstmtUpdate.setString(2, groupSurveyIdent);
+					pstmtUpdate.setInt(3, id);
 					pstmtUpdate.executeUpdate();
 				}
 			}
