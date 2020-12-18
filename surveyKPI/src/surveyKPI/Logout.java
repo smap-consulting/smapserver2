@@ -21,16 +21,10 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
@@ -43,9 +37,6 @@ import org.smap.sdal.Utilities.SDDataSource;
  */
 @Path("/logout")
 public class Logout extends Application {
-	
-	private static Logger log =
-			 Logger.getLogger(Logout.class.getName());
 	
 	@GET
 	@Produces("application/json")
