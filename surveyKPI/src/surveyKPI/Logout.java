@@ -21,17 +21,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 
@@ -50,25 +45,23 @@ public class Logout extends Application {
 	
 	@GET
 	@Produces("application/json")
-	public void logout(@Context HttpServletRequest request, 
-			@Context HttpServletResponse response) {
+	public void logout(@Context HttpServletRequest request) {
 		
 		/*
 		 * Delete any session keys for this user
 		 */
-		Connection sd = SDDataSource.getConnection("surveyKPI-Logout");
+		String connectionString = "surveyKPI-Logout";
+		Connection sd = SDDataSource.getConnection(connectionString);
 		try {
 			GeneralUtilityMethods.deleteAccessKeys(sd, request.getRemoteUser());
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-Logout", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
-		response.setHeader("Clear-Site-Data", "*");
-		
 		// Throw an authorisation exception to close browser session (chrome works with this at least)
-		//throw new AuthorisationException();
+		throw new AuthorisationException();
 		
 
 	}
