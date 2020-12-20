@@ -3498,7 +3498,6 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, groupSurveyIdent);
-			log.info("Getting group questions: " + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 
 			while (rs.next()) {

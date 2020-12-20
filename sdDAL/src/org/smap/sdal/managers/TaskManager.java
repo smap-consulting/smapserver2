@@ -1107,6 +1107,7 @@ public class TaskManager {
 					}
 				} catch (Exception e) {
 					log.info("Assignment: " + asString);
+					lm.writeLog(sd, source_s_id, "subscriber", LogManager.TASK, e.getMessage(), 0);
 					log.log(Level.SEVERE, e.getMessage(), e);
 				}
 			}
