@@ -10,6 +10,7 @@ public class AssignFromSurvey {
 	public int target_survey_id;		// This value is not maintained and will change if the survey is replaced - the current version will be in a separate database column
 	public String project_name;
 	public String source_survey_name;
+	public int source_project;
 	public String survey_name;
 	public int user_id;				// Either user id, or role id are used to assign people directly at task group creation
 	public int role_id;
