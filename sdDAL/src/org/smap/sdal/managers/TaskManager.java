@@ -1865,15 +1865,15 @@ public class TaskManager {
 				+ "and a.status != 'new') = 0  "
 				+ "and t.id in (";		
 		String deleteAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
-				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
 				+ "and (status = 'new' or status = 'accepted' or status = 'unsent' or status = 'error') "
 				+ "and id in (";
 		String acceptedAssignmentsSql = "update assignments set status = 'accepted', cancelled_date = null "
-				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
 				+ "and id in (";
 		
 		String assignSql = "update assignments set assignee = ?, assigned_date = now(), assignee_name = (select name from users where id = ?) "
-				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
 				+ "and id in (";
 		String sqlGetUnassigned = "select id from tasks "
 				+ "where id not in (select task_id from assignments where status != 'new'	) "
@@ -1885,17 +1885,17 @@ public class TaskManager {
 				+ "t.survey_ident, t.update_id, t.assign_auto "
 				+ "from assignments a, tasks t "
 				+ "where a.task_id = t.id "
-				+ "and a.task_id in (select task_id from tasks where p_id = ?) "
+				+ "and a.task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "
 				+ "and (a.status = 'unsent' or a.status = 'accepted' or a.status = 'blocked') "
 				+ "and a.id in (";
 		
 		String deleteNewAssignmentsSql = "update assignments set status = 'cancelled', cancelled_date = now() "
-				+ "where task_id in (select task_id from tasks where p_id = ?) "		// Authorisation
+				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ?) "		// Authorisation
 				+ "and (status = 'new') "
 				+ "and id in (";
 		
 		String deleteHardNewAssignmentsSql = "delete from assignments "
-				+ "where task_id in (select task_id from tasks where p_id = ? and not assign_auto) "	
+				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ? and not assign_auto) "	
 				+ "and (status = 'new') "
 				+ "and id in (";
 		
