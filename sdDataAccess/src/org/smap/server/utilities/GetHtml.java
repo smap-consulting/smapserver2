@@ -65,7 +65,7 @@ public class GetHtml {
 	 * Get the Html as a string
 	 */
 	public String get(HttpServletRequest request, int sId, boolean superUser, String userIdent, 
-			HashMap<String, Integer> recordCounts) throws SQLException, Exception {
+			HashMap<String, Integer> recordCounts, boolean temporaryUser) throws SQLException, Exception {
 		
 		gRecordCounts = recordCounts;
 		
@@ -81,7 +81,7 @@ public class GetHtml {
 		try {
 
 			survey = sm.getById(sd, cResults, userIdent, 
-					false, 	// Either logged in user or using a temporary ident so not real temporary user
+					temporaryUser, 	
 					sId, true, basePath, null, false, false, true, false,
 					false, "real", false, false, superUser, null,
 					false,		// Do not include child surveys - presumably never required for a web form

@@ -338,7 +338,7 @@ public class XFormData {
 				rm.recordUsage(sd, survey.o_id, survey.id, LogManager.SUBMISSION, null, user, 1);
 			}
 
-			log.info("###### submitted by: " + request.getRemoteUser());
+			log.info("###### submitted by: " + user);
 			if(assignmentId > 0) {
 				superUser = true;		// This was an assigned task do not apply role restrictions
 			} else {

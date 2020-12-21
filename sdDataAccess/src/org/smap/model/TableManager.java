@@ -186,7 +186,7 @@ public class TableManager {
 				+ "where q_id = (select parentquestion from form where f_id = ?);";
 		
 		String sqlSetPublishedParentQuestionSharedForm = "update question set published = 'true' "
-				+ "where q_id = (select parentquestion from form where f_id = ?)"
+				+ "where q_id = (select parentquestion from form where f_id = ?) "
 				+ "and column_name in (select column_name from question where f_id = ?);";
 
 		String sqlSetPublishedSharedForm = "update question set published = 'true' "
@@ -561,7 +561,7 @@ public class TableManager {
 		boolean compressed;
 	}
 
-	public boolean applyTableChanges(Connection connectionSD, Connection cResults, 
+	public boolean applyTableChanges(Connection sd, Connection cResults, 
 			int sId,
 			ArrayList<String> tablesCreated) throws Exception {
 
@@ -594,10 +594,10 @@ public class TableManager {
 		log.info("######## Apply table changes");
 		try {
 
-			pstmtGet = connectionSD.prepareStatement(sqlGet);
-			pstmtGetListQuestions = connectionSD.prepareStatement(sqlGetListQuestions);
-			pstmtGetOptions = connectionSD.prepareStatement(sqlGetOptions);
-			pstmtGetAnOption = connectionSD.prepareStatement(sqlGetAnOption);
+			pstmtGet = sd.prepareStatement(sqlGet);
+			pstmtGetListQuestions = sd.prepareStatement(sqlGetListQuestions);
+			pstmtGetOptions = sd.prepareStatement(sqlGetOptions);
+			pstmtGetAnOption = sd.prepareStatement(sqlGetAnOption);
 
 			pstmtGet.setInt(1, sId);
 			log.info("SQL: " + pstmtGet.toString());
@@ -653,7 +653,7 @@ public class TableManager {
 						}
 
 						if(listId == 0) {
-							listId = GeneralUtilityMethods.getListId(connectionSD, sId, listName);
+							listId = GeneralUtilityMethods.getListId(sd, sId, listName);
 						}
 						String optionColumnName = null;
 						boolean externalFile = false;
@@ -678,7 +678,7 @@ public class TableManager {
 							while(rsQuestions.next()) {
 								// Get the question details
 								int qId = rsQuestions.getInt(1);		// Select questions are returned in the Result Set
-								QuestionDetails qd = getQuestionDetails(connectionSD, qId);
+								QuestionDetails qd = getQuestionDetails(sd, qId);
 
 								if(qd != null && !qd.reference && !qd.compressed) {
 									if(qd.hasExternalOptions && externalFile || !qd.hasExternalOptions && !externalFile) {
@@ -700,14 +700,14 @@ public class TableManager {
 						// Don't rely on any parameters in the change item, they may have been changed again after the question was added
 						int qId = 0;
 						if(ci.question != null) {
-							qId = GeneralUtilityMethods.getQuestionId(connectionSD, ci.question.fId, sId, ci.question.id, ci.question.name);
+							qId = GeneralUtilityMethods.getQuestionId(sd, ci.question.fId, sId, ci.question.id, ci.question.name);
 						} else {
 							qId = ci.property.qId;
 						}
 
 						if(qId != 0) {
 							try {
-								QuestionDetails qd = getQuestionDetails(connectionSD, qId);
+								QuestionDetails qd = getQuestionDetails(sd, qId);
 								
 								// If the table was just created then no need to apply updates
 								if(!tablesCreated.contains(qd.table) && !qd.reference) {
@@ -719,7 +719,7 @@ public class TableManager {
 									} else if(qd.type.equals("begin repeat")) {
 										// Get the table name
 										String sqlGetTable = "select table_name from form where s_id = ? and parentquestion = ?;";
-										pstmtGetTableName = connectionSD.prepareStatement(sqlGetTable);
+										pstmtGetTableName = sd.prepareStatement(sqlGetTable);
 										pstmtGetTableName.setInt(1, sId);
 										pstmtGetTableName.setInt(2, qId);
 										ResultSet rsTableName = pstmtGetTableName.executeQuery();
@@ -776,13 +776,13 @@ public class TableManager {
 					// Record the application of the change and the status
 					String msg = status != null ? status.msg : "";
 					boolean tableAltered = status != null ? status.tableAltered : false;
-					markChangeApplied(connectionSD, cId, tableAltered, msg);
+					markChangeApplied(sd, cId, tableAltered, msg);
 
 
 
 				} else {
 					// Record that this change has been processed
-					markChangeApplied(connectionSD, cId, true, "");
+					markChangeApplied(sd, cId, true, "");
 				}
 
 			}
@@ -802,18 +802,20 @@ public class TableManager {
 
 	}
 
-	public boolean addUnpublishedColumns(Connection connectionSD, Connection cResults, int sId, String tableName) throws Exception {
+	public boolean addUnpublishedColumns(Connection sd, Connection cResults, int sId, String topLevelTableName) throws Exception {
 
 		boolean tablePublished = false;
 
-		String sqlGetUnpublishedQuestions = "select "
+		String sqlGetUnpublishedGroupQuestions = "select "
 				+ "q.q_id, q.qtype, q.column_name, q.l_id, q.appearance, f.table_name, q.compressed "
 				+ "from question q, form f "
 				+ "where q.f_id = f.f_id "
 				+ "and (q.published = 'false' or (q.compressed = 'false' and q.qtype = 'select')) "
 				+ "and f.reference = 'false' "
 				+ "and q.soft_deleted = 'false' "
-				+ "and f.s_id = ?";
+				+ "and q.f_id in "
+				+ "(select f_id from form where s_id in (select s_id from survey where group_survey_ident = ? and deleted = 'false'))";
+
 
 		String sqlGetUnpublishedOptions = "select o_id, column_name, externalfile "
 				+ "from option "
@@ -827,12 +829,13 @@ public class TableManager {
 		log.info("######## Apply unpublished questions");
 		try {
 
-			addUnpublishedPreloads(connectionSD, cResults, sId, tableName);
+			addUnpublishedPreloads(sd, cResults, sId, topLevelTableName);
 			
-			pstmtGetUnpublishedQuestions = connectionSD.prepareStatement(sqlGetUnpublishedQuestions);
-			pstmtGetUnpublishedOptions = connectionSD.prepareStatement(sqlGetUnpublishedOptions);
+			pstmtGetUnpublishedQuestions = sd.prepareStatement(sqlGetUnpublishedGroupQuestions);
+			pstmtGetUnpublishedOptions = sd.prepareStatement(sqlGetUnpublishedOptions);
 
-			pstmtGetUnpublishedQuestions.setInt(1, sId);
+			String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, sId);
+			pstmtGetUnpublishedQuestions.setString(1, groupSurveyIdent);
 			log.info("Get unpublished questions: " + pstmtGetUnpublishedQuestions.toString());
 
 			ArrayList<String> columns = new ArrayList<String> ();	// Column names in results table
@@ -894,12 +897,12 @@ public class TableManager {
 
 	}
 	
-	public void addUnpublishedPreloads(Connection connectionSD, 
+	public void addUnpublishedPreloads(Connection sd, 
 			Connection cResults, 
 			int sId,
 			String tableName) throws Exception {
 
-		ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(connectionSD, sId);
+		ArrayList<MetaItem> preloads = GeneralUtilityMethods.getPreloads(sd, sId);
 
 		log.info("######## Apply unpublished preloads");
 		for(MetaItem mi : preloads) {

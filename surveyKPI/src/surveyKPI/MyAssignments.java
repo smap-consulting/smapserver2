@@ -1065,7 +1065,7 @@ public class MyAssignments extends Application {
 		if(status.equals(TaskManager.STATUS_T_REJECTED) && comment != null && comment.length() > 0) {
 			// Get the oId here this should be a pretty rare event
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);
-			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK_REJECT, 
+			lm.writeLogOrganisation(sd, oId, userName, LogManager.TASK, 
 					assignmentId + ": " + comment, 0);
 		}
 		
