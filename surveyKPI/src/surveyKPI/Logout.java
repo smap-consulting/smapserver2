@@ -21,6 +21,8 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.logging.Logger;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -45,13 +47,14 @@ public class Logout extends Application {
 		/*
 		 * Delete any session keys for this user
 		 */
-		Connection sd = SDDataSource.getConnection("surveyKPI-Logout");
+		String connectionString = "surveyKPI-Logout";
+		Connection sd = SDDataSource.getConnection(connectionString);
 		try {
 			GeneralUtilityMethods.deleteAccessKeys(sd, request.getRemoteUser());
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-Logout", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		// Throw an authorisation exception to close browser session (chrome works with this at least)

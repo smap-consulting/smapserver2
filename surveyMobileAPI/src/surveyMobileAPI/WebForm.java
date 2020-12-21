@@ -526,7 +526,10 @@ public class WebForm extends Application {
 				superUser = isTemporaryUser || GeneralUtilityMethods.isSuperUser(sd, userIdent);
 			} catch (Exception e) {
 			}
-			a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access																			
+			if(!isTemporaryUser) {
+				a.isValidSurvey(sd, userIdent, survey.id, false, superUser); // Validate that the user has access	
+			}
+																					
 			a.isBlocked(sd, survey.id, false); // Validate that the survey is not blocked
 			if(!isTemporaryUser && taskKey > 0) {
 				a.isValidTask(sd, userIdent, taskKey);
@@ -978,7 +981,8 @@ public class WebForm extends Application {
 		output.append(openMain(orgId, minimal));
 
 		GetHtml getHtml = new GetHtml(localisation);
-		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, gRecordCounts);
+		String html = getHtml.get(request, template.getSurvey().getId(), superUser, userIdent, 
+				gRecordCounts, isTemporaryUser);
 
 		output.append(html);
 

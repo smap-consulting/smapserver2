@@ -165,7 +165,7 @@ public class Tasks extends Application {
 			
 			String tz = "UTC";	// Set default for timezone
 			
-			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.TASK_GET, "Task group: " + tgId + " period: " + period + " user: " + userId, 0);
+			lm.writeLog(sd, 0, request.getRemoteUser(), LogManager.TASK, "Task group: " + tgId + " period: " + period + " user: " + userId, 0);
 			
 			// Get assignments
 			String urlprefix = request.getScheme() + "://" + request.getServerName();
