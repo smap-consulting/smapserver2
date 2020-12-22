@@ -10,6 +10,7 @@ public class QuestionLite {
 	public String type;
 	public String q;				// The question for a specified language
 	public String name;
+	public String column_name;
 	
 	// Properties for Server Side Calculations
 	public String fn;

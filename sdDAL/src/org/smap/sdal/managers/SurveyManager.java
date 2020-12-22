@@ -3553,6 +3553,7 @@ public class SurveyManager {
 
 			while (rs.next()) {
 				QuestionLite q = new QuestionLite();
+				q.column_name = rs.getString("column_name"); 
 				q.name = rs.getString("qname"); 
 				q.type = rs.getString("qtype");
 				groupQuestions.add(q);
