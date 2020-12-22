@@ -47,7 +47,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.ForeignKeyManager;
-import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.NotificationManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -71,8 +70,6 @@ public class SubRelationalDB extends Subscriber {
 
 	private static Logger log =
 			Logger.getLogger(Subscriber.class.getName());
-	
-	private static LogManager lm = new LogManager();		// Application log
 	
 	private class Keys {
 		ArrayList<Integer> duplicateKeys = new ArrayList<Integer>();
@@ -519,14 +516,14 @@ public class SubRelationalDB extends Subscriber {
 					log.info("Existing key:" + existingKey);
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, 
 							topLevelForm.id,
-							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
+							existingKey, replace, remoteUser, updateId, survey.groupSurveyIdent, survey.ident, localisation);		// Use updateId as the instance in order to get the thread.  The new instance will not have been committed yet
 				} 
 			} else if(hasHrk && !keyPolicy.equals(SurveyManager.KP_NONE)) {
 				boolean replace = keyPolicy.equals(SurveyManager.KP_REPLACE);
 				if(keyPolicy.equals(SurveyManager.KP_MERGE) || keyPolicy.equals(SurveyManager.KP_REPLACE)) {					
 					log.info("Apply merge-replace policy");
 					combineTableContent(sd, cResults, sId, topLevelForm.tableName, keys.newKey, topLevelForm.id, 0, 
-							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident);
+							replace, remoteUser, instance.getUuid(), survey.groupSurveyIdent, survey.ident, localisation);
 				} else if(keyPolicy.equals(SurveyManager.KP_DISCARD)) {
 					log.info("Apply discard policy");
 					discardTableContent(cResults, topLevelForm.tableName, keys.newKey);
@@ -884,7 +881,8 @@ public class SubRelationalDB extends Subscriber {
 			String user,
 			String newInstance,
 			String groupSurveyIdent,
-			String ident) throws SQLException, Exception {
+			String ident,
+			ResourceBundle localisation) throws SQLException, Exception {
 
 		String sqlHrk = "select _hrk from " + table + " where prikey = ?";
 		PreparedStatement pstmtHrk = null;
@@ -950,7 +948,7 @@ public class SubRelationalDB extends Subscriber {
 			RecordEventManager rem = new RecordEventManager(localisation, tz);
 			if(sourceKey > 0) {
 
-				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id, false);
+				changes = mergeRecords(sd, cResults, table, prikey, sourceKey, replace, f_id, false, groupSurveyIdent);
 
 				// Get the per table merge policy for this survey
 				pstmtTableMerge = sd.prepareStatement(sqlTableMerge);
@@ -1028,7 +1026,7 @@ public class SubRelationalDB extends Subscriber {
 						/*
 						 * Get the source keys and the target primary keys
 						 */
-						String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey desc";
+						String sqlGetChildKeys = "select prikey from " + tableName + " where parkey = ? order by prikey asc";
 						pstmtChildKeys = cResults.prepareStatement(sqlGetChildKeys);
 						ArrayList<Integer> childPrikeys = new ArrayList<> ();
 						ArrayList<Integer> childSourcekeys = new ArrayList<> ();
@@ -1063,7 +1061,8 @@ public class SubRelationalDB extends Subscriber {
 												childPrikeys.get(i), childSourcekeys.get(i), 
 												false,   // Doing a merge so set replace to false
 												child_f_id,
-												true));  
+												true,
+												groupSurveyIdent));  
 									}
 								} else {
 									// copy		
@@ -1092,7 +1091,8 @@ public class SubRelationalDB extends Subscriber {
 												childSourcekeys.get(i), 
 												true,    // Doing a replace so set replace to true
 												child_f_id,
-												true));  
+												true,
+												groupSurveyIdent));  
 									}
 								} else {
 									// Record the dropped record		
@@ -1249,7 +1249,8 @@ public class SubRelationalDB extends Subscriber {
 			int sourceKey, 
 			boolean replace,
 			int f_id,
-			boolean subform) throws SQLException {
+			boolean subform,
+			String groupSurveyIdent) throws SQLException {
 		
 		ArrayList<DataItemChange> changes = new ArrayList<DataItemChange>();
 		
