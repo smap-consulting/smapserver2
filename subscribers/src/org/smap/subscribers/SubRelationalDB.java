@@ -459,6 +459,9 @@ public class SubRelationalDB extends Subscriber {
 					1		// record counter
 					);
 
+			// Commit so that we have the data
+			cResults.commit();
+			
 			/*
 			 * Update existing records
 			 */
@@ -466,7 +469,7 @@ public class SubRelationalDB extends Subscriber {
 			if(keys.duplicateKeys.size() > 0) {
 				log.info("Dropping duplicate");
 			} 
-
+			
 			/*
 			 * Update any Human readable keys if this survey has them
 			 */
@@ -482,17 +485,14 @@ public class SubRelationalDB extends Subscriber {
 					pstmtAddHrk.executeUpdate();
 				}
 
-				try {
-					String sql = "update " + topLevelForm.tableName + " set _hrk = "
-							+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
-	
-					sql += " where _hrk is null;";
-					pstmtHrk = cResults.prepareStatement(sql);
-					log.info("Adding HRK: " + pstmtHrk.toString());
-					pstmtHrk.executeUpdate();
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
+				String sql = "update " + topLevelForm.tableName + " set _hrk = "
+						+ GeneralUtilityMethods.convertAllxlsNamesToQuery(hrk, sId, sd);
+
+				sql += " where _hrk is null;";
+				pstmtHrk = cResults.prepareStatement(sql);
+				log.info("Adding HRK: " + pstmtHrk.toString());
+				pstmtHrk.executeUpdate();
+				
 			}
 
 			/*
