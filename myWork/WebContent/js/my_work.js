@@ -220,7 +220,7 @@ require([
 
 		for(i = 0; i < formList.length; i++) {
 			if(!filterProjectId || filterProjectId == formList[i].pid) {
-				h[++idx] = '<a role="button" class="btn btn-primary btn-block btn-lg" href="/myWork/webForm/';
+				h[++idx] = '<a role="button" class="btn btn-info btn-block btn-lg" href="/myWork/webForm/';
 				h[++idx] = formList[i].ident;
 
 				//h[++idx] = '?myWork=true">';      // use the webform internal submit process
