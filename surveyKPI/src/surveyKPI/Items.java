@@ -155,7 +155,7 @@ public class Items extends Application {
 		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
-		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, "View Results", 0);
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.DASHBOARD_VIEW, "View Results for form: " + fId, 0);
 	
 		tz = (tz == null) ? "UTC" : tz;
 		
