@@ -9747,5 +9747,13 @@ public class GeneralUtilityMethods {
  
     	return geomColumn;
     }
+    
+    public static String getNameFromXlsName(String in) {
+    	if(in != null) {
+    		in = in.trim().replace("${", "");
+    		in = in.substring(0, in.lastIndexOf('}'));
+    	}
+    	return in;
+    }
 }
 

@@ -1008,9 +1008,15 @@ public class GetXForm {
 				questionElement.setAttribute("event", sv.event);
 				
 				// Add reference
-				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), q.getName());
-				if (q.getType().equals("begin repeat") && count) {
-					reference += "_count"; // Reference is to the calculate question for this form
+				String reference = null;
+				if(sv.ref != null) {
+					String qRef = GeneralUtilityMethods.getNameFromXlsName(sv.ref);
+					reference = getQuestionReference(template.getQuestionPaths(), f.getId(), qRef);
+				} else {
+					reference = getQuestionReference(template.getQuestionPaths(), f.getId(), q.getName());
+					if (q.getType().equals("begin repeat") && count) {
+						reference += "_count"; // Reference is to the calculate question for this form
+					}
 				}
 				questionElement.setAttribute("ref", reference);
 				
@@ -1045,9 +1051,33 @@ public class GetXForm {
 			
 			}
 		}
-
 	}
 
+	/*
+	 * Populate set value elements
+	 */
+	public void populateTriggerSetValue(Document outputXML, Form f, 
+			Question q, String parentXPath, boolean count,
+			Element currentParent)
+			throws Exception {
+
+		Element questionElement = null;
+		String trigger = q.getTrigger();
+		if(trigger != null) {
+			questionElement = outputXML.createElement("setvalue");
+			questionElement.setAttribute("event", "xforms-value-changed");
+			
+			String refQuestion = GeneralUtilityMethods.getNameFromXlsName(trigger);	
+			String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
+			questionElement.setAttribute("ref", reference);
+			
+			String calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName()); 	
+			questionElement.setAttribute("value", calculate);				
+			currentParent.appendChild(questionElement);
+		
+		}
+	}
+	
 	/*
 	 * Populate the question element if this is part of the XForm bind
 	 * 
@@ -1210,7 +1240,6 @@ public class GetXForm {
 					questionElement.appendChild(labelElement);
 				}
 			}
-
 		}
 
 		// Add the hint
@@ -1231,6 +1260,9 @@ public class GetXForm {
 				questionElement.appendChild(hintElement);
 			}
 		}
+		
+		// Add trigger set values
+		populateTriggerSetValue(outputXML, f, q, f.getPath(null), false, questionElement);
 
 		boolean cascade = false;
 		if (useNodesets) {
