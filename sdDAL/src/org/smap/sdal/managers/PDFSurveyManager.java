@@ -12,7 +12,6 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.ResourceBundle;
@@ -23,7 +22,6 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.joda.time.DateTime;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.PdfPageSizer;
 import org.smap.sdal.Utilities.PdfUtilities;
@@ -132,10 +130,10 @@ public class PDFSurveyManager {
 	private Connection cResults;
 	private String user;
 	private String tz;
-	
+
 	// Other global values
 	int languageIdx = 0;
-	
+
 	private class Parser {
 		XMLParser xmlParser = null;
 		ElementList elements = null;
@@ -149,13 +147,13 @@ public class PDFSurveyManager {
 	int marginBottom_2 = 100;
 
 	boolean mExcludeEmpty = false;
-	
+
 	private class StringElement {
 		public boolean htmlToken;
 		public String text;
 		public int index;
 	}
-	
+
 	private class GlobalVariables {																// Level descended in form hierarchy
 		//HashMap<String, Integer> count = new HashMap<String, Integer> ();		// Record number at a location given by depth_length as a string
 		int [] cols = {NUMBER_QUESTION_COLS};	// Current Array of columns
@@ -165,7 +163,7 @@ public class PDFSurveyManager {
 		// Map of questions that need to have the results of another question appended to their results in a pdf report
 		HashMap <String, ArrayList<String>> addToList = new HashMap <String, ArrayList<String>>();
 	}
-	
+
 	public PDFSurveyManager(ResourceBundle l, Connection sd, Connection cResults, Survey s, String u, String tz) {
 		localisation = l;
 		choiceManager = new ChoiceManager(l, tz);
@@ -201,7 +199,7 @@ public class PDFSurveyManager {
 		}
 
 		mExcludeEmpty = survey.exclude_empty;
-		
+
 		User user = null;
 
 		ServerManager serverManager = new ServerManager();
@@ -214,7 +212,7 @@ public class PDFSurveyManager {
 		PdfWriter writer = null;
 		PdfReader reader = null;
 		PdfStamper stamper = null;
-		
+
 		try {
 
 			// Get fonts and embed them
@@ -285,7 +283,7 @@ public class PDFSurveyManager {
 				filename = survey.getInstanceName();
 				filename = GeneralUtilityMethods.getSafeTemplateName(filename);
 				filename += ".pdf";
-				
+
 			} else {
 				if(!filename.endsWith(".pdf")) {
 					filename += ".pdf";
@@ -325,7 +323,7 @@ public class PDFSurveyManager {
 
 				reader = new PdfReader(templateName);
 				stamper = new PdfStamper(reader, outputStream);
-				
+
 				for(int i = 0; i < survey.instance.results.size(); i++) {
 					fillTemplate(gv, stamper.getAcroFields(), survey.instance.results.get(i), 
 							basePath, null, i, serverRoot, stamper, oId);
@@ -334,7 +332,7 @@ public class PDFSurveyManager {
 					fillTemplateUserDetails(stamper.getAcroFields(), user, basePath);
 				}
 				stamper.setFormFlattening(true);
-			
+
 			} else {
 				log.info("++++No template exists creating a pdf file programmatically");
 
@@ -357,7 +355,7 @@ public class PDFSurveyManager {
 				if(title.equals("survey")) {
 					title = survey.displayName;
 				}
-				
+
 				// Determine the number of rows in the title and adjust the document margins accordingly
 				Font titleFont = new Font();
 				int fontHeight = 18;
@@ -366,11 +364,11 @@ public class PDFSurveyManager {
 				Rectangle pageRect = document.getPageSize();
 				// Calculate rows of title and substract 1 as maginTop_1 assumes 1 row already
 				int rows = Math.round((width / (pageRect.getWidth() - marginLeft - marginRight)) + 1) - 1;
-				
+
 				document.setMargins(marginLeft, marginRight, marginTop_1 + rows * fontHeight, marginBottom_1);
 				writer = PdfWriter.getInstance(document, outputStream);
 				writer.setInitialLeading(12);	
-				
+
 				writer.setPageEvent(new PdfPageSizer(title, 
 						user, basePath, null,
 						marginLeft, marginRight, marginTop_2, marginBottom_2,
@@ -506,183 +504,181 @@ public class PDFSurveyManager {
 			int repeatIndex,
 			String serverRoot,
 			PdfStamper stamper,
-			int oId) throws IOException, DocumentException {
-		try {
-			
-			for(Result r : record) {
+			int oId) throws Exception {
 
-				String value = "";
-				boolean hideLabel = false;
-				String fieldName = getFieldName(formName, repeatIndex, r.name);
-				String fieldNameQR = getFieldName(formName, repeatIndex, r.name + "_qr");
 
-				DisplayItem di = new DisplayItem();
-				try {
-					Form form = survey.forms.get(r.fIdx);
-					Question question = getQuestionFromResult(sd, r, form);
-					setQuestionFormats(question.appearance, di);
-				} catch (Exception e) {
-					// If we can't get the question details for this data then that is ok
-				}
+		for(Result r : record) {
 
-				/*
-				 * Set the value based on the result
-				 * Process subforms if this is a repeating group
-				 */
-				if(r.type.equals("form")) {
-					for(int k = 0; k < r.subForm.size(); k++) {
-						fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper, oId);
-					} 
-				} else if(r.type.equals("select1")) {
-					
+			String value = "";
+			boolean hideLabel = false;
+			String fieldName = getFieldName(formName, repeatIndex, r.name);
+			String fieldNameQR = getFieldName(formName, repeatIndex, r.name + "_qr");
+
+			DisplayItem di = new DisplayItem();
+			try {
+				Form form = survey.forms.get(r.fIdx);
+				Question question = getQuestionFromResult(sd, r, form);
+				setQuestionFormats(question.appearance, di);
+			} catch (Exception e) {
+				// If we can't get the question details for this data then that is ok
+			}
+
+			/*
+			 * Set the value based on the result
+			 * Process subforms if this is a repeating group
+			 */
+			if(r.type.equals("form")) {
+				for(int k = 0; k < r.subForm.size(); k++) {
+					fillTemplate(gv, pdfForm, r.subForm.get(k), basePath, fieldName, k, serverRoot, stamper, oId);
+				} 
+			} else if(r.type.equals("select1")) {
+
+				Form form = survey.forms.get(r.fIdx);
+				Question question = form.questions.get(r.qIdx);
+
+				ArrayList<String> matches = new ArrayList<String> ();
+				matches.add(r.value);
+				value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
+						question.external_choices, question.external_table, 
+						survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
+
+			} else if(r.type.equals("select")) {
+
+				String nameValue = r.value;
+				if(nameValue != null) {
+					String vArray [] = nameValue.split(" ");
+					ArrayList<String> matches = new ArrayList<String> ();
+					if(vArray != null) {
+						for(String v : vArray) {
+							matches.add(v);
+						}
+					}
 					Form form = survey.forms.get(r.fIdx);
 					Question question = form.questions.get(r.qIdx);
-					
-					ArrayList<String> matches = new ArrayList<String> ();
-					matches.add(r.value);
-					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
-							question.external_choices, question.external_table, 
+					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id,  question.external_choices, 
+							question.external_table, 
 							survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
-					
-				} else if(r.type.equals("select")) {
-					
-					String nameValue = r.value;
-					if(nameValue != null) {
-						String vArray [] = nameValue.split(" ");
-						ArrayList<String> matches = new ArrayList<String> ();
-						if(vArray != null) {
-							for(String v : vArray) {
-								matches.add(v);
-							}
-						}
-						Form form = survey.forms.get(r.fIdx);
-						Question question = form.questions.get(r.qIdx);
-						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id,  question.external_choices, 
-								question.external_table, 
-								survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
-					}
-					
-				} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
-					
-					value = null;
-					if(r.value != null) {
-						// Convert date to local time
+				}
+
+			} else if(r.type.equals("dateTime") || r.type.equals("timestamp")) {
+
+				value = null;
+				if(r.value != null) {
+					// Convert date to local time
+					try {
+						DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+						df.setTimeZone(TimeZone.getTimeZone("UTC"));
+						Date date = df.parse(r.value);					
+						df.setTimeZone(TimeZone.getTimeZone(tz));
+						value = df.format(date);
+					} catch (Exception e) {
+						// Try alternate date format
 						try {
-							DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+							DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
 							df.setTimeZone(TimeZone.getTimeZone("UTC"));
 							Date date = df.parse(r.value);					
 							df.setTimeZone(TimeZone.getTimeZone(tz));
 							value = df.format(date);
-						} catch (Exception e) {
-							// Try alternate date format
-							try {
-								DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
-								df.setTimeZone(TimeZone.getTimeZone("UTC"));
-								Date date = df.parse(r.value);					
-								df.setTimeZone(TimeZone.getTimeZone(tz));
-								value = df.format(date);
-							} catch (Exception ex) {
-								log.log(Level.SEVERE, e.getMessage(), e);
-							}				
-							
-						}
-						log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
-					}
+						} catch (Exception ex) {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}				
 
-
-				} else if(di.tsep && di.type.equals("int")) {
-					long iValue = 0;
-					try {
-						iValue = Long.parseLong(di.value);
-					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
 					}
-					value = String.format("%,d", iValue);
-				} else if(di.tsep && di.type.equals("decimal")) {
-					Double dValue = 0.0;
-					try {
-						dValue = Double.parseDouble(di.value);
-					} catch (Exception e) {
-						log.log(Level.SEVERE, e.getMessage(), e);
-					}
-					value = String.format("%,f", dValue);
-					
-				} else {
-					value = r.value;
+					log.info("Convert date to local time (template): " + r.name + " : " + r.value + " : " + " : " + value + " : " + r.type + " : " + tz);
 				}
-				
-				/*
-				 * Add the value to the form
-				 * Alternatively remove the fieldName if the value is empty.
-				 */
-				if(value == null || value.trim().equals("")) {
+
+
+			} else if(di.tsep && r.type.equals("int")) {
+				long iValue = 0;
+				try {
+					iValue = Long.parseLong(di.value);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+				value = String.format("%,d", iValue);
+			} else if(di.tsep && r.type.equals("decimal")) {
+				Double dValue = 0.0;
+				try {
+					dValue = Double.parseDouble(di.value);
+				} catch (Exception e) {
+					log.log(Level.SEVERE, e.getMessage(), e);
+				}
+				value = String.format("%,f", dValue);
+
+			} else {
+				value = r.value;
+			}
+
+			/*
+			 * Add the value to the form
+			 * Alternatively remove the fieldName if the value is empty.
+			 */
+			if(value == null || value.trim().equals("")) {
+				try {
+					pdfForm.removeField(fieldName);
+				} catch (Exception e) {
+					log.info("Error removing field: " + fieldName + ": " + e.getMessage());
+				}
+
+			} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") || r.type.startsWith("geolinestring_")) {
+
+				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+				if(ad != null) {
+					Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, 
+							r.value,
+							di.location, di.zoom,gv.mapbox_key,
+							survey.id,
+							user,
+							di.markerColor,
+							basePath);
+					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
+				} else {
+					log.info("No field for image (Mapbox not called: " + fieldName);
+				}
+
+			} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
+				PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
+
+			} else {				
+				if(hideLabel) {
 					try {
 						pdfForm.removeField(fieldName);
 					} catch (Exception e) {
 						log.info("Error removing field: " + fieldName + ": " + e.getMessage());
 					}
-				
-				} else if(r.type.equals("geopoint") || r.type.equals("geoshape") || r.type.equals("geotrace") || r.type.startsWith("geopolygon_") || r.type.startsWith("geolinestring_")) {
-
-					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
-					if(ad != null) {
-						Image img = PdfUtilities.getMapImage(sd, di.map, di.account, r.value, 
-								r.value,
-								di.location, di.zoom,gv.mapbox_key,
-								survey.id,
-								user,
-								di.markerColor,
-								basePath);
-						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, img);
-					} else {
-						log.info("No field for image (Mapbox not called: " + fieldName);
-					}
-				
-				} else if(r.type.equals("image") || r.type.equals("video") || r.type.equals("audio")  || r.type.equals("file")) {
-					PdfUtilities.addImageTemplate(pdfForm, fieldName, basePath, value, serverRoot, stamper, defaultFontLink);
-				
-				} else {				
-					if(hideLabel) {
-						try {
-							pdfForm.removeField(fieldName);
-						} catch (Exception e) {
-							log.info("Error removing field: " + fieldName + ": " + e.getMessage());
+				} else {
+					if(di.isBarcode) {
+						PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+						if(ad != null) {
+							BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
+							Image qrcodeImage = qrcode.getImage();
+							qrcodeImage.setAbsolutePosition(10,500);
+							qrcodeImage.scalePercent(200);
+							PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, qrcodeImage);
 						}
 					} else {
-						if(di.isBarcode) {
-							PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
-							if(ad != null) {
-								BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
-								Image qrcodeImage = qrcode.getImage();
-								qrcodeImage.setAbsolutePosition(10,500);
-								qrcodeImage.scalePercent(200);
-								PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldName, qrcodeImage);
-							}
-						} else {
-							pdfForm.setField(fieldName, value);
-							
-						}
-					}	
-				} 
+						pdfForm.setField(fieldName, value);
 
-				/*
-				 * Add any QR code values to fields that have been identified using the QR suffix
-				 */
-				if(fieldNameQR != null && value != null && value.trim().length() > 0) {
-					PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
-					if(ad != null) {
-						BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
-						Image qrcodeImage = qrcode.getImage();
-						qrcodeImage.setAbsolutePosition(10,500);
-						qrcodeImage.scalePercent(200);
-						PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldNameQR, qrcodeImage);
 					}
+				}	
+			} 
+
+			/*
+			 * Add any QR code values to fields that have been identified using the QR suffix
+			 */
+			if(fieldNameQR != null && value != null && value.trim().length() > 0) {
+				PushbuttonField ad = pdfForm.getNewPushbuttonFromField(fieldName);
+				if(ad != null) {
+					BarcodeQRCode qrcode = new BarcodeQRCode(value.trim(), 1, 1, null);
+					Image qrcodeImage = qrcode.getImage();
+					qrcodeImage.setAbsolutePosition(10,500);
+					qrcodeImage.scalePercent(200);
+					PdfUtilities.addMapImageTemplate(pdfForm, ad, fieldNameQR, qrcodeImage);
 				}
-
 			}
-		} catch (Exception e) {
-			log.log(Level.SEVERE, "Error filling template", e);
+
 		}
+
 	}
 
 	private String getFieldName(String formName, int index, String qName) {
@@ -806,8 +802,8 @@ public class PDFSurveyManager {
 	    	Set<String> registeredFonts = fontProvider.getRegisteredFonts();
 	        for (String font : registeredFonts)
 	        	System.out.println(font);
-	     */
-		 
+		 */
+
 		CssAppliers cssAppliers = new CssAppliersImpl(fontProvider);
 
 		// HTML
@@ -859,7 +855,7 @@ public class PDFSurveyManager {
 		int startGeopointIndex = -1;
 		for(int j = 0; j < record.size(); j++) {
 			Result r = record.get(j);
-			
+
 			if(r.type.equals("geopoint")) {
 				Form form = survey.forms.get(r.fIdx);
 				Question question = getQuestionFromResult(sd, r, form);
@@ -872,7 +868,7 @@ public class PDFSurveyManager {
 				}
 			}
 		}
-		
+
 		/*
 		 * Process
 		 */
@@ -933,7 +929,7 @@ public class PDFSurveyManager {
 
 				Form form = survey.forms.get(r.fIdx);
 				Question question = getQuestionFromResult(sd, r, form);
-				
+
 				if(question != null) {
 					if(includeResult(r, question, appendix, gv, generateBlank, startGeopointIndex,
 							hideStartGeopoint, j)) {
@@ -951,7 +947,7 @@ public class PDFSurveyManager {
 									generateBlank,
 									startGeopointIndex,
 									hideStartGeopoint);
-							
+
 							PdfPTable newTable = processRow(
 									parser, 
 									row, 
@@ -965,10 +961,10 @@ public class PDFSurveyManager {
 									oId,
 									startGeopointValue,
 									showSubFormIndex);
-	
+
 							newTable.setWidthPercentage(100);
 							newTable.setKeepTogether(true);
-	
+
 							// Add a gap if this is the first question of the record
 							// or the previous row was at a different depth
 							if(firstQuestion) {
@@ -977,7 +973,7 @@ public class PDFSurveyManager {
 								newTable.setSpacingBefore(row.spaceBefore());
 							}
 							firstQuestion = false;
-	
+
 							// Start a new page if the first question needs to be on a new page
 							if(row.items.get(0).isNewPage) {
 								document.newPage();
@@ -995,9 +991,9 @@ public class PDFSurveyManager {
 
 		return;
 	}
-	
+
 	private Question getQuestionFromResult(Connection sd, Result r, Form form) throws SQLException {
-		
+
 		Question question = null;
 		if(r.qIdx >= 0) {
 			question = form.questions.get(r.qIdx);
@@ -1128,14 +1124,14 @@ public class PDFSurveyManager {
 		}
 		return table;
 	}
-	
+
 	/*
 	 * Return true if an answer has not been supplied to a question
 	 */
 	private boolean isSkipped(org.smap.sdal.model.Question q, Result r) {
 		boolean skipped = false;
 		boolean choiceSet = false;
-		
+
 		/*
 		if(r.choices != null) {
 			for(Result c : r.choices) {
@@ -1145,7 +1141,7 @@ public class PDFSurveyManager {
 				}
 			}
 		}
-		*/
+		 */
 		if(!q.type.equals("note")) {
 			skipped = ((r.value == null || r.value.trim().length() == 0) && !choiceSet);
 		}
@@ -1281,7 +1277,7 @@ public class PDFSurveyManager {
 		di.name = question.name;
 		di.value = r.value;
 		di.isNewPage = isNewPage;
-		
+
 		setQuestionFormats(question.appearance, di);
 		di.fIdx = r.fIdx;
 		di.qIdx = r.qIdx;
@@ -1388,7 +1384,7 @@ public class PDFSurveyManager {
 
 		return repeats;
 	}
-	
+
 	/*
 	 * Return true if sub form index should be shown
 	 */
@@ -1408,7 +1404,7 @@ public class PDFSurveyManager {
 
 		return show;
 	}
-	
+
 	/*
 	 * Set the attributes for this question from keys set in the appearance column
 	 */
@@ -1444,7 +1440,7 @@ public class PDFSurveyManager {
 							di.account = "mapbox";
 						}
 					} else if(app.startsWith("pdfcustommap")) {		// custom map style
-							di.map = getAppValue(app);
+						di.map = getAppValue(app);
 					} else if(app.startsWith("pdfaccount")) {			// mapbox account
 						di.account = getAppValue(app);
 					} else if(app.startsWith("pdflocation")) {
@@ -1495,7 +1491,7 @@ public class PDFSurveyManager {
 		}
 
 	}
-	
+
 	/*
 	 * Get the color values for a single appearance value
 	 * Output is just the RGB value
@@ -1598,11 +1594,11 @@ public class PDFSurveyManager {
 				textValue = di.name;
 			}
 			textValue = textValue.trim();
-			
+
 			if(di.labelcaps) {
 				textValue = textValue.toUpperCase();
 			}
-			
+
 			ArrayList<StringElement> elements = null;
 			/*
 			 * If the language does not use latin characters then break it up into 
@@ -1618,10 +1614,10 @@ public class PDFSurveyManager {
 			} else {
 				elements = getStringElements(textValue);
 			}
-			
+
 			StringBuffer html = new StringBuffer();
 			for(StringElement se : elements) {
-				
+
 				if(se.htmlToken) {
 					html.append(se.text);
 				} else {
@@ -1629,11 +1625,11 @@ public class PDFSurveyManager {
 					if(di.labelbold) {
 						html.append(" lbold");
 					}
-					
+
 					// Add language class
 					html.append(GeneralUtilityMethods.getLanguage(se.text));
 					html.append("'>");
-			
+
 					// Add text value
 					html.append(GeneralUtilityMethods.unesc(se.text));
 					html.append("</span>");
@@ -1650,11 +1646,11 @@ public class PDFSurveyManager {
 				}
 				html.append("</span>");
 			}
-			
+
 			parser.elements.clear();
 			try {
 				parser.xmlParser.parse(new StringReader(html.toString()));
-				
+
 				for(Element element : parser.elements) {
 					if(textValue != null && textValue.length() > 0) {
 						if(GeneralUtilityMethods.isRtlLanguage(textValue)) {
@@ -1739,7 +1735,7 @@ public class PDFSurveyManager {
 
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 		DateFormat dfDateOnly = new SimpleDateFormat("yyyy-MM-dd");
-		
+
 		// Questions that append their values to this question
 		ArrayList<String> deps = gv.addToList.get(di.fIdx + "_" + di.rec_number + "_" + di.name);
 
@@ -1784,7 +1780,7 @@ public class PDFSurveyManager {
 			}
 
 		} else if(di.type.equals("geopoint") || di.type.equals("geoshape") || di.type.equals("geotrace") || di.type.startsWith("geopolygon_") || di.type.startsWith("geolinestring_")) {
-		
+
 			Image img = PdfUtilities.getMapImage(sd, di.map, 
 					di.account, di.value, 
 					startGeopointValue,
@@ -1799,7 +1795,7 @@ public class PDFSurveyManager {
 			} else {
 				valueCell.addElement(getPara(" ", di, gv, deps, null));
 			}
-			
+
 		} else if(di.isBarcode) { 
 			BarcodeQRCode qrcode = new BarcodeQRCode(di.value.trim(), 1, 1, null);
 			Image qrcodeImage = qrcode.getImage();
@@ -1807,7 +1803,7 @@ public class PDFSurveyManager {
 			qrcodeImage.scalePercent(200);
 
 			valueCell.addElement((qrcodeImage));
-			
+
 		} else if(di.tsep && di.type.equals("int")) {
 			long iValue = 0;
 			try {
@@ -1828,7 +1824,7 @@ public class PDFSurveyManager {
 			valueCell.addElement(getPara(value, di, gv, deps, null));
 		} else {
 			String value = null;
-			
+
 			if(di.value == null || di.value.trim().length() == 0) {
 				value = " ";	// Need a space to show a blank row
 			} else {
@@ -1837,7 +1833,7 @@ public class PDFSurveyManager {
 						valueCell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 					}
 				}
-				
+
 				if(di.type.equals("dateTime") || di.type.equals("timestamp")) {		// Set date time to local time				
 					df.setTimeZone(TimeZone.getTimeZone("UTC"));
 					Date date = df.parse(di.value);
@@ -1847,42 +1843,42 @@ public class PDFSurveyManager {
 				} else {
 					value = di.value;
 				}
-				
+
 				// If Bikram Sambat date output is required convert  
 				if(di.bs && (di.type.equals("date") || di.type.equals("dateTime") || di.type.equals("timestamp"))) {		// Set date time to local time
-				
+
 					StringBuilder bsValue = new StringBuilder("");
-					
-					
+
+
 					if(di.type.equals("dateTime") || di.type.equals("timestamp")) {
-						
+
 						Date date = df.parse(di.value);
 						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
 
 						bsValue.append(dateBS.getYear())
-							.append("/")
-							.append(dateBS.getMonth() + 1)
-							.append("/")
-							.append(dateBS.getDay() + 1);
+						.append("/")
+						.append(dateBS.getMonth() + 1)
+						.append("/")
+						.append(dateBS.getDay() + 1);
 
 						bsValue.append(" ")
-							.append(date.getHours())
-							.append(":")
-							.append(date.getMinutes())
-							.append(":")
-							.append(date.getSeconds());					
+						.append(date.getHours())
+						.append(":")
+						.append(date.getMinutes())
+						.append(":")
+						.append(date.getSeconds());					
 					} else {
-						
+
 						Date date = dfDateOnly.parse(di.value);  
 						DateBS dateBS = DateConverter.convertADToBS(date);  //returns corresponding DateBS
-						
+
 						bsValue.append(dateBS.getYear())
 						.append("/")
 						.append(dateBS.getMonth() + 1)
 						.append("/")
 						.append(dateBS.getDay() + 1);
 					}
-					
+
 					value = bsValue.toString();
 				}
 
@@ -1934,7 +1930,7 @@ public class PDFSurveyManager {
 		}
 		return para;
 	}
-	
+
 	/*
 	 * HTML equivalent of getPara
 	 */
@@ -1963,7 +1959,7 @@ public class PDFSurveyManager {
 			}
 		}
 		html.append("</span>");
-		
+
 		return html.toString();
 	}
 
@@ -2019,7 +2015,7 @@ public class PDFSurveyManager {
 		 *   The form is not blank and the value is "other" and their are 1 or more dependent questions
 		 *   In this case we assume that its only the values of the dependent questions that are needed
 		 */
-		
+
 		if(generateBlank) {
 			// TODO get real choices using choice manager
 			Form form = survey.forms.get(di.fIdx);
@@ -2055,13 +2051,13 @@ public class PDFSurveyManager {
 
 		} else {
 			if(deps == null || (di.value != null && !di.value.trim().toLowerCase().equals("other"))) {
-				
+
 				String value = di.value;
 				if(di.type.equals("select1")) {
-					
+
 					Form form = survey.forms.get(di.fIdx);
 					Question question = form.questions.get(di.qIdx);
-					
+
 					ArrayList<String> matches = new ArrayList<String> ();
 					matches.add(di.value);
 					value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, question.l_id, 
@@ -2080,11 +2076,11 @@ public class PDFSurveyManager {
 						Form form = survey.forms.get(di.fIdx);
 						Question question = form.questions.get(di.qIdx);
 						value = choiceManager.getLabel(sd, cResults, user, oId, survey.id, question.id, 
-									question.l_id, question.external_choices, question.external_table, 
-									survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
+								question.l_id, question.external_choices, question.external_table, 
+								survey.languages.get(languageIdx).name, languageIdx, matches, survey.ident);
 					}
 				}
-				
+
 				if(GeneralUtilityMethods.isRtlLanguage(di.value)) {
 					cell.setRunDirection(PdfWriter.RUN_DIRECTION_RTL);
 				}
@@ -2106,7 +2102,7 @@ public class PDFSurveyManager {
 				}
 				//cell.addElement(getPara(value, di, gv, deps, null));
 			}
-		
+
 		}
 
 	}
@@ -2149,7 +2145,7 @@ public class PDFSurveyManager {
 		return sb.toString();
 
 	}
-	*/
+	 */
 
 	/*
 	 * Fill in user details for the output when their is no template
@@ -2209,7 +2205,7 @@ public class PDFSurveyManager {
 			document.add(para);
 		}
 	}
-	
+
 	private ArrayList<StringElement> getStringElements(String in) {
 		ArrayList<StringElement> elements = new ArrayList<> ();
 		String elementString = null;
@@ -2220,7 +2216,7 @@ public class PDFSurveyManager {
 			} else {
 				elementString = in;
 			}
-			
+
 			int processed = 0;
 			if(elementString != null && elementString.length() > 0) {
 				StringElement e = new StringElement();
@@ -2234,7 +2230,7 @@ public class PDFSurveyManager {
 				elements.add(token);
 				processed += token.text.length();
 			}
-			
+
 			if(processed == 0) {
 				in = null;
 			} else {
@@ -2243,13 +2239,13 @@ public class PDFSurveyManager {
 		}
 		return elements;
 	}
-	
+
 	private StringElement getNextToken(String in) {
 		StringElement token = null;
 		if(in != null && in.length() > 0) {
 			int idx = in.indexOf('<');
 			if(idx >= 0) {
-		
+
 				if(in.indexOf("<b>", idx) == idx) {
 					token = new StringElement();
 					token.index = idx;
