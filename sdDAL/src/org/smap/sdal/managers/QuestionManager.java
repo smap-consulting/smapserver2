@@ -211,7 +211,7 @@ public class QuestionManager {
 				if(GeneralUtilityMethods.isSetValue(def)) {
 					// Set Value
 					q.defaultanswer = null;
-					q.addSetValue(SetValue.START, def);
+					q.addSetValue(SetValue.START, def, null);
 				} else {
 					q.defaultanswer = def;
 				}

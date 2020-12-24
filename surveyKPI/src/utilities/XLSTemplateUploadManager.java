@@ -875,7 +875,7 @@ public class XLSTemplateUploadManager {
 		if(GeneralUtilityMethods.isSetValue(def)) {
 			// Set Value
 			q.defaultanswer = null;
-			q.addSetValue(SetValue.START, def);
+			q.addSetValue(SetValue.START, def, null);
 		} else {
 			q.defaultanswer = def;
 		}
@@ -950,6 +950,9 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_if", rowNumSurvey, "survey", null, null, null);
 			}
 		}
+		
+		// 22. Trigger
+		q.trigger = XLSUtilities.getTextColumn(row, "trigger", surveyHeader, lastCellNum, null); 
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
@@ -1379,15 +1382,17 @@ public class XLSTemplateUploadManager {
 		// check default
 		if(q.setValues != null) {
 			for(SetValue sv : q.setValues) {
-				if(sv.value.contains("last-saved#")) {
-					int idx1 = sv.value.indexOf('#');
-					int idx2 = sv.value.indexOf('}', idx1);
-					if(idx2 > 0) {
-						String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
-						if(sourceQuestion != null) {
-							ArrayList<String> refs = new ArrayList<String> ();
-							refs.add(sourceQuestion);
-							questionInSurvey(refs, "default", q);
+				if(sv.value != null) {
+					if(sv.value.contains("last-saved#")) {
+						int idx1 = sv.value.indexOf('#');
+						int idx2 = sv.value.indexOf('}', idx1);
+						if(idx2 > 0) {
+							String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
+							if(sourceQuestion != null) {
+								ArrayList<String> refs = new ArrayList<String> ();
+								refs.add(sourceQuestion);
+								questionInSurvey(refs, "default", q);
+							}
 						}
 					}
 				}
