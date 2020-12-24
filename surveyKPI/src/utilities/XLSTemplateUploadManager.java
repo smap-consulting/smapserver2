@@ -1436,7 +1436,7 @@ public class XLSTemplateUploadManager {
 		}
 		
 		// List name not in choices
-		if(q.list_name != null) {
+		if(q.list_name != null  && !q.list_name.startsWith("$")) {
 			if(survey.optionLists.get(q.list_name) == null) {
 				throw XLSUtilities.getApplicationException(localisation, "tu_lnf", rowNumber, "survey", q.list_name, null, null);
 			}
