@@ -55,9 +55,9 @@ import com.google.gson.reflect.TypeToken;
  */
 public class TableDataManager {
 
-	private static Logger log = Logger.getLogger(TableDataManager.class.getName());
 	private static ResourceBundle localisation;
 	private String tz;
+	private HashMap<Integer, String> surveyNameMap = new HashMap<> ();
 	
 	public TableDataManager(ResourceBundle l, String tz) {
 		localisation = l;
@@ -615,7 +615,12 @@ public class TableDataManager {
 					} else {
 						
 						if(c.column_name.equals(SmapServerMeta.SURVEY_ID_NAME)) {
-							value = GeneralUtilityMethods.getSurveyName(sd,  rs.getInt(i + 1));	// Convert survey id into survey name
+							int surveyId = rs.getInt(i + 1);
+							value = surveyNameMap.get(surveyId);
+							if(value == null) {
+								value = GeneralUtilityMethods.getSurveyName(sd,  surveyId);		// Convert survey id into survey name
+								surveyNameMap.put(surveyId, value);
+							}
 						} else {
 							value = rs.getString(i + 1);
 						}
