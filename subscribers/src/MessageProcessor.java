@@ -59,7 +59,7 @@ public class MessageProcessor {
 
 		public void run() {
 
-			int delaySecs = 10;
+			int delaySecs = 5;
 			int count = 0;
 		
 			boolean loop = true;
