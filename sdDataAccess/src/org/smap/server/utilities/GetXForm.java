@@ -1061,20 +1061,25 @@ public class GetXForm {
 			Element currentParent)
 			throws Exception {
 
-		Element questionElement = null;
-		String trigger = q.getTrigger();
-		if(trigger != null) {
-			questionElement = outputXML.createElement("setvalue");
-			questionElement.setAttribute("event", "xforms-value-changed");
-			
-			String refQuestion = GeneralUtilityMethods.getNameFromXlsName(trigger);	
-			String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
-			questionElement.setAttribute("ref", reference);
-			
-			String calculate = q.getCalculate(true, template.getQuestionPaths(), template.getXFormFormName()); 	
-			questionElement.setAttribute("value", calculate);				
-			currentParent.appendChild(questionElement);
+		HashMap<String, ArrayList<SetValue>> triggers = template.getTriggers();
+		ArrayList<SetValue> targets = triggers.get(q.getName());
 		
+		if(targets != null && targets.size() > 0) {
+			Element questionElement = null;
+			for(SetValue sv : targets) {
+				questionElement = outputXML.createElement("setvalue");
+				questionElement.setAttribute("event", sv.event);
+				
+				String refQuestion = sv.ref;	
+				String reference = getQuestionReference(template.getQuestionPaths(), f.getId(), refQuestion);
+				questionElement.setAttribute("ref", reference);
+				
+				String calculate = UtilityMethods.convertAllxlsNames(sv.value, false,
+						template.getQuestionPaths(), f.getId(), false, q.getName(), false);	
+				questionElement.setAttribute("value", calculate);				
+				currentParent.appendChild(questionElement);
+			
+			}
 		}
 	}
 	
