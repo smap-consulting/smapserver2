@@ -5828,6 +5828,8 @@ public class GeneralUtilityMethods {
 			if (rs.next()) {
 				count = rs.getInt(1);
 			}
+		} catch (Exception e) {
+			// No error to report
 		} finally {
 			try {
 				if (pstmt != null) {

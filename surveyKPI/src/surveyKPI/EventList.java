@@ -183,6 +183,85 @@ public class EventList extends Application {
 		return response;
 	}
 	
+	/*
+	 * Retry asubmission
+	 */
+	@GET
+	@Path("/submission_retry/{sName}")
+	public Response submissionRetry(@Context HttpServletRequest request,
+			@PathParam("sName") String sName
+			) throws SQLException {
+		
+		Response response = null;
+		
+		String connectionString = "surveyKPI-submission - retry";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		// Get the survey ident
+		String surveyIdent = null;
+		try {
+			int sId = Integer.parseInt(sName);
+			surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+		} catch(Exception e) {
+			// Assume we were passed an ident
+			surveyIdent = sName;
+		}
+					
+		a.isValidSurveyIdent(sd, request.getRemoteUser(), surveyIdent, false, false);
+	
+		String sql1 = "update upload_event "
+				+ "set results_db_applied = 'false' "
+				+ "where ue_id in (select ue.ue_id from upload_event ue, subscriber_event se "
+				+ "where ue.ue_id = se.ue_id "
+				+ "and se.status = 'error' "
+				+ "and ue.ident = ?) ";
+		PreparedStatement pstmt1 = null;
+		
+		String sql2 = "delete from subscriber_event where "
+				+ "status = 'error' "
+				+ "and ue_id in (select ue.ue_id from upload_event ue "
+				+ "where ue.ident = ?) ";
+		PreparedStatement pstmt2 = null;
+		
+		try {			
+
+			sd.setAutoCommit(false);
+			
+			// Update the flag that indicates if the record has been applied (performance related flag)
+			pstmt1 = sd.prepareStatement(sql1);
+			pstmt1.setString(1, surveyIdent);
+			int count1 = pstmt1.executeUpdate();
+			log.info("Restore a:  Number of records: " + count1 + " : " + pstmt1.toString());
+			
+			// Remove the subscriber records
+			pstmt2 = sd.prepareStatement(sql2);
+			pstmt2.setString(1, surveyIdent);
+			int count2 = pstmt2.executeUpdate();
+			log.info("Restore b:  Number of records: " + count2 + " : " + pstmt2.toString());
+			
+			if(count1 != count2) {
+				throw new Exception("Mismatched count");
+			}
+			sd.commit();
+			
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			sd.rollback();	
+			log.log(Level.SEVERE, "SQL Exception", e);
+			 response = Response.serverError().entity(e.getMessage()).build();
+			 
+		} finally {
+			sd.setAutoCommit(true);
+			try {if (pstmt1 != null) {pstmt1.close();}} catch (SQLException e) {}
+			try {if (pstmt2 != null) {pstmt2.close();}} catch (SQLException e) {}
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
 	// Respond with JSON 
 	@GET
 	@Produces("application/json")
@@ -827,7 +906,7 @@ public class EventList extends Application {
 		return jo.toString();
 	}
 	
-	// Get totals for notifications
+	// Get totals for opt in message
 	@GET
 	@Produces("application/json")
 	@Path("/optin/totals")
