@@ -631,6 +631,12 @@ public class XLSTemplateUploadManager {
 					
 					// Get the headers for filters
 					for(String h : choicesHeader.keySet()) {
+						h = h.trim();
+						if(h.contains(" ")) {
+							String msg = localisation.getString("tu_invf");
+							msg = msg.replace("%s1", h);
+							throw new ApplicationException(msg);
+						}
 						if(h.equals("list_name")
 								|| h.equals("name")
 								|| h.equals("label")
