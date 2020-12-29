@@ -134,9 +134,12 @@ public class Authorise {
 		// Check to see if the user was authorised to access this service
  		if(count == 0 || sqlError) {
  			StringBuffer msg = new StringBuffer("");
- 			msg.append("Authorisation failed for: " + user + " group required was one of: ");
+ 			msg.append("Authorisation failed for " + user + " group required was one of: ");
  			for(int i = 0; i < permittedGroups.size(); i++) {
-				msg.append("  ==== " + permittedGroups.get(i));
+ 				if(i > 0) {
+ 					msg.append(", ");
+ 				}
+				msg.append(permittedGroups.get(i));
 			}
  			log.info(msg.toString());
  			
