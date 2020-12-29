@@ -631,6 +631,12 @@ public class XLSTemplateUploadManager {
 					
 					// Get the headers for filters
 					for(String h : choicesHeader.keySet()) {
+						h = h.trim();
+						if(h.contains(" ")) {
+							String msg = localisation.getString("tu_invf");
+							msg = msg.replace("%s1", h);
+							throw new ApplicationException(msg);
+						}
 						if(h.equals("list_name")
 								|| h.equals("name")
 								|| h.equals("label")
@@ -875,7 +881,7 @@ public class XLSTemplateUploadManager {
 		if(GeneralUtilityMethods.isSetValue(def)) {
 			// Set Value
 			q.defaultanswer = null;
-			q.addSetValue(SetValue.START, def);
+			q.addSetValue(SetValue.START, def, null);
 		} else {
 			q.defaultanswer = def;
 		}
@@ -950,6 +956,9 @@ public class XLSTemplateUploadManager {
 				throw XLSUtilities.getApplicationException(localisation, "tu_if", rowNumSurvey, "survey", null, null, null);
 			}
 		}
+		
+		// 22. Trigger
+		q.trigger = XLSUtilities.getTextColumn(row, "trigger", surveyHeader, lastCellNum, null); 
 		
 		// Add Column Roles
 		if(columnRoleHeader != null && columnRoleHeader.size() > 0) {
@@ -1379,15 +1388,17 @@ public class XLSTemplateUploadManager {
 		// check default
 		if(q.setValues != null) {
 			for(SetValue sv : q.setValues) {
-				if(sv.value.contains("last-saved#")) {
-					int idx1 = sv.value.indexOf('#');
-					int idx2 = sv.value.indexOf('}', idx1);
-					if(idx2 > 0) {
-						String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
-						if(sourceQuestion != null) {
-							ArrayList<String> refs = new ArrayList<String> ();
-							refs.add(sourceQuestion);
-							questionInSurvey(refs, "default", q);
+				if(sv.value != null) {
+					if(sv.value.contains("last-saved#")) {
+						int idx1 = sv.value.indexOf('#');
+						int idx2 = sv.value.indexOf('}', idx1);
+						if(idx2 > 0) {
+							String sourceQuestion = sv.value.substring(idx1 + 1, idx2);
+							if(sourceQuestion != null) {
+								ArrayList<String> refs = new ArrayList<String> ();
+								refs.add(sourceQuestion);
+								questionInSurvey(refs, "default", q);
+							}
 						}
 					}
 				}

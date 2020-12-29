@@ -72,6 +72,7 @@ public class Question {
 	public boolean isTableList = false;	// Temporary flag used during HTML generation
 	
 	public String style_list;			// The name of the style applied to this question
+	public String trigger;
 	public int style_id;				// The id of the style as used in the database
 	public int flash;					// flash interval for literacy questions
 	
@@ -240,11 +241,11 @@ public class Question {
 	/*
 	 * Add a set value
 	 */
-	public void addSetValue(String event, String value) {
+	public void addSetValue(String event, String value, String ref) {
 		if(setValues == null) {
 			setValues = new ArrayList<> ();
 		}
-		setValues.add(new SetValue(event, value));
+		setValues.add(new SetValue(event, value, ref));
 	}
 	
 	/*

@@ -126,6 +126,8 @@ public class Question {
 	
 	private String autoplay;
 	
+	private String trigger;
+	
 	private String accuracy;
 	
 	private String intent;
@@ -271,9 +273,11 @@ public class Question {
 		boolean resp = false;
 		if(setValues !=null && setValues.size() > 0) {
 			for(SetValue sv : setValues) {
-				if(sv.value.contains("last-saved#")) {
-					resp = true;
-					break;
+				if(sv.value != null) {
+					if(sv.value.contains("last-saved#")) {
+						resp = true;
+						break;
+					}
 				}
 			}
 		}
@@ -403,6 +407,10 @@ public class Question {
 	
 	public String getAutoPlay() {
 		return autoplay;
+	}
+	
+	public String getTrigger() {
+		return trigger;
 	}
 	
 	public String getAccuracy() {
@@ -665,6 +673,10 @@ public class Question {
 	
 	public void setAutoPlay(String v) {
 		autoplay = v;
+	}
+	
+	public void setTrigger(String v) {
+		trigger = v;
 	}
 	
 	public void setAccuracy(String v) {
