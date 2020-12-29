@@ -1655,7 +1655,7 @@ public class SubRelationalDB extends Subscriber {
 
 				} else if(qType.equals("date") || qType.equals("dateTime") || qType.equals("time") ) {
 					if(value.length() > 0) {
-						value = "'" + col.getValue() + "'";
+						value = "'" + value + "'";
 					} else {
 						value = "null";
 					}

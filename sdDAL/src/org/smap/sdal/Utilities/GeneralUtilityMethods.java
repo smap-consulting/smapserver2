@@ -20,6 +20,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -9754,6 +9757,23 @@ public class GeneralUtilityMethods {
     		in = in.substring(0, in.lastIndexOf('}'));
     	}
     	return in;
+    }
+    
+    public static String getDateTimeStringFromIsoString(String in) {
+    	TimeZone tz = TimeZone.getTimeZone("UTC");
+    	DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+    	DateFormat dfout = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+    	df.setTimeZone(tz);
+
+    	try {
+    		java.util.Date d = df.parse(in);
+    		return dfout.format(d);
+    	} catch (ParseException e) {
+    		e.printStackTrace();
+    	}
+
+    	return null;
+
     }
 }
 
