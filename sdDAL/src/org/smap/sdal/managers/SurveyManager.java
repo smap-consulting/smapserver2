@@ -1790,10 +1790,10 @@ public class SurveyManager {
 						String def = GeneralUtilityMethods.cleanXlsNames(ci.property.newVal);
 						if(GeneralUtilityMethods.isSetValue(def)) {
 							// Set Value		
-							GeneralUtilityMethods.addToSetValue(sd, ci.property.qId, new SetValue(SetValue.START, def));
+							GeneralUtilityMethods.addToSetValue(sd, ci.property.qId, new SetValue(SetValue.START, def, null));
 							ci.property.newVal = "";
 						} else {
-							GeneralUtilityMethods.removeFromSetValue(sd, ci.property.qId, new SetValue(SetValue.START, ""));
+							GeneralUtilityMethods.removeFromSetValue(sd, ci.property.qId, new SetValue(SetValue.START, "", null));
 						}
 						
 					}

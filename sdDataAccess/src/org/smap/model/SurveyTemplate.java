@@ -21,6 +21,7 @@ import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Search;
+import org.smap.sdal.model.SetValue;
 import org.smap.server.entities.Form;
 import org.smap.server.entities.MissingTemplateException;
 import org.smap.server.entities.Option;
@@ -46,16 +47,16 @@ public class SurveyTemplate {
 	
 	// The model data
 	int surveyId;
-	private HashMap<String, Question> questions = new HashMap<String, Question>();
-	private HashMap<String, String> questionPaths = new HashMap<String, String>();
-	private HashMap<String, Option> options = new HashMap<String, Option>();
-	private HashMap<String, Option> cascade_options = new HashMap<String, Option>();
-	private ArrayList<CascadeInstance> cascadeInstances = new ArrayList<CascadeInstance> ();
+	private HashMap<String, Question> questions = new HashMap<>();
+	private HashMap<String, String> questionPaths = new HashMap<>();
+	private HashMap<String, ArrayList<SetValue>> triggers = new HashMap<> ();
+	private HashMap<String, Option> options = new HashMap<>();
+	private HashMap<String, Option> cascade_options = new HashMap<>();
+	private ArrayList<CascadeInstance> cascadeInstances = new ArrayList<> ();
 	private HashMap<String, Form> forms = new HashMap<String, Form>();
-	private HashMap<String, HashMap<String, HashMap<String, Translation>>> translations = 
-			new HashMap<String, HashMap<String, HashMap<String, Translation>>>();
-	private Vector<Translation> dummyTranslations = new Vector<Translation>();
-	private HashMap<String, String> defaults = new HashMap<String, String>();
+	private HashMap<String, HashMap<String, HashMap<String, Translation>>> translations = new HashMap<>();
+	private Vector<Translation> dummyTranslations = new Vector<>();
+	private HashMap<String, String> defaults = new HashMap<>();
 	private Survey survey = null;
 	private String user;			// The user that created this template
 	private String basePath;		// Where the files are located
@@ -114,6 +115,10 @@ public class SurveyTemplate {
 	
 	public HashMap<String, String> getQuestionPaths() {
 		return questionPaths;
+	}
+	
+	public HashMap<String, ArrayList<SetValue>> getTriggers() {
+		return triggers;
 	}
 	
 	public void setNextOptionSeq(int seq) {
@@ -1169,7 +1174,7 @@ public class SurveyTemplate {
 	 * 
 	 * @param surveyIdent the ident of the survey
 	 */
-	public String readDatabase(Connection sd, Connection cResults, String surveyIdent, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
+	public String readDatabase(Connection sd, Connection cResults, String surveyIdent, boolean embedExternalSearch) throws Exception {
 
 		JdbcSurveyManager sm = null;
 		
@@ -1204,7 +1209,7 @@ public class SurveyTemplate {
 	 * 
 	 * @param surveyId the primary key of the survey
 	 */
-	public void readDatabase(int surveyId, boolean embedExternalSearch) throws MissingTemplateException, SQLException {
+	public void readDatabase(int surveyId, boolean embedExternalSearch) throws Exception {
 
 		Connection sd = org.smap.sdal.Utilities.SDDataSource.getConnection("SurveyTemplate-Read Database");
 		Connection cResults = org.smap.sdal.Utilities.ResultsDataSource.getConnection("SurveyTemplate-Read Database");
@@ -1239,7 +1244,7 @@ public class SurveyTemplate {
 	private void readDatabase(Survey survey, 
 			Connection sd, 
 			Connection cResults, 
-			boolean embedExternalSearch) throws SQLException {
+			boolean embedExternalSearch) throws Exception {
 
 		int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, survey.getId());
 		
@@ -1421,6 +1426,23 @@ public class SurveyTemplate {
 							}
 						}
 					}
+				}
+				
+				/*
+				 * Get triggers
+				 */
+				String trigger = q.getTrigger();
+				if(trigger != null && !trigger.trim().equals("")) {
+					String triggerQuestion = GeneralUtilityMethods.getNameFromXlsName(trigger);
+					String triggerValue = q.getCalculate(false, questionPaths, getXFormFormName());
+					String triggerRef = q.getName(); // This question is going to be trigger by the question identified by trigger
+					
+					ArrayList<SetValue> targets = triggers.get(triggerQuestion);
+					if(targets == null) {
+						targets = new ArrayList<SetValue> ();
+						triggers.put(triggerQuestion, targets);
+					}
+					targets.add(new SetValue(SetValue.TRIGGER, triggerValue, triggerRef));
 				}
 			}	
 			

@@ -3,12 +3,15 @@ package org.smap.sdal.model;
 public class SetValue {
 	
 	public static String START = "odk-instance-first-load";
+	public static String TRIGGER = "xforms-value-changed";
 	
 	public String event;
 	public String value;
+	public String ref;
 	
-	public SetValue(String e, String v) {
+	public SetValue(String e, String v, String r) {
 		event = e;
 		value = v;
+		ref = r;
 	}
 }

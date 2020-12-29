@@ -122,7 +122,8 @@ public class JdbcQuestionManager {
 			+ "dataType,"
 			+ "compressed,"
 			+ "intent,"
-			+ "set_value "
+			+ "set_value,"
+			+ "trigger "
 			+ "from question where soft_deleted = 'false' and ";
 	String sqlGetBySurveyId = "f_id in (select f_id from form where s_id = ?)"
 			+ " order by f_id, seq";
@@ -293,6 +294,7 @@ public class JdbcQuestionManager {
 			q.setCompressed(rs.getBoolean(32));
 			q.setIntent(rs.getString(33));
 			q.setSetValue(gson, rs.getString(34));
+			q.setTrigger(rs.getString(35));
 		
 			/*
 			 * If the list id exists then set the list name
