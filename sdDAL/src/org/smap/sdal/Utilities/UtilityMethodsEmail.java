@@ -608,6 +608,8 @@ public class UtilityMethodsEmail {
 			ct = "audio/m4a";
 		} else if (extension.equals("csv")) {
 			ct = "text/csv";
+		} else if (extension.equals("css")) {
+			ct = "text/css";
 		} else if (extension.equals("xlsx")) {
 			ct = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 		} else if (extension.equals("xls")) {
