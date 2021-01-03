@@ -36,6 +36,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.smap.sdal.Utilities.ApplicationException;
+import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
@@ -44,6 +45,8 @@ import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.PeopleManager;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -214,8 +217,8 @@ public class CssFiles extends Application {
 			String resp = gson.toJson(fileNames);
 			response = Response.ok(resp).build();		
 
-		}  catch(Exception ex) {
-			log.log(Level.SEVERE,ex.getMessage(), ex);
+		}  catch(Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
 			response = Response.serverError().build();
 		} finally {
 
@@ -224,84 +227,40 @@ public class CssFiles extends Application {
 
 		return response;		
 	}
-
-
-	/*
-	 * Delete the file
-	 */
-	private void deleteFile(
-			HttpServletRequest request, 
-			Connection sd, 
-			ResourceBundle localisation,
-			String basePath, 
-			String serverName, 
-			String sIdent, 
-			int oId, 
-			String filename, 
-			String user) throws Exception {
-
-		String path = null;
-		String thumbsFolder = null;
-		String fileBase = null;
-
-		int idx = filename.lastIndexOf('.');
-		if(idx >= 0) {
-			fileBase = filename.substring(0, idx);
+	
+	@DELETE
+	@Path("/{name}")
+	public Response deleteCssFile(
+			@Context HttpServletRequest request,
+			@PathParam("name") String name) { 
+		
+		Response response = null;
+		String connectionString = "surveyKPI - cssFiles - delete";
+			
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		authServer.isAuthorised(sd, request.getRemoteUser());	
+		// End Authorisation
+		
+		try {	
+			
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
+			cm.deleteCustomCssFile(name);
+			
+			response = Response.ok().build();
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE,e.getMessage(), e);
+			response = Response.serverError().build();
+		} finally {
+			
+			SDDataSource.closeConnection(connectionString, sd);
+			
 		}
 
-		if(filename != null) {
-			if(sIdent != null) {
-				path = basePath + "/media/" + sIdent + "/" + filename;
-				if(fileBase != null) {
-					thumbsFolder = basePath + "/media/" + sIdent + "/thumbs";
-				}
-			} else if( oId > 0) {
-				path = basePath + "/media/organisation/" + oId + "/" + filename;
-				if(fileBase != null) {
-					thumbsFolder = basePath + "/media/organisation/" + oId + "/thumbs";
-				}
-			}
-
-			// Apply changes from CSV files to survey definition	
-			File f = new File(path);
-			File oldFile = new File(path + ".old");
-			String fileName = f.getName();
-
-			// Delete options added to the database for this file
-			if(fileName.endsWith(".csv")) {
-				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-				MediaInfo mediaInfo = new MediaInfo();
-				if(sId > 0) {
-					mediaInfo.setFolder(basePath, sId, null, sd);
-				} else {	
-					// Upload to organisations folder
-					mediaInfo.setFolder(basePath, user, oId, sd, false);				 
-				}
-				mediaInfo.setServer(request.getRequestURL().toString());
-
-				//applyCSVChanges(sd, null, localisation, user, sId, fileName, null, null, basePath, mediaInfo);
-			}
-
-			f.delete();		
-			if(oldFile.exists()) {
-				oldFile.delete();	
-			}
-
-			log.info("userevent: " + user + " : delete media file : " + filename);
-
-			// Delete any matching thumbnails
-			if(fileBase != null) {
-				File thumbs = new File(thumbsFolder);
-				for(File thumb : thumbs.listFiles()) {
-					if(thumb.getName().startsWith(fileBase)) {
-						thumb.delete();
-					}
-				}
-			}
-
-		}
-
+		return response;
 
 	}
+	
 
 }
