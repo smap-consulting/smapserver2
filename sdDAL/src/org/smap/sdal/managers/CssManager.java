@@ -2,6 +2,9 @@ package org.smap.sdal.managers;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -67,6 +70,7 @@ public class CssManager {
 
 	LogManager lm = new LogManager();		// Application log
 	String basePath;
+	private final String SERVER_CUSTOM_FILE = "custom.css";
 
 	public CssManager(String basePath) {
 		this.basePath = basePath;
@@ -84,6 +88,15 @@ public class CssManager {
 	
 	public File getCssServerFolder() throws IOException {
 		// Make sure the folder exists
+		String folderPath = basePath + File.separator + "css" + File.separator + "server";
+		File folder = new File(folderPath);
+		FileUtils.forceMkdir(folder);
+		
+		return folder;
+	}
+	
+	public File getCssFolder() throws IOException {
+		// Make sure the folder exists
 		String folderPath = basePath + File.separator + "css";
 		File folder = new File(folderPath);
 		FileUtils.forceMkdir(folder);
@@ -92,11 +105,17 @@ public class CssManager {
 	}
 	
 	private void removeCustomCssFile() throws IOException {
-		File f = getCssServerFolder();
+		File cssFolder = getCssFolder();
+		File f = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
+		f.delete();
 	}
 	
-	private void replaceCustomCssFile(String name) {
-		
+	private void replaceCustomCssFile(String name) throws IOException {
+		File cssFolder = getCssFolder();
+		File serverFolder = getCssServerFolder();
+		File source = new File(serverFolder.getAbsolutePath() + File.separator + name);
+		File target = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
+		Files.copy(Paths.get(source.getAbsolutePath()), Paths.get(target.getPath()), StandardCopyOption.REPLACE_EXISTING);
 	}
 }
 
