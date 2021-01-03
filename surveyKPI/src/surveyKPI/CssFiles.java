@@ -25,55 +25,33 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import model.MediaResponse;
-import utilities.JavaRosaUtilities;
-import utilities.XLSTemplateUploadManager;
-
 import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
-import org.smap.model.SurveyTemplate;
+import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.ApplicationWarning;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CsvTableManager;
-import org.smap.sdal.managers.LanguageCodeManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.MessagingManager;
-import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.ChangeElement;
-import org.smap.sdal.model.ChangeItem;
-import org.smap.sdal.model.Form;
-import org.smap.sdal.model.FormLength;
-import org.smap.sdal.model.Language;
-import org.smap.sdal.model.MediaItem;
-import org.smap.sdal.model.Question;
-import org.smap.sdal.model.QuestionForm;
-import org.smap.sdal.model.Survey;
-import org.smap.server.utilities.PutXForm;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -122,9 +100,7 @@ public class CssFiles extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
-		int oId = 0;
 		Connection sd = null; 
-		boolean superUser = false;
 		String connectionString = "surveyKPI - cssFiles - upload";
 
 		try {
@@ -168,15 +144,11 @@ public class CssFiles extends Application {
 						}
 						if(item.getSize() > 300000) {
 							throw new ApplicationException(localisation.getString("css_size"));
-						}
-	
-						// Make sure the folder exists
-						String folderPath = basePath + File.separator + "css";
-						File folder = new File(folderPath);
-						FileUtils.forceMkdir(folder);	
+						}	
 						
 						// save the file
-						String filePath = folderPath + File.separator + fileName;
+						File folder = getCssServerFolder(basePath);
+						String filePath = folder.getAbsolutePath() + File.separator + fileName;
 						File savedFile = new File(filePath);
 						item.write(savedFile);  // Save the new file
 					}
@@ -198,185 +170,46 @@ public class CssFiles extends Application {
 
 	}
 
-	@DELETE
-	@Produces("application/json")
-	@Path("/media/organisation/{oId}/{filename}")
-	public Response deleteMedia(
-			@PathParam("oId") int oId,
-			@PathParam("filename") String filename,
-			@Context HttpServletRequest request
-			) throws IOException {
-
-		Response response = null;
-
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
-		auth.isAuthorised(sd, request.getRemoteUser());
-		auth.isValidOrganisation(sd, request.getRemoteUser(), oId);
-		// End Authorisation		
-
-		try {
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			String basePath = GeneralUtilityMethods.getBasePath(request);
-			String serverName = request.getServerName();
-
-			deleteFile(request, sd, localisation, basePath, serverName, null, oId, filename, request.getRemoteUser());
-			if(filename.endsWith(".csv")) {
-				// Delete the organisation shared resources - not necessary
-				CsvTableManager tm = new CsvTableManager(sd, localisation);
-				tm.delete(oId, 0, filename);		
-			}
-
-			MediaInfo mediaInfo = new MediaInfo();
-			mediaInfo.setServer(request.getRequestURL().toString());
-			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, sd, false);				 
-
-			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get(0, null);			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(mResponse);
-			response = Response.ok(resp).build();	
-
-		} catch(Exception e) {
-			log.log(Level.SEVERE,e.getMessage(), e);
-			response = Response.serverError().build();
-		} finally {
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
-		}
-
-		return response;
-
-	}
-
-	@DELETE
-	@Produces("application/json")
-	@Path("/media/{sIdent}/{filename}")
-	public Response deleteMediaSurvey(
-			@PathParam("sIdent") String sIdent,
-			@PathParam("filename") String filename,
-			@Context HttpServletRequest request
-			) throws IOException {
-
-		Response response = null;
-
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
-		auth.isAuthorised(sd, request.getRemoteUser());
-		// End Authorisation		
-
-		try {
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
-			String basePath = GeneralUtilityMethods.getBasePath(request);
-			String serverName = request.getServerName(); 
-
-			deleteFile(request, sd, localisation, basePath, serverName, sIdent, 0, filename, request.getRemoteUser());
-			if(filename.endsWith(".csv")) {
-				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
-				// Delete the organisation shared resources - not necessary
-				CsvTableManager tm = new CsvTableManager(sd, localisation);
-				tm.delete(oId, sId, null);		
-			}
-
-			MediaInfo mediaInfo = new MediaInfo();
-			mediaInfo.setServer(request.getRequestURL().toString());
-			mediaInfo.setFolder(basePath, 0, sIdent, sd);
-
-			MediaResponse mResponse = new MediaResponse ();
-			mResponse.files = mediaInfo.get(0, null);			
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(mResponse);
-			response = Response.ok(resp).build();	
-
-		} catch(Exception e) {
-			log.log(Level.SEVERE,e.getMessage(), e);
-			response = Response.serverError().build();
-		} finally {
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
-		}
-
-		return response;
-
-	}
 
 	/*
-	 * Return available files
+	 * Return available CSS files
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/media")
 	public Response getMedia(
-			@Context HttpServletRequest request,
-			@QueryParam("survey_id") int sId,
-			@QueryParam("getall") boolean getall
+			@Context HttpServletRequest request
 			) throws IOException {
 
 		Response response = null;
-		String user = request.getRemoteUser();
-		boolean superUser = false;
+		ArrayList<String> fileNames = new ArrayList<String> ();
+		String connectionString = "surveyKPI - cssFiles - get";
 
-		/*
-		 * Authorise
-		 *  If survey ident is passed then check user access to survey
-		 *  Else provide access to the media for the organisation
-		 */
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-UploadFiles");
-		if(sId > 0) {
-			try {
-				superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-			} catch (Exception e) {
-			}
-			auth.isAuthorised(sd, request.getRemoteUser());
-			auth.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
-		} else {
-			auth.isAuthorised(sd, request.getRemoteUser());
-		}
-		// End Authorisation		
+		Connection sd = SDDataSource.getConnection(connectionString);
+		authServer.isAuthorised(sd, request.getRemoteUser());	
 
-		/*
-		 * Get the path to the files
-		 */
-		String basePath = GeneralUtilityMethods.getBasePath(request);
-
-		MediaInfo mediaInfo = new MediaInfo();
-		mediaInfo.setServer(request.getRequestURL().toString());
-
-		PreparedStatement pstmt = null;		
 		try {
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-
-			// Get the path to the media folder	
-			if(sId > 0) {
-				mediaInfo.setFolder(basePath, sId, null, sd);
-			} else {		
-				mediaInfo.setFolder(basePath, user, oId, sd, false);				 
+			/*
+			 * Get the path to the files
+			 */
+			String basePath = GeneralUtilityMethods.getBasePath(request);
+			File folder = getCssServerFolder(basePath);
+			
+			ArrayList <File> files = new ArrayList<File> (FileUtils.listFiles(folder, FileFilterUtils.fileFileFilter(), null));
+			
+			// Sort the files alphabetically
+			Collections.sort( files, new Comparator<File>() {
+			    public int compare( File a, File b ) {
+			    	return a.getName().toLowerCase().compareTo(b.getName().toLowerCase());
+			    }
+			} );
+		
+			for(File f : files) {
+				fileNames.add(f.getName());
 			}
 
-			log.info("Media query on: " + mediaInfo.getPath());
-
-			MediaResponse mResponse = new MediaResponse();
-			mResponse.files = mediaInfo.get(sId, null);	
-
-			if(sId > 0 && getall) {
-				// Get a hashmap of the names to exclude
-				HashMap<String, String> exclude = new HashMap<> ();
-				for(MediaItem mi : mResponse.files) {
-					exclude.put(mi.name, mi.name);
-				}
-				// Add the organisation level media
-				mediaInfo.setFolder(basePath, user, oId, sd, false);
-				mResponse.files.addAll(mediaInfo.get(0, exclude));
-
-			}
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-			String resp = gson.toJson(mResponse);
+			String resp = gson.toJson(fileNames);
 			response = Response.ok(resp).build();		
 
 		}  catch(Exception ex) {
@@ -384,29 +217,11 @@ public class CssFiles extends Application {
 			response = Response.serverError().build();
 		} finally {
 
-			if (pstmt != null) { try {pstmt.close();} catch (SQLException e) {}}
-
-			SDDataSource.closeConnection("surveyKPI-UploadFiles", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 
 		return response;		
 	}
-
-	private class Message {
-		@SuppressWarnings("unused")
-		String status;
-		@SuppressWarnings("unused")
-		String message;
-		@SuppressWarnings("unused")
-		String name;
-
-		public Message(String status, String message, String name) {
-			this.status = status;
-			this.message = message;
-			this.name = name;
-		}
-	}
-
 
 
 	/*
@@ -485,6 +300,15 @@ public class CssFiles extends Application {
 		}
 
 
+	}
+	
+	private File getCssServerFolder(String basePath) throws IOException {
+		// Make sure the folder exists
+		String folderPath = basePath + File.separator + "css";
+		File folder = new File(folderPath);
+		FileUtils.forceMkdir(folder);
+		
+		return folder;
 	}
 
 }
