@@ -11,4 +11,5 @@ public class ServerData {
 	public String google_key;
 	public String sms_url;
 	public int keep_erased_days;
+	public String css;
 }

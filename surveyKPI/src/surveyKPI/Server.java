@@ -128,7 +128,8 @@ public class Server extends Application {
 				+ "email_port = ?,"
 				+ "mapbox_default = ?,"
 				+ "google_key = ?,"
-				+ "sms_url = ?";
+				+ "sms_url = ?,"
+				+ "css=?";
 		
 		PreparedStatement pstmt = null;
 
@@ -147,6 +148,7 @@ public class Server extends Application {
 			pstmt.setString(6, data.mapbox_default);
 			pstmt.setString(7, data.google_key);
 			pstmt.setString(8, data.sms_url);
+			pstmt.setString(9, data.css);
 			int count = pstmt.executeUpdate();
 			
 			if(count == 0) {
