@@ -79,7 +79,7 @@ public class CssManager {
 	public void setServerCssFile(String name) throws IOException {
 		if(name != null) {
 			if(name.equals("_none")) {
-				removeCustomCssFile();
+				removeCurrentCustomCssFile();
 			} else {
 				replaceCustomCssFile(name);
 			}
@@ -104,7 +104,7 @@ public class CssManager {
 		return folder;
 	}
 	
-	private void removeCustomCssFile() throws IOException {
+	private void removeCurrentCustomCssFile() throws IOException {
 		File cssFolder = getCssFolder();
 		File f = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
 		f.delete();
@@ -116,6 +116,13 @@ public class CssManager {
 		File source = new File(serverFolder.getAbsolutePath() + File.separator + name);
 		File target = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
 		Files.copy(Paths.get(source.getAbsolutePath()), Paths.get(target.getPath()), StandardCopyOption.REPLACE_EXISTING);
+	}
+	
+	public void deleteCustomCssFile(String name) throws IOException {
+		File serverFolder = getCssServerFolder();
+		File f = new File(serverFolder.getAbsolutePath() + File.separator + name);
+		f.delete();
+		
 	}
 }
 
