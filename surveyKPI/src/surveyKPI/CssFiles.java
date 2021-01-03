@@ -41,6 +41,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
+import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import com.google.gson.Gson;
@@ -117,7 +118,7 @@ public class CssFiles extends Application {
 			// End authorisation
 
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-
+			CssManager cm = new CssManager(basePath);
 			/*
 			 * Parse the request
 			 */
@@ -147,7 +148,7 @@ public class CssFiles extends Application {
 						}	
 						
 						// save the file
-						File folder = getCssServerFolder(basePath);
+						File folder = cm.getCssServerFolder();
 						String filePath = folder.getAbsolutePath() + File.separator + fileName;
 						File savedFile = new File(filePath);
 						item.write(savedFile);  // Save the new file
@@ -193,7 +194,8 @@ public class CssFiles extends Application {
 			 * Get the path to the files
 			 */
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			File folder = getCssServerFolder(basePath);
+			CssManager cm = new CssManager(basePath);
+			File folder = cm.getCssServerFolder();
 			
 			ArrayList <File> files = new ArrayList<File> (FileUtils.listFiles(folder, FileFilterUtils.fileFileFilter(), null));
 			
@@ -300,15 +302,6 @@ public class CssFiles extends Application {
 		}
 
 
-	}
-	
-	private File getCssServerFolder(String basePath) throws IOException {
-		// Make sure the folder exists
-		String folderPath = basePath + File.separator + "css";
-		File folder = new File(folderPath);
-		FileUtils.forceMkdir(folder);
-		
-		return folder;
 	}
 
 }

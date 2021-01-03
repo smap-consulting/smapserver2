@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.ServerManager;
 import org.smap.sdal.model.ServerData;
 
@@ -151,13 +152,16 @@ public class Server extends Application {
 			pstmt.setString(9, data.css);
 			int count = pstmt.executeUpdate();
 			
-			if(count == 0) {
-				
+			if(count == 0) {			
 				pstmtInsert = sd.prepareStatement(sqlInsert);
 				pstmtInsert.setString(1, null);
 				pstmtInsert.executeUpdate();
 				pstmt.executeUpdate();
 			}
+			
+			// Set the css custom styling file
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
+			cm.setServerCssFile(data.css);
 				
 		} catch (Exception e) {
 			String msg = e.getMessage();
