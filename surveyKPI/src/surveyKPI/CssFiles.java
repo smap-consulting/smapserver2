@@ -122,10 +122,6 @@ public class CssFiles extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 
-			// Authorisation - Access
-			authServer.isAuthorised(sd, request.getRemoteUser());	
-			// End authorisation
-
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			CssManager cm = new CssManager(basePath);
 			

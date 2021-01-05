@@ -835,7 +835,8 @@ public class OrganisationList extends Application {
 	
 		String sql = "update organisation set "			
 				+ "set_as_theme = ?, "
-				+ "navbar_color = ? "
+				+ "navbar_color = ?, "
+				+ "css = ? "
 				+ "where id = (select o_id from users where ident = ?)";
 	
 		PreparedStatement pstmt = null;
@@ -844,7 +845,8 @@ public class OrganisationList extends Application {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, ao.set_as_theme);
 			pstmt.setString(2, ao.navbar_color);
-			pstmt.setString(3, request.getRemoteUser());
+			pstmt.setString(3,  ao.css);
+			pstmt.setString(4, request.getRemoteUser());
 					
 			log.info("Update organisation with appearance details: " + pstmt.toString());
 			pstmt.executeUpdate();
