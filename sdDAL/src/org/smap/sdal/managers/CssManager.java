@@ -76,19 +76,19 @@ public class CssManager {
 		this.basePath = basePath;
 	}
 	
-	public void setServerCssFile(String name) throws IOException {
+	public void setServerCssFile(String name, int orgId) throws IOException {
 		if(name != null) {
 			if(name.equals("_none")) {
 				removeCurrentCustomCssFile();
 			} else {
-				replaceCustomCssFile(name);
+				replaceCustomCssFile(name, orgId);
 			}
 		}
 	}
 	
-	public File getCssServerFolder() throws IOException {
-		// Make sure the folder exists
-		String folderPath = basePath + File.separator + "css" + File.separator + "server";
+	public File getCssLoadedFolder(int orgId) throws IOException {
+		
+		String folderPath = basePath + File.separator + "css" + File.separator + (orgId > 0 ? orgId + File.separator : "") + "server";
 		File folder = new File(folderPath);
 		FileUtils.forceMkdir(folder);
 		
@@ -110,16 +110,16 @@ public class CssManager {
 		f.delete();
 	}
 	
-	private void replaceCustomCssFile(String name) throws IOException {
+	private void replaceCustomCssFile(String name, int orgId) throws IOException {
 		File cssFolder = getCssFolder();
-		File serverFolder = getCssServerFolder();
+		File serverFolder = getCssLoadedFolder(orgId);
 		File source = new File(serverFolder.getAbsolutePath() + File.separator + name);
 		File target = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
 		Files.copy(Paths.get(source.getAbsolutePath()), Paths.get(target.getPath()), StandardCopyOption.REPLACE_EXISTING);
 	}
 	
-	public void deleteCustomCssFile(String name) throws IOException {
-		File serverFolder = getCssServerFolder();
+	public void deleteCustomCssFile(String name, int orgId) throws IOException {
+		File serverFolder = getCssLoadedFolder(orgId);
 		File f = new File(serverFolder.getAbsolutePath() + File.separator + name);
 		f.delete();
 		
