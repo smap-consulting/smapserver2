@@ -580,7 +580,7 @@ public class OrganisationManager {
 	 */
 	public AppearanceOptions getAppearance(Connection sd, String user) throws SQLException {
 		
-		String sql = "select set_as_theme, navbar_color "
+		String sql = "select set_as_theme, navbar_color, css "
 				+ "from organisation "
 				+ "where "
 				+ "id = (select o_id from users where ident = ?)";
@@ -598,7 +598,8 @@ public class OrganisationManager {
 			if(rs.next()) {
 				
 				ao.set_as_theme = rs.getBoolean(1);
-				ao.navbar_color = rs.getString(2);								
+				ao.navbar_color = rs.getString(2);
+				ao.css = rs.getString(3);
 			} 
 			if(ao.navbar_color == null) {
 				ao.navbar_color = Organisation.DEFAULT_NAVBAR_COLOR;
