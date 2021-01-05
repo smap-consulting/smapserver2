@@ -25,28 +25,23 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
-import model.MediaResponse;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
 import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.MediaInfo;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.CssManager;
-import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.PeopleManager;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -93,8 +88,9 @@ public class CssFiles extends Application {
 			Logger.getLogger(CssFiles.class.getName());
 
 	@POST
-	public Response uploqd(
-			@Context HttpServletRequest request
+	public Response upload(
+			@Context HttpServletRequest request,
+			@QueryParam("org") boolean org
 			) throws IOException {
 
 		Response response = null;
@@ -104,12 +100,23 @@ public class CssFiles extends Application {
 		fileItemFactory.setSizeThreshold(5*1024*1024);
 		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 
-		Connection sd = null; 
 		String connectionString = "surveyKPI - cssFiles - upload";
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		// Authorisation - Access
+		if(org) {
+			auth.isAuthorised(sd, request.getRemoteUser());	
+		} else {
+			authServer.isAuthorised(sd, request.getRemoteUser());	
+		}
+		// End authorisation
 
 		try {
 
-			sd = SDDataSource.getConnection(connectionString);
+			int orgId = 0;
+			if(org) {
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			}
 
 			// Get the users locale
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
@@ -117,11 +124,11 @@ public class CssFiles extends Application {
 
 			// Authorisation - Access
 			authServer.isAuthorised(sd, request.getRemoteUser());	
-
 			// End authorisation
 
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			CssManager cm = new CssManager(basePath);
+			
 			/*
 			 * Parse the request
 			 */
@@ -151,7 +158,7 @@ public class CssFiles extends Application {
 						}	
 						
 						// save the file
-						File folder = cm.getCssServerFolder();
+						File folder = cm.getCssLoadedFolder(orgId);
 						String filePath = folder.getAbsolutePath() + File.separator + fileName;
 						File savedFile = new File(filePath);
 						item.write(savedFile);  // Save the new file
@@ -181,6 +188,7 @@ public class CssFiles extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getMedia(
+			@QueryParam("org") boolean org,
 			@Context HttpServletRequest request
 			) throws IOException {
 
@@ -190,15 +198,26 @@ public class CssFiles extends Application {
 
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		authServer.isAuthorised(sd, request.getRemoteUser());	
+		if(org) {
+			auth.isAuthorised(sd, request.getRemoteUser());	
+		} else {
+			authServer.isAuthorised(sd, request.getRemoteUser());	
+		}
+		// End authorisation
 
 		try {
+			
+			int orgId = 0;
+			if(org) {
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			}
+			
 			/*
 			 * Get the path to the files
 			 */
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			CssManager cm = new CssManager(basePath);
-			File folder = cm.getCssServerFolder();
+			File folder = cm.getCssLoadedFolder(orgId);
 			
 			ArrayList <File> files = new ArrayList<File> (FileUtils.listFiles(folder, FileFilterUtils.fileFileFilter(), null));
 			
@@ -232,20 +251,31 @@ public class CssFiles extends Application {
 	@Path("/{name}")
 	public Response deleteCssFile(
 			@Context HttpServletRequest request,
-			@PathParam("name") String name) { 
+			@PathParam("name") String name,
+			@QueryParam("org") boolean org) { 
 		
 		Response response = null;
 		String connectionString = "surveyKPI - cssFiles - delete";
 			
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		authServer.isAuthorised(sd, request.getRemoteUser());	
+		if(org) {
+			auth.isAuthorised(sd, request.getRemoteUser());	
+		} else {
+			authServer.isAuthorised(sd, request.getRemoteUser());	
+		}
+		// End authorisation
 		// End Authorisation
 		
 		try {	
 			
+			int orgId = 0;
+			if(org) {
+				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			}
+			
 			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
-			cm.deleteCustomCssFile(name);
+			cm.deleteCustomCssFile(name, orgId);
 			
 			response = Response.ok().build();
 			
