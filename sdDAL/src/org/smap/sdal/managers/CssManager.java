@@ -70,20 +70,18 @@ public class CssManager {
 
 	LogManager lm = new LogManager();		// Application log
 	String basePath;
-	private final String SERVER_CUSTOM_FILE = "custom.css";
+	private final String CUSTOM_FILE = "custom.css";
 	private final String SERVER_FOLDER = "server";
-	
-	private final String ORG_CUSTOM_FILE = "custom_org.css";
 	private final String ORG_FOLDER = "org";
 
 	public CssManager(String basePath) {
 		this.basePath = basePath;
 	}
 	
-	public void setServerCssFile(String name, int orgId) throws IOException {
+	public void setCurrentCssFile(String name, int orgId) throws IOException {
 		if(name != null) {
 			if(name.equals("_none")) {
-				removeCurrentCustomCssFile();
+				removeCurrentCustomCssFile(orgId);
 			} else {
 				replaceCustomCssFile(name, orgId);
 			}
@@ -118,9 +116,9 @@ public class CssManager {
 		File cssFolder = getCssFolder();
 		File f;
 		if(orgId > 0) {
-			f = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
+			f = new File(cssFolder.getAbsolutePath() + File.separator + orgId + File.separator + CUSTOM_FILE);
 		} else {
-			f = new File(cssFolder.getAbsolutePath() + File.separator + ORG_CUSTOM_FILE);
+			f = new File(cssFolder.getAbsolutePath() + File.separator + CUSTOM_FILE);
 		}
 		f.delete();
 	}
@@ -131,9 +129,9 @@ public class CssManager {
 		File source = new File(loadedFolder.getAbsolutePath() + File.separator + name);
 		File target;
 		if(orgId > 0) {
-			target = new File(cssFolder.getAbsolutePath() + File.separator + ORG_CUSTOM_FILE);
+			target = new File(cssFolder.getAbsolutePath() + File.separator + orgId + File.separator + CUSTOM_FILE);
 		} else {
-			target = new File(cssFolder.getAbsolutePath() + File.separator + SERVER_CUSTOM_FILE);
+			target = new File(cssFolder.getAbsolutePath() + File.separator + CUSTOM_FILE);
 		}
 		Files.copy(Paths.get(source.getAbsolutePath()), Paths.get(target.getPath()), StandardCopyOption.REPLACE_EXISTING);		
 	}
