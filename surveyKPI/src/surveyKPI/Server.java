@@ -161,7 +161,7 @@ public class Server extends Application {
 			
 			// Set the css custom styling file
 			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
-			cm.setServerCssFile(data.css, 0);
+			cm.setCurrentCssFile(data.css, 0);
 				
 		} catch (Exception e) {
 			String msg = e.getMessage();

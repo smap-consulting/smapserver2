@@ -42,6 +42,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.CssManager;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
@@ -837,23 +838,28 @@ public class OrganisationList extends Application {
 				+ "set_as_theme = ?, "
 				+ "navbar_color = ?, "
 				+ "css = ? "
-				+ "where id = (select o_id from users where ident = ?)";
+				+ "where id = ?";
 	
 		PreparedStatement pstmt = null;
 		
 		try {
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, ao.set_as_theme);
 			pstmt.setString(2, ao.navbar_color);
 			pstmt.setString(3,  ao.css);
-			pstmt.setString(4, request.getRemoteUser());
+			pstmt.setInt(4, oId);
 					
 			log.info("Update organisation with appearance details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
+			// Set the css custom styling file
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
+			cm.setCurrentCssFile(ao.css, oId);
+			
 			response = Response.ok().build();
 	
-		} catch (SQLException e) {
+		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {			
