@@ -415,7 +415,7 @@ public class OrganisationManager {
 		
 	}
 	
-	private void writeLogo( 
+	public void writeLogo( 
 			Connection sd, 
 			String fileName, 
 			FileItem logoItem,
