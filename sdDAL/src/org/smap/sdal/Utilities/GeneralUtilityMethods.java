@@ -1029,6 +1029,7 @@ public class GeneralUtilityMethods {
 				+ "send_optin, "
 				+ "set_as_theme, "
 				+ "navbar_color, "
+				+ "navbar_text_color, "
 				+ "email_task, "
 				+ "changed_by, "
 				+ "changed_ts," 
@@ -1077,6 +1078,7 @@ public class GeneralUtilityMethods {
 				org.send_optin = resultSet.getBoolean("send_optin");
 				org.appearance.set_as_theme = resultSet.getBoolean("set_as_theme");
 				org.appearance.navbar_color = resultSet.getString("navbar_color");
+				org.appearance.navbar_text_color = resultSet.getString("navbar_text_color");
 				org.email_task = resultSet.getBoolean("email_task");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");

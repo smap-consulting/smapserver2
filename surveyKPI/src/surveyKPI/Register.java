@@ -114,6 +114,7 @@ public class Register extends Application {
 			o.can_submit = true;
 			o.appearance.set_as_theme = false;
 			o.appearance.navbar_color = Organisation.DEFAULT_NAVBAR_COLOR;
+			o.appearance.navbar_text_color = Organisation.DEFAULT_NAVBAR_TEXT_COLOR;
 			o.email_task = false;
 			o.can_sms = false;
 			o.send_optin = true;

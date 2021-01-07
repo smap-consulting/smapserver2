@@ -66,6 +66,7 @@ public class User {
 	public String enterprise_name;
 	public boolean set_as_theme;
 	public String navbar_color;
+	public String navbar_text_color;
 	public String training;
 	public int refresh_rate;
 }

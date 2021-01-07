@@ -154,7 +154,8 @@ public class OrganisationList extends Application {
 					+ "can_sms, "
 					+ "send_optin, "
 					+ "set_as_theme, "
-					+ "navbar_color, "
+					+ "navbar_color,"
+					+ "navbar_text_color, "
 					+ "email_task, "
 					+ "changed_by, "
 					+ "changed_ts," 
@@ -199,6 +200,7 @@ public class OrganisationList extends Application {
 				org.send_optin = resultSet.getBoolean("send_optin");
 				org.appearance.set_as_theme = resultSet.getBoolean("set_as_theme");
 				org.appearance.navbar_color = resultSet.getString("navbar_color");
+				org.appearance.navbar_text_color = resultSet.getString("navbar_text_color");
 				org.email_task = resultSet.getBoolean("email_task");
 				org.changed_by = resultSet.getString("changed_by");
 				org.changed_ts = resultSet.getString("changed_ts");
@@ -247,77 +249,22 @@ public class OrganisationList extends Application {
 	 * Update the organisation details or create a new organisation
 	 */
 	@POST
-	public Response updateOrganisation(@Context HttpServletRequest request) throws Exception { 
+	public Response updateOrganisation(@Context HttpServletRequest request, @FormParam("settings") String settings) throws Exception { 
 		
 		Response response = null;
-		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
-		fileItemFactory.setSizeThreshold(20*1024*1024); 
-		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
-
-		FileItem bannerLogoItem = null;
-		String bannerFileName = null;
-		FileItem mainLogoItem = null;
-		String mainFileName = null;
 		
 		String organisations = null;
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			/*
-			 * Parse the request
-			 */
-			List<?> items = uploadHandler.parseRequest(request);
-			Iterator<?> itr = items.iterator();
-
-			while(itr.hasNext()) {
-				FileItem item = (FileItem) itr.next();
-				
-				if(item.isFormField()) {
-					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
-				
-					
-					if(item.getFieldName().equals("settings")) {
-						try {
-							organisations = item.getString();
-						} catch (Exception e) {
-							
-						}
-					}
-					
-					
-				} else if(!item.isFormField()) {
-					// Handle Uploaded files.
-					log.info("Field Name = "+item.getFieldName()+
-						", File Name = "+item.getName()+
-						", Content type = "+item.getContentType()+
-						", File Size = "+item.getSize());
-					
-					if(item.getSize() > 0) {
-						String fieldName = item.getFieldName();
-						if(fieldName != null) {
-							if(fieldName.equals("banner_logo")) {
-								bannerLogoItem = item;
-								bannerFileName = item.getName().replaceAll(" ", "_"); // Remove spaces from file name
-							} else if(fieldName.equals("main_logo")) {
-								mainLogoItem = item;
-								mainFileName = item.getName().replaceAll(" ", "_");
-							}
-						}
-						
-					}
-					
-				}
-
-			}
-			
 			Type type = new TypeToken<ArrayList<Organisation>>(){}.getType();		
-			ArrayList<Organisation> oArray = new Gson().fromJson(organisations, type);
+			ArrayList<Organisation> oArray = new Gson().fromJson(settings, type);
 				
 			String requestUrl = request.getRequestURL().toString();
 			String userIdent = request.getRemoteUser();
@@ -340,12 +287,12 @@ public class OrganisationList extends Application {
 							sd, 
 							o, 
 							userIdent, 
-							bannerFileName,
-							mainFileName,
+							null,
+							null,
 							requestUrl,
 							basePath,
-							bannerLogoItem,
-							mainLogoItem,
+							null,
+							null,
 							null);
 					
 						 
@@ -358,12 +305,12 @@ public class OrganisationList extends Application {
 							sd, 
 							o, 
 							userIdent, 
-							bannerFileName,
-							mainFileName,
+							null,
+							null,
 							requestUrl,
 							basePath,
-							bannerLogoItem,
-							mainLogoItem,
+							null,
+							null,
 							request.getServerName(),
 							request.getScheme());	
 				}
@@ -901,11 +848,18 @@ public class OrganisationList extends Application {
 			if(!matcher.matches()) {
 				throw new ApplicationException("Invalid hex color: " + ao.navbar_color);
 			}
+		}
+		if(ao.navbar_text_color != null && ao.navbar_text_color.trim().length() > 0) {
+			matcher = pattern.matcher(ao.navbar_text_color);
+			if(!matcher.matches()) {
+				throw new ApplicationException("Invalid hex color: " + ao.navbar_text_color);
+			}
 		}	
 	
 		String sql = "update organisation set "			
 				+ "set_as_theme = ?, "
 				+ "navbar_color = ?, "
+				+ "navbar_text_color = ?, "
 				+ "css = ? "
 				+ "where id = ?";
 	
@@ -916,8 +870,9 @@ public class OrganisationList extends Application {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, ao.set_as_theme);
 			pstmt.setString(2, ao.navbar_color);
-			pstmt.setString(3,  ao.css);
-			pstmt.setInt(4, oId);
+			pstmt.setString(3, ao.navbar_text_color);
+			pstmt.setString(4,  ao.css);
+			pstmt.setInt(5, oId);
 					
 			log.info("Update organisation with appearance details: " + pstmt.toString());
 			pstmt.executeUpdate();
