@@ -11,4 +11,5 @@ public class WebformOptions {
 	public String button_background_color;
 	public String button_text_color;
 	public String header_text_color;
+	public boolean resetPressed;
 }

@@ -163,11 +163,11 @@ public class OrganisationManager {
 	
 			// Save the banner logo, if it has been passed
 			if(bannerFileName != null) {
-				writeLogo(sd, bannerFileName, bannerLogoItem, o.id, basePath, userIdent, requestUrl, "bannerLogo");
+				writeLogo(bannerFileName, bannerLogoItem, o.id, basePath, userIdent, requestUrl, "bannerLogo");
 			}
 			// Save the main logo, if it has been passed
 			if(mainFileName != null) {
-				writeLogo(sd, mainFileName, mainLogoItem, o.id, basePath, userIdent, requestUrl, "mainLogo");
+				writeLogo(mainFileName, mainLogoItem, o.id, basePath, userIdent, requestUrl, "mainLogo");
 			}
 			
 			/*
@@ -387,11 +387,11 @@ public class OrganisationManager {
             
 			// Save the banner logo, if it has been passed
 			if(bannerFileName != null) {			
-				writeLogo(sd, bannerFileName, bannerLogoItem, o_id, basePath, userIdent, requestUrl, "bannerLogo");
+				writeLogo(bannerFileName, bannerLogoItem, o_id, basePath, userIdent, requestUrl, "bannerLogo");
 	        } 
 			// Save the main logo, if it has been passed
 			if(mainFileName != null) {			
-				writeLogo(sd, mainFileName, mainLogoItem, o_id, basePath, userIdent, requestUrl, "mainLogo");
+				writeLogo(mainFileName, mainLogoItem, o_id, basePath, userIdent, requestUrl, "mainLogo");
 			} 
 			// Add this new organisation to the requesting users list of organisations
 			if(userIdent != null) {
@@ -416,7 +416,6 @@ public class OrganisationManager {
 	}
 	
 	public void writeLogo( 
-			Connection sd, 
 			String fileName, 
 			FileItem logoItem,
 			int oId,
@@ -426,7 +425,7 @@ public class OrganisationManager {
 			String storageName) {
 		
 		MediaInfo mediaInfo = new MediaInfo();
-		mediaInfo.setFolder(basePath, userIdent, oId, sd, true);				 
+		mediaInfo.setFolder(basePath, userIdent, oId, true);				 
 		mediaInfo.setServer(requestUrl);
 		
 		String folderPath = mediaInfo.getPath();
@@ -465,6 +464,30 @@ public class OrganisationManager {
             
 		} else {
 			log.log(Level.SEVERE, "Media folder not found");
+		}
+	}
+	
+	public void deleteLogo( 		
+			int oId,
+			String basePath,
+			String userIdent,
+			String requestUrl,
+			String storageName) {
+		
+		MediaInfo mediaInfo = new MediaInfo();
+		mediaInfo.setFolder(basePath, userIdent, oId, true);				 
+		mediaInfo.setServer(requestUrl);
+		
+		String folderPath = mediaInfo.getPath();
+
+		if(folderPath != null) {						
+			String filePath = folderPath + "/" + storageName;
+		    File savedFile = new File(filePath);
+		    log.info("Deleting file: " + filePath);
+		    savedFile.delete();
+		            
+		} else {
+			log.log(Level.SEVERE, "Logo to delete not found");
 		}
 	}
 
