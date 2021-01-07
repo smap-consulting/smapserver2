@@ -844,10 +844,18 @@ public class OrganisationList extends Application {
 			// Save the banner logo, if it has been passed
 			if(bannerFileName != null) {
 				OrganisationManager om = new OrganisationManager(localisation);
-				om.writeLogo(sd, bannerFileName, bannerLogoItem, oId, 
+				om.writeLogo(bannerFileName, bannerLogoItem, oId, 
 						GeneralUtilityMethods.getBasePath(request), 
 						request.getRemoteUser(), 
 						request.getRequestURL().toString(), "bannerLogo");
+			} else if(webform.resetPressed){
+				// If reset was pressed and no new logo has been added remove the organisation specific logo
+				OrganisationManager om = new OrganisationManager(localisation);
+				om.deleteLogo(oId, 
+						GeneralUtilityMethods.getBasePath(request), 
+						request.getRemoteUser(), 
+						request.getRequestURL().toString(), "bannerLogo");
+				
 			}
 			
 			response = Response.ok().build();

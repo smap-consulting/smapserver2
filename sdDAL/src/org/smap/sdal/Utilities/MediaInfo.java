@@ -96,8 +96,7 @@ public class MediaInfo {
 	 */
 	public boolean setFolder(String basePath, 
 			String user, 
-			int organisationId, 
-			Connection sd, 
+			int organisationId,  
 			boolean settings) {
 		boolean status = false;
 		
