@@ -191,7 +191,7 @@ public class UploadFiles extends Application {
 					} else {	
 						// Upload to organisations folder
 						oId = GeneralUtilityMethods.getOrganisationId(sd, user);
-						mediaInfo.setFolder(basePath, user, oId, sd, false);				 
+						mediaInfo.setFolder(basePath, user, oId, false);				 
 					}
 					mediaInfo.setServer(request.getRequestURL().toString());
 
@@ -293,7 +293,7 @@ public class UploadFiles extends Application {
 			
 			MediaInfo mediaInfo = new MediaInfo();
 			mediaInfo.setServer(request.getRequestURL().toString());
-			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, sd, false);				 
+			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, false);				 
 
 			MediaResponse mResponse = new MediaResponse ();
 			mResponse.files = mediaInfo.get(0, null);			
@@ -417,7 +417,7 @@ public class UploadFiles extends Application {
 			if(sId > 0) {
 				mediaInfo.setFolder(basePath, sId, null, sd);
 			} else {		
-				mediaInfo.setFolder(basePath, user, oId, sd, false);				 
+				mediaInfo.setFolder(basePath, user, oId, false);				 
 			}
 
 			log.info("Media query on: " + mediaInfo.getPath());
@@ -432,7 +432,7 @@ public class UploadFiles extends Application {
 					exclude.put(mi.name, mi.name);
 				}
 				// Add the organisation level media
-				mediaInfo.setFolder(basePath, user, oId, sd, false);
+				mediaInfo.setFolder(basePath, user, oId, false);
 				mResponse.files.addAll(mediaInfo.get(0, exclude));
 				
 			}
@@ -1038,7 +1038,7 @@ public class UploadFiles extends Application {
 					mediaInfo.setFolder(basePath, sId, null, sd);
 				} else {	
 					// Upload to organisations folder
-					mediaInfo.setFolder(basePath, user, oId, sd, false);				 
+					mediaInfo.setFolder(basePath, user, oId, false);				 
 				}
 				mediaInfo.setServer(request.getRequestURL().toString());
 				

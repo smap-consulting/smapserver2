@@ -7,6 +7,7 @@ package org.smap.sdal.model;
 public class AppearanceOptions {
 	public boolean set_as_theme;
 	public String navbar_color;
+	public String navbar_text_color;
 	public String css;
 	
 }

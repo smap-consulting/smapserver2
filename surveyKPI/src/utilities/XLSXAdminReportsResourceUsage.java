@@ -161,7 +161,7 @@ public class XLSXAdminReportsResourceUsage {
 			 * Add the data
 			 */
 			// Get the path to the media folder		
-			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, sd, false);				 
+			mediaInfo.setFolder(basePath, request.getRemoteUser(), oId, false);				 
 			log.info("Media query on: " + mediaInfo.getPath());
 			ArrayList<MediaItem> media = mediaInfo.get(0, null);	
 			

@@ -22,6 +22,7 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 
 public class Organisation {	
 	public static String DEFAULT_NAVBAR_COLOR = "#2c3c28";
+	public static String DEFAULT_NAVBAR_TEXT_COLOR = "#fff";
 	public static int DEFAULT_TRANSCRIBE_LIMIT = 250;
 	public static int DEFAULT_TRANSLATE_LIMIT = 5000;
 	public static int DEFAULT_REKOGNITION_LIMIT = 100;

@@ -114,6 +114,7 @@ public class UserManager {
 					+ "o.e_id,"
 					+ "o.set_as_theme,"
 					+ "o.navbar_color,"
+					+ "o.navbar_text_color,"
 					+ "o.training,"
 					+ "u.timezone,"
 					+ "o.refresh_rate,"
@@ -169,6 +170,7 @@ public class UserManager {
 				user.enterprise_name = resultSet.getString("enterprise_name");
 				user.set_as_theme = resultSet.getBoolean("set_as_theme");
 				user.navbar_color = resultSet.getString("navbar_color");
+				user.navbar_text_color = resultSet.getString("navbar_text_color");
 				user.training = resultSet.getString("training");
 				user.refresh_rate = resultSet.getInt("refresh_rate");
 			}
