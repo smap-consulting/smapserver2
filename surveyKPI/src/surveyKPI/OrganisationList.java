@@ -257,8 +257,7 @@ public class OrganisationList extends Application {
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
-		
-		String organisations = null;
+
 		try {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
@@ -820,8 +819,13 @@ public class OrganisationList extends Application {
 	
 	@POST
 	@Path("/appearance")
-	public Response updateAppearanceSettings(@Context HttpServletRequest request, @FormParam("settings") String settings) throws ApplicationException {
+	public Response updateAppearanceSettings(@Context HttpServletRequest request) throws ApplicationException {
 		Response response = null;
+		
+		DiskFileItemFactory  fileItemFactory = new DiskFileItemFactory ();	
+		fileItemFactory.setSizeThreshold(20*1024*1024); 
+		ServletFileUpload uploadHandler = new ServletFileUpload(fileItemFactory);
+
 		
 		String connectionString = "surveyKPI-OrganisationList-updateAppearanceSettings";
 		// Authorisation - Access
@@ -829,32 +833,7 @@ public class OrganisationList extends Application {
 		aAdmin.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		
-		AppearanceOptions ao = gson.fromJson(settings, AppearanceOptions.class);
-		
-		/*
-		 * Validate options
-		 * Objective is to prevent sql injection
-		 */
-		Pattern pattern;
-		Matcher matcher;
 
-		String hexRegex = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$";
-		pattern = Pattern.compile(hexRegex);
-
-		if(ao.navbar_color != null && ao.navbar_color.trim().length() > 0) {
-			matcher = pattern.matcher(ao.navbar_color);
-			if(!matcher.matches()) {
-				throw new ApplicationException("Invalid hex color: " + ao.navbar_color);
-			}
-		}
-		if(ao.navbar_text_color != null && ao.navbar_text_color.trim().length() > 0) {
-			matcher = pattern.matcher(ao.navbar_text_color);
-			if(!matcher.matches()) {
-				throw new ApplicationException("Invalid hex color: " + ao.navbar_text_color);
-			}
-		}	
 	
 		String sql = "update organisation set "			
 				+ "set_as_theme = ?, "
@@ -866,6 +845,80 @@ public class OrganisationList extends Application {
 		PreparedStatement pstmt = null;
 		
 		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+
+			/*
+			 * Parse the request
+			 */
+			FileItem mainLogoItem = null;
+			String mainLogoFileName = null;
+			String settings = null;
+			List<?> items = null;
+			items = uploadHandler.parseRequest(request);
+			
+			Iterator<?> itr = items.iterator();
+
+			while(itr.hasNext()) {
+				FileItem item = (FileItem) itr.next();
+				
+				if(item.isFormField()) {
+					log.info("Form field:" + item.getFieldName() + " - " + item.getString());
+				
+					
+					if(item.getFieldName().equals("settings")) {
+						try {
+							settings = item.getString();
+						} catch (Exception e) {
+							
+						}
+					}
+				} else if(!item.isFormField()) {
+					// Handle Uploaded files.
+					log.info("Field Name = "+item.getFieldName()+
+						", File Name = "+item.getName()+
+						", Content type = "+item.getContentType()+
+						", File Size = "+item.getSize());
+					
+					if(item.getSize() > 0) {
+						String fieldName = item.getFieldName();
+						if(fieldName != null) {
+							if(fieldName.equals("main_logo")) {
+								mainLogoItem = item;
+								mainLogoFileName = item.getName().replaceAll(" ", "_"); // Remove spaces from file name
+							} 
+						}
+						
+					}	
+				}
+			}
+			
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();		
+			AppearanceOptions ao = gson.fromJson(settings, AppearanceOptions.class);
+			
+			/*
+			 * Validate options
+			 * Objective is to prevent sql injection
+			 */
+			Pattern pattern;
+			Matcher matcher;
+
+			String hexRegex = "^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$";
+			pattern = Pattern.compile(hexRegex);
+
+			if(ao.navbar_color != null && ao.navbar_color.trim().length() > 0) {
+				matcher = pattern.matcher(ao.navbar_color);
+				if(!matcher.matches()) {
+					throw new ApplicationException("Invalid hex color: " + ao.navbar_color);
+				}
+			}
+			if(ao.navbar_text_color != null && ao.navbar_text_color.trim().length() > 0) {
+				matcher = pattern.matcher(ao.navbar_text_color);
+				if(!matcher.matches()) {
+					throw new ApplicationException("Invalid hex color: " + ao.navbar_text_color);
+				}
+			}	
+			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setBoolean(1, ao.set_as_theme);
@@ -880,6 +933,15 @@ public class OrganisationList extends Application {
 			// Set the css custom styling file
 			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
 			cm.setCurrentCssFile(ao.css, oId);
+			
+			// Save the main logo, if it has been passed
+			if(mainLogoFileName != null) {
+				OrganisationManager om = new OrganisationManager(localisation);
+				om.writeLogo(mainLogoFileName, mainLogoItem, oId, 
+						GeneralUtilityMethods.getBasePath(request), 
+						request.getRemoteUser(), 
+						request.getRequestURL().toString(), "mainLogo");
+			}
 			
 			response = Response.ok().build();
 	
