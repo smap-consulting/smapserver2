@@ -3,6 +3,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +81,7 @@ import org.smap.server.entities.UploadEvent;
 import org.smap.subscribers.SmapForward;
 import org.smap.subscribers.Subscriber;
 import org.w3c.dom.Document;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import com.google.gson.Gson;
@@ -261,10 +263,13 @@ public class SubscriberBatch {
 									// Get the submitted results as an XML document
 									is = new FileInputStream(uploadFile);
 
+									// Remove malformed characters
+									String xml = GeneralUtilityMethods.convertStreamToString(is);
+									
 									DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 									dbf.setNamespaceAware(true);
 									DocumentBuilder b = dbf.newDocumentBuilder();							
-									Document surveyDocument = b.parse(is);
+									Document surveyDocument = b.parse(new InputSource(new StringReader(xml)));
 
 									// Get an XPath object to parse the results
 									XPathFactory factory = XPathFactory.newInstance();
