@@ -128,7 +128,7 @@ public class MessagingManagerApply {
 				ArrayList<String> unsubscribedList = new ArrayList<>();
 				
 				/*
-				 * For performance reason only process survey changes every 2 times through the loop
+				 * For performance reason only process survey changes every 50 times through the loop
 				 */
 				if(topic.equals("survey")) {
 					

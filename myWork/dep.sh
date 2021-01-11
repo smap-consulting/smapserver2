@@ -10,9 +10,9 @@ tar -zcf myWork.tgz myWork
 cp myWork.tgz ~/deploy
 
 # deploy to local
-sudo rm -rf /Library/WebServer/Documents/myWork
-sudo mkdir /Library/WebServer/Documents/myWork
-sudo cp -rf myWork/* /Library/WebServer/Documents/myWork
+sudo rm -rf /Library/WebServer/Documents/app/myWork
+sudo mkdir /Library/WebServer/Documents/app/myWork
+sudo cp -rf myWork/* /Library/WebServer/Documents/app/myWork
 sudo apachectl restart
 rm myWork.tgz
 
