@@ -1,6 +1,9 @@
 package org.smap.model;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
@@ -8,6 +11,7 @@ import java.util.logging.Logger;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
+import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.server.entities.MissingSurveyException;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
@@ -15,6 +19,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 public class SurveyInstance {
 	
@@ -36,10 +41,13 @@ public class SurveyInstance {
 
 	public SurveyInstance(InputStream is) throws Exception, MissingSurveyException {
 		
+		// Remove malformed characters
+		String xml = GeneralUtilityMethods.convertStreamToString(is);
+		
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder b = dbf.newDocumentBuilder();
 		
-		Document surveyDocument = b.parse(is);
+		Document surveyDocument = b.parse(new InputSource(new StringReader(xml)));
 		Element rootElement = surveyDocument.getDocumentElement();  
 		
 		// Get the template name
@@ -234,6 +242,5 @@ public class SurveyInstance {
 			}
 		}
     }
-    
 
 }
