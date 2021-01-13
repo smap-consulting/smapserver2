@@ -218,7 +218,7 @@ public class Upload extends Application {
 			response = Response.status(Status.FORBIDDEN).entity(getErrorMessage(key, e.getMessage())).build();
 		} catch (AuthorisationException e) {
 			log.info(e.getMessage());
-			response = Response.status(Status.UNAUTHORIZED).entity(getErrorMessage(key, e.getMessage())).build();
+			response = Response.status(Status.FORBIDDEN).entity(getErrorMessage(key, e.getMessage())).build();
 		} catch (NotFoundException e) {
 			log.info(e.getMessage());
 			response = Response.status(Status.NOT_FOUND).entity(getErrorMessage(key, e.getMessage())).build();

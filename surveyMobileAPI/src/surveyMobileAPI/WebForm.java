@@ -834,6 +834,7 @@ public class WebForm extends Application {
 
 		output.append("<script src='/js/libs/modernizr.js'></script>");
 		output.append("<script src='/js/app/idbconfig.js'></script>");
+		output.append("<script src='/js/app/pwacommon.js'></script>");
 		//output.append("<script src='/js/libs/textile.js'></script>");		in browser markdown - don't currently use
 		output.append(addData(request, instanceXML, dataToEditId, assignmentId, accessKey, single));
 		// Add the google API key
@@ -845,6 +846,7 @@ public class WebForm extends Application {
 			output.append("\";");
 		}
 		output.append("window.smapConfig.myWork=" + (myWork ? "true" : "false") + ";");
+		output.append("registerForServiceWorkerMessages();");
 		output.append("</script>");
 		output.append("</head>\n");
 
