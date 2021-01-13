@@ -9787,7 +9787,7 @@ public class GeneralUtilityMethods {
     	}
     	
     	String xml = out.toString();
-    	xml = xml.replaceAll("&#[0-9]*;", "");
+    	xml = xml.replaceAll("&#5[0-9][0-9][0-9][0-9];", "");
 		
     	return xml;
     }
