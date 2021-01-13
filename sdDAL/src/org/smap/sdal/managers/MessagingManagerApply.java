@@ -130,9 +130,9 @@ public class MessagingManagerApply {
 				/*
 				 * For performance reason only process survey changes every 50 times through the loop
 				 */
-				if(topic.equals("survey")) {
+				if(topic.equals("survey") || topic.equals("resource")) {
 					
-					if(count % 2 != 0) { 
+					if(count % 50 != 0) { 
 						log.info("xsxsxsxsxsxs: skipping survey message: " + count);
 						continue;
 					} else {
