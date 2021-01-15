@@ -2126,7 +2126,7 @@ public class GetXForm {
 			if (item.subForm != null) {
 				if(instance != null && instance.repeats != null) {
 					ArrayList<Instance> subInstanceList = instance.repeats.get(item.name);
-					if(subInstanceList.size() > 0) {
+					if(subInstanceList != null && subInstanceList.size() > 0) {
 						for(Instance iSub : subInstanceList) {
 							populateTaskDataForm(outputDoc, item.subForm, sd, template, currentParent, sId, 
 									survey_ident, iSub, urlprefix, false, webform);	
