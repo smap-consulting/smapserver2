@@ -152,6 +152,7 @@ public class XLSXReportsManager {
 				/*
 				 * Create XLSX File
 				 */
+				log.info("####################### Create XLSX file");
 				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
@@ -165,6 +166,7 @@ public class XLSXReportsManager {
 				/*
 				 * Populate settings sheet
 				 */
+				log.info("####################### Populate settings sheet: ");
 				int settingsRowIdx = 0;
 				Row settingsRow = settingsSheet.createRow(settingsRowIdx++);
 				Cell sk = settingsRow.createCell(0);
@@ -230,6 +232,7 @@ public class XLSXReportsManager {
 						null,			// geomQuestion
 						get_acc_alt);
 
+				log.info("####################### XLSX query: " + sqlDesc.sql);
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				
 				// Populate data sheet
