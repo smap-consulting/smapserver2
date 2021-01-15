@@ -85,6 +85,7 @@ public class FileManager {
 	 */
 	public void getFile(HttpServletResponse response, String filepath, String filename) throws IOException, ApplicationException {
 		
+		log.info("getfile: " + filepath);
 		File f = new File(filepath);
 		if(!f.exists()) {
 			log.info("File not found: " + f.getAbsolutePath());
