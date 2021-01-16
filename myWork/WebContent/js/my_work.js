@@ -65,6 +65,7 @@ require([
 		setCustomWebForms();			// Apply custom javascript
 		setupUserProfile(true);
 		localise.setlang();		// Localise HTML
+		registerForServiceWorkerMessages();
 
 		dbstorage.open();
 
@@ -101,18 +102,6 @@ require([
 				saveLastAlert(globals.gLastAlertTime, true);
 			}
 		});
-
-		/*
-		 * Rgister for messages from the service worker
-		 */
-		navigator.serviceWorker.onmessage = event => {
-			const message = JSON.parse(event.data);
-			if(message.data.status === "200") {
-				surveyDataFromNetwork(message.data, globals.gCurrentProject);
-			} else {
-				alert("Error updating assignments: " + message.data.message);
-			}
-		};
 
 		// set a flag if launched as an app
 		gIsApp = (window.matchMedia('(display-mode: standalone)').matches) || (window.navigator.standalone) || document.referrer.includes('android-app://');
