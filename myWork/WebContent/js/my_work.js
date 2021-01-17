@@ -114,7 +114,7 @@ require([
 
 	function serviceWorkerNotification(data) {
 		if(data && data.data) {  // Only 1 type currently supported so ignore
-			surveyDataFromCache(data.data, globals.gCurrentProject);
+			surveyDataFromNetwork(data.data, globals.gCurrentProject);
 		}
 
 	}
@@ -156,7 +156,7 @@ require([
 
 
 		// Get the presaved records and refresh the task view
-		dbstorage.getRecords().then( records => {
+		dbstorage.getRecords().then( function(records) {
 			if (records) {
 				showTaskList(records, filterProjectId);
 			} else {
@@ -186,8 +186,8 @@ require([
 
 
 		// Save the tasks then refresh view
-		saveTasks(surveyList.data).then( () => {
-			dbstorage.getRecords().then( records => {
+		saveTasks(surveyList.data).then( function() {
+			dbstorage.getRecords().then( function(records) {
 				if (typeof taskList !== "undefined") {
 					showTaskList(taskList, filterProjectId);
 				} else {
@@ -235,7 +235,7 @@ require([
 	}
 
 	function saveTasks(tasks) {
-		return new Promise((resolve, reject) => {
+		return new Promise(function(resolve, reject) {
 			var i;
 			if(tasks) {
 				for (i = 0; i < tasks.length; i++) {
@@ -250,14 +250,14 @@ require([
 
 		var assignment = task.assignment;
 
-		let promise = new Promise((resolve, reject) => {
-			dbstorage.getTask(assignment.assignment_id).then(current => {
+		let promise = new Promise(function(resolve, reject) {
+			dbstorage.getTask(assignment.assignment_id).then(function(current) {
 				if (!current) {
 					// new task
 					if (assignment.assignment_status === STATUS_T_ACCEPTED ||
 						assignment.assignment_status === STATUS_T_NEW) {
 
-						dbstorage.addRecord(task).then(() => {
+						dbstorage.addRecord(task).then(function() {
 							resolve();
 						});
 
