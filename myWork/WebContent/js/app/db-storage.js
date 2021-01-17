@@ -240,7 +240,7 @@ define([],
         }
 
         /*
-         * Get all he records from the records database
+         * Get all the records from the records database
          */
         function getRecords() {
 

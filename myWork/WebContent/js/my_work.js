@@ -65,7 +65,7 @@ require([
 		setCustomWebForms();			// Apply custom javascript
 		setupUserProfile(true);
 		localise.setlang();		// Localise HTML
-		registerForServiceWorkerMessages();
+		registerForServiceWorkerMessages(serviceWorkerNotification);
 
 		dbstorage.open();
 
@@ -110,6 +110,13 @@ require([
 	
 	function projectSet() {
 		getSurveysForList();			// Get surveys
+	}
+
+	function serviceWorkerNotification(data) {
+		if(data && data.data) {  // Only 1 type currently supported so ignore
+			surveyDataFromCache(data.data, globals.gCurrentProject);
+		}
+
 	}
 
 	function getSurveysForList() {
