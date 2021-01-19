@@ -19,7 +19,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -1419,7 +1418,7 @@ public class ExchangeManager {
 					
 					Time tVal = new Time(hour, minute, second);
 					eh.pstmtInsert.setTime(index++, tVal);
-				} else if(col.type.equals("geoshape")) {
+				} else if(col.type.equals("geoshape") || col.type.equals("geotrace")) {
 					if(!notEmpty(value)) {		
 						value = null;
 					}
