@@ -63,7 +63,7 @@ define([],
          */
         function open() {
 
-            dbPromise = new Promise((resolve, reject) => {
+            dbPromise = new Promise(function(resolve, reject) {
                 var request = window.indexedDB.open(databaseName, databaseVersion);
 
                 request.onupgradeneeded = function(event) {
@@ -161,7 +161,7 @@ define([],
 		 */
         function getFile(name, dirname) {
 
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
 
                 var key = dirname + "/" + name;
 
@@ -187,7 +187,7 @@ define([],
          */
         function addRecord(record) {
 
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
                 console.log("add a record: ");
 
                 dbPromise.then(function (db) {
@@ -215,7 +215,7 @@ define([],
 		 */
         function getTask(assignment_id) {
 
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
                 console.log("Get task with assignment id: " + assignment_id);
 
                 dbPromise.then(function (db) {
@@ -244,7 +244,7 @@ define([],
          */
         function getRecords() {
 
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
                 console.log("Get records ");
 
                 dbPromise.then(function (db) {
@@ -273,7 +273,7 @@ define([],
 		 */
         function retrieveFile(dirname, file) {
 
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
 
                 var updatedFile = {
                     fileName: file.fileName
@@ -317,7 +317,7 @@ define([],
 		 * May be called from a location that has not intialised fileStore (ie fileManager)
 		 */
         function getFileFromIdb(key) {
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
                 if (!db) {
                     fileStore.init().then(function () {
                         resolve(completeGetFileRequest(key));
@@ -329,7 +329,7 @@ define([],
         }
 
         function completeGetFileRequest(key) {
-            return new Promise((resolve, reject) => {
+            return new Promise(function(resolve, reject) {
                 var transaction = db.transaction([mediaStoreName], "readonly");
                 var objectStore = transaction.objectStore(mediaStoreName);
                 var request = objectStore.get(key);
