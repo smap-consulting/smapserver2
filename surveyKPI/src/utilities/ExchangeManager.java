@@ -493,28 +493,7 @@ public class ExchangeManager {
 		
 		return recordsWritten;
 	}
-	
-	public ArrayList<String> getFormsFromXLSX(InputStream inputStream) throws Exception {
 
-		ArrayList<String> forms = new ArrayList<String> ();
-		Workbook wb = null;
-		try {
-			wb = new XSSFWorkbook(inputStream);
-			int sheetCount = wb.getNumberOfSheets();
-			for(int i = 0; i < sheetCount; i++) {
-				String name = wb.getSheetName(i);
-				if(name.startsWith("d_")) {
-					// Legacy forms remove prefix added by older results exports  30th January 2018
-					name = name.substring(2);
-				}
-				forms.add(name);
-			}
-		} finally {
-			try{wb.close();} catch(Exception e) {}
-		}
-		return forms;
-	}
-	
 	/*
 	 * Create a header row and set column widths
 	 */
