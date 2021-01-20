@@ -121,6 +121,7 @@ public class CssManager {
 			f = new File(cssFolder.getAbsolutePath() + File.separator + CUSTOM_FILE);
 		}
 		f.delete();
+		f.createNewFile();	// Create an empty file
 	}
 	
 	private void replaceCustomCssFile(String name, int orgId) throws IOException {
