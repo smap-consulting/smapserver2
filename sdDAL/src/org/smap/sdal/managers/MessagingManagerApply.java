@@ -128,11 +128,11 @@ public class MessagingManagerApply {
 				ArrayList<String> unsubscribedList = new ArrayList<>();
 				
 				/*
-				 * For performance reason only process survey changes every 10 times through the loop
+				 * For performance reason only process survey changes every 2 times through the loop
 				 */
 				if(topic.equals("survey") || topic.equals("resource")) {
 					
-					if(count % 50 != 0) { 
+					if(count % 2 != 0) { 
 						log.info("xsxsxsxsxsxs: skipping survey message: " + count);
 						continue;
 					} else {
