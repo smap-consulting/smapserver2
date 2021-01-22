@@ -270,7 +270,9 @@ public class XLSXEventParser {
 		while (iter.hasNext()) {
 			try (InputStream stream = iter.next()) {
 				String sheetName = iter.getSheetName();
-				if(sheetName.equals(form.name) || sheetName.equals("d_" + form.name)) {
+				// Note 31 is max length of a worksheet name so the form name may have been truncated
+				if(sheetName.equals(form.name) || sheetName.equals("d_" + form.name)
+						|| (sheetName.length() >= 31 && (form.name.startsWith(sheetName) || ("d_" + form.name).startsWith(sheetName)))) {
 					DataFormatter formatter = new DataFormatter();
 					InputSource sheetSource = new InputSource(stream);
 					try {
