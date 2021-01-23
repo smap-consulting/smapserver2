@@ -139,6 +139,10 @@ public class Server extends Application {
 		
 		try {
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			// Add the updated data
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, data.smtp_host);
@@ -160,7 +164,7 @@ public class Server extends Application {
 			}
 			
 			// Set the css custom styling file
-			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
 			cm.setCurrentCssFile(data.css, 0);
 				
 		} catch (Exception e) {
