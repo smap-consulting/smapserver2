@@ -113,17 +113,17 @@ public class CssFiles extends Application {
 
 		try {
 
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int orgId = 0;
 			if(org) {
 				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			}
 
-			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			CssManager cm = new CssManager(basePath);
+			CssManager cm = new CssManager(basePath, localisation);
 			
 			/*
 			 * Parse the request
@@ -158,6 +158,9 @@ public class CssFiles extends Application {
 						String filePath = folder.getAbsolutePath() + File.separator + fileName;
 						File savedFile = new File(filePath);
 						item.write(savedFile);  // Save the new file
+						
+						String msg = localisation.getString("c_add_css") + " " + filePath;
+						lm.writeLogOrganisation(sd, orgId, request.getRemoteUser(), LogManager.CREATE, msg, 0);
 					}
 
 				}
@@ -203,6 +206,10 @@ public class CssFiles extends Application {
 
 		try {
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int orgId = 0;
 			if(org) {
 				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
@@ -212,7 +219,7 @@ public class CssFiles extends Application {
 			 * Get the path to the files
 			 */
 			String basePath = GeneralUtilityMethods.getBasePath(request);
-			CssManager cm = new CssManager(basePath);
+			CssManager cm = new CssManager(basePath, localisation);
 			File folder = cm.getCssLoadedFolder(orgId);
 			
 			ArrayList <File> files = new ArrayList<File> (FileUtils.listFiles(folder, FileFilterUtils.fileFileFilter(), null));
@@ -265,13 +272,17 @@ public class CssFiles extends Application {
 		
 		try {	
 			
+			// Localisation			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
 			int orgId = 0;
 			if(org) {
 				orgId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			}
 			
-			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
-			cm.deleteCustomCssFile(name, orgId);
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
+			cm.deleteCustomCssFile(sd, request.getRemoteUser(), name, orgId);
 			
 			response = Response.ok().build();
 			

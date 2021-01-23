@@ -931,7 +931,7 @@ public class OrganisationList extends Application {
 			pstmt.executeUpdate();
 			
 			// Set the css custom styling file
-			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request));
+			CssManager cm = new CssManager(GeneralUtilityMethods.getBasePath(request), localisation);
 			cm.setCurrentCssFile(ao.css, oId);
 			
 			// Save the main logo, if it has been passed
