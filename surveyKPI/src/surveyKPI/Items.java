@@ -893,7 +893,7 @@ public class Items extends Application {
 				
 
 				SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-				String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, 0);			
+				String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, 0, null);			
 		
 				// Get count of available records
 				StringBuffer sqlFC = new StringBuffer("select count(*) from upload_event ue ");				
@@ -944,7 +944,8 @@ public class Items extends Application {
 						dateId,
 						startDate,
 						endDate,
-						0);
+						0,
+						null);
 				
 				// Request the data
 				log.info("Get Usage Data: " + pstmt.toString());
