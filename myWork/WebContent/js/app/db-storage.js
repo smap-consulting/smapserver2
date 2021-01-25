@@ -72,10 +72,25 @@ define([],
 
                     switch (oldVersion) {
                         case 0:
-                            mediaStore = upgradeDb.createObjectStore(mediaStoreName);
+                        case 1:
+                        case 2:
+                        case 3:
+                            try {
+                                mediaStore = upgradeDb.createObjectStore(mediaStoreName);
+                            } catch(err) {
+                                console.log(err);
+                            }
 
-                            recordStore = upgradeDb.createObjectStore(recordStoreName, {keyPath: 'id', autoIncrement: true});
-                            recordStore.createIndex(assignmentIdx, assignmentIdxPath, {unique: false});
+                        case 4:
+                            try {
+                                recordStore = upgradeDb.createObjectStore(recordStoreName, {
+                                    keyPath: 'id',
+                                    autoIncrement: true
+                                });
+                                recordStore.createIndex(assignmentIdx, assignmentIdxPath, {unique: false});
+                            } catch(err) {
+                                console.log(err);
+                            }
                     }
                 };
 
