@@ -75,13 +75,15 @@ define([],
                         case 1:
                         case 2:
                         case 3:
+                        case 4:
+                        case 5:
                             try {
                                 mediaStore = upgradeDb.createObjectStore(mediaStoreName);
                             } catch(err) {
                                 console.log(err);
                             }
 
-                        case 4:
+
                             try {
                                 recordStore = upgradeDb.createObjectStore(recordStoreName, {
                                     keyPath: 'id',
