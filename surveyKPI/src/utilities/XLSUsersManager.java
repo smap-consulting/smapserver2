@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 
@@ -89,6 +90,15 @@ public class XLSUsersManager {
 						sb.append("; ");
 					}
 					sb.append(p.name);
+				}
+				value = sb.toString();
+			} else if(name.equals("roles") && user.roles != null) {
+				StringBuffer sb = new StringBuffer("");
+				for(Role r : user.roles) {
+					if(sb.length() > 0) {
+						sb.append("; ");
+					}
+					sb.append(r.name);
 				}
 				value = sb.toString();
 			} else if(name.equals("password")) {
@@ -164,7 +174,7 @@ public class XLSUsersManager {
 		}
 		
 		cols.add(new Column(localisation, colNumber++, "projects", false, styles.get("header_tasks"), false));
-
+		cols.add(new Column(localisation, colNumber++, "roles", false, styles.get("header_tasks"), false));
 		
 		return cols;
 	}
@@ -193,7 +203,7 @@ public class XLSUsersManager {
 	}
 	
 	/*
-	 * Convert a project list to XLS
+	 * Convert a user list to XLS
 	 */
 	private void processUserListForXLS(
 			ArrayList<User> users, 
