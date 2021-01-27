@@ -244,9 +244,15 @@ public class XLSUsersManager {
 		PreparedStatement pstmt = null;
 		String sql = "select id from project where o_id = ? and name = ?";
 		
+		// SQL to validate roles
+		PreparedStatement pstmtRoles = null;
+		String sqlRoles = "select id from role where o_id = ? and name = ?";
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			pstmtRoles = sd.prepareStatement(sqlRoles);
+			pstmtRoles.setInt(1, oId);
 			
 			HashMap<String, Integer> header = null;
 	
@@ -312,6 +318,18 @@ public class XLSUsersManager {
 								}
 							}
 							
+							// Get Roles
+							String roleString = XLSUtilities.getColumn(row, "roles", header, lastCellNum, null);
+							u.roles = new ArrayList<Role> ();
+							if(roleString != null && roleString.trim().length() > 0) {
+								String [] rArray = roleString.split(";");
+								for(int i = 0; i < rArray.length; i++) {
+									Role r = new Role();
+									r.name = rArray[i].trim();
+									u.roles.add(r);
+								}
+							}
+							
 							// validate
 							if(u.ident == null || u.ident.trim().length() == 0) {
 								String msg = localisation.getString("fup_uim");
@@ -332,6 +350,19 @@ public class XLSUsersManager {
 								} else {
 									String msg = localisation.getString("fup_inv_p");
 									msg = msg.replace("%s1", p.name);
+									msg = msg.replace("%s2", String.valueOf(j));
+									throw new ApplicationException(msg);
+								}
+							}
+							// Validate roles and set role id
+							for(Role r : u.roles) {
+								pstmtRoles.setString(2, r.name);
+								ResultSet rs = pstmtRoles.executeQuery();
+								if(rs.next()) {
+									r.id = rs.getInt(1);
+								} else {
+									String msg = localisation.getString("fup_inv_r");
+									msg = msg.replace("%s1", r.name);
 									msg = msg.replace("%s2", String.valueOf(j));
 									throw new ApplicationException(msg);
 								}
@@ -364,6 +395,7 @@ public class XLSUsersManager {
 			throw new ApplicationException(msg);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+			if(pstmtRoles != null) try {pstmtRoles.close();} catch (Exception e) {}
 		}
 
 		return users;
