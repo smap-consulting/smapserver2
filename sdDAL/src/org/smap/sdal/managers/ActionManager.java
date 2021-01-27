@@ -257,12 +257,14 @@ public class ActionManager {
 		u.projects.add(p);
 		log.info("xxxxxxxxxxxxxxxxx p1: " + a.pId);
 		// Check to see if the survey to be updated was in a different project
-		int p2Id = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, a.surveyIdent);
-		log.info("xxxxxxxxxxxxxxxxx p2Id: " + p2Id);
-		if(p2Id != a.pId) {
-			Project p2 = new Project();
-			p2.id = p2Id;
-			u.projects.add(p2);
+		if(a.surveyIdent != null) {
+			int p2Id = GeneralUtilityMethods.getProjectIdFromSurveyIdent(sd, a.surveyIdent);
+			log.info("xxxxxxxxxxxxxxxxx p2Id: " + p2Id);
+			if(p2Id != a.pId && p2Id != 0) {
+				Project p2 = new Project();
+				p2.id = p2Id;
+				u.projects.add(p2);
+			}
 		}
 
 		// If the action is a task or mailout then add enum access

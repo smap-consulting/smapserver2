@@ -83,6 +83,7 @@ public class Submissions extends Application {
 	@Produces("application/json")
 	public void getDataRecordsService(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
+			@QueryParam("survey_ident") String survey_ident,				// Filter by survey
 			@QueryParam("start") int start,				// Primary key to start from
 			@QueryParam("limit") int limit,				// Number of records to return
 			@QueryParam("tz") String tz,					// Timezone
@@ -100,7 +101,8 @@ public class Submissions extends Application {
 				endDate,
 				user,
 				links,
-				stopat);
+				stopat,
+				survey_ident);
 	}
 	
 
@@ -119,7 +121,8 @@ public class Submissions extends Application {
 			Date endDate,
 			String user,
 			String links,
-			int stopat
+			int stopat,
+			String survey_ident
 			) throws ApplicationException, Exception { 
 
 		String connectionString = "koboToolboxApi - get data records";
@@ -175,7 +178,7 @@ public class Submissions extends Application {
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			SubmissionsManager subMgr = new SubmissionsManager(localisation, tz);
-			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, stopat);	
+			String whereClause = subMgr.getWhereClause(user, oId, dateId, startDate, endDate, stopat, survey_ident);	
 				
 			// page the results to reduce memory usage
 			log.info("---------------------- paging results to postgres");
@@ -191,7 +194,8 @@ public class Submissions extends Application {
 					dateId,
 					startDate,
 					endDate,
-					stopat);
+					stopat,
+					survey_ident);
 			pstmt.setFetchSize(100);	
 			
 			log.info("Get submissions: " + pstmt.toString());

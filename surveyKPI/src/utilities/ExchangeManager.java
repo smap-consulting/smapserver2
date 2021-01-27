@@ -19,7 +19,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
@@ -494,28 +493,7 @@ public class ExchangeManager {
 		
 		return recordsWritten;
 	}
-	
-	public ArrayList<String> getFormsFromXLSX(InputStream inputStream) throws Exception {
 
-		ArrayList<String> forms = new ArrayList<String> ();
-		Workbook wb = null;
-		try {
-			wb = new XSSFWorkbook(inputStream);
-			int sheetCount = wb.getNumberOfSheets();
-			for(int i = 0; i < sheetCount; i++) {
-				String name = wb.getSheetName(i);
-				if(name.startsWith("d_")) {
-					// Legacy forms remove prefix added by older results exports  30th January 2018
-					name = name.substring(2);
-				}
-				forms.add(name);
-			}
-		} finally {
-			try{wb.close();} catch(Exception e) {}
-		}
-		return forms;
-	}
-	
 	/*
 	 * Create a header row and set column widths
 	 */
@@ -1419,7 +1397,7 @@ public class ExchangeManager {
 					
 					Time tVal = new Time(hour, minute, second);
 					eh.pstmtInsert.setTime(index++, tVal);
-				} else if(col.type.equals("geoshape")) {
+				} else if(col.type.equals("geoshape") || col.type.equals("geotrace")) {
 					if(!notEmpty(value)) {		
 						value = null;
 					}

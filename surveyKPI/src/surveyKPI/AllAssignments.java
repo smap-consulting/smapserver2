@@ -1023,7 +1023,16 @@ public class AllAssignments extends Application {
 				FormDesc formDesc = formList.get(formIdx);
 
 				File f = formFileMap.get(formDesc.name);
-				
+				if(f == null) {
+					// The form name may have been truncated when converted to a worksheet name
+					for(String n : formFileMap.keySet()) {
+						if(n.length() >= 29) { // Max length of worksheet name -2 for the "d_"
+							if(formDesc.name.indexOf(n) == 0) {
+								f = formFileMap.get(n);
+							}
+						}
+					}
+				}
 				if(f != null) {
 					boolean isCSV = false;
 					if(f.getName().endsWith(".csv")) {
