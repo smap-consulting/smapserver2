@@ -702,6 +702,8 @@ public class UserList extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
+			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
 			String tz = "UTC";	// Set default for timezone
 			
 			/*
@@ -792,7 +794,7 @@ public class UserList extends Application {
 						try {
 							
 							um.createUser(sd, u, oId, 
-									false, false, false, false, 
+									isOrgUser, isSecurityManager, false, false, 
 									request.getRemoteUser(), scheme, serverName, adminName, adminEmail, localisation);
 							added.add(u.name);
 						} catch (Exception e) {
