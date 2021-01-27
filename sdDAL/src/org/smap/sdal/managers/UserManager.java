@@ -468,6 +468,7 @@ public class UserManager {
 			if (rs.next()){
 				u_id = rs.getInt(1);
 				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
+				
 				if(isOrgUser) {
 					insertUserOrganisations(sd, u, u_id, o_id);
 				}
