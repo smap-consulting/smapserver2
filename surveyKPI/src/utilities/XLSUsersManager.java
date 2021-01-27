@@ -326,7 +326,9 @@ public class XLSUsersManager {
 								for(int i = 0; i < rArray.length; i++) {
 									Role r = new Role();
 									r.name = rArray[i].trim();
-									u.roles.add(r);
+									if(r.name.length() > 0) {
+										u.roles.add(r);
+									}
 								}
 							}
 							
