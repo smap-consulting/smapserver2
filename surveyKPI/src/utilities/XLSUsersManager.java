@@ -39,6 +39,7 @@ import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.model.Project;
+import org.smap.sdal.model.Role;
 import org.smap.sdal.model.User;
 import org.smap.sdal.model.UserGroup;
 
@@ -89,6 +90,15 @@ public class XLSUsersManager {
 						sb.append("; ");
 					}
 					sb.append(p.name);
+				}
+				value = sb.toString();
+			} else if(name.equals("roles") && user.roles != null) {
+				StringBuffer sb = new StringBuffer("");
+				for(Role r : user.roles) {
+					if(sb.length() > 0) {
+						sb.append("; ");
+					}
+					sb.append(r.name);
 				}
 				value = sb.toString();
 			} else if(name.equals("password")) {
@@ -164,7 +174,7 @@ public class XLSUsersManager {
 		}
 		
 		cols.add(new Column(localisation, colNumber++, "projects", false, styles.get("header_tasks"), false));
-
+		cols.add(new Column(localisation, colNumber++, "roles", false, styles.get("header_tasks"), false));
 		
 		return cols;
 	}
@@ -193,7 +203,7 @@ public class XLSUsersManager {
 	}
 	
 	/*
-	 * Convert a project list to XLS
+	 * Convert a user list to XLS
 	 */
 	private void processUserListForXLS(
 			ArrayList<User> users, 
@@ -234,9 +244,15 @@ public class XLSUsersManager {
 		PreparedStatement pstmt = null;
 		String sql = "select id from project where o_id = ? and name = ?";
 		
+		// SQL to validate roles
+		PreparedStatement pstmtRoles = null;
+		String sqlRoles = "select id from role where o_id = ? and name = ?";
+		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, oId);
+			pstmtRoles = sd.prepareStatement(sqlRoles);
+			pstmtRoles.setInt(1, oId);
 			
 			HashMap<String, Integer> header = null;
 	
@@ -302,6 +318,20 @@ public class XLSUsersManager {
 								}
 							}
 							
+							// Get Roles
+							String roleString = XLSUtilities.getColumn(row, "roles", header, lastCellNum, null);
+							u.roles = new ArrayList<Role> ();
+							if(roleString != null && roleString.trim().length() > 0) {
+								String [] rArray = roleString.split(";");
+								for(int i = 0; i < rArray.length; i++) {
+									Role r = new Role();
+									r.name = rArray[i].trim();
+									if(r.name.length() > 0) {
+										u.roles.add(r);
+									}
+								}
+							}
+							
 							// validate
 							if(u.ident == null || u.ident.trim().length() == 0) {
 								String msg = localisation.getString("fup_uim");
@@ -322,6 +352,19 @@ public class XLSUsersManager {
 								} else {
 									String msg = localisation.getString("fup_inv_p");
 									msg = msg.replace("%s1", p.name);
+									msg = msg.replace("%s2", String.valueOf(j));
+									throw new ApplicationException(msg);
+								}
+							}
+							// Validate roles and set role id
+							for(Role r : u.roles) {
+								pstmtRoles.setString(2, r.name);
+								ResultSet rs = pstmtRoles.executeQuery();
+								if(rs.next()) {
+									r.id = rs.getInt(1);
+								} else {
+									String msg = localisation.getString("fup_inv_r");
+									msg = msg.replace("%s1", r.name);
 									msg = msg.replace("%s2", String.valueOf(j));
 									throw new ApplicationException(msg);
 								}
@@ -354,6 +397,7 @@ public class XLSUsersManager {
 			throw new ApplicationException(msg);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+			if(pstmtRoles != null) try {pstmtRoles.close();} catch (Exception e) {}
 		}
 
 		return users;

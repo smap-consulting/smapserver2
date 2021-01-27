@@ -70,12 +70,15 @@ public class CssManager {
 
 	LogManager lm = new LogManager();		// Application log
 	String basePath;
+	ResourceBundle localisation;
+	
 	private final String CUSTOM_FILE = "custom.css";
 	private final String SERVER_FOLDER = "server";
 	private final String ORG_FOLDER = "org";
 
-	public CssManager(String basePath) {
+	public CssManager(String basePath, ResourceBundle l) {
 		this.basePath = basePath;
+		localisation = l;
 	}
 	
 	public void setCurrentCssFile(String name, int orgId) throws IOException {
@@ -121,6 +124,7 @@ public class CssManager {
 			f = new File(cssFolder.getAbsolutePath() + File.separator + CUSTOM_FILE);
 		}
 		f.delete();
+		f.createNewFile();	// Create an empty file
 	}
 	
 	private void replaceCustomCssFile(String name, int orgId) throws IOException {
@@ -136,9 +140,12 @@ public class CssManager {
 		Files.copy(Paths.get(source.getAbsolutePath()), Paths.get(target.getPath()), StandardCopyOption.REPLACE_EXISTING);		
 	}
 	
-	public void deleteCustomCssFile(String name, int orgId) throws IOException {
+	public void deleteCustomCssFile(Connection sd, String user, String name, int orgId) throws IOException {
 		File loadedFolder = getCssLoadedFolder(orgId);
 		File f = new File(loadedFolder.getAbsolutePath() + File.separator + name);
+		log.info("Deleting css file: " + f.getAbsolutePath());
+		String msg = localisation.getString("c_del_css") + " " + f.getAbsolutePath();
+		lm.writeLogOrganisation(sd, orgId, user, LogManager.DELETE, msg, 0);
 		f.delete();
 		
 	}
