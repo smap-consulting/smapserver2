@@ -345,7 +345,7 @@ public class ProjectList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String filename = null;
-			filename = localisation.getString("ar_project") + ".xlsx";			
+			filename = localisation.getString("ar_projects") + ".xlsx";			
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
 			ProjectManager pm = new ProjectManager(localisation);

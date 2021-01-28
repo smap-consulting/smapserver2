@@ -638,7 +638,7 @@ public class UserList extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			String filename = null;
-			filename = localisation.getString("mf_u") + ".xlsx";			
+			filename = localisation.getString("mf_us") + ".xlsx";			
 			GeneralUtilityMethods.setFilenameInResponse(filename, response); // Set file name
 			
 			UserManager um = new UserManager(localisation);
