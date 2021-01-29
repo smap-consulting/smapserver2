@@ -352,8 +352,8 @@ public class UserList extends Application {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}		
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		aSimpleList.isAuthorised(sd, request.getRemoteUser());
+		aSimpleList.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
