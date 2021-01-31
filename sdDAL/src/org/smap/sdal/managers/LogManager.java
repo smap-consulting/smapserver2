@@ -83,6 +83,8 @@ public class LogManager {
 	public static String MAPBOX_REQUEST = "Mapbox Request";
 	public static String RESOURCES = "resources";
 	
+	public static String REPORT = "report";
+	
 	/*
 	 * Write a log entry that includes the survey id
 	 */

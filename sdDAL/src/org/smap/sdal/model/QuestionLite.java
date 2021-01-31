@@ -17,4 +17,10 @@ public class QuestionLite {
 	public int f_id;
 	public boolean is_ssc;
 	
+	public QuestionLite() {}
+	public QuestionLite(String type, String name, String column_name) {
+		this.type = type;
+		this.name = name;
+		this.column_name = column_name;
+	}
 }
