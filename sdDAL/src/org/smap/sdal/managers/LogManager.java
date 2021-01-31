@@ -85,8 +85,6 @@ public class LogManager {
 	public static String USER_LOCATION_VIEW = "user location view";
 	public static String VIEW = "view";
 	
-	public static String REPORT = "report";
-	
 	/*
 	 * Write a log entry that includes the survey id
 	 */
