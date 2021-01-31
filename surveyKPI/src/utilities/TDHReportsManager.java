@@ -45,12 +45,15 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.constants.SmapExportTypes;
+import org.smap.sdal.custom.TDHIndividualReport;
+import org.smap.sdal.custom.TDHIndividualValues;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.QueryManager;
 import org.smap.sdal.model.ColDesc;
 import org.smap.sdal.model.ColValues;
 import org.smap.sdal.model.OptionDesc;
 import org.smap.sdal.model.QueryForm;
+import org.smap.sdal.model.QuestionLite;
 import org.smap.sdal.model.ReadData;
 import org.smap.sdal.model.SqlDesc;
 import org.smap.sdal.model.Transform;
@@ -89,13 +92,6 @@ public class TDHReportsManager {
 		
 		Response responseVal = null;
 
-		HashMap<ArrayList<OptionDesc>, String> labelListMap = new  HashMap<ArrayList<OptionDesc>, String> ();
-		
-		
-		String urlprefix = request.getScheme() + "://" + request.getServerName() + "/";		
-
-		
-
 		String escapedFileName = null;
 		try {
 			escapedFileName = URLDecoder.decode(filename, "UTF-8");
@@ -112,10 +108,10 @@ public class TDHReportsManager {
 			PreparedStatement pstmt = null;
 			Workbook wb = null;
 			int rowNumber = 0;
-			Sheet dataSheet = null;
-			Sheet settingsSheet = null;
 			CellStyle errorStyle = null;
 
+			ArrayList<TDHIndividualReport> reports = null;
+			ArrayList<String> values = null;
 			int oId = 0;
 			
 			try {	
@@ -131,34 +127,33 @@ public class TDHReportsManager {
 				wb = new SXSSFWorkbook(10);		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
-				CellStyle wideStyle = styles.get("wide");
-				errorStyle = styles.get("error");
-						
-				dataSheet = wb.createSheet(localisation.getString("rep_data"));
-				settingsSheet = wb.createSheet(localisation.getString("rep_settings"));
+				CellStyle defaultStyle = styles.get("default");
+				errorStyle = styles.get("error");			
 				
-				
-				// Populate data sheet
-				rowNumber = 0;		
-				
-				/*
-				 * Write the labels if language has been set
-				 */
-				Row headerRow = dataSheet.createRow(rowNumber++);				
-				int colNumber = 0;
-				int dataColumn = 0;
-
-				Cell cell = headerRow.createCell(colNumber++);
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue("Question");
-				
-				cell = headerRow.createCell(colNumber++);
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue("Pre");
-				
-				cell = headerRow.createCell(colNumber++);
-				cell.setCellStyle(headerStyle);
-				cell.setCellValue("Post");
+				reports = getIndividualReports();
+				for(TDHIndividualReport r : reports) {
+					r.sheet = wb.createSheet(r.name);	
+					values = getValues(cResults, r);
+					
+					/*
+					 * Write the questions and create the rows
+					 */
+					rowNumber = 0;
+					int colNumber = 0;
+					r.sheet.setColumnWidth(0, 60 * 256);
+					
+					Row row = r.sheet.createRow(rowNumber++);					
+					Cell cell = row.createCell(colNumber);
+					cell.setCellStyle(headerStyle);				
+					cell.setCellValue("Question");
+					
+					for(QuestionLite q : r.questions) {
+						row = r.sheet.createRow(rowNumber++);
+						cell = row.createCell(colNumber);
+						cell.setCellStyle(defaultStyle);
+						cell.setCellValue(q.name);		
+					}
+				}
 
 			
 
@@ -172,10 +167,15 @@ public class TDHReportsManager {
 				if(msg.contains("does not exist")) {
 					msg = localisation.getString("msg_no_data");
 				}
-				Row dataRow = dataSheet.createRow(rowNumber + 1);	
-				Cell cell = dataRow.createCell(0);
-				cell.setCellStyle(errorStyle);
-				cell.setCellValue(msg);
+				if(reports != null && reports.size() > 0) {
+					Sheet s1 = reports.get(0).sheet;
+					if(s1 != null) {
+						Row dataRow = s1.createRow(rowNumber + 1);	
+						Cell cell = dataRow.createCell(0);
+						cell.setCellStyle(errorStyle);
+						cell.setCellValue(msg);
+					}
+				}
 				
 				responseVal = Response.status(Status.OK).entity("Error: " + e.getMessage()).build();
 			} finally {	
@@ -199,118 +199,20 @@ public class TDHReportsManager {
 		return responseVal;
 	}
 	
-	private void addLiteracyColumns(String [] vArray, ReadData rd) {
+	private ArrayList<TDHIndividualReport> getIndividualReports()  {
 		
-		String time = "";
-		String flashIndex = "";
-		String finalIndex = "";
-		int errorCount = 0;
+		ArrayList<TDHIndividualReport> reports = new ArrayList<>();
 		
-		if(vArray != null) {
-			if(vArray.length > 0) {
-				flashIndex = vArray[0];
-				vArray[0] = "";  // Make sure this value does not later match a numeric choice
-			}
-			if(vArray.length > 1) {
-				time = vArray[1];
-				vArray[1] = "";
-			}
-			if(vArray.length > 2) {
-				finalIndex = vArray[2];
-				vArray[2] = "";
-			}
-			
-			// Get error count
-			if(vArray.length > 3) {
-				for(int i = 3; i < vArray.length; i++) {
-					if(vArray[i] != null && !vArray[i].equals("null")) {
-						errorCount++;
-					}
-				}
-			}
-			rd.values.add(time);
-			rd.values.add(flashIndex);
-			rd.values.add(finalIndex);
-			rd.values.add(String.valueOf(errorCount));
-		}
-	}
-	
-	private void writeOutData(ArrayList<ReadData> dataItems, Transform transform, 
-			HashMap<String, HashMap<String, String>> transformData,
-			Row dataRow,
-			Workbook wb,
-			Sheet dataSheet,
-			Map<String, CellStyle> styles,
-			boolean embedImages,
-			String basePath,
-			int rowNumber) {
+		TDHIndividualReport r1 = new TDHIndividualReport("SDQ", "s640_main");
+		r1.questions.add(new QuestionLite("string", "considerate_of_other_peoples_feelings", "considerate_of_other_peoples_feelings"));
+		r1.questions.add(new QuestionLite("string", "restless_overactive_cannot_stay_still_for_long", "restless_overactive_cannot_stay_still_for_long"));
+		reports.add(r1);
 		
-		int colNumber = 0;
-		if(dataItems != null) {
-			for(ReadData item : dataItems) {
-				if(item.isTransform) {
-					int tdIndex = getTransformIndex(transform, item.name);	
-					HashMap<String, String> itemTransform = transformData.get(item.name);
-					for(String tc : transform.transforms.get(tdIndex).wideColumns) {
-						for(String tv : transform.transforms.get(tdIndex).values) {
-							Cell cell = dataRow.createCell(colNumber++);
-							XLSUtilities.setCellValue(wb, dataSheet, cell, styles, itemTransform.get(tc + " - " + tv), 
-									item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-						}
-					}
-				} else {
-					for(String v : item.values) {
-						Cell cell = dataRow.createCell(colNumber++);
-						XLSUtilities.setCellValue(wb, dataSheet, cell, styles, v, 
-								item.type, embedImages, basePath, rowNumber, colNumber - 1, true);
-					}
-				}
-			}
-		}
-	}
-	
-	private boolean isWideColumn(Transform transform, String name) {
-		boolean val = false;
-		
-		if(transform != null && transform.enabled) {
-			for(TransformDetail td : transform.transforms) {
-				for(String col : td.wideColumns) {
-					if(col.equals(name)) {
-						val = true;
-						break;
-					}
-				}
-				if(val) {
-					break;
-				}
-
-			}
-		}
-		return val;
-	}
-	
-	private int getTransformIndex(Transform transform, String name) {
-		int idx = -1;
-		
-		if(transform != null) {
-			int count = 0;
-			for(TransformDetail td : transform.transforms) {
-				if(td.valuesQuestion.equals(name)) {
-					idx = count;
-					break;
-				}
-				count++;
-			}
-		}
-		return idx;
-	}
-	
-	private String getKeyValue(ResultSet rs, Transform transform) throws SQLException {
-		StringBuilder key = new StringBuilder("");
-		for(String c : transform.key_questions) {
-			key.append(rs.getString(c));
-		}
-		return key.toString();
+		return reports;
 	}
 
+	private ArrayList<TDHIndividualValues> getValues(Connection cResults, TDHIndividualReport report) {
+		ArrayList<TDHIndividualValues> values = new ArrayList<TDHIndividualValues> ();
+		return values;
+	}
 }

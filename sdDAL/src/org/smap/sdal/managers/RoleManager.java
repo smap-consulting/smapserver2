@@ -518,7 +518,7 @@ public class RoleManager {
 			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 			while(resultSet.next()) {		
 				String sqlFragString = resultSet.getString("row_filter");
-				if(sqlFragString != null) {
+				if(sqlFragString != null && sqlFragString.trim().length() > 0) {
 					if(sqlFragString.trim().startsWith("{")) {
 						rfArray.add(gson.fromJson(sqlFragString, SqlFrag.class));		// legacy json
 					} else {

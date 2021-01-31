@@ -98,8 +98,8 @@ public class TDH extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			cResults = ResultsDataSource.getConnection(connectionString);
-			TDHReportsManager ir = new TDHReportsManager(localisation, "UTC");
-			ir.getIndividualReport(sd,cResults,
+			TDHReportsManager rm = new TDHReportsManager(localisation, "UTC");
+			rm.getIndividualReport(sd,cResults,
 					filename,
 					request.getRemoteUser(),
 					request,
