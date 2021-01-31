@@ -495,7 +495,7 @@ public class UserList extends Application {
 								false);
 						
 						lm.writeLogOrganisation(sd, 
-								o_id, request.getRemoteUser(), "Update", "User " + u.ident + " was updated. Groups: " + getGroups(u.groups), 0);
+								o_id, request.getRemoteUser(), LogManager.USER, "User " + u.ident + " was updated. Groups: " + getGroups(u.groups), 0);
 					}
 					
 					// Record the user change so that devices can be notified

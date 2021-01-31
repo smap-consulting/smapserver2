@@ -1684,11 +1684,11 @@ public class UserManager {
 				// Write logs for other organisations
 				for(int ox : organisationList) {
 					lm.writeLogOrganisation(sd, 
-							ox, requestingUser, "delete", msg, 0);
+							ox, requestingUser, LogManager.DELETE, msg, 0);
 				}
 			} else {
 				lm.writeLogOrganisation(sd, 
-						o_id, requestingUser, "delete", msg, 0);
+						o_id, requestingUser, LogManager.DELETE, msg, 0);
 			}
 		}	
 	}
