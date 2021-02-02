@@ -322,7 +322,7 @@ public class Tasks extends Application {
 			) throws ApplicationException, Exception { 
 		
 		Response response = null;
-		String connectionString = "surveyKPI - Tasks - add new task";
+		String connectionString = "api - Tasks - add new task";
 		log.info("New task: " + task);
 		
 		if(task == null) {
