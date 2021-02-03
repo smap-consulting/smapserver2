@@ -111,7 +111,7 @@ public class TDHReportsManager {
 			CellStyle errorStyle = null;
 
 			ArrayList<TDHIndividualReport> reports = null;
-			ArrayList<String> values = null;
+			ArrayList<TDHIndividualValues> values = null;
 			int oId = 0;
 			
 			try {	
