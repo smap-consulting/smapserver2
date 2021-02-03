@@ -232,7 +232,6 @@ public class XLSXReportsManager {
 						null,			// geomQuestion
 						get_acc_alt);
 
-				log.info("####################### XLSX query: " + sqlDesc.sql);
 				String basePath = GeneralUtilityMethods.getBasePath(request);					
 				
 				// Populate data sheet
