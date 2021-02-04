@@ -1661,6 +1661,34 @@ public class GeneralUtilityMethods {
 
 		return id;
 	}
+	
+	/*
+	 * Get the role name from the role id
+	 */
+	static public String getRoleName(Connection sd, int id, int oId) throws SQLException {
+
+		String name = null;
+
+		String sql = "select name from role where id = ? and o_id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.setInt(2, oId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		}
+
+		return name;
+	}
 
 	/*
 	 * Get the user ident from the user id
@@ -1837,6 +1865,34 @@ public class GeneralUtilityMethods {
 		}
 
 		return surveyIdent;
+	}
+	
+	/*
+	 * Get the survey version from the id
+	 */
+	static public int getSurveyVersion(Connection sd, int surveyId) throws SQLException {
+
+		int version = 0;
+
+		String sql = "select version " 
+				+ " from survey " 
+				+ " where s_id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				version = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return version;
 	}
 
 	/*

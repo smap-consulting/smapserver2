@@ -483,18 +483,12 @@ public class Surveys extends Application {
 			 * update version number of survey and get the new version
 			 */
 			String sqlUpdateVersion = "update survey set version = version + 1 where s_id = ?";
-			String sqlGetVersion = "select version from survey where s_id = ?";
 			pstmt = sd.prepareStatement(sqlUpdateVersion);
 			pstmt.setInt(1, sId);
 			pstmt.execute();
 			pstmt.close();
 
-			pstmt = sd.prepareStatement(sqlGetVersion);
-			pstmt.setInt(1, sId);
-			ResultSet rs = pstmt.executeQuery();
-			rs.next();
-			int version = rs.getInt(1);
-			pstmt.close();
+			int version = GeneralUtilityMethods.getSurveyVersion(sd, sId);
 			
 			/*
 			 * Parse the request
