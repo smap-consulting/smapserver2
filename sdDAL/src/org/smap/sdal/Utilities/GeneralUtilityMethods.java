@@ -1836,6 +1836,34 @@ public class GeneralUtilityMethods {
 
 		return surveyIdent;
 	}
+	
+	/*
+	 * Get the survey version from the id
+	 */
+	static public int getSurveyVersion(Connection sd, int surveyId) throws SQLException {
+
+		int version = 0;
+
+		String sql = "select version " 
+				+ " from survey " 
+				+ " where s_id = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, surveyId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				version = rs.getInt(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+
+		return version;
+	}
 
 	/*
 	 * Get the survey id from the ident
