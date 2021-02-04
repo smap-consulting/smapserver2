@@ -1659,6 +1659,34 @@ public class GeneralUtilityMethods {
 
 		return id;
 	}
+	
+	/*
+	 * Get the role name from the role id
+	 */
+	static public String getRoleName(Connection sd, int id, int oId) throws SQLException {
+
+		String name = null;
+
+		String sql = "select name from role where id = ? and o_id = ?";
+
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, id);
+			pstmt.setInt(2, oId);
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			}
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
+		}
+
+		return name;
+	}
 
 	/*
 	 * Get the user ident from the user id

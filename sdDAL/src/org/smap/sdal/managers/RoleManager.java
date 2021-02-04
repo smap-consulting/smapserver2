@@ -50,6 +50,7 @@ public class RoleManager {
 	private static Logger log =
 			 Logger.getLogger(RoleManager.class.getName());
 
+	LogManager lm = new LogManager(); // Application log
 	ResourceBundle localisation = null;
 	
 	public RoleManager(ResourceBundle l) {
@@ -230,7 +231,8 @@ public class RoleManager {
 	 */
 	public void deleteRoles(Connection sd, 
 			ArrayList<Role> rArray, 
-			int o_id) throws Exception {
+			int o_id,
+			String user) throws Exception {
 		
 		String sql = "delete from role where o_id = ? and id = ?";
 		
@@ -241,11 +243,18 @@ public class RoleManager {
 			pstmt = sd.prepareStatement(sql);
 			
 			for(int i = 0; i < rArray.size(); i++) {
-			
+				
+				String roleName = GeneralUtilityMethods.getRoleName(sd, rArray.get(i).id, o_id);
+				
 				pstmt.setInt(1, o_id);
 				pstmt.setInt(2, rArray.get(i).id);
-			
 				pstmt.executeUpdate();
+
+				if(roleName != null) {
+					String msg = localisation.getString("r_deleted");
+					msg = msg.replace("%s1", roleName);
+					lm.writeLogOrganisation(sd, o_id, user, LogManager.ROLE, msg, 0);
+				}
 			}
 			
 			
