@@ -175,18 +175,33 @@ public class Roles extends Application {
 			
 			for(int i = 0; i < rArray.size(); i++) {
 				Role r = rArray.get(i);
-				
+				String msg = null;
 				if(r.id == -1) {
 					
 					// New role
 					rm.createRole(sd, r, o_id, request.getRemoteUser(), false);
+					msg = localisation.getString("r_created");
 					
 				} else {
 					// Existing role
 					rm.updateRole(sd, r, o_id, request.getRemoteUser());
-			
+					msg = localisation.getString("r_modified");	
+					StringBuilder userList = new StringBuilder("");
+					for(int id : r.users) {
+						String ident = GeneralUtilityMethods.getUserIdent(sd, id);
+						if(ident != null) {
+							if(userList.length() > 0) {
+								userList.append(", ");
+							}
+							userList.append(ident);
+						}
+					}
+					msg = msg.replace("%s2", userList.toString());
+					msg = msg.replace("%s3", r.desc);
 				}
-			
+				msg = msg.replace("%s1",  r.name);
+				lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.ROLE, msg, 0);
+				
 				response = Response.ok().build();
 			}
 				
@@ -228,10 +243,11 @@ public class Roles extends Application {
 			RoleManager rm = new RoleManager(localisation);
 			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			rm.deleteRoles(sd, rArray, o_id);
+			rm.deleteRoles(sd, rArray, o_id, request.getRemoteUser());
+			
 			response = Response.ok().build();			
 		}  catch (Exception ex) {
-			log.log(Level.SEVERE, ex.getMessage());
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 			
 		} finally {			
