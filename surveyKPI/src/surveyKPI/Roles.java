@@ -42,8 +42,11 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RoleManager;
+import org.smap.sdal.model.ChangeElement;
+import org.smap.sdal.model.Language;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Role;
+import org.smap.sdal.model.RoleColumnFilter;
 import org.smap.sdal.model.RoleName;
 
 import com.google.gson.Gson;
@@ -172,18 +175,33 @@ public class Roles extends Application {
 			
 			for(int i = 0; i < rArray.size(); i++) {
 				Role r = rArray.get(i);
-				
+				String msg = null;
 				if(r.id == -1) {
 					
 					// New role
 					rm.createRole(sd, r, o_id, request.getRemoteUser(), false);
+					msg = localisation.getString("r_created");
 					
 				} else {
 					// Existing role
 					rm.updateRole(sd, r, o_id, request.getRemoteUser());
-			
+					msg = localisation.getString("r_modified");	
+					StringBuilder userList = new StringBuilder("");
+					for(int id : r.users) {
+						String ident = GeneralUtilityMethods.getUserIdent(sd, id);
+						if(ident != null) {
+							if(userList.length() > 0) {
+								userList.append(", ");
+							}
+							userList.append(ident);
+						}
+					}
+					msg = msg.replace("%s2", userList.toString());
+					msg = msg.replace("%s3", r.desc);
 				}
-			
+				msg = msg.replace("%s1",  r.name);
+				lm.writeLogOrganisation(sd, o_id, request.getRemoteUser(), LogManager.ROLE, msg, 0);
+				
 				response = Response.ok().build();
 			}
 				
@@ -225,10 +243,11 @@ public class Roles extends Application {
 			RoleManager rm = new RoleManager(localisation);
 			
 			int o_id = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
-			rm.deleteRoles(sd, rArray, o_id);
+			rm.deleteRoles(sd, rArray, o_id, request.getRemoteUser());
+			
 			response = Response.ok().build();			
 		}  catch (Exception ex) {
-			log.log(Level.SEVERE, ex.getMessage());
+			log.log(Level.SEVERE, ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 			
 		} finally {			
@@ -321,6 +340,10 @@ public class Roles extends Application {
 		aSM.isValidRole(sd, request.getRemoteUser(), role.id);
 		// End Authorisation
 		
+		String sqlChangeLog = "insert into survey_change " +
+				"(s_id, version, changes, user_id, apply_results, updated_time) " +
+				"values(?, ?, ?, ?, 'true', ?)";
+		PreparedStatement pstmtChangeLog = null;
 		
 		try {
 			// Get the users locale
@@ -328,15 +351,46 @@ public class Roles extends Application {
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			RoleManager rm = new RoleManager(localisation);
+			ChangeElement change = new ChangeElement();
 			
 			if(property.equals("enabled")) {
 				role.linkid = rm.updateSurveyLink(sd, sId, role.id, role.linkid, role.enabled);
+				change.msg = localisation.getString(role.enabled ? "ed_c_re" : "ed_c_rne");
 			} else if(property.equals("row_filter")) {
 				rm.updateSurveyRoleRowFilter(sd, sId, role, localisation);
+				change.msg = localisation.getString("ed_c_rrf");
+				change.msg = change.msg.replace("%s2", role.row_filter);
 			} else if(property.equals("column_filter")) {
 				rm.updateSurveyRoleColumnFilter(sd, sId, role, localisation);
+				change.msg = localisation.getString("ed_c_rcf");
+				StringBuilder colMsg = new StringBuilder("");
+				for(RoleColumnFilter c : role.column_filter) {
+					String col = GeneralUtilityMethods.getQuestionNameFromId(sd, sId, c.id);
+					if(colMsg.length() > 0) {
+						colMsg.append(", ");
+					}
+					colMsg.append(col);
+				}
+				change.msg = change.msg.replace("%s2", colMsg.toString());
 			}
-			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+
+			Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+
+			// Record change in change log
+			int userId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+			int version = GeneralUtilityMethods.getSurveyVersion(sd, sId);
+
+			change.action = "role";
+			change.origSId = sId;	
+			change.msg = change.msg.replace("%s1", role.name);
+			
+			pstmtChangeLog = sd.prepareStatement(sqlChangeLog);
+			pstmtChangeLog.setInt(1, sId);
+			pstmtChangeLog.setInt(2, version);
+			pstmtChangeLog.setString(3, gson.toJson(change));
+			pstmtChangeLog.setInt(4, userId);
+			pstmtChangeLog.setTimestamp(5, GeneralUtilityMethods.getTimeStamp());
+			pstmtChangeLog.execute();			
 			String resp = gson.toJson(role);
 			response = Response.ok(resp).build();
 		} catch (Exception e) {
@@ -345,6 +399,7 @@ public class Roles extends Application {
 			log.log(Level.SEVERE,"Error", e);
 
 		} finally {
+			if(pstmtChangeLog != null) try {pstmtChangeLog.close();}catch(Exception e) {}
 			SDDataSource.closeConnection("surveyKPI-updateSurveyRoles", sd);
 		}
 
