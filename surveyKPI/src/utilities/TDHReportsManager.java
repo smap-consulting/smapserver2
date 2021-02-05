@@ -23,12 +23,11 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -42,22 +41,11 @@ import javax.ws.rs.core.Response.Status;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.QueryGenerator;
 import org.smap.sdal.Utilities.XLSUtilities;
-import org.smap.sdal.constants.SmapExportTypes;
 import org.smap.sdal.custom.TDHIndividualReport;
 import org.smap.sdal.custom.TDHIndividualValues;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.QueryManager;
-import org.smap.sdal.model.ColDesc;
-import org.smap.sdal.model.ColValues;
-import org.smap.sdal.model.OptionDesc;
-import org.smap.sdal.model.QueryForm;
 import org.smap.sdal.model.QuestionLite;
-import org.smap.sdal.model.ReadData;
-import org.smap.sdal.model.SqlDesc;
-import org.smap.sdal.model.Transform;
-import org.smap.sdal.model.TransformDetail;
 
 
 /*
@@ -128,12 +116,13 @@ public class TDHReportsManager {
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
 				CellStyle defaultStyle = styles.get("default");
+				CellStyle dateHeader = styles.get("dateHeader");
 				errorStyle = styles.get("error");			
 				
 				reports = getIndividualReports();
 				for(TDHIndividualReport r : reports) {
 					r.sheet = wb.createSheet(r.name);	
-					values = getValues(cResults, r);
+					values = getValues(cResults, r, beneficiaryCode);
 					
 					/*
 					 * Write the questions and create the rows
@@ -153,9 +142,29 @@ public class TDHReportsManager {
 						cell.setCellStyle(defaultStyle);
 						cell.setCellValue(q.name);		
 					}
+					
+					/*
+					 * Write each column of values
+					 */
+					for(TDHIndividualValues dataCol : values) {
+						colNumber++;
+						rowNumber = 0;
+						
+						// Add date of record
+						row = r.sheet.getRow(rowNumber++);
+						
+						cell = row.createCell(colNumber);
+						cell.setCellStyle(dateHeader);
+						cell.setCellValue(dataCol.date);	
+						
+						for(String v : dataCol.values) {
+							row = r.sheet.getRow(rowNumber++);
+							cell = row.createCell(colNumber);
+							cell.setCellStyle(defaultStyle);
+							cell.setCellValue(v);		
+						}
+					}
 				}
-
-			
 
 			}  catch (Exception e) {
 				try {cResults.setAutoCommit(true);} catch (Exception ex) {}
@@ -203,7 +212,7 @@ public class TDHReportsManager {
 		
 		ArrayList<TDHIndividualReport> reports = new ArrayList<>();
 		
-		TDHIndividualReport r1 = new TDHIndividualReport("SDQ", "s640_main");
+		TDHIndividualReport r1 = new TDHIndividualReport("SDQ", "s208_main");
 		r1.questions.add(new QuestionLite("string", "considerate_of_other_peoples_feelings", "considerate_of_other_peoples_feelings"));
 		r1.questions.add(new QuestionLite("string", "restless_overactive_cannot_stay_still_for_long", "restless_overactive_cannot_stay_still_for_long"));
 		reports.add(r1);
@@ -211,8 +220,49 @@ public class TDHReportsManager {
 		return reports;
 	}
 
-	private ArrayList<TDHIndividualValues> getValues(Connection cResults, TDHIndividualReport report) {
+	private ArrayList<TDHIndividualValues> getValues(Connection cResults, 
+			TDHIndividualReport report,
+			String beneficiaryCode) throws SQLException {
 		ArrayList<TDHIndividualValues> values = new ArrayList<TDHIndividualValues> ();
+		
+		StringBuilder sql = new StringBuilder("select _upload_time, ");
+		sql.append(getColumnsFromReport(report));
+		sql.append(" from ")
+			.append(report.tableName)
+			.append(" where barcode_registrationnumber = ? or manual_registrationnumber = ? ")
+			.append(" order by _upload_time asc");
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = cResults.prepareStatement(sql.toString());
+			pstmt.setString(1,  beneficiaryCode);
+			pstmt.setString(2, beneficiaryCode);
+			log.info(pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				TDHIndividualValues v = new TDHIndividualValues();
+				values.add(v);
+				v.date = rs.getTimestamp("_upload_time");
+				for(QuestionLite q : report.questions) {
+					v.values.add(rs.getString(q.column_name));
+				}
+			}
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
+
 		return values;
+	}
+	
+	private String getColumnsFromReport(TDHIndividualReport report) {
+		StringBuilder qList = new StringBuilder("");
+		for(QuestionLite q : report.questions) {
+			if(qList.length() > 0) {
+				qList.append(", ");
+			}
+			qList.append(q.column_name);
+		}
+		return qList.toString();
 	}
 }
