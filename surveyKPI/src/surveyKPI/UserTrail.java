@@ -109,23 +109,31 @@ public class UserTrail extends Application {
 		ResultSet resultSet = null;
 		try {
 			
-			String sql = "SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +			// keep this
+			StringBuffer sql = new StringBuffer("SELECT ut.id as id, ST_X(ST_Transform(ut.the_geom, 3857)) as x, " +			// keep this
 						"ST_Y(ST_Transform(ut.the_geom, 3857)) as y, ut.event_time as event_time, " +	// keep this
 						"extract(epoch from ut.event_time) * 1000 as raw_time, " + 
 						"u.name as user_name " +	
 					"FROM user_trail ut, users u  " +
-					"where u.id = ut.u_id " +
-					"and ut.event_time >= ? " +
-					"and ut.event_time <  ? " +
-					"and ut.u_id = ? " +
-					"order by ut.event_time asc;";
+					"where u.id = ut.u_id ");
 			
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setTimestamp(1, startDate);
-			pstmt.setTimestamp(2, endDate);
-			pstmt.setInt(3, uId);
-
-			log.info("Events List: " + sql + " : " + uId + " : " + startDate + " : " + endDate);
+			if(start_t > 0) {
+				sql.append("and ut.event_time >= ? ");
+			}
+			if(end_t > 0) {
+				sql.append("and ut.event_time <  ? ");
+			}
+			sql.append("and ut.u_id = ? " +
+					"order by ut.event_time asc limit 5000");
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			int idx = 1;
+			if(start_t > 0) {
+				pstmt.setTimestamp(idx++, startDate);
+			}
+			if(end_t > 0) {
+				pstmt.setTimestamp(idx++, endDate);
+			}
+			pstmt.setInt(idx++, uId);
 
 			log.info("Get User Trail: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
