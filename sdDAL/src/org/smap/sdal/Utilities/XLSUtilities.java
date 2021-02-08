@@ -139,6 +139,11 @@ public class XLSUtilities {
 		styles.put("default", style);
 		
 		style = wb.createCellStyle();
+		style.setFont(boldFont);
+		style.setDataFormat((short) 0xf);
+		styles.put("dateHeader", style);
+		
+		style = wb.createCellStyle();
 		style.setWrapText(true);
 		style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
 		style.setFillPattern(FillPatternType.SOLID_FOREGROUND);

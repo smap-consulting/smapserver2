@@ -202,7 +202,9 @@ public class SurveyTableManager {
 						}
 					}
 					if(!foundCol) {
-						throw new ApplicationException("Question " + col + " not found in table ");
+						String msg = localisation.getString("qlu");
+						msg = msg.replace("%s1", col);
+						throw new ApplicationException(msg);
 					}
 				}
 			}
