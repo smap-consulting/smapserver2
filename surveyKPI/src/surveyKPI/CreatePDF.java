@@ -22,6 +22,7 @@ import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -41,6 +42,8 @@ import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.PDFSurveyManager;
 import org.smap.sdal.managers.SurveyManager;
+
+
 
 /*
  * Downloads a record in PDF format
@@ -169,6 +172,8 @@ public class CreatePDF extends Application {
 			response = Response.ok("").build();
 			
 		} catch(Exception e) {
+			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.CREATE_PDF, e.getMessage(), 0);
+			log.log(Level.SEVERE, e.getMessage(), e);
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			

@@ -26,8 +26,6 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -36,10 +34,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.managers.SurveyManager;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import utilities.TDHReportsManager;
 
 import java.sql.*;
@@ -86,8 +80,6 @@ public class TDH extends Application {
 		a.isAuthorised(sd, request.getRemoteUser());
 		
 		// End Authorisation
-		
-		ArrayList<org.smap.sdal.model.Survey> surveys = null;
 		
 		Response responseVal = null;
 		Connection cResults = null;
