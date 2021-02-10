@@ -391,7 +391,8 @@ public class OrganisationList extends Application {
 		// End Authorisation
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
-				+ "ft_specify_instancename, ft_prevent_disable_track, ft_enable_geofence, ft_admin_menu, "
+				+ "ft_specify_instancename, ft_mark_finalized,"
+				+ "ft_prevent_disable_track, ft_enable_geofence, ft_admin_menu, "
 				+ "ft_exit_track_menu, "
 				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation,"
 				+ "ft_navigation,"
@@ -419,6 +420,7 @@ public class OrganisationList extends Application {
 				d.ft_send_location = rs.getString("ft_send_location");
 				d.ft_odk_style_menus = rs.getBoolean("ft_odk_style_menus");
 				d.ft_specify_instancename = rs.getBoolean("ft_specify_instancename");
+				d.ft_mark_finalized = rs.getBoolean("ft_mark_finalized");
 				d.ft_prevent_disable_track = rs.getBoolean("ft_prevent_disable_track");
 				d.ft_enable_geofence = rs.getBoolean("ft_enable_geofence");
 				d.ft_admin_menu = rs.getBoolean("ft_admin_menu");
@@ -587,6 +589,7 @@ public class OrganisationList extends Application {
 				+ "ft_send_location = ?, "
 				+ "ft_odk_style_menus = ?, "
 				+ "ft_specify_instancename = ?, "
+				+ "ft_mark_finalized = ?, "
 				+ "ft_prevent_disable_track = ?, "
 				+ "ft_enable_geofence = ?, "
 				+ "ft_admin_menu = ?, "
@@ -625,23 +628,24 @@ public class OrganisationList extends Application {
 			pstmt.setString(2, d.ft_send_location);
 			pstmt.setBoolean(3, d.ft_odk_style_menus);
 			pstmt.setBoolean(4, d.ft_specify_instancename);
-			pstmt.setBoolean(5, d.ft_prevent_disable_track);
-			pstmt.setBoolean(6, d.ft_enable_geofence);
-			pstmt.setBoolean(7, d.ft_admin_menu);
-			pstmt.setBoolean(8, d.ft_exit_track_menu);
-			pstmt.setBoolean(9, d.ft_review_final);
-			pstmt.setString(10, d.ft_send);
-			pstmt.setInt(11, d.ft_number_tasks);
-			pstmt.setString(12, d.ft_image_size);
-			pstmt.setString(13, d.ft_backward_navigation);
-			pstmt.setString(14, d.ft_navigation);
-			pstmt.setInt(15, d.ft_pw_policy);
-			pstmt.setString(16, d.ft_high_res_video);
-			pstmt.setString(17, d.ft_guidance);
-			pstmt.setBoolean(18, d.ft_server_menu);
-			pstmt.setBoolean(19, d.ft_meta_menu);
-			pstmt.setString(20, request.getRemoteUser());
-			pstmt.setInt(21, oId);
+			pstmt.setBoolean(5, d.ft_mark_finalized);
+			pstmt.setBoolean(6, d.ft_prevent_disable_track);
+			pstmt.setBoolean(7, d.ft_enable_geofence);
+			pstmt.setBoolean(8, d.ft_admin_menu);
+			pstmt.setBoolean(9, d.ft_exit_track_menu);
+			pstmt.setBoolean(10, d.ft_review_final);
+			pstmt.setString(11, d.ft_send);
+			pstmt.setInt(12, d.ft_number_tasks);
+			pstmt.setString(13, d.ft_image_size);
+			pstmt.setString(14, d.ft_backward_navigation);
+			pstmt.setString(15, d.ft_navigation);
+			pstmt.setInt(16, d.ft_pw_policy);
+			pstmt.setString(17, d.ft_high_res_video);
+			pstmt.setString(18, d.ft_guidance);
+			pstmt.setBoolean(19, d.ft_server_menu);
+			pstmt.setBoolean(20, d.ft_meta_menu);
+			pstmt.setString(21, request.getRemoteUser());
+			pstmt.setInt(22, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

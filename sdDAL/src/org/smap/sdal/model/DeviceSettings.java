@@ -23,6 +23,7 @@ public class DeviceSettings {
 	public String ft_send_location;
 	public boolean ft_odk_style_menus;
 	public boolean ft_specify_instancename;
+	public boolean ft_mark_finalized;
 	public boolean ft_prevent_disable_track;
 	public boolean ft_enable_geofence;
 	public boolean ft_admin_menu;

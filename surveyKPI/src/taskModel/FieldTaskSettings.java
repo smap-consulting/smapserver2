@@ -8,6 +8,7 @@ public class FieldTaskSettings {
 	public boolean ft_sync_incomplete;
 	public boolean ft_odk_style_menus;
 	public boolean ft_specify_instancename;
+	public boolean ft_mark_finalized;
 	public boolean ft_prevent_disable_track;
 	private String ft_enable_geofence;
 	public boolean ft_admin_menu;
