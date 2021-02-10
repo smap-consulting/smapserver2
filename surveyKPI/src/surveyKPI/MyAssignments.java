@@ -605,6 +605,7 @@ public class MyAssignments extends Application {
 					+ "o.ft_sync_incomplete, "
 					+ "o.ft_odk_style_menus, "
 					+ "o.ft_specify_instancename, "
+					+ "o.ft_mark_finalized, "
 					+ "o.ft_prevent_disable_track, "
 					+ "o.ft_enable_geofence, "
 					+ "o.ft_admin_menu, "
@@ -638,6 +639,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_sync_incomplete = resultSet.getBoolean("ft_sync_incomplete");
 				tr.settings.ft_odk_style_menus = resultSet.getBoolean("ft_odk_style_menus");
 				tr.settings.ft_specify_instancename = resultSet.getBoolean("ft_specify_instancename");
+				tr.settings.ft_mark_finalized = resultSet.getBoolean("ft_mark_finalized");
 				tr.settings.ft_prevent_disable_track = resultSet.getBoolean("ft_prevent_disable_track");
 				tr.settings.setFtEnableGeofence(resultSet.getBoolean("ft_enable_geofence"));
 				tr.settings.ft_admin_menu = resultSet.getBoolean("ft_admin_menu");
