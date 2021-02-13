@@ -176,11 +176,13 @@ public class RecordEventManager {
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
 				+ "and a.task_id = t.id "
+				+ "and f.parentform = 0 "
 				+ "and a.id = ?";
 		String sqlUsingTask = "select t.update_id, f.table_name, t.id, t.schedule_at, t.schedule_finish "
 				+ "from tasks t, form f, survey s "
 				+ "where t.survey_ident = s.ident "
 				+ "and f.s_id = s.s_id "
+				+ "and f.parentform = 0 "
 				+ "and t.id = ?";
 		
 		PreparedStatement pstmt = null;
