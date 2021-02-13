@@ -298,6 +298,46 @@ public class Surveys extends Application {
 	}
 	
 	/*
+	 * Get high level details on a survey given its id
+	 */
+	@GET
+	@Path("/summary/id/{id}")
+	@Produces("application/json")
+	public Response getSurveySummaryForId(@Context HttpServletRequest request,
+			@PathParam("id") int id
+			) { 
+		
+		String connectionString = "surveyKPI - Get Survey Summary for Id";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString );	
+		aUpdate.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		Response response = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, id);
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			SurveySummary summary = sm.getSummary(sd, sIdent);
+			Gson gson=  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+			String resp = gson.toJson(summary);
+			response = Response.ok(resp).build();			
+			
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().build();
+		} finally {			
+			SDDataSource.closeConnection(connectionString , sd);				
+		}
+
+		return response;
+	}
+	
+	/*
 	 * Get a list of surveys with their idents that are accessible to a user
 	 */
 	@GET
