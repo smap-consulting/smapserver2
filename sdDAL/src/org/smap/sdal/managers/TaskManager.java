@@ -1895,7 +1895,7 @@ public class TaskManager {
 				+ "and id in (";
 		
 		String deleteHardNewAssignmentsSql = "delete from assignments "
-				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ? and not assign_auto) "	
+				+ "where task_id in (select id from tasks t, task_group tg where t.tg_id = tg.tg_id and tg.p_id = ? and not t.assign_auto) "	
 				+ "and (status = 'new') "
 				+ "and id in (";
 		
