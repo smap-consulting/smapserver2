@@ -378,7 +378,7 @@ public class GetHtml {
 			/*
 			 * Create fieldSet or Label depending on the attributes
 			 */
-			if (minSelect(q.appearance)) {
+			if (minSelect(q.appearance) && !q.type.equals("rank")) {
 				bodyElement = outputDoc.createElement("label");
 				setQuestionClass(q, bodyElement);
 
@@ -512,7 +512,7 @@ public class GetHtml {
 			classVal.append("question");
 			if (!q.isSelect()) {
 				classVal.append(" non-select");
-			} else if (!q.appearance.contains("likert") && !minSelect(q.appearance) && !q.appearance.contains("compact")) {
+			} else if(q.type.equals("rank") || (!q.appearance.contains("likert") && !minSelect(q.appearance) && !q.appearance.contains("compact"))) {
 				classVal.append(" simple-select");
 			}
 		}
