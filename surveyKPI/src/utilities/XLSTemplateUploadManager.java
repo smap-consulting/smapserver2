@@ -1090,12 +1090,8 @@ public class XLSTemplateUploadManager {
 			boolean guidanceHintSet = false;
 			boolean constraintMsgSet = false;
 			boolean requiredMsgSet = false;
-			boolean labelSet = false;
 			for(int i = 0; i < survey.languages.size(); i++) {
 				String lang = survey.languages.get(i).name;
-				if(XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, null) != null) {
-					labelSet = true;
-				}
 				if(!choiceSheet) {
 					if(XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, null) != null) {
 						hintSet = true;
@@ -1116,11 +1112,8 @@ public class XLSTemplateUploadManager {
 				String lang = survey.languages.get(i).name;
 				
 				Label lab = new Label();
-				if(labelSet) {
-					lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, "-");
-				} else {
-					lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, null);
-				}
+				lab.text = XLSUtilities.getTextColumn(row, "label::" + lang, header, lastCellNum, "-");
+	
 				
 				if(hintSet) {
 					lab.hint = XLSUtilities.getTextColumn(row, "hint::" + lang, header, lastCellNum, "-");
@@ -1142,9 +1135,6 @@ public class XLSTemplateUploadManager {
 				}
 				if(lab.constraint_msg == null) {	// use the universal setting
 					lab.constraint_msg = XLSUtilities.getTextColumn(row, XLSFormColumns.CONSTRAINT_MESSAGE, header, lastCellNum, null);
-				}
-				if(lab.constraint_msg == null) {	// use the universal setting
-					lab.constraint_msg = XLSUtilities.getTextColumn(row, "constraint-msg", header, lastCellNum, null);
 				}
 				
 				// Required message
