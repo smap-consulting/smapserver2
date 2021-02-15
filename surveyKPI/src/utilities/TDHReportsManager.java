@@ -26,7 +26,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.ResourceBundle;
@@ -212,10 +211,19 @@ public class TDHReportsManager {
 		
 		ArrayList<TDHIndividualReport> reports = new ArrayList<>();
 		
-		TDHIndividualReport r1 = new TDHIndividualReport("SDQ", "s208_main");
+		TDHIndividualReport r1 = new TDHIndividualReport("SDQ", "s640_main");
 		r1.questions.add(new QuestionLite("string", "considerate_of_other_peoples_feelings", "considerate_of_other_peoples_feelings"));
 		r1.questions.add(new QuestionLite("string", "restless_overactive_cannot_stay_still_for_long", "restless_overactive_cannot_stay_still_for_long"));
+		r1.questions.add(new QuestionLite("string", "often_complains_of_headaches_or_sickness", "often_complains_of_headaches_stomachxaches_or_sickne4fce9"));
+		r1.questions.add(new QuestionLite("string", "shares_readily_with_other_children_treats_toys_pencils_etc", "shares_readily_with_other_children_treats_toys_pencils_etc"));
 		reports.add(r1);
+		
+		TDHIndividualReport r2 = new TDHIndividualReport("PSS MGS دعم نفسي اجتماعي للاطفال", "s1085_main");
+		r2.questions.add(new QuestionLite("string", "works", "works"));
+		r2.questions.add(new QuestionLite("string", "psychological", "psychological"));
+		r2.questions.add(new QuestionLite("string", "Emotionalcontract", "Emotionalcontract"));
+		r2.questions.add(new QuestionLite("string", "rulesofpositive", "rulesofpositive"));
+		reports.add(r2);
 		
 		return reports;
 	}
