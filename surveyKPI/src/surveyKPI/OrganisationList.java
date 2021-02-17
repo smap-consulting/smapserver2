@@ -988,7 +988,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		Type type = new TypeToken<ArrayList<Organisation>>(){}.getType();		
@@ -1009,7 +1009,8 @@ public class OrganisationList extends Application {
 			
 			for(int i = 0; i < oArray.size(); i++) {
 				Organisation o = oArray.get(i);
-				a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
+				aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
+				aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), o.id);
 				
 				/*
 				 * Ensure that there are no undeleted projects with surveys in this organisation
