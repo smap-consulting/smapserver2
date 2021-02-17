@@ -1606,6 +1606,67 @@ public class Authorise {
 	}
 	
 	/*
+	 * Verify that the user has update rights to the organisation
+	 * They can either be an organisational administrator or
+	 * the organisation is owned by the user
+	 */
+	public boolean canUserUpdateOrganisation(Connection conn, String user, int oId) {
+		ResultSet resultSet = null;
+		PreparedStatement pstmt = null;
+		int count = 0;
+		boolean sqlError = false;
+
+
+		String sql = "select count(*) from users u, organisation o "
+				+ "where u.ident = ? "
+				+ "and o.id = ? "
+				+ "and o.owner = u.id";
+		
+		try {
+			// If user is an org administrator then all is good
+			if(GeneralUtilityMethods.isOrgUser(conn, user)) {
+				return true;
+			}
+			
+			// Else check for ownership - note we already should have verified that they are an admin or org_admin user
+			
+			pstmt = conn.prepareStatement(sql);
+			pstmt.setString(1, user);
+			pstmt.setInt(2, oId);
+			log.info("IsOrganisationOwned: " + pstmt.toString());
+			resultSet = pstmt.executeQuery();
+			resultSet.next();
+			
+			count = resultSet.getInt(1);
+		} catch (Exception e) {
+			log.log(Level.SEVERE,"Error in Authorisation", e);
+			sqlError = true;
+		} finally {
+			// Close the result set and prepared statement
+			try{
+				if(resultSet != null) {resultSet.close();};
+				if(pstmt != null) {pstmt.close();};
+			} catch (Exception ex) {
+				log.log(Level.SEVERE, "Unable to close resultSet or prepared statement");
+			}
+		}
+		
+ 		if(count == 0) {
+ 			log.info("Security: Check for ownership of organisation failed for user: " + user + " organisation was: " + oId);
+ 			
+ 			SDDataSource.closeConnection("canUserUpdateOrganisation", conn);
+			
+			if(sqlError) {
+				throw new ServerException();
+			} else {
+				throw new AuthorisationException();
+			}
+		} 
+ 		
+		return true;
+	}
+	
+	/*
 	 * Verify that the user is entitled to access this task
 	 */
 	public boolean isValidTask(Connection conn, String user, int tId) {

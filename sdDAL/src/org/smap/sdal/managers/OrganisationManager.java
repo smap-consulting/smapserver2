@@ -295,12 +295,12 @@ public class OrganisationManager {
 				+ "can_notify, can_use_api, can_submit, set_as_theme, e_id, ft_backward_navigation, ft_navigation, "
 				+ "ft_guidance, ft_image_size, ft_send, ft_delete, "
 				+ "ft_send_location, ft_pw_policy, navbar_color, can_sms, send_optin, limits, "
-				+ "ft_high_res_video, refresh_rate, changed_ts) "
+				+ "ft_high_res_video, refresh_rate, changed_ts, owner) "
 				+ "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, "
 				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, now());";
+				+ "?, ?, ?, ?, ?, ?, ?, ?, now(), ?);";
 		PreparedStatement pstmt = null;
 		
 		try {
@@ -376,12 +376,21 @@ public class OrganisationManager {
 			pstmt.setString(38, o.limits == null ? null : gson.toJson(o.limits));
 			pstmt.setString(39, "not set");		// High Resolution Video
 			pstmt.setInt(40, o.refresh_rate);
+			
+			/*
+			 * Set the owner only if this is a personal organisation.
+			 * If it is being created by an organisational administrator then they do
+			 * not get to keep ownership of the organisations if they lose org admin privilege, hence
+			 * the owner would be set to zero.  In other words they are creating community organisations that
+			 * will need to be maintained by whichever user has organisational admin privilege
+			 */
+			pstmt.setInt(41, GeneralUtilityMethods.isOrgUser(sd, userIdent) ? 0 : GeneralUtilityMethods.getUserId(sd, userIdent));
 			log.info("Insert organisation: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			rs = pstmt.getGeneratedKeys();
             if (rs.next()) {
-            		o_id = rs.getInt(1);
+            	o_id = rs.getInt(1);
             }
             rs.close();
             
