@@ -83,7 +83,8 @@ import java.util.regex.Pattern;
 public class OrganisationList extends Application {
 	
 	Authorise a = null;
-	Authorise aAdmin = null;
+	Authorise aAdminAnalyst = null;
+	Authorise aAdminOrg = null;
 	Authorise aSecurity = null;
 
 	private static Logger log =
@@ -96,9 +97,14 @@ public class OrganisationList extends Application {
 		a = new Authorise(null, Authorise.ORG);
 		
 		ArrayList<String> authorisations = new ArrayList<String> ();	
+		authorisations.add(Authorise.ORG);
+		authorisations.add(Authorise.ADMIN);
+		aAdminOrg = new Authorise(authorisations, null);
+		
+		authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ANALYST);
 		authorisations.add(Authorise.ADMIN);
-		aAdmin = new Authorise(authorisations, null);
+		aAdminAnalyst = new Authorise(authorisations, null);
 		
 		aSecurity = new Authorise(null, Authorise.SECURITY);
 	}
@@ -112,7 +118,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-getOrganisations");
-		a.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -132,14 +138,16 @@ public class OrganisationList extends Application {
 				e_id = GeneralUtilityMethods.getEnterpriseId(sd, request.getRemoteUser());
 			}
 			
-			String sql = null;
+			// Add a restriction to personal organsiations if the user is not an org administrator
+			int personalUserId = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser()) ? 0 : GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
+
 			ResultSet resultSet = null;
 			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 			
 			/*
 			 * Get the organisations
 			 */
-			sql = "select id, name, "
+			StringBuilder sql = new StringBuilder("select id, name, "
 					+ "company_name, "
 					+ "company_address, "
 					+ "company_phone, "
@@ -173,11 +181,19 @@ public class OrganisationList extends Application {
 					+ "limits,"
 					+ "refresh_rate "
 					+ "from organisation "
-					+ "where organisation.e_id = ? "
-					+ "order by name asc;";			
-						
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, e_id);
+					+ "where organisation.e_id = ? ");			
+			
+			if(personalUserId > 0) {
+				sql.append("and organisation.owner = ? ");
+			}
+			sql.append("order by name asc");
+			
+			int idx = 1;
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setInt(idx++, e_id);
+			if(personalUserId > 0) {
+				pstmt.setInt(idx++, personalUserId);
+			}
 			log.info("Get organisation list: " + pstmt.toString());
 			resultSet = pstmt.executeQuery();
 			
@@ -255,7 +271,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection("surveyKPI-OrganisationList-updateOrganisation");
-		a.isAuthorised(sd, request.getRemoteUser());
+		aAdminOrg.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 
 		try {
@@ -298,8 +314,8 @@ public class OrganisationList extends Application {
 				} else {
 					// Existing organisation
 
-					a.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
-					
+					aAdminOrg.isOrganisationInEnterprise(sd, request.getRemoteUser(), o.id);
+					aAdminOrg.canUserUpdateOrganisation(sd, request.getRemoteUser(), o.id);
 					om.updateOrganisation(
 							sd, 
 							o, 
@@ -387,7 +403,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select ft_delete, ft_send_location, ft_odk_style_menus, "
@@ -464,7 +480,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -499,7 +515,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
@@ -533,7 +549,7 @@ public class OrganisationList extends Application {
 		
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "select sensitive_data "
@@ -580,7 +596,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateDeviceSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		String sql = "update organisation set "
@@ -680,7 +696,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateWebformSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 		PreparedStatement pstmt = null;
@@ -834,7 +850,7 @@ public class OrganisationList extends Application {
 		String connectionString = "surveyKPI-OrganisationList-updateAppearanceSettings";
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
-		aAdmin.isAuthorised(sd, request.getRemoteUser());
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
 		
 
