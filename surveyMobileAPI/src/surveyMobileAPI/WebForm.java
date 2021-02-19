@@ -510,7 +510,11 @@ public class WebForm extends Application {
 			if (isTemporaryUser) {
 				a.isValidTemporaryUser(sd, userIdent);
 			} else {
-				a.isAuthorised(sd, userIdent);
+				try {
+					a.isAuthorised(sd, userIdent);
+				} catch(Exception e) {
+					throw new AuthorisationException(localisation.getString("web_blocked"));
+				}
 			}
 			
 			SurveyManager surveyManager = new SurveyManager(localisation, "UTC");
