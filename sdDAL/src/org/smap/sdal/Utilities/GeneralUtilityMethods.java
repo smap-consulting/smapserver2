@@ -7994,10 +7994,7 @@ public class GeneralUtilityMethods {
 				if(count == 0) {
 					log.info("error: failed to delete temporay user: " + uIdent);
 				}
-				
-				// Delete any csv table definitions that they have
-				SurveyTableManager stm = new SurveyTableManager(sd, localisation);
-				stm.deleteForUsers(uIdent);			// Delete references to this survey in the csv table 
+
 
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
