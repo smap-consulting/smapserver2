@@ -249,7 +249,7 @@ public class XLSXAdminReportsManagerFormAccess {
 			 * Process the users
 			 */
 			UserManager um = new UserManager(localisation);
-			ArrayList<User> users = um.getUserList(sd, oId, true, true);	
+			ArrayList<User> users = um.getUserList(sd, oId, true, true, true, request.getRemoteUser());	
 			for(User u : users) {
 				colNumber = 0;
 				boolean hasProject = false;

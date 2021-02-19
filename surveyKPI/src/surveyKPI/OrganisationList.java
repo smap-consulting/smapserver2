@@ -1024,7 +1024,7 @@ public class OrganisationList extends Application {
 			    // Delete any users in this organisation.  If the user is in multiple organisations
 				// then just their connection to the deleted organisation should be removed
 				UserManager um = new UserManager(localisation);				
-				ArrayList<User> users = um.getUserList(sd, o.id, false, false);
+				ArrayList<User> users = um.getUserList(sd, o.id, false, false, false, request.getRemoteUser());
 				for(User u : users) {
 					um.deleteUser(sd, request.getRemoteUser(), 
 							basePath, u.id, o.id, false);	

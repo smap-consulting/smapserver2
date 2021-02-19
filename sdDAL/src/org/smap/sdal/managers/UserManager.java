@@ -470,7 +470,7 @@ public class UserManager {
 			if (rs.next()){
 				u_id = rs.getInt(1);
 				insertUserGroupsProjects(sd, u, u_id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
-				insertUserOrganisations(sd, u, u_id, o_id, isOrgUser);
+				insertUserOrganisations(sd, u, u_id, o_id, isOrgUser, userIdent);
 			}
 
 			// Send a notification email to the user
@@ -704,12 +704,12 @@ public class UserManager {
 					// Update the groups, projects and roles
 					insertUserGroupsProjects(sd, u, u.id, isOrgUser, isSecurityManager, isEnterpriseManager, isServerOwner);
 					if(!isSwitch) {
-						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser);
+						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
 				} else {
 					// update the list of organisation that the user has access to.  These are always stored as current
 					if(!isSwitch) {
-						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser);
+						insertUserOrganisations(sd, u, u.id, u.o_id, isOrgUser, userIdent);
 					}
 				}
 
@@ -865,24 +865,32 @@ public class UserManager {
 
 	}
 	
-	private void insertUserOrganisations(Connection sd, User u, int u_id, int o_id, boolean isOrgUser) throws SQLException {
+	private void insertUserOrganisations(Connection sd, User u, int u_id, int o_id, boolean isOrgUser, String userIdent) throws SQLException {
 
 		StringBuilder sql;
-		PreparedStatement pstmt = null;
+		PreparedStatement pstmtDelete = null;
 		PreparedStatement pstmtInsertOrgUser = null;
+		PreparedStatement pstmtValidate = null;
 
 		log.info("Update organisations for user id:" + u_id);
 		log.info("Autocommit: " + sd.getAutoCommit());
 		
 		try {
 
+			int initiatorUserId = 0;
+			if(!isOrgUser) {
+				initiatorUserId = GeneralUtilityMethods.getUserId(sd, userIdent);
+			}
+			/*
+			 * Create a statement to insert a relationship between a user and an organisation
+			 */
 			String sqlInsertOrgUser = "insert into user_organisation (u_id, o_id) values (?, ?)";
 			pstmtInsertOrgUser = sd.prepareStatement(sqlInsertOrgUser);
 			pstmtInsertOrgUser.setInt(1, u_id);
 			
 			/*
-			 * Update user organisation links
-			 * First delete all links in the users current enterprise
+			 * First delete all links in the users current enterprise that are not in the list of 
+			 * organisation ids that have been provided
 			 * If it is not an admin user only delete personal organisation links
 			 */
 			int e_id = GeneralUtilityMethods.getEnterpriseId(sd, u.ident);
@@ -897,57 +905,100 @@ public class UserManager {
 			}
 			
 			if(u.orgs != null) {
+				sd.setAutoCommit(false);
+				
 				ArrayList<Integer> orgList = new ArrayList<Integer> ();
 				for(int j = 0; j < u.orgs.size(); j++) {
 					orgList.add(u.orgs.get(j).id);
 				}
 				
 				int idx = 1;
-				pstmt = sd.prepareStatement(sql.toString());
-				pstmt.setInt(idx++, u.id);
-				pstmt.setArray(idx++, sd.createArrayOf("int", orgList.toArray(new Integer[orgList.size()])));
-				pstmt.setInt(idx++, e_id);
+				pstmtDelete = sd.prepareStatement(sql.toString());
+				pstmtDelete.setInt(idx++, u.id);
+				pstmtDelete.setArray(idx++, sd.createArrayOf("int", orgList.toArray(new Integer[orgList.size()])));
+				pstmtDelete.setInt(idx++, e_id);
 				if(!isOrgUser) {
-					pstmt.setInt(idx++, u.id);
+					pstmtDelete.setInt(idx++, initiatorUserId);
 				}
-				log.info("Delete removed org links: " + pstmt.toString());
-				pstmt.executeUpdate();
+				log.info("Delete remove unset org links: " + pstmtDelete.toString());
+				pstmtDelete.executeUpdate();
 
+				/*
+				 * Create statement to check if the initiating user has permission for this action
+				 */
+				sql = new StringBuilder("select count(*) from organisation where e_id = ? and id = ? "
+						+ "and id not in (select o_id from user_organisation where u_id = ?)");
+				if(!isOrgUser) {
+					sql.append(" and owner = ?");
+				}
+				pstmtValidate = sd.prepareStatement(sql.toString());
+				pstmtValidate.setInt(1,  e_id);
+				if(!isOrgUser) {
+					pstmtValidate.setInt(4, initiatorUserId);
+				}
+				
 				// Create an entry for the users current organisation
-				pstmtInsertOrgUser.setInt(2, o_id);
-				log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
-				try {
-					pstmtInsertOrgUser.executeUpdate();
-				} catch (SQLException e) {
-					if(!e.getSQLState().equals("23505")) {
-						log.log(Level.SEVERE, e.getMessage(), e);
+				if(isValidInsert(pstmtValidate, o_id, u_id)) {
+					pstmtInsertOrgUser.setInt(2, o_id);
+					log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+					try {
+						pstmtInsertOrgUser.executeUpdate();
+					} catch (SQLException e) {
+						if(!e.getSQLState().equals("23505")) {
+							log.log(Level.SEVERE, e.getMessage(), e);
+						}
 					}
 				}
 				for(int j = 0; j < u.orgs.size(); j++) {
 					if(u.orgs.get(j).id != o_id) {
-						pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
-						log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
-						try {
-							pstmtInsertOrgUser.executeUpdate();
-						} catch (SQLException e) {
-							if(!e.getSQLState().equals("23505")) {
-								log.log(Level.SEVERE, e.getMessage(), e);
+						if(isValidInsert(pstmtValidate, u.orgs.get(j).id, u.id)) {
+
+							pstmtInsertOrgUser.setInt(2, u.orgs.get(j).id);
+							log.info("Inserting org link: " + pstmtInsertOrgUser.toString());
+							try {
+								pstmtInsertOrgUser.executeUpdate();
+							} catch (SQLException e) {
+								if(!e.getSQLState().equals("23505")) {
+									log.log(Level.SEVERE, e.getMessage(), e);
+								}
 							}
 						}
+
 					}
 				}
+				
+				sd.commit();
+				
 			} else {
 				log.info("No user groups");
 			}
 		
-
+			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
+			sd.rollback();
 		} finally {
-			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			sd.setAutoCommit(true);
+			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertOrgUser != null) {pstmtInsertOrgUser.close();}} catch (SQLException e) {}
+			try {if (pstmtValidate != null) {pstmtValidate.close();}} catch (SQLException e) {}
 		}
 
+	}
+	
+	private boolean isValidInsert(PreparedStatement pstmtValidate, int o_id, int u_id) throws SQLException {
+		boolean valid = false;
+		pstmtValidate.setInt(2, o_id);
+		pstmtValidate.setInt(3, u_id);
+		ResultSet rs = pstmtValidate.executeQuery();
+		log.info("Validate update to organisation link: " + pstmtValidate.toString() );
+		if(rs.next()) {
+			if(rs.getInt(1) > 0) {
+				valid = true;
+			}
+		}
+		rs.close();
+		return valid;
 	}
 	
 	public void deleteSingleSubmissionTemporaryUser(Connection sd, String userIdent, String status) throws SQLException {
@@ -1260,10 +1311,12 @@ public class UserManager {
 	/*
 	 * Get a list of users 
 	 */
-	public ArrayList<User> getUserList(Connection sd, int oId, boolean isOrgUser, boolean isSecurityManager) throws SQLException {
+	public ArrayList<User> getUserList(Connection sd, int oId, boolean isOrgUser, boolean isSecurityManager, 
+			boolean isAdminUser, String adminUserIdent) throws SQLException {
 		
 		ArrayList<User> users = new ArrayList<User> ();
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		int adminUserId = GeneralUtilityMethods.getUserId(sd, adminUserIdent);
 		
 		String sql = "select u.id as u_id,"
 				+ "u.ident as u_ident, "
@@ -1305,7 +1358,7 @@ public class UserManager {
 				+ "order by r.name asc";
 		PreparedStatement pstmtRoles = null;
 		
-		String sqlOrgs = "select o.id,"
+		StringBuilder sqlOrgs = new StringBuilder("select o.id,"
 				+ "o.name as oname "
 				+ "from organisation o,"
 				+ "user_organisation uo "
@@ -1317,8 +1370,11 @@ public class UserManager {
 				+ "from organisation o,"
 				+ "users u "
 				+ "where u.o_id = o.id "
-				+ "and u.id = ? "
-				+ "order by oname asc";
+				+ "and u.id = ? ");
+		if(!isOrgUser && isAdminUser) {
+			sqlOrgs.append(" and o.owner = ?");
+		}
+		sqlOrgs.append("order by oname asc");
 		PreparedStatement pstmtOrgs = null;
 		
 		String sqlGetSavedUser = "select settings "
@@ -1341,7 +1397,7 @@ public class UserManager {
 			pstmtRoles = sd.prepareStatement(sqlRoles);
 			ResultSet rsRoles = null;
 			
-			pstmtOrgs = sd.prepareStatement(sqlOrgs);
+			pstmtOrgs = sd.prepareStatement(sqlOrgs.toString());
 			ResultSet rsOrgs = null;
 			
 			pstmt.setInt(1, oId);
@@ -1436,10 +1492,13 @@ public class UserManager {
 				} 
 				
 				// Always get Organisation list from the current settings
-				if(isOrgUser && user != null) {
+				if((isOrgUser || isAdminUser) && user != null) {
 					if(rsOrgs != null) try {rsOrgs.close();} catch(Exception e) {};
 					pstmtOrgs.setInt(1, uId);
 					pstmtOrgs.setInt(2, uId);
+					if(!isOrgUser) {
+						pstmtOrgs.setInt(3,  adminUserId);
+					}
 					rsOrgs = pstmtOrgs.executeQuery();
 					user.orgs = new ArrayList<Organisation> ();
 					while(rsOrgs.next()) {
