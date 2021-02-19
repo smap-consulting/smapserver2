@@ -100,11 +100,10 @@ public class SurveyTableManager {
 					+ "where o_id = ? "
 					+ "and s_id = ? "
 					+ "and survey "
-					+ "and filename = ? "
-					+ "and user_ident = ?";
+					+ "and filename = ? ";
 			PreparedStatement pstmtGetCsvTable = null;
 			
-			String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, survey, user_ident, ts_initialised) "
+			String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, survey, ts_initialised) "
 					+ "values(nextval('csv_seq'), ?, ?, ?, true, ?, now())";
 			PreparedStatement pstmtInsertCsvTable = null;
 			try {
@@ -112,7 +111,6 @@ public class SurveyTableManager {
 				pstmtGetCsvTable.setInt(1, oId);
 				pstmtGetCsvTable.setInt(2, sId);
 				pstmtGetCsvTable.setString(3, fileName);
-				pstmtGetCsvTable.setString(4, user);
 				log.info("Getting csv table id: " + pstmtGetCsvTable.toString());
 				ResultSet rs = pstmtGetCsvTable.executeQuery();
 				
@@ -127,7 +125,6 @@ public class SurveyTableManager {
 					pstmtInsertCsvTable.setInt(1, oId);
 					pstmtInsertCsvTable.setInt(2, sId);
 					pstmtInsertCsvTable.setString(3, fileName);
-					pstmtInsertCsvTable.setString(4, user);
 					log.info("Create a new csv file entry (Survey Manager): " + pstmtInsertCsvTable.toString());
 					pstmtInsertCsvTable.executeUpdate();
 					ResultSet rsKeys = pstmtInsertCsvTable.getGeneratedKeys();
@@ -138,7 +135,7 @@ public class SurveyTableManager {
 					}
 				}
 				if(sqlDef == null) {
-					getSqlAndHeaders(sd, cResults, sId, fileName, user);
+					getSqlAndHeaders(sd, cResults, sId, fileName);
 				}
 	
 				
@@ -391,31 +388,10 @@ public class SurveyTableManager {
 	}
 	
 	/*
-	 * Delete entries in csv table for a user
-	 */
-	public void deleteForUsers(String user) throws SQLException {
-		
-		String sqlDelete = "delete from csvtable where user_ident = ? and survey";
-		PreparedStatement pstmtDelete = null;
-				
-		try {
-			pstmtDelete = sd.prepareStatement(sqlDelete);
-			pstmtDelete.setString(1, user);
-			pstmtDelete.executeUpdate();
-					
-		} catch(Exception e) {
-			log.log(Level.SEVERE, e.getMessage(), e);
-		} finally {
-			try {pstmtDelete.close();} catch(Exception e) {}
-		}
-	}
-	
-
-	/*
 	 * Get the SQL needed to retrieve the data as well as the headers
 	 */
 	public boolean getSqlAndHeaders(Connection sd, Connection cRel, int sId, // The survey that contains the manifest item
-			String filename, String user) throws Exception {
+			String filename) throws Exception {
 
 		ResultSet rs = null;
 		boolean linked_s_pd = false;
@@ -574,8 +550,8 @@ public class SurveyTableManager {
 			// 5. Get the sql as long as there is data to retrieve
 			
 			if(uniqueColumns.size() > 0) {
-				RoleManager rm = new RoleManager(localisation);
-				sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, user, rm, chart_key);
+				
+				sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, chart_key);
 				
 				if(sqlDef.colNames.size() > 0) {
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
@@ -605,7 +581,7 @@ public class SurveyTableManager {
 	 * generator from SDAL
 	 */
 	private SqlDef getSql(Connection sd, int sId, ArrayList<String> qnames, boolean linked_s_pd, String data_key,
-			String user, RoleManager rm, String chart_key) throws Exception {
+			String chart_key) throws Exception {
 
 		StringBuffer sql = new StringBuffer("select ");
 		if(chart_key == null) {		// Time series data should not be made distinct
@@ -734,6 +710,8 @@ public class SurveyTableManager {
 			sqlDef.rfArray = null;
 			sqlDef.hasRbacFilter = false;
 			// Apply roles for super user as well
+			/*
+			 * Disable as for performance reasons we are not generating a separate csv file for every user
 			sqlDef.rfArray = rm.getSurveyRowFilter(sd, sId, user);
 			if (sqlDef.rfArray.size() > 0) {
 				String rFilter = rm.convertSqlFragsToSql(sqlDef.rfArray);
@@ -748,6 +726,7 @@ public class SurveyTableManager {
 					sqlDef.hasRbacFilter = true;
 				}
 			}
+			*/
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
