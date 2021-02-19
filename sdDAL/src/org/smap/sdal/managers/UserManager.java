@@ -1673,10 +1673,6 @@ public class UserManager {
 		if(count > 0) {	
 			// If a user was deleted then delete their directories
 			GeneralUtilityMethods.deleteDirectory(basePath + "/media/users/" + uId);
-			
-			// Delete any csv table definitions that they have
-			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
-			stm.deleteForUsers(ident);			// Delete references to this survey in the csv table 
 
 			String msg = localisation.getString("u_del");
 			msg = msg.replace("%s1", ident);
