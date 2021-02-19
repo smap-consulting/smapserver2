@@ -139,9 +139,10 @@ public class UserList extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
+			boolean isAdminUser = GeneralUtilityMethods.isAdminUser(sd, request.getRemoteUser());
 			
 			UserManager um = new UserManager(localisation);
-			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
+			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager, isAdminUser, request.getRemoteUser());
 			String resp = gson.toJson(users);
 			response = Response.ok(resp).build();
 						
@@ -645,8 +646,9 @@ public class UserList extends Application {
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			boolean isOrgUser = GeneralUtilityMethods.isOrgUser(sd, request.getRemoteUser());
 			boolean isSecurityManager = GeneralUtilityMethods.hasSecurityGroup(sd, request.getRemoteUser());
+			boolean isAdminUser = GeneralUtilityMethods.isAdminUser(sd, request.getRemoteUser());
 
-			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager);
+			ArrayList<User> users = um.getUserList(sd, oId, isOrgUser, isSecurityManager,isAdminUser, request.getRemoteUser());
 			
 			// Create User XLS File
 			XLSUsersManager xu = new XLSUsersManager(request.getScheme(), request.getServerName());
