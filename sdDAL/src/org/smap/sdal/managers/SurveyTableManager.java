@@ -104,7 +104,7 @@ public class SurveyTableManager {
 			PreparedStatement pstmtGetCsvTable = null;
 			
 			String sqlInsertCsvTable = "insert into csvtable (id, o_id, s_id, filename, survey, ts_initialised) "
-					+ "values(nextval('csv_seq'), ?, ?, ?, true, ?, now())";
+					+ "values(nextval('csv_seq'), ?, ?, ?, true, now())";
 			PreparedStatement pstmtInsertCsvTable = null;
 			try {
 				pstmtGetCsvTable = sd.prepareStatement(sqlGetCsvTable);
