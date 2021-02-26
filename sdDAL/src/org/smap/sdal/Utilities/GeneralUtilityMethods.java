@@ -82,7 +82,6 @@ import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.Project;
-import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Role;
 import org.smap.sdal.model.RoleColumnFilter;
@@ -5971,7 +5970,7 @@ public class GeneralUtilityMethods {
 	 */
 	public static void addColumn(Connection conn, String tablename, String columnName, String type) throws SQLException {
 
-		if(!GeneralUtilityMethods.hasColumn(conn, tablename, columnName)) {
+		if(GeneralUtilityMethods.tableExists(conn, tablename) && !GeneralUtilityMethods.hasColumn(conn, tablename, columnName)) {
 			String sql = "alter table " + tablename + " add column " + columnName + " " + type;
 	
 			PreparedStatement pstmt = conn.prepareStatement(sql);
