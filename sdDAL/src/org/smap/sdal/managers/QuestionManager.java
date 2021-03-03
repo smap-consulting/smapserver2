@@ -139,8 +139,11 @@ public class QuestionManager {
 
 					log.info("SQL: Get form id: " + pstmtGetFormId.toString());
 					ResultSet rs = pstmtGetFormId.executeQuery();
-					rs.next();
-					q.fId = rs.getInt(1);
+					if(rs.next()) {
+						q.fId = rs.getInt(1);
+					} else {
+						throw new Exception("Form not found");
+					}
 				}
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {	// Get the list id
