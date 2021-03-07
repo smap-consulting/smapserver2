@@ -468,7 +468,7 @@ public class NotificationManager {
 			String notifyDetailsString = resultSet.getString("notify_details");
 			n.notifyDetails = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 			// Temporary - set question name from question id if this is set
-			if(n.notifyDetails.emailQuestionName == null && n.notifyDetails.emailQuestion > 0) {
+			if(n.notifyDetails != null && (n.notifyDetails.emailQuestionName == null || n.notifyDetails.emailQuestionName.equals("-1")) && n.notifyDetails.emailQuestion > 0) {
 				n.notifyDetails.emailQuestionName = GeneralUtilityMethods.getQuestionNameFromId(sd, n.s_id, n.notifyDetails.emailQuestion);
 			}
 			n.filter = resultSet.getString("filter");
@@ -613,7 +613,7 @@ public class NotificationManager {
 				boolean proceed = true;
 				if(filter != null && filter.trim().length() > 0) {
 					try {
-						proceed = GeneralUtilityMethods.testFilter(cResults, localisation, survey, filter, instanceId, tz);
+						proceed = GeneralUtilityMethods.testFilter(sd, cResults, submittingUser, localisation, survey, filter, instanceId, tz);
 					} catch(Exception e) {
 						String msg = e.getMessage();
 						if(msg == null) {
