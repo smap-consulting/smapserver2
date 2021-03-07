@@ -50,6 +50,7 @@ import org.smap.sdal.constants.SmapQuestionTypes;
 import org.smap.sdal.constants.SmapServerMeta;
 import org.smap.sdal.managers.CsvTableManager;
 import org.smap.sdal.managers.LanguageCodeManager;
+import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.RoleManager;
@@ -109,6 +110,7 @@ import com.google.gson.reflect.TypeToken;
 public class GeneralUtilityMethods {
 
 	private static Logger log = Logger.getLogger(GeneralUtilityMethods.class.getName());
+	private static LogManager lm = new LogManager();		// Application log
 
 	private static int LENGTH_QUESTION_NAME = 57; // 63 max size of postgresql column names.
 	private static int LENGTH_QUESTION_RAND = 5;
@@ -7008,7 +7010,7 @@ public class GeneralUtilityMethods {
 	/*
 	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
 	 */
-	public static boolean testFilter(Connection cResults, ResourceBundle localisation, Survey survey, String filter, String instanceId, String tz) throws Exception {
+	public static boolean testFilter(Connection sd, Connection cResults, String user, ResourceBundle localisation, Survey survey, String filter, String instanceId, String tz) throws Exception {
 
 		boolean testResult = false;
 
@@ -7042,6 +7044,9 @@ public class GeneralUtilityMethods {
 			}
 
 		} catch(Exception e) { 
+			String msg = localisation.getString("filter_error");
+			msg = msg.replace("%s1",  pstmt.toString());
+			lm.writeLog(sd, survey.id, user, LogManager.ERROR, msg, 0);
 			throw new Exception(e);
 		} finally {
 			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
