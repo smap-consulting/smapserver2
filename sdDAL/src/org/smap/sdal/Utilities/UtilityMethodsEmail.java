@@ -681,19 +681,14 @@ public class UtilityMethodsEmail {
 	/*
 	 * Get labels for an option or question
 	 */
-	public static void getLabels(Connection connectionSD,
+	public static void getLabels(PreparedStatement pstmt,
 			Survey s, 
 			String text_id, 
 			ArrayList<Label> labels,
 			String basePath,
 			int oId) throws Exception {
 
-		PreparedStatement pstmt = null;
-
 		try {
-
-			String sql = "select t.type, t.value, t.text_id from translation t where t.s_id = ? and t.language = ? and t.text_id like ?";
-			pstmt = connectionSD.prepareStatement(sql);
 
 			for(int i = 0; i < s.languages.size(); i++) {
 
@@ -707,7 +702,6 @@ public class UtilityMethodsEmail {
 					if(idx > 0) {
 						String root = text_id.substring(0, idx + 1) + "%";
 						
-						pstmt.setInt(1, s.id);
 						pstmt.setString(2, s.languages.get(i).name);
 						pstmt.setString(3, root);
 						//log.info("Get labels: " + pstmt.toString());
@@ -760,9 +754,19 @@ public class UtilityMethodsEmail {
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
-		} finally {
-			if(pstmt != null) try{pstmt.close();}catch(Exception e){}
-		}
+		} 
+	}
+	
+	/*
+	 * Get labels for an option or question
+	 */
+	public static PreparedStatement getLabelsStatement(Connection sd,
+			int sId)  throws Exception {
+
+		String sql = "select t.type, t.value, t.text_id from translation t where t.s_id = ? and t.language = ? and t.text_id like ?";
+		PreparedStatement pstmt = sd.prepareStatement(sql);
+		pstmt.setInt(1,  sId);
+		return pstmt;	
 	}
 	
 	/*
