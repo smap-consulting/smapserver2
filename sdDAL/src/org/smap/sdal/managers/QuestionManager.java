@@ -1969,7 +1969,14 @@ public class QuestionManager {
 
 				// Get the language labels
 				if(s != null) {
-					UtilityMethodsEmail.getLabels(sd, s, q.text_id, q.labels, basePath, oId);
+					PreparedStatement pstmtLabels = null;
+					try {
+						pstmtLabels = UtilityMethodsEmail.getLabelsStatement(sd, s.id);
+						UtilityMethodsEmail.getLabels(pstmtLabels, s, q.text_id, q.labels, basePath, oId);
+					} finally {
+						if(pstmtLabels != null) {try{pstmtLabels.close();}catch(Exception e) {}}
+					}
+					
 				}
 
 				questions.add(q);
