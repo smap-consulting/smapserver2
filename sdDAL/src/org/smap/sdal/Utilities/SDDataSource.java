@@ -37,13 +37,18 @@ public class SDDataSource {
 	
 	public static void closeConnection(String requester, Connection c) {
 
-		if (c != null) try { 
-			c.setAutoCommit(true);
-			c.close(); 
-			count--;
-			log.info(" $$$$ " + count + " Close SurveyDefinitions connection: " + requester);
-		} catch(SQLException e) {
-			log.log(Level.SEVERE,"Failed to close surveyDefinitions connection", e);
+		if (c != null) {
+			try { 
+				c.setAutoCommit(true);
+				c.close(); 
+				c = null;
+				count--;
+				log.info(" $$$$ " + count + " Close SurveyDefinitions connection: " + requester);
+			} catch(SQLException e) {
+				log.log(Level.SEVERE,"Failed to close surveyDefinitions connection", e);
+			}
+		} else {
+			log.info(" $$$$ " + count + " SurveyDefinitions connection is already closed: " + requester);
 		}
 	}
 	
