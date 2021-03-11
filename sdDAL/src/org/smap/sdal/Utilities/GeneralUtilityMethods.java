@@ -9513,7 +9513,13 @@ public class GeneralUtilityMethods {
 	 */
 	public static void clearLinkedForms(Connection sd, int sId, ResourceBundle localisation) throws SQLException {
 
-		String sqlGetLinkers = "select linker_s_id from form_dependencies where linked_s_id = ?";
+		String sqlGetLinkers = "select fd.linker_s_id "
+				+ "from form_dependencies fd, survey s "
+				+ "where fd.linked_s_id = ? "
+				+ "and fd.linker_s_id = s.s_id "
+				+ "and not s.deleted "
+				+ "and not s.blocked "
+				+ "and not s.hidden";
 		PreparedStatement pstmtGetLinkers = null;
 
 		String sql = "delete from linked_forms where linked_s_id = ?";

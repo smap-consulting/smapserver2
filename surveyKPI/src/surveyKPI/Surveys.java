@@ -686,9 +686,9 @@ public class Surveys extends Application {
 			ChangeResponse resp = sm.applyChangeSetArray(sd, cResults, sId, request.getRemoteUser(), changes, true);
 			
 			// Force regeneration of any dynamic CSV files that this survey links to
-			ExternalFileManager efm = new ExternalFileManager(localisation);
-			
+			ExternalFileManager efm = new ExternalFileManager(localisation);			
 			efm.linkerChanged(sd, sId);	// deprecated
+			GeneralUtilityMethods.updateFormDependencies(sd, sId);
 			
 			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
 			stm.delete(sId);			// Delete references to this survey in the csv table so that they get regenerated

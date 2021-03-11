@@ -1163,7 +1163,7 @@ public class SurveyManager {
 
 
 	/*
-	 * Get the project id and the block status of a survey given its ident
+	 * Get the survey definition given its ident
 	 */
 	public Survey getSurveyId(Connection sd, String key) {
 
@@ -3203,11 +3203,11 @@ public class SurveyManager {
 
 		PreparedStatement pstmtGet = null;
 		String sqlGet = "select manifest from survey "
-				+ "where s_id = ?; ";
+				+ "where s_id = ?";
 
 		PreparedStatement pstmtUpdate = null;
 		String sqlUpdate = "update survey set manifest = ? "
-				+ "where s_id = ?;";	
+				+ "where s_id = ?";	
 
 		try {
 
