@@ -592,7 +592,7 @@ public class ExternalFileManager {
 			regenerate = true; // Override regenerate if the file has been deleted
 		}
 		if(!tableExists) {
-			regenerate = true; // Force creation of an empty fil
+			regenerate = true; // Force creation of an empty file
 		}
 
 		log.info("Result of regenerate question is: " + regenerate);
