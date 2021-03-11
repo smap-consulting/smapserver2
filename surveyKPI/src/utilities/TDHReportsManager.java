@@ -43,6 +43,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
 import org.smap.sdal.custom.TDHIndividualReport;
 import org.smap.sdal.custom.TDHIndividualValues;
+import org.smap.sdal.custom.TDHValue;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.QuestionLite;
 
@@ -98,7 +99,6 @@ public class TDHReportsManager {
 			CellStyle errorStyle = null;
 
 			ArrayList<TDHIndividualReport> reports = null;
-			ArrayList<TDHIndividualValues> values = null;
 			int oId = 0;
 			
 			try {	
@@ -118,51 +118,59 @@ public class TDHReportsManager {
 				CellStyle dateHeader = styles.get("dateHeader");
 				errorStyle = styles.get("error");			
 				
-				reports = getIndividualReports();
+				reports = getIndividualReports(cResults, beneficiaryCode);
+				boolean worksheetWritten = false;
 				for(TDHIndividualReport r : reports) {
-					r.sheet = wb.createSheet(r.name);	
-					values = getValues(cResults, r, beneficiaryCode);
-					
-					/*
-					 * Write the questions and create the rows
-					 */
-					rowNumber = 0;
-					int colNumber = 0;
-					r.sheet.setColumnWidth(0, 60 * 256);
-					
-					Row row = r.sheet.createRow(rowNumber++);					
-					Cell cell = row.createCell(colNumber);
-					cell.setCellStyle(headerStyle);				
-					cell.setCellValue("Question");
-					
-					for(QuestionLite q : r.questions) {
-						row = r.sheet.createRow(rowNumber++);
-						cell = row.createCell(colNumber);
-						cell.setCellStyle(defaultStyle);
-						cell.setCellValue(q.name);		
-					}
-					
-					/*
-					 * Write each column of values
-					 */
-					for(TDHIndividualValues dataCol : values) {
-						colNumber++;
+					if(!r.reportEmpty) {
+						r.sheet = wb.createSheet(r.name);	
+						worksheetWritten = true;
+						
+						/*
+						 * Write the questions and create the rows
+						 */
 						rowNumber = 0;
+						int colNumber = 0;
+						r.sheet.setColumnWidth(0, 60 * 256);
 						
-						// Add date of record
-						row = r.sheet.getRow(rowNumber++);
+						Row row = r.sheet.createRow(rowNumber++);					
+						Cell cell = row.createCell(colNumber);
+						cell.setCellStyle(headerStyle);				
+						cell.setCellValue("Question");
 						
-						cell = row.createCell(colNumber);
-						cell.setCellStyle(dateHeader);
-						cell.setCellValue(dataCol.date);	
-						
-						for(String v : dataCol.values) {
-							row = r.sheet.getRow(rowNumber++);
+						for(QuestionLite q : r.questions) {
+							row = r.sheet.createRow(rowNumber++);
 							cell = row.createCell(colNumber);
 							cell.setCellStyle(defaultStyle);
-							cell.setCellValue(v);		
+							cell.setCellValue(q.name);		
+						}
+						
+						/*
+						 * Write each column of values
+						 */
+						for(TDHIndividualValues dataCol : r.values) {
+							colNumber++;
+							rowNumber = 0;
+							
+							// Add date of record
+							row = r.sheet.getRow(rowNumber++);
+							
+							cell = row.createCell(colNumber);
+							cell.setCellStyle(dateHeader);
+							cell.setCellValue(dataCol.date);	
+							
+							for(TDHValue tValue : dataCol.values) {
+								if(tValue.rowExists) {
+									row = r.sheet.getRow(rowNumber++);
+									cell = row.createCell(colNumber);
+									cell.setCellStyle(defaultStyle);
+									cell.setCellValue(tValue.value);
+								}
+							}
 						}
 					}
+				}
+				if(!worksheetWritten) {
+					Sheet sheet = wb.createSheet("no data");	
 				}
 
 			}  catch (Exception e) {
@@ -207,7 +215,7 @@ public class TDHReportsManager {
 		return responseVal;
 	}
 	
-	private ArrayList<TDHIndividualReport> getIndividualReports()  {
+	private ArrayList<TDHIndividualReport> getIndividualReports(Connection cResults, String beneficiaryCode) throws SQLException  {
 		
 		ArrayList<TDHIndividualReport> reports = new ArrayList<>();
 		
@@ -222,12 +230,40 @@ public class TDHReportsManager {
 		r2.questions.add(new QuestionLite("string", "works", "works"));
 		r2.questions.add(new QuestionLite("string", "psychological", "psychological"));
 		r2.questions.add(new QuestionLite("string", "Emotionalcontract", "Emotionalcontract"));
-		r2.questions.add(new QuestionLite("string", "rulesofpositive", "rulesofpositive"));
+		r2.questions.add(new QuestionLite("string", "rulesofpositive", "rulesofpositive"));		
 		reports.add(r2);
+		
+		for(TDHIndividualReport r : reports) {
+			r.values = getValues(cResults, r, beneficiaryCode);
+			markMissingData(r);
+		}
 		
 		return reports;
 	}
 
+	private void markMissingData(TDHIndividualReport r) {
+		r.reportEmpty = true;
+		if(r.values.size() > 0) {
+			TDHIndividualValues firstCol = r.values.get(0);
+			for(int i = 0; i <firstCol.values.size(); i++) {
+	
+				boolean nonNullRow = false;
+				for(TDHIndividualValues col : r.values) {
+					TDHValue colRow = col.values.get(i);
+					if(colRow.value != null) {
+						nonNullRow = true;
+						r.reportEmpty = false;
+						break;
+					}
+				}
+				for(TDHIndividualValues col : r.values) {
+					TDHValue colRow = col.values.get(i);
+					colRow.rowExists = nonNullRow;
+				}
+			}
+		}
+	}
+	
 	private ArrayList<TDHIndividualValues> getValues(Connection cResults, 
 			TDHIndividualReport report,
 			String beneficiaryCode) throws SQLException {
@@ -252,7 +288,14 @@ public class TDHReportsManager {
 				values.add(v);
 				v.date = rs.getTimestamp("_upload_time");
 				for(QuestionLite q : report.questions) {
-					v.values.add(rs.getString(q.column_name));
+					String qValue = rs.getString(q.column_name);
+					if(qValue != null) {
+						qValue = qValue.trim();
+						if(qValue.length() == 0) {
+							qValue = null;
+						}
+					}					
+					v.values.add(new TDHValue(qValue));
 				}
 			}
 			
