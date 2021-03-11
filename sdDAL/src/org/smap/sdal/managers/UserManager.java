@@ -259,35 +259,11 @@ public class UserManager {
 			/*
 			 * Get the organisations that the user belongs to
 			 */
-			sql = "SELECT o.id as id, o.name as name " +
-					" from organisation o, user_organisation uo " +
-					" where o.id = uo.o_id " +
-					" and uo.u_id = ? " +
-					" order by o.name asc";
-
-			if(pstmt != null) try {pstmt.close();} catch(Exception e) {};
-			pstmt = sd.prepareStatement(sql);
-			pstmt.setInt(1, user.id);
-
-			log.info("SQL: " + pstmt.toString());
-			resultSet = pstmt.executeQuery();
-
 			if(user.orgs == null) {
 				user.orgs = new ArrayList<Organisation> ();
 			}
-			while(resultSet.next()) {			
-				Organisation o = new Organisation();
-				o.id = resultSet.getInt("id");
-				o.name = resultSet.getString("name");
-				user.orgs.add(o);
-			}
-			if(user.orgs.size() == 0) {
-				// If not organisation then add the users current organisation
-				Organisation o = new Organisation();
-				o.id = user.o_id;
-				o.name = user.organisation_name;
-				user.orgs.add(o);
-			}
+			getUserOrganisations(sd, user.orgs, user, user.id);
+
 
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}	} catch (SQLException e) {}
@@ -588,6 +564,43 @@ public class UserManager {
 		return u_id;
 	}
 
+	/*
+	 * Get the organisations that a user belongs to
+	 */
+	public void getUserOrganisations(Connection sd, ArrayList<Organisation> orgs, User user, int uId) throws SQLException {
+		
+		String sql = "SELECT o.id as id, o.name as name " +
+				" from organisation o, user_organisation uo " +
+				" where o.id = uo.o_id " +
+				" and uo.u_id = ? " +
+				" order by o.name asc";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, uId);
+	
+			log.info("SQL: " + pstmt.toString());
+			ResultSet resultSet = pstmt.executeQuery();
+	
+			while(resultSet.next()) {			
+				Organisation o = new Organisation();
+				o.id = resultSet.getInt("id");
+				o.name = resultSet.getString("name");
+				orgs.add(o);
+			}
+			if(user != null && orgs.size() == 0) {
+				// If not organisation then add the users current organisation
+				Organisation o = new Organisation();
+				o.id = user.o_id;
+				o.name = user.organisation_name;
+				user.orgs.add(o);
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+	}
+	
 	/*
 	 * Update a users details
 	 */

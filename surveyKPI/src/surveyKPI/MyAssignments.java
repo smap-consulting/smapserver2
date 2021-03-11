@@ -40,6 +40,7 @@ import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
@@ -261,6 +262,8 @@ public class MyAssignments extends Application {
 		a.isAuthorised(sd, userName);
 		// End Authorisation
 
+		int uId = GeneralUtilityMethods.getUserId(sd, userName);
+		
 		// Get the coordinates from which this request was made
 		String latString = request.getHeader("lat");
 		String lonString = request.getHeader("lon");
@@ -332,7 +335,7 @@ public class MyAssignments extends Application {
 			sd.setAutoCommit(true);
 
 			// Get the assignments
-			StringBuffer sql1 = new StringBuffer("select "
+			StringBuilder sql1 = new StringBuilder("select "
 					+ "t.id as task_id,"
 					+ "t.title,"
 					+ "t.url,"
@@ -364,14 +367,14 @@ public class MyAssignments extends Application {
 					+ "and (a.status = 'cancelled' or a.status = 'accepted' or (a.status = 'submitted' and t.repeat)) "
 					+ "and u.ident = ? "
 					+ "and p.o_id = ? ");
-			StringBuffer sqlOrder = new StringBuffer("order by t.schedule_at asc");
+			StringBuilder sqlOrder = new StringBuilder("order by t.schedule_at asc");
 			
-			StringBuffer distanceFilter = new StringBuffer("");
+			StringBuilder distanceFilter = new StringBuilder("");
 			if(lat != 0.0 || lon != 0.0) {
 				distanceFilter.append(" and (tg.dl_dist = 0 or ST_AsText(t.geo_point) = 'POINT(0 0)' or ST_DWithin(t.geo_point, ST_Point(?, ?)::geography, tg.dl_dist)) ");
 			}
 			
-			StringBuffer sql = new StringBuffer("");
+			StringBuilder sql = new StringBuilder("");
 			sql.append(sql1).append(distanceFilter).append(sqlOrder);
 	
 			pstmt = sd.prepareStatement(sql.toString());	
@@ -454,7 +457,6 @@ public class MyAssignments extends Application {
 			log.info("ft_number_tasks: " + ft_number_tasks);
 			if(ft_number_tasks > 0) {
 				TaskManager tm = new TaskManager(localisation, tz);
-				int uId = GeneralUtilityMethods.getUserId(sd, userName);
 				TaskListGeoJson unassigned = tm.getUnassignedTasks(
 						sd, 
 						oId,			
@@ -599,7 +601,7 @@ public class MyAssignments extends Application {
 			 * Get the settings for the phone
 			 */
 			tr.settings = new FieldTaskSettings();
-			sql = new StringBuffer("select "
+			sql = new StringBuilder("select "
 					+ "o.ft_delete,"
 					+ "o.ft_send_location, "
 					+ "o.ft_sync_incomplete, "
@@ -663,7 +665,7 @@ public class MyAssignments extends Application {
 			 * Get the projects
 			 */
 			tr.projects = new ArrayList<Project> ();
-			sql = new StringBuffer("select p.id, p.name, p.description " +
+			sql = new StringBuilder("select p.id, p.name, p.description " +
 					" from users u, user_project up, project p " + 
 					"where u.id = up.u_id " +
 					"and p.id = up.p_id " +
@@ -685,6 +687,18 @@ public class MyAssignments extends Application {
 				p.desc = resultSet.getString(3);
 				tr.projects.add(p);
 			}
+			
+			/*
+			 * Get the organisations
+			 */
+			UserManager um = new UserManager(localisation);
+			ArrayList<Organisation> orgs = new ArrayList<>();
+			um.getUserOrganisations(sd, orgs, null, uId);
+			tr.orgs = new ArrayList<String> ();
+			for(Organisation o : orgs) {
+				tr.orgs.add(o.name);
+			}
+			
 
 			/*
 			 * Log the request
