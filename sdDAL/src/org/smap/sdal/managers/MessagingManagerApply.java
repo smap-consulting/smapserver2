@@ -163,6 +163,7 @@ public class MessagingManagerApply {
 					UserMessage um = gson.fromJson(data, UserMessage.class);
 					
 					usersImpacted.put(um.ident, um.ident);
+					log.info("zzzzzzzzzzzzzzz: user change users: " + um.ident);
 					
 				} else if(topic.equals("project")) {
 					ProjectMessage pm = gson.fromJson(data, ProjectMessage.class);
@@ -321,7 +322,8 @@ public class MessagingManagerApply {
 			for(Integer taskId : changedTasks.keySet()) {
 				ArrayList<String> users = getTaskUsers(sd, taskId);
 				for(String user : users) {
-					usersImpacted.put(user, user);					
+					usersImpacted.put(user, user);	
+					log.info("zzzzzzzzzzzzzzz: task change users: " + user);
 				}				
 			}
 						
@@ -330,6 +332,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = getSurveyUsers(sd, sId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
+					log.info("zzzzzzzzzzzzzzz: survey change users: " + user);
 				}				
 			}
 			
@@ -338,6 +341,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = getProjectUsers(sd, pId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
+					log.info("zzzzzzzzzzzzzzz: project change users: " + user);
 				}				
 			}
 			
@@ -346,6 +350,7 @@ public class MessagingManagerApply {
 				ArrayList<String> users = GeneralUtilityMethods.getResourceUsers(sd, fileName, changedResources.get(fileName).orgId);
 				for(String user : users) {
 					usersImpacted.put(user, user);
+					log.info("zzzzzzzzzzzzzzz: resources change users: " + user);
 				}				
 			}
 			
