@@ -691,12 +691,16 @@ public class MyAssignments extends Application {
 			/*
 			 * Get the organisations
 			 */
+			tr.current_org = GeneralUtilityMethods.getOrganisationName(sd, request.getRemoteUser());
 			UserManager um = new UserManager(localisation);
 			ArrayList<Organisation> orgs = new ArrayList<>();
 			um.getUserOrganisations(sd, orgs, null, uId);
 			tr.orgs = new ArrayList<String> ();
 			for(Organisation o : orgs) {
 				tr.orgs.add(o.name);
+			}
+			if(!tr.orgs.contains(tr.current_org)) {
+				tr.orgs.add(tr.current_org);
 			}
 			
 
