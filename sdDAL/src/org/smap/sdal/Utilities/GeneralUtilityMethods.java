@@ -1147,6 +1147,36 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
+	 * Get the current organisation id for the user 
+	 */
+	static public String getOrganisationName(Connection sd, String user) throws SQLException {
+
+		String name = null;
+
+		String sql1 = "select o.name "
+				+ "from organisation o, users u " 
+				+ "where o.id = u.o_id " 
+				+ "and u.ident = ?;";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql1);
+			pstmt.setString(1, user);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				name = rs.getString(1);
+			} 
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
+		}
+
+		return name;
+	}
+	
+	/*
 	 * Get the organisation id for the survey
 	 */
 	static public int getOrganisationIdForSurvey(Connection sd, int sId) throws SQLException {

@@ -21,6 +21,7 @@ public class TaskResponse {
 	public List<TaskCompletionInfo> taskCompletionInfo;
 	public List<PointEntry> userTrail;
 	public List<Project> projects;
+	public String current_org;
 	public List<String> orgs;
 	
 }
