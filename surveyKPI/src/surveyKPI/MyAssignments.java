@@ -68,6 +68,7 @@ import java.io.File;
 import java.lang.reflect.Type;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -695,13 +696,11 @@ public class MyAssignments extends Application {
 			UserManager um = new UserManager(localisation);
 			ArrayList<Organisation> orgs = new ArrayList<>();
 			um.getUserOrganisations(sd, orgs, null, uId);
-			tr.orgs = new ArrayList<String> ();
+			tr.orgs = new HashSet<String> ();
 			for(Organisation o : orgs) {
 				tr.orgs.add(o.name);
 			}
-			if(!tr.orgs.contains(tr.current_org)) {
-				tr.orgs.add(tr.current_org);
-			}
+			tr.orgs.add(tr.current_org);
 			
 
 			/*
