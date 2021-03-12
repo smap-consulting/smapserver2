@@ -37,7 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.apache.poi.xssf.streaming.SXSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.XLSUtilities;
@@ -61,6 +61,16 @@ public class TDHReportsManager {
 	ResourceBundle localisation = null;
 	String tz;
 	
+	private class TDHSurvey {
+		String name;
+		String table;
+		String ident;
+		public TDHSurvey(String name, String table, String ident) {
+			this.name = name;
+			this.table = table;
+			this.ident = ident;
+		}
+	}
 	public TDHReportsManager(ResourceBundle l, String timezone) {
 		localisation = l;
 		tz = timezone;
@@ -111,14 +121,14 @@ public class TDHReportsManager {
 				 */
 				log.info("####################### Create XLSX file");
 				GeneralUtilityMethods.setFilenameInResponse(filename + "." + "xlsx", response); // Set file name
-				wb = new SXSSFWorkbook(10);		// Serialised output
+				wb = new XSSFWorkbook();		// Serialised output
 				Map<String, CellStyle> styles = XLSUtilities.createStyles(wb);
 				CellStyle headerStyle = styles.get("header");
 				CellStyle defaultStyle = styles.get("default");
 				CellStyle dateHeader = styles.get("dateHeader");
 				errorStyle = styles.get("error");			
 				
-				reports = getIndividualReports(cResults, beneficiaryCode);
+				reports = getIndividualReports(sd, cResults, beneficiaryCode);
 				boolean worksheetWritten = false;
 				for(TDHIndividualReport r : reports) {
 					if(!r.reportEmpty) {
@@ -137,11 +147,19 @@ public class TDHReportsManager {
 						cell.setCellStyle(headerStyle);				
 						cell.setCellValue("Question");
 						
-						for(QuestionLite q : r.questions) {
-							row = r.sheet.createRow(rowNumber++);
-							cell = row.createCell(colNumber);
-							cell.setCellStyle(defaultStyle);
-							cell.setCellValue(q.name);		
+						if(r.values.size() > 0) {
+							TDHIndividualValues dataCol = r.values.get(0);
+							int idx = 0;
+							for(QuestionLite q : r.questions) {
+								TDHValue tValue = dataCol.values.get(idx);
+								if(tValue.rowExists) {
+									row = r.sheet.createRow(rowNumber++);
+									cell = row.createCell(colNumber);
+									cell.setCellStyle(defaultStyle);
+									cell.setCellValue(q.name);	
+								}
+								idx++;
+							}
 						}
 						
 						/*
@@ -180,6 +198,9 @@ public class TDHReportsManager {
 				lm.writeLogOrganisation(sd, oId, username, LogManager.REPORT, e.getMessage(), 0);
 				
 				String msg = e.getMessage();
+				if(msg == null) {
+					msg = "";
+				}
 				if(msg.contains("does not exist")) {
 					msg = localisation.getString("msg_no_data");
 				}
@@ -201,7 +222,6 @@ public class TDHReportsManager {
 					wb.write(outputStream);
 					wb.close();
 					outputStream.close();
-					((SXSSFWorkbook) wb).dispose();		// Dispose of temporary files
 				} catch (Exception ex) {
 					log.log(Level.SEVERE, "Error", ex);
 				}
@@ -215,24 +235,50 @@ public class TDHReportsManager {
 		return responseVal;
 	}
 	
-	private ArrayList<TDHIndividualReport> getIndividualReports(Connection cResults, String beneficiaryCode) throws SQLException  {
+	private ArrayList<TDHIndividualReport> getIndividualReports(Connection sd, Connection cResults, String beneficiaryCode) throws SQLException  {
 		
 		ArrayList<TDHIndividualReport> reports = new ArrayList<>();
 		
-		TDHIndividualReport r1 = new TDHIndividualReport("SDQ", "s640_main");
-		r1.questions.add(new QuestionLite("string", "considerate_of_other_peoples_feelings", "considerate_of_other_peoples_feelings"));
-		r1.questions.add(new QuestionLite("string", "restless_overactive_cannot_stay_still_for_long", "restless_overactive_cannot_stay_still_for_long"));
-		r1.questions.add(new QuestionLite("string", "often_complains_of_headaches_or_sickness", "often_complains_of_headaches_stomachxaches_or_sickne4fce9"));
-		r1.questions.add(new QuestionLite("string", "shares_readily_with_other_children_treats_toys_pencils_etc", "shares_readily_with_other_children_treats_toys_pencils_etc"));
-		reports.add(r1);
+		String questionGet = "select q.qname, q.column_name "
+				+ "from question q "
+				+ "where q.published "
+				+ "and not q.soft_deleted "
+				+ "and not q.readonly "
+				+ "and q.source = 'user' "
+				+ "and q.f_id in (select f_id from form where parentform = 0 and s_id in (select s_id from survey where ident = ?)) "
+				+ "order by q.seq asc";
 		
-		TDHIndividualReport r2 = new TDHIndividualReport("PSS MGS دعم نفسي اجتماعي للاطفال", "s1085_main");
-		r2.questions.add(new QuestionLite("string", "works", "works"));
-		r2.questions.add(new QuestionLite("string", "psychological", "psychological"));
-		r2.questions.add(new QuestionLite("string", "Emotionalcontract", "Emotionalcontract"));
-		r2.questions.add(new QuestionLite("string", "rulesofpositive", "rulesofpositive"));		
-		reports.add(r2);
+		PreparedStatement pstmt = null;
 		
+		// Add the surveys to be indluded in the report
+		ArrayList<TDHSurvey> surveys = new ArrayList<>();
+		surveys.add(new TDHSurvey("SDQ", "s640_main", "s22_640"));
+		surveys.add(new TDHSurvey("PSS MGS دعم نفسي اجتماعي للاطفال", "s1085_main", "s106_1085"));
+		surveys.add(new TDHSurvey("LS مهارات الحياة", "s1087_main", "s106_1087"));
+		//surveys.add(new TDHSurvey("Awareness sessions training", "s523_main", "s43_523"));
+		//surveys.add(new TDHSurvey("Case management training", "s520_main", "s43_520"));
+		
+		// Create the report definitions and add the questions
+		try {
+			pstmt = sd.prepareStatement(questionGet);
+			
+			for(TDHSurvey s : surveys) {
+				TDHIndividualReport r = new TDHIndividualReport(s.name, s.table);
+				reports.add(r);
+				
+				// Get questions
+				pstmt.setString(1,  s.ident);
+				ResultSet rs = pstmt.executeQuery();
+				while(rs.next()) {
+					r.questions.add(new QuestionLite("string", rs.getString("qname"), rs.getString("column_name")));
+				}
+				
+			}
+		} finally {
+			if(pstmt != null) {try{pstmt.close();}catch(Exception e) {}}
+		}
+		
+		// Populate the reports with data
 		for(TDHIndividualReport r : reports) {
 			r.values = getValues(cResults, r, beneficiaryCode);
 			markMissingData(r);
