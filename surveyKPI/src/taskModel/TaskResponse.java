@@ -1,5 +1,6 @@
 package taskModel;
 
+import java.util.HashSet;
 import java.util.List;
 
 import org.smap.sdal.model.Project;
@@ -22,6 +23,6 @@ public class TaskResponse {
 	public List<PointEntry> userTrail;
 	public List<Project> projects;
 	public String current_org;
-	public List<String> orgs;
+	public HashSet<String> orgs;
 	
 }
