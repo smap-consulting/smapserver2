@@ -950,6 +950,10 @@ public class GetXForm {
 			if(pixelParam != null) {
 				questionElement.setAttribute("orx:max-pixels", pixelParam);
 			}
+			String qualityParam = GeneralUtilityMethods.getSurveyParameter("quality", q.getParameters());
+			if(qualityParam != null) {
+				questionElement.setAttribute("odk:quality", qualityParam);
+			}
 		}
 
 		// Add calculate
