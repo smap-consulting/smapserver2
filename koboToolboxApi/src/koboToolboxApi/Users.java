@@ -25,7 +25,6 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
-import java.util.logging.Logger;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -41,6 +40,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
+import org.smap.sdal.managers.UserManager;
 
 /*
  * Provides access to audit views on the surveys
@@ -49,9 +49,6 @@ import org.smap.sdal.managers.UserLocationManager;
 public class Users extends Application {
 	
 	Authorise a = null;
-
-	private static Logger log =
-			Logger.getLogger(Users.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
@@ -106,6 +103,40 @@ public class Users extends Application {
 		} catch (SQLException e) {
 			e.printStackTrace();
 			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Changes a user current organisation
+	 */
+	@GET
+	@Path("/organisation/{org}")
+	@Produces("application/json")
+	public Response setUserOrganisation(@Context HttpServletRequest request,
+			@PathParam("org") String orgName) { 
+
+		Response response = null;
+		String connectionString = "API - setUserOrganisation";
+
+		// Authorisation - Not required the current organisation for the authenticated user will be changed
+
+		Connection sd = SDDataSource.getConnection(connectionString);
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			UserManager um = new UserManager(localisation);
+			int newOrgId = GeneralUtilityMethods.getOrganisationIdfromName(sd, orgName);
+			um.switchUsersOrganisation(sd, newOrgId, request.getRemoteUser(), true);
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
