@@ -9011,7 +9011,7 @@ public class GeneralUtilityMethods {
 	}
 	
 	/*
-	 * Return true if there is more than one language specified for the given ype
+	 * Return true if there is more than one language specified for the given type
 	 */
 	public static boolean hasMultiLanguages(Connection sd, int sId, String type) throws SQLException  {
 			
@@ -9036,7 +9036,36 @@ public class GeneralUtilityMethods {
 			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
 		}
 		
-		return count > 1;
+		return count > 1;		// Looking for more than 1
+	}
+	
+	/*
+	 * Return true if the survey has a setting for kb:flash interval
+	 */
+	public static boolean usesFlash(Connection sd, int sId) throws SQLException  {
+			
+		String sql = "select count(*) "
+				+ "from question q, form f, survey s "
+				+ "where q.f_id = f.f_id "
+				+ "and f.s_id = s.s_id "
+				+ "and s.s_id = ? "
+				+ "and q.flash > 0 ";
+
+		PreparedStatement pstmt = null;
+		
+		int count = 0;		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, sId);
+			ResultSet rs = pstmt.executeQuery();
+			if(rs.next()) {
+				count = rs.getInt(1);
+			}
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {}
+		}
+		
+		return count > 0;
 	}
 	
 	public static int orgSurveyCount(Connection sd, int oId) throws SQLException {

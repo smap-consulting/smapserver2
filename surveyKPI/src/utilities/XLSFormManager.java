@@ -551,13 +551,15 @@ public class XLSFormManager {
 		boolean hasMultiAudioLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "audio");
 		boolean hasMultiConstraintLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "constraint_msg");
 		boolean hasMultiRequiredLanguages = GeneralUtilityMethods.hasMultiLanguages(sd, sId, "required_msg");
+		boolean usesFlash = GeneralUtilityMethods.usesFlash(sd, sId);
 		
 		ArrayList<Column> colsSurvey = getColumnsSurvey(namedColumnIndexes, 
 				hasMultiImageLanguages,
 				hasMultiVideoLanguages,
 				hasMultiAudioLanguages,
 				hasMultiConstraintLanguages,
-				hasMultiRequiredLanguages);
+				hasMultiRequiredLanguages,
+				usesFlash);
 		ArrayList<Column> colsChoices = getColumnsChoices(hasMultiImageLanguages,
 				hasMultiVideoLanguages,
 				hasMultiAudioLanguages);
@@ -890,7 +892,8 @@ public class XLSFormManager {
 			boolean hasMultiVideoLanguages,
 			boolean hasMultiAudioLanguages,
 			boolean hasMultiConstraintLanguages,
-			boolean hasMultiRequiredLanguages) throws SQLException {
+			boolean hasMultiRequiredLanguages,
+			boolean usesFlash) throws SQLException {
 
 		ArrayList<Column> cols = new ArrayList<Column> ();
 
@@ -952,7 +955,9 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
-		cols.add(new Column(colNumber++,"body::kb:flash", Column.COL_FLASH, 0, "body::kb:flash"));
+		if(usesFlash) {
+			cols.add(new Column(colNumber++,"body::kb:flash", Column.COL_FLASH, 0, "body::kb:flash"));
+		}
 		cols.add(new Column(colNumber++,"display_name", Column.COL_DISPLAY_NAME, 0, "display_name"));
 
 		
