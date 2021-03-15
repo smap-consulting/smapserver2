@@ -133,10 +133,10 @@ public class Users extends Application {
 			UserManager um = new UserManager(localisation);
 			int newOrgId = GeneralUtilityMethods.getOrganisationIdfromName(sd, orgName);
 			um.switchUsersOrganisation(sd, newOrgId, request.getRemoteUser(), true);
-			
+			response = Response.ok("{}").build();
 		} catch (Exception e) {
 			e.printStackTrace();
-			response = Response.serverError().entity(e.getMessage()).build();
+			response = Response.serverError().entity("{msg: \"" + e.getMessage() + "\"}").build();
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
