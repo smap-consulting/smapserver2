@@ -1124,15 +1124,44 @@ public class GeneralUtilityMethods {
 
 		int o_id = -1;
 
-		String sql1 = "select o_id " 
+		String sql = "select o_id " 
 				+ " from users u " 
-				+ " where u.ident = ?;";
+				+ " where u.ident = ?";
 		PreparedStatement pstmt = null;
 
 		try {
 
-			pstmt = sd.prepareStatement(sql1);
+			pstmt = sd.prepareStatement(sql);
 			pstmt.setString(1, user);
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				o_id = rs.getInt(1);
+			} 
+
+		} finally {
+			try {if (pstmt != null) {pstmt.close();}} catch (Exception e) {	}
+		}
+
+		return o_id;
+	}
+	
+	/*
+	 * Get the current organisation id for the user 
+	 */
+	static public int getOrganisationIdfromName(Connection sd, String orgName) throws SQLException {
+
+		int o_id = -1;
+
+		String sql = "select id " 
+				+ " from organisation o " 
+				+ " where name = ?";
+		PreparedStatement pstmt = null;
+
+		try {
+
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, orgName);
 
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {
