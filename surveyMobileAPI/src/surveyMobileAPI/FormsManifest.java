@@ -92,8 +92,8 @@ public class FormsManifest {
 
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormsManifest");
-		a.isAuthorised(connectionSD, request.getRemoteUser());
+		Connection sd = SDDataSource.getConnection("surveyMobileAPI-FormsManifest");
+		a.isAuthorised(sd, request.getRemoteUser());
 		
 		boolean superUser = false;
 		ResourceBundle localisation = null;
@@ -101,16 +101,16 @@ public class FormsManifest {
 		Survey survey = null;
 		
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 			// Get the users locale
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(connectionSD, request, request.getRemoteUser()));
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			sm = new SurveyManager(localisation, "UTC");
-			survey = sm.getSurveyId(connectionSD, key);	// Get the survey id from the templateName / key
+			survey = sm.getSurveyId(sd, key);	// Get the survey id from the templateName / key
 		} catch (Exception e) {
 		}
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), survey.id, false, superUser);	// Validate that the user can access this survey
+		a.isValidSurvey(sd, request.getRemoteUser(), survey.id, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
 		if(portNumber == 443) {
@@ -139,12 +139,12 @@ public class FormsManifest {
 			TranslationManager translationMgr = new TranslationManager();
 			
 			List<ManifestValue> manifestList = translationMgr.
-					getManifestBySurvey(connectionSD, request.getRemoteUser(), survey.id, basepath, key);
+					getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, key);
 
 			for( ManifestValue m : manifestList) {
 
 				String filepath = null;
-				String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, survey.id);
+				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.id);
 				
 				if(m.type.equals("linked")) {
 					filepath = basepath + "/media/" + sIdent+ "/" + m.fileName;
@@ -184,7 +184,7 @@ public class FormsManifest {
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
-			SDDataSource.closeConnection("surveyMobileAPI-FormsManifest", connectionSD);
+			SDDataSource.closeConnection("surveyMobileAPI-FormsManifest", sd);
 		}		
 
 		return responseStr.toString();
