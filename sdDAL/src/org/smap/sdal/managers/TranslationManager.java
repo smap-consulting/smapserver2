@@ -79,6 +79,7 @@ public class TranslationManager {
 			
 			/*
 			 * Get Question and Option level manifests from the translation table
+			 * These are items such as images, audio, video
 			 */
 			pstmtQuestionLevel = sd.prepareStatement(sqlQuestionLevel);	 			
 			pstmtQuestionLevel.setInt(1, surveyId);
@@ -139,8 +140,6 @@ public class TranslationManager {
 				}
 			}
 			
-			
-			
 		} catch (SQLException e) {
 			log.log(Level.SEVERE,"Error", e);
 			throw e;
@@ -154,7 +153,8 @@ public class TranslationManager {
 	
 	
 	/*
-	 * Get the manifest items to linked forms
+	 * Get the manifest items to linked forms and csv files
+	 * Survey level manfiests are used to look up reference data
 	 */
 	public List<ManifestValue> getSurveyManifests(Connection sd,  
 			int surveyId,
