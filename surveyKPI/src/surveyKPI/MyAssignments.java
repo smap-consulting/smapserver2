@@ -25,6 +25,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -93,9 +94,14 @@ public class MyAssignments extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	public Response getTasksCredentials(@Context HttpServletRequest request) throws SQLException {
+	
+	public Response getTasksCredentials(@Context HttpServletRequest request,
+			@QueryParam("noprojects") boolean noProjects,
+			@QueryParam("orgs") boolean getOrgs,
+			@QueryParam("linked") boolean getLinkedRefDefns
+			) throws SQLException {
 		log.info("webserviceevent : getTasksCredentials");
-		return getTasks(request, request.getRemoteUser());
+		return getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns);
 	}
 
 	/*
@@ -106,6 +112,9 @@ public class MyAssignments extends Application {
 	@Path("/key/{key}")
 	public Response getTaskskey(
 			@PathParam("key") String key,
+			@QueryParam("projects") boolean noProjects,
+			@QueryParam("orgs") boolean getOrgs,
+			@QueryParam("linked") boolean getLinkedRefDefns,
 			@Context HttpServletRequest request) throws SQLException {
 
 		log.info("webserviceevent : getTaskskey");
@@ -126,7 +135,7 @@ public class MyAssignments extends Application {
 			log.info("User not found for key");
 			throw new JsonAuthorisationException();
 		}
-		return getTasks(request, user);
+		return getTasks(request, user, noProjects, getOrgs, getLinkedRefDefns);
 	}
 
 	/*
@@ -248,7 +257,7 @@ public class MyAssignments extends Application {
 	/*
 	 * Return the list of tasks allocated to the requesting user
 	 */
-	public Response getTasks(HttpServletRequest request, String userName) throws SQLException {
+	public Response getTasks(HttpServletRequest request, String userName, boolean noProjects, boolean getOrgs, boolean getLinkedRefDefns) throws SQLException {
 
 		Response response = null;
 
@@ -537,9 +546,10 @@ public class MyAssignments extends Application {
 					null);
 			
 			TranslationManager translationMgr = new TranslationManager();
-
 			tr.forms = new ArrayList<FormLocator> ();
-			
+			if(getLinkedRefDefns) {
+				tr.linkedRefs = new ArrayList<ManifestValue> ();
+			}
 			for (Survey survey : surveys) {
 				
 				boolean hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
@@ -575,6 +585,13 @@ public class MyAssignments extends Application {
 						log.info("CSV File is:  " + dirPath + " : directory path created");
 	
 						efm.createLinkedFile(sd, cRel, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
+						
+						/*
+						 * Get pulldata definitions so that local data on the device can be searched
+						 */
+						if(getLinkedRefDefns) {				
+							tr.linkedRefs.add(m);
+						}
 					}
 				}
 
@@ -665,43 +682,46 @@ public class MyAssignments extends Application {
 			/*
 			 * Get the projects
 			 */
-			tr.projects = new ArrayList<Project> ();
-			sql = new StringBuilder("select p.id, p.name, p.description " +
-					" from users u, user_project up, project p " + 
-					"where u.id = up.u_id " +
-					"and p.id = up.p_id " +
-					"and u.ident = ? " +
-					"and p.o_id = ? " +
-					"order by name ASC;");	
-
-			pstmtGetProjects = sd.prepareStatement(sql.toString());	
-			pstmtGetProjects.setString(1, userName);
-			pstmtGetProjects.setInt(2, oId);
-
-			log.info("Getting projects: " + pstmtGetProjects.toString());
-			resultSet = pstmtGetProjects.executeQuery();
-
-			while(resultSet.next()) {
-				Project p = new Project();
-				p.id = resultSet.getInt(1);
-				p.name = resultSet.getString(2);
-				p.desc = resultSet.getString(3);
-				tr.projects.add(p);
+			if(!noProjects) {		// Double negative - however this preserves default behaviour which is to return projects
+				tr.projects = new ArrayList<Project> ();
+				sql = new StringBuilder("select p.id, p.name, p.description " +
+						" from users u, user_project up, project p " + 
+						"where u.id = up.u_id " +
+						"and p.id = up.p_id " +
+						"and u.ident = ? " +
+						"and p.o_id = ? " +
+						"order by name ASC;");	
+	
+				pstmtGetProjects = sd.prepareStatement(sql.toString());	
+				pstmtGetProjects.setString(1, userName);
+				pstmtGetProjects.setInt(2, oId);
+	
+				log.info("Getting projects: " + pstmtGetProjects.toString());
+				resultSet = pstmtGetProjects.executeQuery();
+	
+				while(resultSet.next()) {
+					Project p = new Project();
+					p.id = resultSet.getInt(1);
+					p.name = resultSet.getString(2);
+					p.desc = resultSet.getString(3);
+					tr.projects.add(p);
+				}
 			}
 			
 			/*
 			 * Get the organisations
 			 */
-			tr.current_org = GeneralUtilityMethods.getOrganisationName(sd, request.getRemoteUser());
-			UserManager um = new UserManager(localisation);
-			ArrayList<Organisation> orgs = new ArrayList<>();
-			um.getUserOrganisations(sd, orgs, null, uId);
-			tr.orgs = new HashSet<String> ();
-			for(Organisation o : orgs) {
-				tr.orgs.add(o.name);
-			}
-			tr.orgs.add(tr.current_org);
-			
+			if(getOrgs) {
+				tr.current_org = GeneralUtilityMethods.getOrganisationName(sd, request.getRemoteUser());
+				UserManager um = new UserManager(localisation);
+				ArrayList<Organisation> orgs = new ArrayList<>();
+				um.getUserOrganisations(sd, orgs, null, uId);
+				tr.orgs = new HashSet<String> ();
+				for(Organisation o : orgs) {
+					tr.orgs.add(o.name);
+				}
+				tr.orgs.add(tr.current_org);
+			}	
 
 			/*
 			 * Log the request
