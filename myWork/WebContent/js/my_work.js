@@ -284,7 +284,7 @@ require([
 				h[++idx] = '<div class="btn-group btn-block btn-group-lg d-flex" role="group" aria-label="Button group for task selection or rejection">';
 				h[++idx] = '<a id="a_';
 				h[++idx] = taskList[i].assignment.assignment_id;
-				h[++idx] = '" class="task btn btn-warning w-80" role="button"';
+				h[++idx] = '" class="task btn btn-warning w-100" role="button"';
 				if(!gIsApp) {
 					h[++idx] = ' target="_blank"';      // If launched as an app do not create new windows
 				}
