@@ -3,7 +3,6 @@ package taskModel;
 import java.util.HashSet;
 import java.util.List;
 
-import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.TaskAssignment;
 
@@ -25,6 +24,6 @@ public class TaskResponse {
 	public List<Project> projects;
 	public String current_org;
 	public HashSet<String> orgs;
-	public List<ManifestValue> linkedRefs;
+	public List<ReferenceSurvey> refSurveys;
 	
 }
