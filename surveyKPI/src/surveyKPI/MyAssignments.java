@@ -39,6 +39,7 @@ import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.managers.UserManager;
@@ -62,6 +63,7 @@ import com.google.gson.reflect.TypeToken;
 import taskModel.FieldTaskSettings;
 import taskModel.FormLocator;
 import taskModel.PointEntry;
+import taskModel.ReferenceSurvey;
 import taskModel.TaskCompletionInfo;
 import taskModel.TaskResponse;
 
@@ -545,10 +547,11 @@ public class MyAssignments extends Application {
 					false,	// get links
 					null);
 			
+			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
 			TranslationManager translationMgr = new TranslationManager();
 			tr.forms = new ArrayList<FormLocator> ();
 			if(getLinkedRefDefns) {
-				tr.linkedRefs = new ArrayList<ManifestValue> ();
+				tr.refSurveys = new ArrayList<> ();
 			}
 			for (Survey survey : surveys) {
 				
@@ -589,8 +592,16 @@ public class MyAssignments extends Application {
 						/*
 						 * Get pulldata definitions so that local data on the device can be searched
 						 */
-						if(getLinkedRefDefns) {				
-							tr.linkedRefs.add(m);
+						if(getLinkedRefDefns) {	
+							String refSurveyIdent = getReferenceSurveyIdent(m.fileName);
+							if(refSurveyIdent != null) {
+								ReferenceSurvey ref = new ReferenceSurvey();
+								ref.survey = survey.ident;
+								ref.referenceSurvey = refSurveyIdent;
+								ref.name = m.fileName;
+								ref.columns = stm.getQuestionNames(survey.id, m.fileName);
+								tr.refSurveys.add(ref);
+							}
 						}
 					}
 				}
@@ -1173,6 +1184,21 @@ public class MyAssignments extends Application {
 			try {if ( pstmt != null ) { pstmt.close(); }} catch (Exception e) {}
 			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}
 		}
+	}
+	
+	/*
+	 * Return the ident of a reference survey if it is a standard linked survey
+	 * REturn null if it the reference is to chart data or the pd format
+	 */
+	String getReferenceSurveyIdent(String filename) {
+		String ident = null;
+		String lookingFor = "linked_";
+		if(filename != null) {
+			if(!filename.startsWith("linked_s_pd") && filename.startsWith(lookingFor)) {
+				ident = filename.substring(lookingFor.length());
+			}
+		}
+		return ident;
 	}
 }
 

@@ -24,7 +24,6 @@ import org.smap.sdal.model.Pulldata;
 import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.ServerCalculation;
 import org.smap.sdal.model.SqlFrag;
-import org.smap.sdal.model.SqlFragParam;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -424,7 +423,7 @@ public class SurveyTableManager {
 
 			ArrayList<String> uniqueColumns = new ArrayList<String>();
 			/*
-			 * Get parameters There are two types of linked CSV files generated 
+			 * Get parameters There are three types of linked CSV files generated 
 			 * 1. Parent child records where there can be many records from a sub form that match the
 			 *  key. Filename starts with "linked_s_pd_" (PD_IDENT) 
 			 * 2. Normal lookup where there is only one record that should match a key. Filename starts with
@@ -507,7 +506,7 @@ public class SurveyTableManager {
 				throw new ApplicationException("Error: Survey with identifier " + sIdent + " was not found");
 			}
 
-			// 3.Get columns from appearance
+			// 3.Get question names from appearance
 			pstmtAppearance = sd.prepareStatement(sqlAppearance);
 			pstmtAppearance.setInt(1, sId);
 			log.info("Appearance cols: " + pstmtAppearance.toString());
@@ -526,7 +525,7 @@ public class SurveyTableManager {
 				}
 			}
 
-			// 4. Get columns from calculate
+			// 4. Get question names from calculate
 			pstmtCalculate = sd.prepareStatement(sqlCalculate);
 			pstmtCalculate.setInt(1, sId);
 			log.info("Calculate cols: " + pstmtCalculate.toString());
@@ -846,5 +845,36 @@ public class SurveyTableManager {
 		}
 		
 		return choices;
+	}
+	
+	public ArrayList<String> getQuestionNames(int sId, String filename) throws SQLException {
+		
+		ArrayList<String> qnames = null;
+		
+		String sql = "select sqldef "
+				+ "from csvtable "
+				+ "where s_id = ? "
+				+ "and filename = ? ";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1,  sId);
+			pstmt.setString(2, filename);
+			ResultSet rs = pstmt.executeQuery();
+			log.info("Get sqldef in order to get columns: " + pstmt.toString());
+			if(rs.next()) {
+				String s = rs.getString(1);
+				if(s != null) {
+					Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
+					SqlDef sqlDef = gson.fromJson(s, SqlDef.class);
+					qnames = sqlDef.qnames;
+				}
+			}
+		} finally {
+			if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+		}
+		return qnames;
+				
 	}
 }
