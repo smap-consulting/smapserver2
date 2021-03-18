@@ -44,6 +44,7 @@ define([],
 
             addRecord: addRecord,
             getRecords: getRecords,
+            deleteRecords: deleteRecords,
 
             getTask: getTask
         };
@@ -272,6 +273,36 @@ define([],
 
                     var objectStore = transaction.objectStore(recordStoreName);
                     var request = objectStore.getAll();
+                    request.onsuccess = function (event) {
+                        resolve(request.result);
+                    };
+                    request.onerror = function (event) {
+                        console.log('Error', e.target.error.name);
+                        reject();
+                    };
+                });
+
+            });
+
+        }
+
+        /*
+         * Delete all the records from the records database
+         */
+        function deleteRecords() {
+
+            console.log("xxxxxxxxxxxxx: deleteRecords");
+            return new Promise(function(resolve, reject) {
+                console.log("Delete records ");
+
+                dbPromise.then(function (db) {
+                    var transaction = db.transaction([recordStoreName], "readwrite");
+                    transaction.onerror = function (event) {
+                        alert("Error: failed to get record ");
+                    };
+
+                    var objectStore = transaction.objectStore(recordStoreName);
+                    var request = objectStore.clear();
                     request.onsuccess = function (event) {
                         resolve(request.result);
                     };

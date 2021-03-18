@@ -114,6 +114,7 @@ require([
 
 	function serviceWorkerNotification(data) {
 		if(data && data.data) {  // Only 1 type currently supported so ignore
+			console.log("xxxxxxxxxxxxx: serviceWorkerNotification");
 			surveyDataFromNetwork(data.data, globals.gCurrentProject);
 		}
 
@@ -184,11 +185,14 @@ require([
 			idx = -1,
 			formList = surveyList.forms;
 
+		console.log("xxxxxxxxxxxxx: surveyDataFromNetwork");
 
 		// Save the tasks then refresh view
 		saveTasks(surveyList.data).then( function() {
+			console.log("xxxxxxxxxxxxx: gettingRecords");
 			dbstorage.getRecords().then( function(records) {
 				if (typeof records !== "undefined") {
+					console.log("xxxxxxxxxxxxx: showTaskList; " + records.length);
 					showTaskList(records, filterProjectId);
 				} else {
 					$('#tasks_count').html('(0)');
@@ -236,13 +240,16 @@ require([
 
 	function saveTasks(tasks) {
 		return new Promise(function(resolve, reject) {
-			var i;
-			if(tasks) {
-				for (i = 0; i < tasks.length; i++) {
-					processServerTask(tasks[i]);
+			dbstorage.deleteRecords().then(function() {
+				console.log("xxxxxxxxxxxxx: savingTasks");
+				var i;
+				if (tasks) {
+					for (i = 0; i < tasks.length; i++) {
+						processServerTask(tasks[i]);
+					}
 				}
-			}
-			resolve();
+				resolve();
+			});
 		});
 	}
 
@@ -250,23 +257,14 @@ require([
 
 		var assignment = task.assignment;
 
+		console.log("xxxxxxxxxxxxx: processServerTask: " + JSON.stringify(task));
+
 		let promise = new Promise(function(resolve, reject) {
-			dbstorage.getTask(assignment.assignment_id).then(function(current) {
-				if (!current) {
-					// new task
-					if (assignment.assignment_status === STATUS_T_ACCEPTED ||
-						assignment.assignment_status === STATUS_T_NEW) {
 
-						dbstorage.addRecord(task).then(function() {
-							resolve();
-						});
-
-					}
-				} else {
-					console.log("existing task");
-					resolve();
-				}
+			dbstorage.addRecord(task).then(function() {
+				resolve();
 			});
+
 		});
 
 		await promise;
