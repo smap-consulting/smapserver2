@@ -410,7 +410,6 @@ public class SurveyTableManager {
 
 		ResultSet rs = null;
 		boolean chart = false;
-		String sIdent = null;
 		int linked_sId = 0;
 		String data_key = null;
 		ArrayList<Pulldata> pdArray = null;
@@ -449,7 +448,7 @@ public class SurveyTableManager {
 			if (filename.startsWith(PD_IDENT)) {
 				linked_s_pd = true;
 
-				sIdent = filename.substring(PD_IDENT.length());
+				linked_sIdent = filename.substring(PD_IDENT.length());
 
 				pstmtPulldata = sd.prepareStatement(sqlPulldata);
 				pstmtPulldata.setInt(1, sId);
@@ -466,11 +465,11 @@ public class SurveyTableManager {
 						String pulldataIdent = pdArray.get(i).survey;
 
 						if (pulldataIdent.equals("self")) {
-							pulldataIdent = sIdent;
+							pulldataIdent = linked_sIdent;
 						}
 						log.info("PulldataIdent: " + pulldataIdent);
 
-						if (pulldataIdent.equals(sIdent)) {
+						if (pulldataIdent.equals(linked_sIdent)) {
 							data_key = pdArray.get(i).data_key;
 							non_unique_key = true;
 							break;
@@ -486,11 +485,11 @@ public class SurveyTableManager {
 
 			} else if (filename.startsWith("linked_s")){
 				int idx = filename.indexOf('_');
-				sIdent = filename.substring(idx + 1);
+				linked_sIdent = filename.substring(idx + 1);
 			} else if (filename.startsWith("chart_s")) {  // Form: chart_sxx_yyyy_keyname we want sxx_yyyy
 				chart = true;
 				if(filename.startsWith("chart_self")) {
-					sIdent = "self";
+					linked_sIdent = "self";
 					int idx1 = filename.indexOf('_');
 					int idx2 = filename.indexOf('_', idx1 + 1);
 					if(idx2 > 0) {
@@ -501,25 +500,25 @@ public class SurveyTableManager {
 					int idx2 = filename.indexOf('_', idx1 + 1);
 					idx2 = filename.indexOf('_', idx2 + 1);
 					if(idx2 > 0) {
-						sIdent = filename.substring(idx1 + 1, idx2);
+						linked_sIdent = filename.substring(idx1 + 1, idx2);
 						chart_key = filename.substring(idx2 + 1);
 					} else {
-						sIdent = filename.substring(idx1 + 1);
+						linked_sIdent = filename.substring(idx1 + 1);
 					}
 				}
 			}
 
-			if (sIdent != null && sIdent.equals("self")) {
+			if (linked_sIdent != null && linked_sIdent.equals("self")) {
 				linked_sId = sId;
-				sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
+				linked_sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			} else {
-				linked_sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);
+				linked_sId = GeneralUtilityMethods.getSurveyId(sd, linked_sIdent);
 				if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
-					throw new ApplicationException("Cannot link to external survey: " + sIdent + " as it is in a different organisation");
+					throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
 				}
 			}
 			if(linked_sId == 0) {
-				throw new ApplicationException("Error: Survey with identifier " + sIdent + " was not found");
+				throw new ApplicationException("Error: Survey with identifier " + linked_sIdent + " was not found");
 			}
 
 			// 3.Get question names from appearance
@@ -531,7 +530,7 @@ public class SurveyTableManager {
 				int qId = rs.getInt(1);
 				String appearance = rs.getString(2);
 				ArrayList<String> columns = GeneralUtilityMethods.getManifestParams(sd, qId, appearance, 
-						filename, true, sIdent);
+						filename, true, linked_sIdent);
 				if (columns != null) {
 					for (String col : columns) {
 						if (!uniqueColumns.contains(col)) {
@@ -550,7 +549,7 @@ public class SurveyTableManager {
 				int qId = rs.getInt(1);
 				String calculate = rs.getString(2);
 				ArrayList<String> columns = GeneralUtilityMethods.getManifestParams(sd, qId, calculate, filename,
-						false, sIdent);
+						false, linked_sIdent);
 				if (columns != null) {
 					for (String col : columns) {
 						if (!uniqueColumns.contains(col)) {
@@ -572,11 +571,11 @@ public class SurveyTableManager {
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
 					pstmtUpdate.setBoolean(1, chart);
 					pstmtUpdate.setBoolean(2, non_unique_key);
-					pstmtUpdate.setString(3, sIdent);
+					pstmtUpdate.setString(3, linked_sIdent);
 					pstmtUpdate.setString(4, chart_key);
 					pstmtUpdate.setBoolean(5, linked_s_pd);
 					pstmtUpdate.setString(6, new Gson().toJson(sqlDef));
-					pstmtUpdate.setInt(6, tableId);
+					pstmtUpdate.setInt(7, tableId);
 					log.info("Add sql info: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 				}
