@@ -587,7 +587,7 @@ public class MyAssignments extends Application {
 	
 						log.info("CSV File is:  " + dirPath + " : directory path created");
 	
-						efm.createLinkedFile(sd, cRel, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
+						efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
 						
 						/*
 						 * Get pulldata definitions so that local data on the device can be searched
@@ -818,7 +818,7 @@ public class MyAssignments extends Application {
 
 		Connection sd = SDDataSource.getConnection(connectionString);
 
-		// Authorisation not required a user can only update their own assignments
+		// Authorisation not required as a user can only update their own assignments
 
 		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm").create();
 		TaskResponse tr = gson.fromJson(assignInput, TaskResponse.class);
