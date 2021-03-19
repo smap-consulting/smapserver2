@@ -1,5 +1,10 @@
 package org.smap.sdal.managers;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -77,8 +82,13 @@ public class SurveyTableManager {
 	private int tableId = 0;
 	ResultSet rs = null;
 	
+	// Global variables
 	private SqlDef sqlDef = null;
 	private boolean non_unique_key = false;
+	private boolean chart;
+	private String linked_sIdent;
+	private String chart_key;
+	private boolean linked_s_pd = false;
 	
 	/*
 	 * Constructor to create a table to hold the CSV data if it does not already exist
@@ -95,7 +105,8 @@ public class SurveyTableManager {
 		} else {
 			Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 			
-			String sqlGetCsvTable = "select id, sqldef from csvtable "
+			String sqlGetCsvTable = "select id, sqldef, non_unique_key, chart, linked_sident, chart_key, linked_s_pd "
+					+ "from csvtable "
 					+ "where o_id = ? "
 					+ "and s_id = ? "
 					+ "and survey "
@@ -116,6 +127,11 @@ public class SurveyTableManager {
 				if(rs.next()) {
 					tableId = rs.getInt(1);
 					sqlDef = gson.fromJson(rs.getString(2), SqlDef.class);
+					non_unique_key = rs.getBoolean(3);
+					chart = rs.getBoolean(4);
+					linked_sIdent = rs.getString(5);
+					chart_key = rs.getString(6);
+					linked_s_pd = rs.getBoolean(7);
 				} else {
 					/*
 					 * Create the headers and sql
@@ -389,18 +405,15 @@ public class SurveyTableManager {
 	/*
 	 * Get the SQL needed to retrieve the data as well as the headers
 	 */
-	public boolean getSqlAndHeaders(Connection sd, Connection cRel, int sId, // The survey that contains the manifest item
+	public void getSqlAndHeaders(Connection sd, Connection cRel, int sId, // The survey that contains the manifest item
 			String filename) throws Exception {
 
 		ResultSet rs = null;
-		boolean linked_s_pd = false;
 		boolean chart = false;
-		String chart_key = null;
 		String sIdent = null;
 		int linked_sId = 0;
 		String data_key = null;
 		ArrayList<Pulldata> pdArray = null;
-		boolean regenerate = true;
 
 		String sqlPulldata = "select pulldata from survey where s_id = ?";
 		PreparedStatement pstmtPulldata = null;
@@ -416,6 +429,9 @@ public class SurveyTableManager {
 		String sqlUpdate = "update csvtable set "
 				+ "chart = ?,"
 				+ "non_unique_key = ?,"
+				+ "linked_sident = ?, "
+				+ "chart_key = ?,"
+				+ "linked_s_pd = ?,"
 				+ "sqldef = ? "
 				+ "where id = ?";
 		PreparedStatement pstmtUpdate = null;
@@ -556,8 +572,11 @@ public class SurveyTableManager {
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
 					pstmtUpdate.setBoolean(1, chart);
 					pstmtUpdate.setBoolean(2, non_unique_key);
-					pstmtUpdate.setString(3, new Gson().toJson(sqlDef));
-					pstmtUpdate.setInt(4, tableId);
+					pstmtUpdate.setString(3, sIdent);
+					pstmtUpdate.setString(4, chart_key);
+					pstmtUpdate.setBoolean(5, linked_s_pd);
+					pstmtUpdate.setString(6, new Gson().toJson(sqlDef));
+					pstmtUpdate.setInt(6, tableId);
 					log.info("Add sql info: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
 				}
@@ -572,14 +591,13 @@ public class SurveyTableManager {
 			if (pstmtPulldata != null) {	try {pstmtPulldata.close();} catch (Exception e) {}}
 		}
 
-		return regenerate;
 	}
 	
 	/*
 	 * Get the SQL to retrieve dynamic CSV data TODO replace this with the query
 	 * generator from SDAL
 	 */
-	private SqlDef getSql(Connection sd, int sId, ArrayList<String> qnames, boolean linked_s_pd, String data_key,
+	public SqlDef getSql(Connection sd, int sId, ArrayList<String> qnames, boolean linked_s_pd, String data_key,
 			String chart_key) throws Exception {
 
 		StringBuffer sql = new StringBuffer("select ");
@@ -708,7 +726,6 @@ public class SurveyTableManager {
 			// Add RBAC/Role Row Filter
 			sqlDef.rfArray = null;
 			sqlDef.hasRbacFilter = false;
-			// Apply roles for super user as well
 			/*
 			 * Disable as for performance reasons we are not generating a separate csv file for every user
 			sqlDef.rfArray = rm.getSurveyRowFilter(sd, sId, user);
@@ -876,5 +893,340 @@ public class SurveyTableManager {
 		}
 		return qnames;
 				
+	}
+	
+	/*
+	 * Generate a CSV file from the survey reference data
+	 */
+	public void regenerateCsvFile(Connection cResults, File f, int sId, String userName, String filepath) {
+		PreparedStatement pstmtData = null;
+		try {
+			pstmtData = cResults.prepareStatement(sqlDef.sql);
+			
+			if(sqlDef.colNames.size() == 0) {
+				log.info("++++++ No column names present in table. Creating empty file");
+				
+				// Use requested columns 
+				BufferedWriter bw = new BufferedWriter(
+						new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
+				for (int i = 0; i < sqlDef.colNames.size(); i++) {
+					if(i > 0) {
+						bw.write(",");
+					}
+					bw.write(sqlDef.colNames.get(i));
+				}
+				bw.newLine();
+				bw.flush();
+				bw.close();				
+			} else if (linked_s_pd && non_unique_key) {
+				// 6. Create the file
+
+				log.info("Get CSV data: " + pstmtData.toString());
+				rs = pstmtData.executeQuery();
+
+				BufferedWriter bw = new BufferedWriter(
+						new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
+
+				// Write header
+				bw.write("_data_key");
+				if (non_unique_key) {
+					bw.write(",_count");
+				}
+				for (int i = 0; i < sqlDef.colNames.size(); i++) {
+					String col = sqlDef.colNames.get(i);
+					bw.write(",");
+					bw.write(col);
+				}
+				bw.newLine();
+
+				/*
+				 * Class to store a set of records for a single key when non unique key has
+				 * been specified This allows us to count the number of duplicate keys before
+				 * writing the data to the csv file
+				 */
+				ArrayList<StringBuilder> nonUniqueRecords = new ArrayList<StringBuilder>();
+
+				// Write data
+				String currentDkv = null; // Current value of the data key
+				String dkv = null;
+				while (rs.next()) {
+					dkv = rs.getString("_data_key");
+					if(dkv == null) {
+						continue;	// Ignore null keys
+					}
+					if (!dkv.equals(currentDkv)) {
+						// A new data key
+						writeRecords(non_unique_key, nonUniqueRecords, bw, currentDkv);
+						nonUniqueRecords = new ArrayList<StringBuilder>();
+						currentDkv = dkv;
+					}
+
+					// Store the record
+					StringBuilder s = new StringBuilder("");
+					// Don't write the key yet
+					if (non_unique_key) {
+						s.append(",");
+					}
+					for (int i = 0; i < sqlDef.colNames.size(); i++) {
+						String col = sqlDef.colNames.get(i);
+						s.append(",");
+						String value = rs.getString(col);
+						if (value == null) {
+							value = "";
+						}
+						s.append(value);
+					}
+					nonUniqueRecords.add(s);
+				}
+
+				// Write the records for the final key
+				writeRecords(non_unique_key, nonUniqueRecords, bw, currentDkv);
+
+				bw.flush();
+				bw.close();
+			} else if (chart) {
+
+				HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
+				
+				if(rs != null) {
+					rs.close();
+				}
+				log.info("####### Getting chart data: " + pstmtData.toString());
+				rs = pstmtData.executeQuery();
+
+				BufferedWriter bw = new BufferedWriter(
+						new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
+
+				// Write header
+				bw.write(chart_key);
+				
+				for (int i = 0; i < sqlDef.colNames.size(); i++) {
+					String col = sqlDef.colNames.get(i);
+					if(!col.equals(chart_key)) {
+						bw.write(",");
+						bw.write(col);
+					}
+				}
+				bw.newLine();
+
+				// Write data
+				String currentDkv = null; // Current value of the data key
+				String dkv = null;
+				while (rs.next()) {
+					dkv = rs.getString(chart_key);
+					if (dkv != null && !dkv.equals(currentDkv)) {
+						// A new data key
+						if(currentDkv != null) {
+							writeChartRecords(sqlDef.colNames, chartData, bw, currentDkv, chart_key);
+							chartData = new HashMap<String, ArrayList<String>> ();
+						}
+					}
+					currentDkv = dkv;
+
+					for (int i = 0; i < sqlDef.colNames.size(); i++) {
+						String col = sqlDef.colNames.get(i);
+						if(!col.equals(chart_key)) {
+							ArrayList<String> vList = chartData.get(col);
+							if(vList == null) {
+								vList = new ArrayList<String> ();
+								chartData.put(col, vList);
+							}
+							vList.add(rs.getString(col));
+							
+						}
+					}
+
+				}
+
+				// Write the records for the final key
+				writeChartRecords(sqlDef.colNames, chartData, bw, currentDkv, chart_key);
+
+				bw.flush();
+				bw.close();
+			} 		   else {
+				// Use PSQL to generate the file as it is faster
+				int code = 0;
+
+				String[] cmd = { "/bin/sh", "-c",
+						"/smap_bin/getshape.sh " + "results linked " + "\"" + pstmtData.toString() + "\" "
+								+ filepath + " csvnozip" };
+				log.info("Getting linked data: " + cmd[2]);
+				Process proc = Runtime.getRuntime().exec(cmd);
+				code = proc.waitFor();
+				if(code > 0) {
+					int len;
+					if ((len = proc.getErrorStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getErrorStream().read(buf);
+						log.info("Command error:\t\"" + new String(buf) + "\"");
+					}
+				} else {
+					int len;
+					if ((len = proc.getInputStream().available()) > 0) {
+						byte[] buf = new byte[len];
+						proc.getInputStream().read(buf);
+						log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+					}
+				}
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0);
+		} finally {
+			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}
+		}
+	}
+	
+	/*
+	 * Write a set of records for a single data key
+	 */
+	private void writeRecords(boolean non_unique_key, ArrayList<StringBuilder> nonUniqueRecords, BufferedWriter bw,
+			String dkv) throws IOException {
+
+		if (non_unique_key && nonUniqueRecords.size() > 0) {
+			// Write the number of records
+			bw.write(dkv);
+			bw.write(",");
+			bw.write(String.valueOf(nonUniqueRecords.size()));
+			bw.newLine();
+		}
+
+		// Write each record
+		for (int i = 0; i < nonUniqueRecords.size(); i++) {
+			bw.write(dkv);
+			if (non_unique_key) {
+				bw.write("_");
+				bw.write(String.valueOf(i + 1)); // To confirm with position(..) which starts at 1
+			}
+			bw.write(nonUniqueRecords.get(i).toString());
+			bw.newLine();
+		}
+	}
+	
+	/*
+	 * Write timeseries data
+	 */
+	private void writeChartRecords(ArrayList<String> cols, HashMap<String, ArrayList<String>> data, BufferedWriter bw,
+			String dkv, String chart_key) throws IOException {
+
+		bw.write(dkv);
+		for(String col : cols) {
+			if(!col.equals(chart_key)) {
+				bw.write(",");
+				ArrayList<String> vList = data.get(col);
+				if(vList != null) {
+					int idx = 0;
+					for(String v : vList) {
+						if(v != null) {
+							if(idx++ > 0) {
+								bw.write(":");
+							}
+							bw.write(v);
+						}
+					}
+				}
+			}
+		}
+		bw.newLine();
+	}
+	
+	/*
+	 * Return true if the file needs to be regenerated If regeneration is required
+	 * then also increment the version of the linking form so that it will get the
+	 * new version
+	 */
+	public boolean regenerateFile(Connection sd, Connection cRel, int sId, File f) throws SQLException, ApplicationException {
+
+		boolean fileExists = f.exists();
+		String filepath = f.getAbsolutePath();
+		
+		boolean regenerate = false;
+		boolean tableExists = true;
+
+		String sql = "select count (*) from linked_forms " 
+				+ "where linked_s_id = ? " 
+				+ "and linker_s_id = ? "
+				+ "and link_file = ? ";
+		PreparedStatement pstmt = null;
+
+		String sqlInsert = "insert into linked_forms "
+				+ "(Linked_s_id, linker_s_id, link_file, download_time) " 
+				+ "values(?, ?, ?, now())";
+		PreparedStatement pstmtInsert = null;
+
+		try {
+
+			int linked_sId = GeneralUtilityMethods.getSurveyId(sd, linked_sIdent);
+			
+			if(!GeneralUtilityMethods.inSameOrganisation(sd, sId, linked_sId)) {
+				log.info("---------------------------- Authorisation exception");
+				throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
+			}
+			
+			// Get data on the link between the two surveys
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setInt(1, linked_sId);
+			pstmt.setInt(2, sId);
+			pstmt.setString(3, filepath);
+			log.info("Test for regen: " + pstmt.toString());
+
+			ResultSet rs = pstmt.executeQuery();
+			if (rs.next()) {
+				int count = rs.getInt(1);
+				if (count > 0) {
+					regenerate = false;
+					log.info("Regenerate is false");
+				} else {
+
+					String table = GeneralUtilityMethods.getMainResultsTable(sd, cRel, linked_sId);
+
+					if (table != null) {
+						regenerate = true;
+						log.info("Need to regenerate");
+
+						pstmtInsert = sd.prepareStatement(sqlInsert);
+						
+						// Create an entry in linked forms for all grouped surveys that this this survey links to
+						String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, linked_sId );
+						HashMap<Integer, Integer> groupSurveys = GeneralUtilityMethods.getGroupSurveys(sd, groupSurveyIdent);
+						if(groupSurveys.size() > 0) {
+							for(int gSId : groupSurveys.keySet()) {
+								pstmtInsert.setInt(1, gSId);
+								pstmtInsert.setInt(2, sId);
+								pstmtInsert.setString(3, filepath);
+								pstmtInsert.executeUpdate();
+								log.info("Insert record: " + pstmtInsert.toString());
+							}
+						}
+					} else {
+						log.info("Table " + table + " not found. Probably no data has been submitted");
+						tableExists = false;
+						// Delete the file if it exists
+						log.info("Deleting file -------- : " + filepath);
+						f.delete();
+						
+						fileExists = false;
+					}
+
+				}
+
+			}
+		} finally {
+			if (pstmt != null) {	try {pstmt.close();} catch (Exception e) {}}
+			if (pstmtInsert != null) {try {pstmtInsert.close();} catch (Exception e) {}}
+		}
+
+		if (tableExists && !fileExists) {
+			regenerate = true; // Override regenerate if the file has been deleted
+		}
+		if(!tableExists) {
+			regenerate = true; // Force creation of an empty file
+		}
+
+		log.info("Result of regenerate question is: " + regenerate);
+		if(regenerate) {
+			log.info("xoxoxoxoxoxoxo regenerate: " + f.getAbsolutePath());
+		}
+		return regenerate;
 	}
 }
