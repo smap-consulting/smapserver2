@@ -72,7 +72,7 @@ public class Manager {
 		
 		boolean loop = true;
 		while(loop) {
-			String subscriberControl = GeneralUtilityMethods.getSettingFromFile("fileLocn + /settings/subscriber");
+			String subscriberControl = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/subscriber");
 			if(subscriberControl != null && subscriberControl.equals("stop")) {
 				log.info("######## Stopped");		
 				loop = false;
