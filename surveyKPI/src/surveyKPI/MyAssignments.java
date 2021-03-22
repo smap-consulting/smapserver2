@@ -598,7 +598,7 @@ public class MyAssignments extends Application {
 								ReferenceSurvey ref = new ReferenceSurvey();
 								ref.survey = survey.ident;
 								ref.referenceSurvey = refSurveyIdent;
-								ref.name = m.fileName;
+								ref.tableName = m.fileName;
 								ref.columns = stm.getQuestionNames(survey.id, m.fileName);
 								tr.refSurveys.add(ref);
 							}

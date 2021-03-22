@@ -851,6 +851,7 @@ public class CsvTableManager {
 					if(choiceMap.get(value) == null) {		// Only add unique values
 						choices.add(new SelectChoice(value, rsx.getString("__label"), idx++));
 						choiceMap.put(value, value);
+						log.info("#####: " + " add choice: " + value + " : " + rsx.getString("__label"));
 					}
 				}			
 			}	
@@ -976,7 +977,7 @@ public class CsvTableManager {
 				}
 			}
 
-			log.info("Get CSV choices: " + pstmt.toString());
+			log.info("Get CSV choices (multi language): " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
 			int idx = 0;
