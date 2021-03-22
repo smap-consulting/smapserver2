@@ -278,6 +278,7 @@ public class Lookup extends Application{
 					fValue,
 					expression);         	
 
+			log.info("Got the choices: " + results.size());
 			response = Response.ok(gson.toJson(results)).build();
 		
 		}  catch (Exception e) {
