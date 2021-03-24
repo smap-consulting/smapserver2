@@ -801,9 +801,36 @@ public class SurveyTableManager {
 			
 			/*
 			 * Ignore tables that where no questions have been asked for
+			 * Use Left outer join processing so that situations where a subform is empty do not cause disapperance of data
 			 */
 			if (tables.get(table) != null) {
 
+				// Update table list
+				if (tabs.length() > 0) {
+					tabs.append(" left outer join ");
+					tabs.append(table);
+					tabs.append(" on ");
+					tabs.append(table);
+					tabs.append(".parkey = ");
+					tabs.append(parentTable);
+					tabs.append(".prikey");
+					//tabs.append(",");
+				} else {
+					tabs.append(table);
+				}
+
+				// update where statement
+				if (parentId == 0) {
+					if (where.length() > 0) {
+						where.append(" and ");
+					}
+					where.append(table);
+					where.append("._bad = 'false'");
+				} 
+				parents.add(fId);
+				parentTables.add(table);
+				
+				/*
 				// Update table list
 				if (tabs.length() > 0) {
 					tabs.append(",");
@@ -827,6 +854,7 @@ public class SurveyTableManager {
 				}
 				parents.add(fId);
 				parentTables.add(table);
+				*/
 			}
 
 		}
