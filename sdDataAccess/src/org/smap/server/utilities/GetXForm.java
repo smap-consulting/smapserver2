@@ -586,7 +586,16 @@ public class GetXForm {
 								event.setAttribute("event", "odk-instance-load");
 								event.setAttribute("ref", "/main/" + mi.name);
 								if(mi.settings != null && mi.settings.length() > 0) {
-									event.setAttribute("odk:quality", mi.settings);
+									String [] sArray = mi.settings.split(" ");
+									for(int i = 0; i < sArray.length; i++) {
+										if(sArray[i].startsWith("quality")) {
+											String [] qArray = sArray[i].split("=");
+											if(qArray.length > 1) {
+												event.setAttribute("odk:quality", qArray[1]);
+											}
+										}
+									}
+									
 								}
 								currentParent.appendChild(event);
 							} else {

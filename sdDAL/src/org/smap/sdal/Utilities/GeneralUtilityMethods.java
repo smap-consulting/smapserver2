@@ -7639,7 +7639,10 @@ public class GeneralUtilityMethods {
 			if(params != null && params.size() > 0) {
 				for(KeyValueSimp kv : params) {
 					if(kv.k.equals("quality")) {
-						settings = kv.v;
+						if(settings.length() > 0) {
+							settings += " ";
+						}
+						settings += "quality=" + kv.v;
 					}
 				}
 			}
