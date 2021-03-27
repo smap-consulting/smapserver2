@@ -753,7 +753,7 @@ public class XLSTemplateUploadManager {
 			if(row != null) {
 				Question q = getQuestion(row, thisFormIndex, f.questions.size(), rowNumSurvey);				
 				if(q != null) {
-					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name, metaId, q.appearance);
+					MetaItem item = GeneralUtilityMethods.getPreloadItem(q.type, q.name, q.display_name, metaId, q.appearance, q.paramArray);
 					if(item != null) {
 						metaId--;
 						validateQuestion(q, rowNumSurvey, thisFormIndex);
@@ -1238,7 +1238,7 @@ public class XLSTemplateUploadManager {
 			visible = false;
 		} else if(type.equals("end group")) {
 			visible = false;
-		} else if(GeneralUtilityMethods.getPreloadItem(type, "", "", -2000, null) != null) {
+		} else if(GeneralUtilityMethods.getPreloadItem(type, "", "", -2000, null, null) != null) {
 			visible = false;
 		}
 
@@ -1809,7 +1809,9 @@ public class XLSTemplateUploadManager {
 			out = "note";
 		} else if (type.equals("trigger")) {			// Commcare 
 			out = "trigger";
-		} 
+		} else if (type.equals("background-audio")) {			// Commcare 
+			out = "background-audio";
+		}
 				
 		return out;
 	}

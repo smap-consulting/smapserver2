@@ -574,6 +574,21 @@ public class GetXForm {
 								event.setAttribute("event", "odk-instance-first-load");
 								event.setAttribute("ref", "/main/" + mi.name);
 								currentParent.appendChild(event);
+								
+							} else if(mi.sourceParam.equals("background-audio")) {
+								
+								Element preload = outputDoc.createElement("bind");
+								preload.setAttribute("nodeset", "/main/" + mi.name);
+								preload.setAttribute("type", "binary");	// type is audio but odk wants binary
+								currentParent.appendChild(preload);
+											
+								Element event = outputDoc.createElement("odk:recordaudio");
+								event.setAttribute("event", "odk-instance-load");
+								event.setAttribute("ref", "/main/" + mi.name);
+								if(mi.settings != null && mi.settings.length() > 0) {
+									event.setAttribute("odk:quality", mi.settings);
+								}
+								currentParent.appendChild(event);
 							} else {
 								Element preload = outputDoc.createElement("bind");
 								preload.setAttribute("nodeset", "/main/" + mi.name);

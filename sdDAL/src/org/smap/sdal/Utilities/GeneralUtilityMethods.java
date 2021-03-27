@@ -7610,7 +7610,8 @@ public class GeneralUtilityMethods {
 	 * Get a preload item from the type
 	 * If this is not a preload return null
 	 */
-	public static MetaItem getPreloadItem(String type, String name, String display_name, int metaItem, String settings) throws Exception {
+	public static MetaItem getPreloadItem(String type, String name, String display_name, int metaItem, 
+			String settings, ArrayList<KeyValueSimp> params) throws Exception {
 
 		MetaItem item = null;
 
@@ -7634,6 +7635,15 @@ public class GeneralUtilityMethods {
 			item = new MetaItem(metaItem, "string", name, type, cleanName(name, true, true, false), "property", true, display_name, settings);
 		} else if(type.equals("start-geopoint")) {
 			item = new MetaItem(metaItem, "geopoint", name, type, cleanName(name, true, true, false), "geopoint", true, display_name, settings);
+		} else if(type.equals("background-audio")) {
+			if(params != null && params.size() > 0) {
+				for(KeyValueSimp kv : params) {
+					if(kv.k.equals("quality")) {
+						settings = kv.v;
+					}
+				}
+			}
+			item = new MetaItem(metaItem, "audio", name, type, cleanName(name, true, true, false), "background-audio", true, display_name, settings);
 		}
 
 		return item;
@@ -8072,7 +8082,7 @@ public class GeneralUtilityMethods {
 	
 	public static boolean isAttachmentType(String type) {
 		boolean attachment = false;
-		if(type.equals("image") || type.equals("audio") || type.equals("video") || type.equals("file")) {
+		if(type.equals("image") || type.equals("audio") || type.equals("video") || type.equals("file") || type.equals("binary")) {
 			attachment = true;
 		}
 		return attachment;
