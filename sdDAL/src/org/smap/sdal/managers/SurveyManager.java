@@ -111,6 +111,7 @@ public class SurveyManager {
 			+ "q.qtype, f.s_id, f.reference, q.published, f.f_id, q.server_calculate "
 			+ "from question q, form f "
 			+ "where q.f_id = f.f_id "
+			+ "and not q.soft_deleted "
 			+ "and q.f_id in "
 			+ "(select f_id from form where s_id in (select s_id from survey where group_survey_ident = ? and deleted = 'false'))";
 	
@@ -3535,12 +3536,14 @@ public class SurveyManager {
 	/*
 	 * Get the group Questions as an array
 	 * Note the group survey id of a survey must be passed not the survey's id
+	 * Only return unique question names the same name may exist in multiple tables of the group but it will refer to only a single column of data
 	 */
 	public ArrayList<QuestionLite> getGroupQuestionsArray(Connection sd, 
 			String groupSurveyIdent,
 			String filter) throws SQLException {
 		
 		ArrayList<QuestionLite> groupQuestions = new ArrayList<> ();
+		HashMap<String, QuestionLite> qMap =  new HashMap<> ();
 
 		String sql = sqlGetGroupQuestions;
 		
@@ -3562,8 +3565,39 @@ public class SurveyManager {
 				q.column_name = rs.getString("column_name"); 
 				q.name = rs.getString("qname"); 
 				q.type = rs.getString("qtype");
-				groupQuestions.add(q);
+				qMap.put(q.name, q);
 			}
+			
+			// Check for background audio
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			sql = "select meta from survey where group_survey_ident = ? and deleted = 'false' and not hidden and meta like '%background-audio%'";
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, groupSurveyIdent);
+			log.info("++++++++ Get background audio questions: " + pstmt.toString());
+			rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				String metaString = rs.getString(1);
+				if(metaString != null) {
+					Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+					ArrayList<MetaItem> preloads = gson.fromJson(metaString, new TypeToken<ArrayList<MetaItem>>() {}.getType());
+					for(MetaItem item : preloads) {
+						if(item.isPreload && item.sourceParam.equals("background-audio")) {
+							QuestionLite q = new QuestionLite();
+							q.column_name = item.columnName; 
+							q.name = item.name; 
+							q.type = "audio";
+							qMap.put(q.name, q);
+							break;
+						}
+					}
+				} 
+			}
+			
+			for (String qName : qMap.keySet()) {
+				groupQuestions.add(qMap.get(qName));
+			}
+			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 		}
