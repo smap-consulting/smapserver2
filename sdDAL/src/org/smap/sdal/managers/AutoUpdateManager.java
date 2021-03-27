@@ -78,8 +78,8 @@ public class AutoUpdateManager {
 		ArrayList<QuestionForm> auQuestions = getAutoUpdateQuestions(sd);
 		HashMap<Integer, String> localeHashMap = new HashMap<> ();		// reduce database access
 		
-		//log.info("#### Found " + groupQuestions.size() + " auto update question");	// debug
 		for(QuestionForm qf : auQuestions) {
+			log.info("@@@@@@@@@@@: " + qf.columnName);
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");	// legacy
@@ -555,7 +555,7 @@ public class AutoUpdateManager {
 				+ "and not s.blocked "
 				+ "and q.parameters is not null "
 				+ "and q.parameters like '%source=%'"
-				+ "and (q.parameters like '%auto=yes%' or q.parameters like '%auto_annotate=yes%')";		
+				+ "and (q.parameters like '%auto=yes%' or q.parameters like '%auto_annotate=true%')";		
 		PreparedStatement pstmt = null;
 		
 		try {

@@ -1809,7 +1809,7 @@ public class XLSTemplateUploadManager {
 			out = "note";
 		} else if (type.equals("trigger")) {			// Commcare 
 			out = "trigger";
-		} else if (type.equals("background-audio")) {			// Commcare 
+		} else if (type.equals("background-audio")) {
 			out = "background-audio";
 		}
 				
