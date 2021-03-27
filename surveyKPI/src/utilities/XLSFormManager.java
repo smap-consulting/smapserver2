@@ -643,6 +643,8 @@ public class XLSFormManager {
 		if(form.parentform == 0 && survey.meta != null) {
 			Column typeCol = colsSurvey.get(namedColumnIndexes.get("type"));
 			Column nameCol = colsSurvey.get(namedColumnIndexes.get("name"));
+			Column appearanceCol = colsSurvey.get(namedColumnIndexes.get("appearance"));
+			Column parametersCol = colsSurvey.get(namedColumnIndexes.get("parameters"));
 			
 			Row row = surveySheet.createRow(rowNumberSurvey++);		// blank row
 			for(MetaItem mi : survey.meta) {
@@ -654,6 +656,31 @@ public class XLSFormManager {
 					
 					cell = row.createCell(nameCol.colNumber);
 					cell.setCellValue(mi.name);
+					
+					if(mi.settings != null && mi.settings.length() > 0) {
+						// Split settings into parameters and appearance
+						String app = "";
+						String params = "";
+						String [] sArray = mi.settings.split(" "); 
+						for(int i = 0; i < sArray.length; i++) {
+							if(sArray[i].contains("=")) {
+								if(params.length() > 0) {
+									params += ";";
+								}
+								params += sArray[i];
+							} else {
+								if(app.length() > 0) {
+									app += " ";
+								}
+								app += sArray[i];
+							}
+						}
+						cell = row.createCell(appearanceCol.colNumber);
+						cell.setCellValue(app);
+						
+						cell = row.createCell(parametersCol.colNumber);
+						cell.setCellValue(params);
+					}
 				}
 
 			}
@@ -937,7 +964,13 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "default", Column.COL_DEFAULT, 0, "default"));
 		cols.add(new Column(colNumber++, "readonly", Column.COL_READONLY, 0, "readonly"));
 		cols.add(new Column(colNumber++, "appearance", Column.COL_APPEARANCE, 0, "appearance"));
+		
+		namedColumnIndexes.put("appearance", new Integer(colNumber -1));
+		
 		cols.add(new Column(colNumber++, "parameters", Column.COL_PARAMETERS, 0, "parameters"));
+		
+		namedColumnIndexes.put("parameters", new Integer(colNumber -1));
+		
 		cols.add(new Column(colNumber++, "autoplay", Column.COL_AUTOPLAY, 0, "autoplay"));
 		cols.add(new Column(colNumber++, "body::accuracyThreshold", Column.COL_ACCURACY, 0, "accuracy"));
 		cols.add(new Column(colNumber++, "body::intent", Column.COL_INTENT, 0, "intent"));
