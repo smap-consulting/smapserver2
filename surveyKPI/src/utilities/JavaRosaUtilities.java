@@ -62,7 +62,8 @@ public class JavaRosaUtilities {
 		
 		// Remove any actions
 		xmlForm = xmlForm.replaceAll("\\<odk:setgeopoint [a-zA-Z0-9$,\\\\.{}=\\'\\-\"/ ]*\\/\\>", "");	
-				
+		xmlForm = xmlForm.replaceAll("\\<odk:recordaudio .*\\/\\>", "");
+		
 		InputStream is = new ByteArrayInputStream(xmlForm.getBytes());
 
 		org.javarosa.core.model.FormDef fd = XFormUtils.getFormFromInputStream(is);

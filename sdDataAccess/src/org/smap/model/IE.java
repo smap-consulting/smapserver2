@@ -198,6 +198,7 @@ public class IE {
 								|| qt.equals("calculate")
 								|| qt.equals("rank")
 								|| qt.equals("odk:rank")
+								|| qt.equals("binary")
 								|| qt.equals("begin group")) {
 							questions.add(child);
 							
