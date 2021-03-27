@@ -54,8 +54,8 @@ public class Manager {
 			mp.go(smapId, fileLocn);
 
 			// Start the AWS service processor
-			String mediaBucket = GeneralUtilityMethods.getSettingFromFile("fileLocn + /settings/bucket");
-			String region = GeneralUtilityMethods.getSettingFromFile("fileLocn + /settings/region");
+			String mediaBucket = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/bucket");
+			String region = GeneralUtilityMethods.getSettingFromFile(fileLocn + "/settings/region");
 			log.info("Auto Update:  S3 Bucket is: " + region + " : " + mediaBucket);
 			
 			AutoUpdateProcessor au = new AutoUpdateProcessor();

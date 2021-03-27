@@ -1088,6 +1088,9 @@ public class Surveys extends Application {
 			} else if(item.sourceParam.equals("start-geopoint")) {
 				item.type = "geopoint";
 				item.dataType = "geopoint";
+			} else if(item.sourceParam.equals("background-audio")) {
+				item.type = "audio";
+				item.dataType = "background-audio";
 			} else {
 				item.type = "string";
 				item.dataType = "property";
