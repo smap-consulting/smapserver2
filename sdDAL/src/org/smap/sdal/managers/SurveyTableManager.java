@@ -725,23 +725,6 @@ public class SurveyTableManager {
 			// Add RBAC/Role Row Filter
 			sqlDef.rfArray = null;
 			sqlDef.hasRbacFilter = false;
-			/*
-			 * Disable as for performance reasons we are not generating a separate csv file for every user
-			sqlDef.rfArray = rm.getSurveyRowFilter(sd, sId, user);
-			if (sqlDef.rfArray.size() > 0) {
-				String rFilter = rm.convertSqlFragsToSql(sqlDef.rfArray);
-				if (rFilter.length() > 0) {
-					if(where.length() > 0) {
-						sql.append(" where ");
-						sqlDef.hasWhere = true;
-					} else {
-						sql.append(" and ");
-					}
-					sql.append(rFilter);
-					sqlDef.hasRbacFilter = true;
-				}
-			}
-			*/
 
 			// If this is a pulldata linked file then order the data by _data_key and then
 			// the primary keys of sub forms
