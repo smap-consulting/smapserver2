@@ -643,6 +643,7 @@ public class MyAssignments extends Application {
 					+ "o.ft_server_menu, "
 					+ "o.ft_meta_menu, "
 					+ "o.ft_exit_track_menu, "
+					+ "o.ft_bg_stop_menu, "
 					+ "o.ft_review_final, "
 					+ "o.ft_send,"
 					+ "o.ft_image_size,"
@@ -677,6 +678,7 @@ public class MyAssignments extends Application {
 				tr.settings.ft_server_menu = resultSet.getBoolean("ft_server_menu");
 				tr.settings.ft_meta_menu = resultSet.getBoolean("ft_meta_menu");
 				tr.settings.ft_exit_track_menu = resultSet.getBoolean("ft_exit_track_menu");
+				tr.settings.ft_bg_stop_menu = resultSet.getBoolean("ft_bg_stop_menu");
 				tr.settings.ft_review_final = resultSet.getBoolean("ft_review_final");
 				tr.settings.ft_send = resultSet.getString("ft_send");
 				tr.settings.ft_send_wifi = Organisation.get_ft_send_wifi(tr.settings.ft_send);
