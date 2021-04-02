@@ -44,6 +44,8 @@ import java.util.zip.ZipOutputStream;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.smap.sdal.constants.SmapQuestionTypes;
@@ -9960,5 +9962,26 @@ public class GeneralUtilityMethods {
 		
     	return xml;
     }
+    
+	public static String getMd5(String filepath) {
+		String md5 = "";
+		
+		if(filepath != null) {
+			FileInputStream fis = null;
+			try {
+				fis = new FileInputStream( new File(filepath) );
+				
+				if(fis != null)	{
+					md5 = "md5:" + DigestUtils.md5Hex( fis );
+				}
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+			} finally {
+				try {fis.close();} catch (Exception e) {}
+			}
+
+		}
+		return md5;
+	}
 }
 
