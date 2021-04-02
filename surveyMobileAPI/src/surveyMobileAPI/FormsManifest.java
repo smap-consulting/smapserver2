@@ -141,11 +141,11 @@ public class FormsManifest {
 			List<ManifestValue> manifestList = translationMgr.
 					getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, key);
 
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.id);
 			for( ManifestValue m : manifestList) {
 
 				String filepath = null;
-				String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, survey.id);
-				
+
 				if(m.type.equals("linked")) {
 					filepath = basepath + "/media/" + sIdent+ "/" + m.fileName;
 					filepath += ".csv";
@@ -160,7 +160,7 @@ public class FormsManifest {
 					
 					if(f.exists()) {
 						// Get the MD5 hash
-						String md5 = getMd5(filepath);
+						String md5 = GeneralUtilityMethods.getMd5(filepath);
 						
 						String fullUrl = protocol + host + m.url;
 		
@@ -188,27 +188,6 @@ public class FormsManifest {
 		}		
 
 		return responseStr.toString();
-	}
-	
-	private String getMd5(String filepath) {
-		String md5 = "";
-		
-		if(filepath != null) {
-			FileInputStream fis = null;
-			try {
-				fis = new FileInputStream( new File(filepath) );
-				
-				if(fis != null)	{
-					md5 = "md5:" + DigestUtils.md5Hex( fis );
-				}
-			} catch (Exception e) {
-				log.log(Level.SEVERE, e.getMessage(), e);
-			} finally {
-				try {fis.close();} catch (Exception e) {}
-			}
-
-		}
-		return md5;
 	}
 
 }

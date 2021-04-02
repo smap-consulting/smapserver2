@@ -4,7 +4,7 @@ import java.io.File;
 
 /*
  * Form Class
- * Stores details on a manifes item
+ * Stores details on a manifest item
  */
 public class ManifestValue {
 	public String value;

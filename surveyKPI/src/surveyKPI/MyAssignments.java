@@ -46,6 +46,7 @@ import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
+import org.smap.sdal.model.ManifestDevice;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
@@ -100,10 +101,11 @@ public class MyAssignments extends Application {
 	public Response getTasksCredentials(@Context HttpServletRequest request,
 			@QueryParam("noprojects") boolean noProjects,
 			@QueryParam("orgs") boolean getOrgs,
-			@QueryParam("linked") boolean getLinkedRefDefns
+			@QueryParam("linked") boolean getLinkedRefDefns,
+			@QueryParam("manifests") boolean getManifests
 			) throws SQLException {
 		log.info("webserviceevent : getTasksCredentials");
-		return getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns);
+		return getTasks(request, request.getRemoteUser(), noProjects, getOrgs, getLinkedRefDefns, getManifests);
 	}
 
 	/*
@@ -117,6 +119,7 @@ public class MyAssignments extends Application {
 			@QueryParam("projects") boolean noProjects,
 			@QueryParam("orgs") boolean getOrgs,
 			@QueryParam("linked") boolean getLinkedRefDefns,
+			@QueryParam("manifests") boolean getManifests,
 			@Context HttpServletRequest request) throws SQLException {
 
 		log.info("webserviceevent : getTaskskey");
@@ -137,7 +140,7 @@ public class MyAssignments extends Application {
 			log.info("User not found for key");
 			throw new JsonAuthorisationException();
 		}
-		return getTasks(request, user, noProjects, getOrgs, getLinkedRefDefns);
+		return getTasks(request, user, noProjects, getOrgs, getLinkedRefDefns, getManifests);
 	}
 
 	/*
@@ -259,7 +262,8 @@ public class MyAssignments extends Application {
 	/*
 	 * Return the list of tasks allocated to the requesting user
 	 */
-	public Response getTasks(HttpServletRequest request, String userName, boolean noProjects, boolean getOrgs, boolean getLinkedRefDefns) throws SQLException {
+	public Response getTasks(HttpServletRequest request, String userName, boolean noProjects, 
+			boolean getOrgs, boolean getLinkedRefDefns, boolean getManifests) throws SQLException {
 
 		Response response = null;
 
@@ -275,6 +279,9 @@ public class MyAssignments extends Application {
 		// End Authorisation
 
 		int uId = GeneralUtilityMethods.getUserId(sd, userName);
+		
+		String host = request.getServerName();
+		String protocol = (request.getLocalPort() == 443) ?  "https://"  : "http://";
 		
 		// Get the coordinates from which this request was made
 		String latString = request.getHeader("lat");
@@ -553,56 +560,109 @@ public class MyAssignments extends Application {
 			if(getLinkedRefDefns) {
 				tr.refSurveys = new ArrayList<> ();
 			}
+			
+			
 			for (Survey survey : surveys) {
+				
+				List<ManifestValue> manifestList = null;
+				List<ManifestDevice> manifestDeviceList = null;
 				
 				boolean hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
 
+				if(survey.ident.equals("s15_114")) {
+					log.info("registration");
+				}
 				if(hasManifest) {
 					/*
 					 * For each form that has a manifest that links to another form
 					 *  generate the new CSV files if the linked data has changed
+					 *  If we have been asked to return the manifest then return that too
 					 */
-					List<ManifestValue> manifestList = translationMgr.
-							getSurveyManifests(sd, survey.id, survey.ident, null, 0, true);		// Get linked only
-	
+					if(getManifests) {
+						// Get all manifests
+						manifestList = translationMgr.
+								getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, survey.ident);
+					} else {
+						// Get linked manifests only
+						manifestList = translationMgr.
+								getSurveyManifests(sd, survey.id, survey.ident, null, 0, true);		
+					}
+					
 					for( ManifestValue m : manifestList) {
 	
-						log.info("Linked file:" + m.fileName);
-	
-						/*
-						 * The file is unique per survey, user roles are ignored due to performance issues of roles to
-						 *  restrict columns and rows per user
-						 */
-						ExternalFileManager efm = new ExternalFileManager(localisation);
-						String dirPath = basepath
-								+ File.separator
-								+ "media" 
-								+ File.separator 
-								+ survey.ident 
-								+ File.separator;
-	
-						// Make sure the destination exists
-						File dir = new File(dirPath);
-						dir.mkdirs();
-	
-						log.info("CSV File is:  " + dirPath + " : directory path created");
-	
-						efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
+						if(m.type.equals("linked")) {
+							
+							/*
+							 * Generate the CSV file if data has changed
+							 */
+							log.info("Linked file:" + m.fileName);
+		
+							/*
+							 * The file is unique per survey, user roles are ignored due to performance issues of roles to
+							 *  restrict columns and rows per user
+							 */
+							ExternalFileManager efm = new ExternalFileManager(localisation);
+							String dirPath = basepath
+									+ File.separator
+									+ "media" 
+									+ File.separator 
+									+ survey.ident 
+									+ File.separator;
+		
+							// Make sure the destination exists
+							File dir = new File(dirPath);
+							dir.mkdirs();
+		
+							log.info("CSV File is:  " + dirPath + " : directory path created");
+		
+							efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
+							
+							/*
+							 * Get pulldata definitions so that local data on the device can be searched
+							 */
+							if(getLinkedRefDefns) {	
+								String refSurveyIdent = getReferenceSurveyIdent(m.fileName);
+								if(refSurveyIdent != null) {
+									ReferenceSurvey ref = new ReferenceSurvey();
+									ref.survey = survey.ident;
+									ref.referenceSurvey = refSurveyIdent;
+									ref.tableName = m.fileName;
+									ref.columns = stm.getQuestionNames(survey.id, m.fileName);
+									tr.refSurveys.add(ref);
+								}
+							}
+							
+
+						}
 						
 						/*
-						 * Get pulldata definitions so that local data on the device can be searched
+						 * If the manifests have been requested and the file exists then add it to the manifests to be returned
 						 */
-						if(getLinkedRefDefns) {	
-							String refSurveyIdent = getReferenceSurveyIdent(m.fileName);
-							if(refSurveyIdent != null) {
-								ReferenceSurvey ref = new ReferenceSurvey();
-								ref.survey = survey.ident;
-								ref.referenceSurvey = refSurveyIdent;
-								ref.tableName = m.fileName;
-								ref.columns = stm.getQuestionNames(survey.id, m.fileName);
-								tr.refSurveys.add(ref);
+						if(getManifests) {
+							String filepath = null;
+							if(m.type.equals("linked")) {
+								filepath = basepath + "/media/" + survey.ident + "/" + m.fileName;
+								filepath += ".csv";
+								m.fileName += ".csv";
+							} else {
+								filepath = m.filePath;
+							}
+							
+							if(filepath != null) {
+								File f = new File(filepath);
+								
+								if(f.exists()) {
+									if(manifestDeviceList == null) {
+										manifestDeviceList = new ArrayList<>();
+									}
+									manifestDeviceList.add(new ManifestDevice(f.getName(), 
+											GeneralUtilityMethods.getMd5(filepath), protocol + host + m.url));
+								}
+								
 							}
 						}
+						
+						
 					}
 				}
 
@@ -623,6 +683,9 @@ public class MyAssignments extends Application {
 					fl.dirty = false;
 				}	
 
+				if(getManifests) {
+					fl.manifest = manifestDeviceList;
+				}
 				tr.forms.add(fl);
 			}
 
