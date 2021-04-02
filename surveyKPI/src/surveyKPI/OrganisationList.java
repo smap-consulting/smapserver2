@@ -410,6 +410,7 @@ public class OrganisationList extends Application {
 				+ "ft_specify_instancename, ft_mark_finalized,"
 				+ "ft_prevent_disable_track, ft_enable_geofence, ft_admin_menu, "
 				+ "ft_exit_track_menu, "
+				+ "ft_bg_stop_menu, "
 				+ "ft_review_final, ft_send, ft_number_tasks, ft_image_size, ft_backward_navigation,"
 				+ "ft_navigation,"
 				+ "ft_pw_policy,"
@@ -441,6 +442,7 @@ public class OrganisationList extends Application {
 				d.ft_enable_geofence = rs.getBoolean("ft_enable_geofence");
 				d.ft_admin_menu = rs.getBoolean("ft_admin_menu");
 				d.ft_exit_track_menu = rs.getBoolean("ft_exit_track_menu");
+				d.ft_bg_stop_menu = rs.getBoolean("ft_bg_stop_menu");
 				d.ft_review_final = rs.getBoolean("ft_review_final");
 				d.ft_send = rs.getString("ft_send");
 				d.ft_number_tasks = rs.getInt("ft_number_tasks");
@@ -610,6 +612,7 @@ public class OrganisationList extends Application {
 				+ "ft_enable_geofence = ?, "
 				+ "ft_admin_menu = ?, "
 				+ "ft_exit_track_menu = ?, "
+				+ "ft_bg_stop_menu = ?, "
 				+ "ft_review_final = ?, "
 				+ "ft_send = ?, "
 				+ "ft_number_tasks = ?, "
@@ -649,19 +652,20 @@ public class OrganisationList extends Application {
 			pstmt.setBoolean(7, d.ft_enable_geofence);
 			pstmt.setBoolean(8, d.ft_admin_menu);
 			pstmt.setBoolean(9, d.ft_exit_track_menu);
-			pstmt.setBoolean(10, d.ft_review_final);
-			pstmt.setString(11, d.ft_send);
-			pstmt.setInt(12, d.ft_number_tasks);
-			pstmt.setString(13, d.ft_image_size);
-			pstmt.setString(14, d.ft_backward_navigation);
-			pstmt.setString(15, d.ft_navigation);
-			pstmt.setInt(16, d.ft_pw_policy);
-			pstmt.setString(17, d.ft_high_res_video);
-			pstmt.setString(18, d.ft_guidance);
-			pstmt.setBoolean(19, d.ft_server_menu);
-			pstmt.setBoolean(20, d.ft_meta_menu);
-			pstmt.setString(21, request.getRemoteUser());
-			pstmt.setInt(22, oId);
+			pstmt.setBoolean(10, d.ft_bg_stop_menu);
+			pstmt.setBoolean(11, d.ft_review_final);
+			pstmt.setString(12, d.ft_send);
+			pstmt.setInt(13, d.ft_number_tasks);
+			pstmt.setString(14, d.ft_image_size);
+			pstmt.setString(15, d.ft_backward_navigation);
+			pstmt.setString(16, d.ft_navigation);
+			pstmt.setInt(17, d.ft_pw_policy);
+			pstmt.setString(18, d.ft_high_res_video);
+			pstmt.setString(19, d.ft_guidance);
+			pstmt.setBoolean(20, d.ft_server_menu);
+			pstmt.setBoolean(21, d.ft_meta_menu);
+			pstmt.setString(22, request.getRemoteUser());
+			pstmt.setInt(23, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
 			pstmt.executeUpdate();

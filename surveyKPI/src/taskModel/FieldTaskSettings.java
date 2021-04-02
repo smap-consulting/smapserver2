@@ -10,11 +10,12 @@ public class FieldTaskSettings {
 	public boolean ft_specify_instancename;
 	public boolean ft_mark_finalized;
 	public boolean ft_prevent_disable_track;
-	private String ft_enable_geofence;
+	public String ft_enable_geofence;
 	public boolean ft_admin_menu;
 	public boolean ft_server_menu;
 	public boolean ft_meta_menu;
 	public boolean ft_exit_track_menu;
+	public boolean ft_bg_stop_menu;
 	public boolean ft_review_final;
 	public boolean ft_send_wifi;			// deprecated
 	public boolean ft_send_wifi_cell;	// deprecated

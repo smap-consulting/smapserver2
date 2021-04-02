@@ -30,6 +30,7 @@ public class DeviceSettings {
 	public boolean ft_server_menu;
 	public boolean ft_meta_menu;
 	public boolean ft_exit_track_menu;
+	public boolean ft_bg_stop_menu;
 	public boolean ft_review_final;
 	public String ft_send;
 	public int ft_number_tasks;
