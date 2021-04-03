@@ -567,27 +567,30 @@ public class MyAssignments extends Application {
 				List<ManifestValue> manifestList = null;
 				List<ManifestDevice> manifestDeviceList = null;
 				
-				boolean hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
+				boolean hasManifest = false;
 
 				if(survey.ident.equals("s15_114")) {
 					log.info("registration");
 				}
-				if(hasManifest) {
-					/*
-					 * For each form that has a manifest that links to another form
-					 *  generate the new CSV files if the linked data has changed
-					 *  If we have been asked to return the manifest then return that too
-					 */
-					if(getManifests) {
-						// Get all manifests
-						manifestList = translationMgr.
-								getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, survey.ident);
-					} else {
-						// Get linked manifests only
-						manifestList = translationMgr.
-								getSurveyManifests(sd, survey.id, survey.ident, null, 0, true);		
-					}
-					
+				
+				/*
+				 * For each form that has a manifest that links to another form
+				 *  generate the new CSV files if the linked data has changed
+				 *  If we have been asked to return the manifest then return that too
+				 */
+				if(getManifests) {
+					// Get all manifests
+					manifestList = translationMgr.
+							getManifestBySurvey(sd, request.getRemoteUser(), survey.id, basepath, survey.ident);
+					hasManifest = manifestList.size() > 0;
+				} else {
+					// Get linked manifests only
+					manifestList = translationMgr.
+							getSurveyManifests(sd, survey.id, survey.ident, null, 0, true);	
+					hasManifest = translationMgr.hasManifest(sd, request.getRemoteUser(), survey.id);
+				}
+				
+				if(hasManifest && manifestList.size() > 0) {
 					for( ManifestValue m : manifestList) {
 	
 						if(m.type.equals("linked")) {
@@ -675,13 +678,7 @@ public class MyAssignments extends Application {
 				fl.pid = survey.p_id;
 				fl.tasks_only = survey.getHideOnDevice();
 				fl.hasManifest = hasManifest;
-
-				// If a new manifest then mark the form dirty so it will be checked to see if it needs to be downloaded
-				if(hasManifest) {
-					fl.dirty = true;
-				} else {
-					fl.dirty = false;
-				}	
+				fl.dirty = hasManifest;			// obsolete but used by FT
 
 				if(getManifests) {
 					fl.manifest = manifestDeviceList;
