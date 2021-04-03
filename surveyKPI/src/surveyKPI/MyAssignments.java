@@ -46,7 +46,7 @@ import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.GeometryString;
 import org.smap.sdal.model.KeyValueTask;
-import org.smap.sdal.model.ManifestDevice;
+import org.smap.sdal.model.MediaFile;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
@@ -565,7 +565,7 @@ public class MyAssignments extends Application {
 			for (Survey survey : surveys) {
 				
 				List<ManifestValue> manifestList = null;
-				List<ManifestDevice> manifestDeviceList = null;
+				List<MediaFile> mediaFiles = null;
 				
 				boolean hasManifest = false;
 
@@ -655,10 +655,10 @@ public class MyAssignments extends Application {
 								File f = new File(filepath);
 								
 								if(f.exists()) {
-									if(manifestDeviceList == null) {
-										manifestDeviceList = new ArrayList<>();
+									if(mediaFiles == null) {
+										mediaFiles = new ArrayList<>();
 									}
-									manifestDeviceList.add(new ManifestDevice(f.getName(), 
+									mediaFiles.add(new MediaFile(f.getName(), 
 											GeneralUtilityMethods.getMd5(filepath), protocol + host + m.url));
 								}
 								
@@ -681,7 +681,7 @@ public class MyAssignments extends Application {
 				fl.dirty = hasManifest;			// obsolete but used by FT
 
 				if(getManifests) {
-					fl.manifest = manifestDeviceList;
+					fl.mediaFiles = mediaFiles;
 				}
 				tr.forms.add(fl);
 			}
