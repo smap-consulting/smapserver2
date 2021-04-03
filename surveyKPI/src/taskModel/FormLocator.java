@@ -2,7 +2,7 @@ package taskModel;
 
 import java.util.List;
 
-import org.smap.sdal.model.ManifestDevice;
+import org.smap.sdal.model.MediaFile;
 
 public class FormLocator {
 	public String ident;
@@ -15,5 +15,5 @@ public class FormLocator {
 	public String manifestUrl;
 	public boolean hasManifest;
 	public boolean dirty;	// Set true if the manifest has been updated and the client should refresh
-	public List<ManifestDevice> manifest;
+	public List<MediaFile> mediaFiles;
 }
