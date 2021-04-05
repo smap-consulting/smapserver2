@@ -1254,10 +1254,14 @@ public class MyAssignments extends Application {
 	 */
 	String getReferenceSurveyIdent(String filename) {
 		String ident = null;
-		String lookingFor = "linked_";
-		if(filename != null) {
-			if(!filename.startsWith("linked_s_pd") && filename.startsWith(lookingFor)) {
-				ident = filename.substring(lookingFor.length());
+		String linked = "linked_";
+		String chart = "chart_";
+		String pdLinked = "linked_s_pd";
+		if(filename != null && !filename.startsWith(pdLinked)) {
+			if(filename.startsWith(linked)) {
+				ident = filename.substring(linked.length());
+			} else if(filename.startsWith(chart)) {
+				ident = filename.substring(chart.length());
 			}
 		}
 		return ident;
