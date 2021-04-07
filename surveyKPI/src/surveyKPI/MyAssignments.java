@@ -1250,7 +1250,7 @@ public class MyAssignments extends Application {
 	
 	/*
 	 * Return the ident of a reference survey if it is a standard linked survey
-	 * REturn null if it the reference is to chart data or the pd format
+	 * Return null if it the reference is to chart data or the pd format
 	 */
 	String getReferenceSurveyIdent(String filename) {
 		String ident = null;
@@ -1261,7 +1261,14 @@ public class MyAssignments extends Application {
 			if(filename.startsWith(linked)) {
 				ident = filename.substring(linked.length());
 			} else if(filename.startsWith(chart)) {
-				ident = filename.substring(chart.length());
+				int idx1 = filename.indexOf('_');
+				int idx2 = filename.indexOf('_', idx1 + 1);
+				idx2 = filename.indexOf('_', idx2 + 1);
+				if(idx2 > 0) {
+					ident = filename.substring(idx1 + 1, idx2);
+				} else {
+					ident = filename.substring(idx1 + 1);
+				}
 			}
 		}
 		return ident;
