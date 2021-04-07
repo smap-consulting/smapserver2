@@ -149,7 +149,7 @@ public class SurveyTableManager {
 						throw new Exception("Failed to create CSV Table entry");
 					}
 				}
-				if(sqlDef == null) {
+				if(sqlDef == null || sqlDef.colNames.size() == 0) {
 					getSqlAndHeaders(sd, cResults, sId, fileName);
 				}
 	
@@ -200,14 +200,14 @@ public class SurveyTableManager {
 			ArrayList<SqlFrag> fArray
 			) throws Exception {
 		
-		if(sqlDef != null && sqlDef.qnames != null && sqlDef.qnames.size() > 0) {
+		if(sqlDef != null && sqlDef.colNames != null && sqlDef.colNames.size() > 0) {
 			StringBuilder sql = new StringBuilder(sqlDef.sql);
 			
 			// Check the where questions
 			if(whereColumns != null) {
 				for(String col : whereColumns) {
 					boolean foundCol = false;
-					for(String h : sqlDef.qnames) {
+					for(String h : sqlDef.colNames) {
 						if(h.equals(col)) {
 							foundCol = true;
 							break;
@@ -279,7 +279,7 @@ public class SurveyTableManager {
 		if(rs != null && rs.next()) {
 			line = new ArrayList<KeyValueSimp> ();
 			for (int i = 0; i < sqlDef.colNames.size(); i++) {
-				String qname = sqlDef.qnames.get(i);
+				String qname = sqlDef.colNames.get(i);
 				// support labels separated by commas
 				String [] multQuestions = qname.split(",");
 				String value = "";
@@ -566,8 +566,11 @@ public class SurveyTableManager {
 			if(uniqueColumns.size() > 0) {
 				
 				sqlDef = getSql(sd, linked_sId, uniqueColumns, linked_s_pd, data_key, chart_key);
+				if(sqlDef != null) {
+					sqlDef.qnames = uniqueColumns;		// Set question names to requested names
+				}
 				
-				if(sqlDef.colNames.size() > 0) {
+				//if(sqlDef.colNames.size() > 0) {
 					pstmtUpdate = sd.prepareStatement(sqlUpdate);
 					pstmtUpdate.setBoolean(1, chart);
 					pstmtUpdate.setBoolean(2, non_unique_key);
@@ -578,7 +581,7 @@ public class SurveyTableManager {
 					pstmtUpdate.setInt(7, tableId);
 					log.info("Add sql info: " + pstmtUpdate.toString());
 					pstmtUpdate.executeUpdate();
-				}
+				//}
 			}
 			
 			
@@ -609,7 +612,6 @@ public class SurveyTableManager {
 		String linked_s_pd_sel = null;
 		SqlDef sqlDef = new SqlDef();		// TODO why does this override a global sqlDef?
 		ArrayList<String> colNames = new ArrayList<>();
-		ArrayList<String> validatedQuestionNames = new ArrayList<>();
 		ArrayList<String> subTables = new ArrayList<>();
 		HashMap<String, String> tables = new HashMap<>();
 		Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, sId);
@@ -679,19 +681,18 @@ public class SurveyTableManager {
 						continue; // Name not found
 					}
 					colNames.add(n);
-					validatedQuestionNames.add(n);
 					tables.put(tableName, tableName);
 	
 					if (!first) {
 						sql.append(",");
-						order_cols.append(",");
+						//order_cols.append(",");
 					}
 					sql.append(colName);
 					sql.append(" as ");
 					sql.append("\"" + n + "\"");
 					first = false;
 	
-					order_cols.append("\"" + n + "\"" );
+					//order_cols.append("\"" + n + "\"" );
 				}
 			}
 
@@ -703,11 +704,13 @@ public class SurveyTableManager {
 			log.info("Subtables: " + subTables.size());
 			
 			// 2.5 Add the primary keys of sub tables so they can be sorted on
+			order_cols.append(topForm.tableName  + ".prikey");
 			if (subTables.size() > 0) {
 				for (String subTable : subTables) {
 					sql.append(",");
 					sql.append(subTable);
 					sql.append(".prikey");
+					order_cols.append(","  + subTable  + ".prikey");
 				}
 			}
 
@@ -732,23 +735,23 @@ public class SurveyTableManager {
 			if(chart_key != null) {
 				orderBy.append(" order by ");
 				orderBy.append(chart_key);
-				orderBy.append(" asc");
+				orderBy.append(" asc");		// Historically used ascending
 			} else if (linked_s_pd) {
 				orderBy.append(" order by _data_key");
 				if (subTables.size() > 0) {
 					for (String subTable : subTables) {
 						orderBy.append(",");
 						orderBy.append(subTable);
-						orderBy.append(".prikey asc");
+						orderBy.append(".prikey asc");	// Historically this has used ascending ordering
 					}
 				} else {
-					orderBy.append(" asc");
+					orderBy.append(" desc");
 				}
 			} else if(order_cols != null) {
 				// order by the columns
 				orderBy.append(" order by ");
 				orderBy.append(order_cols);
-				orderBy.append(" asc");
+				orderBy.append(" desc");		// Use descending to align with local data
 			}
 			sqlDef.order_by = orderBy.toString();
 
@@ -759,7 +762,6 @@ public class SurveyTableManager {
 
 		sqlDef.sql = sql.toString();
 		sqlDef.colNames = colNames;
-		sqlDef.qnames = validatedQuestionNames;
 		return sqlDef;
 	}
 	
@@ -895,7 +897,12 @@ public class SurveyTableManager {
 				if(s != null) {
 					Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd").create();
 					SqlDef sqlDef = gson.fromJson(s, SqlDef.class);
-					qnames = sqlDef.qnames;
+					if(sqlDef.colNames.size() == 0) {
+						qnames = sqlDef.qnames;		// Use requested names
+					} else {
+						qnames = sqlDef.colNames;	// Use validated names that are in the table
+					}
+					
 				}
 			}
 		} finally {
@@ -916,14 +923,14 @@ public class SurveyTableManager {
 			if(sqlDef.colNames.size() == 0) {
 				log.info("++++++ No column names present in table. Creating empty file");
 				
-				// Use requested columns 
+				// Use requested columns which will be in the qnames list
 				BufferedWriter bw = new BufferedWriter(
 						new OutputStreamWriter(new FileOutputStream(f.getAbsoluteFile()), "UTF8"));
-				for (int i = 0; i < sqlDef.colNames.size(); i++) {
+				for (int i = 0; i < sqlDef.qnames.size(); i++) {
 					if(i > 0) {
 						bw.write(",");
 					}
-					bw.write(sqlDef.colNames.get(i));
+					bw.write(sqlDef.qnames.get(i));
 				}
 				bw.newLine();
 				bw.flush();
@@ -1053,7 +1060,7 @@ public class SurveyTableManager {
 
 				bw.flush();
 				bw.close();
-			} 		   else {
+			} else {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 
