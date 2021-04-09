@@ -703,14 +703,17 @@ public class SurveyTableManager {
 			getTables(pstmtGetTable, 0, null, tabs, where, tables, subTables);
 			log.info("Subtables: " + subTables.size());
 			
-			// 2.5 Add the primary keys of sub tables so they can be sorted on
-			order_cols.append(topForm.tableName  + ".prikey");
+			// 2.5 Add the order clause
+			sql.append(",")
+				.append(topForm.tableName)
+				.append(".prikey as prikey_").append(topForm.tableName);
+			order_cols.append(topForm.tableName  + ".prikey desc");
 			if (subTables.size() > 0) {
 				for (String subTable : subTables) {
-					sql.append(",");
-					sql.append(subTable);
-					sql.append(".prikey");
-					order_cols.append(","  + subTable  + ".prikey");
+					sql.append(",")
+						.append(subTable)
+						.append(".prikey as prikey_").append(subTable);
+					order_cols.append(","  + subTable  + ".prikey desc");   // Use descending to align with local data
 				}
 			}
 
@@ -745,13 +748,12 @@ public class SurveyTableManager {
 						orderBy.append(".prikey asc");	// Historically this has used ascending ordering
 					}
 				} else {
-					orderBy.append(" desc");
+					orderBy.append(" asc");
 				}
 			} else if(order_cols != null) {
 				// order by the columns
 				orderBy.append(" order by ");
 				orderBy.append(order_cols);
-				orderBy.append(" desc");		// Use descending to align with local data
 			}
 			sqlDef.order_by = orderBy.toString();
 
@@ -780,13 +782,16 @@ public class SurveyTableManager {
 		while (rs.next()) {
 			int fId = rs.getInt(1);
 			String table = rs.getString(2);
+			if(parentId != 0) {
+				subTables.add(table);
+			}
 
 			log.info("Processing form: " + fId + " : " + table + " : " + parentId);
 			log.info(tables.toString());
 			
 			/*
 			 * Ignore tables that where no questions have been asked for
-			 * Use Left outer join processing so that situations where a subform is empty do not cause disapperance of data
+			 * Use Left outer join processing so that situations where a subform is empty do not cause disappearance of data
 			 */
 			if (tables.get(table) != null) {
 
@@ -814,32 +819,6 @@ public class SurveyTableManager {
 				} 
 				parents.add(fId);
 				parentTables.add(table);
-				
-				/*
-				// Update table list
-				if (tabs.length() > 0) {
-					tabs.append(",");
-				}
-				tabs.append(table);
-
-				// update where statement
-				if (where.length() > 0) {
-					where.append(" and ");
-				}
-				if (parentId == 0) {
-					where.append(table);
-					where.append("._bad = 'false'");
-				} else {
-					where.append(table);
-					where.append(".parkey = ");
-					where.append(parentTable);
-					where.append(".prikey");
-					subTables.add(table);
-					log.info("+++++ adding sub table: " + table);
-				}
-				parents.add(fId);
-				parentTables.add(table);
-				*/
 			}
 
 		}
@@ -918,7 +897,7 @@ public class SurveyTableManager {
 	public void regenerateCsvFile(Connection cResults, File f, int sId, String userName, String filepath) {
 		PreparedStatement pstmtData = null;
 		try {
-			pstmtData = cResults.prepareStatement(sqlDef.sql);
+			pstmtData = cResults.prepareStatement(sqlDef.sql + sqlDef.order_by);
 			
 			if(sqlDef.colNames.size() == 0) {
 				log.info("++++++ No column names present in table. Creating empty file");
