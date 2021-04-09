@@ -41,4 +41,17 @@ public class QuestionForm {
 		this.f_id = f_id;
 		this.serverCalculate = serverCalculate;
 	}
+	
+	// for meta data
+	public QuestionForm(
+			String qName,
+			String columnName,
+			String qType,
+			String tableName) {
+		this.qName = qName;
+		this.columnName = columnName;
+		this.qType = qType;
+		this.tableName = tableName;
+	}
+	
 }
