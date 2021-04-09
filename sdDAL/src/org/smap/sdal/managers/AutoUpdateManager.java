@@ -84,7 +84,7 @@ public class AutoUpdateManager {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");	// legacy
 				String auto_annotate = params.get("auto_annotate");
-				if((auto_annotate != null && auto_annotate.equals("yes")) 
+				if((auto_annotate != null && (auto_annotate.equals("yes") || auto_annotate.equals("true"))) 
 						|| (auto != null && auto.equals("yes"))) {
 					
 					ResourceBundle localisation = null;
@@ -96,6 +96,7 @@ public class AutoUpdateManager {
 						if(refColumn.startsWith("$") && refColumn.length() > 3) {	// Remove ${} syntax if the source has that
 							refColumn = refColumn.substring(2, refColumn.length() -1);
 						}		
+						log.info("    @@@@@@@ refColumn: " + refColumn);
 						
 						if(GeneralUtilityMethods.hasColumn(cResults, qf.tableName, refColumn)) {
 					
@@ -116,53 +117,68 @@ public class AutoUpdateManager {
 							SurveyManager sm = new SurveyManager(localisation, "UTC");			
 							
 							String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, qf.s_id);
+							log.info("    @@@@@@@ groupSurveyIdent: " + groupSurveyIdent);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, 
 									groupSurveyIdent, 
 									" q.column_name = '" + refColumn + "'",
 									true);
 							
 							QuestionForm refQf = refQuestionMap.get(refColumn);
+							// If the reference question was not found try preloads
+							if(refQf == null) {
+								refQuestionMap = sm.getGroupMetaQuestionsMap(sd, 
+										groupSurveyIdent, refColumn, true);
+								refQf = refQuestionMap.get(refColumn);
+								log.info("    @@@@@@@ Meta question map size: " + refQuestionMap.size());
+							}
 							
-							if(refQf.qType != null 
-									&& (refQf.qType.equals("image")
-											|| refQf.qType.equals("audio")
-											|| refQf.qType.equals("string"))) {
-								
-								String updateType = null;
-								String fromLang = params.get("from_lang");
-								String toLang = params.get("to_lang");
-								String medicalString = params.get("medical");
-								String medType = params.get("med_type");
-								boolean medical = (medicalString != null && (medicalString.equals("yes") || medicalString.equals("true")));
-								
-								if(refQf.qType.equals("image")) {
-									updateType = AUTO_UPDATE_IMAGE;
-								} else if(refQf.qType.equals("audio")) {
-									updateType = AUTO_UPDATE_AUDIO;
-								} else if(refQf.qType.equals("string")) {
-									updateType = AUTO_UPDATE_TEXT;
-								}
-								
-								// Validate
-								if(updateType == null) {
-									log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
-								} else {
-									AutoUpdate au = new AutoUpdate(updateType);
-									au.oId = oId;
-									au.locale = itemLocaleString;
-									au.labelColType = "text";
-									au.sourceColName = refColumn;
-									au.targetColName = qf.columnName;
-									au.tableName = qf.tableName;
-									au.fromLang = fromLang;
-									au.toLang = toLang;
-									au.medical = medical;
-									au.medType = medType;
-									autoUpdates.add(au);
-								}
-							} 
+							if(refQf == null) {
+								log.info("    @@@@@@@ Reference question: " + refColumn + " not found in survey group");
+							} else if(refQf.qType != null 
+										&& (refQf.qType.equals("image")
+												|| refQf.qType.equals("audio")
+												|| refQf.qType.equals("background-audio")
+												|| refQf.qType.equals("string"))) {
+									
+								log.info("    @@@@@@@ Reference question found ");
+									String updateType = null;
+									String fromLang = params.get("from_lang");
+									String toLang = params.get("to_lang");
+									String medicalString = params.get("medical");
+									String medType = params.get("med_type");
+									boolean medical = (medicalString != null && (medicalString.equals("yes") || medicalString.equals("true")));
+									
+									if(refQf.qType.equals("image")) {
+										updateType = AUTO_UPDATE_IMAGE;
+									} else if(refQf.qType.equals("audio") || refQf.qType.equals("background-audio")) {
+										updateType = AUTO_UPDATE_AUDIO;
+									} else if(refQf.qType.equals("string")) {
+										updateType = AUTO_UPDATE_TEXT;
+									}
+									
+									// Validate
+									if(updateType == null) {
+										log.info("------------------ AutoUpdate: Error: invalid reference question type" + refQf.qType);
+									} else {
+										AutoUpdate au = new AutoUpdate(updateType);
+										au.oId = oId;
+										au.locale = itemLocaleString;
+										au.labelColType = "text";
+										au.sourceColName = refColumn;
+										au.targetColName = qf.columnName;
+										au.tableName = qf.tableName;
+										au.fromLang = fromLang;
+										au.toLang = toLang;
+										au.medical = medical;
+										au.medType = medType;
+										autoUpdates.add(au);
+									}
+
+							} else {
+								log.info("    @@@@@@@ Invalud reference question: " + refColumn + " question type: " + refQf.qType);
+							}
 						} else {
-							// No column.  Probably has not been published yet
+							log.info("    @@@@@@@ Reference question not found in data table. It amy not have been publushed yet: " + refColumn);
 						}
 					} 
 				} else {
@@ -372,7 +388,7 @@ public class AutoUpdateManager {
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
 							
-						// log.info("#### Get auto updates: " + pstmt.toString());		// debug					
+						log.info("#### Get auto updates: " + pstmt.toString());		// debug					
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
 							String instanceId = rs.getString(1);

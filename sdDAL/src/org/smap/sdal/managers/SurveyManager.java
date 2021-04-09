@@ -3534,6 +3534,80 @@ public class SurveyManager {
 	}
 	
 	/*
+	 * Get the group surveys
+	 * Do not check that the user has access
+	 */
+	public ArrayList<GroupDetails> getGroupSurveysAnonymous(Connection sd, 
+			String groupSurveyIdent) throws SQLException {
+		
+		ArrayList<GroupDetails> groupSurveys = new ArrayList<> ();
+		
+		StringBuffer sql = new StringBuffer("select distinct s.s_id, s.display_name, s.ident,"
+				+ "s.data_survey, s.oversight_survey "
+				+ "from survey s "
+				+ "where not s.deleted "
+				+ "and s.group_survey_ident = ?");
+
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = sd.prepareStatement(sql.toString());
+			pstmt.setString(1, groupSurveyIdent);
+			
+			log.info("Get anonymous group surveys: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+
+			while (rs.next()) {
+				groupSurveys.add(new GroupDetails(rs.getInt(1), rs.getString(2), 
+						rs.getString(3),
+						rs.getBoolean(4),
+						rs.getBoolean(5)));
+			}
+		} finally {
+			try {
+				if (pstmt != null) {
+					pstmt.close();
+				}
+			} catch (SQLException e) {
+			}
+		}
+		
+		return groupSurveys;
+	}
+	
+	/*
+	 * Get the group's Meta Questions
+	 */
+	public HashMap<String, QuestionForm> getGroupMetaQuestionsMap(Connection sd, 
+			String groupSurveyIdent,
+			String refColumn,
+			boolean useColumnName) throws SQLException {
+		
+		HashMap<String, QuestionForm> groupQuestions = new HashMap<> ();
+		
+		ArrayList<GroupDetails> surveys = getGroupSurveysAnonymous(sd, groupSurveyIdent);
+		for(GroupDetails s : surveys) {
+			Form topForm = GeneralUtilityMethods.getTopLevelForm(sd, s.sId);
+			ArrayList<MetaItem> items = GeneralUtilityMethods.getPreloads(sd, s.sId);
+			for(MetaItem mi : items) {
+				QuestionForm qf = new QuestionForm(mi.name,
+						mi.columnName,
+						mi.dataType,
+						topForm.tableName
+						);
+				
+				if(useColumnName) {
+					groupQuestions.put(mi.columnName, qf);
+				} else {
+					groupQuestions.put(mi.name, qf);
+				}
+			}
+		}
+		
+		return groupQuestions;
+	}
+	
+	/*
 	 * Get the group Questions as an array
 	 * Note the group survey id of a survey must be passed not the survey's id
 	 * Only return unique question names the same name may exist in multiple tables of the group but it will refer to only a single column of data
