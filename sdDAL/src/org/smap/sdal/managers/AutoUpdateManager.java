@@ -84,6 +84,7 @@ public class AutoUpdateManager {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");	// legacy
 				String auto_annotate = params.get("auto_annotate");
+				log.info("    @@@@@@@ autoAnnotate: " + auto_annotate);
 				if((auto_annotate != null && (auto_annotate.equals("yes") || auto_annotate.equals("true"))) 
 						|| (auto != null && auto.equals("yes"))) {
 					
