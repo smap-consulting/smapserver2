@@ -705,9 +705,7 @@ public class SubRelationalDB extends Subscriber {
 					}
 
 					boolean hasAudit = GeneralUtilityMethods.hasColumn(cResults, tableName, "_audit");
-					hasAudit = true;
 					boolean hasAuditRaw = GeneralUtilityMethods.hasColumn(cResults, tableName, AuditData.AUDIT_RAW_COLUMN_NAME);
-					hasAuditRaw = true;
 
 					if(hasAudit && parent_key == 0 && gAuditFilePath != null) {
 						File auditFile = new File(gAuditFilePath);
