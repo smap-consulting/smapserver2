@@ -582,7 +582,7 @@ public class XLSTemplateUploadManager {
 				for(int i = 0; i <= lastCellNum; i++) {
 					Cell cell = row.getCell(i);
 					if(cell != null) {
-						String name = cell.getStringCellValue();
+						String name = cell.getStringCellValue().trim();
 						if(name.startsWith("label::")) {	 // Only check the question label for languages, any others will be assumed to be errors
 							String [] sArray = name.split("::");
 							if(sArray.length > 0) {
