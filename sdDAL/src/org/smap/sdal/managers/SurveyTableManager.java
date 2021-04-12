@@ -782,9 +782,6 @@ public class SurveyTableManager {
 		while (rs.next()) {
 			int fId = rs.getInt(1);
 			String table = rs.getString(2);
-			if(parentId != 0) {
-				subTables.add(table);
-			}
 
 			log.info("Processing form: " + fId + " : " + table + " : " + parentId);
 			log.info(tables.toString());
@@ -795,6 +792,10 @@ public class SurveyTableManager {
 			 */
 			if (tables.get(table) != null) {
 
+				if(parentId != 0) {
+					subTables.add(table);
+				}
+				
 				// Update table list
 				if (tabs.length() > 0) {
 					tabs.append(" left outer join ");
