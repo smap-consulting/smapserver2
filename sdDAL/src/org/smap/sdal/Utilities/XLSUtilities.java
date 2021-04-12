@@ -265,6 +265,7 @@ public class XLSUtilities {
 			if(cell != null) {
 				name = cell.getStringCellValue();
 				if(name != null && name.trim().length() > 0) {
+					name = name.trim();
 					if(name.toLowerCase().equals("list name") ||
 							name.toLowerCase().equals("list_name") ||
 							name.toLowerCase().equals("name") ||
