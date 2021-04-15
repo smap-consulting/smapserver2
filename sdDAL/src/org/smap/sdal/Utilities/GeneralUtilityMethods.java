@@ -8902,7 +8902,9 @@ public class GeneralUtilityMethods {
 				pstmtApplyGeometryChange = cResults.prepareStatement(gSql);
 				
 				try { 
-					pstmtApplyGeometryChange.executeQuery();
+					if(!GeneralUtilityMethods.hasColumn(cResults, table, column)) {
+						pstmtApplyGeometryChange.executeQuery();
+					}
 					
 					// Add altitude and accuracy
 					if(type.equals("geopoint")) {
