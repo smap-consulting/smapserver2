@@ -52,6 +52,7 @@ public class RateLimiter {
 				}
 				if(info.secsElapsed < info.gap) {
 					info.permitted = false;
+					log.info("Rate limit exceeded: " + oId + " " + action);
 				} else {
 					oStore.put(action, now);  // update the time of the last successful usage
 				}
