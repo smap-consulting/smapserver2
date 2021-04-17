@@ -1051,7 +1051,8 @@ public class GeneralUtilityMethods {
 				+ "server_description,"
 				+ "e_id,"
 				+ "limits,"
-				+ "refresh_rate "
+				+ "refresh_rate,"
+				+ "api_rate_limit "
 				+ "from organisation "
 				+ "where organisation.id = ? "
 				+ "order by name asc;";			
@@ -1108,6 +1109,7 @@ public class GeneralUtilityMethods {
 				String limits = resultSet.getString("limits");
 				org.limits = (limits == null) ? null : gson.fromJson(limits, new TypeToken<HashMap<String, Integer>>() {}.getType());
 				org.refresh_rate = resultSet.getInt("refresh_rate");
+				org.api_rate_limit = resultSet.getInt("api_rate_limit");
 			}
 
 	

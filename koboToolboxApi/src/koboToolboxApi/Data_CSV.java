@@ -281,8 +281,8 @@ public class Data_CSV extends Application {
 				RateLimitInfo info = RateLimiter.isPermitted(sd, oId, "API_DATA");
 				if(!info.permitted) {
 					String msg = localisation.getString("rl_api");
-					msg = msg.replace("%s1", String.valueOf(info.gap));
-					msg = msg.replace("%s2", String.valueOf(info.secsElapsed));
+					msg = msg.replace("%s1", String.valueOf(info.gap / 1000));
+					msg = msg.replace("%s2", String.valueOf(info.milliSecsElapsed / 1000));
 					throw new ApplicationException(msg);
 				}
 			}
