@@ -55,6 +55,7 @@ import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
@@ -68,6 +69,7 @@ import org.smap.sdal.model.ConsoleTotals;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.Instance;
+import org.smap.sdal.model.RateLimitInfo;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.SqlParam;
 import org.smap.sdal.model.Survey;
@@ -441,7 +443,8 @@ public class Data extends Application {
 		PrintWriter outWriter = null;
 		ResourceBundle localisation = null;
 		try {
-
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
 			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_VIEW, "Managed Forms or the API. " + (hrk == null ? "" : "Hrk: " + hrk), 0);
 			
 			response.setContentType("application/json; charset=UTF-8");
@@ -451,10 +454,23 @@ public class Data extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			/*
+			 * Check rate Limiter and whether or not the api is disabled
+			 */
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
+			}	
+			if(!isDt) {
+				RateLimitInfo info = RateLimiter.isPermitted(sd, oId, "API_DATA");
+				if(!info.permitted) {
+					String msg = localisation.getString("rl_api");
+					msg = msg.replace("%s1", String.valueOf(info.gap));
+					msg = msg.replace("%s2", String.valueOf(info.secsElapsed));
+					throw new ApplicationException(msg);
+				}
 			}
-			
+
+
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
 			/*
@@ -463,7 +479,6 @@ public class Data extends Application {
 			SurveyViewManager svm = new SurveyViewManager(localisation, tz);
 			SurveySettingsManager ssm = new SurveySettingsManager(localisation, tz);
 			int uId = GeneralUtilityMethods.getUserId(sd, request.getRemoteUser());
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 			Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd").create();
 			
 			SurveySettingsDefn ssd = null;

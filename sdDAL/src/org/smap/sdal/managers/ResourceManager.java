@@ -83,7 +83,6 @@ public class ResourceManager {
 	public int getUsageMeasure(Connection sd, int oId, int month, int year, String resource) throws SQLException {
 		
 		StringBuilder sb = new StringBuilder("select  sum(measure) as total from log where event = ?")
-				//.append(" and extract(month from log_time) = ? and extract(year from log_time) = ?");
 				.append(" and log_time >=  ? and log_time < ?");
 		
 		if(oId > 0) {
@@ -99,8 +98,6 @@ public class ResourceManager {
 			
 			pstmt = sd.prepareStatement(sb.toString());
 			pstmt.setString(1,  resource);
-			//pstmt.setInt(2, month);
-			//pstmt.setInt(3, year);
 			pstmt.setTimestamp(2, t1);
 			pstmt.setTimestamp(3, t2);
 			if(oId > 0) {

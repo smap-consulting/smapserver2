@@ -49,6 +49,7 @@ import javax.ws.rs.core.Context;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
@@ -56,6 +57,7 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.AuditItem;
 import org.smap.sdal.model.KeyValue;
+import org.smap.sdal.model.RateLimitInfo;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 
@@ -262,13 +264,27 @@ public class Data_CSV extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
 			response.setHeader("content-type", "text/plain; charset=utf-8");
 			outWriter = response.getWriter();
 			String urlprefix = GeneralUtilityMethods.getUrlPrefix(request);
 
+			/*
+			 * Check rate Limiter and whether or not the api is disabled
+			 */
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			if(!isDt) {
+				RateLimitInfo info = RateLimiter.isPermitted(sd, oId, "API_DATA");
+				if(!info.permitted) {
+					String msg = localisation.getString("rl_api");
+					msg = msg.replace("%s1", String.valueOf(info.gap));
+					msg = msg.replace("%s2", String.valueOf(info.secsElapsed));
+					throw new ApplicationException(msg);
+				}
 			}
 			
 			// Get the managed Id
