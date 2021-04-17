@@ -3,5 +3,5 @@ package org.smap.sdal.model;
 public class RateLimitInfo {
 	public boolean permitted;
 	public int gap;
-	public int secsElapsed;  // Seconds since last call of this service	
+	public long milliSecsElapsed;  // Milli-Seconds since last call of this service	
 }

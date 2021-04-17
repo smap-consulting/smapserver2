@@ -26,7 +26,7 @@ public class RateLimiter {
 		info.permitted = true;
 		
 		try {
-			info.gap = getGapRequired(sd, oId, action);
+			info.gap = getGapRequired(sd, oId);
 
 			if(info.gap > 0) {
 				// Get store of requests for this organisation
@@ -43,14 +43,14 @@ public class RateLimiter {
 					oStore.put(action, ts);
 				}
 				
-				// Check to see if the last timestamp is less than (the gap) seconds away
+				// Check to see if the last timestamp is less than (the gap) milli seconds away
 				Long now = new Long(System.currentTimeMillis());
 				try {
-					info.secsElapsed = (int) ((now - ts) / 1000);
+					info.milliSecsElapsed = now - ts;
 				} catch (Exception e) {
-					info.secsElapsed = 1000000;	// Some large number so that the request will be accepted				
+					info.milliSecsElapsed = Integer.MAX_VALUE;	// Some large number so that the request will be accepted				
 				}
-				if(info.secsElapsed < info.gap) {
+				if(info.milliSecsElapsed < info.gap) {
 					info.permitted = false;
 					log.info("Rate limit exceeded: " + oId + " " + action);
 				} else {
@@ -65,15 +65,14 @@ public class RateLimiter {
 		return info;
 	}
 	
-	private static int getGapRequired(Connection sd, int o_id, String action) throws SQLException {
+	private static int getGapRequired(Connection sd, int o_id) throws SQLException {
 		int gap = 0;
-		String sql = "select gap from rate_limit where o_id = ? and action = ?";
+		String sql = "select api_rate_limit from organisation where id = ?";
 		PreparedStatement pstmt = null;
 		
 		try {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, o_id);
-			pstmt.setString(2, action);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
 				gap = rs.getInt(1);
