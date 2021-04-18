@@ -735,7 +735,7 @@ public class UtilityMethodsEmail {
 								}
 							}  else if(t.equals("none") && id.endsWith("hint")) {
 								l.hint = v;
-							} else if(t.equals("guidance")) {
+							} else if(t.equals("guidance") || t.equals("guidance_hint")) {
 								l.guidance_hint = v;
 							} else if(t.equals("constraint_msg")) {
 								l.constraint_msg = v;
