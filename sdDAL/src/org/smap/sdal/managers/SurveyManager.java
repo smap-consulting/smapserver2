@@ -1619,6 +1619,8 @@ public class SurveyManager {
 			pstmtLangNew.setString(4, text_id);
 			if(ci.property.propType.equals("text") || ci.property.propType.equals("hint")) {
 				transType = "none";
+			} else if(ci.property.propType.equals("guidance_hint")) {
+				transType = "guidance";
 			} else {
 				transType = ci.property.propType;
 			}
