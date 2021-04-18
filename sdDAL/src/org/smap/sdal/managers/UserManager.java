@@ -424,13 +424,17 @@ public class UserManager {
 		}
 
 		int u_id = -1;
-		String sql = "insert into users (ident, realm, name, email, o_id, imported, password, created) " +
-				" values (?, ?, ?, ?, ?, ?, md5(?), now());";
+		String sql = "insert into users (ident, realm, name, email, o_id, imported, language, password, created) " +
+				" values (?, ?, ?, ?, ?, ?, ?, md5(?), now());";
 
 		PreparedStatement pstmt = null;
 
 		try {
 			String pwdString = u.ident + ":smap:" + u.password;
+			String language = u.language;
+			if(language == null || language.trim().length() == 0) {
+				language = "en";
+			}
 			pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			pstmt.setString(1, u.ident);
 			pstmt.setString(2, "smap");
@@ -438,7 +442,8 @@ public class UserManager {
 			pstmt.setString(4, u.email);
 			pstmt.setInt(5, o_id);
 			pstmt.setBoolean(6,u.imported);
-			pstmt.setString(7, pwdString);
+			pstmt.setString(7,  language);
+			pstmt.setString(8, pwdString);
 			log.info("SQL: " + pstmt.toString());
 			pstmt.executeUpdate();
 
@@ -1336,7 +1341,8 @@ public class UserManager {
 				+ "u.name as u_name, "
 				+ "u.email as u_email, "
 				+ "u.o_id as u_o_id, "
-				+ "o.name as o_name "
+				+ "o.name as o_name, "
+				+ "u.language "
 				+ "from users u, organisation o "
 				+ "where (u.o_id = ? or u.id in (select uo.u_id from user_organisation uo where uo.o_id = ?)) "
 				+ "and not u.temporary "
@@ -1453,6 +1459,7 @@ public class UserManager {
 					user.ident = rs.getString("u_ident");
 					user.name = rs.getString("u_name");
 					user.email = rs.getString("u_email");
+					user.language = rs.getString("language");
 					if(usersOrgId == oId) {
 						user.current_org_name = rs.getString("o_name");
 						user.current_org_id = usersOrgId;
