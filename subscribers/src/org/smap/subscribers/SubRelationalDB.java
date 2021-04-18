@@ -764,7 +764,7 @@ public class SubRelationalDB extends Subscriber {
 					if (hasAudit) {
 						sql += ", ?";
 					}
-					if (hasAuditRaw) {
+					if(hasAudit && hasAuditRaw && auditData != null && auditData.rawAudit != null) {
 						sql += ", ?";
 					}
 					ArrayList<ForeignKey> thisTableKeys = new ArrayList<> ();
@@ -815,9 +815,7 @@ public class SubRelationalDB extends Subscriber {
 						pstmt.setString(stmtIndex++, auditString);
 						if(hasAuditRaw && auditData != null && auditData.rawAudit != null) {
 							pstmt.setString(stmtIndex++, auditData.rawAudit.toString());
-						} else {
-							pstmt.setString(stmtIndex++, null);
-						}
+						} 
 					}	
 
 					log.info("        SQL statement: " + pstmt.toString());
