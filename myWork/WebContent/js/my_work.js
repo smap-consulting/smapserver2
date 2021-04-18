@@ -219,7 +219,7 @@ require([
 			count = 0;
 
 		for(i = 0; i < formList.length; i++) {
-			if(!filterProjectId || filterProjectId == formList[i].pid) {
+			if(!formList[i].tasks_only && (!filterProjectId || filterProjectId == formList[i].pid)) {
 				h[++idx] = '<a role="button" class="btn btn-info btn-block btn-lg" href="/app/myWork/webForm/';
 				h[++idx] = formList[i].ident;
 
