@@ -735,7 +735,7 @@ public class SubRelationalDB extends Subscriber {
 					if (hasAudit) {
 						sql += ", _audit";
 					}
-					if (hasAuditRaw) {
+					if (hasAudit && hasAuditRaw && auditData != null && auditData.rawAudit != null) {
 						sql += ", _audit_raw";
 					}
 
