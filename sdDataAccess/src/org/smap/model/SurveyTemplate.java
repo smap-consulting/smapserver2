@@ -1458,13 +1458,18 @@ public class SurveyTemplate {
 					translations.put(t.getLanguage(), languageMap);
 				}
 				
-				HashMap<String, Translation> types = languageMap.get(t.getTextId());
+				String type = t.getType();
+				String textId = t.getTextId();
+				if(type.equals("guidance")) {
+					textId = textId.replace("guidance_hint", "hint");	// Store hint with guidance hint
+				}
+				HashMap<String, Translation> types = languageMap.get(textId);
 				if(types == null) {
 					types = new HashMap<String, Translation> ();
-					languageMap.put(t.getTextId(), types);
+					languageMap.put(textId, types);
 				}
 				
-				types.put(t.getType(), t);			
+				types.put(type, t);			
 			}
 		} finally {
 			if(pm != null) {pm.close();}

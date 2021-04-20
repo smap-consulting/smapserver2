@@ -95,6 +95,7 @@ public class GetXForm {
 	private HashMap<String, Integer> gRecordCounts = new HashMap<> ();
 	private HashMap<String, String> multiLanguageConstraints = new HashMap<> ();
 	private HashMap<String, String> multiLanguageRequireds = new HashMap<> ();
+	private HashMap<String, String> lonelyGuidance = new HashMap<> ();  // Store references of guidance that is not part of a hint - hack
 	
 	private static Logger log = Logger.getLogger(GetXForm.class.getName());
 
@@ -306,7 +307,6 @@ public class GetXForm {
 			Iterator<HashMap<String, Translation>> itrL = l.iterator();
 			ArrayList<Translation> constraints = new ArrayList<>();	// Constraints for the language
 			HashMap<String, Element> hints = new HashMap<>();				// Hints for the language
-			HashMap<String, String> guidance_hints = new HashMap<>();		// Guidance Hints for the language
 			Element languageElement = null;
 			while (itrL.hasNext()) { // ID of a question or label
 				HashMap<String, Translation> types = (HashMap<String, Translation>) itrL.next();
@@ -339,14 +339,18 @@ public class GetXForm {
 						// Constraint messages do not appear within the label section
 						constraints.add(trans);
 						multiLanguageRequireds.put(trans.getTextId(), "yes");	// Record that this multi language constraint exists
-					} else if (type.equals("guidance")) { 
-						// save this for later
-						guidance_hints.put(trans.getTextId(), trans.getValue());
 					} else {
 						if (textElement == null) {
 							textElement = outputDoc.createElement("text");
-							textElement.setAttribute("id", trans.getTextId());
+							
+							String id = trans.getTextId();
+							if (type.equals("guidance")) {
+								id = id.replace("guidance_hint", "hint");
+								lonelyGuidance.put(id, id);
+							}
+							textElement.setAttribute("id", id);
 							languageElement.appendChild(textElement);
+							hints.put(id, textElement);
 						}
 	
 						Element valueElement = outputDoc.createElement("value");
@@ -374,6 +378,8 @@ public class GetXForm {
 	
 							valueElement.setTextContent("jr://" + base + "/" + filename);
 	
+						} else if (type.equals("guidance")) { 
+							valueElement.setTextContent(trans.getValue());
 						} else {
 							// The text could be an xml fragment
 							try {
@@ -395,10 +401,6 @@ public class GetXForm {
 	
 						textElement.appendChild(valueElement);
 						
-						if(type.equals("none") && trans.getTextId() != null && trans.getTextId().endsWith(":hint")) {
-							// Keep a record of these hints
-							hints.put(trans.getTextId(), textElement);
-						}
 					}
 
 				}
@@ -415,29 +417,7 @@ public class GetXForm {
 					textElement.appendChild(valueElement);
 				}
 			}
-			
-			// Add guidance hints
-			if(guidance_hints.size() > 0) {
-				
-				for(String id : guidance_hints.keySet()) {
-					String val = guidance_hints.get(id);
-				
-					String hintId;
-					int idx = id.indexOf(':');
-					if(idx > 0) {
-						hintId = id.substring(0, idx) + ":hint";
-						
-						Element e = hints.get(hintId);
-						if(e != null && val != null) {
-				
-							Element tgElement = outputDoc.createElement("value");
-							tgElement.setAttribute("form", "guidance");
-							tgElement.setTextContent(val);
-							e.appendChild(tgElement);
-						}
-					}
-				}
-			}
+
 		}
 	}
 
@@ -1279,6 +1259,13 @@ public class GetXForm {
 		if (questionElement != null) {
 			Element hintElement = outputXML.createElement("hint");
 			String hint = q.getInfoTextId();
+			if(hint == null) {  // might be a guidance without a hint
+				String qTextId = q.getQTextId();
+				if(qTextId != null) {
+					String hintRef = q.getQTextId().replace("label", "hint");
+					hint = lonelyGuidance.get(hintRef);
+				}
+			}
 			if (hint == null || hint.trim().length() == 0) {
 				// Use the default hint text
 				hint = q.getInfo();
