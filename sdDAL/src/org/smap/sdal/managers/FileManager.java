@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.Connection;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
@@ -89,7 +90,7 @@ public class FileManager {
 		File f = new File(filepath);
 		if(!f.exists()) {
 			log.info("File not found: " + f.getAbsolutePath());
-			throw new ApplicationException("File not found");
+			throw new ApplicationException("File not found: " + f.getAbsolutePath());
 		}
 		response.setContentType(UtilityMethodsEmail.getContentType(filename));
 			
@@ -105,8 +106,18 @@ public class FileManager {
 				responseOutputStream.write(bytes);
 			}
 		} finally {
-			responseOutputStream.flush();
-			responseOutputStream.close();
+			try {
+				responseOutputStream.flush();
+			} catch(Exception e) {
+				log.info("Error flushing output stream for file: " + f.getAbsolutePath());
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
+			try {
+				responseOutputStream.close();
+			} catch(Exception e) {
+				log.info("Error closing output stream for file: " + f.getAbsolutePath());
+				log.log(Level.SEVERE, e.getMessage(), e);
+			}
 			fis.close();
 		}
 	}
