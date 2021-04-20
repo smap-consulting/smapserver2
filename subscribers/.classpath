@@ -25,5 +25,6 @@
 	<classpathentry kind="lib" path="lib/commons-io-2.4.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDataAccess-P"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/sdDAL-P"/>
+	<classpathentry kind="lib" path="/Users/neilpenman/git/prop_smapserver/smap/deploy/version1/jdbc/postgresql-42.2.1.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>

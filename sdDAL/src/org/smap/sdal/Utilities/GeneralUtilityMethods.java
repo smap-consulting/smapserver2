@@ -255,6 +255,9 @@ public class GeneralUtilityMethods {
 	 * Get Base Path
 	 */
 	static public String getBasePath(HttpServletRequest request) {
+		if(request.getServerName().equals("localhost")) {
+			return "/Users/neilpenman/smap_config/smap";
+		}
 		String basePath = request.getServletContext().getInitParameter("au.com.smap.files");
 		if (basePath == null) {
 			basePath = "/smap";
