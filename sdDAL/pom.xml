@@ -27,7 +27,7 @@
 		</plugins>
 	</build>
 	<dependencies>
-	
+
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
@@ -75,13 +75,13 @@
 			<artifactId>mail</artifactId>
 			<version>1.4</version>
 		</dependency>
-		
+
 		<dependency>
-    		<groupId>javax.activation</groupId>
-    		<artifactId>activation</artifactId>
-    		<version>1.1.1</version>
+			<groupId>javax.activation</groupId>
+			<artifactId>activation</artifactId>
+			<version>1.1.1</version>
 		</dependency>
-		
+
 
 		<dependency>
 			<groupId>io.nayuki</groupId>
@@ -108,13 +108,8 @@
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- Local 
-		<dependency>
-			<groupId>au.com.smap</groupId>
-			<artifactId>amazon</artifactId>
-			<version>1.0.0</version>
-		</dependency>
-		-->
+		<!-- Local <dependency> <groupId>au.com.smap</groupId> <artifactId>amazon</artifactId> 
+			<version>1.0.0</version> </dependency> -->
 
 		<dependency>
 			<groupId>org.apache.poi</groupId>
@@ -133,23 +128,23 @@
 			<artifactId>poi-ooxml-schemas</artifactId>
 			<version>4.1.2</version>
 		</dependency>
-		
+
 		<dependency>
-    		<groupId>com.google.zxing</groupId>
-    		<artifactId>core</artifactId>
-    		<version>3.4.0</version>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>core</artifactId>
+			<version>3.4.0</version>
 		</dependency>
-		
+
 		<dependency>
-    		<groupId>com.google.zxing</groupId>
-    		<artifactId>javase</artifactId>
-    		<version>3.4.0</version>
+			<groupId>com.google.zxing</groupId>
+			<artifactId>javase</artifactId>
+			<version>3.4.0</version>
 		</dependency>
-		
+
 		<dependency>
-  			<groupId>com.github.binodnme</groupId>
-  			<artifactId>date-converter</artifactId>
-  			<version>1.0.1</version>
+			<groupId>com.github.binodnme</groupId>
+			<artifactId>date-converter</artifactId>
+			<version>1.0.1</version>
 		</dependency>
 
 	</dependencies>
