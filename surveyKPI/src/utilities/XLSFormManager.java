@@ -91,6 +91,7 @@ public class XLSFormManager {
 		public static final int COL_GUIDANCE_HINT = 24;
 		public static final int COL_STYLE_LIST = 25;
 		public static final int COL_FLASH = 26;
+		public static final int COL_TRIGGER = 27;
 
 		// Choice sheet columns
 		public static final int COL_LIST_NAME = 100;
@@ -259,6 +260,9 @@ public class XLSFormManager {
 				} else {
 					value = "";
 				}
+
+			} else if(type == COL_TRIGGER) {
+				value = q.trigger;	
 
 			} else if(type == COL_SERVER_CALCULATION) {
 				if(q.server_calculation != null) {
@@ -986,6 +990,7 @@ public class XLSFormManager {
 			cols.add(new Column(colNumber++,XLSFormColumns.REQUIRED_MESSAGE, Column.COL_REQUIRED_MSG, 0, "required_msg"));
 		}
 		cols.add(new Column(colNumber++, "calculation", Column.COL_CALCULATION, 0, "calculation"));
+		cols.add(new Column(colNumber++, "trigger", Column.COL_TRIGGER, 0, "trigger"));
 		cols.add(new Column(colNumber++, "server_calculation", Column.COL_SERVER_CALCULATION, 0, "server_calculation"));
 		cols.add(new Column(colNumber++, "style list", Column.COL_STYLE_LIST, 0, "style list"));
 		if(usesFlash) {
