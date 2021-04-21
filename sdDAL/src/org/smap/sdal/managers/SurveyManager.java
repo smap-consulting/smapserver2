@@ -1777,7 +1777,15 @@ public class SurveyManager {
 					} else if(ci.property.prop.equals("choice_filter")) {
 						// Convert the passed in filter to a nodeset
 						String listname = GeneralUtilityMethods.getListNameForQuestion(sd, ci.property.qId);
-						ci.property.newVal = GeneralUtilityMethods.getNodesetFromChoiceFilter(ci.property.newVal, listname);
+						String cascade_instance;
+						if(listname != null && listname.startsWith("${")) {
+							cascade_instance= listname;
+							ci.property.newVal = GeneralUtilityMethods.getNodesetForRepeat(ci.property.newVal, cascade_instance);					
+						} else {
+							cascade_instance = GeneralUtilityMethods.cleanName(listname, true, false, false);
+							ci.property.newVal = GeneralUtilityMethods.getNodesetFromChoiceFilter(ci.property.newVal, cascade_instance);
+						}
+						
 
 					} else if(ci.property.type.equals("optionlist")) {
 						// Get the list id for this option list

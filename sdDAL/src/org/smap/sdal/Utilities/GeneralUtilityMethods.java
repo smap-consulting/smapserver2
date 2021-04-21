@@ -4328,6 +4328,28 @@ public class GeneralUtilityMethods {
 		return nodeset.toString().trim();
 
 	}
+	
+	/*
+	 * Get the nodeset for a select that looks up a repeat
+	 */
+	public static String getNodesetForRepeat(String choice_filter, String repQuestion) {
+
+		StringBuffer nodeset = new StringBuffer("");
+
+		// There must always be a choice filter, default is to make sure the repeating question is not empty
+		if (choice_filter == null || choice_filter.trim().length() == 0) {
+			choice_filter = repQuestion + " != ''";
+		}
+		nodeset.append(repQuestion);
+		if (choice_filter != null && choice_filter.trim().length() > 0) {
+			nodeset.append("[");
+			nodeset.append(choice_filter);
+			nodeset.append("]");
+		}
+
+		return nodeset.toString().trim();
+
+	}
 
 	/*
 	 * Convert all xml fragments embedded in the supplied string to names ODK uses

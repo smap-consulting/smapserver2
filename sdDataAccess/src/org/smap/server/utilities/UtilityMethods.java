@@ -191,9 +191,6 @@ public class UtilityMethods {
 				qPath = questionPaths.get(qname);
 			}
 			 			
-			
-		
-				
 			if(qPath == null) {
 				throw new Exception("Question path not found for question: " + qname + " in " + input + 
 							" of " + calledForQuestion);
