@@ -264,10 +264,18 @@ public class QuestionManager {
 				String cascade_instance = null;
 
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
-					cascade_instance = GeneralUtilityMethods.cleanName(q.list_name, true, false, false);
-					nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(q.choice_filter, cascade_instance);
-					nodeset_value = "name";
-					nodeset_label = "jr:itext(itextId)";
+					if(q.list_name != null && q.list_name.startsWith("${")) {
+						cascade_instance = q.list_name;
+						String repQuestion = GeneralUtilityMethods.getNameFromXlsName(cascade_instance);
+						nodeset = GeneralUtilityMethods.getNodesetForRepeat(q.choice_filter, cascade_instance);
+						nodeset_value = repQuestion;
+						nodeset_label = repQuestion;
+					} else {
+						cascade_instance = GeneralUtilityMethods.cleanName(q.list_name, true, false, false);
+						nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(q.choice_filter, cascade_instance);
+						nodeset_value = "name";
+						nodeset_label = "jr:itext(itextId)";
+					}
 				}
 				pstmtInsertQuestion.setString(24, nodeset);
 				pstmtInsertQuestion.setString(25, nodeset_value);
