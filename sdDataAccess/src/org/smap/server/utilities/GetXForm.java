@@ -1289,18 +1289,7 @@ public class GetXForm {
 			String nodeset = null;
 			if(q.getNodeset() != null && q.getNodeset().startsWith("${")) {
 				// Nodeset references a repeat
-				int idx = q.getNodeset().indexOf('[');
-				if(idx > 0) {
-					String repQuestionName = q.getNodeset().substring(0, idx).trim();
-					String filter = q.getNodeset().substring(idx);
-					String repQuestionPath = UtilityMethods.convertAllxlsNames(repQuestionName, false, template.getQuestionPaths(),  
-							q.getFormId(), false, q.getName(), false);
-					Question repQuestion = template.getQuestion(repQuestionPath);
-					String formRef = repQuestion.getFormRef();
-					nodeset = formRef + UtilityMethods.convertAllxlsNames(filter, false, template.getQuestionPaths(),  
-							q.getFormId(), false, repQuestionName, true);
-				}
-				
+				nodeset = UtilityMethods.getRepeatNodeset(template, null, template.getQuestionPaths(), q.getFormId(),  q.getNodeset(), false);
 			} else {
 				nodeset = UtilityMethods.getNodeset(true, false, template.getQuestionPaths(), embedExternalSearch,
 					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName(), 
