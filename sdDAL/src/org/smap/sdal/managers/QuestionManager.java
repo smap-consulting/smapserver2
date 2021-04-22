@@ -1970,10 +1970,17 @@ public class QuestionManager {
 				}
 				q.inMeta = inMeta;
 
-				// If the survey was loaded from xls it will not have a list name
+				// If there is no list name then perhaps this seelect question references a repeat - check the nodeset
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					if(q.list_name == null || q.list_name.trim().length() == 0) {
-						q.list_name = q.name;
+						q.list_name = "";
+						if(q.nodeset != null && q.nodeset.startsWith("${")) {
+							// Repeating list reference
+							int idx = q.nodeset.indexOf('[');
+							if(idx > 0) {
+								q.list_name = q.nodeset.substring(0, idx).trim();
+							}
+						}
 					}
 				}
 
