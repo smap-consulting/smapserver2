@@ -1970,7 +1970,7 @@ public class QuestionManager {
 				}
 				q.inMeta = inMeta;
 
-				// If there is no list name then perhaps this seelect question references a repeat - check the nodeset
+				// If there is no list name then perhaps this select question references a repeat - check the nodeset
 				if(q.type.startsWith("select") || q.type.equals("rank")) {
 					if(q.list_name == null || q.list_name.trim().length() == 0) {
 						q.list_name = "";
