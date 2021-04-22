@@ -31,6 +31,7 @@ import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Option;
+import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
 import org.smap.sdal.model.Survey;
 import org.w3c.dom.DOMException;
@@ -48,6 +49,7 @@ public class GetHtml {
 	Survey survey = null;
 	int languageIndex = 0;
 	HashMap<String, String> paths = new HashMap<>(); // Keep paths out of the survey model and instead store them here
+	HashMap<String, String> formRefs = new HashMap<>();		// Mpping between question name and form ref used for nodesets that reference repeats
 	Document outputDoc = null;
 	private boolean gInTableList = false;
 	private HashMap<String, Integer> gRecordCounts = null;
@@ -241,10 +243,12 @@ public class GetHtml {
 		Stack<String> pathStack = new Stack<>(); // Store the paths as we go in and out of groups
 
 		pathStem = pathStem + form.name + "/";
+		String formPath = pathStem;
 
 		for (Question q : form.questions) {
 
 			paths.put(getRefName(q.name, form), pathStem + q.name); // Save the path
+			formRefs.put(q.name, formPath);
 
 			if (q.type.equals("end group")) {
 
@@ -901,13 +905,17 @@ public class GetHtml {
 		Element optionElement = outputDoc.createElement("span");
 		parent.appendChild(optionElement);
 		optionElement.setAttribute("class", "itemset-labels");
-		optionElement.setAttribute("data-value-ref", "name");
-		if(q.external_choices) {
-			optionElement.setAttribute("data-label-type", "label");
-			optionElement.setAttribute("data-label-ref", "label");
+		if(q.nodeset.startsWith("${")) {
+		   	addRepeatNodesetRefs(optionElement, q.nodeset);
 		} else {
-			optionElement.setAttribute("data-label-type", "itext");
-			optionElement.setAttribute("data-label-ref", "itextId");
+			optionElement.setAttribute("data-value-ref", "name");
+			if(q.external_choices) {
+				optionElement.setAttribute("data-label-type", "label");
+				optionElement.setAttribute("data-label-ref", "label");
+			} else {
+				optionElement.setAttribute("data-label-type", "itext");
+				optionElement.setAttribute("data-label-ref", "itextId");
+			}
 		}
 		
 
@@ -915,6 +923,18 @@ public class GetHtml {
 
 	}
 
+	/*
+	 * Add refs to a repeat nodeset
+	 */
+	private void addRepeatNodesetRefs(Element optionElement, String nodeset) {
+		int idx = nodeset.indexOf('[');
+    	if(idx > 0) {
+			String repQuestionXLS = nodeset.substring(0, idx).trim();
+			String repQuestionName = GeneralUtilityMethods.getNameFromXlsName(repQuestionXLS);
+			optionElement.setAttribute("data-value-ref", repQuestionName);
+			optionElement.setAttribute("data-label-ref", repQuestionName);
+    	}
+	}
 	/*
 	 * Get a list name from a path
 	 */
@@ -1138,11 +1158,16 @@ public class GetHtml {
 			Element optionElement = outputDoc.createElement("span");
 			parent.appendChild(optionElement);
 			optionElement.setAttribute("class", "itemset-labels");
-			optionElement.setAttribute("data-value-ref", "name");
-			optionElement.setAttribute("data-label-type", "itext");
-			optionElement.setAttribute("data-label-ref", "itextId");
+			if(q.nodeset.startsWith("${")) {
+			   	addRepeatNodesetRefs(optionElement, q.nodeset);
+			} else {
 
-			addOptionLabels(sd, optionElement, q, form, tableList);
+				optionElement.setAttribute("data-value-ref", "name");
+				optionElement.setAttribute("data-label-type", "itext");
+				optionElement.setAttribute("data-label-ref", "itextId");
+
+				addOptionLabels(sd, optionElement, q, form, tableList);
+			}
 
 		} else {
 			addOptionLabels(sd, parent, q, form, tableList);
@@ -1155,76 +1180,84 @@ public class GetHtml {
 		boolean hasNodeset = hasNodeset(sd, q, form);
 		Element labelElement = null;
 
-		ArrayList<Option> options = survey.optionLists.get(q.list_name).options;
-		for (Option o : options) {
-			if (!hasNodeset) {
-				labelElement = outputDoc.createElement("label");
-				parent.appendChild(labelElement);
-
-				if (!tableList) {
-					Element inputElement = outputDoc.createElement("input");
-					labelElement.appendChild(inputElement);
-					inputElement.setAttribute("type", getInputType(q));
-					if(!q.type.equals("rank")) {
-						inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
-					} else {
-						inputElement.setAttribute("class", "ignore");
-					}
-					inputElement.setAttribute("value", o.value);
-					//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
-					if(q.constraint != null && q.constraint.length() > 0) { 
-						// inputElement.setAttribute("data-constraint", q.constraint);
-						log.info("XXXXXXXXXXXXXXXXXX wants to set constraint on attribute for question: " + q.name + " : " + q.fId);
-					}
-				}
-
-			}
-			int idx = 0;
-			Element bodyElement = null;
-			for (Language lang : survey.languages) {
-				bodyElement = outputDoc.createElement("span");
-				if (hasNodeset) {
-					parent.appendChild(bodyElement);
-				} else {
-					labelElement.appendChild(bodyElement);
-				}
-				bodyElement.setAttribute("lang", lang.name);
-				bodyElement.setAttribute("class",
-						"option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
-				bodyElement.setAttribute("data-itext-id", o.text_id);
-
-				String label = o.labels.get(idx).text;
-				try {
-					label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value, false);
-				} catch (Exception e) {
-					log.log(Level.SEVERE, e.getMessage(), e);
-				}
-				bodyElement.setTextContent(label);
-				
-				if(labelElement != null) {
-					addMedia(labelElement, o.labels.get(idx), lang, o.text_id);
-				} else {
-					addMedia(parent, o.labels.get(idx), lang, o.text_id);
-				}
-
-				idx++;
-			}
-
-		}
-		
-		// If this widget is horizontal add filler labels to get spacing right
-		if(hasAppearance(q.appearance, "horizontal")) {
-			int nFillers = 3 - options.size() % 3;
-			
-			if(nFillers < 3 && nFillers > 0) {
-				for(int i = 0;  i < nFillers; i++) {
-					System.out.println(q.name);
+		OptionList optionList = survey.optionLists.get(q.list_name);
+		if(optionList != null) {
+			ArrayList<Option> options = optionList.options;
+			for (Option o : options) {
+				if (!hasNodeset) {
 					labelElement = outputDoc.createElement("label");
 					parent.appendChild(labelElement);
-					labelElement.setAttribute("class", "filler");
+	
+					if (!tableList) {
+						Element inputElement = outputDoc.createElement("input");
+						labelElement.appendChild(inputElement);
+						inputElement.setAttribute("type", getInputType(q));
+						if(!q.type.equals("rank")) {
+							inputElement.setAttribute("name", paths.get(getRefName(q.name, form)));
+						} else {
+							inputElement.setAttribute("class", "ignore");
+						}
+						inputElement.setAttribute("value", o.value);
+						//inputElement.setAttribute("data-type-xml", q.type);   // Not used with simple select multiple
+						if(q.constraint != null && q.constraint.length() > 0) { 
+							// inputElement.setAttribute("data-constraint", q.constraint);
+							log.info("XXXXXXXXXXXXXXXXXX wants to set constraint on attribute for question: " + q.name + " : " + q.fId);
+						}
+					}
+	
+				}
+				int idx = 0;
+				Element bodyElement = null;
+				for (Language lang : survey.languages) {
+					bodyElement = outputDoc.createElement("span");
+					if (hasNodeset) {
+						parent.appendChild(bodyElement);
+					} else {
+						labelElement.appendChild(bodyElement);
+					}
+					bodyElement.setAttribute("lang", lang.name);
+					bodyElement.setAttribute("class",
+							"option-label" + (lang.name.equals(survey.def_lang) ? " active" : ""));
+					bodyElement.setAttribute("data-itext-id", o.text_id);
+	
+					String label = o.labels.get(idx).text;
+					try {
+						label = UtilityMethods.convertAllxlsNames(o.labels.get(idx).text, true, paths, form.id, true, o.value, false);
+					} catch (Exception e) {
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
+					bodyElement.setTextContent(label);
+					
+					if(labelElement != null) {
+						addMedia(labelElement, o.labels.get(idx), lang, o.text_id);
+					} else {
+						addMedia(parent, o.labels.get(idx), lang, o.text_id);
+					}
+	
+					idx++;
+				}
+	
+			}
+			
+			// If this widget is horizontal add filler labels to get spacing right
+			if(hasAppearance(q.appearance, "horizontal")) {
+				int nFillers = 3 - options.size() % 3;
+				
+				if(nFillers < 3 && nFillers > 0) {
+					for(int i = 0;  i < nFillers; i++) {
+						System.out.println(q.name);
+						labelElement = outputDoc.createElement("label");
+						parent.appendChild(labelElement);
+						labelElement.setAttribute("class", "filler");
+					}
 				}
 			}
+		} else {
+			// Presumably options are sourced from a repeat
+			System.out.println("sourced repeat");
 		}
+		
+
 
 	}
 
@@ -1787,9 +1820,15 @@ public class GetHtml {
 	/*
 	 * Attempt to get the full nodeset incorporating any external filters
 	 */
-	private String getNodeset(Question q, Form form) throws Exception {		
-		String nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
-				false /*(form.parentform > 0)*/);		// XXXXXX In our version of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
+	private String getNodeset(Question q, Form form) throws Exception {	
+		String nodeset = null;
+		if(q.nodeset.startsWith("${")) {
+			nodeset = UtilityMethods.getRepeatNodeset(null, formRefs, paths, form.id,  q.nodeset, true);
+		} else {
+			nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
+					false /*(form.parentform > 0)*/);		// XXXXXX In our version of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
+
+		}
 		String adjustedNodeset = GeneralUtilityMethods.addNodesetFunctions(nodeset, 
 				GeneralUtilityMethods.getSurveyParameter("randomize", q.paramArray),
 				GeneralUtilityMethods.getSurveyParameter("seed", q.paramArray)); 
@@ -1897,4 +1936,5 @@ public class GetHtml {
 		}
 		return count;
 	}
+	
 }

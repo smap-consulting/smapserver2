@@ -17,6 +17,7 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Search;
 import org.smap.server.entities.Option;
+import org.smap.server.entities.Question;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 
@@ -231,7 +232,7 @@ public class UtilityMethods {
 				int idx;
 				log.info("xxxxx: " + cfPath + " : " + qPath);
 				
-				for(idx = 0; qSteps[idx].equals(cfSteps[idx]); idx++) {					
+				for(idx = 0; idx < qSteps.length && idx < cfSteps.length && qSteps[idx].equals(cfSteps[idx]); idx++) {					
 					relPath.add(qSteps[idx]);
 				}
 				int pathDepth = cfSteps.length - idx;
@@ -239,7 +240,10 @@ public class UtilityMethods {
 				StringBuffer path = new StringBuffer("");
 				if(!webform) {
 					path = path.append("current()");
-				}
+				} 
+				if(pathDepth == 0 && webform) {
+					path.append(".")
+;				}
 				for(int i = 0; i < pathDepth; i++) {
 					if(webform && i == 0) {
 						path.append("..");
@@ -359,6 +363,49 @@ public class UtilityMethods {
 		
 		return out;
 	}
+    
+    /*
+     * Get a repeat nodeset
+     */
+    public static String getRepeatNodeset(SurveyTemplate template, HashMap<String, String> formRefs, 
+    		HashMap<String, String> questionPaths, int formId, 
+    		String qNodeset, boolean webForm) throws Exception {
+    	
+    	String nodeset = null;
+    	
+    	int idx = qNodeset.indexOf('[');
+    	if(idx > 0) {
+			String repQuestionXLS = qNodeset.substring(0, idx).trim();
+			String repQuestionName = GeneralUtilityMethods.getNameFromXlsName(repQuestionXLS);
+			String filter = qNodeset.substring(idx);
+    	
+			String repQuestionPath = UtilityMethods.convertAllxlsNames(repQuestionXLS, false, questionPaths,  
+					formId, false, null, false);
+			String formRef = null;
+			if(template != null) {
+				// Use the template to get the path of the repeat question (presumably called from get xform)
+				Question repQuestion = template.getQuestion(repQuestionPath);
+				formRef = repQuestion.getFormRef();
+			} else {
+				// Presumably called from getHtml
+				formRef = formRefs.get(repQuestionName);
+			}
+			
+			formRef = formRef.trim();
+			if(formRef.charAt(formRef.length() - 1) == '/') {
+				formRef = formRef.substring(0, formRef.length() - 1);
+			}
+			int idx2 = formRef.lastIndexOf('/');
+			String formName = null;
+			if(idx2 > 0) {
+				formName = formRef.substring(idx2 + 1);
+			}
+		
+			nodeset = formRef + UtilityMethods.convertAllxlsNames(filter, false, questionPaths,  
+				formId, webForm, formName, true);
+    	}
+    	return nodeset;
+    }
     
 	/*
 	 * Create the results tables if they do not exist
