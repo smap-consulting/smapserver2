@@ -30,6 +30,7 @@ import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Label;
 import org.smap.sdal.model.Language;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.NodesetFormDetails;
 import org.smap.sdal.model.Option;
 import org.smap.sdal.model.OptionList;
 import org.smap.sdal.model.Question;
@@ -906,7 +907,7 @@ public class GetHtml {
 		parent.appendChild(optionElement);
 		optionElement.setAttribute("class", "itemset-labels");
 		if(q.nodeset.startsWith("${")) {
-		   	addRepeatNodesetRefs(optionElement, q.nodeset);
+		   	addRepeatNodesetRefs(optionElement, q.nodeset, formRefs, paths, form.id);
 		} else {
 			optionElement.setAttribute("data-value-ref", "name");
 			if(q.external_choices) {
@@ -926,11 +927,15 @@ public class GetHtml {
 	/*
 	 * Add refs to a repeat nodeset
 	 */
-	private void addRepeatNodesetRefs(Element optionElement, String nodeset) {
+	private void addRepeatNodesetRefs(Element optionElement, String nodeset, HashMap<String, String> formRefs, HashMap<String, String> paths, int formId) throws Exception {
 		int idx = nodeset.indexOf('[');
     	if(idx > 0) {
 			String repQuestionXLS = nodeset.substring(0, idx).trim();
-			String repQuestionName = GeneralUtilityMethods.getNameFromXlsName(repQuestionXLS);
+			
+			NodesetFormDetails formDetails = UtilityMethods.getFormDetails(null, formRefs, repQuestionXLS, paths, formId);
+			String repQuestionName = UtilityMethods.convertAllxlsNames(repQuestionXLS, false, paths,  
+					formId, true, formDetails.formName, true);
+			
 			optionElement.setAttribute("data-value-ref", repQuestionName);
 			optionElement.setAttribute("data-label-ref", repQuestionName);
     	}
@@ -1159,7 +1164,7 @@ public class GetHtml {
 			parent.appendChild(optionElement);
 			optionElement.setAttribute("class", "itemset-labels");
 			if(q.nodeset.startsWith("${")) {
-			   	addRepeatNodesetRefs(optionElement, q.nodeset);
+				addRepeatNodesetRefs(optionElement, q.nodeset, formRefs, paths, form.id);
 			} else {
 
 				optionElement.setAttribute("data-value-ref", "name");
@@ -1823,7 +1828,7 @@ public class GetHtml {
 	private String getNodeset(Question q, Form form) throws Exception {	
 		String nodeset = null;
 		if(q.nodeset.startsWith("${")) {
-			nodeset = UtilityMethods.getRepeatNodeset(null, formRefs, paths, form.id,  q.nodeset, true);
+			nodeset = UtilityMethods.getRepeatNodeset(null, formRefs, paths, form.id,  q.nodeset);
 		} else {
 			nodeset =  UtilityMethods.getNodeset(true, false, paths, true, q.nodeset, q.appearance, form.id, q.name, 
 					false /*(form.parentform > 0)*/);		// XXXXXX In our version of enketo core multiple relative predicates do not work. use non relative paths. Use relative paths if in a subform
