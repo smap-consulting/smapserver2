@@ -48,6 +48,7 @@ import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.Line;
 import org.smap.sdal.model.ManifestValue;
 import org.smap.sdal.model.MetaItem;
+import org.smap.sdal.model.NodesetFormDetails;
 import org.smap.sdal.model.Point;
 import org.smap.sdal.model.Polygon;
 import org.smap.sdal.model.SetValue;
@@ -1289,7 +1290,7 @@ public class GetXForm {
 			String nodeset = null;
 			if(q.getNodeset() != null && q.getNodeset().startsWith("${")) {
 				// Nodeset references a repeat
-				nodeset = UtilityMethods.getRepeatNodeset(template, null, template.getQuestionPaths(), q.getFormId(),  q.getNodeset(), false);
+				nodeset = UtilityMethods.getRepeatNodeset(template, null, template.getQuestionPaths(), q.getFormId(),  q.getNodeset());
 			} else {
 				nodeset = UtilityMethods.getNodeset(true, false, template.getQuestionPaths(), embedExternalSearch,
 					q.getNodeset(), q.getAppearance(false, null), q.getFormId(), q.getName(), 
@@ -1308,9 +1309,23 @@ public class GetXForm {
 				isElement.setAttribute("nodeset", adjustedNodeset);
 
 				Element vElement = outputXML.createElement("value");
-				vElement.setAttribute("ref", q.getNodesetValue());
 				Element lElement = outputXML.createElement("label");
-				lElement.setAttribute("ref", q.getNodesetLabel());
+				
+				String nsValue = q.getNodesetValue();
+				if(nsValue.startsWith("${")) {
+					NodesetFormDetails formDetails = UtilityMethods.getFormDetails(template, null, nsValue, template.getQuestionPaths(), q.getFormId());
+					nsValue = UtilityMethods.convertAllxlsNames(nsValue, false, template.getQuestionPaths(),  
+							q.getFormId(), true, formDetails.formName, true);
+					
+					if(nsValue.startsWith("./")) {
+						nsValue = nsValue.substring(2);
+					}
+					vElement.setAttribute("ref", nsValue);
+					lElement.setAttribute("ref", nsValue);
+				} else {
+					vElement.setAttribute("ref", q.getNodesetValue());
+					lElement.setAttribute("ref", q.getNodesetLabel());
+				}
 
 				isElement.appendChild(vElement);
 				isElement.appendChild(lElement);

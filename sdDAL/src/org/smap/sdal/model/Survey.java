@@ -831,10 +831,9 @@ public class Survey {
 			if(q.type.startsWith("select") || q.type.equals("rank")) {
 				if(q.list_name != null && q.list_name.startsWith("${")) {
 					cascade_instance = q.list_name;
-					String repQuestion = GeneralUtilityMethods.getNameFromXlsName(cascade_instance);
 					nodeset = GeneralUtilityMethods.getNodesetForRepeat(q.choice_filter, cascade_instance);
-					nodeset_value = repQuestion;
-					nodeset_label = repQuestion;
+					nodeset_value = cascade_instance;
+					nodeset_label = cascade_instance;
 				} else {
 					cascade_instance = GeneralUtilityMethods.cleanName(q.list_name, true, false, false);
 					nodeset = GeneralUtilityMethods.getNodesetFromChoiceFilter(q.choice_filter, cascade_instance);
