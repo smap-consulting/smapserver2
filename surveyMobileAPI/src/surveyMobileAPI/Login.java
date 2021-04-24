@@ -62,7 +62,7 @@ public class Login extends Application {
 		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormList");
 	    a.isAuthorised(connectionSD, request.getRemoteUser());	//Authorisation - Access 
 	    SDDataSource.closeConnection("surveyMobileAPI-FormList", connectionSD);
-		return Response.ok("").build();
+		return Response.ok("{}").build();
 	}
 	
 
