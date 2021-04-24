@@ -426,6 +426,7 @@ public class XLSTemplateUploadManager {
 				survey.surveyClass = XLSUtilities.getTextColumn(row, "style", settingsHeader, lastCellNum, null);
 				survey.task_file = getBooleanColumn(row, "allow_import", settingsHeader, lastCellNum, false);
 				survey.setHideOnDevice(getBooleanColumn(row, "hide_on_device", settingsHeader, lastCellNum, false));
+				survey.setSearchLocalData(getBooleanColumn(row, "search_local_data", settingsHeader, lastCellNum, false));
 				survey.dataSurvey = getBooleanColumn(row, "data_survey", settingsHeader, lastCellNum, true);
 				survey.oversightSurvey = getBooleanColumn(row, "oversight_survey", settingsHeader, lastCellNum, true);
 				

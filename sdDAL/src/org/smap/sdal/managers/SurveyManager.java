@@ -162,7 +162,7 @@ public class SurveyManager {
 		sql.append("select distinct s.s_id, s.display_name, s.deleted, s.blocked, "
 				+ "s.ident, s.version, s.loaded_from_xls, p.name as project_name, p.id as project_id, "
 				+ "p.tasks_only,"
-				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device,"
+				+ "s.group_survey_ident, s.public_link, o.can_submit, s.hide_on_device, s.search_local_data,"
 				+ "s.data_survey, s.oversight_survey "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
@@ -235,6 +235,7 @@ public class SurveyManager {
 				s.groupSurveyIdent = resultSet.getString("group_survey_ident");
 				s.publicLink = resultSet.getString("public_link");
 				s.setHideOnDevice(resultSet.getBoolean("hide_on_device"));
+				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
 				
@@ -420,6 +421,7 @@ public class SurveyManager {
 				+ "s.public_link, "
 				+ "o.e_id,"
 				+ "s.hide_on_device, "
+				+ "s.search_local_data, "
 				+ "s.data_survey, "
 				+ "s.oversight_survey, "
 				+ "s.audit_location_data, "
@@ -505,24 +507,25 @@ public class SurveyManager {
 				s.publicLink = resultSet.getString(25);
 				s.e_id = resultSet.getInt(26);
 				s.setHideOnDevice(resultSet.getBoolean(27));
-				s.dataSurvey = resultSet.getBoolean(28);
-				s.oversightSurvey = resultSet.getBoolean(29);
-				s.audit_location_data = resultSet.getBoolean(30);
-				s.track_changes = resultSet.getBoolean(31);
-				s.autoTranslate = resultSet.getBoolean(32);
+				s.setSearchLocalData(resultSet.getBoolean("search_local_data"));
+				s.dataSurvey = resultSet.getBoolean("data_survey");
+				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
+				s.audit_location_data = resultSet.getBoolean("audit_location_data");
+				s.track_changes = resultSet.getBoolean("track_changes");
+				s.autoTranslate = resultSet.getBoolean("auto_translate");
 				
 				
 				// Get the pdf template
 				File templateFile = GeneralUtilityMethods.getPdfTemplate(basePath, s.displayName, s.p_id);
 				if(templateFile.exists()) {
-					String newName = resultSet.getString(33);
+					String newName = resultSet.getString("pdf_template");
 					if(newName != null) {
 						s.pdfTemplateName = newName;
 					} else {
 						s.pdfTemplateName = templateFile.getName();
 					}
 				}
-				s.default_logo = resultSet.getString(34);
+				s.default_logo = resultSet.getString("default_logo");
 				
 			} else {
 				log.info("Error: survey not found");

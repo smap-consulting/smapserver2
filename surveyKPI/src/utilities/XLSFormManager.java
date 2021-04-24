@@ -117,6 +117,7 @@ public class XLSFormManager {
 		public static final int COL_OVERSIGHT_SURVEY = 213;
 		public static final int COL_AUTO_TRANSLATE = 214;
 		public static final int COL_REPORT_LOGO = 215;
+		public static final int COL_SEARCH_LOCAL_DATA = 216;
 
 		// Style sheet columns
 		public static final int COL_STYLE_LIST2 = 300;
@@ -474,6 +475,9 @@ public class XLSFormManager {
 
 			} else if(type == COL_HIDE_ON_DEVICE) {				
 				value = survey.getHideOnDevice() ? "yes" : "no";
+
+			} else if(type == COL_SEARCH_LOCAL_DATA) {				
+				value = survey.getSearchLocalData() ? "yes" : "no";
 
 			} else if(type == COL_DATA_SURVEY) {				
 				value = survey.dataSurvey ? "yes" : "no";
@@ -1115,6 +1119,7 @@ public class XLSFormManager {
 		cols.add(new Column(colNumber++, "key_policy", Column.COL_KEY_POLICY, 0, "key_policy"));
 		cols.add(new Column(colNumber++, "allow_import", Column.COL_ALLOW_IMPORT, 0, "allow_import"));
 		cols.add(new Column(colNumber++, "hide_on_device", Column.COL_HIDE_ON_DEVICE, 0, "hide_on_device"));
+		cols.add(new Column(colNumber++, "search_local_data", Column.COL_SEARCH_LOCAL_DATA, 0, "search_local_data"));
 		cols.add(new Column(colNumber++, "data_survey", Column.COL_DATA_SURVEY, 0, "data_survey"));
 		cols.add(new Column(colNumber++, "oversight_survey", Column.COL_OVERSIGHT_SURVEY, 0, "oversight_survey"));
 		cols.add(new Column(colNumber++, "timing_data", Column.COL_TIMING_DATA, 0, "timing_data"));
