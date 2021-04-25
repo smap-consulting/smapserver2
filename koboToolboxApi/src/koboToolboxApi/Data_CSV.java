@@ -259,6 +259,10 @@ public class Data_CSV extends Application {
 			filename = "data.csv";
 		}
 		
+		if(tz == null) {
+			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+					GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+		}
 		tz = (tz == null) ? "UTC" : tz;
 
 		try {
