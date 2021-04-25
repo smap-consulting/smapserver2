@@ -43,38 +43,43 @@ public class SurveyInstance {
 		
 		// Remove malformed characters
 		String xml = GeneralUtilityMethods.convertStreamToString(is);
-		
-		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-		DocumentBuilder b = dbf.newDocumentBuilder();
-		
-		Document surveyDocument = b.parse(new InputSource(new StringReader(xml)));
-		Element rootElement = surveyDocument.getDocumentElement();  
-		
-		// Get the template name
-		templateName = rootElement.getAttributeNode("id").getValue();
-		if(templateName == null) {
-			throw new MissingSurveyException("Error: Survey Template name not found.");
+			
+		try {
+			DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+			DocumentBuilder b = dbf.newDocumentBuilder();
+			
+			Document surveyDocument = b.parse(new InputSource(new StringReader(xml)));
+			Element rootElement = surveyDocument.getDocumentElement();  
+			
+			// Get the template name
+			templateName = rootElement.getAttributeNode("id").getValue();
+			if(templateName == null) {
+				throw new MissingSurveyException("Error: Survey Template name not found.");
+			}
+			
+			// Get the version
+			String versionStr = null;
+			Attr versionAttr = rootElement.getAttributeNode("version");
+			if(versionAttr != null) {
+				versionStr = versionAttr.getValue();
+			}
+			if(versionStr == null) {
+				version = 1;
+			} else {
+				version = Integer.parseInt(versionStr);
+			}
+			
+			// Create instance elements
+			topInstanceElement = new IE(rootElement.getNodeName(), rootElement.getTextContent());
+			String path = "/" + rootElement.getNodeName();
+			//String path = "/main";				// SMAP assumes path always starts with /main
+			topInstanceElement.setPath(path);
+	
+			processElement(rootElement, topInstanceElement, path);   
+		} catch(Exception e) {
+			log.info("Error in xml: " + xml);
+			throw e;
 		}
-		
-		// Get the version
-		String versionStr = null;
-		Attr versionAttr = rootElement.getAttributeNode("version");
-		if(versionAttr != null) {
-			versionStr = versionAttr.getValue();
-		}
-		if(versionStr == null) {
-			version = 1;
-		} else {
-			version = Integer.parseInt(versionStr);
-		}
-		
-		// Create instance elements
-		topInstanceElement = new IE(rootElement.getNodeName(), rootElement.getTextContent());
-		String path = "/" + rootElement.getNodeName();
-		//String path = "/main";				// SMAP assumes path always starts with /main
-		topInstanceElement.setPath(path);
-
-		processElement(rootElement, topInstanceElement, path);   	
  
 	}
 	
