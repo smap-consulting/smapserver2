@@ -9988,6 +9988,11 @@ public class GeneralUtilityMethods {
     	
     	String xml = out.toString();
     	xml = xml.replaceAll("&#5[0-9][0-9][0-9][0-9];", "");
+    	xml = xml.replaceAll("&#0;", "");	// remove character due to sax exception
+    	xml = xml.replaceAll("&#1;", "");
+    	xml = xml.replaceAll("&#2;", "");
+    	xml = xml.replaceAll("&#11;", "");
+    	xml = xml.replaceAll("&#16;", "");
 		
     	return xml;
     }
