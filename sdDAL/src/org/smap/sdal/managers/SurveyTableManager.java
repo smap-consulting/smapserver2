@@ -895,8 +895,9 @@ public class SurveyTableManager {
 	/*
 	 * Generate a CSV file from the survey reference data
 	 */
-	public void regenerateCsvFile(Connection cResults, File f, int sId, String userName, String filepath) {
+	public boolean generateCsvFile(Connection cResults, File f, int sId, String userName, String filepath) {
 		PreparedStatement pstmtData = null;
+		boolean status = false;
 		try {
 			pstmtData = cResults.prepareStatement(sqlDef.sql + sqlDef.order_by);
 			
@@ -1066,12 +1067,16 @@ public class SurveyTableManager {
 					}
 				}
 			}
+			status = true;
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0);
+			status = false;
 		} finally {
 			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}
 		}
+		return status;		// True for success
 	}
 	
 	/*
@@ -1132,9 +1137,9 @@ public class SurveyTableManager {
 	 * then also increment the version of the linking form so that it will get the
 	 * new version
 	 */
-	public boolean testForRegenerateFile(Connection sd, Connection cRel, int sId, String logicalFilePath, File physicalFile) throws SQLException, ApplicationException {
+	public boolean testForRegenerateFile(Connection sd, Connection cRel, int sId, String logicalFilePath, File currentPhysicalFile) throws SQLException, ApplicationException {
 
-		boolean fileExists = physicalFile.exists();
+		boolean fileExists = currentPhysicalFile.exists();
 		
 		boolean regenerate = false;
 		boolean tableExists = true;
@@ -1159,6 +1164,7 @@ public class SurveyTableManager {
 				throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
 			}
 			
+			sd.setAutoCommit(false);
 			// Get data on the link between the two surveys
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, linked_sId);
@@ -1198,8 +1204,8 @@ public class SurveyTableManager {
 						log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
 						// Delete the file if it exists
-						log.info("Deleting file -------- : " + physicalFile.getAbsolutePath());
-						physicalFile.delete();
+						log.info("Deleting file -------- : " + currentPhysicalFile.getAbsolutePath());
+						currentPhysicalFile.delete();
 						
 						fileExists = false;
 					}
@@ -1207,7 +1213,9 @@ public class SurveyTableManager {
 				}
 
 			}
+			sd.commit();
 		} finally {
+			try {sd.setAutoCommit(true);} catch(Exception e) {};
 			if (pstmt != null) {	try {pstmt.close();} catch (Exception e) {}}
 			if (pstmtInsert != null) {try {pstmtInsert.close();} catch (Exception e) {}}
 		}
