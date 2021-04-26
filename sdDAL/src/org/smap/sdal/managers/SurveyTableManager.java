@@ -895,7 +895,7 @@ public class SurveyTableManager {
 	/*
 	 * Generate a CSV file from the survey reference data
 	 */
-	public boolean generateCsvFile(Connection cResults, File f, int sId, String userName, String filepath) {
+	public boolean generateCsvFile(Connection cResults, File f, int sId, String userName, String basePath) {
 		PreparedStatement pstmtData = null;
 		boolean status = false;
 		try {
@@ -1045,9 +1045,15 @@ public class SurveyTableManager {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 
+				String filePath = f.getAbsolutePath();
+				int idx = filePath.indexOf(".csv");
+				if(idx >= 0) {
+					filePath = filePath.substring(0, idx);		// remove extension as it is added by the script
+				}
+				String scriptPath = basePath + "_bin" + File.separator + "getShape.sh";
 				String[] cmd = { "/bin/sh", "-c",
-						"/smap_bin/getshape.sh " + "results linked " + "\"" + pstmtData.toString() + "\" "
-								+ filepath + " csvnozip" };
+						scriptPath + " results linked " + "\"" + pstmtData.toString() + "\" "
+								+ filePath + " csvnozip" };
 				log.info("Getting linked data: " + cmd[2]);
 				Process proc = Runtime.getRuntime().exec(cmd);
 				code = proc.waitFor();

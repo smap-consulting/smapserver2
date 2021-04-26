@@ -85,7 +85,7 @@ public class ExternalFileManager {
 	 * Create a linked file
 	 */
 	public boolean createLinkedFile(Connection sd, Connection cRel, int oId, int sId, // The survey that contains the manifest item
-			String filename, String logicalFilePath, String userName, String tz) throws Exception {
+			String filename, String logicalFilePath, String userName, String tz, String basePath) throws Exception {
 
 		boolean regenerate = false;
 		
@@ -99,8 +99,8 @@ public class ExternalFileManager {
 			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, currentPhysicalFile);
 			if(regenerate) {
 				String newFilePath = getLinkedNewFilePath(sd, logicalFilePath);
-				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, logicalFilePath)) {
-					updateCurrentPhysicalFile(sd, newFilePath, currentPhysicalFile);
+				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, basePath)) {
+					updateCurrentPhysicalFile(sd, newFilePath, currentPhysicalFile, sId);
 				}
 			}
 
@@ -153,6 +153,7 @@ public class ExternalFileManager {
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
+		log.info("%%%%%: Returning current physical path: " + physicalFilePath + ".csv");
 		return physicalFilePath;
 	}
 	
@@ -172,20 +173,23 @@ public class ExternalFileManager {
 			
 			String suffix = "1";
 			if(rs.next()) {
-				suffix = String.valueOf(rs.getInt(1));
+				suffix = String.valueOf(rs.getInt(1) + 1);
 			}
 			newPath = logicalFilePath + "__" + suffix;
 			
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
+		
+		log.info("%%%%%: Getting a new file path: " + newPath + ".csv");
+		
 		return newPath;
 	}
 	
 	/*
 	 * Update the identifier for the current file
 	 */
-	public void updateCurrentPhysicalFile(Connection sd, String physicalFilePath, File currentPhysicalFile) throws SQLException {
+	public void updateCurrentPhysicalFile(Connection sd, String physicalFilePath, File currentPhysicalFile, int sId) throws SQLException {
 		
 		String [] physicalComponents = physicalFilePath.split("__");
 		if(physicalComponents.length > 1) {
@@ -198,18 +202,36 @@ public class ExternalFileManager {
 			String sqlDel = "insert into linked_files_old (file, deleted_time) values(?, now())";
 			PreparedStatement pstmtDel = null;
 		
+			String sqlInsert = "insert into linked_files (s_id, logical_path, current_id) values(?, ?, ?)";
+			PreparedStatement pstmtInsert = null;
+			
 			try {
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1,  Integer.valueOf(newId));
 				pstmt.setString(2,  logicalPath);
-				pstmt.executeUpdate();
+				int count = pstmt.executeUpdate();
+				
+				if(count == 0) {  // create new entry
+					pstmtInsert = sd.prepareStatement(sqlInsert);
+					pstmtInsert.setInt(1, sId);
+					pstmtInsert.setString(2, logicalPath);
+					pstmtInsert.setInt(3, Integer.valueOf(newId));
+					pstmtInsert.executeUpdate();
+				}
+				log.info("%%%%%: Update current physical path to: " + physicalFilePath + ".csv");
 				
 				pstmtDel = sd.prepareStatement(sqlDel);
 				pstmtDel.setString(1,  currentPhysicalFile.getAbsolutePath());
 				pstmtDel.executeUpdate();
 				
+				log.info("%%%%%: Marking file for deleting: " + currentPhysicalFile.getAbsolutePath());
+			
+			} catch (Exception e) {
+				log.log(Level.SEVERE, e.getMessage(), e);
+				throw e;
 			} finally {
 				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+				if(pstmtInsert != null) try {pstmtInsert.close();}catch(Exception e) {}
 				if(pstmtDel != null) try {pstmtDel.close();}catch(Exception e) {}
 			}
 		}
