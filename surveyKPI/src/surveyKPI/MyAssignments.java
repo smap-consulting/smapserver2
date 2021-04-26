@@ -209,7 +209,6 @@ public class MyAssignments extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
-		// TODO validate assignement id
 		// End Authorisation
 			
 		PreparedStatement pstmtSetDeleted = null;

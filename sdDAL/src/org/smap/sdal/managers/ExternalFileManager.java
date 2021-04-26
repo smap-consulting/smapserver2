@@ -1,30 +1,16 @@
 package org.smap.sdal.managers;
 
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.lang.reflect.Type;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.smap.sdal.Utilities.ApplicationException;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.constants.SmapServerMeta;
-import org.smap.sdal.model.Form;
-import org.smap.sdal.model.Pulldata;
-import org.smap.sdal.model.QuestionForm;
 import org.smap.sdal.model.SqlFrag;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
  * 
@@ -107,12 +93,15 @@ public class ExternalFileManager {
 
 		try {
 			String physicalFilePath = getLinkedPhysicalFilePath(sd, logicalFilePath);
-			File physicalFile = new File(physicalFilePath + ".csv"); // file path does not include the extension because getshape.sh adds it
+			File currentPhysicalFile = new File(physicalFilePath + ".csv"); // file path does not include the extension because getshape.sh adds it
 			SurveyTableManager stm = new SurveyTableManager(sd, cRel, localisation, oId, sId, filename, userName);  
 
-			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, physicalFile);
+			regenerate = stm.testForRegenerateFile(sd, cRel,  sId, logicalFilePath, currentPhysicalFile);
 			if(regenerate) {
-				stm.regenerateCsvFile(cRel, physicalFile, sId, userName, logicalFilePath);
+				String newFilePath = getLinkedNewFilePath(sd, logicalFilePath);
+				if(stm.generateCsvFile(cRel, new File(newFilePath + ".csv"), sId, userName, logicalFilePath)) {
+					updateCurrentPhysicalFile(sd, newFilePath, currentPhysicalFile);
+				}
 			}
 
 		} catch (Exception e) {
@@ -134,8 +123,6 @@ public class ExternalFileManager {
 				+ File.separator 
 				+ sIdent
 				+ File.separator;
-	
-		
 	}
 	
 	/*
@@ -161,11 +148,70 @@ public class ExternalFileManager {
 			pstmt.setString(1,  logicalFilePath);
 			ResultSet rs = pstmt.executeQuery();
 			if(rs.next()) {
-				physicalFilePath = rs.getString(1);
+				physicalFilePath = logicalFilePath + "__" + rs.getString(1);
 			}
 		} finally {
 			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
 		}
 		return physicalFilePath;
+	}
+	
+	/*
+	 * Get a new File for linked csv data
+	 */
+	public String getLinkedNewFilePath(Connection sd, String logicalFilePath) throws SQLException {
+		
+		String newPath = null;
+		String sql = "Select current_id from linked_files where logical_path = ?";
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1,  logicalFilePath);
+			ResultSet rs = pstmt.executeQuery();
+			
+			String suffix = "1";
+			if(rs.next()) {
+				suffix = String.valueOf(rs.getInt(1));
+			}
+			newPath = logicalFilePath + "__" + suffix;
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+		}
+		return newPath;
+	}
+	
+	/*
+	 * Update the identifier for the current file
+	 */
+	public void updateCurrentPhysicalFile(Connection sd, String physicalFilePath, File currentPhysicalFile) throws SQLException {
+		
+		String [] physicalComponents = physicalFilePath.split("__");
+		if(physicalComponents.length > 1) {
+			String logicalPath = physicalComponents[0];
+			String newId  = physicalComponents[1];
+			
+			String sql = "update linked_files set current_id = ? where logical_path = ?";
+			PreparedStatement pstmt = null;
+			
+			String sqlDel = "insert into linked_files_old (file, deleted_time) values(?, now())";
+			PreparedStatement pstmtDel = null;
+		
+			try {
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setInt(1,  Integer.valueOf(newId));
+				pstmt.setString(2,  logicalPath);
+				pstmt.executeUpdate();
+				
+				pstmtDel = sd.prepareStatement(sqlDel);
+				pstmtDel.setString(1,  currentPhysicalFile.getAbsolutePath());
+				pstmtDel.executeUpdate();
+				
+			} finally {
+				if(pstmt != null) try {pstmt.close();}catch(Exception e) {}
+				if(pstmtDel != null) try {pstmtDel.close();}catch(Exception e) {}
+			}
+		}
 	}
 }
