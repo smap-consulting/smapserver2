@@ -316,7 +316,7 @@ public class ExportSurveyMedia extends Application {
 				 * 3. Zip the file up
 				 */
 				int code = 0;	
-				String scriptPath = basePath + "_bin" + File.separator + "getShape.sh";
+				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + 
 							database_name + " " +
 							startingForm.table + " " +
