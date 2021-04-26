@@ -278,7 +278,18 @@ public class GetFile extends Application {
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, sId);
 			
-			String filepath = efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), filename);
+			String filepath = null;
+			if(linked) {
+				int idx = filename.indexOf(".csv");
+				String baseFileName = filename;
+				if(idx >= 0) {
+					baseFileName = filename.substring(0, idx);		// External file management routines assume no extension
+				}
+				filepath = efm.getLinkedPhysicalFilePath(connectionSD, efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), baseFileName)) + ".csv";
+				log.info("%%%%%: Referencing: " + filepath);
+			} else {
+				filepath = basepath + "/media/" + sIdent+ "/" + filename;
+			}
 			
 			log.info("File path: " + filepath);
 			FileManager fm = new FileManager();
