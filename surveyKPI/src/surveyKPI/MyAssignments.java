@@ -555,6 +555,7 @@ public class MyAssignments extends Application {
 			
 			SurveyTableManager stm = new SurveyTableManager(sd, localisation);
 			TranslationManager translationMgr = new TranslationManager();
+			ExternalFileManager efm = new ExternalFileManager(localisation);
 			tr.forms = new ArrayList<FormLocator> ();
 			if(getLinkedRefDefns) {
 				tr.refSurveys = new ArrayList<> ();
@@ -592,6 +593,8 @@ public class MyAssignments extends Application {
 				if(hasManifest && manifestList.size() > 0) {
 					for( ManifestValue m : manifestList) {
 	
+						String dirPath;
+						String logicalFilePath = null;
 						if(m.type.equals("linked")) {
 							
 							/*
@@ -603,17 +606,14 @@ public class MyAssignments extends Application {
 							 * The file is unique per survey, user roles are ignored due to performance issues of roles to
 							 *  restrict columns and rows per user
 							 */
-							ExternalFileManager efm = new ExternalFileManager(localisation);
-							String dirPath = efm.getLinkedDirPath(basepath, survey.ident);
-							String filePath = efm.getLinkedLogicalFilePath(dirPath, m.fileName);
+							dirPath = efm.getLinkedDirPath(basepath, survey.ident);
+							logicalFilePath = efm.getLinkedLogicalFilePath(dirPath, m.fileName);
 		
 							// Make sure the destination exists
 							File dir = new File(dirPath);
 							dir.mkdirs();
 		
-							log.info("CSV File is:  " + filePath + " : directory path created");
-		
-							efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  filePath, userName, tz);
+							efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  logicalFilePath, userName, tz, basepath);
 							
 							/*
 							 * Get pulldata definitions so that local data on the device can be searched
@@ -637,24 +637,24 @@ public class MyAssignments extends Application {
 						 * If the manifests have been requested and the file exists then add it to the manifests to be returned
 						 */
 						if(getManifests) {
-							String filepath = null;
+							String physicalFilePath = null;
 							if(m.type.equals("linked")) {
-								filepath = basepath + "/media/" + survey.ident + "/" + m.fileName;
-								filepath += ".csv";
+								physicalFilePath = efm.getLinkedPhysicalFilePath(sd, logicalFilePath) + ".csv";
 								m.fileName += ".csv";
+								log.info("%%%%%: Referencing: " + physicalFilePath);
 							} else {
-								filepath = m.filePath;
+								physicalFilePath = m.filePath;
 							}
 							
-							if(filepath != null) {
-								File f = new File(filepath);
+							if(physicalFilePath != null) {
+								File f = new File(physicalFilePath);
 								
 								if(f.exists()) {
 									if(mediaFiles == null) {
 										mediaFiles = new ArrayList<>();
 									}
-									mediaFiles.add(new MediaFile(f.getName(), 
-											GeneralUtilityMethods.getMd5(filepath), protocol + host + m.url));
+									mediaFiles.add(new MediaFile(m.fileName, 
+											GeneralUtilityMethods.getMd5(physicalFilePath), protocol + host + m.url));
 								}
 								
 							}

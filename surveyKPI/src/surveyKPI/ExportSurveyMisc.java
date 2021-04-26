@@ -442,7 +442,8 @@ public class ExportSurveyMisc extends Application {
 				boolean split_locn = false;						// TODO
 				
 				if(fastExport) {
-					Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/getshape.sh " + 
+					String scriptPath = basePath + "_bin" + File.separator + "getShape.sh";
+					Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + 
 							database_name + " " +
 							targetForm.table + " " +
 							"\"" + sqlDesc.sql + "\" " +
