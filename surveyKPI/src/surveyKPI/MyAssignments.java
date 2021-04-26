@@ -605,20 +605,16 @@ public class MyAssignments extends Application {
 							 *  restrict columns and rows per user
 							 */
 							ExternalFileManager efm = new ExternalFileManager(localisation);
-							String dirPath = basepath
-									+ File.separator
-									+ "media" 
-									+ File.separator 
-									+ survey.ident 
-									+ File.separator;
+							String dirPath = efm.getLinkedDirPath(basepath, survey.ident);
+							String filePath = efm.getLinkedLogicalFilePath(dirPath, m.fileName);
 		
 							// Make sure the destination exists
 							File dir = new File(dirPath);
 							dir.mkdirs();
 		
-							log.info("CSV File is:  " + dirPath + " : directory path created");
+							log.info("CSV File is:  " + filePath + " : directory path created");
 		
-							efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  dirPath + m.fileName, userName, tz);
+							efm.createLinkedFile(sd, cRel, oId, survey.id, m.fileName ,  filePath, userName, tz);
 							
 							/*
 							 * Get pulldata definitions so that local data on the device can be searched
