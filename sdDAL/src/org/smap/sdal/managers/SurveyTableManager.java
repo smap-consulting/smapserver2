@@ -1132,10 +1132,9 @@ public class SurveyTableManager {
 	 * then also increment the version of the linking form so that it will get the
 	 * new version
 	 */
-	public boolean regenerateFile(Connection sd, Connection cRel, int sId, File f) throws SQLException, ApplicationException {
+	public boolean testForRegenerateFile(Connection sd, Connection cRel, int sId, String logicalFilePath, File physicalFile) throws SQLException, ApplicationException {
 
-		boolean fileExists = f.exists();
-		String filepath = f.getAbsolutePath();
+		boolean fileExists = physicalFile.exists();
 		
 		boolean regenerate = false;
 		boolean tableExists = true;
@@ -1164,7 +1163,7 @@ public class SurveyTableManager {
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, linked_sId);
 			pstmt.setInt(2, sId);
-			pstmt.setString(3, filepath);
+			pstmt.setString(3, logicalFilePath);
 			log.info("Test for regen: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
@@ -1190,7 +1189,7 @@ public class SurveyTableManager {
 							for(int gSId : groupSurveys.keySet()) {
 								pstmtInsert.setInt(1, gSId);
 								pstmtInsert.setInt(2, sId);
-								pstmtInsert.setString(3, filepath);
+								pstmtInsert.setString(3, logicalFilePath);
 								pstmtInsert.executeUpdate();
 								log.info("Insert record: " + pstmtInsert.toString());
 							}
@@ -1199,8 +1198,8 @@ public class SurveyTableManager {
 						log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
 						// Delete the file if it exists
-						log.info("Deleting file -------- : " + filepath);
-						f.delete();
+						log.info("Deleting file -------- : " + physicalFile.getAbsolutePath());
+						physicalFile.delete();
 						
 						fileExists = false;
 					}
@@ -1222,7 +1221,7 @@ public class SurveyTableManager {
 
 		log.info("Result of regenerate question is: " + regenerate);
 		if(regenerate) {
-			log.info("xoxoxoxoxoxoxo regenerate: " + f.getAbsolutePath());
+			log.info("xoxoxoxoxoxoxo regenerate: " + logicalFilePath);
 		}
 		return regenerate;
 	}

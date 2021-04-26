@@ -40,6 +40,7 @@ import org.smap.sdal.Utilities.AuthorisationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.FileManager;
 
 /*
@@ -273,9 +274,11 @@ public class GetFile extends Application {
 		
 		try {
 			
+			ExternalFileManager efm = new ExternalFileManager(null);
 			String basepath = GeneralUtilityMethods.getBasePath(request);
 			String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, sId);
-			String filepath = basepath + "/media/" + sIdent+ "/" + filename;
+			
+			String filepath = efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), filename);
 			
 			log.info("File path: " + filepath);
 			FileManager fm = new FileManager();
