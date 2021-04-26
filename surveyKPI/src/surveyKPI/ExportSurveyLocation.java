@@ -137,7 +137,7 @@ public class ExportSurveyLocation extends Application {
 				log.info("Table: " + targetTable);
 				log.info("SQL: " + sql);
 				int code = 0;
-				String scriptPath = basePath + "_bin" + File.separator + "getShape.sh";
+				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + 
 						database_name + " " +
 						targetTable + " " +
@@ -157,7 +157,7 @@ public class ExportSurveyLocation extends Application {
 					if ((len = proc.getInputStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
-						log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+						log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
 					}
 				}
 					

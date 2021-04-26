@@ -442,7 +442,7 @@ public class ExportSurveyMisc extends Application {
 				boolean split_locn = false;						// TODO
 				
 				if(fastExport) {
-					String scriptPath = basePath + "_bin" + File.separator + "getShape.sh";
+					String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 					Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + 
 							database_name + " " +
 							targetForm.table + " " +
@@ -462,7 +462,7 @@ public class ExportSurveyMisc extends Application {
 						if ((len = proc.getInputStream().available()) > 0) {
 							byte[] buf = new byte[len];
 							proc.getInputStream().read(buf);
-							log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+							log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
 						}
 					}
 					

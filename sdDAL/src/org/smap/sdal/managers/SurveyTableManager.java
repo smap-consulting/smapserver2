@@ -1050,7 +1050,7 @@ public class SurveyTableManager {
 				if(idx >= 0) {
 					filePath = filePath.substring(0, idx);		// remove extension as it is added by the script
 				}
-				String scriptPath = basePath + "_bin" + File.separator + "getShape.sh";
+				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				String[] cmd = { "/bin/sh", "-c",
 						scriptPath + " results linked " + "\"" + pstmtData.toString() + "\" "
 								+ filePath + " csvnozip" };
@@ -1069,7 +1069,7 @@ public class SurveyTableManager {
 					if ((len = proc.getInputStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
-						log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+						log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
 					}
 				}
 			}
