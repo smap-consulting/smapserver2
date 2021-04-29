@@ -121,7 +121,7 @@ public class EmailManager {
 				authenticator = new Authenticator(authUser, emailServer.emailPassword);
 				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
 				props.setProperty("mail.smtp.auth", "true");
-				props.setProperty("mail.smtp.starttls.enable", "true");
+				//props.setProperty("mail.smtp.starttls.enable", "true");
 				if(emailServer.emailPort > 0) {
 					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
 				} else {
@@ -320,13 +320,13 @@ public class EmailManager {
 		EmailManager em = new EmailManager();			
 		EmailServer emailServer = null;
 		SubscriptionStatus subStatus = null;
-		String content = null;
+		StringBuilder content = null;
 		HashMap<String, String> customTokens = new HashMap<> ();
 		
 		if(!alertEmailSent(sd, oId, type)) {
 			Organisation org = GeneralUtilityMethods.getOrganisation(sd, oId);
 			template = template.append(" ").append(org.getEmailFooter());
-			content = template.toString();
+			content = new StringBuilder(template.toString());
 			
 			if(org.admin_email != null) {
 				emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, userIdent);
@@ -364,7 +364,9 @@ public class EmailManager {
 									serverName,
 									subStatus.emailKey,
 									localisation,
-									customTokens);
+									customTokens,
+									null,
+									null);
 						} catch(Exception e) {
 							lm.writeLogOrganisation(sd, oId, userIdent, LogManager.EMAIL, e.getMessage(), 0);
 						}
@@ -379,14 +381,16 @@ public class EmailManager {
 			String email, 
 			String ccType, 
 			String subject,
-			String template,
+			StringBuilder template,
 			String filePath,	// The next two parameters are for an attachment TODO make an array
 			String filename,
 			EmailServer emailServer,
 			String serverName,
 			String emailKey,
 			ResourceBundle localisation,
-			HashMap<String, String> tokens) throws Exception  {
+			HashMap<String, String> tokens,
+			String adminEmail,
+			String orgFooter) throws Exception  {
 
 		if(emailServer.smtpHost == null) {
 			throw new Exception("Cannot send email, smtp_host not available");
@@ -408,7 +412,7 @@ public class EmailManager {
 				authenticator = new Authenticator(authUser, emailServer.emailPassword);
 				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
 				props.setProperty("mail.smtp.auth", "true");
-				props.setProperty("mail.smtp.starttls.enable", "true");
+				//props.setProperty("mail.smtp.starttls.enable", "true");
 				if(emailServer.emailPort > 0) {
 					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
 				} else {
@@ -417,7 +421,7 @@ public class EmailManager {
 
 				sender = emailServer.emailUser;
 
-				log.info("Trying to send email with authentication");
+				log.info("Trying to send email as html with authentication");
 			} else {
 				if(emailServer.emailPort > 0) {
 					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
@@ -449,6 +453,18 @@ public class EmailManager {
 			log.info("Sending email from: " + sender);
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
+			if(adminEmail != null) {
+				template.append(localisation.getString("email_s"))
+					.append("</p><p>")
+					.append(localisation.getString("email_dnr"))
+					.append(" ")
+					.append(adminEmail)
+					.append(".</p>");
+			}
+			if(orgFooter != null) {
+				template.append(" ").append(orgFooter);
+			}
+			
 			// Add unsubscribe
 			StringBuffer unsubscribe = new StringBuffer();
 			if(emailKey != null) {
@@ -462,21 +478,20 @@ public class EmailManager {
 						.append("</a>")
 						.append("</p>");		
 						
-				template = template.replace("${unsubscribe}", unsubscribe.toString());
-			} else {
-				template = template.replace("${unsubscribe}", "");
-			}
+				template.append(unsubscribe.toString());
+			} 
 			
 			/*
 			 * Perform custom token replacements
 			 */
+			String contentString = template.toString();
 			if(tokens != null) {
 				for(String token : tokens.keySet()) {
 					String val = tokens.get(token);
 					if(val == null) {
 						val = "";
 					}
-					template = template.replace(token, val);
+					contentString = contentString.replace(token, val);
 				}
 			}
 			
@@ -484,7 +499,7 @@ public class EmailManager {
 			
 			// Add body part
 			MimeBodyPart messageBodyPart = new MimeBodyPart();
-			messageBodyPart.setText(template, "utf-8", "html");
+			messageBodyPart.setText(template.toString(), "utf-8", "html");
 			multipart.addBodyPart(messageBodyPart);
 
 			// Add file attachments if they exist
@@ -500,6 +515,7 @@ public class EmailManager {
 
 			msg.setHeader("X-Mailer", "msgsend");
 			log.info("Sending email from: " + sender);
+		
 			Transport.send(msg);
 
 		} catch(AuthenticationFailedException ae) { 

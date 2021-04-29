@@ -895,8 +895,9 @@ public class SurveyTableManager {
 	/*
 	 * Generate a CSV file from the survey reference data
 	 */
-	public void regenerateCsvFile(Connection cResults, File f, int sId, String userName, String filepath) {
+	public boolean generateCsvFile(Connection cResults, File f, int sId, String userName, String basePath) {
 		PreparedStatement pstmtData = null;
+		boolean status = false;
 		try {
 			pstmtData = cResults.prepareStatement(sqlDef.sql + sqlDef.order_by);
 			
@@ -1044,9 +1045,15 @@ public class SurveyTableManager {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
 
+				String filePath = f.getAbsolutePath();
+				int idx = filePath.indexOf(".csv");
+				if(idx >= 0) {
+					filePath = filePath.substring(0, idx);		// remove extension as it is added by the script
+				}
+				String scriptPath = basePath + "_bin" + File.separator + "getshape.sh";
 				String[] cmd = { "/bin/sh", "-c",
-						"/smap_bin/getshape.sh " + "results linked " + "\"" + pstmtData.toString() + "\" "
-								+ filepath + " csvnozip" };
+						scriptPath + " results linked " + "\"" + pstmtData.toString() + "\" "
+								+ filePath + " csvnozip" };
 				log.info("Getting linked data: " + cmd[2]);
 				Process proc = Runtime.getRuntime().exec(cmd);
 				code = proc.waitFor();
@@ -1062,16 +1069,20 @@ public class SurveyTableManager {
 					if ((len = proc.getInputStream().available()) > 0) {
 						byte[] buf = new byte[len];
 						proc.getInputStream().read(buf);
-						log.info("Completed getShape process:\t\"" + new String(buf) + "\"");
+						log.info("Completed getshape process:\t\"" + new String(buf) + "\"");
 					}
 				}
 			}
+			status = true;
+
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Exception", e);
 			lm.writeLog(sd, sId, userName, LogManager.ERROR, "Creating CSV file: " + e.getMessage(), 0);
+			status = false;
 		} finally {
 			if (pstmtData != null) {try {pstmtData.close();} catch (Exception e) {}}
 		}
+		return status;		// True for success
 	}
 	
 	/*
@@ -1132,10 +1143,9 @@ public class SurveyTableManager {
 	 * then also increment the version of the linking form so that it will get the
 	 * new version
 	 */
-	public boolean regenerateFile(Connection sd, Connection cRel, int sId, File f) throws SQLException, ApplicationException {
+	public boolean testForRegenerateFile(Connection sd, Connection cRel, int sId, String logicalFilePath, File currentPhysicalFile) throws SQLException, ApplicationException {
 
-		boolean fileExists = f.exists();
-		String filepath = f.getAbsolutePath();
+		boolean fileExists = currentPhysicalFile.exists();
 		
 		boolean regenerate = false;
 		boolean tableExists = true;
@@ -1160,11 +1170,12 @@ public class SurveyTableManager {
 				throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
 			}
 			
+			sd.setAutoCommit(false);
 			// Get data on the link between the two surveys
 			pstmt = sd.prepareStatement(sql);
 			pstmt.setInt(1, linked_sId);
 			pstmt.setInt(2, sId);
-			pstmt.setString(3, filepath);
+			pstmt.setString(3, logicalFilePath);
 			log.info("Test for regen: " + pstmt.toString());
 
 			ResultSet rs = pstmt.executeQuery();
@@ -1190,7 +1201,7 @@ public class SurveyTableManager {
 							for(int gSId : groupSurveys.keySet()) {
 								pstmtInsert.setInt(1, gSId);
 								pstmtInsert.setInt(2, sId);
-								pstmtInsert.setString(3, filepath);
+								pstmtInsert.setString(3, logicalFilePath);
 								pstmtInsert.executeUpdate();
 								log.info("Insert record: " + pstmtInsert.toString());
 							}
@@ -1199,8 +1210,8 @@ public class SurveyTableManager {
 						log.info("Table " + table + " not found. Probably no data has been submitted");
 						tableExists = false;
 						// Delete the file if it exists
-						log.info("Deleting file -------- : " + filepath);
-						f.delete();
+						log.info("Deleting file -------- : " + currentPhysicalFile.getAbsolutePath());
+						currentPhysicalFile.delete();
 						
 						fileExists = false;
 					}
@@ -1208,7 +1219,9 @@ public class SurveyTableManager {
 				}
 
 			}
+			sd.commit();
 		} finally {
+			try {sd.setAutoCommit(true);} catch(Exception e) {};
 			if (pstmt != null) {	try {pstmt.close();} catch (Exception e) {}}
 			if (pstmtInsert != null) {try {pstmtInsert.close();} catch (Exception e) {}}
 		}
@@ -1222,7 +1235,7 @@ public class SurveyTableManager {
 
 		log.info("Result of regenerate question is: " + regenerate);
 		if(regenerate) {
-			log.info("xoxoxoxoxoxoxo regenerate: " + f.getAbsolutePath());
+			log.info("xoxoxoxoxoxoxo regenerate: " + logicalFilePath);
 		}
 		return regenerate;
 	}

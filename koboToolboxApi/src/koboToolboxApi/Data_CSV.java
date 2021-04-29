@@ -182,6 +182,7 @@ public class Data_CSV extends Application {
 			@QueryParam("filename") String filename, 
 			@QueryParam("audit") String audit_set,
 			@QueryParam("tz") String tz,			// Time Zone
+			@QueryParam("filter") String filter,
 			@QueryParam("merge_select_multiple") String merge 	// If set to yes then do not put choices from select multiple questions in separate columns
 			) throws ApplicationException, Exception {
 
@@ -258,6 +259,10 @@ public class Data_CSV extends Application {
 			filename = "data.csv";
 		}
 		
+		if(tz == null) {
+			tz = GeneralUtilityMethods.getOrganisationTZ(sd, 
+					GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser()));
+		}
 		tz = (tz == null) ? "UTC" : tz;
 
 		try {
@@ -437,7 +442,7 @@ public class Data_CSV extends Application {
 						null	,	// key filter
 						tz,
 						null	,	// instance id
-						null,	// advanced filter
+						filter,	// advanced filter
 						null,	// Date filter name
 						null,	// Start date
 						null		// End date

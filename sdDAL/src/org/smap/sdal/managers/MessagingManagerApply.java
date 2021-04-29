@@ -66,7 +66,7 @@ public class MessagingManagerApply {
 	/*
 	 * Apply any outbound messages
 	 */
-	public void applyOutbound(Connection sd, Connection cResults, String serverName, String basePath, int count) {
+	public void applyOutbound(Connection sd, Connection cResults, String serverName, String basePath, int count, String awsProperties) {
 
 		ResultSet rs = null;
 		PreparedStatement pstmtGetMessages = null;
@@ -91,7 +91,6 @@ public class MessagingManagerApply {
 
 		try {
 
-			EmitDeviceNotification emitDevice = new EmitDeviceNotification();
 			pstmtGetMessages = sd.prepareStatement(sqlGetMessages);
 			pstmtConfirm = sd.prepareStatement(sqlConfirm);
 
@@ -355,9 +354,12 @@ public class MessagingManagerApply {
 			}
 			
 			// For each user send a notification to each of their devices
-			for(String user : usersImpacted.keySet()) {
-				emitDevice.notify(serverName, user);
-			}		
+			if(awsProperties != null) {
+				EmitDeviceNotification emitDevice = new EmitDeviceNotification(awsProperties);
+				for(String user : usersImpacted.keySet()) {
+					emitDevice.notify(serverName, user);
+				}	
+			}
 
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Error", e);

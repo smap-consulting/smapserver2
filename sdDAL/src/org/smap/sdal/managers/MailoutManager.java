@@ -692,10 +692,6 @@ public class MailoutManager {
 									.append("<a href=\"").append(docURL).append("\">")
 									.append(localisation.getString("ar_survey")).append("</a>");
 							}
-							// Add the unsubscribe link
-							content.append("<br /><br />")
-								.append("${unsubscribe}");
-
 							
 							notify_details = "Sending mailout email to: " + msg.email + " containing link " + docURL;
 							
@@ -730,14 +726,17 @@ public class MailoutManager {
 													ia.getAddress(), 
 													"bcc", 
 													subject, 
-													content.toString(), 
+													content, 
 													null, 
 													null, 
 													emailServer,
 													server,
 													subStatus.emailKey,
 													localisation,
-													null);
+													null,
+													organisation.getAdminEmail(),
+													organisation.getEmailFooter()
+													);
 											
 											if(subStatus.optedInSent == null) {
 												mm.sendOptinEmail(sd, organisation.id, ia.getAddress(), 

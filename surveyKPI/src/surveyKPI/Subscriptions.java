@@ -155,26 +155,19 @@ public class Subscriptions extends Application {
 							.append(localisation.getString("email_link"))
 							.append("</a> ");
 						
-						content.append(localisation.getString("email_s"))
-							.append("</p><p>")
-							.append(localisation.getString("email_dnr"))
-							.append(" ")
-							.append(adminEmail)
-							.append(".</p>");
-						
-						content.append("<br/><br/>${unsubscribe}");
-						
 						em.sendEmailHtml(
 								email, 
 								"bcc", 
 								localisation.getString("c_s"), 
-								content.toString(), 
+								content, 
 								null, 
 								null, 
 								emailServer,
 								request.getServerName(),
 								key,
 								localisation,
+								null,
+								adminEmail,
 								null);
 						
 						response = Response.ok().build();
