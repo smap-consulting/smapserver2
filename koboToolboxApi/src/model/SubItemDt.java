@@ -10,4 +10,5 @@ public class SubItemDt {
 	public String name;
 	public String status;
 	public String status_loc;
+	public String time_changed;
 }

@@ -3251,11 +3251,22 @@ public class TaskManager {
 							if(msg.from != null && msg.from.trim().length() > 0) {
 								from = msg.from;
 							}
-							String content = null;
+							StringBuilder content = null;
 							if(msg.content != null && msg.content.trim().length() > 0) {
-								content = msg.content;
+								content = new StringBuilder(msg.content);
 							} else {
-								content = organisation.default_email_content;
+								content = new StringBuilder(organisation.default_email_content);
+							}
+							
+							// Add the survey link
+							if(docURL != null) {
+								content.append("<br />")
+									.append("<a href=\"").append(scheme + "://")
+									.append(server)
+									.append(docURL)
+									.append("\">")
+									.append(localisation.getString("ar_survey"))
+									.append("</a>");
 							}
 							
 							notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
@@ -3278,12 +3289,14 @@ public class TaskManager {
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
 											log.info("Send email: " + msg.email + " : " + docURL);
+											
+											/*
 											em.sendEmail(
 													ia.getAddress(), 
 													null, 
 													"notify", 
 													subject, 
-													content,
+													content.toString(),
 													from,		
 													null, 
 													null, 
@@ -3299,6 +3312,23 @@ public class TaskManager {
 													localisation,
 													organisation.server_description,
 													organisation.name);
+													*/
+													
+											em.sendEmailHtml(
+													ia.getAddress(),  
+													"bcc", 
+													subject, 
+													content, 
+													filePath,
+													filename,
+													emailServer,
+													server,
+													subStatus.emailKey,
+													localisation,
+													null,
+													organisation.getAdminEmail(),
+													organisation.getEmailFooter());
+											
 											setAssignmentStatus(sd, msg.aId, "accepted");
 											
 											lm.writeLog(sd, 

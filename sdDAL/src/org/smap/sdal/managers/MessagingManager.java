@@ -249,25 +249,19 @@ public class MessagingManager {
 					.append(localisation.getString("email_link"))
 					.append("</a></p>");
 				
-				content.append("<br/><br/><p>")
-					.append(localisation.getString("email_dnr"))
-					.append(" ")
-					.append(adminEmail)
-					.append(".</p>");
-				
-				content.append("<br/><br/>${unsubscribe}");
-				
 				em.sendEmailHtml(
 						email, 
 						"bcc", 
 						localisation.getString("c_opt_in_subject"), 
-						content.toString(), 
+						content, 
 						null, 
 						null, 
 						emailServer,
 						server,
 						emailKey,
 						localisation,
+						null,
+						adminEmail,
 						null);
 				
 			}

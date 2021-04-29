@@ -69,7 +69,8 @@ public class Subscriptions extends Application {
 	@GET
 	@Produces("application/json")
 	public Response getSubscriptions(@Context HttpServletRequest request,
-			@QueryParam("dt") boolean dt
+			@QueryParam("dt") boolean dt,
+			@QueryParam("tz") String tz					// Timezone
 			) { 
 		
 		String connectionString = "API - get subscriptions";
@@ -80,6 +81,8 @@ public class Subscriptions extends Application {
 		// Authorisation - Access
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
+		
+		tz = (tz == null) ? "UTC" : tz;
 		
 		PreparedStatement pstmt = null;
 		ResultSet rs = null;
@@ -94,13 +97,19 @@ public class Subscriptions extends Application {
 			
 			// Get the data
 			String sql = "select id, email, unsubscribed, opted_in, opted_in_sent,"
-					+ "name "
+					+ "name, "
+					+ "to_char(timezone(?, when_subscribed), 'YYYY-MM-DD HH24:MI:SS') as when_subscribed, "
+					+ "to_char(timezone(?, when_unsubscribed), 'YYYY-MM-DD HH24:MI:SS') as when_unsubscribed, "
+					+ "to_char(timezone(?, when_requested_subscribe), 'YYYY-MM-DD HH24:MI:SS') as when_requested_subscribe "
 					+ "from people "
 					+ "where o_id = ? "
 					+ "order by email asc";
 			
 			pstmt = sd.prepareStatement(sql);
 			int paramCount = 1;
+			pstmt.setString(paramCount++, tz);
+			pstmt.setString(paramCount++, tz);
+			pstmt.setString(paramCount++, tz);
 			pstmt.setInt(paramCount++, oId);
 			
 			log.info("Get subscriptions: " + pstmt.toString());
@@ -124,21 +133,31 @@ public class Subscriptions extends Application {
 				String status_loc = "";
 				boolean unsubscribed = rs.getBoolean("unsubscribed");
 				boolean optedin = rs.getBoolean("opted_in");
+				item.time_changed = "";
 				if(unsubscribed) {
 					status = "unsubscribed";
 					status_loc = localisation.getString("c_unsubscribed");
+					item.time_changed = rs.getString("when_unsubscribed");
+						
 				} else if(optedin) {
 					status = "subscribed";
 					status_loc = localisation.getString("c_s2");
+					item.time_changed = rs.getString("when_subscribed");
 				} else {
 					String optedInSent = rs.getString("opted_in_sent");
 					if(optedInSent != null) {
 						status = "pending";
 						status_loc = localisation.getString("c_pending");
+						item.time_changed = rs.getString("when_requested_subscribe");
 					} else {
 						status = "new";
 						status_loc = localisation.getString("c_new");
 					}
+				}
+				if(item.time_changed != null) {
+					item.time_changed = item.time_changed.replaceAll("\\.[0-9]+", ""); // Remove milliseconds
+				} else {
+					item.time_changed = "";
 				}
 				item.status = status;
 				if(dt) {
