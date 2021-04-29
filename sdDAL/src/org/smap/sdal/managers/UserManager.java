@@ -467,11 +467,8 @@ public class UserManager {
 				HashMap<String, String> customTokens = new HashMap<> ();
 				StringBuilder template = new StringBuilder(localisation.getString("email_newuser"));
 				template.append(" ").append(localisation.getString("email_un2"));
-				if(adminEmail != null) {
-					template.append(" ").append(localisation.getString("email_dnr2"));
-				}
-				template.append(" ").append(organisation.getEmailFooter());
-				String content = template.toString();
+				
+				StringBuilder content = new StringBuilder(template.toString());
 				String serverUrl = scheme + "://" + serverName;
 				
 				// add custom tokens
@@ -494,7 +491,6 @@ public class UserManager {
 				
 				customTokens.put("${user_ident}", u.ident);
 				customTokens.put("${valid_for}", "48");
-				customTokens.put("${admin_email}",adminEmail);
 
 				log.info("Content: " + content);
 				log.info("tokens: " + customTokens.toString());
@@ -509,7 +505,9 @@ public class UserManager {
 						serverName,
 						subStatus.emailKey,
 						localisation,
-						customTokens);
+						customTokens,
+						organisation.getAdminEmail(),
+						organisation.getEmailFooter());
 
 			}
 			

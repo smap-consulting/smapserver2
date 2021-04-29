@@ -929,14 +929,16 @@ public class NotificationManager {
 													ia.getAddress(),  
 													"bcc", 
 													subject, 
-													content.toString(), 
+													content, 
 													filePath,
 													filename,
 													emailServer,
 													msg.server,
 													subStatus.emailKey,
 													localisation,
-													null);
+													null,
+													organisation.getAdminEmail(),
+													organisation.getEmailFooter());
 											
 										} else {
 											/*

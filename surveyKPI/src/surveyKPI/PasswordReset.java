@@ -186,13 +186,15 @@ public class PasswordReset extends Application {
 								email, 
 								"bcc", 
 								subject, 
-								content.toString(), 
+								content, 
 								null, 
 								null, 
 								emailServer,
 								request.getServerName(),
 								subStatus.emailKey,
 								localisation,
+								null,
+								null,
 								null);
 						
 					    response = Response.ok().build();
