@@ -182,13 +182,13 @@ public class AutoUpdateProcessor {
 		try {
 			
 			// Send any pending messages
-			File pFile = new File("/smap_bin/resources/properties/aws.properties");
+			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
 				Thread t = new Thread(new UpdateLoop(sd, cResults, basePath, mediaBucket, region));
 				t.start();
 			} else {
 				// No message!
-				log.info("Auto update processing not enabled. No aws.properties file found at /smap_bin/resources/properties/aws.properties");
+				log.info("Auto update processing not enabled. No aws.properties file found at " + pFile.getAbsolutePath());
 			}
 
 		} catch (Exception e) {

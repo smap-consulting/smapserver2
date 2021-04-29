@@ -50,11 +50,13 @@ public class MessageProcessor {
 		Connection cResults;
 		String serverName;
 		String basePath;
+		String awsPropertiesFile;
 
-		public MessageLoop(Connection sd, Connection cResults, String basePath) {
+		public MessageLoop(Connection sd, Connection cResults, String basePath, String awsPropertiesFile) {
 			this.sd = sd;
 			this.cResults = cResults;
 			this.basePath = basePath;
+			this.awsPropertiesFile = awsPropertiesFile;
 		}
 
 		public void run() {
@@ -79,7 +81,7 @@ public class MessageProcessor {
 						
 						// Apply messages
 						MessagingManagerApply mma = new MessagingManagerApply();
-						mma.applyOutbound(sd, cResults, serverName, basePath, count++);
+						mma.applyOutbound(sd, cResults, serverName, basePath, count++, awsPropertiesFile);
 						mma.applyPendingEmailMessages(sd, cResults, serverName, basePath);
 						
 					} catch (Exception e) {
@@ -167,13 +169,16 @@ public class MessageProcessor {
 		try {
 			
 			// Send any pending messages
-			File pFile = new File("/smap_bin/resources/properties/aws.properties");
+			String awsPropertiesFile = null;
+			File pFile = new File(basePath + "_bin/resources/properties/aws.properties");
 			if (pFile.exists()) {
-				Thread t = new Thread(new MessageLoop(sd, cResults, basePath));
-				t.start();
+				awsPropertiesFile = pFile.getAbsolutePath();
 			} else {
-				log.info("Skipping notification messages. No aws properties file at: smap_bin/resources/properties/aws.properties");
+				log.info("Skipping notifications to devices. No aws properties file at: " + pFile.getAbsolutePath());
 			}
+			Thread t = new Thread(new MessageLoop(sd, cResults, basePath, awsPropertiesFile));
+			t.start();
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
