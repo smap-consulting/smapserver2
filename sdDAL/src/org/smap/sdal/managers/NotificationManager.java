@@ -925,29 +925,6 @@ public class NotificationManager {
 										unsubscribedList.add(ia.getAddress());		// Person has unsubscribed
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
-											/*
-											em.sendEmail(
-													ia.getAddress(), 
-													null, 
-													"notify", 
-													subject, 
-													content.toString(),
-													from,		
-													null, 
-													null, 
-													null, 
-													docURL, 
-													filePath,
-													filename,
-													organisation.getAdminEmail(), 
-													emailServer,
-													msg.scheme,
-													msg.server,
-													subStatus.emailKey,
-													localisation,
-													organisation.server_description,
-													organisation.name);
-											*/
 											em.sendEmailHtml(
 													ia.getAddress(),  
 													"bcc", 

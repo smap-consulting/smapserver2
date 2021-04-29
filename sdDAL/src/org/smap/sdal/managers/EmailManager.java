@@ -121,7 +121,7 @@ public class EmailManager {
 				authenticator = new Authenticator(authUser, emailServer.emailPassword);
 				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
 				props.setProperty("mail.smtp.auth", "true");
-				props.setProperty("mail.smtp.starttls.enable", "true");
+				//props.setProperty("mail.smtp.starttls.enable", "true");
 				if(emailServer.emailPort > 0) {
 					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
 				} else {
@@ -408,7 +408,7 @@ public class EmailManager {
 				authenticator = new Authenticator(authUser, emailServer.emailPassword);
 				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
 				props.setProperty("mail.smtp.auth", "true");
-				props.setProperty("mail.smtp.starttls.enable", "true");
+				//props.setProperty("mail.smtp.starttls.enable", "true");
 				if(emailServer.emailPort > 0) {
 					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
 				} else {
@@ -417,7 +417,7 @@ public class EmailManager {
 
 				sender = emailServer.emailUser;
 
-				log.info("Trying to send email with authentication");
+				log.info("Trying to send email as html with authentication");
 			} else {
 				if(emailServer.emailPort > 0) {
 					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
@@ -500,6 +500,7 @@ public class EmailManager {
 
 			msg.setHeader("X-Mailer", "msgsend");
 			log.info("Sending email from: " + sender);
+		
 			Transport.send(msg);
 
 		} catch(AuthenticationFailedException ae) { 
