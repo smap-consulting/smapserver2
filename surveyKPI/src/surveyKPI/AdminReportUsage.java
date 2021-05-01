@@ -48,6 +48,7 @@ public class AdminReportUsage extends Application {
 			Logger.getLogger(AdminReportUsage.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
+	boolean includeTemporaryUsers;
 	
 	public AdminReportUsage() {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
@@ -66,7 +67,7 @@ public class AdminReportUsage extends Application {
 			@QueryParam("project") boolean byProject,
 			@QueryParam("survey") boolean bySurvey,
 			@QueryParam("device") boolean byDevice,
-			
+			@QueryParam("inc_temp") boolean inc_temp,
 			@Context HttpServletResponse response) {
 
 		Response responseVal;
@@ -76,6 +77,8 @@ public class AdminReportUsage extends Application {
 		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		// End Authorisation
+		
+		includeTemporaryUsers = inc_temp;	
 		
 		try {
 			
@@ -136,7 +139,7 @@ public class AdminReportUsage extends Application {
 
 	private ArrayList<AR> getAdminReport(Connection sd, int oId, int month, int year) throws SQLException {
 		ArrayList<AR> rows = new ArrayList<AR> ();
-		String sql = "select users.id as id,users.ident as ident, users.name as name, users.created as created, "
+		StringBuilder sql = new StringBuilder("select users.id as id,users.ident as ident, users.name as name, users.created as created, "
 				+ "(select count (*) from upload_event ue, subscriber_event se "
 					+ "where ue.ue_id = se.ue_id "
 					+ "and se.status = 'success' "
@@ -149,13 +152,16 @@ public class AdminReportUsage extends Application {
 					+ "and se.subscriber = 'results_db' "
 					+ "and ue.user_name = users.ident) as all_time "
 				+ "from users "
-				+ "where users.o_id = ? "
-				+ "and not users.temporary "
-				+ "order by users.ident";
+				+ "where users.o_id = ? ");
+		
+		if(!includeTemporaryUsers) {
+			sql.append("and not users.temporary ");
+		}
+		sql.append("order by users.ident");
 		PreparedStatement pstmt = null;
 		
 		try {
-			pstmt = sd.prepareStatement(sql);
+			pstmt = sd.prepareStatement(sql.toString());
 			pstmt.setInt(1, month);
 			pstmt.setInt(2, year);
 			pstmt.setInt(3, oId);
@@ -183,7 +189,7 @@ public class AdminReportUsage extends Application {
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		HashMap<String, AR> monthMap = new HashMap<> ();
 		
-		String sqlMonth = "select count(*) as month, "
+		StringBuilder sqlMonth = new StringBuilder("select count(*) as month, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
@@ -197,13 +203,16 @@ public class AdminReportUsage extends Application {
 				+ "and extract(month from upload_time) = ? "
 				+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
-				+ "and users.ident = ue.user_name "
-				+ "and not users.temporary "
-				+ "group by ue.user_name, users.name, ue.p_id, project.name, users.created "
-				+ "order by ue.user_name, ue.p_id;";			
+				+ "and users.ident = ue.user_name ");
+		
+		if(!includeTemporaryUsers) {
+			sqlMonth.append("and not users.temporary ");
+		}
+		sqlMonth.append("group by ue.user_name, users.name, ue.p_id, project.name, users.created "
+				+ "order by ue.user_name, ue.p_id;");
 		PreparedStatement pstmtMonth = null;
 		
-		String sqlAllTime = "select count(*) as year, "
+		StringBuilder sqlAllTime = new StringBuilder("select count(*) as year, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
@@ -215,14 +224,16 @@ public class AdminReportUsage extends Application {
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
 				+ "and users.o_id = ? "
-				+ "and users.ident = ue.user_name "
-				+ "and not users.temporary "
-				+ "group by ue.user_name, users.name, ue.p_id, project.name, users.created "
-				+ "order by ue.user_name, ue.p_id;";			
+				+ "and users.ident = ue.user_name ");
+		if(!includeTemporaryUsers) {
+			sqlAllTime.append("and not users.temporary ");
+		}
+		sqlAllTime.append("group by ue.user_name, users.name, ue.p_id, project.name, users.created "
+				+ "order by ue.user_name, ue.p_id");
 		PreparedStatement pstmtAllTime = null;
 		
 		try {
-			pstmtMonth = sd.prepareStatement(sqlMonth);
+			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
 			pstmtMonth.setInt(1, month);
 			pstmtMonth.setInt(2, year);
 			pstmtMonth.setInt(3, oId);
@@ -242,7 +253,7 @@ public class AdminReportUsage extends Application {
 			}
 			
 			// Get the all time
-			pstmtAllTime = sd.prepareStatement(sqlAllTime);
+			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
 			pstmtAllTime.setInt(1, oId);
 			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
 			rs = pstmtAllTime.executeQuery();
@@ -278,7 +289,7 @@ public class AdminReportUsage extends Application {
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		HashMap<String, AR> monthMap = new HashMap<> ();
 		
-		String sqlMonth = "select count(*) as month, "
+		StringBuilder sqlMonth = new StringBuilder("select count(*) as month, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
@@ -295,13 +306,15 @@ public class AdminReportUsage extends Application {
 				+ "and extract(month from upload_time) = ? "
 				+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
-				+ "and users.ident = ue.user_name "
-				+ "and not users.temporary "
-				+ "group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
-				+ "order by ue.user_name, ue.p_id, ue.s_id;";			
+				+ "and users.ident = ue.user_name ");
+		if(!includeTemporaryUsers) {
+			sqlMonth.append("and not users.temporary ");
+		}
+		sqlMonth.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
+				+ "order by ue.user_name, ue.p_id, ue.s_id");		
 		PreparedStatement pstmtMonth = null;
 		
-		String sqlYear = "select count(*) as year, "
+		StringBuilder sqlAllTime = new StringBuilder("select count(*) as year, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.p_id as p_id, "
@@ -316,15 +329,16 @@ public class AdminReportUsage extends Application {
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
 				+ "and users.o_id = ? "
-				+ "and users.ident = ue.user_name "
-				+ "and not users.temporary "
-				+ "group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
-				+ "order by ue.user_name, ue.p_id, ue.s_id;";
-		PreparedStatement pstmtYear = null;
-		
+				+ "and users.ident = ue.user_name ");
+		if(!includeTemporaryUsers) {
+			sqlAllTime.append("and not users.temporary ");
+		}
+		sqlAllTime.append("group by ue.user_name, users.name, ue.p_id, project.name, ue.s_id, survey.display_name, users.created "
+				+ "order by ue.user_name, ue.p_id, ue.s_id");
 		PreparedStatement pstmtAllTime = null;
+		
 		try {
-			pstmtMonth = sd.prepareStatement(sqlMonth);
+			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
 			pstmtMonth.setInt(1, month);
 			pstmtMonth.setInt(2, year);
 			pstmtMonth.setInt(3, oId);
@@ -346,10 +360,10 @@ public class AdminReportUsage extends Application {
 			}
 			
 			// Get the all time
-			pstmtYear = sd.prepareStatement(sqlYear);
-			pstmtYear.setInt(1, oId);
-			log.info("All Time Admin report by project: " + pstmtYear.toString());
-			rs = pstmtYear.executeQuery();
+			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
+			pstmtAllTime.setInt(1, oId);
+			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
+			rs = pstmtAllTime.executeQuery();
 			while(rs.next()) {
 						
 				String user = rs.getString("ident");
@@ -385,7 +399,7 @@ public class AdminReportUsage extends Application {
 		ArrayList<AR> rows = new ArrayList<AR> ();
 		HashMap<String, AR> monthMap = new HashMap<> ();
 		
-		String sqlMonth = "select count(*) as month, "
+		StringBuilder sqlMonth = new StringBuilder("select count(*) as month, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.imei as imei, "
@@ -397,13 +411,15 @@ public class AdminReportUsage extends Application {
 				+ "and extract(month from upload_time) = ? "
 				+ "and extract(year from upload_time) = ? "
 				+ "and users.o_id = ? "
-				+ "and users.ident = ue.user_name "
-				+ "and not users.temporary "
-				+ "group by ue.user_name, users.name, ue.imei, users.created "
-				+ "order by ue.user_name, ue.imei";			
+				+ "and users.ident = ue.user_name ");
+		if(!includeTemporaryUsers) {
+			sqlMonth.append("and not users.temporary ");
+		}
+		sqlMonth.append("group by ue.user_name, users.name, ue.imei, users.created "
+				+ "order by ue.user_name, ue.imei");		
 		PreparedStatement pstmtMonth = null;
 		
-		String sqlAllTime = "select count(*) as year, "
+		StringBuilder sqlAllTime = new StringBuilder("select count(*) as year, "
 				+ "ue.user_name as ident, "
 				+ "users.name as name, "
 				+ "ue.imei as imei, "
@@ -415,14 +431,16 @@ public class AdminReportUsage extends Application {
 				+ "and se.status = 'success' "
 				+ "and se.subscriber = 'results_db' "
 				+ "and users.o_id = ? "
-				+ "and users.ident = ue.user_name "
-				+ "and not users.temporary "
-				+ "group by ue.user_name, users.name, ue.imei, users.created "
-				+ "order by ue.user_name, ue.imei";
-		
+				+ "and users.ident = ue.user_name ");
+		if(!includeTemporaryUsers) {
+			sqlAllTime.append("and not users.temporary ");
+		}
+		sqlAllTime.append("group by ue.user_name, users.name, ue.imei, users.created "
+				+ "order by ue.user_name, ue.imei");	
 		PreparedStatement pstmtAllTime = null;
+		
 		try {
-			pstmtMonth = sd.prepareStatement(sqlMonth);
+			pstmtMonth = sd.prepareStatement(sqlMonth.toString());
 			pstmtMonth.setInt(1, month);
 			pstmtMonth.setInt(2, year);
 			pstmtMonth.setInt(3, oId);
@@ -441,7 +459,7 @@ public class AdminReportUsage extends Application {
 			}
 			
 			// Get the all time
-			pstmtAllTime = sd.prepareStatement(sqlAllTime);
+			pstmtAllTime = sd.prepareStatement(sqlAllTime.toString());
 			pstmtAllTime.setInt(1, oId);
 			log.info("All Time Admin report by project: " + pstmtAllTime.toString());
 			rs = pstmtAllTime.executeQuery();

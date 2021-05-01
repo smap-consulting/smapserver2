@@ -903,11 +903,11 @@ public class NotificationManager {
 								content = new StringBuilder(organisation.default_email_content);
 							}
 							
-							// Add the unsubscribe link
-							content.append("<br /><br />")
-								.append("${unsubscribe}");
-							
-							notify_details = "Sending email to: " + emails + " containing link " + logContent;
+							notify_details = localisation.getString("msg_en");
+							notify_details = notify_details.replaceAll("%s1", emails);
+							notify_details = notify_details.replaceAll("%s2", logContent);
+							notify_details = notify_details.replaceAll("%s3", survey.displayName);
+							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							
 							log.info("+++ emailing to: " + emails + " docUrl: " + logContent + 
 									" from: " + from + 
@@ -1149,7 +1149,7 @@ public class NotificationManager {
 				"(o_id, p_id, s_id, notify_details, status, status_details, event_time, message_id, type) " +
 				"values( ?, ?,?, ?, ?, ?, now(), ?, 'reminder'); ";
 		
-		// TODO get Task information
+
 		String urlprefix = msg.scheme + "://" + msg.server;
 		TaskManager tm = new TaskManager(localisation, tz);
 		TaskListGeoJson t = tm.getTasks(
@@ -1189,6 +1189,15 @@ public class NotificationManager {
 			} else {
 				surveyId = msg.sId;		// A legacy message
 			}
+			SurveyManager sm = new SurveyManager(localisation, "UTC");
+			
+			Survey survey = sm.getById(sd, cResults, null, false, surveyId, true, msg.basePath, 
+					msg.instanceId, true, false, true, false, true, "real", 
+					false, false, true, "geojson",
+					msg.include_references,	// For PDFs follow links to referenced surveys
+					msg.launchedOnly,			// launched only
+					false		// Don't merge set value into default values
+					);
 			
 			if(organisation.can_notify) {
 
@@ -1204,6 +1213,9 @@ public class NotificationManager {
 				if(msg.target.equals("email")) {
 					EmailServer emailServer = UtilityMethodsEmail.getSmtpHost(sd, null, msg.user);
 					if(emailServer.smtpHost != null && emailServer.smtpHost.trim().length() > 0) {
+						
+						
+						
 						ArrayList<String> emailList = null;
 						log.info("Email question: " + msg.getEmailQuestionName(sd));
 						if(msg.emailQuestionSet()) {
@@ -1272,6 +1284,11 @@ public class NotificationManager {
 							}
 							
 							notify_details = "Sending email to: " + emails + " containing link " + logContent;
+							notify_details = localisation.getString("msg_er");
+							notify_details = notify_details.replaceAll("%s1", emails);
+							notify_details = notify_details.replaceAll("%s2", logContent);
+							notify_details = notify_details.replaceAll("%s3", survey.displayName);
+							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							
 							log.info("+++ emailing reminder to: " + emails + " docUrl: " + logContent + 
 									" from: " + from + 
