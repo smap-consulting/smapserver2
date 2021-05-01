@@ -3268,8 +3268,12 @@ public class TaskManager {
 									.append(localisation.getString("ar_survey"))
 									.append("</a>");
 							}
-							
-							notify_details = "Sending task email to: " + msg.email + " containing link " + docURL;
+
+							notify_details = localisation.getString("msg_et");
+							notify_details = notify_details.replaceAll("%s1", msg.email);
+							notify_details = notify_details.replaceAll("%s2", docURL);
+							notify_details = notify_details.replaceAll("%s3", survey.displayName);
+							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							
 							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
 									" from: " + from + 
