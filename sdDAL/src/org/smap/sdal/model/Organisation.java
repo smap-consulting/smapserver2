@@ -108,6 +108,6 @@ public class Organisation {
 	 * Todo allow user to specify per organisation footer
 	 */
 	public String getEmailFooter() {
-		return "${unsubscribe}";
+		return "";
 	}
 }
