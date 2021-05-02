@@ -899,8 +899,13 @@ public class NotificationManager {
 							StringBuilder content = null;
 							if(msg.content != null && msg.content.trim().length() > 0) {
 								content = new StringBuilder(msg.content);
-							} else {
+							} else if(organisation.default_email_content != null && organisation.default_email_content.trim().length() > 0){
 								content = new StringBuilder(organisation.default_email_content);
+							} else {
+								content = new StringBuilder(localisation.getString("email_ian"))
+										.append(" " + msg.scheme + "://")
+										.append(msg.server)
+										.append(". ");
 							}
 							
 							notify_details = localisation.getString("msg_en");
