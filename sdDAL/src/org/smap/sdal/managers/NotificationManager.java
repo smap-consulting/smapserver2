@@ -367,6 +367,7 @@ public class NotificationManager {
 				+ "and u.ident = ?";
 		
 		types.add("email");
+		types.add("webhook");
 		types.add("forward");
 		
 		boolean awsSMS = false;
