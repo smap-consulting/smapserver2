@@ -3258,10 +3258,15 @@ public class TaskManager {
 								content = new StringBuilder(organisation.default_email_content);
 							}
 							
-							// Add the survey link
+							// task message
+							String taskMsg  = localisation.getString("email_task");
+							taskMsg = taskMsg.replaceAll("%s1", server);
+							
+							// Add the survey link and task message
 							if(docURL != null) {
 								content.append("<br />")
-									.append("<a href=\"").append(scheme + "://")
+									.append(taskMsg)
+									.append(" <a href=\"").append(scheme + "://")
 									.append(server)
 									.append(docURL)
 									.append("\">")

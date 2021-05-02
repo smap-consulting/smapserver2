@@ -454,8 +454,7 @@ public class EmailManager {
 			msg.setFrom(InternetAddress.parse(sender, false)[0]);
 			
 			if(adminEmail != null) {
-				template.append(localisation.getString("email_s"))
-					.append("</p><p>")
+				template.append("</p><p>")
 					.append(localisation.getString("email_dnr"))
 					.append(" ")
 					.append(adminEmail)
