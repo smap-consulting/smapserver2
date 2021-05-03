@@ -1,4 +1,4 @@
-package managers;
+package org.smap.sdal.managers;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -8,10 +8,9 @@ import java.util.ResourceBundle;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
-import model.DataEndPoint;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Survey;
 

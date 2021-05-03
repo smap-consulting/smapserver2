@@ -28,6 +28,9 @@ public class SubmissionMessage {
 	public String scheme;
 	public String server;
 	public String basePath;
+	public String callback_url;
+	public String remoteUser;
+	public String remotePassword;
 	
 	public SubmissionMessage(
 			int taskId,
@@ -49,7 +52,10 @@ public class SubmissionMessage {
 			String user,
 			String scheme,
 			String server,
-			String basePath) {
+			String basePath,
+			String callout_url,
+			String remoteUser,
+			String remoTePassword) {
 		
 		this.taskId = taskId;
 		this.survey_ident = survey_ident;
@@ -71,6 +77,9 @@ public class SubmissionMessage {
 		this.scheme = scheme;
 		this.server = server;
 		this.basePath = basePath;
+		this.callback_url = callout_url;
+		this.remoteUser = remoteUser;
+		this.remotePassword = remoTePassword;
 	}
 	
 	// copy constructor
@@ -100,6 +109,9 @@ public class SubmissionMessage {
 		this.scheme = orig.scheme;
 		this.server = orig.server;
 		this.basePath = orig.basePath;
+		this.callback_url = orig.callback_url;
+		this.remoteUser = orig.remoteUser;
+		this.remotePassword = orig.remotePassword;
 	}
 	
 	public boolean emailQuestionSet() {
