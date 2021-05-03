@@ -368,7 +368,7 @@ public class NotificationManager {
 				+ "and u.ident = ?";
 		
 		types.add("email");
-		types.add("webhook");
+		//types.add("webhook");
 		types.add("forward");
 		
 		boolean awsSMS = false;
@@ -917,9 +917,25 @@ public class NotificationManager {
 										.append(". ");
 							}
 							
+							if(docURL != null) {
+								content.append("<p style=\"color:blue;text-align:center;\">")
+								.append("<a href=\"")
+								.append(msg.scheme + "://")
+								.append(msg.server)
+								.append(docURL)
+								.append("\">")
+								.append(survey.displayName)
+								.append("</a>")
+								.append("</p>");
+							}
+							
 							notify_details = localisation.getString("msg_en");
 							notify_details = notify_details.replaceAll("%s1", emails);
-							notify_details = notify_details.replaceAll("%s2", logContent);
+							if(logContent != null) {
+								notify_details = notify_details.replaceAll("%s2", logContent);
+							} else {
+								notify_details = notify_details.replaceAll("%s2", "-");
+							}
 							notify_details = notify_details.replaceAll("%s3", survey.displayName);
 							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							
@@ -979,7 +995,7 @@ public class NotificationManager {
 							} catch(Exception e) {
 								status = "error";
 								error_details = e.getMessage();
-								log.log(Level.INFO, error_details);
+								log.log(Level.SEVERE, error_details, e);
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
