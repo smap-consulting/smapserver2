@@ -450,6 +450,9 @@ public class SubscriberBatch {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, localisation, basePath);
 
+				// Delete linked csv files logically deleted more than 10 minutes age
+				deleteOldLinkedCSVFiles(sd, cResults, localisation, basePath);
+				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
 				// 2. Loop through each prikey not in sync table 
@@ -813,6 +816,53 @@ public class SubscriberBatch {
 			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}	
 		}
 	}
+	
+	/*
+	 * When a new linked CSV file is generated the old one is marked for deletion
+	 * Allow 10 minutes which should give any web services that are downloading it time to complete and then delete it
+	 */
+	private void deleteOldLinkedCSVFiles(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
+
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtFix = null;
+
+		try {
+
+			String sql = "select id, file, to_char(deleted_time, 'YYYY-MM-DD HH24:MI:SS') as deleted_time "
+					+ "from linked_files_old "
+					+ "where deleted_time  < (now() - interval '600 seconds') "
+					+ "and erase_time is null ";
+			pstmt = sd.prepareStatement(sql);
+			
+			String sqlFix = "update linked_files_old set erase_time = now() where id = ?";
+			pstmtFix = sd.prepareStatement(sqlFix);
+
+			/*
+			 * Temporary fix for lack of accurate date when a survey was deleted
+			 */
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				int id = rs.getInt("id");
+				String filePath = rs.getString("file");
+				String logicalDelDate = rs.getString("deleted_time");
+				
+				File f = new File(filePath);
+				if(f.exists()) {
+					log.info("Delete linked CSV file: " + f.getAbsolutePath() + " logical delete date was " + logicalDelDate);
+					f.delete();
+				}
+				pstmtFix.setInt(1,  id);
+				pstmtFix.executeUpdate();
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}
+		}
+	}
+	
 	/*
 	 * Create a Subscriber object for each subscriber
 	 */
