@@ -281,6 +281,7 @@ public class MessagingManagerApply {
 								}
 							}
 						} catch (Exception e) {
+							log.log(Level.SEVERE, e.getMessage(), e);
 							status = "error";
 						}
 	
