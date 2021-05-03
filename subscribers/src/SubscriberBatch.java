@@ -1069,14 +1069,14 @@ public class SubscriberBatch {
 				+ "t.p_id,"
 				+ "n.target,"
 				+ "n.remote_user,"
-				+ "n.notify_details "
+				+ "n.notify_details,"
+				+ "n.remote_password "
 				+ "from tasks t, assignments a, forward n "
 				+ "where t.tg_id = n.tg_id "
 				+ "and t.id = a.task_id "
 				+ "and n.enabled "
 				+ "and n.trigger = 'task_reminder' "
 				+ "and a.status = 'accepted' "
-				//+ "and a.assigned_date < now() - cast(n.period as interval) "	// use schedule at however could allow assigned date to be used
 				+ "and t.schedule_at < now() - cast(n.period as interval) "
 				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
@@ -1109,6 +1109,7 @@ public class SubscriberBatch {
 				String target = rs.getString(7);
 				String remoteUser = rs.getString(8);
 				String notifyDetailsString = rs.getString(9);
+				String remotePassword = rs.getString(10);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
@@ -1134,7 +1135,10 @@ public class SubscriberBatch {
 						remoteUser,
 						"https",
 						serverName,
-						basePath);
+						basePath,
+						nd.callback_url,
+						remoteUser,
+						remotePassword);
 				
 				ResourceBundle localisation = locMap.get(nId);
 				if(localisation == null) {

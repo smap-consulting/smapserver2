@@ -20,9 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import managers.DataManager;
-import model.DataEndPoint;
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -59,6 +56,7 @@ import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.RecordEventManager;
 import org.smap.sdal.managers.SurveyManager;
@@ -66,6 +64,7 @@ import org.smap.sdal.managers.SurveySettingsManager;
 import org.smap.sdal.managers.SurveyViewManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.ConsoleTotals;
+import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.DataItemChangeEvent;
 import org.smap.sdal.model.FormLink;
 import org.smap.sdal.model.Instance;
@@ -875,6 +874,7 @@ public class Data extends Application {
 
 		tz = (tz == null) ? "UTC" : tz;
 
+		
 		try {
 
 			cResults = ResultsDataSource.getConnection(connectionString);
@@ -887,6 +887,8 @@ public class Data extends Application {
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
+			
+			DataManager dm = new DataManager(localisation);
 
 			SurveyManager sm = new SurveyManager(localisation, tz);
 			

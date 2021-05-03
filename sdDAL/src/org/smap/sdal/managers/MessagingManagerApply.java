@@ -126,19 +126,7 @@ public class MessagingManagerApply {
 				String status = "success";
 				ArrayList<String> unsubscribedList = new ArrayList<>();
 				
-				/*
-				 * For performance reason only process survey changes every 2 times through the loop
-				 */
-				if(topic.equals("survey") || topic.equals("resource")) {
-					
-					if(count % 2 != 0) { 
-						log.info("xsxsxsxsxsxs: skipping survey message: " + count);
-						continue;
-					} else {
-						log.info("xsxsxsxsxsxs: processing survey message: " + count);
-					}
-					
-				}
+			
 				/*
 				 * Record that the message is being processed
 				 * After this point it will not be processed again even if it fails unless there is manual intervention
