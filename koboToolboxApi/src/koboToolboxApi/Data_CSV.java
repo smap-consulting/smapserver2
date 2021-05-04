@@ -117,7 +117,7 @@ public class Data_CSV extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
-			DataManager dm = new DataManager(localisation);
+			DataManager dm = new DataManager(localisation, "UTC");
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, true);
 
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
