@@ -15,12 +15,12 @@ import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
 
+import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.EmailServer;
-import org.smap.sdal.model.Instance;
 import org.smap.sdal.model.Notification;
 import org.smap.sdal.model.NotifyDetails;
 import org.smap.sdal.model.Organisation;
@@ -368,7 +368,7 @@ public class NotificationManager {
 				+ "and u.ident = ?";
 		
 		types.add("email");
-		//types.add("webhook");
+		types.add("webhook");
 		types.add("forward");
 		
 		boolean awsSMS = false;
@@ -720,6 +720,7 @@ public class NotificationManager {
 		
 		MessagingManager mm = new MessagingManager(localisation);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
+		DataManager dm = new DataManager(localisation, "UTC");
 		int surveyId;
 		if(msg.survey_ident != null) {
 			surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
@@ -1096,7 +1097,7 @@ public class NotificationManager {
 					notify_details = notify_details.replaceAll("%s3", survey.projectName);
 					
 					try {
-						ArrayList<Instance> instances = sm.getInstances(
+						JSONArray data = dm.getInstanceData(
 								sd,
 								cResults,
 								survey,
@@ -1106,11 +1107,14 @@ public class NotificationManager {
 								msg.instanceId,
 								sm,
 								true);
-						if(instances.size() > 0) {
-							Instance inst = instances.get(0);
-							WebhookManager wm = new WebhookManager(localisation);
-							wm.callRemoteUrl(msg.callback_url, gson.toJson(inst), msg.remoteUser, msg.remotePassword);
+						String resp = "{}";
+						if(data.length() > 0) {
+							resp = data.getString(0).toString();
 						}
+						
+						WebhookManager wm = new WebhookManager(localisation);
+						wm.callRemoteUrl(msg.callback_url, resp, msg.remoteUser, msg.remotePassword);
+
 					} catch (Exception e) {
 						status = "error";
 						error_details = e.getMessage();
