@@ -239,16 +239,20 @@ public class Data extends Application {
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("geojson") String geojson,		// if set to yes then format as geoJson
 			@QueryParam("meta") String meta,				// If set true then include meta
-			@QueryParam("hierarchy") boolean hierarchy
+			@QueryParam("hierarchy") String hierarchy
 			) throws ApplicationException, Exception { 
 		
+		boolean includeHierarchy = false;
 		boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
 		if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
 			includeMeta = true;
 		}
+		if(hierarchy != null && (hierarchy.equals("true") || hierarchy.equals("yes"))) {
+			includeHierarchy = true;
+		}
 		
 		// Authorisation is done in getSingleRecord
-		if(hierarchy) {
+		if(includeHierarchy) {
 			return getSingleRecordHierarchy(request,
 					sIdent,
 					uuid,
