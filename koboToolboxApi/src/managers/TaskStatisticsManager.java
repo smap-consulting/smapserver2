@@ -28,13 +28,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
 import koboToolboxApi.Data_CSV;
-import model.DataEndPoint;
 import model.StatsResultsC3;
 import model.AdminStatsSqlCreator;
 import model.Task;
 
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.SurveyManager;
+import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.Survey;
 
 import com.google.gson.Gson;

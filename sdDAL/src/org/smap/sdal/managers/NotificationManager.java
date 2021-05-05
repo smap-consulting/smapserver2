@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 
 import javax.mail.internet.InternetAddress;
 
+import org.codehaus.jettison.json.JSONArray;
 import org.smap.notifications.interfaces.EmitAwsSMS;
 import org.smap.notifications.interfaces.EmitSMS;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
@@ -367,6 +368,7 @@ public class NotificationManager {
 				+ "and u.ident = ?";
 		
 		types.add("email");
+		types.add("webhook");
 		types.add("forward");
 		
 		boolean awsSMS = false;
@@ -541,7 +543,7 @@ public class NotificationManager {
 			
 			log.info("notifyForSubmission:: " + ue_id + " : " + updateQuestion + " : " + updateValue);
 			
-			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter "
+			StringBuffer sqlGetNotifications = new StringBuffer("select n.target, n.notify_details, n.filter, n.remote_user, n.remote_password "
 					+ "from forward n "
 					+ "where n.s_id = ? " 
 					+ "and n.target != 'forward' "
@@ -584,7 +586,10 @@ public class NotificationManager {
 				String target = rsNotifications.getString(1);
 				String notifyDetailsString = rsNotifications.getString(2);
 				String filter = rsNotifications.getString(3);
+				String remoteUser = rsNotifications.getString(4);
+				String remotePassword = rsNotifications.getString(5);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
+
 				
 				/*
 				 * Get survey details
@@ -651,7 +656,10 @@ public class NotificationManager {
 							submittingUser,
 							scheme,
 							serverName,
-							basePath);
+							basePath,
+							nd.callback_url,
+							remoteUser,
+							remotePassword);
 					mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 					
 					lm.writeLog(sd, sId, "subscriber", LogManager.NOTIFICATION, 
@@ -698,6 +706,7 @@ public class NotificationManager {
 		String logContent = null;
 		
 		boolean writeToMonitor = true;
+		Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 		
 		HashMap<String, String> sentEndPoints = new HashMap<> ();
 		boolean generateBlank =  (msg.instanceId == null) ? true : false;	// If false only show selected options
@@ -711,6 +720,7 @@ public class NotificationManager {
 		
 		MessagingManager mm = new MessagingManager(localisation);
 		SurveyManager sm = new SurveyManager(localisation, "UTC");
+		DataManager dm = new DataManager(localisation, "UTC");
 		int surveyId;
 		if(msg.survey_ident != null) {
 			surveyId = GeneralUtilityMethods.getSurveyId(sd, msg.survey_ident);
@@ -908,9 +918,25 @@ public class NotificationManager {
 										.append(". ");
 							}
 							
+							if(docURL != null) {
+								content.append("<p style=\"color:blue;text-align:center;\">")
+								.append("<a href=\"")
+								.append(msg.scheme + "://")
+								.append(msg.server)
+								.append(docURL)
+								.append("\">")
+								.append(survey.displayName)
+								.append("</a>")
+								.append("</p>");
+							}
+							
 							notify_details = localisation.getString("msg_en");
 							notify_details = notify_details.replaceAll("%s1", emails);
-							notify_details = notify_details.replaceAll("%s2", logContent);
+							if(logContent != null) {
+								notify_details = notify_details.replaceAll("%s2", logContent);
+							} else {
+								notify_details = notify_details.replaceAll("%s2", "-");
+							}
 							notify_details = notify_details.replaceAll("%s3", survey.displayName);
 							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							
@@ -970,7 +996,7 @@ public class NotificationManager {
 							} catch(Exception e) {
 								status = "error";
 								error_details = e.getMessage();
-								log.log(Level.INFO, error_details);
+								log.log(Level.SEVERE, error_details, e);
 							}
 						} else {
 							log.log(Level.INFO, "Info: List of email recipients is empty");
@@ -1063,6 +1089,38 @@ public class NotificationManager {
 					}
 		
 					
+				} else if(msg.target.equals("webhook")) {   // webhook call
+					
+					log.info("+++++ webhook call");
+					notify_details = localisation.getString("cb_nd");
+					notify_details = notify_details.replaceAll("%s1", msg.callback_url);
+					notify_details = notify_details.replaceAll("%s2", survey.displayName);
+					notify_details = notify_details.replaceAll("%s3", survey.projectName);
+					
+					try {
+						JSONArray data = dm.getInstanceData(
+								sd,
+								cResults,
+								survey,
+								survey.getFirstForm(),
+								0,
+								null,
+								msg.instanceId,
+								sm,
+								true);
+						String resp = "{}";
+						if(data.length() > 0) {
+							resp = data.getString(0).toString();
+						}
+						
+						WebhookManager wm = new WebhookManager(localisation);
+						wm.callRemoteUrl(msg.callback_url, resp, msg.remoteUser, msg.remotePassword);
+
+					} catch (Exception e) {
+						status = "error";
+						error_details = e.getMessage();
+						log.log(Level.SEVERE, e.getMessage(), e);
+					}
 				} else {
 					status = "error";
 					error_details = "Invalid target: " + msg.target;
@@ -1100,7 +1158,6 @@ public class NotificationManager {
 			if(msg.instanceId != null) {
 				RecordEventManager rem = new RecordEventManager(localisation, tz);
 				String tableName = GeneralUtilityMethods.getMainResultsTableSurveyIdent(sd, cResults, msg.survey_ident);
-				Gson gson = new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
 				
 				rem.writeEvent(
 						sd, 

@@ -450,6 +450,9 @@ public class SubscriberBatch {
 				// Erase any templates that were deleted more than a set time ago
 				eraseOldTemplates(sd, cResults, localisation, basePath);
 
+				// Delete linked csv files logically deleted more than 10 minutes age
+				deleteOldLinkedCSVFiles(sd, cResults, localisation, basePath);
+				
 				// Apply synchronisation
 				// 1. Get all synchronisation notifications
 				// 2. Loop through each prikey not in sync table 
@@ -813,6 +816,53 @@ public class SubscriberBatch {
 			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}	
 		}
 	}
+	
+	/*
+	 * When a new linked CSV file is generated the old one is marked for deletion
+	 * Allow 10 minutes which should give any web services that are downloading it time to complete and then delete it
+	 */
+	private void deleteOldLinkedCSVFiles(Connection sd, Connection cResults, ResourceBundle localisation, String basePath) {
+
+		PreparedStatement pstmt = null;
+		PreparedStatement pstmtFix = null;
+
+		try {
+
+			String sql = "select id, file, to_char(deleted_time, 'YYYY-MM-DD HH24:MI:SS') as deleted_time "
+					+ "from linked_files_old "
+					+ "where deleted_time  < (now() - interval '600 seconds') "
+					+ "and erase_time is null ";
+			pstmt = sd.prepareStatement(sql);
+			
+			String sqlFix = "update linked_files_old set erase_time = now() where id = ?";
+			pstmtFix = sd.prepareStatement(sqlFix);
+
+			/*
+			 * Temporary fix for lack of accurate date when a survey was deleted
+			 */
+			ResultSet rs = pstmt.executeQuery();
+			while(rs.next()) {
+				int id = rs.getInt("id");
+				String filePath = rs.getString("file");
+				String logicalDelDate = rs.getString("deleted_time");
+				
+				File f = new File(filePath);
+				if(f.exists()) {
+					log.info("Delete linked CSV file: " + f.getAbsolutePath() + " logical delete date was " + logicalDelDate);
+					f.delete();
+				}
+				pstmtFix.setInt(1,  id);
+				pstmtFix.executeUpdate();
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}	
+			try {if (pstmtFix != null) {pstmtFix.close();}} catch (SQLException e) {}
+		}
+	}
+	
 	/*
 	 * Create a Subscriber object for each subscriber
 	 */
@@ -1069,14 +1119,14 @@ public class SubscriberBatch {
 				+ "t.p_id,"
 				+ "n.target,"
 				+ "n.remote_user,"
-				+ "n.notify_details "
+				+ "n.notify_details,"
+				+ "n.remote_password "
 				+ "from tasks t, assignments a, forward n "
 				+ "where t.tg_id = n.tg_id "
 				+ "and t.id = a.task_id "
 				+ "and n.enabled "
 				+ "and n.trigger = 'task_reminder' "
 				+ "and a.status = 'accepted' "
-				//+ "and a.assigned_date < now() - cast(n.period as interval) "	// use schedule at however could allow assigned date to be used
 				+ "and t.schedule_at < now() - cast(n.period as interval) "
 				+ "and a.id not in (select a_id from reminder where n_id = n.id)";
 		PreparedStatement pstmt = null;
@@ -1109,6 +1159,7 @@ public class SubscriberBatch {
 				String target = rs.getString(7);
 				String remoteUser = rs.getString(8);
 				String notifyDetailsString = rs.getString(9);
+				String remotePassword = rs.getString(10);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
@@ -1134,7 +1185,10 @@ public class SubscriberBatch {
 						remoteUser,
 						"https",
 						serverName,
-						basePath);
+						basePath,
+						nd.callback_url,
+						remoteUser,
+						remotePassword);
 				
 				ResourceBundle localisation = locMap.get(nId);
 				if(localisation == null) {
