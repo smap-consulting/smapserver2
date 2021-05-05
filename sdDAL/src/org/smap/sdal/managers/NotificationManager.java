@@ -1091,6 +1091,7 @@ public class NotificationManager {
 					
 				} else if(msg.target.equals("webhook")) {   // webhook call
 					
+					log.info("+++++ webhook call");
 					notify_details = localisation.getString("cb_nd");
 					notify_details = notify_details.replaceAll("%s1", msg.callback_url);
 					notify_details = notify_details.replaceAll("%s2", survey.displayName);

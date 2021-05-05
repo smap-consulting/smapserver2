@@ -6,6 +6,7 @@ import java.util.logging.Logger;
 
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.CredentialsProvider;
@@ -55,61 +56,62 @@ public class WebhookManager {
 	
 	// Send an email
 	public void callRemoteUrl(String callbackUrl, String payload, String user, String password) throws Exception  {
-		
-		try {
-			String host_name = null;
-			String protocol = null;
-			int port = 0;
-			int endOfProtocol = 0;
-			
-			if(callbackUrl.startsWith("https://")) {
-				endOfProtocol = 8;
-				port = 443;
-				protocol = "https";
-			} else if(callbackUrl.startsWith("http://")) {
-				endOfProtocol = 7;
-				port = 80;
-				protocol = "http";
-			} else {
-				String msg = localisation.getString("cb_inv_url");
-				throw new ApplicationException(msg + ": " + callbackUrl);
-			}
-			int endOfHost = callbackUrl.indexOf('/', endOfProtocol);
-			if(endOfHost > 0) {
-				host_name = callbackUrl.substring(endOfProtocol, endOfHost);
-			} else {
-				host_name = callbackUrl.substring(endOfProtocol);
-			}
-		
-			HttpHost target = new HttpHost(host_name, port, protocol);
-			
-			CredentialsProvider credsProvider = null;
-			if(user != null && user.trim().length() > 0 && password != null && password.trim().length() > 0) {
-				credsProvider = new BasicCredentialsProvider();
-				credsProvider.setCredentials(
-						new AuthScope(target.getHostName(), target.getPort()),
-						new UsernamePasswordCredentials(user, password));
-			}
-			
-			CloseableHttpClient httpclient = HttpClients.custom()
-					.setDefaultCredentialsProvider(credsProvider)
-					.build();
 
-			HttpClientContext localContext = HttpClientContext.create();
-			HttpPost req = new HttpPost(URI.create(callbackUrl));
-			
-			// Add body
-			MultipartEntityBuilder entityBuilder =  MultipartEntityBuilder.create();
-			StringBody sba = new StringBody(payload, ContentType.TEXT_PLAIN);
-			entityBuilder.addPart("data", sba);
-			req.setEntity(entityBuilder.build());
-			log.info("	Info: submitting to: " + req.getURI().toString());
-			HttpResponse response = httpclient.execute(target, req, localContext);
-			int responseCode = response.getStatusLine().getStatusCode();
-			String responseReason = response.getStatusLine().getReasonPhrase(); 
-		} finally {
-			
+		String host_name = null;
+		String protocol = null;
+		int port = 0;
+		int endOfProtocol = 0;
+
+		if(callbackUrl.startsWith("https://")) {
+			endOfProtocol = 8;
+			port = 443;
+			protocol = "https";
+		} else if(callbackUrl.startsWith("http://")) {
+			endOfProtocol = 7;
+			port = 80;
+			protocol = "http";
+		} else {
+			String msg = localisation.getString("cb_inv_url");
+			throw new ApplicationException(msg + ": " + callbackUrl);
 		}
+		int endOfHost = callbackUrl.indexOf('/', endOfProtocol);
+		if(endOfHost > 0) {
+			host_name = callbackUrl.substring(endOfProtocol, endOfHost);
+		} else {
+			host_name = callbackUrl.substring(endOfProtocol);
+		}
+
+		HttpHost target = new HttpHost(host_name, port, protocol);
+
+		CredentialsProvider credsProvider = null;
+		if(user != null && user.trim().length() > 0 && password != null && password.trim().length() > 0) {
+			credsProvider = new BasicCredentialsProvider();
+			credsProvider.setCredentials(
+					new AuthScope(target.getHostName(), target.getPort()),
+					new UsernamePasswordCredentials(user, password));
+		}
+
+		CloseableHttpClient httpclient = HttpClients.custom()
+				.setDefaultCredentialsProvider(credsProvider)
+				.build();
+
+		HttpClientContext localContext = HttpClientContext.create();
+		HttpPost req = new HttpPost(URI.create(callbackUrl));
+
+		// Add body
+		MultipartEntityBuilder entityBuilder =  MultipartEntityBuilder.create();
+		StringBody sba = new StringBody(payload, ContentType.TEXT_PLAIN);
+		entityBuilder.addPart("data", sba);
+		req.setEntity(entityBuilder.build());
+		log.info("	Info: Webhook request to: " + req.getURI().toString());
+		HttpResponse response = httpclient.execute(target, req, localContext);
+		int responseCode = response.getStatusLine().getStatusCode();
+		String responseReason = response.getStatusLine().getReasonPhrase(); 
+		log.info("	Info: Webhook response: " + responseCode + " : " + responseReason);
+		if(responseCode != HttpStatus.SC_OK && responseCode != HttpStatus.SC_ACCEPTED && responseCode != HttpStatus.SC_CREATED) {
+			throw new ApplicationException(responseCode + " : " + responseReason);
+		}
+
 	}
 }
 
