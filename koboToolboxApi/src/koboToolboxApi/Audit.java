@@ -21,7 +21,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import managers.AuditManager;
-import model.DataEndPoint;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -58,6 +57,7 @@ import org.smap.sdal.managers.CustomReportsManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.AuditData;
+import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.ReportConfig;
 import org.smap.sdal.model.TableColumn;
 

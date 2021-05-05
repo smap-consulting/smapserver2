@@ -20,9 +20,6 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import managers.DataManager;
-import model.DataEndPoint;
-
 import java.io.PrintWriter;
 import java.lang.reflect.Type;
 import java.sql.Connection;
@@ -53,9 +50,11 @@ import org.smap.sdal.Utilities.RateLimiter;
 import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.CustomReportsManager;
+import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.TableDataManager;
 import org.smap.sdal.model.AuditItem;
+import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.KeyValue;
 import org.smap.sdal.model.RateLimitInfo;
 import org.smap.sdal.model.ReportConfig;
@@ -118,7 +117,7 @@ public class Data_CSV extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 						
-			DataManager dm = new DataManager(localisation);
+			DataManager dm = new DataManager(localisation, "UTC");
 			ArrayList<DataEndPoint> data = dm.getDataEndPoints(sd, request, true);
 
 			response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");

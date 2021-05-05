@@ -578,7 +578,10 @@ public class NotificationList extends Application {
 					request.getRemoteUser(),
 					scheme,
 					serverName,
-					basePath);
+					basePath,
+					nd.callback_url,
+					n.remote_user,
+					n.remote_password);
 			MessagingManager mm = new MessagingManager(localisation);
 			mm.createMessage(sd, oId, "submission", "", gson.toJson(subMsg));
 			
