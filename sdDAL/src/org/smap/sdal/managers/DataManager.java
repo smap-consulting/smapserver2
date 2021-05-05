@@ -264,31 +264,35 @@ public class DataManager {
 							data.put(name, rs.getString(i + 1));
 						}
 							
-						for(Form f : s.forms) {
-							if(f.parentform == form.id) {
-								int parentQuestion = f.parentQuestionIndex;
-								Question q = form.questions.get(parentQuestion);
-								name = q.name;
-								if(q.display_name != null) {
-									name = q.display_name;
-								}
-								data.put(name, getInstanceData(
-										sd,
-										cResults,
-										s,
-										s.getSubFormQId(form, q.id),
-										prikey,
-										null,
-										null,
-										sm,
-										false));
-							}
-						}		
+	
 					}
 				
+					// Get the data for sub forms
+					for(Form f : s.forms) {
+						if(f.parentform == form.id) {
+							int parentQuestion = f.parentQuestionIndex;
+							Question q = form.questions.get(parentQuestion);
+							String name = q.name;
+							if(q.display_name != null) {
+								name = q.display_name;
+							}
+							data.put(name, getInstanceData(
+									sd,
+									cResults,
+									s,
+									s.getSubFormQId(form, q.id),
+									prikey,
+									null,
+									null,
+									sm,
+									false));
+						}
+					}	
+					
 					dataArray.put(data);	
 	
 				}
+
 			}			
 			
 		} finally {
