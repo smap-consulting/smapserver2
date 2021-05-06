@@ -491,8 +491,6 @@ public class Billing extends Application {
 		String sqlRekognition = "select  count(*) as total "
 				+ "from log "
 				+ "where event = ? "
-				//+ "and extract(month from log_time) = ? "
-				//+ "and extract(year from log_time) = ?";
 				+ "and log_time >=  ? "		// current month
 				+ "and log_time < ? ";		// next month
 		PreparedStatement pstmt = null;
@@ -503,8 +501,6 @@ public class Billing extends Application {
 			
 			pstmt = sd.prepareStatement(sqlRekognition);
 			pstmt.setString(1, LogManager.REKOGNITION);
-			//pstmt.setInt(2, month);
-			//pstmt.setInt(3, year);
 			pstmt.setTimestamp(2, t1);
 			pstmt.setTimestamp(3, t2);
 			
