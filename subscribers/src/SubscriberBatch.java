@@ -423,13 +423,27 @@ public class SubscriberBatch {
 									break;
 								}
 								
-								if(ue.getAssignmentId() > 0) {
-									lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION_TASK, se.getStatus(), 0);
+								/*
+								 * Write log entry
+								 */
+								String status = se.getStatus();
+								String reason = se.getReason();
+								String topic;
+								if(status.equals("error")) {
+									if(reason != null && reason .startsWith("Duplicate")) {
+										topic = LogManager.DUPLICATE;
+									} else {
+										topic = LogManager.SUBMISSION_ERROR;
+									}
+								} else if(ue.getAssignmentId() > 0) {
+									topic =  LogManager.SUBMISSION_TASK;
 								} else if(ue.getTemporaryUser() || GeneralUtilityMethods.isTemporaryUser(sd, ue.getUserName())) {	// Note the temporaryUser flag in ue is only set for submissions with an action
-									lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION_ANON, se.getStatus(), 0);
+									topic = LogManager.SUBMISSION_ANON;
 								} else {
-									lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), LogManager.SUBMISSION, se.getStatus(), 0);
+									topic = LogManager.SUBMISSION;
 								}
+								
+								lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " + (se.getReason() == null ? "" : se.getReason()), 0);
 							}
 						}
 					} 

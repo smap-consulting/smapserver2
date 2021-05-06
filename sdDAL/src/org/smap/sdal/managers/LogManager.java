@@ -53,7 +53,9 @@ public class LogManager {
 	public static String EMAIL = "email";
 	public static String EMAIL_TASK = "email task";
 	public static String ERASE = "erase";
+	public static String DUPLICATE = "duplicate";
 	public static String ERROR = "error";
+	public static String SUBMISSION_ERROR = "submission error";
 	public static String EXPIRED = "expired";
 	public static String GENERATE_REPORT_VIEW = "generate report view";
 	public static String INSTANCE_VIEW = "Access instance data for a task";
