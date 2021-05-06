@@ -498,7 +498,7 @@ public class EmailManager {
 			
 			// Add body part
 			MimeBodyPart messageBodyPart = new MimeBodyPart();
-			messageBodyPart.setText(template.toString(), "utf-8", "html");
+			messageBodyPart.setText(contentString, "utf-8", "html");
 			multipart.addBodyPart(messageBodyPart);
 
 			// Add file attachments if they exist

@@ -501,6 +501,9 @@ public class UtilityMethodsEmail {
 	
 	/*
 	 * Check to see if a password has been sent within the last 'interval'
+	 * The interval for password reset is 1 hour, however if the expiry time was set by account creation it will be 48 hours.
+	 * Hence allow a resend if the expiry time is greater than 1 hour
+	 * This means there is an anomoly where resend will not be allowed between 50 and 60 minutes before an account registration expires
 	 * This is a security measure to prevent spamming
 	 */
 	static public boolean hasOnetimePasswordBeenSent(
@@ -514,7 +517,8 @@ public class UtilityMethodsEmail {
 
 		String sql = "select count(*) from users "
 				+ "where "
-				+ "one_time_password_expiry > (timestamp 'now' + interval '" + interval + "') "
+				+ "(one_time_password_expiry > (timestamp 'now' + interval '" + interval + "') "
+						+ "or one_time_password_expiry > (timestamp 'now' + interval '3600 seconds') )"    // Expiry time set by account registration
 				+ "and email ilike ?";
 
 		pstmt = connectionSD.prepareStatement(sql);	
