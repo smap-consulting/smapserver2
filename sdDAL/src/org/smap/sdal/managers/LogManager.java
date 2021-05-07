@@ -65,6 +65,7 @@ public class LogManager {
 	public static String MOVE_ORGANISATION = "move organisation";
 	public static String MOVE_PROJECT = "move project";
 	public static String NOTIFICATION = "notification";
+	public static String NOTIFICATION_ERROR = "notification error";
 	public static String OPTIN = "optin";
 	public static String ORGANISATION_UPDATE = "organisation update";
 	public static String PROJECT = "project";
