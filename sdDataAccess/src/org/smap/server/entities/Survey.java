@@ -70,6 +70,8 @@ public class Survey implements Serializable {
 	
 	private boolean hideOnDevice;
 	
+	private boolean searchLocalData;
+	
 	private String surveyClass;
 	
 	private boolean loaded_from_xls = false;
@@ -149,6 +151,10 @@ public class Survey implements Serializable {
 	
 	public boolean getHideOnDevice() {
 		return hideOnDevice;
+	}
+	
+	public boolean getSearchLocalData() {
+		return searchLocalData;
 	}
 	
 	// Get the display name with any HTML reserved characters escaped
@@ -234,6 +240,10 @@ public class Survey implements Serializable {
 	
 	public void setHideOnDevice(boolean v) {
 		hideOnDevice = v;
+	}
+	
+	public void setSearchLocalData(boolean v) {
+		searchLocalData = v;
 	}
 	
 	public void setHrk(String v) {

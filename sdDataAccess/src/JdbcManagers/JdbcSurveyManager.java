@@ -73,6 +73,7 @@ public class JdbcSurveyManager {
 			+ "audit_location_data,"
 			+ "track_changes,"
 			+ "hide_on_device,"
+			+ "search_local_data,"
 			+ "meta "
 			+ "from survey where ";
 	String sqlIdentWhere = "ident = ?";
@@ -92,8 +93,6 @@ public class JdbcSurveyManager {
 	public JdbcSurveyManager(Connection sd) throws SQLException {
 		pstmt = sd.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 		pstmtUpdate = sd.prepareStatement(sqlUpdate);
-		//pstmtUpdateSelfCalcs = sd.prepareStatement(sqlUpdateSelfCalcs);
-		//pstmtUpdateSelfCalcsManifest = sd.prepareStatement(sqlUpdateSelfCalcsManifest);
 		pstmtGetByIdent = sd.prepareStatement(sqlGet + sqlIdentWhere);
 		pstmtGetById = sd.prepareStatement(sqlGet + sqlIdWhere);
 		pstmtExists = sd.prepareStatement(sqlExists);
@@ -221,7 +220,8 @@ public class JdbcSurveyManager {
 			s.setAuditLocationData(rs.getBoolean(14));
 			s.setTrackChanges(rs.getBoolean(15));
 			s.setHideOnDevice(rs.getBoolean(16));
-			s.setMeta(rs.getString(17));
+			s.setSearchLocalData(rs.getBoolean(17));
+			s.setMeta(rs.getString(18));
 		
 		}
 		return s;
