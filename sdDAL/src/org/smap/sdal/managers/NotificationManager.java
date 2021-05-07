@@ -1150,6 +1150,19 @@ public class NotificationManager {
 				pstmtNotificationLog.setInt(7, messageId);
 				
 				pstmtNotificationLog.executeUpdate();
+				
+				/*
+				 * Write log entry
+				 */
+
+				String logTopic;
+				if(status.toLowerCase().equals("error")) {
+					logTopic = LogManager.NOTIFICATION_ERROR;
+				} else {
+					logTopic = LogManager.NOTIFICATION;
+				}
+				
+				lm.writeLog(sd, surveyId, "subscriber", logTopic, status + " : " + notify_details + (error_details == null ? "" : error_details), 0);
 			}
 			
 			/*
