@@ -70,6 +70,7 @@ public class Survey {
 	public boolean exclude_empty;
 	public String projectName;
 	private boolean hideOnDevice;		// Replaces projectTasksOnly
+	private boolean searchLocalData;
 	public boolean dataSurvey = true;
 	public boolean oversightSurvey = true;
 	public String groupSurveyIdent;
@@ -89,6 +90,9 @@ public class Survey {
 	public boolean hasManifest() { return hasManifest;};
 	public boolean getHideOnDevice() { 
 		return hideOnDevice;
+	};
+	public boolean getSearchLocalData() { 
+		return searchLocalData;
 	};
 	
 	public Form getFirstForm() {
@@ -207,6 +211,7 @@ public class Survey {
 	public void setProjectName(String v) { projectName = v;};
 	public void setProjectId(int v) { p_id = v;};
 	public void setHideOnDevice(boolean v) { hideOnDevice = v;};
+	public void setSearchLocalData(boolean v) { searchLocalData = v;};
 	
 	/*
 	 * Write a survey to the database
@@ -278,6 +283,7 @@ public class Survey {
 				+ "public_link,"
 				+ "pulldata,"
 				+ "hide_on_device,"
+				+ "search_local_data,"
 				+ "data_survey,"
 				+ "oversight_survey,"
 				+ "timing_data,"
@@ -286,7 +292,7 @@ public class Survey {
 				+ "auto_translate,"
 				+ "default_logo) "
 				+ "values (nextval('s_seq'), now(), ?, ?,  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, now(), "
-				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
+				+ "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";		
 		PreparedStatement pstmt = null;
 		
 		String sqlUpdate = "update survey set "
@@ -319,13 +325,14 @@ public class Survey {
 			}
 			pstmt.setString(16, pd);
 			pstmt.setBoolean(17, hideOnDevice);
-			pstmt.setBoolean(18, dataSurvey);
-			pstmt.setBoolean(19, oversightSurvey);
-			pstmt.setBoolean(20, timing_data);
-			pstmt.setBoolean(21, audit_location_data);
-			pstmt.setBoolean(22, track_changes);
-			pstmt.setBoolean(23, autoTranslate);
-			pstmt.setString(24, default_logo);
+			pstmt.setBoolean(18, searchLocalData);
+			pstmt.setBoolean(19, dataSurvey);
+			pstmt.setBoolean(20, oversightSurvey);
+			pstmt.setBoolean(21, timing_data);
+			pstmt.setBoolean(22, audit_location_data);
+			pstmt.setBoolean(23, track_changes);
+			pstmt.setBoolean(24, autoTranslate);
+			pstmt.setString(25, default_logo);
 			pstmt.executeUpdate();
 			
 			// If an ident was not provided then assign a new ident based on the survey id

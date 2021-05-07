@@ -916,6 +916,7 @@ public class Surveys extends Application {
 					+ "key_policy = ?, "
 					+ "exclude_empty = ?, "
 					+ "hide_on_device = ?, "
+					+ "search_local_data = ?, "
 					+ "data_survey = ?, "
 					+ "oversight_survey = ?, "
 					+ "audit_location_data = ?, "
@@ -942,16 +943,17 @@ public class Surveys extends Application {
 			pstmt.setString(11, survey.key_policy);
 			pstmt.setBoolean(12, survey.exclude_empty);
 			pstmt.setBoolean(13, survey.getHideOnDevice());
-			pstmt.setBoolean(14, survey.dataSurvey);
-			pstmt.setBoolean(15, survey.oversightSurvey);
-			pstmt.setBoolean(16, survey.audit_location_data);
-			pstmt.setBoolean(17, survey.track_changes);
-			pstmt.setString(18, survey.default_logo);
+			pstmt.setBoolean(14, survey.getSearchLocalData());
+			pstmt.setBoolean(15, survey.dataSurvey);
+			pstmt.setBoolean(16, survey.oversightSurvey);
+			pstmt.setBoolean(17, survey.audit_location_data);
+			pstmt.setBoolean(18, survey.track_changes);
+			pstmt.setString(19, survey.default_logo);
 			if(updatePDFName) {
-				pstmt.setString(19, fileName);
-				pstmt.setInt(20, sId);
+				pstmt.setString(20, fileName);
+				pstmt.setInt(21, sId);
 			} else {
-				pstmt.setInt(19, sId);
+				pstmt.setInt(20, sId);
 			}
 			
 			log.info("Saving survey: " + pstmt.toString());
