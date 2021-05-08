@@ -50,6 +50,7 @@ import org.smap.sdal.managers.ResourceManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.AppearanceOptions;
 import org.smap.sdal.model.DeviceSettings;
+import org.smap.sdal.model.EmailSettings;
 import org.smap.sdal.model.Organisation;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.SensitiveData;
@@ -476,6 +477,65 @@ public class OrganisationList extends Application {
 	}
 	
 	@GET
+	@Path("/email")
+	public Response getEmailSettings(@Context HttpServletRequest request) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-getEmailSettings";
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		String sql = "select admin_email, smtp_host, email_domain, "
+				+ "email_user, email_password,"
+				+ "email_port, default_email_content,"
+				+ "server_description "
+				+ "from organisation "
+				+ "where "
+				+ "id = (select o_id from users where ident = ?)";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			pstmt = sd.prepareStatement(sql);	
+			pstmt.setString(1, request.getRemoteUser());
+					
+			log.info("Get organisation email details: " + pstmt.toString());
+			ResultSet rs = pstmt.executeQuery();
+			
+			if(rs.next()) {
+				EmailSettings e = new EmailSettings();
+				e.admin_email = rs.getString("admin_email");
+				e.smtp_host = rs.getString("smtp_host");
+				e.email_domain = rs.getString("email_domain");
+				e.email_user = rs.getString("email_user");
+				e.email_password = rs.getString("email_password");
+				e.email_port = rs.getInt("email_port");
+				e.default_email_content  = rs.getString("default_email_content");
+				e.server_description = rs.getString("server_description");
+				
+				
+				Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+				String resp = gson.toJson(e);
+				response = Response.ok(resp).build();
+			} else {
+				response = Response.serverError().entity("not found").build();
+			}
+			
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}	
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	@GET
 	@Path("/webform")
 	public Response getWebformSettings(@Context HttpServletRequest request) {
 		Response response = null;
@@ -670,6 +730,78 @@ public class OrganisationList extends Application {
 			pstmt.setInt(23, oId);
 					
 			log.info("Update organisation with device details: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+			String orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
+			String msg = localisation.getString("org_device");
+			msg = msg.replace("%s1", orgName);
+			lm.writeLog(sd, -1, request.getRemoteUser(), LogManager.ORGANISATION_UPDATE, msg, 0);
+
+			response = Response.ok().build();
+	
+		} catch (SQLException e) {
+			log.log(Level.SEVERE, "Exception", e);
+			response = Response.serverError().entity(e.getMessage()).build();
+		} finally {			
+			try {if (pstmt != null) {pstmt.close();} } catch (SQLException e) {	}		
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	@POST
+	@Path("/email")
+	public Response updateEmailSettings(
+			@Context HttpServletRequest request, 
+			@FormParam("settings") String settings) {
+		Response response = null;
+		
+		String connectionString = "surveyKPI-OrganisationList-updateEmailSettings";
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		aAdminAnalyst.isAuthorised(sd, request.getRemoteUser());
+		// End Authorisation
+		
+		String sql = "update organisation set "
+			
+				+ "admin_email = ?, "
+				+ "smtp_host = ?, "
+				+ "email_domain = ?, "
+				+ "email_user = ?, "
+				+ "email_password = ?, "
+				+ "email_port = ?, "
+				+ "default_email_content = ?, "
+				+ "server_description = ?, "
+				+ "changed_by = ?, "
+				+ "changed_ts = now() "
+				+ "where "
+				+ "id = ?";
+	
+		PreparedStatement pstmt = null;
+		
+		try {
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+	
+			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			
+			EmailSettings e = new Gson().fromJson(settings, EmailSettings.class);
+			
+			
+			pstmt = sd.prepareStatement(sql);
+			pstmt.setString(1, e.admin_email);
+			pstmt.setString(2, e.smtp_host);
+			pstmt.setString(3, e.email_domain);
+			pstmt.setString(4, e.email_user);
+			pstmt.setString(5, e.email_password);
+			pstmt.setInt(6, e.email_port);
+			pstmt.setString(7, e.default_email_content);
+			pstmt.setString(8, e.server_description);
+			pstmt.setString(9, request.getRemoteUser());
+			pstmt.setInt(10, oId);
+					
+			log.info("Update organisation with email details: " + pstmt.toString());
 			pstmt.executeUpdate();
 			
 			String orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
