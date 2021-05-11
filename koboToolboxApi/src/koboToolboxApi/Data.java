@@ -244,19 +244,23 @@ public class Data extends Application {
 		
 		boolean includeHierarchy = false;
 		boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
+		String mergeExp = "no";
 		if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
 			includeMeta = true;
 		}
 		if(hierarchy != null && (hierarchy.equals("true") || hierarchy.equals("yes"))) {
 			includeHierarchy = true;
 		}
+		if(merge != null && (merge.equals("true") || merge.equals("yes"))) {
+			mergeExp = "yes";
+		}
 		
 		// Authorisation is done in getSingleRecord
 		if(includeHierarchy) {
-			return getSingleRecordHierarchy(request,
+			return getRecordHierarchy(request,
 					sIdent,
 					uuid,
-					merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+					mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
 					tz,				// Timezone
 					includeMeta
 					);	
@@ -264,11 +268,42 @@ public class Data extends Application {
 			return getSingleRecord(request,
 					sIdent,
 					uuid,
-					merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+					mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
 					tz,				// Timezone
 					includeMeta
 					);	
 		}
+	}
+	
+	/*
+	 * KoboToolBox API version 1 /data
+	 * Get multiple data records in hierarchy format
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/poll/{sIdent}")
+	public Response getMultipleHierarchyDataRecords(@Context HttpServletRequest request,
+			@Context HttpServletResponse response,
+			@PathParam("sIdent") String sIdent,	
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("meta") String meta,				// If set true then include meta
+			@QueryParam("filter") String filter
+			) throws ApplicationException, Exception { 
+		
+		boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
+		if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
+			includeMeta = true;
+		}
+		
+		// Authorisation is done in getSingleRecord
+
+		return getRecordHierarchy(request,
+				sIdent,
+				null,
+				"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
+				tz,				// Timezone
+				true
+				);	
 	}
 	
 	/*
@@ -966,11 +1001,10 @@ public class Data extends Application {
 	}
 	
 	/*
-	 * KoboToolBox API version 1 /data
-	 * Get a single record in JSON format
+	 * Get record(s) in JSON format
 	 * Return as a hierarchy of forms and subforms rather than separating the sub form data out into arrays
 	 */
-	private Response getSingleRecordHierarchy(HttpServletRequest request,
+	private Response getRecordHierarchy(HttpServletRequest request,
 			String sIdent,
 			String uuid,
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
@@ -980,7 +1014,7 @@ public class Data extends Application {
 
 		Response response;
 		
-		String connectionString = "koboToolboxApi - get single record - hierarchy";
+		String connectionString = "koboToolboxApi - get record - hierarchy";
 		
 		Connection cResults = null;
 		
@@ -1053,9 +1087,18 @@ public class Data extends Application {
 					sm,
 					includeMeta);
 			
-			String resp = "{}";
+			String resp = null;
+			if(uuid == null) {
+				resp = "[]";
+			} else {
+				resp = "{}";
+			}
 			if(data.length() > 0) {
-				resp = data.getString(0).toString();
+				if(uuid == null) {
+					resp = data.toString();
+				} else {
+					resp = data.getString(0);
+				}
 			}
 			response = Response.ok(resp).build();
 		

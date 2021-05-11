@@ -83,9 +83,9 @@ public class DataManager {
 	}
 	
 	/*
-	 * Get the instance data for a record in a survey
-	 * Unlike the getInstances() function in SurveyManager, this request creates a single JSON objectthat includes repeat information 
-	 * in its correct location as defined by the survey definition
+	 * Get the instance data for a record or records in a survey
+	 * Unlike the getInstances() function in SurveyManager, this request creates JSON objects that includes repeat information 
+	 * in their correct location as defined by the survey definition
 	 */
 	public JSONArray getInstanceData(
 			Connection sd,
@@ -151,7 +151,18 @@ public class DataManager {
 			/*
 			 * Get the latest instanceid in case this record has been updated
 			 */
-			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, form.tableName, instanceId);
+			if(instanceId != null) {
+				instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, form.tableName, instanceId);
+			}
+			
+			/*
+			 * Only return the last 20 minutes of submissions if the instance is not specified
+			 * Assumes polling is at max 15 minutes
+			 */
+			String filter = null;
+			if(instanceId == null && parkey == 0) {
+				filter = "${_upload_time} > now() - {20_minutes}";
+			}
 			
 			/*
 			 * Get the data
@@ -179,18 +190,18 @@ public class DataManager {
 					false,		// super user
 					false,		// Return records greater than or equal to primary key
 					"none",		// include bad
-					null	,		// no custom filter
+					null,		// no custom filter
 					null,		// key filter
 					tz,
 					instanceId,
-					null	,			// advanced filter
+					filter,			// advanced filter
 					null,			// Date filter name
 					null,			// Start date
 					null				// End date
 					);
 			
 			if(pstmt != null) {
-				log.info("Getting single instance: " + pstmt.toString());
+				log.info("Data Manager Getting instance data: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				
 				while(rs.next()) {
