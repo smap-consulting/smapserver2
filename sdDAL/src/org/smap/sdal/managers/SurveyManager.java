@@ -4871,6 +4871,9 @@ public class SurveyManager {
 		try {
 			pstmt = sd.prepareStatement(sql.toString());	
 			pstmt.setString(1,  user);
+			if(!superUser) {
+				pstmt.setString(2, user);		// RBAC check
+			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
 				surveys.add(new SurveyIdent(rs.getString(1), rs.getString(2), rs.getString(3)));
