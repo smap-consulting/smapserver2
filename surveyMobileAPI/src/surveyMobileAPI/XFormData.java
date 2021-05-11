@@ -450,8 +450,8 @@ public class XFormData {
 			try {if (rsRepeating != null) {rsRepeating.close();}} catch (SQLException e) {}
 			try {if (pstmtIsRepeating != null) {pstmtIsRepeating.close();}} catch (SQLException e) {}
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
-			SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);
-			ResultsDataSource.closeConnection("surveyMobileAPI-XFormData", cResults);
+			try {SDDataSource.closeConnection("surveyMobileAPI-XFormData", sd);} catch(Exception e) {}
+			try {ResultsDataSource.closeConnection("surveyMobileAPI-XFormData", cResults);}catch(Exception e) {}
 		}
 	}
 
