@@ -4850,7 +4850,7 @@ public class SurveyManager {
 		ArrayList<SurveyIdent> surveys = new ArrayList<> ();
 		
 		StringBuffer sql = new StringBuffer("");
-		sql.append("select p.name as project_name, s.display_name, s.ident "
+		sql.append("select p.name as project_name, s.display_name, s.ident, s.s_id "
 				+ "from survey s, users u, user_project up, project p, organisation o "
 				+ "where u.id = up.u_id "
 				+ "and p.id = up.p_id "
@@ -4876,7 +4876,7 @@ public class SurveyManager {
 			}
 			ResultSet rs = pstmt.executeQuery();
 			while(rs.next()) {
-				surveys.add(new SurveyIdent(rs.getString(1), rs.getString(2), rs.getString(3)));
+				surveys.add(new SurveyIdent(rs.getInt(4),rs.getString(1), rs.getString(2), rs.getString(3)));
 			}
 		} finally {
 			if(pstmt != null) {try {pstmt.close();}catch(Exception e) {}}
