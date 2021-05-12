@@ -215,6 +215,9 @@ public class DataManager {
 						name = c.displayName;
 						if(name.equals("prikey")) {
 							prikey = rs.getInt(i + 1);
+							if(parkey == 0) {
+								name = "id";	// for zapier
+							}
 							if(includeMeta) {
 								data.put(name, prikey);
 							}
