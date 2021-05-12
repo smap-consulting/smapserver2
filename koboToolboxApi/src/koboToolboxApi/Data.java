@@ -281,22 +281,20 @@ public class Data extends Application {
 	 */
 	@GET
 	@Produces("application/json")
-	@Path("/poll/{sIdent}")
+	@Path("/poll")
 	public Response getMultipleHierarchyDataRecords(@Context HttpServletRequest request,
 			@Context HttpServletResponse response,
-			@PathParam("sIdent") String sIdent,	
+			@QueryParam("survey") String sIdent,	
 			@QueryParam("tz") String tz,					// Timezone
-			@QueryParam("meta") String meta,				// If set true then include meta
 			@QueryParam("filter") String filter
 			) throws ApplicationException, Exception { 
 		
-		boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
-		if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
-			includeMeta = true;
+	
+		if(tz == null) {
+			tz = "UTC";
 		}
 		
 		// Authorisation is done in getSingleRecord
-
 		return getRecordHierarchy(request,
 				sIdent,
 				null,
@@ -1033,7 +1031,6 @@ public class Data extends Application {
 		// End Authorisation
 
 		tz = (tz == null) ? "UTC" : tz;
-
 		
 		try {
 
@@ -1106,7 +1103,8 @@ public class Data extends Application {
 		} catch (Exception e) {
 			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
 			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
+			String resp = "{error: " + e.getMessage() + "}";
+			response = Response.serverError().entity(resp).build();
 		} finally {
 			ResultsDataSource.closeConnection(connectionString, cResults);			
 			SDDataSource.closeConnection(connectionString, sd);
