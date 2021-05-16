@@ -107,43 +107,14 @@ public class EmailManager {
 		}
 
 		RecipientType rt = null;
+		
+		if(emailServer != null) {
+			sender = emailServer.emailUser;
+		}
+		
 		try {
-			Properties props = System.getProperties();
-			props.put("mail.smtp.host", emailServer.smtpHost);	
-
-			Authenticator authenticator = null;
-
-			// Create an authenticator if the user name and password is available
-			if(emailServer.emailUser != null && emailServer.emailPassword != null 
-					&& emailServer.emailUser.trim().length() > 0 
-					&& emailServer.emailPassword.trim().length() > 0) {
-				String authUser = emailServer.emailUser + "@" + emailServer.emailDomain;
-				authenticator = new Authenticator(authUser, emailServer.emailPassword);
-				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
-				props.setProperty("mail.smtp.auth", "true");
-				//props.setProperty("mail.smtp.starttls.enable", "true");
-				if(emailServer.emailPort > 0) {
-					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
-				} else {
-					props.setProperty("mail.smtp.port", "587");	
-				}
-
-				sender = emailServer.emailUser;
-
-				log.info("Trying to send email with authentication");
-			} else {
-				if(emailServer.emailPort > 0) {
-					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
-				} else {
-					// Use default port (25?)
-				}
-				log.info("No authentication");
-			}
-
-			props.setProperty("mail.smtp.connectiontimeout", "60000");
-			props.setProperty("mail.smtp.timeout", "60000");
-			props.setProperty("mail.smtp.writetimeout", "60000");
-			Session session = Session.getInstance(props, authenticator);
+			Session session = getEmailSession(emailServer);
+			
 			Message msg = new MimeMessage(session);
 			if(type.equals("notify")) {
 				rt = Message.RecipientType.BCC;
@@ -397,44 +368,10 @@ public class EmailManager {
 		}
 
 		RecipientType rt = null;
-		String sender = "";
+		String sender = emailServer == null ? "" : emailServer.emailUser;
 		try {
-			Properties props = System.getProperties();
-			props.put("mail.smtp.host", emailServer.smtpHost);	
-
-			Authenticator authenticator = null;
-
-			// Create an authenticator if the user name and password is available
-			if(emailServer.emailUser != null && emailServer.emailPassword != null 
-					&& emailServer.emailUser.trim().length() > 0 
-					&& emailServer.emailPassword.trim().length() > 0) {
-				String authUser = emailServer.emailUser + "@" + emailServer.emailDomain;
-				authenticator = new Authenticator(authUser, emailServer.emailPassword);
-				props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
-				props.setProperty("mail.smtp.auth", "true");
-				//props.setProperty("mail.smtp.starttls.enable", "true");
-				if(emailServer.emailPort > 0) {
-					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
-				} else {
-					props.setProperty("mail.smtp.port", "587");	
-				}
-
-				sender = emailServer.emailUser;
-
-				log.info("Trying to send email as html with authentication");
-			} else {
-				if(emailServer.emailPort > 0) {
-					props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
-				} else {
-					// Use default port (25?)
-				}
-				log.info("No authentication");
-			}
-
-			props.setProperty("mail.smtp.connectiontimeout", "60000");
-			props.setProperty("mail.smtp.timeout", "60000");
-			props.setProperty("mail.smtp.writetimeout", "60000");
-			Session session = Session.getInstance(props, authenticator);
+			Session session = getEmailSession(emailServer);
+			
 			Message msg = new MimeMessage(session);
 			if(ccType.equals("bcc")) {
 				rt = Message.RecipientType.BCC;
@@ -525,6 +462,48 @@ public class EmailManager {
 			String msg = me.getMessage();
 			throw new Exception(localisation.getString("email_cs") + ":  " + msg);
 		}
+	}
+	
+	private Session getEmailSession(EmailServer emailServer) {
+		Properties props = System.getProperties();
+		props.put("mail.smtp.host", emailServer.smtpHost);	
+
+		Authenticator authenticator = null;
+
+		// Create an authenticator if the user name and password is available
+		if(emailServer.emailUser != null && emailServer.emailPassword != null 
+				&& emailServer.emailUser.trim().length() > 0 
+				&& emailServer.emailPassword.trim().length() > 0) {
+			String authUser = emailServer.emailUser + "@" + emailServer.emailDomain;
+			authenticator = new Authenticator(authUser, emailServer.emailPassword);
+			props.setProperty("mail.smtp.submitter", authenticator.getPasswordAuthentication().getUserName());
+			props.setProperty("mail.smtp.auth", "true");
+			props.put("mail.smtp.ssl.trust", emailServer.smtpHost);
+			props.setProperty("mail.smtp.starttls.enable", "true");
+			props.setProperty("mail.smtp.ssl.protocols", "TLSv1.2");
+			if(emailServer.emailPort > 0) {
+				props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
+			} else {
+				props.setProperty("mail.smtp.port", "587");	
+			}
+
+			log.info("Trying to send email as html with authentication");
+		} else {
+			if(emailServer.emailPort > 0) {
+				props.setProperty("mail.smtp.port", String.valueOf(emailServer.emailPort));
+			} else {
+				// Use default port (25?)
+			}
+			log.info("No authentication");
+		}
+
+		props.setProperty("mail.smtp.connectiontimeout", "60000");
+		props.setProperty("mail.smtp.timeout", "60000");
+		props.setProperty("mail.smtp.writetimeout", "60000");
+		
+		log.info("Email properties: " + props.toString());
+		
+		return Session.getInstance(props, authenticator);
 	}
 	
 	boolean alertEmailSent(Connection sd, int oId, String type) throws SQLException {
