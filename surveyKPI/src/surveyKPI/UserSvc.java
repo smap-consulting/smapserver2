@@ -272,6 +272,9 @@ public class UserSvc extends Application {
 						+ "ident = ?";
 				
 				pwdString = ident + ":smap:" + u.password;
+				
+				// Delete any session keys for this user
+				GeneralUtilityMethods.deleteAccessKeys(sd, u.ident);
 			}
 			
 			pstmt = sd.prepareStatement(sql);

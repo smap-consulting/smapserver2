@@ -1650,7 +1650,7 @@ public class GeneralUtilityMethods {
 
 		int id = -1;
 
-		String sql = "select id " + " from users u " + " where u.ident = ?";
+		String sql = "select id from users u where u.ident = ?";
 
 		PreparedStatement pstmt = null;
 
@@ -2494,22 +2494,21 @@ public class GeneralUtilityMethods {
 	/*
 	 * Get an access key to allow results for a form to be securely submitted
 	 */
-	public static String getNewAccessKey(Connection sd, String userIdent, String surveyIdent, boolean isTemporaryUser) throws SQLException {
+	public static String getNewAccessKey(Connection sd, String userIdent, boolean isTemporaryUser) throws SQLException {
 
 		String key = null;
 		int userId = -1;
-
-		String sqlGetUserId = "select u.id from users u where u.ident = ?;";
-		PreparedStatement pstmtGetUserId = null;
 
 		String sqlClearObsoleteKeys = "delete from dynamic_users " 
 				+ " where expiry < now() " 
 				+ " or expiry is null;";
 		PreparedStatement pstmtClearObsoleteKeys = null;
 
-		String interval = "28 days";
-		String sqlAddKey = "insert into dynamic_users (u_id, survey_ident, access_key, expiry) "
-				+ " values (?, ?, ?, timestamp 'now' + interval '" + interval + "');";
+		// Set the interval to 1 year, this could be a lot shorter when dynamic users are used for webforms, however a longer interval is good with the session api
+		// The user can change their passwird to invalidate session keys
+		String interval = "1 year";	
+		String sqlAddKey = "insert into dynamic_users (u_id, access_key, expiry) "
+				+ " values (?, ?, timestamp 'now' + interval '" + interval + "');";
 		PreparedStatement pstmtAddKey = null;
 
 		String sqlGetKey = "select access_key from dynamic_users where u_id = ? "
@@ -2530,20 +2529,14 @@ public class GeneralUtilityMethods {
 			/*
 			 * Get the user id
 			 */
-			pstmtGetUserId = sd.prepareStatement(sqlGetUserId);
-			pstmtGetUserId.setString(1, userIdent);
-			log.info("Get User id:" + pstmtGetUserId.toString());
-			ResultSet rs = pstmtGetUserId.executeQuery();
-			if (rs.next()) {
-				userId = rs.getInt(1);
-			}
+			userId = GeneralUtilityMethods.getUserId(sd, userIdent);
 
 			/*
 			 * Get the existing access key
 			 */
 			pstmtGetKey = sd.prepareStatement(sqlGetKey);
 			pstmtGetKey.setInt(1, userId);
-			rs = pstmtGetKey.executeQuery();
+			ResultSet rs = pstmtGetKey.executeQuery();
 			if (rs.next()) {
 				key = rs.getString(1);
 			}
@@ -2563,8 +2556,7 @@ public class GeneralUtilityMethods {
 				 */
 				pstmtAddKey = sd.prepareStatement(sqlAddKey);
 				pstmtAddKey.setInt(1, userId);
-				pstmtAddKey.setString(2, surveyIdent);
-				pstmtAddKey.setString(3, key);
+				pstmtAddKey.setString(2, key);
 				log.info("Add new key:" + pstmtAddKey.toString());
 				pstmtAddKey.executeUpdate();
 			}
@@ -2573,7 +2565,6 @@ public class GeneralUtilityMethods {
 			log.log(Level.SEVERE, "Error", e);
 			throw e;
 		} finally {
-			try {if (pstmtGetUserId != null) {pstmtGetUserId.close();}} catch (SQLException e) {}
 			try {if (pstmtClearObsoleteKeys != null) {pstmtClearObsoleteKeys.close();}} catch (SQLException e) {}
 			try {if (pstmtAddKey != null) {pstmtAddKey.close();}} catch (SQLException e) {}
 			try {if (pstmtGetKey != null) {pstmtGetKey.close();}} catch (SQLException e) {}
@@ -10016,6 +10007,32 @@ public class GeneralUtilityMethods {
 
 		}
 		return md5;
+	}
+	
+	/*
+	 * REturns true if the provided password is correct for the user
+	 */
+	public static boolean isPasswordValid(Connection sd, String username, String password) throws SQLException {
+		boolean valid = false;
+		
+    	String sql = "select count(*) from users where ident = ? and password = md5(?) ";
+    	PreparedStatement pstmt = null;
+    	
+    	String pwdString = username + ":smap:" + password;
+    	try {
+    		pstmt = sd.prepareStatement(sql);
+    		pstmt.setString(1,  username);
+    		pstmt.setString(2, pwdString);
+    		ResultSet rs = pstmt.executeQuery();
+    		if(rs.next()) {
+    			valid = rs.getInt(1) > 0;
+    		}
+    		
+    	} finally {
+    		if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
+    	}
+		return valid;
+		
 	}
 }
 

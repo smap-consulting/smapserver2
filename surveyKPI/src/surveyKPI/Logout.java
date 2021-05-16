@@ -46,7 +46,8 @@ public class Logout extends Application {
 		
 		/*
 		 * Delete any session keys for this user
-		 */
+		 *
+		 * Not sure what the thinking was here.  Session keys should still work when the user has logged out.
 		String connectionString = "surveyKPI-Logout";
 		Connection sd = SDDataSource.getConnection(connectionString);
 		try {
@@ -56,6 +57,7 @@ public class Logout extends Application {
 		} finally {
 			SDDataSource.closeConnection(connectionString, sd);
 		}
+		*/
 		
 		// Throw an authorisation exception to close browser session (chrome works with this at least)
 		throw new AuthorisationException();
