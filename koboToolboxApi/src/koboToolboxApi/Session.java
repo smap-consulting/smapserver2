@@ -98,13 +98,29 @@ public class Session extends Application {
 		
 		String connectionString = "Session - login";
 		Gson gson =  new GsonBuilder().disableHtmlEscaping().setDateFormat("yyyy-MM-dd HH:mm:ss").create();
+		Response response;
 		
 		log.info("xxxxxxx: " + username + " : " + password);
+		String sessionKey = null;
 		Connection sd = SDDataSource.getConnection(connectionString);
-	    SDDataSource.closeConnection(connectionString, sd);
-	    
-	    SessionResponse sr = new SessionResponse("aaaaa");
-		return Response.ok(gson.toJson(sr)).build();
+		try {
+			if(GeneralUtilityMethods.isPasswordValid(sd, username, password)) {
+				sessionKey = GeneralUtilityMethods.getNewAccessKey(sd, username, false);
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+		} finally {
+			 SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		if(sessionKey == null) {
+			response = Response.status(Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE, "Smap").entity("Authorisation Error").build();
+		} else {
+			 SessionResponse sr = new SessionResponse(sessionKey);
+			 response = Response.ok(gson.toJson(sr)).build();
+		}
+
+		return response; 
 	}
 
 	/*
@@ -126,7 +142,7 @@ public class Session extends Application {
 			sd = SDDataSource.getConnection(connectionString);
 			String user = null;
 			try {
-				user = authorise(sd, sessionKey);
+				user = authoriseSessionKey(sd, sessionKey);
 			} catch (Exception e) {
 				
 			}
@@ -153,7 +169,7 @@ public class Session extends Application {
 		return response;
 	}
 	
-	private String authorise(Connection sd, String sessionKey) throws AuthenticationException {
+	private String authoriseSessionKey(Connection sd, String sessionKey) throws AuthenticationException {
 		
 		String user = null;
 		try {

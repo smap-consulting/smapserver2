@@ -63,18 +63,13 @@ public class Login extends Application {
 		 		
 		// No authorisation is required - the key is returned to the authenticated user
 		
-		Connection connectionSD = SDDataSource.getConnection("surveyKPI-login-key");
-		
+		Connection connectionSD = SDDataSource.getConnection("surveyKPI-login-key");	
 		
 		String user = request.getRemoteUser();
 		
 		Key accessToken = new Key();
 		try {
-			String scope = "user";	// General key for access not just for forms
-			if(formIdent != null) {
-				scope = formIdent;		
-			}
-			accessToken.key = GeneralUtilityMethods.getNewAccessKey(connectionSD, user, scope, false);
+			accessToken.key = GeneralUtilityMethods.getNewAccessKey(connectionSD, user, false);
 			log.info("userevent: " + user + " : requested access key : " + accessToken.key);
 		} catch (Exception e) {
 			log.log(Level.SEVERE, "Failed to get access key", e);
