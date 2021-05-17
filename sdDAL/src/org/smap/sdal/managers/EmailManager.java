@@ -199,7 +199,7 @@ public class EmailManager {
 				txtMessage.append(localisation.getString("c_goto"));
 				txtMessage.append(" " + scheme + "://");
 				txtMessage.append(serverName);
-				txtMessage.append("/subscriptions.html?subscribe=yes&token=");
+				txtMessage.append("/app/subscriptions.html?subscribe=yes&token=");
 				txtMessage.append(emailKey);
 				txtMessage.append(" ");
 				txtMessage.append(localisation.getString("email_s"));
@@ -216,7 +216,7 @@ public class EmailManager {
 				txtMessage.append(localisation.getString("c_goto"));
 				txtMessage.append(" " + scheme + "://");
 				txtMessage.append(serverName);
-				txtMessage.append("/subscriptions.html?subscribe=yes&token=");
+				txtMessage.append("/app/subscriptions.html?subscribe=yes&token=");
 				txtMessage.append(emailKey);
 				txtMessage.append(" ");
 				txtMessage.append(localisation.getString("email_s"));
@@ -404,10 +404,10 @@ public class EmailManager {
 			// Add unsubscribe
 			StringBuffer unsubscribe = new StringBuffer();
 			if(emailKey != null) {
-				unsubscribe.append("<p style=\"color:blue;text-align:center;\">")
+				unsubscribe.append("<br/><p style=\"color:blue;text-align:center;\">")
 						.append("<a href=\"https://")
 						.append(serverName)
-						.append("/subscriptions.html?token=")
+						.append("/app/subscriptions.html?token=")
 						.append(emailKey)
 						.append("\">")
 						.append(localisation.getString("c_unsubscribe"))

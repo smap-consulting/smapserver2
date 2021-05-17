@@ -241,12 +241,12 @@ public class MessagingManager {
 						.append(msg)
 						.append("</p>");
 				
-				content.append("<br/><p>").append(localisation.getString("c_goto"))
+				content.append("<br/><p>")
 					.append(" <a href=\"").append(scheme).append("://").append(server)
-					.append("/subscriptions.html?subscribe=yes&token=")
+					.append("/app/subscriptions.html?subscribe=yes&token=")
 					.append(emailKey)
 					.append("\">")
-					.append(localisation.getString("email_link"))
+					.append(localisation.getString("optin"))
 					.append("</a></p>");
 				
 				em.sendEmailHtml(
