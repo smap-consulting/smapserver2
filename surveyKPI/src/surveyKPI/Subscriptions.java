@@ -149,7 +149,7 @@ public class Subscriptions extends Application {
 						content.append("<br/><p>").append(localisation.getString("c_goto"))
 							.append(" <a href=\"")
 							.append(request.getScheme()).append("://").append(request.getServerName())
-							.append("/subscriptions.html?subscribe=yes&token=")
+							.append("/app/subscriptions.html?subscribe=yes&token=")
 							.append(key)
 							.append("\">")
 							.append(localisation.getString("email_link"))
