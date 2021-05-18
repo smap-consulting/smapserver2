@@ -217,8 +217,12 @@ public class Upload extends Application {
 			log.info(getErrorMessage(key, e.getMessage()));
 			response = Response.status(Status.FORBIDDEN).entity(getErrorMessage(key, e.getMessage())).build();
 		} catch (AuthorisationException e) {
-			log.info(e.getMessage());
-			response = Response.status(Status.FORBIDDEN).entity(getErrorMessage(key, e.getMessage())).build();
+			String msg = e.getMessage();
+			if(msg == null) {
+				msg = "Forbidden";
+			}
+			log.info(msg);
+			response = Response.status(Status.FORBIDDEN).entity(getErrorMessage(key, msg)).build();
 		} catch (NotFoundException e) {
 			log.info(e.getMessage());
 			response = Response.status(Status.NOT_FOUND).entity(getErrorMessage(key, e.getMessage())).build();
