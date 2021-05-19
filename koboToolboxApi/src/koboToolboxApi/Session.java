@@ -18,17 +18,12 @@ along with SMAP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import javax.servlet.http.HttpServletRequest;
-
-import model.LogItemDt;
-import model.LogsDt;
+import javax.servlet.http.HttpServletResponse;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.ResourceBundle;
@@ -39,7 +34,6 @@ import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Application;
@@ -49,14 +43,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.http.auth.AuthenticationException;
-import org.smap.sdal.Utilities.AuthorisationException;
+import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.LogManager;
+import org.smap.sdal.managers.DataManager;
 import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.HourlyLogSummaryItem;
-import org.smap.sdal.model.OrgLogSummaryItem;
 import org.smap.sdal.model.SurveyIdent;
 
 /*
@@ -73,7 +66,8 @@ public class Session extends Application {
 			 Logger.getLogger(Session.class.getName());
 	
 	private class SessionResponse {
-		String sessionKey;
+		@SuppressWarnings("unused")   // Used to generate json
+		public String sessionKey;
 		public SessionResponse(String key) {
 			sessionKey = key;
 		}
@@ -132,8 +126,6 @@ public class Session extends Application {
 	public Response getSurveys(@Context HttpServletRequest request,
 			@QueryParam("sessionKey") String sessionKey) throws AuthenticationException {
 		
-		log.info("xxxxx: " + sessionKey + " : " + request.getHeader("X-Token"));
-		
 		String connectionString = "session - Get Survey Idents";
 		Response response = null;
 		Connection sd = null;
@@ -168,6 +160,77 @@ public class Session extends Application {
 
 		return response;
 	}
+	
+	@GET
+	@Produces("application/json")
+	@Path("/survey_data/poll")
+	public Response getMultipleHierarchyDataRecords(@Context HttpServletRequest request,
+			@QueryParam("sessionKey") String sessionKey,
+			@QueryParam("survey") String sIdent,	
+			@QueryParam("tz") String tz,					// Timezone
+			@QueryParam("filter") String filter
+			) throws ApplicationException, Exception { 
+		
+		Response response;
+	
+		if(tz == null) {
+			tz = "UTC";
+		}
+		
+		String connectionString = "session - poll for survey records";
+		
+		Connection cResults = null;
+		Connection sd = null;		
+	
+		try {
+			sd = SDDataSource.getConnection(connectionString);
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			String user = null;
+			try {
+				user = authoriseSessionKey(sd, sessionKey);
+			} catch (Exception e) {
+				
+			}
+			if(user == null) {
+				response = Response.status(Status.UNAUTHORIZED).header(HttpHeaders.WWW_AUTHENTICATE, "Smap").entity("Authorisation Error").build();
+			} else {
+				
+				Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, user));
+				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+				if(!GeneralUtilityMethods.isApiEnabled(sd, user)) {
+					throw new ApplicationException(localisation.getString("susp_api"));
+				}
+		
+				int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
+			
+				DataManager dm = new DataManager(localisation, tz);
+	
+				response = dm.getRecordHierarchy(sd, cResults, request,
+						sIdent,
+						sId,
+						null,
+						"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
+						localisation,
+						tz,				// Timezone
+						true
+						);	
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String resp = "{error: " + e.getMessage() + "}";
+			response = Response.serverError().entity(resp).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		return response;
+	}
+	
+	/*
+	 * Private functions
+	 */
 	
 	private String authoriseSessionKey(Connection sd, String sessionKey) throws AuthenticationException {
 		
