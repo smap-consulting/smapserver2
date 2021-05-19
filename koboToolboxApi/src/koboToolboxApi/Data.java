@@ -232,7 +232,6 @@ public class Data extends Application {
 	@Produces("application/json")
 	@Path("/{sIdent}/{uuid}")
 	public Response getSingleDataRecord(@Context HttpServletRequest request,
-			@Context HttpServletResponse response,
 			@PathParam("sIdent") String sIdent,
 			@PathParam("uuid") String uuid,		
 			@QueryParam("merge_select_multiple") String merge, 	// If set to yes then do not put choices from select multiple questions in separate objects
@@ -242,37 +241,89 @@ public class Data extends Application {
 			@QueryParam("hierarchy") String hierarchy
 			) throws ApplicationException, Exception { 
 		
-		boolean includeHierarchy = false;
-		boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
-		String mergeExp = "no";
-		if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
-			includeMeta = true;
-		}
-		if(hierarchy != null && (hierarchy.equals("true") || hierarchy.equals("yes"))) {
-			includeHierarchy = true;
-		}
-		if(merge != null && (merge.equals("true") || merge.equals("yes"))) {
-			mergeExp = "yes";
+		Response response;
+		
+		if(tz == null) {
+			tz = "UTC";
 		}
 		
-		// Authorisation is done in getSingleRecord
-		if(includeHierarchy) {
-			return getRecordHierarchy(request,
-					sIdent,
-					uuid,
-					mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
-					tz,				// Timezone
-					includeMeta
-					);	
-		} else {
-			return getSingleRecord(request,
-					sIdent,
-					uuid,
-					mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
-					tz,				// Timezone
-					includeMeta
-					);	
+		String connectionString = "koboToolboxApi - get single data record";
+		
+		Connection cResults = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
 		}
+		
+		try {
+			
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			
+			DataManager dm = new DataManager(localisation, tz);
+			int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
+			
+			a.isAuthorised(sd, request.getRemoteUser());
+			a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+			// End Authorisation
+			
+			boolean includeHierarchy = false;
+			boolean includeMeta = false;		// Default to false for single record (Historical consistency reason)
+			String mergeExp = "no";
+			if(meta != null && (meta.equals("true") || meta.equals("yes"))) {
+				includeMeta = true;
+			}
+			if(hierarchy != null && (hierarchy.equals("true") || hierarchy.equals("yes"))) {
+				includeHierarchy = true;
+			}
+			if(merge != null && (merge.equals("true") || merge.equals("yes"))) {
+				mergeExp = "yes";
+			}
+			
+			if(includeHierarchy) {
+				response = dm.getRecordHierarchy(sd, cResults, request,
+						sIdent,
+						sId,
+						uuid,
+						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
+						localisation,
+						tz,				// Timezone
+						includeMeta
+						);	
+			} else {
+				response = getSingleRecord(
+						sd,
+						cResults,
+						request,
+						sIdent,
+						sId,
+						uuid,
+						mergeExp, 			// If set to yes then do not put choices from select multiple questions in separate objects
+						localisation,
+						tz,				// Timezone
+						includeMeta
+						);	
+			}
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String resp = "{error: " + e.getMessage() + "}";
+			response = Response.serverError().entity(resp).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		
+		return response;
 	}
 	
 	/*
@@ -283,25 +334,65 @@ public class Data extends Application {
 	@Produces("application/json")
 	@Path("/poll")
 	public Response getMultipleHierarchyDataRecords(@Context HttpServletRequest request,
-			@Context HttpServletResponse response,
 			@QueryParam("survey") String sIdent,	
 			@QueryParam("tz") String tz,					// Timezone
 			@QueryParam("filter") String filter
 			) throws ApplicationException, Exception { 
 		
+		Response response;
 	
 		if(tz == null) {
 			tz = "UTC";
 		}
 		
-		// Authorisation is done in getSingleRecord
-		return getRecordHierarchy(request,
-				sIdent,
-				null,
-				"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
-				tz,				// Timezone
-				true
-				);	
+		String connectionString = "koboToolboxApi - get record - hierarchy";
+		
+		Connection cResults = null;
+		
+		// Authorisation - Access
+		Connection sd = SDDataSource.getConnection(connectionString);
+		boolean superUser = false;
+		try {
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
+		} catch (Exception e) {
+		}
+		
+		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
+		
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
+		// End Authorisation
+		
+		try {
+			cResults = ResultsDataSource.getConnection(connectionString);
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
+				throw new ApplicationException(localisation.getString("susp_api"));
+			}
+			
+			DataManager dm = new DataManager(localisation, tz);
+
+			response = dm.getRecordHierarchy(sd, cResults, request,
+					sIdent,
+					sId,
+					null,
+					"yes", 			// If set to yes then do not put choices from select multiple questions in separate objects
+					localisation,
+					tz,				// Timezone
+					true
+					);	
+		} catch (Exception e) {
+			log.log(Level.SEVERE, "Exception", e);
+			String resp = "{error: " + e.getMessage() + "}";
+			response = Response.serverError().entity(resp).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);	
+		}
+		return response;
 	}
 	
 	/*
@@ -892,51 +983,27 @@ public class Data extends Application {
 	 * KoboToolBox API version 1 /data
 	 * Get a single record in JSON format
 	 */
-	private Response getSingleRecord(HttpServletRequest request,
+	private Response getSingleRecord(
+			Connection sd,
+			Connection cResults,
+			HttpServletRequest request,
 			String sIdent,
+			int sId,
 			String uuid,
 			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+			ResourceBundle localisation,
 			String tz,				// Timezone
 			boolean includeMeta
 			) throws ApplicationException, Exception { 
 
 		Response response;
-		
-		String connectionString = "koboToolboxApi - get single record";
-		
-		Connection cResults = null;
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		
-		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
-		
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation
-
-		tz = (tz == null) ? "UTC" : tz;
-
-		
-		try {
-
-			cResults = ResultsDataSource.getConnection(connectionString);
 			
 			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Managed Forms or the API. ", 0);
 			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
 			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
 				throw new ApplicationException(localisation.getString("susp_api"));
 			}
-			
-			DataManager dm = new DataManager(localisation, tz);
 
 			SurveyManager sm = new SurveyManager(localisation, tz);
 			
@@ -985,134 +1052,11 @@ public class Data extends Application {
 				response = Response.serverError().status(Status.NOT_FOUND).build();
 			}
 
-		} catch (Exception e) {
-			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
-			log.log(Level.SEVERE, "Exception", e);
-			response = Response.serverError().entity(e.getMessage()).build();
-		} finally {
-			ResultsDataSource.closeConnection(connectionString, cResults);			
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-
 		return response;
 
 	}
 	
-	/*
-	 * Get record(s) in JSON format
-	 * Return as a hierarchy of forms and subforms rather than separating the sub form data out into arrays
-	 */
-	private Response getRecordHierarchy(HttpServletRequest request,
-			String sIdent,
-			String uuid,
-			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
-			String tz,				// Timezone
-			boolean includeMeta
-			) throws ApplicationException, Exception { 
 
-		Response response;
-		
-		String connectionString = "koboToolboxApi - get record - hierarchy";
-		
-		Connection cResults = null;
-		
-		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection(connectionString);
-		boolean superUser = false;
-		try {
-			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
-		} catch (Exception e) {
-		}
-		
-		int sId = GeneralUtilityMethods.getSurveyId(sd, sIdent);	
-		
-		a.isAuthorised(sd, request.getRemoteUser());
-		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
-		// End Authorisation
-
-		tz = (tz == null) ? "UTC" : tz;
-		
-		try {
-
-			cResults = ResultsDataSource.getConnection(connectionString);
-			
-			lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0);
-			
-			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
-			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
-			
-			if(!GeneralUtilityMethods.isApiEnabled(sd, request.getRemoteUser())) {
-				throw new ApplicationException(localisation.getString("susp_api"));
-			}
-			
-			DataManager dm = new DataManager(localisation, tz);
-
-			SurveyManager sm = new SurveyManager(localisation, tz);
-			
-			Survey s = sm.getById(
-					sd, 
-					cResults, 
-					request.getRemoteUser(),
-					false,
-					sId, 
-					true, 		// full
-					null, 		// basepath
-					null, 		// instance id
-					false, 		// get results
-					false, 		// generate dummy values
-					true, 		// get property questions
-					false, 		// get soft deleted
-					true, 		// get HRK
-					"external", 	// get external options
-					false, 		// get change history
-					false, 		// get roles
-					true,		// superuser 
-					null, 		// geomformat
-					false, 		// reference surveys
-					false,		// only get launched
-					false		// Don't merge set value into default values
-					);
-			
-			JSONArray data = dm.getInstanceData(
-					sd,
-					cResults,
-					s,
-					s.getFirstForm(),
-					0,
-					null,
-					uuid,
-					sm,
-					includeMeta);
-			
-			String resp = null;
-			if(uuid == null) {
-				resp = "[]";
-			} else {
-				resp = "{}";
-			}
-			if(data.length() > 0) {
-				if(uuid == null) {
-					resp = data.toString();
-				} else {
-					resp = data.getString(0);
-				}
-			}
-			response = Response.ok(resp).build();
-		
-
-		} catch (Exception e) {
-			try {cResults.setAutoCommit(true);} catch(Exception ex) {};
-			log.log(Level.SEVERE, "Exception", e);
-			String resp = "{error: " + e.getMessage() + "}";
-			response = Response.serverError().entity(resp).build();
-		} finally {
-			ResultsDataSource.closeConnection(connectionString, cResults);			
-			SDDataSource.closeConnection(connectionString, sd);
-		}
-
-		return response;
-
-	}
 
 	/*
 	 * Get similar records for an individual survey in JSON format
