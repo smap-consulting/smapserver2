@@ -138,16 +138,21 @@ public class DataManager {
 				false		// Don't merge set value into default values
 				);
 
-		JSONArray data = dm.getInstanceData(
-				sd,
-				cResults,
-				s,
-				s.getFirstForm(),
-				0,
-				null,
-				uuid,
-				sm,
-				includeMeta);
+		JSONArray data = null;
+		if(s != null) {
+			data = dm.getInstanceData(
+					sd,
+					cResults,
+					s,
+					s.getFirstForm(),
+					0,
+					null,
+					uuid,
+					sm,
+					includeMeta);
+		} else {
+			throw new ApplicationException(localisation.getString("mf_snf"));
+		}
 
 		String resp = null;
 		if(uuid == null) {
@@ -155,7 +160,7 @@ public class DataManager {
 		} else {
 			resp = "{}";
 		}
-		if(data.length() > 0) {
+		if(data != null && data.length() > 0) {
 			if(uuid == null) {
 				resp = data.toString();
 			} else {
