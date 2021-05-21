@@ -261,7 +261,6 @@ public class Subscriptions extends Application {
 
 		Connection sd = SDDataSource.getConnection(connectionString);
 
-		PreparedStatement pstmt = null;
 		try {
 
 			// Localisation

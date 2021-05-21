@@ -299,9 +299,10 @@ public class XLSMailoutManager {
 
 						// validate email
 						if(email == null || email.trim().length() == 0) {
-							String msg = localisation.getString("mo_enf");
-							msg = msg.replace("%s1", String.valueOf(j));
-							throw new ApplicationException(msg);
+							continue;	// Ignore rows with missing email
+							//String msg = localisation.getString("mo_enf");
+							//msg = msg.replace("%s1", String.valueOf(j));
+							//throw new ApplicationException(msg);
 						}
 						// Get the initial data
 						Instance instance = null;

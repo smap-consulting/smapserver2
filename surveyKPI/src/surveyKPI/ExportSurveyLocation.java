@@ -32,7 +32,6 @@ import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.OptionDesc;
-import org.smap.sdal.model.SqlDesc;
 
 /*
  * Export location and trail data as:
