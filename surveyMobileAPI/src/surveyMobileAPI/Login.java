@@ -42,9 +42,10 @@ public class Login extends Application {
 	 */
 	@GET
 	public Response login(@Context HttpServletRequest request) {
-		Connection connectionSD = SDDataSource.getConnection("surveyMobileAPI-FormList");
-	    a.isAuthorised(connectionSD, request.getRemoteUser());	//Authorisation - Access 
-	    SDDataSource.closeConnection("surveyMobileAPI-FormList", connectionSD);
+		String connectionString = "surveyMobileAPI-login";
+		Connection sd = SDDataSource.getConnection(connectionString);
+	    a.isAuthorised(sd, request.getRemoteUser());	//Authorisation - Access 
+	    SDDataSource.closeConnection(connectionString, sd);
 		return Response.ok("{}").build();
 	}
 	
