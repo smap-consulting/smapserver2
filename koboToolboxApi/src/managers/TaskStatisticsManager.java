@@ -24,18 +24,12 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.Response;
 
 import koboToolboxApi.Data_CSV;
 import model.StatsResultsC3;
 import model.AdminStatsSqlCreator;
 import model.Task;
-
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.SurveyManager;
-import org.smap.sdal.model.DataEndPoint;
-import org.smap.sdal.model.Survey;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -44,11 +38,8 @@ public class TaskStatisticsManager {
 	
 	private static Logger log =
 			 Logger.getLogger(Data_CSV.class.getName());
-
-	private int orgId;							// Organisation id
 	
 	public TaskStatisticsManager(int orgId) {
-		this.orgId = orgId;
 	}
 	
 	/*

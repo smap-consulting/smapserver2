@@ -6,15 +6,20 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.Response;
 
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
+import org.smap.sdal.Utilities.ResultsDataSource;
+import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.model.DataEndPoint;
 import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Instance;
@@ -34,6 +39,8 @@ public class DataManager {
 	private static Logger log =
 			 Logger.getLogger(DataManager.class.getName());
 
+	LogManager lm = new LogManager();		// Application log
+	
 	private ResourceBundle localisation;
 	private String tz;
 	
@@ -82,6 +89,91 @@ public class DataManager {
 		return data;
 	}
 	
+	/*
+	 * Get record(s) in JSON format
+	 * Return as a hierarchy of forms and subforms rather than separating the sub form data out into arrays
+	 */
+	public Response getRecordHierarchy(
+			Connection sd,
+			Connection cResults,
+			HttpServletRequest request,
+			String sIdent,
+			int sId,
+			String uuid,
+			String merge, 			// If set to yes then do not put choices from select multiple questions in separate objects
+			ResourceBundle localisation,
+			String tz,				// Timezone
+			boolean includeMeta
+			) throws ApplicationException, Exception { 
+
+		Response response;
+
+		lm.writeLog(sd, sId, request.getRemoteUser(), LogManager.API_SINGLE_VIEW, "Hierarchy view. ", 0);
+
+		DataManager dm = new DataManager(localisation, tz);
+
+		SurveyManager sm = new SurveyManager(localisation, tz);
+
+		Survey s = sm.getById(
+				sd, 
+				cResults, 
+				request.getRemoteUser(),
+				false,
+				sId, 
+				true, 		// full
+				null, 		// basepath
+				null, 		// instance id
+				false, 		// get results
+				false, 		// generate dummy values
+				true, 		// get property questions
+				false, 		// get soft deleted
+				true, 		// get HRK
+				"external", 	// get external options
+				false, 		// get change history
+				false, 		// get roles
+				true,		// superuser 
+				null, 		// geomformat
+				false, 		// reference surveys
+				false,		// only get launched
+				false		// Don't merge set value into default values
+				);
+
+		JSONArray data = null;
+		if(s != null) {
+			data = dm.getInstanceData(
+					sd,
+					cResults,
+					s,
+					s.getFirstForm(),
+					0,
+					null,
+					uuid,
+					sm,
+					includeMeta);
+		} else {
+			throw new ApplicationException(localisation.getString("mf_snf"));
+		}
+
+		String resp = null;
+		if(uuid == null) {
+			resp = "[]";
+		} else {
+			resp = "{}";
+		}
+		if(data != null && data.length() > 0) {
+			if(uuid == null) {
+				resp = data.toString();
+			} else {
+				resp = data.getString(0);
+			}
+		}
+		response = Response.ok(resp).build();
+
+
+		return response;
+
+	}
+
 	/*
 	 * Get the instance data for a record or records in a survey
 	 * Unlike the getInstances() function in SurveyManager, this request creates JSON objects that includes repeat information 

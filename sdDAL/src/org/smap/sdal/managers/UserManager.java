@@ -698,6 +698,9 @@ public class UserManager {
 								+ "id = ?";
 	
 						pwdString = u.ident + ":smap:" + u.password;
+						
+						// Delete any session keys for this user
+						GeneralUtilityMethods.deleteAccessKeys(sd, u.ident);
 					}
 	
 					try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}

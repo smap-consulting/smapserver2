@@ -3,22 +3,17 @@ package managers;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.ResourceBundle;
-import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.model.DataEndPoint;
-import org.smap.sdal.model.Form;
 import org.smap.sdal.model.Survey;
 
 public class AuditManager {
-	
-	private static Logger log =
-			 Logger.getLogger(AuditManager.class.getName());
+
 
 	private ResourceBundle localisation;
 	public AuditManager(ResourceBundle l) {
