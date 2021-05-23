@@ -104,9 +104,10 @@ public class Tasks extends Application {
 		
 		Response response = null;
 		Connection sd = null; 
+		String connectionString = "surveyKPI - Tasks - getTaskGroups";
 		
 		// Authorisation - Access
-		sd = SDDataSource.getConnection("surveyKPI - Tasks - getTaskGroups");
+		sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, request.getRemoteUser());
 		a.isValidProject(sd, request.getRemoteUser(), projectId);
 		// End authorisation
@@ -131,7 +132,52 @@ public class Tasks extends Application {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
 		} finally {
-			SDDataSource.closeConnection("surveyKPI - Tasks - getTaskGroups", sd);
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+		
+		return response;
+	}
+	
+	/*
+	 * Get task group details
+	 */
+	@GET
+	@Produces("application/json")
+	@Path("/taskgroup/details/{tgId}")
+	public Response getTaskGroupDetails(
+			@Context HttpServletRequest request,
+			@PathParam("tgId") int tgId 
+			) throws IOException {
+		
+		Response response = null;
+		Connection sd = null; 
+		String connectionString = "surveyKPI - Tasks - getTaskGroupDetails";
+		
+		// Authorisation - Access
+		sd = SDDataSource.getConnection(connectionString);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
+		// End authorisation
+	
+		try {
+			
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);			
+			String tz = "UTC";	// Set default for timezone
+			
+			// Get task group details		
+			TaskManager tm = new TaskManager(localisation, tz);	
+			TaskGroup tg = tm.getTaskGroupDetails(sd, tgId);
+			// Return groups to calling program
+			Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+			String resp = gson.toJson(tg);	
+			response = Response.ok(resp).build();	
+			
+		} catch(Exception ex) {
+			log.log(Level.SEVERE,ex.getMessage(), ex);
+			response = Response.serverError().entity(ex.getMessage()).build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
 		}
 		
 		return response;
@@ -637,9 +683,6 @@ public class Tasks extends Application {
 					
 			}
 			
-		} catch(FileUploadException ex) {
-			log.log(Level.SEVERE,ex.getMessage(), ex);
-			response = Response.serverError().entity(ex.getMessage()).build();
 		} catch(Exception ex) {
 			log.log(Level.SEVERE,ex.getMessage(), ex);
 			response = Response.serverError().entity(ex.getMessage()).build();
@@ -668,12 +711,13 @@ public class Tasks extends Application {
 			) { 
 		
 		Response response = null;
+		String connectionString = "surveyKPI - tasks - update date and time";
 
 		String user = request.getRemoteUser();
 		log.info("Update task start: " + task);
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
 		// End Authorisation
@@ -696,7 +740,7 @@ public class Tasks extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 	
-			SDDataSource.closeConnection("surveyKPI-tasks", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 		
@@ -822,9 +866,10 @@ public class Tasks extends Application {
 		Response response = null;
 
 		String user = request.getRemoteUser();
+		String connectionString = "surveyKPI - tasks - updateEmailDetails";
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-tasks");
+		Connection sd = SDDataSource.getConnection(connectionString);
 		a.isAuthorised(sd, user);
 		a.isValidProject(sd, user, pId);
 		a.isValidTaskGroup(sd, request.getRemoteUser(), tgId);
@@ -848,7 +893,7 @@ public class Tasks extends Application {
 			response = Response.serverError().entity(e.getMessage()).build();
 		} finally {
 	
-			SDDataSource.closeConnection("surveyKPI-tasks", sd);
+			SDDataSource.closeConnection(connectionString, sd);
 			
 		}
 		
