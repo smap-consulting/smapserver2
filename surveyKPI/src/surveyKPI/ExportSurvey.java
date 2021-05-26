@@ -82,7 +82,7 @@ public class ExportSurvey extends Application {
 
 	private class FormDesc {
 		int f_id;
-		String parent;
+		int parent;
 		String table_name;
 		String columns = null;
 		String parkey = null;
@@ -306,7 +306,7 @@ public class ExportSurvey extends Application {
 
 					FormDesc fd = new FormDesc();
 					fd.f_id = resultSet.getInt("f_id");
-					fd.parent = resultSet.getString("parentform");
+					fd.parent = resultSet.getInt("parentform");
 					fd.table_name = resultSet.getString("table_name");
 					if(inc_id != null) {
 						boolean showForm = false;
@@ -323,12 +323,12 @@ public class ExportSurvey extends Application {
 						fd.flat = setFlat;
 					}
 					forms.put(String.valueOf(fd.f_id), fd);
-					if(fd.parent == null || fd.parent.equals("0")) {
+					if(fd.parent == 0) {
 						topForm = fd;
 					}
 					// Get max records for flat export
 					fd.maxRepeats = 1;	// Default
-					if(fd.flat && fd.parent != null) {
+					if(fd.flat && fd.parent != 0) {
 						fd.maxRepeats = getMaxRepeats(sd, connectionResults, sId, fd.f_id);
 					}
 				}
@@ -394,8 +394,8 @@ public class ExportSurvey extends Application {
 					TableColumn c;
 					int parentId = 0;
 					String geomType = null;
-					if(f.parent != null) {
-						parentId = Integer.parseInt(f.parent);
+					if(f.parent != 0) {
+						parentId = f.parent;
 					}
 					f.columnList = GeneralUtilityMethods.getColumnsInForm(
 							sd,
@@ -1176,7 +1176,7 @@ public class ExportSurvey extends Application {
 	private void addChildren(FormDesc parentForm, HashMap<String, FormDesc> forms, ArrayList<FormDesc> formList) {
 
 		for(FormDesc fd : forms.values()) {
-			if(fd.parent != null && fd.parent.equals(parentForm.f_id)) {
+			if(fd.parent != 0 && fd.parent == parentForm.f_id) {
 				if(parentForm.children == null) {
 					parentForm.children = new ArrayList<FormDesc> ();
 				}
@@ -1271,7 +1271,7 @@ public class ExportSurvey extends Application {
 								 */
 								FormDesc nextForm = formList.get(index + 1);
 								String filter = null;
-								if(nextForm.parent.equals(f.f_id)) {
+								if(nextForm.parent == f.f_id) {
 									filter = rd.prikey;
 								}
 								appendToOutput(sd, outWriter, newRec , nextForm, formList, index + 1, filter);
