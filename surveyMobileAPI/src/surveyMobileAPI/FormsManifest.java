@@ -45,6 +45,7 @@ import javax.ws.rs.core.MediaType;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
+import org.smap.sdal.managers.ExternalFileManager;
 import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.TranslationManager;
 import org.smap.sdal.model.ManifestValue;
@@ -147,8 +148,10 @@ public class FormsManifest {
 				String filepath = null;
 
 				if(m.type.equals("linked")) {
-					filepath = basepath + "/media/" + sIdent+ "/" + m.fileName;
-					filepath += ".csv";
+					ExternalFileManager efm = new ExternalFileManager(null);
+					filepath = efm.getLinkedPhysicalFilePath(sd, efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), m.fileName)) + ".csv";
+					//filepath = basepath + "/media/" + sIdent+ "/" + m.fileName;
+					//filepath += ".csv";
 					m.fileName += ".csv";
 				} else {
 					filepath = m.filePath;
