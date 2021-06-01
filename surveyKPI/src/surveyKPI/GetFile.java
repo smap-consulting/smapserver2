@@ -262,21 +262,21 @@ public class GetFile extends Application {
 		Response r = null;
 		
 		// Authorisation - Access
-		Connection connectionSD = SDDataSource.getConnection("Get Survey File");
+		Connection sd = SDDataSource.getConnection("Get Survey File");
 		boolean superUser = false;
 		try {
-			superUser = GeneralUtilityMethods.isSuperUser(connectionSD, request.getRemoteUser());
+			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
 		} catch (Exception e) {
 		}
-		a.isAuthorised(connectionSD, request.getRemoteUser());
-		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);
+		a.isAuthorised(sd, request.getRemoteUser());
+		a.isValidSurvey(sd, request.getRemoteUser(), sId, false, superUser);
 		// End Authorisation 
 		
 		try {
 			
 			ExternalFileManager efm = new ExternalFileManager(null);
 			String basepath = GeneralUtilityMethods.getBasePath(request);
-			String sIdent = GeneralUtilityMethods.getSurveyIdent(connectionSD, sId);
+			String sIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 			
 			String filepath = null;
 			if(linked) {
@@ -285,7 +285,7 @@ public class GetFile extends Application {
 				if(idx >= 0) {
 					baseFileName = filename.substring(0, idx);		// External file management routines assume no extension
 				}
-				filepath = efm.getLinkedPhysicalFilePath(connectionSD, efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), baseFileName)) + ".csv";
+				filepath = efm.getLinkedPhysicalFilePath(sd, efm.getLinkedLogicalFilePath(efm.getLinkedDirPath(basepath, sIdent), baseFileName)) + ".csv";
 				log.info("%%%%%: Referencing: " + filepath);
 			} else {
 				filepath = basepath + "/media/" + sIdent+ "/" + filename;
@@ -301,7 +301,7 @@ public class GetFile extends Application {
 			log.log(Level.SEVERE, "Error getting file", e);
 			r = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 		} finally {	
-			SDDataSource.closeConnection("Get Survey File", connectionSD);	
+			SDDataSource.closeConnection("Get Survey File", sd);	
 		}
 		
 		return r;
