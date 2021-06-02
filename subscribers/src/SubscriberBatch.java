@@ -1135,7 +1135,8 @@ public class SubscriberBatch {
 				+ "n.target,"
 				+ "n.remote_user,"
 				+ "n.notify_details,"
-				+ "n.remote_password "
+				+ "n.remote_password,"
+				+ "n.s_id as source_s_id "
 				+ "from tasks t, assignments a, forward n "
 				+ "where t.tg_id = n.tg_id "
 				+ "and t.id = a.task_id "
@@ -1168,21 +1169,23 @@ public class SubscriberBatch {
 				int tId = rs.getInt(1);
 				int nId = rs.getInt(2);
 				int aId = rs.getInt(3);
-				String surveyIdent = rs.getString(4);
+				//String surveyIdent = rs.getString(4);
 				String instanceId = rs.getString(5);
 				int pId = rs.getInt(6);
 				String target = rs.getString(7);
 				String remoteUser = rs.getString(8);
 				String notifyDetailsString = rs.getString(9);
 				String remotePassword = rs.getString(10);
+				int sourceSurveyId = rs.getInt(11);
 				NotifyDetails nd = new Gson().fromJson(notifyDetailsString, NotifyDetails.class);
 				
 				int oId = GeneralUtilityMethods.getOrganisationIdForNotification(sd, nId);
+				String sourceSurveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sourceSurveyId);
 				
 				// Send the reminder
 				SubmissionMessage subMgr = new SubmissionMessage(
 						tId,
-						surveyIdent,
+						sourceSurveyIdent,
 						null,
 						pId,
 						instanceId, 
