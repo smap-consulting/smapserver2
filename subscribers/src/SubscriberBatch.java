@@ -443,7 +443,8 @@ public class SubscriberBatch {
 									topic = LogManager.SUBMISSION;
 								}
 								
-								lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " + (se.getReason() == null ? "" : se.getReason()), 0);
+								lm.writeLog(sd, ue.getSurveyId(), ue.getUserName(), topic, se.getStatus() + " : " 
+										+ (se.getReason() == null ? "" : se.getReason()) + " : " + ue.getImei(), 0);
 							}
 						}
 					} 
