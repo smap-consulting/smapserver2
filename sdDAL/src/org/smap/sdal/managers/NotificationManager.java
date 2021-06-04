@@ -494,7 +494,7 @@ public class NotificationManager {
 			
 			notifications.add(n);
 			
-		} 
+		}
 	}
 	
 	/*
@@ -1361,7 +1361,7 @@ public class NotificationManager {
 							notify_details = "Sending email to: " + emails + " containing link " + logContent;
 							notify_details = localisation.getString("msg_er");
 							notify_details = notify_details.replaceAll("%s1", emails);
-							notify_details = notify_details.replaceAll("%s2", logContent);
+							notify_details = notify_details.replaceAll("%s2", "-");			// No attachments in reminder
 							notify_details = notify_details.replaceAll("%s3", survey.displayName);
 							notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							
