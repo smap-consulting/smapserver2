@@ -350,8 +350,7 @@ public class GetFile extends Application {
 					filename, settings, isTemporaryUser, thumbs);
 			
 		}  catch (Exception e) {
-			log.info("Error getting file:" + e.getMessage());
-			log.log(Level.SEVERE, e.getMessage(), e);
+			log.info("Error: Failed to get file:" + e.getMessage());
 			r = Response.status(Status.NOT_FOUND).build();
 		} finally {	
 			SDDataSource.closeConnection(connectionString, connectionSD);	
