@@ -89,7 +89,7 @@ public class FileManager {
 		log.info("getfile: " + filepath);
 		File f = new File(filepath);
 		if(!f.exists()) {
-			log.info("File not found: " + f.getAbsolutePath());
+			log.info("Error: File not found: " + f.getAbsolutePath());
 			throw new ApplicationException("File not found: " + f.getAbsolutePath());
 		}
 		response.setContentType(UtilityMethodsEmail.getContentType(filename));
