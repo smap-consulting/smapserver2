@@ -775,7 +775,7 @@ public class UserList extends Application {
 					XLSUsersManager xum = new XLSUsersManager();
 					ArrayList<User> users = xum.getXLSUsersList(sd, filetype, file.getInputStream(), localisation, tz, oId);	
 							
-					// Save users the database
+					// Save users in the database
 					UserManager um = new UserManager(localisation);
 					
 					ArrayList<UserSimple> emptyUsers = null;

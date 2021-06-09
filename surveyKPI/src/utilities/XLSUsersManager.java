@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.apache.poi.xssf.usermodel.*;
 import org.apache.poi.ss.usermodel.*;
@@ -340,12 +341,22 @@ public class XLSUsersManager {
 								}
 							}
 							
-							// validate
+							// validate user ident
 							if(u.ident == null || u.ident.trim().length() == 0) {
 								String msg = localisation.getString("fup_uim");
 								msg = msg.replace("%s1", String.valueOf(j));
 								throw new ApplicationException(msg);
 							}
+							String regexIdent = "^[a-z0-9_]+$";
+							Pattern patternIdent = Pattern.compile(regexIdent);
+							if(!patternIdent.matcher(u.ident).matches()) {
+								String msg = localisation.getString("fup_uif");
+								msg = msg.replace("%s1", u.ident);
+								msg = msg.replace("%s2", String.valueOf(j));
+								throw new ApplicationException(msg);
+							}
+							
+							// validate user name
 							if(u.name == null || u.name.trim().length() == 0) {
 								String msg = localisation.getString("fup_unm");
 								msg = msg.replace("%s1", String.valueOf(j));
