@@ -239,7 +239,7 @@ public class SurveyManager {
 				s.dataSurvey = resultSet.getBoolean("data_survey");
 				s.oversightSurvey = resultSet.getBoolean("oversight_survey");
 				
-				if(getGroupDetails && !s.ident.equals(s.groupSurveyIdent)) {
+				if(getGroupDetails) {
 					pstmtGetGroupDetails.setString(1, s.groupSurveyIdent);
 					ResultSet rsGroup = pstmtGetGroupDetails.executeQuery();
 					if(rsGroup.next()) {
