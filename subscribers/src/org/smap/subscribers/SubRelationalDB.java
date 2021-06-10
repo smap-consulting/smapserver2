@@ -1752,7 +1752,7 @@ public class SubRelationalDB extends Subscriber {
 							ptString = new StringBuffer("ST_GeomFromText('LINESTRING(");
 						}
 						for(int i = 0; i < coords.length; i++) {
-							String [] points = coords[i].split(" ");
+							String [] points = coords[i].trim().split(" ");
 							if(points.length > 1) {
 								if(i > 0) {
 									ptString.append(",");
