@@ -86,6 +86,8 @@ public class Register extends Application {
 		PreparedStatement pstmt = null;
 		try {
 			
+			sd.setAutoCommit(false);
+			
 			// Localisation
 			String hostname = request.getServerName();
 			String loc_code = "en";
@@ -185,10 +187,14 @@ public class Register extends Application {
 				log.log(Level.SEVERE, e.getMessage(), e);
 			}
 			
+			sd.commit();
+			
 			response = Response.ok().build();
 		
 				
 		} catch (SQLException e) {
+			
+			try {sd.rollback();}catch(Exception ex) {}
 			
 			String state = e.getSQLState();
 			log.info("Register: sql state:" + state);
@@ -199,9 +205,12 @@ public class Register extends Application {
 				log.log(Level.SEVERE,"Error", e);
 			}
 		} catch(Exception e) {
+			try {sd.rollback();}catch(Exception ex) {}
 			response = Response.serverError().entity(e.getMessage()).build();
 			log.log(Level.SEVERE,"Error", e);
 		} finally {
+			
+			try{sd.setAutoCommit(true);}catch(Exception ex) {}
 			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			
