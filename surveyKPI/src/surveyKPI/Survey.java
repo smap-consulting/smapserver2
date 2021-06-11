@@ -259,8 +259,10 @@ public class Survey extends Application {
 				try {  		
 					int code = 0;
 					if(type.equals("codebook")) {
-						Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", "/smap_bin/gettemplate.sh " + sourceName +
-								" " + language});
+						String scriptPath = basePath + "_bin" + File.separator + "gettemplate.sh";
+						Process proc = Runtime.getRuntime().exec(new String [] {"/bin/sh", "-c", scriptPath + " " + sourceName +
+								" " + language
+								+ " >> /var/log/subscribers/attachments.log 2>&1"});
 						code = proc.waitFor();
 						if(code > 0) {
 							int len;
