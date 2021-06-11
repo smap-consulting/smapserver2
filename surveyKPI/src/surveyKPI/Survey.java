@@ -269,6 +269,7 @@ public class Survey extends Application {
 							if ((len = proc.getErrorStream().available()) > 0) {
 								byte[] buf = new byte[len];
 								proc.getErrorStream().read(buf);
+								log.info("Error: generating codebook");
 								log.info("Command error:\t\"" + new String(buf) + "\"");
 							}
 						} else {
