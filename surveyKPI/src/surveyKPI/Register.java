@@ -31,7 +31,6 @@ import org.smap.notifications.interfaces.EmitNotifications;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.OrganisationManager;
 import org.smap.sdal.managers.ProjectManager;
 import org.smap.sdal.managers.UserManager;
@@ -43,7 +42,6 @@ import org.smap.sdal.model.UserGroup;
 import com.google.gson.Gson;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
@@ -86,7 +84,7 @@ public class Register extends Application {
 		PreparedStatement pstmt = null;
 		try {
 			
-			sd.setAutoCommit(false);
+			sd.setAutoCommit(false);  // Transaction
 			
 			// Localisation
 			String hostname = request.getServerName();
@@ -149,7 +147,7 @@ public class Register extends Application {
 			
 			// Add first three groups as default for an administrator
 			u.groups = new ArrayList<UserGroup> ();
-			for(int i = 1; i <=3; i++) {
+			for(int i = 1; i <= 3; i++) {
 				u.groups.add(new UserGroup(i, "group"));
 			}
 			// Add security manager group

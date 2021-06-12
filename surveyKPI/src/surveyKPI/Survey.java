@@ -506,7 +506,6 @@ public class Survey extends Application {
 			String sql = null;
 			ResultSet resultSet = null;
 			ResultSet resultSetTable = null;
-			ResultSet resultSetBounds = null;
 			ArrayList<DateInfo> dateInfoList = new ArrayList<DateInfo> ();
 			HashMap<String, SurveyLinkDetails> completeLinks = new HashMap<String, SurveyLinkDetails> ();
 

@@ -756,6 +756,8 @@ public class UserManager {
 
 		log.info("Update groups and projects user id:" + u_id);
 
+		boolean calledFromTransaction = !sd.getAutoCommit();  // Manage auto commit
+		
 		// Delete existing user groups
 		try {
 
@@ -821,7 +823,7 @@ public class UserManager {
 						
 					}
 				}
-				sd.commit();	// Commit changes to user group
+				
 			} else {
 				log.info("No user groups");
 			}
@@ -843,7 +845,6 @@ public class UserManager {
 
 				}
 
-				sd.commit();
 			} else {
 				log.info("No projects to add");
 			}
@@ -866,16 +867,24 @@ public class UserManager {
 					log.info("Insert user role: " + pstmtInsertUserRole.toString());
 					pstmtInsertUserRole.executeUpdate();
 				}
-
-				sd.commit();	// Commit changes to user roles
+			}
+			
+			// Commit changes unless we are already in a transaction
+			if(!calledFromTransaction) {
+				sd.commit();
 			}
 
 		} catch (Exception e) {
-			try{sd.rollback();} catch(Exception ex) {}
+			if(!calledFromTransaction) {
+				try{sd.rollback();} catch(Exception ex) {}
+			}
 			throw e;
 		} finally {
-			log.info("Set autocommit true");
-			sd.setAutoCommit(true);
+			if(!calledFromTransaction) {
+				log.info("Set autocommit true");
+				sd.setAutoCommit(true);
+			}
+			
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertUserGroup != null) {pstmtInsertUserGroup.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertUserRole != null) {pstmtInsertUserRole.close();}} catch (SQLException e) {}
