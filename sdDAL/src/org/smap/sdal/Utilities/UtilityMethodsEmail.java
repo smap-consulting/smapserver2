@@ -481,10 +481,10 @@ public class UtilityMethodsEmail {
 		 * Update the users table by adding the UUID and expiry time
 		 * Do a case insensitive test against email
 		 */
-		String sql = "update users set" +
-				" one_time_password = ?," +
-				" one_time_password_expiry = timestamp 'now' + interval '" + interval + "' " + 
-				" where email ilike ?";
+		String sql = "update users set "
+				+ "one_time_password = ?,"
+				+ "one_time_password_expiry = timestamp 'now' + interval '" + interval + "' "
+				+ "where email ilike ?";
 
 		pstmt = connectionSD.prepareStatement(sql);	
 		pstmt.setString(1, uuid);
@@ -505,20 +505,20 @@ public class UtilityMethodsEmail {
 	 * Hence allow a resend if the expiry time is greater than 1 hour
 	 * This means there is an anomoly where resend will not be allowed between 50 and 60 minutes before an account registration expires
 	 * This is a security measure to prevent spamming
+	 * 
+	 * Returns the number of minutes since an email has been sent
 	 */
-	static public boolean hasOnetimePasswordBeenSent(
+	public static int hasOnetimePasswordBeenSent(
 			Connection connectionSD, 
 			PreparedStatement pstmt, 
 			String email, 
 			String interval) throws SQLException {
 
-		boolean alreadySent = false;
+		int seconds = 0;
 		interval = interval.replace("'", "''");	// Escape apostrophes
 
-		String sql = "select count(*) from users "
-				+ "where "
-				+ "(one_time_password_expiry > (timestamp 'now' + interval '" + interval + "') "
-						+ "or one_time_password_expiry > (timestamp 'now' + interval '3600 seconds') )"    // Expiry time set by account registration
+		String sql = "select EXTRACT(EPOCH FROM (now() - one_time_password_sent)) from users "
+				+ "where one_time_password_sent > (timestamp 'now' - interval '" + interval + "') "
 				+ "and email ilike ?";
 
 		pstmt = connectionSD.prepareStatement(sql);	
@@ -526,13 +526,38 @@ public class UtilityMethodsEmail {
 		log.info("SQL checking for already sent email: " + pstmt.toString());
 		ResultSet rs = pstmt.executeQuery();
 		if(rs.next()) {
-			int count = rs.getInt(1);
-			if(count > 0) {
-				alreadySent = true;
+			seconds = rs.getInt(1);
+			if(seconds < 60) {
+				seconds  = 60;  // Set the elapsed time to a minimym of 1 minute		
 			}
 		}
 
-		return alreadySent;
+		return seconds / 60;
+	}
+	
+	/*
+	 * Record in the database that a one time password email has been sent
+	 */
+	public static void reportOnetimePasswordSent(
+			Connection connectionSD,  
+			String email) throws SQLException {
+
+		String sql = "update users "
+				+ "set one_time_password_sent = now() "
+				+ "where email ilike ?";
+
+		PreparedStatement pstmt = null;
+		try {
+			pstmt = connectionSD.prepareStatement(sql);	
+			pstmt.setString(1, email);
+			log.info("SQL record one time password sent: " + pstmt.toString());
+			pstmt.executeUpdate();
+			
+		} finally {
+			if(pstmt != null) try {pstmt.close();} catch(Exception e) {}
+		}
+
+		return;
 	}
 
 

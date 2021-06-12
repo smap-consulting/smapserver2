@@ -89,14 +89,15 @@ public class PasswordReset extends Application {
 				ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 				
 				/*
-				 * Check to see if there is a one time password that has more than 50 minutes
-				 * to go until expiry.  If so then a request has been sent within the last 10 mins
+				 * Check to see if there is a one time password has been sent within the last 10 mins
 				 */
-				boolean emailSent = UtilityMethodsEmail.hasOnetimePasswordBeenSent(sd, pstmt, email, "3000 seconds");
-				if(emailSent) {
+				int minutesSinceSent = UtilityMethodsEmail.hasOnetimePasswordBeenSent(sd, pstmt, email, "600 seconds");
+				if(minutesSinceSent > 0) {
 					// Potential spam
 					log.info("warning: email: " + email + " multiple password reset requests");
-					throw new ApplicationException(localisation.getString("email_pas"));
+					String msg = localisation.getString("email_pas");
+					msg = msg.replaceAll("%s1", String.valueOf(10 - minutesSinceSent));
+					throw new ApplicationException(msg);
 				}
 				
 				/*
@@ -140,7 +141,7 @@ public class PasswordReset extends Application {
 					    EmailManager em = new EmailManager();
 					    
 					    StringBuilder content = new StringBuilder(); 
-					    content.append("<p>").append(localisation.getString("c_goto"))
+					    content.append("<p>").append(localisation.getString("c_goto")).append(" ")
 							.append("<a href=\"").append("https").append("://").append(request.getServerName())
 							.append("//resetPassword.html?token=")
 							.append(uuid)
@@ -180,8 +181,6 @@ public class PasswordReset extends Application {
 							.append(adminEmail)
 							.append(".</p>");
 						
-						content.append("<br/><br/>${unsubscribe}");
-						
 						em.sendEmailHtml(
 								email, 
 								"bcc", 
@@ -196,6 +195,9 @@ public class PasswordReset extends Application {
 								null,
 								null,
 								null);
+						
+						UtilityMethodsEmail.reportOnetimePasswordSent(sd, email);
+						lm.writeLog(sd, -1, email, "user details", "one time password reset requested", 0);
 						
 					    response = Response.ok().build();
 					} else {
@@ -228,7 +230,7 @@ public class PasswordReset extends Application {
 			response = Response.status(Status.NOT_FOUND).entity(respMsg).build();
 	
 		} catch (ApplicationException e) {
-			throw e;
+			response = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
 			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity("System Error").build();
