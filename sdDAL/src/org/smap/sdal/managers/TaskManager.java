@@ -3281,10 +3281,10 @@ public class TaskManager {
 							if(docURL != null) {
 								notify_details = notify_details.replaceAll("%s2", docURL);
 							}
-							if(survey.displayName != null) {
+							if(survey != null && survey.displayName != null) {
 								notify_details = notify_details.replaceAll("%s3", survey.displayName);
 							}
-							if(survey.projectName != null) {
+							if(survey != null && survey.projectName != null) {
 								notify_details = notify_details.replaceAll("%s4", survey.projectName);
 							}
 							
