@@ -160,7 +160,7 @@ public class EmailManager {
 				txtMessage.append(localisation.getString("c_goto"));
 				txtMessage.append(" " + scheme + "://");
 				txtMessage.append(serverName);
-				txtMessage.append("/resetPassword.html?token=");
+				txtMessage.append("/app/resetPassword.html?token=");
 				txtMessage.append(password_uuid);
 				txtMessage.append(" ");
 				txtMessage.append(localisation.getString("email_rp"));

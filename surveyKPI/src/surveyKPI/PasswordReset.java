@@ -143,7 +143,7 @@ public class PasswordReset extends Application {
 					    StringBuilder content = new StringBuilder(); 
 					    content.append("<p>").append(localisation.getString("c_goto")).append(" ")
 							.append("<a href=\"").append("https").append("://").append(request.getServerName())
-							.append("//resetPassword.html?token=")
+							.append("/app/resetPassword.html?token=")
 							.append(uuid)
 							.append("\">")
 							.append(localisation.getString("email_link"))
@@ -233,7 +233,7 @@ public class PasswordReset extends Application {
 			response = Response.status(Status.NOT_FOUND).entity(e.getMessage()).build();
 		} catch (Exception e) {
 			log.log(Level.SEVERE,"Exception", e);
-			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity("System Error").build();
+			response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(e.getMessage()).build();
 		} finally {
 				
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
