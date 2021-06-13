@@ -197,7 +197,6 @@ public class PasswordReset extends Application {
 								null);
 						
 						UtilityMethodsEmail.reportOnetimePasswordSent(sd, email);
-						lm.writeLog(sd, -1, email, "user details", "one time password reset requested", 0);
 						
 					    response = Response.ok().build();
 					} else {
@@ -296,7 +295,6 @@ public class PasswordReset extends Application {
 				count++;
 				
 				log.info("userevent: " + ident + "reset password / forgot password");
-				lm.writeLog(sd, -1, ident, "user details", "reset password / forgot password", 0);
 			} 
 			
 			if(count == 0) {
