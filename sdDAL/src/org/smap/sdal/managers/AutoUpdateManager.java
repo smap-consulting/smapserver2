@@ -79,12 +79,10 @@ public class AutoUpdateManager {
 		HashMap<Integer, String> localeHashMap = new HashMap<> ();		// reduce database access
 		
 		for(QuestionForm qf : auQuestions) {
-			log.info("@@@@@@@@@@@: " + qf.columnName);
 			if(qf.parameters != null) {
 				HashMap<String, String> params = GeneralUtilityMethods.convertParametersToHashMap(qf.parameters);
 				String auto = params.get("auto");	// legacy
 				String auto_annotate = params.get("auto_annotate");
-				log.info("    @@@@@@@ autoAnnotate: " + auto_annotate);
 				if((auto_annotate != null && (auto_annotate.equals("yes") || auto_annotate.equals("true"))) 
 						|| (auto != null && auto.equals("yes"))) {
 					
@@ -97,7 +95,6 @@ public class AutoUpdateManager {
 						if(refColumn.startsWith("$") && refColumn.length() > 3) {	// Remove ${} syntax if the source has that
 							refColumn = refColumn.substring(2, refColumn.length() -1);
 						}		
-						log.info("    @@@@@@@ refColumn: " + refColumn);
 						
 						if(GeneralUtilityMethods.hasColumn(cResults, qf.tableName, refColumn)) {
 					
@@ -118,7 +115,6 @@ public class AutoUpdateManager {
 							SurveyManager sm = new SurveyManager(localisation, "UTC");			
 							
 							String groupSurveyIdent = GeneralUtilityMethods.getGroupSurveyIdent(sd, qf.s_id);
-							log.info("    @@@@@@@ groupSurveyIdent: " + groupSurveyIdent);
 							HashMap<String, QuestionForm> refQuestionMap = sm.getGroupQuestionsMap(sd, 
 									groupSurveyIdent, 
 									" q.column_name = '" + refColumn + "'",
@@ -130,7 +126,6 @@ public class AutoUpdateManager {
 								refQuestionMap = sm.getGroupMetaQuestionsMap(sd, 
 										groupSurveyIdent, refColumn, true);
 								refQf = refQuestionMap.get(refColumn);
-								log.info("    @@@@@@@ Meta question map size: " + refQuestionMap.size());
 							}
 							
 							if(refQf == null) {
@@ -141,7 +136,6 @@ public class AutoUpdateManager {
 												|| refQf.qType.equals("background-audio")
 												|| refQf.qType.equals("string"))) {
 									
-								log.info("    @@@@@@@ Reference question found ");
 									String updateType = null;
 									String fromLang = params.get("from_lang");
 									String toLang = params.get("to_lang");
@@ -388,8 +382,7 @@ public class AutoUpdateManager {
 								+ "and not _bad";
 						if(pstmt != null) {try {pstmt.close();} catch(Exception e) {}}
 						pstmt = cResults.prepareStatement(sql);
-							
-						log.info("#### Get auto updates: " + pstmt.toString());		// debug					
+												
 						ResultSet rs = pstmt.executeQuery();
 						while (rs.next()) {
 							String instanceId = rs.getString(1);

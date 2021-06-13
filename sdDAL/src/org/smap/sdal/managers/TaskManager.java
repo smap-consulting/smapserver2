@@ -3275,10 +3275,18 @@ public class TaskManager {
 							}
 
 							notify_details = localisation.getString("msg_et");
-							notify_details = notify_details.replaceAll("%s1", msg.email);
-							notify_details = notify_details.replaceAll("%s2", docURL);
-							notify_details = notify_details.replaceAll("%s3", survey.displayName);
-							notify_details = notify_details.replaceAll("%s4", survey.projectName);
+							if(msg.email != null) {
+								notify_details = notify_details.replaceAll("%s1", msg.email);
+							}
+							if(docURL != null) {
+								notify_details = notify_details.replaceAll("%s2", docURL);
+							}
+							if(survey.displayName != null) {
+								notify_details = notify_details.replaceAll("%s3", survey.displayName);
+							}
+							if(survey.projectName != null) {
+								notify_details = notify_details.replaceAll("%s4", survey.projectName);
+							}
 							
 							log.info("+++ emailing task to: " + msg.email + " docUrl: " + docURL + 
 									" from: " + from + 
