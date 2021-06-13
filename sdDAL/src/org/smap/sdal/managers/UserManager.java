@@ -903,6 +903,8 @@ public class UserManager {
 		log.info("Update organisations for user id:" + u_id);
 		log.info("Autocommit: " + sd.getAutoCommit());
 		
+		boolean calledFromTransaction = !sd.getAutoCommit();  // Manage auto commit
+		
 		try {
 
 			int initiatorUserId = 0;
@@ -933,6 +935,7 @@ public class UserManager {
 			}
 			
 			if(u.orgs != null) {
+				log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				ArrayList<Integer> orgList = new ArrayList<Integer> ();
@@ -995,7 +998,9 @@ public class UserManager {
 					}
 				}
 				
-				sd.commit();
+				if(!calledFromTransaction) {
+					sd.commit();
+				}
 				
 			} else {
 				log.info("No user groups");
@@ -1004,9 +1009,15 @@ public class UserManager {
 			
 		} catch (Exception e) {
 			log.log(Level.SEVERE, e.getMessage(), e);
-			sd.rollback();
+			if(!calledFromTransaction) {
+				try{sd.rollback();} catch(Exception ex) {}
+			}
 		} finally {
-			sd.setAutoCommit(true);
+			if(!calledFromTransaction) {
+				log.info("Set autocommit true");
+				sd.setAutoCommit(true);
+			}
+			
 			try {if (pstmtDelete != null) {pstmtDelete.close();}} catch (SQLException e) {}
 			try {if (pstmtInsertOrgUser != null) {pstmtInsertOrgUser.close();}} catch (SQLException e) {}
 			try {if (pstmtValidate != null) {pstmtValidate.close();}} catch (SQLException e) {}
