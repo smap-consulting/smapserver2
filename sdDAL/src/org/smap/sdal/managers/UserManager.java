@@ -482,7 +482,7 @@ public class UserManager {
 				StringBuilder passwordUrl = new StringBuilder("");
 				passwordUrl.append("<a href=\"https://")
 				.append(serverName)
-				.append("/resetPassword.html?token=")
+				.append("/app/resetPassword.html?token=")
 				.append(uuid)
 				.append("\">")
 				.append(localisation.getString("email_link"))
