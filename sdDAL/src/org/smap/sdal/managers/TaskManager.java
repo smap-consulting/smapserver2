@@ -3306,30 +3306,6 @@ public class TaskManager {
 									} else {
 										if(subStatus.optedIn || !organisation.send_optin) {
 											log.info("Send email: " + msg.email + " : " + docURL);
-											
-											/*
-											em.sendEmail(
-													ia.getAddress(), 
-													null, 
-													"notify", 
-													subject, 
-													content.toString(),
-													from,		
-													null, 
-													null, 
-													null, 
-													docURL, 
-													filePath,
-													filename,
-													organisation.getAdminEmail(), 
-													emailServer,
-													scheme,
-													server,
-													subStatus.emailKey,
-													localisation,
-													organisation.server_description,
-													organisation.name);
-													*/
 													
 											em.sendEmailHtml(
 													ia.getAddress(),  
