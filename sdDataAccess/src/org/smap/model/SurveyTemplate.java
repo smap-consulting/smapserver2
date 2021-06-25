@@ -1584,6 +1584,12 @@ public class SurveyTemplate {
 				questionPath = "/main/" + mq.name;
 			}
 			instance.setQuestion(questionPath, mq.type, mq.name, false, mq.columnName, mq.dataType, false);
+			
+			// Use geopoint meta questions to set survey location if it has not already been set
+			if(mq.type.equals("geopoint") && (instance.getSurveyGeopoint() == null || instance.getSurveyGeopoint().trim().equals(""))) {
+				log.info("+++++++ setting for: " + questionPath);
+				instance.setOverallLocation(questionPath);
+			}
 		}
 	}
 	
