@@ -4363,7 +4363,9 @@ public class SurveyManager {
 			/*
 			 * Get the latest instanceid in case this record has been updated
 			 */
-			instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, form.tableName, instanceId);
+			if(instanceId != null) {
+				instanceId = GeneralUtilityMethods.getLatestInstanceId(cResults, form.tableName, instanceId);
+			}
 			
 			/*
 			 * Get the data
