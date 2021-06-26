@@ -323,7 +323,8 @@ public class GeneralUtilityMethods {
 				&& !host.endsWith("reachnettechnologies.com")
 				&& !host.endsWith("datacollect.icanreach.com") 
 				&& !host.endsWith("encontactone.com")
-				&& !host.equals("app.kontrolid.com")) {
+				&& !host.equals("app.kontrolid.com")
+				&& !host.equals("kontrolid.smap.com.au")) {
 
 			log.info("Self registration check failed: " + host);
 			throw new AuthorisationException();
@@ -8872,6 +8873,7 @@ public class GeneralUtilityMethods {
 				pstmt = cResults.prepareStatement(sql);
 	
 				pstmt.setString(1, instanceId);
+				log.info("Get latest instance id: " + pstmt.toString());
 				ResultSet rs = pstmt.executeQuery();
 				if(rs.next()) {
 					latestInstanceId = rs.getString(1);
