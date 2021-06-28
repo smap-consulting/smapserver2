@@ -1,10 +1,6 @@
 package surveyKPI;
 
 import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
@@ -23,18 +19,13 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
-import org.smap.sdal.model.AR;
 import org.smap.sdal.model.HourlyLogSummaryItem;
 
-import utilities.XLSXAdminReportsManager;
 import utilities.XLSXLogHourlyReportsManager;
-import utilities.XLSXReportsManager;
 
 /*
  * Export a log report in xlsx

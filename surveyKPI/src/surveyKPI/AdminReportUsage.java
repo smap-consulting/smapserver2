@@ -1,7 +1,6 @@
 package surveyKPI;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -26,13 +25,11 @@ import javax.ws.rs.core.Response.Status;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.Authorise;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.ResultsDataSource;
 import org.smap.sdal.Utilities.SDDataSource;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.model.AR;
 
 import utilities.XLSXAdminReportsManager;
-import utilities.XLSXReportsManager;
 
 /*
  * Export a survey in XLSX format
