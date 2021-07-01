@@ -569,21 +569,19 @@ public class SurveyTableManager {
 				if(sqlDef != null) {
 					sqlDef.qnames = uniqueColumns;		// Set question names to requested names
 				}
-				
-				//if(sqlDef.colNames.size() > 0) {
-					pstmtUpdate = sd.prepareStatement(sqlUpdate);
-					pstmtUpdate.setBoolean(1, chart);
-					pstmtUpdate.setBoolean(2, non_unique_key);
-					pstmtUpdate.setString(3, linked_sIdent);
-					pstmtUpdate.setString(4, chart_key);
-					pstmtUpdate.setBoolean(5, linked_s_pd);
-					pstmtUpdate.setString(6, new Gson().toJson(sqlDef));
-					pstmtUpdate.setInt(7, tableId);
-					log.info("Add sql info: " + pstmtUpdate.toString());
-					pstmtUpdate.executeUpdate();
-				//}
+
+				pstmtUpdate = sd.prepareStatement(sqlUpdate);
+				pstmtUpdate.setBoolean(1, chart);
+				pstmtUpdate.setBoolean(2, non_unique_key);
+				pstmtUpdate.setString(3, linked_sIdent);
+				pstmtUpdate.setString(4, chart_key);
+				pstmtUpdate.setBoolean(5, linked_s_pd);
+				pstmtUpdate.setString(6, new Gson().toJson(sqlDef));
+				pstmtUpdate.setInt(7, tableId);
+				log.info("Add sql info: " + pstmtUpdate.toString());
+				pstmtUpdate.executeUpdate();
 			}
-			
+
 			
 
 		} finally {
@@ -689,7 +687,7 @@ public class SurveyTableManager {
 					}
 					sql.append(colName);
 					sql.append(" as ");
-					sql.append("\"" + n + "\"");
+					sql.append("\\\"" + n + "\\\"");
 					first = false;
 	
 					//order_cols.append("\"" + n + "\"" );
@@ -900,7 +898,6 @@ public class SurveyTableManager {
 		boolean status = false;
 		try {
 			pstmtData = cResults.prepareStatement(sqlDef.sql + sqlDef.order_by);
-			
 			if(sqlDef.colNames.size() == 0) {
 				log.info("++++++ No column names present in table. Creating empty file");
 				

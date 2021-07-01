@@ -83,7 +83,7 @@ public class TranslationManager {
 			 */
 			pstmtQuestionLevel = sd.prepareStatement(sqlQuestionLevel);	 			
 			pstmtQuestionLevel.setInt(1, surveyId);
-			log.info("xxxx: get question and option level manifests: " + pstmtQuestionLevel.toString());
+			//log.info("xxxx: get question and option level manifests: " + pstmtQuestionLevel.toString());
 			ResultSet rs = pstmtQuestionLevel.executeQuery();
 			
 			while (rs.next()) {								
@@ -117,7 +117,7 @@ public class TranslationManager {
 			pstmtDefaultImage = sd.prepareStatement(sqlDefaultImage);	 			
 			pstmtDefaultImage.setInt(1, surveyId);
 
-			log.info("xxxx: get default image manifests: " + pstmtQuestionLevel.toString());
+			//log.info("xxxx: get default image manifests: " + pstmtQuestionLevel.toString());
 			rs = pstmtDefaultImage.executeQuery();
 				
 			while (rs.next()) {		
@@ -180,7 +180,7 @@ public class TranslationManager {
 			pstmt = sd.prepareStatement(sql);	 			
 			pstmt.setInt(1, surveyId);
 			
-			log.info("xxxx get survey manifests: " + pstmt.toString());
+			//log.info("xxxx get survey manifests: " + pstmt.toString());
 			rs = pstmt.executeQuery();
 			if(rs.next()) {
 				String manifestString = rs.getString(1);
