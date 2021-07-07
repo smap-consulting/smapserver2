@@ -508,14 +508,14 @@ public class Dashboard extends Application {
 
 			} else if (s.state != null && s.state.equals("deleted")) {
 				sql = "delete from dashboard_settings " +
-						"where (ds_id = ? or ds_layer_id = ?) " +
+						"where (ds_id = ? or (ds_layer_id != -1 and ds_layer_id = ?)) " +
 						"and ds_user_ident = ?;";
-				//log.info(sql + " : " + s.id + " : " + user);
 
 				pstmt = sd.prepareStatement(sql);
 				pstmt.setInt(1, s.id);
 				pstmt.setInt(2, s.id);
 				pstmt.setString(3, user);
+				log.info("delete panels: " + pstmt.toString());
 				pstmt.executeUpdate();
 				
 			}
