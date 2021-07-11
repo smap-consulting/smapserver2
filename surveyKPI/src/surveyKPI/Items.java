@@ -337,7 +337,7 @@ public class Items extends Application {
 					types.put(c.type);
 					newColIdx++;
 				}
-				if(hasGeometry) {	// Put the geojson select of teh geometry at the end
+				if(hasGeometry) {	// Put the geojson select of the geometry at the end
 					geomIdx = newColIdx;
 					cols.append(",ST_AsGeoJSON(" + tName + "." + geomColumn + ") " + " as geomvalue");
 				}

@@ -132,7 +132,8 @@ public class Results extends Application {
 			@QueryParam("startDate") Date startDate,
 			@QueryParam("endDate") Date endDate,
 			@QueryParam("filter") String sFilter,
-			@QueryParam("advanced_filter") String advanced_filter
+			@QueryParam("advanced_filter") String advanced_filter,
+			@QueryParam("geom_questions") String geomQuestions
 			) { 
 	
 		Response response = null;
@@ -237,6 +238,20 @@ public class Results extends Application {
 				q.add(new QuestionInfo(geoTable, "the_geom", true, "the_geom"));		// keep this for now
 				q.add(new QuestionInfo(geoTable, "name", true, "name"));
 				tables.add(geoTable, -1, -1);
+			}
+			
+			if(groupId == 0 && geomQuestions != null) {
+				// Add default geom question
+				try {
+					groupId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, geomQuestions);
+					hasGeo = true;
+					hasGroup = true;
+					group = new QuestionInfo(localisation, tz, sId, groupId, sd,cResults, request.getRemoteUser(), hasGeo, lang, urlprefix, oId);	
+					q.add(group);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 	
 			/*
