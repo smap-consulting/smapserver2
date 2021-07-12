@@ -72,7 +72,8 @@ public class XLSXAdminReportsManager {
 			boolean bySurvey,
 			boolean byDevice,
 			int year,
-			int month) {
+			int month,
+			String orgName) {
 		
 		Response responseVal = null;
 
@@ -122,6 +123,12 @@ public class XLSXAdminReportsManager {
 				cell.setCellValue(localisation.getString("bill_month"));
 				cell = monthRow.createCell(1);	
 				cell.setCellValue(month);
+				
+				Row orgRow = dataSheet.createRow(rowNumber++);		
+				cell = orgRow.createCell(0);
+				cell.setCellValue(localisation.getString("bill_org"));
+				cell = orgRow.createCell(1);	
+				cell.setCellValue(orgName);
 				
 				rowNumber++;		// blank row
 				Row headerRow = dataSheet.createRow(rowNumber++);				
