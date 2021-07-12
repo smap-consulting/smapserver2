@@ -230,7 +230,9 @@ public class SurveyTableManager {
 			}
 
 			sql.append(sqlDef.order_by);
-			pstmt = cResults.prepareStatement(sql.toString());
+			String sqlString = sql.toString();
+			sqlString = sqlString.replace("\\", "");		// Extra \ escapes are required of the string is passed to PSQL for generation - we don't need them here
+			pstmt = cResults.prepareStatement(sqlString);
 			int paramCount = 1;
 			if (sqlDef.calcArray != null) {
 				paramCount = GeneralUtilityMethods.setArrayFragParams(pstmt, sqlDef.calcArray, paramCount, tz);

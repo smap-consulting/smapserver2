@@ -40,6 +40,7 @@ import utilities.XLSXAdminReportsManager;
 public class AdminReportUsage extends Application {
 
 	Authorise a = null;
+	Authorise aOrg = null;
 
 	private static Logger log =
 			Logger.getLogger(AdminReportUsage.class.getName());
@@ -51,6 +52,10 @@ public class AdminReportUsage extends Application {
 		ArrayList<String> authorisations = new ArrayList<String> ();	
 		authorisations.add(Authorise.ADMIN);
 		a = new Authorise(authorisations, null);
+		
+		ArrayList<String> authorisationsOrg = new ArrayList<String> ();	
+		authorisationsOrg.add(Authorise.ORG);
+		aOrg = new Authorise(authorisationsOrg, null);
 	}
 	
 	/*
@@ -65,6 +70,7 @@ public class AdminReportUsage extends Application {
 			@QueryParam("survey") boolean bySurvey,
 			@QueryParam("device") boolean byDevice,
 			@QueryParam("inc_temp") boolean inc_temp,
+			@QueryParam("org") int oId,
 			@Context HttpServletResponse response) {
 
 		Response responseVal;
@@ -72,7 +78,11 @@ public class AdminReportUsage extends Application {
 		// Authorisation - Access
 		String connectionString = "surveyKPI - AdminReports - Usage";
 		Connection sd = SDDataSource.getConnection(connectionString);
-		a.isAuthorised(sd, request.getRemoteUser());
+		if(oId > 0) {
+			aOrg.isAuthorised(sd, request.getRemoteUser());
+		} else {
+			a.isAuthorised(sd, request.getRemoteUser());
+		}
 		// End Authorisation
 		
 		includeTemporaryUsers = inc_temp;	
@@ -86,7 +96,9 @@ public class AdminReportUsage extends Application {
 				throw new ApplicationException(localisation.getString("ar_month_gt_0"));
 			}
 			
-			int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			if(oId <= 0) {
+				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			}
 			
 			String filename = localisation.getString("ar_report_name") + "_" + year + "_" + month;
 			
@@ -120,7 +132,8 @@ public class AdminReportUsage extends Application {
 			header.add(localisation.getString("ar_usage_at"));
 			
 			XLSXAdminReportsManager rm = new XLSXAdminReportsManager(localisation);
-			responseVal = rm.getNewReport(sd, request, response, header, report, filename, byProject, bySurvey, byDevice, year, month);
+			responseVal = rm.getNewReport(sd, request, response, header, report, filename, byProject, bySurvey, byDevice, year, month,
+					GeneralUtilityMethods.getOrganisationName(sd, oId));
 			
 		} catch(Exception e) {
 			log.log(Level.SEVERE, "Error", e);
