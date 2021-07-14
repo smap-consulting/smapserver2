@@ -5308,9 +5308,10 @@ public class GeneralUtilityMethods {
 					|| property.contains("lookup(") || property.contains("lookup_choices("))) {
 				// Yes it references a manifest
 
-				int idx1 = property.indexOf('(');
-				int idx2 = property.indexOf(')');
-				if (idx1 > 0 && idx2 > idx1) {
+				int idx1 = getManifestParamStart(property);
+				int idx2 = property.indexOf(')', idx1);
+				log.info("xxxxxx: " + property + " : " + idx1 + " : " + idx2);
+				if (idx1 >= 0 && idx2 > idx1) {
 					String criteriaString = property.substring(idx1 + 1, idx2);
 
 					String criteria[] = criteriaString.split(",");
@@ -10039,6 +10040,28 @@ public class GeneralUtilityMethods {
     	}
 		return valid;
 		
+	}
+	
+	private static int getManifestParamStart(String property) {
+	
+		int idx = property.indexOf("search(");
+		if(idx < 0) {
+			idx = property.indexOf("pulldata(");
+		}
+		if(idx < 0) {
+			idx = property.indexOf("lookup(");
+		}
+		if(idx < 0) {
+			idx = property.indexOf("lookup_choices(");
+		}
+		
+		if(idx >= 0) {
+			idx = property.indexOf('(', idx);
+		} else {
+			idx = -1;
+		}
+		
+		return idx;
 	}
 }
 

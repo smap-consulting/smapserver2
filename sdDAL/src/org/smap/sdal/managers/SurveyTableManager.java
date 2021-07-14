@@ -582,6 +582,8 @@ public class SurveyTableManager {
 				pstmtUpdate.setInt(7, tableId);
 				log.info("Add sql info: " + pstmtUpdate.toString());
 				pstmtUpdate.executeUpdate();
+			} else {
+				throw new ApplicationException("Error: no columns found in linked survey " + sId + " for file " + filename);
 			}
 
 			
