@@ -553,7 +553,8 @@ public class Audit extends Application {
 		StringBuffer sql = new StringBuffer("select id, user_ident, "
 				+ "to_char(timezone(?, refresh_time), 'YYYY-MM-DD HH24:MI:SS') as refresh_time, "
 				+ "to_char(timezone(?, device_time), 'YYYY-MM-DD HH24:MI:SS') as device_time,  "
-				+ "refresh_time - device_time as server_ahead ");
+				+ "refresh_time - device_time as server_ahead,"
+				+ "deviceid ");
 		
 		boolean locationServer = GeneralUtilityMethods.isLocationServer(request.getServerName());
 		if(locationServer) {
@@ -647,6 +648,7 @@ public class Audit extends Application {
 				jf.put("refresh_time", rs.getString("refresh_time"));
 				jf.put("device_time", rs.getString("device_time"));
 				jf.put("server_ahead", rs.getString("server_ahead"));
+				jf.put("deviceid", rs.getString("deviceid"));
 				
 				if(locationServer) {
 					if(isGeoJson) {

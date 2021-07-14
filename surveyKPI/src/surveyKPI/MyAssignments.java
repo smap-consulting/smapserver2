@@ -315,6 +315,9 @@ public class MyAssignments extends Application {
 			}
 		}
 		
+		// Get the deviceid if set
+		String deviceid = request.getHeader("deviceid");
+		
 		log.info("Refresh assignments: " + deviceTimeString);
 		
 		PreparedStatement pstmtGetSettings = null;
@@ -796,7 +799,7 @@ public class MyAssignments extends Application {
 			 * Log the request
 			 */
 			GeneralUtilityMethods.recordRefresh(sd, oId, userName, 
-					lat, lon, deviceTime, request.getServerName());
+					lat, lon, deviceTime, request.getServerName(), deviceid);
 			
 			/*
 			 * Return the response
