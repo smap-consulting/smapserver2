@@ -8576,22 +8576,23 @@ public class GeneralUtilityMethods {
 	 * Log a refresh
 	 */
 	static public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, 
-			long deviceTime, String hostname) throws SQLException {
+			long deviceTime, String hostname, String deviceid) throws SQLException {
 
 		String sql = "update last_refresh "
 				+ "set refresh_time = now(), "
 				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), "
-				+ "device_time = ? "
+				+ "device_time = ?, "
+				+ "deviceid = ? "
 				+ "where o_id = ? "
 				+ "and user_ident = ?";
 
 		String sqlInsert = "insert into last_refresh "
-				+ "(o_id, user_ident, refresh_time, geo_point, device_time) "
-				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?)";
+				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid) "
+				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?)";
 		
 		String sqlInsertLog = "insert into last_refresh_log "
-				+ "(o_id, user_ident, refresh_time, device_time, geo_point) "
-				+ "values(?, ?, now(), ?, ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
+				+ "(o_id, user_ident, refresh_time, device_time, deviceid, geo_point) "
+				+ "values(?, ?, ?, now(), ?, ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
 		
 		PreparedStatement pstmt = null;
 
@@ -8603,8 +8604,9 @@ public class GeneralUtilityMethods {
 				pstmt.setDouble(1, lon);
 				pstmt.setDouble(2, lat);
 				pstmt.setTimestamp(3, deviceTimeStamp);
-				pstmt.setInt(4, oId);
-				pstmt.setString(5,  user);
+				pstmt.setString(4,  deviceid);
+				pstmt.setInt(5, oId);
+				pstmt.setString(6,  user);
 				int count = pstmt.executeUpdate();
 				if (count == 0) {
 					try {pstmt.close();} catch (Exception e) {};
@@ -8614,6 +8616,7 @@ public class GeneralUtilityMethods {
 					pstmt.setDouble(3, lon);
 					pstmt.setDouble(4, lat);
 					pstmt.setTimestamp(5,  deviceTimeStamp);
+					pstmt.setString(6,  deviceid);
 					pstmt.executeUpdate();
 				}
 	
@@ -8623,13 +8626,14 @@ public class GeneralUtilityMethods {
 				pstmt.setInt(1, oId);
 				pstmt.setString(2, user);
 				pstmt.setTimestamp(3,  deviceTimeStamp);
+				pstmt.setString(4,  deviceid);
 				if(GeneralUtilityMethods.isLocationServer(hostname)) {
 					log.info("Is location server setting location");
-					pstmt.setDouble(4, lon);
-					pstmt.setDouble(5, lat);
+					pstmt.setDouble(5, lon);
+					pstmt.setDouble(6, lat);
 				} else {
-					pstmt.setDouble(4, 0.0);
 					pstmt.setDouble(5, 0.0);
+					pstmt.setDouble(6, 0.0);
 				}
 				pstmt.executeUpdate();
 				
