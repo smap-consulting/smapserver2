@@ -244,10 +244,12 @@ public class Results extends Application {
 				// Add default geom question
 				try {
 					groupId = GeneralUtilityMethods.getQuestionIdFromName(sd, sId, geomQuestions);
-					hasGeo = true;
-					hasGroup = true;
-					group = new QuestionInfo(localisation, tz, sId, groupId, sd,cResults, request.getRemoteUser(), hasGeo, lang, urlprefix, oId);	
-					q.add(group);
+					if(groupId > 0) {
+						hasGeo = true;
+						hasGroup = true;
+						group = new QuestionInfo(localisation, tz, sId, groupId, sd,cResults, request.getRemoteUser(), hasGeo, lang, urlprefix, oId);	
+						q.add(group);
+					}
 				} catch (SQLException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
