@@ -42,6 +42,7 @@ import org.smap.sdal.managers.SurveyManager;
 import org.smap.sdal.managers.SurveyTableManager;
 import org.smap.sdal.managers.TaskManager;
 import org.smap.sdal.managers.TranslationManager;
+import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
 import org.smap.sdal.model.Assignment;
 import org.smap.sdal.model.GeometryString;
@@ -63,7 +64,6 @@ import com.google.gson.reflect.TypeToken;
 
 import taskModel.FieldTaskSettings;
 import taskModel.FormLocator;
-import taskModel.PointEntry;
 import taskModel.ReferenceSurvey;
 import taskModel.TaskCompletionInfo;
 import taskModel.TaskResponse;
@@ -798,7 +798,8 @@ public class MyAssignments extends Application {
 			/*
 			 * Log the request
 			 */
-			GeneralUtilityMethods.recordRefresh(sd, oId, userName, 
+			UserLocationManager ulm = new UserLocationManager(localisation, tz);
+			ulm.recordRefresh(sd, oId, userName, 
 					lat, lon, deviceTime, request.getServerName(), deviceid);
 			
 			/*
@@ -892,7 +893,6 @@ public class MyAssignments extends Application {
 		PreparedStatement pstmtSetUpdatedRejected = null;	
 		PreparedStatement pstmtSetUpdatedNotRejected = null;
 		PreparedStatement pstmtTasks = null;		
-		PreparedStatement pstmtTrail = null;
 		PreparedStatement pstmtEvents = null;
 		PreparedStatement pstmtUpdateId = null;
 		PreparedStatement pstmtUnassignedRejected = null;
@@ -983,32 +983,9 @@ public class MyAssignments extends Application {
 				/*
 				 * Record user trail information
 				 */
-				if(tr.userTrail != null) {
-					String sqlTrail = "insert into user_trail (" +
-							"u_id, " +
-							"device_id, " +			
-							"the_geom," +		// keep this
-							"event_time" +
-							") " +
-							"values(?, ?, ST_GeomFromText(?, 4326), ?);";
-					pstmtTrail = sd.prepareStatement(sqlTrail);
-					pstmtTrail.setInt(1, userId);
-					pstmtTrail.setString(2, tr.deviceId);
-					for(PointEntry pe : tr.userTrail) {
+				UserLocationManager ulm = new UserLocationManager(localisation, "UTC");
+				ulm.recordUserTrail(sd, userId, tr.deviceId, tr.userTrail);
 
-						pstmtTrail.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
-						
-						if(pe.time == 0) {
-							log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmtTrail.toString());
-							// Seting to now
-							pstmtTrail.setTimestamp(4, new Timestamp(System.currentTimeMillis()));		// Hack
-						} else {						
-							pstmtTrail.setTimestamp(4, new Timestamp(pe.time));
-						}
-						pstmtTrail.executeUpdate();
-					}
-
-				}
 			}
 
 			if(!sd.getAutoCommit()) {
@@ -1036,7 +1013,6 @@ public class MyAssignments extends Application {
 			try {if ( pstmtSetUpdatedRejected != null ) { pstmtSetUpdatedRejected.close(); }} catch (Exception e) {}
 			try {if ( pstmtSetUpdatedNotRejected != null ) { pstmtSetUpdatedNotRejected.close(); }} catch (Exception e) {}
 			try {if ( pstmtTasks != null ) { pstmtTasks.close(); }} catch (Exception e) {}
-			try {if ( pstmtTrail != null ) { pstmtTrail.close(); }} catch (Exception e) {}
 			try {if ( pstmtEvents != null ) { pstmtEvents.close(); }} catch (Exception e) {}
 			try {if ( pstmtUpdateId != null ) { pstmtUpdateId.close(); }} catch (Exception e) {}
 			try {if ( pstmtUnassignedRejected != null ) { pstmtUnassignedRejected.close(); }} catch (Exception e) {}

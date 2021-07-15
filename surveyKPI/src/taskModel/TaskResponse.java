@@ -3,6 +3,7 @@ package taskModel;
 import java.util.HashSet;
 import java.util.List;
 
+import org.smap.sdal.model.PointEntry;
 import org.smap.sdal.model.Project;
 import org.smap.sdal.model.TaskAssignment;
 
