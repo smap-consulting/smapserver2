@@ -6,8 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Locale;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,17 +14,9 @@ import java.util.logging.Logger;
 import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONObject;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.SDDataSource;
-import org.smap.sdal.model.DataItemChange;
-import org.smap.sdal.model.DataItemChangeEvent;
+import org.smap.sdal.model.PointEntry;
 import org.smap.sdal.model.Role;
-import org.smap.sdal.model.SubmissionMessage;
-import org.smap.sdal.model.TaskEventChange;
-import org.smap.sdal.model.TaskItemChange;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
 /*****************************************************************************
 
@@ -354,5 +345,115 @@ public class UserLocationManager {
 		}
 
 		return jo.toString();
+	}
+	
+	/*
+	 * Update the user trail
+	 */
+	public void recordUserTrail(Connection sd, int userId, String deviceId, List<PointEntry> userTrail) throws SQLException {
+		
+		if(userTrail != null) {
+			String sqlTrail = "insert into user_trail (" +
+					"u_id, " +
+					"device_id, " +			
+					"the_geom," +		// keep this
+					"event_time" +
+					") " +
+					"values(?, ?, ST_GeomFromText(?, 4326), ?);";
+			PreparedStatement pstmt = null;
+			try {
+				pstmt = sd.prepareStatement(sqlTrail);
+				pstmt.setInt(1, userId);
+				pstmt.setString(2, deviceId);
+				for(PointEntry pe : userTrail) {
+	
+					pstmt.setString(3, "POINT(" + pe.lon + " " + pe.lat + ")");
+					
+					if(pe.time == 0) {
+						log.info("Error time is zero ######### --------+++++++-----------+++++++------------ " + pstmt.toString());
+						// Seting to now
+						pstmt.setTimestamp(4, new Timestamp(System.currentTimeMillis()));		// Hack
+					} else {						
+						pstmt.setTimestamp(4, new Timestamp(pe.time));
+					}
+					pstmt.executeUpdate();
+				}
+			} finally {
+				if(pstmt != null) try {pstmt.close();} catch (Exception e) {}
+			}
+
+		}	
+	}
+	
+	/*
+	 * Log a refresh
+	 */
+	public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, 
+			long deviceTime, String hostname, String deviceid) throws SQLException {
+
+		String sql = "update last_refresh "
+				+ "set refresh_time = now(), "
+				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), "
+				+ "device_time = ?, "
+				+ "deviceid = ? "
+				+ "where o_id = ? "
+				+ "and user_ident = ?";
+
+		String sqlInsert = "insert into last_refresh "
+				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid) "
+				+ "values(?, ?, now(),  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), ?, ?)";
+		
+		String sqlInsertLog = "insert into last_refresh_log "
+				+ "(o_id, user_ident, refresh_time, device_time, deviceid, geo_point) "
+				+ "values(?, ?, ?, now(), ?, ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326))";
+		
+		PreparedStatement pstmt = null;
+
+		Timestamp deviceTimeStamp = new Timestamp(deviceTime);
+		if(user != null) {
+			try {
+				
+				pstmt = sd.prepareStatement(sql);
+				pstmt.setDouble(1, lon);
+				pstmt.setDouble(2, lat);
+				pstmt.setTimestamp(3, deviceTimeStamp);
+				pstmt.setString(4,  deviceid);
+				pstmt.setInt(5, oId);
+				pstmt.setString(6,  user);
+				int count = pstmt.executeUpdate();
+				if (count == 0) {
+					try {pstmt.close();} catch (Exception e) {};
+					pstmt = sd.prepareStatement(sqlInsert);
+					pstmt.setInt(1, oId);
+					pstmt.setString(2, user);
+					pstmt.setDouble(3, lon);
+					pstmt.setDouble(4, lat);
+					pstmt.setTimestamp(5,  deviceTimeStamp);
+					pstmt.setString(6,  deviceid);
+					pstmt.executeUpdate();
+				}
+	
+				// Write to the log
+				try {pstmt.close();} catch (Exception e) {};
+				pstmt = sd.prepareStatement(sqlInsertLog);
+				pstmt.setInt(1, oId);
+				pstmt.setString(2, user);
+				pstmt.setTimestamp(3,  deviceTimeStamp);
+				pstmt.setString(4,  deviceid);
+				if(GeneralUtilityMethods.isLocationServer(hostname)) {
+					log.info("Is location server setting location");
+					pstmt.setDouble(5, lon);
+					pstmt.setDouble(6, lat);
+				} else {
+					pstmt.setDouble(5, 0.0);
+					pstmt.setDouble(6, 0.0);
+				}
+				pstmt.executeUpdate();
+				
+			} finally {
+				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
+			}
+		}
+
 	}
 }
