@@ -303,7 +303,9 @@ public class GeneralUtilityMethods {
 	static public boolean isLocationServer(String host) {
 
 		boolean locationServer = false;
-		if(host.contains("kontrolid") || host.equals("localhost")
+		if(host.contains("kontrolid") 
+				|| host.contains("sterliteapps")
+				|| host.equals("localhost")
 				|| host.equals("demo.smap.com.au")) {
 			locationServer = true;
 		}

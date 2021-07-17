@@ -800,7 +800,7 @@ public class MyAssignments extends Application {
 			 */
 			UserLocationManager ulm = new UserLocationManager(localisation, tz);
 			ulm.recordRefresh(sd, oId, userName, 
-					lat, lon, deviceTime, request.getServerName(), deviceid);
+					lat, lon, deviceTime, request.getServerName(), deviceid, true);
 			
 			/*
 			 * Return the response

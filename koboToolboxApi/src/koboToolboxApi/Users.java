@@ -25,8 +25,12 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.ResourceBundle;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -42,6 +46,8 @@ import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.UserLocationManager;
 import org.smap.sdal.managers.UserManager;
 
+import net.bull.javamelody.internal.common.LOG;
+
 /*
  * Provides access to audit views on the surveys
  */
@@ -49,6 +55,8 @@ import org.smap.sdal.managers.UserManager;
 public class Users extends Application {
 	
 	Authorise a = null;
+	private static Logger log =
+			Logger.getLogger(UserLocationManager.class.getName());
 
 	LogManager lm = new LogManager();		// Application log
 
@@ -99,6 +107,58 @@ public class Users extends Application {
 					request.getRemoteUser(),
 					false
 					)).build();
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			response = Response.serverError().build();
+		} finally {
+			SDDataSource.closeConnection(connectionString, sd);
+		}
+
+		return response;
+	}
+	
+	/*
+	 * Update a users location
+	 */
+	@POST
+	@Path("/location")
+	@Produces("application/json")
+	public Response updateUserLocation(@Context HttpServletRequest request,
+			@FormParam("lat") String latString,
+			@FormParam("lon") String lonString) { 
+
+		Response response = null;
+		String connectionString = "API - updateUserLocation";
+
+		// Authorisation not required as a user only updates their own location
+		Connection sd = SDDataSource.getConnection(connectionString);
+		
+		try {
+			// Get the users locale
+			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
+			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
+			
+			log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location update: " + latString + " : " + lonString);
+			
+			UserLocationManager ulm = new UserLocationManager(localisation, "UTC");
+			Double lat = 0.0;
+			Double lon = 0.0;
+			try {
+				lat = Double.valueOf(latString);
+				lon = Double.valueOf(lonString);
+			} catch (Exception e) {
+				log.log(Level.SEVERE, "invalid lat or lon value: " + latString + " : " + lonString, e);
+			}
+			if(!(lat == 0.0 && lon == 0.0)) {
+				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+				ulm.recordRefresh(sd, oId, request.getRemoteUser(), lat, lon, 
+						0L, null, null, false);
+				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location update: " + latString + " : " + lonString);
+			} else {
+				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location 0.0 0.0: ");
+			}
+			
 			
 		} catch (SQLException e) {
 			e.printStackTrace();

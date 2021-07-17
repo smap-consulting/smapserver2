@@ -389,15 +389,20 @@ public class UserLocationManager {
 	 * Log a refresh
 	 */
 	public void recordRefresh(Connection sd, int oId, String user, Double lat, Double lon, 
-			long deviceTime, String hostname, String deviceid) throws SQLException {
+			long deviceTime, String hostname, String deviceid, boolean updateLog) throws SQLException {
 
-		String sql = "update last_refresh "
+		StringBuilder sql = new StringBuilder("update last_refresh "
 				+ "set refresh_time = now(), "
-				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326), "
-				+ "device_time = ?, "
-				+ "deviceid = ? "
-				+ "where o_id = ? "
-				+ "and user_ident = ?";
+				+ "geo_point =  ST_GeomFromText('POINT(' || ? || ' ' || ? ||')', 4326) ");
+		
+		if(deviceTime > 0) {
+				sql.append(",device_time = ? ");
+		}
+		if(deviceid != null) {
+			sql.append(", deviceid = ? ");
+		}
+		sql.append("where o_id = ? "
+				+ "and user_ident = ?");
 
 		String sqlInsert = "insert into last_refresh "
 				+ "(o_id, user_ident, refresh_time, geo_point, device_time, deviceid) "
@@ -409,18 +414,26 @@ public class UserLocationManager {
 		
 		PreparedStatement pstmt = null;
 
-		Timestamp deviceTimeStamp = new Timestamp(deviceTime);
+		
 		if(user != null) {
 			try {
+				int idx = 1;
+				Timestamp deviceTimeStamp = new Timestamp(deviceTime);
 				
-				pstmt = sd.prepareStatement(sql);
-				pstmt.setDouble(1, lon);
-				pstmt.setDouble(2, lat);
-				pstmt.setTimestamp(3, deviceTimeStamp);
-				pstmt.setString(4,  deviceid);
-				pstmt.setInt(5, oId);
-				pstmt.setString(6,  user);
+				pstmt = sd.prepareStatement(sql.toString());
+				pstmt.setDouble(idx++, lon);
+				pstmt.setDouble(idx++, lat);
+				if(deviceTime > 0) {
+
+					pstmt.setTimestamp(idx++, deviceTimeStamp);
+				}
+				if(deviceid != null) {
+					pstmt.setString(idx++,  deviceid);
+				}
+				pstmt.setInt(idx++, oId);
+				pstmt.setString(idx++,  user);
 				int count = pstmt.executeUpdate();
+				
 				if (count == 0) {
 					try {pstmt.close();} catch (Exception e) {};
 					pstmt = sd.prepareStatement(sqlInsert);
@@ -434,26 +447,27 @@ public class UserLocationManager {
 				}
 	
 				// Write to the log
-				try {pstmt.close();} catch (Exception e) {};
-				pstmt = sd.prepareStatement(sqlInsertLog);
-				pstmt.setInt(1, oId);
-				pstmt.setString(2, user);
-				pstmt.setTimestamp(3,  deviceTimeStamp);
-				pstmt.setString(4,  deviceid);
-				if(GeneralUtilityMethods.isLocationServer(hostname)) {
-					log.info("Is location server setting location");
-					pstmt.setDouble(5, lon);
-					pstmt.setDouble(6, lat);
-				} else {
-					pstmt.setDouble(5, 0.0);
-					pstmt.setDouble(6, 0.0);
+				if(updateLog) {
+					try {pstmt.close();} catch (Exception e) {};
+					pstmt = sd.prepareStatement(sqlInsertLog);
+					pstmt.setInt(1, oId);
+					pstmt.setString(2, user);
+					pstmt.setTimestamp(3,  deviceTimeStamp);
+					pstmt.setString(4,  deviceid);
+					if(GeneralUtilityMethods.isLocationServer(hostname)) {
+						log.info("Is location server setting location");
+						pstmt.setDouble(5, lon);
+						pstmt.setDouble(6, lat);
+					} else {
+						pstmt.setDouble(5, 0.0);
+						pstmt.setDouble(6, 0.0);
+					}
+					pstmt.executeUpdate();
 				}
-				pstmt.executeUpdate();
 				
 			} finally {
 				try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			}
 		}
-
 	}
 }
