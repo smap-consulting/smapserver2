@@ -5318,13 +5318,16 @@ public class GeneralUtilityMethods {
 
 					String criteria[] = criteriaString.split(",");
 					if (criteria.length > 0) {
-
+						String appFilename = "";
 						if (criteria[0] != null && criteria[0].length() > 2) { // allow for quotes
-							String appFilename = criteria[0].trim();
+							appFilename = criteria[0].trim();
 
 							appFilename = appFilename.substring(1, appFilename.length() - 1);
 							if (appFilename.endsWith("self")) {
 								appFilename = appFilename.replace("self", sIdent);
+							}
+							if(filename.endsWith("self")) {
+								filename = filename.replace("self", sIdent);
 							}
 							if(appFilename.startsWith("chart_s")) {
 								// Add key
@@ -5359,6 +5362,8 @@ public class GeneralUtilityMethods {
 									params = getRefQuestionsPulldata(criteria);
 								}
 
+							} else {
+								log.info("ooooooo ignoring: " + filename + " is not equal to " + appFilename);
 							}
 
 						}
