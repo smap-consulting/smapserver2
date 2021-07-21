@@ -157,7 +157,7 @@ public class GetXForm {
 
 			// Write the survey to a string and return it to the calling program
 			Transformer transformer = TransformerFactory.newInstance().newTransformer();
-			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+			transformer.setOutputProperty(OutputKeys.INDENT, "no");
 			transformer.setOutputProperty(OutputKeys.ENCODING, "UTF-8");
 			transformer.setOutputProperty(OutputKeys.METHOD, "xml");
 
