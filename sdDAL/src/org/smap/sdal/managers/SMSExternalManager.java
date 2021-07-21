@@ -3,6 +3,7 @@ package org.smap.sdal.managers;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.apache.http.HttpEntity;
@@ -72,23 +73,25 @@ public class SMSExternalManager extends EmitSMS {
 			
 			ResponseHandler<String> responseHandler = new ResponseHandler<String>() {
 
-	                @Override
-	                public String handleResponse(
-	                        final HttpResponse response) throws ClientProtocolException, IOException {
-	                    int status = response.getStatusLine().getStatusCode();
-	                    if (status >= 200 && status < 300) {
-	                        HttpEntity entity = response.getEntity();
-	                        return entity != null ? EntityUtils.toString(entity) : null;
-	                    } else {
-	                        throw new ClientProtocolException("Unexpected response status: " + status);
-	                    }
-	                }
+				@Override
+				public String handleResponse(
+						final HttpResponse response) throws ClientProtocolException, IOException {
+					int status = response.getStatusLine().getStatusCode();
+					if (status >= 200 && status < 300) {
+						HttpEntity entity = response.getEntity();
+						return entity != null ? EntityUtils.toString(entity) : null;
+					} else {
+						throw new ClientProtocolException("Unexpected response status: " + status);
+					}
+				}
 
-	            };
-	            
-	            responseBody = httpclient.execute(httpget, responseHandler);
-	            log.info("Sent SMS: " + responseBody);
+			};
+
+			responseBody = httpclient.execute(httpget, responseHandler);
+			log.info("Sent SMS: " + responseBody);
 			 
+		} catch (Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
 		} finally {
 			httpclient.close();
 		}
