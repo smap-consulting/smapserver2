@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -952,8 +953,9 @@ public class QuestionManager {
 
 				log.info("Update sequences: " + pstmtUpdateSeq.toString());
 				pstmtUpdateSeq.executeUpdate();
-
-				String transId = "option_" + listId + "_" + o.value;
+				
+				// Add a 10 character random string to the choice trans id to allow duplicate option names
+				String transId = "option_" + listId + "_" + o.value + "_" + String.valueOf(UUID.randomUUID()).substring(0, 10);;
 				// Insert the option
 				pstmtInsertOption.setInt(1, listId );
 				pstmtInsertOption.setInt(2, o.seq );
