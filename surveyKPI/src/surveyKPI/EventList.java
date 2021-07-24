@@ -276,6 +276,7 @@ public class EventList extends Application {
 			@QueryParam("hide_not_loaded") boolean hideNotLoaded,
 			@QueryParam("hide_upload_errors") boolean hideUploadErrors,
 			@QueryParam("is_forward") boolean is_forward,
+			@QueryParam("ignore_old_issues") boolean ignoreOld,
 			@QueryParam("start_key") int start_key,
 			@QueryParam("rec_limit") int rec_limit) {
 		
@@ -342,6 +343,7 @@ public class EventList extends Application {
 						+ "on up.p_id = p.id "
 						+ "where u.ident = ? "
 						+ "and p.o_id = ? "
+						+ getObsoleteFilter(ignoreOld)
 						+ subscriberSelect
 						+ projSelect
 						+ filter
@@ -381,6 +383,7 @@ public class EventList extends Application {
 						"where u.ident = ? " +
 						"and ue.ident = ? " +
 						"and up.p_id = ? " +
+						getObsoleteFilter(ignoreOld) +
 						subscriberSelect +
 						filter +
 						" ORDER BY ue.ue_id desc;";
@@ -528,7 +531,8 @@ public class EventList extends Application {
 			@QueryParam("hide_errors") boolean hideErrors,
 			@QueryParam("hide_success") boolean hideSuccess,
 			@QueryParam("start_key") int start_key,
-			@QueryParam("rec_limit") int rec_limit) {
+			@QueryParam("rec_limit") int rec_limit,
+			@QueryParam("ignore_old_issues") boolean ignoreOld) {
 		
 		String connectionString = "surveyKPI - EventList - noifications";
 		
@@ -575,6 +579,7 @@ public class EventList extends Application {
 					"from notification_log n, users u " +
 					"where u.ident = ? " +
 					"and u.o_id = n.o_id " +
+					getObsoleteFilterNotifications(ignoreOld) +
 					filter +
 					projSurveySelect +
 					" ORDER BY n.id desc";
@@ -604,7 +609,6 @@ public class EventList extends Application {
 						 (status != null && !hideErrors && status.toLowerCase().equals("error")) 
 						
 						 ) {
-					
 					
 					// Only return max limit
 					if(countRecords++ >= rec_limit) {
@@ -836,7 +840,8 @@ public class EventList extends Application {
 			@PathParam("projectId") int pId,
 			@PathParam("sName") String sName,
 			@QueryParam("hide_errors") boolean hideErrors,
-			@QueryParam("hide_success") boolean hideSuccess
+			@QueryParam("hide_success") boolean hideSuccess,
+			@QueryParam("ignore_old_issues") boolean ignoreOld
 			) {
 		
 		String connectionString = "EventList - Get Notification Totals";
@@ -858,10 +863,10 @@ public class EventList extends Application {
 		
 		try {
 			if(!hideSuccess) {
-				addNotificationTotals("success", user, pstmt, sd,	sList, pId, sId); 
+				addNotificationTotals("success", user, pstmt, sd,	sList, pId, sId, false); 
 			}
 			if(!hideErrors) {
-				addNotificationTotals("error", user, pstmt, sd, sList, pId, sId); 
+				addNotificationTotals("error", user, pstmt, sd, sList, pId, sId, ignoreOld); 
 			}
 			
 			
@@ -989,7 +994,8 @@ public class EventList extends Application {
 			@QueryParam("hide_not_loaded") boolean hideNotLoaded,
 			@QueryParam("hide_upload_errors") boolean hideUploadErrors,
 			@QueryParam("groupby") String groupby,
-			@QueryParam("is_forward") boolean is_forward) {
+			@QueryParam("is_forward") boolean is_forward,
+			@QueryParam("ignore_old_issues") boolean ignoreOld) {
 		
 		String user = request.getRemoteUser();
 		// Authorisation - Access
@@ -1017,22 +1023,22 @@ public class EventList extends Application {
 			}
 			
 			if(!hideSuccess) {
-				addStatusTotals("success", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId); 
+				addStatusTotals("success", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, false);	// Always all records 
 			}
 			if(!hideErrors) {
-				addStatusTotals("errors", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId); 
+				addStatusTotals("errors", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, ignoreOld);		// Ignore old errors 
 			}
 			if(!hideDuplicates) {
-				addStatusTotals("duplicates", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId); 
+				addStatusTotals("duplicates", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, ignoreOld); 
 			}
 			if(!hideMerged) {
-				addStatusTotals("merged", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId); 
+				addStatusTotals("merged", sName, surveyIdent, projectId, user, sd,	groupby, sList, is_forward, oId, ignoreOld); 
 			}
 			if(!hideNotLoaded) {
-				addStatusTotals("not_loaded", sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId); 
+				addStatusTotals("not_loaded", sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId, ignoreOld); 
 			}
 			if(!hideUploadErrors) {
-				addStatusTotals("upload_errors", sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId); 
+				addStatusTotals("upload_errors", sName, surveyIdent, projectId, user, sd, groupby, sList, is_forward, oId, ignoreOld); 
 			}
 			
 			
@@ -1109,11 +1115,13 @@ public class EventList extends Application {
 			String groupby,
 			HashMap<String,StatusTotal> sList,
 			boolean isForward,
-			int oId) throws SQLException {
+			int oId,
+			boolean ignoreOld) throws SQLException {
 		
 		PreparedStatement pstmt = null;
 		
 		try {
+			
 			String selectStatus = null;
 			if(status.equals("success")) {
 				selectStatus = "AND se.status = 'success' ";
@@ -1165,6 +1173,7 @@ public class EventList extends Application {
 						+ "on up.p_id = p.id "
 						+ "where u.ident = ? "
 						+ "and p.o_id = ? "
+						+ getObsoleteFilter(ignoreOld)
 						+ subscriberSelect
 						+ selectStatus
 						+ projSelect
@@ -1204,6 +1213,7 @@ public class EventList extends Application {
 						+ "and ue.ident = ? "
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
+						+ getObsoleteFilter(ignoreOld)
 						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
@@ -1239,6 +1249,7 @@ public class EventList extends Application {
 						+ "and ue.ident = ? "
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
+						+ getObsoleteFilter(ignoreOld)
 						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
@@ -1271,6 +1282,7 @@ public class EventList extends Application {
 						+ "and ue.ident = ? "
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
+						+ getObsoleteFilter(ignoreOld)
 						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
@@ -1306,6 +1318,7 @@ public class EventList extends Application {
 						+ "and ue.ident = ? "
 						+ "and up.p_id = ? "
 						+ "and p.o_id = ? "
+						+ getObsoleteFilter(ignoreOld)
 						+ subscriberSelect
 						+ selectStatus
 						+ " group by " + aggregate
@@ -1370,7 +1383,8 @@ public class EventList extends Application {
 			Connection sd,
 			HashMap<String,StatusTotal> sList,
 			int pId,
-			int sId) throws SQLException {
+			int sId,
+			boolean ignoreOld) throws SQLException {
 		
 		String sql = null;
 		
@@ -1386,6 +1400,7 @@ public class EventList extends Application {
 				"where u.ident = ? " +
 				"and n.o_id = u.o_id " +
 				"and n.status = ?" +
+				getObsoleteFilterNotifications(ignoreOld) +
 				filter +
 				";";
 
@@ -1567,5 +1582,25 @@ public class EventList extends Application {
 		return ja.toString();
 	}
 
+	/*
+	 * Return a filter to ignore records submitted more than 100 days previously
+	 */
+	private String getObsoleteFilter(boolean ignoreOld) {
+		String filter = "";
+		if(ignoreOld) {
+			filter = " and upload_time > now() - interval '100 days' ";
+		}
+		return filter;
+	}
+	/*
+	 * Return a filter to ignore notifications submitted more than 100 days previously
+	 */
+	private String getObsoleteFilterNotifications(boolean ignoreOld) {
+		String filter = "";
+		if(ignoreOld) {
+			filter = " and event_time > now() - interval '100 days' ";
+		}
+		return filter;
+	}
 }
 
