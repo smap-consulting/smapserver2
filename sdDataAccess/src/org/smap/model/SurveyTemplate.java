@@ -492,18 +492,6 @@ public class SurveyTemplate {
 		}
 	}
 
-
-	/*
-	 * Method to add a new option
-	 * 
-	 * @param optionRef the reference for the option to be added
-	 * 
-	 * @param o the option
-	 */
-	public void addOption(String optionRef, Option o) {
-		options.put(optionRef, o);
-	}
-
 	/*
 	 * Method to get an existing option
 	 * 
@@ -646,6 +634,7 @@ public class SurveyTemplate {
 		}
 		
 		// Each select multiple creates a column for every options, count these
+		/* Select multiple questions are stored in a single column now
 		List<Option> optionList = new ArrayList<Option>(options.values());
 		for (Option o : optionList) {
 
@@ -670,6 +659,7 @@ public class SurveyTemplate {
 			} 
 			
 		}
+		*/
 	
 		Iterator itr = forms.keySet().iterator();
 		while(itr.hasNext()) {
@@ -717,60 +707,6 @@ public class SurveyTemplate {
 			} else {
 				questionMap.put(qName.trim().toLowerCase(), fName);
 			}
-		}
-		
-		return badNames;
-	}
-	
-	/*
-	 * Method to check for duplicate option values in each question
-	 */
-	public ArrayList <String> duplicateOptionValues() {
-		// Hashmap of question/form references each of which contains a hashmap of options in that question
-		HashMap <String, HashMap<String, String>> questionList = new HashMap <String, HashMap<String, String>> ();
-		ArrayList<String> badNames = new ArrayList<String> ();
-		
-		List<Option> optionList = new ArrayList<Option>(options.values());
-		for (Option o : optionList) {
-			
-			String oName = o.getValue();
-			String checkOption = oName;
-			
-			HashMap<String, String> cascacde_key_values = o.getCascadeKeyValues();
-			if(cascacde_key_values != null) {
-				for (String key : cascacde_key_values.keySet()) {
-					// Add the filter to the option name, only needs to be unique for a filter combination
-					checkOption += "_" + cascacde_key_values.get(key);
-				}
-			}
-			
-			Question q = questions.get(o.getQuestionRef());
-			Form f = getForm(q.getFormRef());
-			String fName = null;
-			if(f != null) {
-				fName = f.getName();
-			} else {
-				fName = "_topLevelForm";
-			}
-			String qName = null;
-			if(q != null) {
-				qName = fName + "__" + q.getName();		// Make question unique across forms
-
-				HashMap<String, String> optionsInQuestion = questionList.get(qName);
-				if(optionsInQuestion == null) {
-					optionsInQuestion = new HashMap<String, String> ();
-					questionList.put(qName, optionsInQuestion);
-				}
-				String existingOption = optionsInQuestion.get(checkOption);
-				if(existingOption != null) {
-					String dupMsg = "Duplicate values:" + oName + " in choices list for question:" + q.getName();
-					badNames.add(dupMsg);
-					log.info(dupMsg);
-				} else {
-					optionsInQuestion.put(checkOption, oName);
-				}
-			} 
-			
 		}
 		
 		return badNames;
@@ -1358,6 +1294,7 @@ public class SurveyTemplate {
 						 * If this survey was loaded from xlsForm then the list name will not be the same as the
 						 * cascade instance name
 						 * Hence get the cascade instanceName
+						 * (Note this code is probably not required anymore, list name should always equal the cascade name)
 						 */
 						if(nodeset != null) {
 							int idx1 = nodeset.indexOf('(');
