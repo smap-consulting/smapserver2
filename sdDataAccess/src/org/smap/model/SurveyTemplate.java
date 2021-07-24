@@ -18,6 +18,7 @@ import java.util.Vector;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.managers.LogManager;
 import org.smap.sdal.managers.MessagingManager;
+import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.ManifestInfo;
 import org.smap.sdal.model.MetaItem;
 import org.smap.sdal.model.Search;
@@ -1301,7 +1302,7 @@ public class SurveyTemplate {
 							if(embedExternalSearch) {
 								includeExternal = GeneralUtilityMethods.listHasExternalChoices(sd, survey.getId(), q.getListId());
 								if(includeExternal) {
-									oList = getExternalList(sd, cResults, oId, survey.getId(), q);
+									oList = getExternalList(sd, cResults, oId, survey.getId(), q, cascadeName, qList);
 								}
 							}				
 							if(!includeExternal) {
@@ -1321,7 +1322,7 @@ public class SurveyTemplate {
 								o.setListName(cascadeName);
 								cascade_options.put(oRef, o);
 								// else {
-								//	options.put(oRef, o);  // Only used by put XForm
+								//	options.put(oRef, o);  // Only used by putXForm
 								//}
 							}	
 						} 
@@ -1562,12 +1563,14 @@ public class SurveyTemplate {
 			Connection cResults,
 			int oId,
 			int sId,
-			Question q) {
+			Question q,
+			String listName,
+			List <Question> qList) {
 		
 		ArrayList<Option> options = new ArrayList<Option> ();
 		try {
-			Search search = 
-					GeneralUtilityMethods.getSearchFiltersFromAppearance(q.getAppearance(false, questionPaths));
+			ArrayList<KeyValueSimp> filters = getFiltersForChoiceList(listName, qList);
+			
 	
 			ArrayList<org.smap.sdal.model.Option> oList = GeneralUtilityMethods.getExternalChoices(
 					sd, 
@@ -1575,7 +1578,7 @@ public class SurveyTemplate {
 					localisation, 
 					user, 
 					oId, 
-					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", search.filters);
+					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", filters);
 			
 			int idx = 0;
 			if(oList != null) {
@@ -1603,6 +1606,19 @@ public class SurveyTemplate {
 			log.log(Level.SEVERE, e.getMessage(), e);
 		}
 		return options;
+	}
+	
+	ArrayList<KeyValueSimp> getFiltersForChoiceList(String listName, List <Question> qList) throws Exception {
+		
+		ArrayList<KeyValueSimp> filters = new ArrayList<KeyValueSimp>();
+		for(int i= 0; i < qList.size(); i++) {
+			Question q = qList.get(i);
+			if(q.getListName() != null && q.getListName().equals(listName)) {
+					Search search = GeneralUtilityMethods.getSearchFiltersFromAppearance(q.getAppearance(false, questionPaths));
+					filters.addAll(search.filters);
+			}
+		}
+		return filters;
 	}
 	
 }
