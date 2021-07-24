@@ -509,21 +509,6 @@ public class SurveyTemplate {
 	}
 
 	/*
-	 * Remove any obsolete data from the OSM file
-	 */
-	public void cleanseOSM() {
-		Collection<Question> c = null;
-		Iterator<Question> itr = null;
-
-		c = questions.values(); // Cleanse the question objects
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Question q = itr.next();
-			q.cleanseOSM();
-		}
-	}
-
-	/*
 	 * Method to print out the model for debug purposes
 	 */
 	public void printModel() throws Exception {
@@ -565,20 +550,6 @@ public class SurveyTemplate {
 			System.out.println("	QuestionId: " + q.getQTextId());
 			System.out.println("	Relevance: " + q.getRelevant(true, questionPaths, getXFormFormName()));
 			System.out.println("	Question Sequence: " + q.getSeq());
-		}
-
-		// Options
-		c = options.values();
-		itr = c.iterator();
-		while (itr.hasNext()) {
-			Option o = (Option) itr.next();
-			System.out.println("Option: ");
-			System.out.println("	Instance: " + o.getListName());
-			System.out.println("	Question: " + o.getQuestionRef());
-			System.out.println("	Value: " + o.getValue());
-			System.out.println("	Label: " + o.getLabel());
-			System.out.println("	Label Id: " + o.getLabelId());
-			System.out.println("	Seq: " + o.getSeq());
 		}
 		
 		// Cascade Options
@@ -719,7 +690,6 @@ public class SurveyTemplate {
 	 */
 	public ArrayList <String> manReadQuestions() throws Exception {
 		
-		HashMap <String, HashMap<String, String>> forms = new HashMap <String, HashMap<String, String>> ();
 		ArrayList<String> badNames = new ArrayList<String> ();
 		
 		List<Question> questionList = new ArrayList<Question>(questions.values());
@@ -1238,7 +1208,6 @@ public class SurveyTemplate {
 			 * Post processing of question list
 			 */
 			for(int i= 0; i < qList.size(); i++) {
-				boolean cascadeInstanceAlreadyLoaded = false;
 				Question q = qList.get(i);
 				int f_id = q.getFormId();
 				Form f = getFormById(f_id);
@@ -1265,7 +1234,7 @@ public class SurveyTemplate {
 						questionPaths.put(qName, qRef);
 					}
 					
-					boolean cascade = false;
+					//boolean cascade = false;
 					String listName = q.getListName();
 					String cascadeName = null;
 					String label = q.getNodesetLabel();
@@ -1321,48 +1290,43 @@ public class SurveyTemplate {
 						
 						if(!cascadeInstanceLoaded(cascadeName)) {
 							cascadeInstances.add(ci);
-						} else {
-							cascadeInstanceAlreadyLoaded = true;
-						}
-						cascade = true;
-					}
-			
-					/*
-					 * Get options for this question
-					 */
-					om = new JdbcOptionManager(sd);
-					List <Option> oList = null;
-					
-					boolean includeExternal = false;
-					if(embedExternalSearch) {
-						includeExternal = GeneralUtilityMethods.listHasExternalChoices(sd, survey.getId(), q.getListId());
-						if(includeExternal) {
-							oList = getExternalList(sd, cResults, oId, survey.getId(), q);
-						}
-					}				
-					if(!includeExternal) {
-						oList = om.getByListId(q.getListId());
-					}
-					
-					for(int j= 0; j < oList.size(); j++) {
-						Option o = oList.get(j);
-						o.setQuestionRef(qRef);
-						String oRef = qRef;
-						if(o.getId() > 0) {
-							oRef += "/" + o.getId();
-						} else {
-							// Option from external won't have an id
-							oRef += "/" + UUID.randomUUID().toString();
-						}
-						if(oRef != null) {
-							if(cascade && !cascadeInstanceAlreadyLoaded) {
+							
+							/*
+							 * Get options for this question
+							 */
+							om = new JdbcOptionManager(sd);
+							List <Option> oList = null;
+							
+							boolean includeExternal = false;
+							if(embedExternalSearch) {
+								includeExternal = GeneralUtilityMethods.listHasExternalChoices(sd, survey.getId(), q.getListId());
+								if(includeExternal) {
+									oList = getExternalList(sd, cResults, oId, survey.getId(), q);
+								}
+							}				
+							if(!includeExternal) {
+								oList = om.getByListId(q.getListId());
+							}
+							
+							for(int j= 0; j < oList.size(); j++) {
+								Option o = oList.get(j);
+								o.setQuestionRef(qRef);
+								String oRef = qRef;
+								if(o.getId() > 0) {
+									oRef += "/" + o.getId();
+								} else {
+									// Option from external won't have an id
+									oRef += "/" + UUID.randomUUID().toString();
+								}
 								o.setListName(cascadeName);
 								cascade_options.put(oRef, o);
-							} else {
-								options.put(oRef, o);
-							}
-						}
+								// else {
+								//	options.put(oRef, o);  // Only used by put XForm
+								//}
+							}	
+						} 
 					}
+			
 				}
 				
 				/*
