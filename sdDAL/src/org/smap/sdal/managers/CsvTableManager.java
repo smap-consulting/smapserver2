@@ -19,7 +19,6 @@ import java.util.logging.Logger;
 import org.smap.sdal.Utilities.ApplicationException;
 import org.smap.sdal.Utilities.CSVParser;
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.managers.ActionManager.Update;
 import org.smap.sdal.model.CsvTable;
 import org.smap.sdal.model.KeyValueSimp;
 import org.smap.sdal.model.CsvHeader;
@@ -63,9 +62,6 @@ public class CsvTableManager {
 	Connection sd = null;
 	ResourceBundle localisation = null;
 	private int tableId = 0;
-	private int oId = 0;
-	private int sId = 0;
-	private String fileName = null;
 	private String tableName = null;
 	private String schema = "csv";
 	private String fullTableName = null;
@@ -91,9 +87,6 @@ public class CsvTableManager {
 		
 		this.sd = sd;
 		this.localisation = l;
-		this.oId = oId;
-		this.sId = sId;
-		this.fileName = fileName;
 		parser = new CSVParser(localisation);
 		
 		Type headersType = new TypeToken<ArrayList<CsvHeader>>() {}.getType();
