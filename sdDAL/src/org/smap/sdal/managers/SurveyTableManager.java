@@ -901,7 +901,9 @@ public class SurveyTableManager {
 		PreparedStatement pstmtData = null;
 		boolean status = false;
 		try {
-			pstmtData = cResults.prepareStatement(sqlDef.sql + sqlDef.order_by);
+			String sql = sqlDef.sql + sqlDef.order_by;			// Escape quotes when passing sql to psql
+			String sqlNoEscapes = sql.replace("\\", "");		// Remove escaping of quotes when used in prepared statement
+			
 			if(sqlDef.colNames.size() == 0) {
 				log.info("++++++ No column names present in table. Creating empty file");
 				
@@ -919,7 +921,8 @@ public class SurveyTableManager {
 				bw.close();				
 			} else if (linked_s_pd && non_unique_key) {
 				// 6. Create the file
-
+				pstmtData = cResults.prepareStatement(sqlNoEscapes);
+				
 				log.info("Get CSV data: " + pstmtData.toString());
 				rs = pstmtData.executeQuery();
 
@@ -986,6 +989,7 @@ public class SurveyTableManager {
 			} else if (chart) {
 
 				HashMap<String, ArrayList<String>> chartData = new HashMap<> ();
+				pstmtData = cResults.prepareStatement(sqlNoEscapes);
 				
 				if(rs != null) {
 					rs.close();
@@ -1045,7 +1049,8 @@ public class SurveyTableManager {
 			} else {
 				// Use PSQL to generate the file as it is faster
 				int code = 0;
-
+				pstmtData = cResults.prepareStatement(sql);
+				
 				String filePath = f.getAbsolutePath();
 				int idx = filePath.indexOf(".csv");
 				if(idx >= 0) {
