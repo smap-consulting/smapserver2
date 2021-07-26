@@ -93,7 +93,7 @@ public class ChoiceManager {
 					ArrayList<String> miniMatch = new ArrayList<> ();
 					miniMatch.add(match);
 					ArrayList<Option> choices = GeneralUtilityMethods.getExternalChoices(sd, cResults, 
-							localisation, user, oId, sId, qId, miniMatch, surveyIdent, tz, null);
+							localisation, user, oId, sId, qId, miniMatch, surveyIdent, tz, null, null);
 
 					if(choices != null && choices.size() > 0) {
 						for(Option choice : choices) {

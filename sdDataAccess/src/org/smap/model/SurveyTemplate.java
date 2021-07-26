@@ -1571,6 +1571,12 @@ public class SurveyTemplate {
 		try {
 			ArrayList<KeyValueSimp> filters = getFiltersForChoiceList(listName, qList);
 			
+			/*
+			 * Get the external file name here as it may not have been set yet
+			 * This is required because we are using two methods to read the survey from the database SurveyTemplate and SurveyManager
+			 */
+			ManifestInfo mi = GeneralUtilityMethods.addManifestFromAppearance(q.getAppearance(false, questionPaths), null);
+			String externalFilename = mi.filename;
 	
 			ArrayList<org.smap.sdal.model.Option> oList = GeneralUtilityMethods.getExternalChoices(
 					sd, 
@@ -1578,7 +1584,7 @@ public class SurveyTemplate {
 					localisation, 
 					user, 
 					oId, 
-					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", filters);
+					survey.getId(), q.getId(), null, survey.getIdent(), "UTC", filters, externalFilename);
 			
 			int idx = 0;
 			if(oList != null) {

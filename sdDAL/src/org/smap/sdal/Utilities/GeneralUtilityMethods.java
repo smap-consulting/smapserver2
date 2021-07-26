@@ -3998,7 +3998,7 @@ public class GeneralUtilityMethods {
 						// Don't get external select 1 choices it is not necessary
 						if(!qType.equals("select1") && GeneralUtilityMethods.hasExternalChoices(sd, qId)) {
 							ArrayList<Option> options = GeneralUtilityMethods.getExternalChoices(sd, 
-									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz, null);
+									cResults, localisation, user, oId, sId, qId, null, surveyIdent, tz, null, null);
 							if(options != null && options.size() > 0) {
 								for(Option o : options) {
 									String label ="";
@@ -4929,7 +4929,8 @@ public class GeneralUtilityMethods {
 			ArrayList<String> matches,
 			String surveyIdent,
 			String tz,
-			ArrayList<KeyValueSimp> wfFilters) throws Exception {
+			ArrayList<KeyValueSimp> wfFilters,
+			String filename) throws Exception {
 
 		ArrayList<Option> choices = null;		
 		String sql = "select q.external_table, q.l_id from question q where q.q_id = ?";
@@ -4951,14 +4952,16 @@ public class GeneralUtilityMethods {
 		PreparedStatement pstmtLabels = null;
 		
 		try {
-			String filename = null;
 			
 			pstmt = sd.prepareStatement(sql);			
 			pstmt.setInt(1, qId);
+			log.info("Get external table info:" + pstmt.toString());
 			ResultSet rs = pstmt.executeQuery();
 			if (rs.next()) {		
 				
-				filename = rs.getString(1);
+				if(filename == null) {
+					filename = rs.getString(1);	// Get the filename from the database only if it was not provided in the calling function.  The database can be null at this point
+				}
 				int l_id = rs.getInt(2);
 				
 				if(filename != null) {
@@ -5018,6 +5021,9 @@ public class GeneralUtilityMethods {
 				} 
 			}
 
+		} catch(Exception e) {
+			log.log(Level.SEVERE, e.getMessage(), e);
+			
 		} finally {
 			try {if (pstmt != null) {pstmt.close();}} catch (SQLException e) {}
 			try {if (pstmtChoices != null) {pstmtChoices.close();}} catch (SQLException e) {}

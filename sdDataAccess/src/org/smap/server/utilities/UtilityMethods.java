@@ -341,6 +341,24 @@ public class UtilityMethods {
 							} else {
 								out += "not(selected('" + kv.v +"', " + kv.k + "))";	// A string
 							}
+						} else if(count == 1 && search.fn.equals("endswith")) {
+							if(kv.v.trim().startsWith("${")) {
+								out += "ends-with(" + kv.k +", " + kv.v + ")";
+							} else {
+								out += "ends-with(" + kv.k +", '" + kv.v + "')";
+							}
+						} else if(count == 1 && search.fn.equals("startswith")) {
+							if(kv.v.trim().startsWith("${")) {
+								out += "starts-with(" + kv.k +", " + kv.v + ")";
+							} else {
+								out += "starts-with(" + kv.k +", '" + kv.v + "')";
+							}
+						} else if(count == 1 && search.fn.equals("contains")) {
+							if(kv.v.trim().startsWith("${")) {
+								out += "contains(" + kv.k +", " + kv.v + ")";
+							} else {
+								out += "contains(" + kv.k +", '" + kv.v + "')";
+							}
 						} else {	// Assume matches
 							if(kv.v.trim().startsWith("${")) {
 								out += kv.k + " = " + kv.v ;			// A question
