@@ -91,7 +91,7 @@ public class OptionList extends Application {
 				String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, sId);
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				ArrayList<Option> oExternal = GeneralUtilityMethods.getExternalChoices(sd, 
-						cResults, localisation, request.getRemoteUser(), oId, sId, qId, null, surveyIdent, tz, null);
+						cResults, localisation, request.getRemoteUser(), oId, sId, qId, null, surveyIdent, tz, null, null);
 				int idx = 0;
 				int languageIdx = 0;
 				for(Option o : oExternal) {
