@@ -116,7 +116,8 @@ public class UserManager {
 					+ "o.navbar_color,"
 					+ "o.navbar_text_color,"
 					+ "o.training,"
-					+ "u.timezone,"
+					+ "u.timezone as timezone,"
+					+ "o.timezone as org_timezone,"
 					+ "o.refresh_rate,"
 					+ "e.name as enterprise_name "
 					+ "from users u, organisation o, enterprise e "
@@ -167,6 +168,9 @@ public class UserManager {
 				user.seen = resultSet.getBoolean("seen");
 				user.billing_enabled = resultSet.getBoolean("billing_enabled");
 				user.timezone = resultSet.getString("timezone");
+				if(user.timezone == null || user.timezone.trim().equals("")) {
+					user.timezone = resultSet.getString("org_timezone");
+				}
 				user.enterprise_name = resultSet.getString("enterprise_name");
 				user.set_as_theme = resultSet.getBoolean("set_as_theme");
 				user.navbar_color = resultSet.getString("navbar_color");
