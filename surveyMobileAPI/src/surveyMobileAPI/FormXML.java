@@ -101,7 +101,7 @@ public class FormXML extends Application{
 				SurveyTemplate template = new SurveyTemplate(localisation);
 				template.readDatabase(survey.id, false);
 				GetXForm xForm = new GetXForm(localisation, user, tz);
-				response = xForm.get(template, false, true, false, user);
+				response = xForm.get(template, false, true, false, user, request);
 				log.info("userevent: " + user + " : download survey : " + templateName);		
 
 				// Record that this form was downloaded by this user
@@ -169,7 +169,7 @@ public class FormXML extends Application{
 			template.readDatabase(survey.id, false);
 			//template.printModel();	// debug
 			GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
-			response = xForm.get(template, false, true, false, request.getRemoteUser());
+			response = xForm.get(template, false, true, false, request.getRemoteUser(), request);
 			log.info("userevent Temporary User: " + tempUser + " : download survey : " + templateName);		
 
 		} catch (Exception e) {

@@ -933,7 +933,7 @@ public class WebForm extends Application {
 			throws TransformerFactoryConfigurationError, Exception {
 
 		GetXForm xForm = new GetXForm(localisation, userIdent, tz);
-		String model = xForm.get(template, true, true, true, userIdent);
+		String model = xForm.get(template, true, true, true, userIdent, request);
 
 		// We only want the model - remove any XML preanble
 		int modelIdx = model.indexOf("<model>");

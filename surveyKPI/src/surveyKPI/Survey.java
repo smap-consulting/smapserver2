@@ -216,7 +216,7 @@ public class Survey extends Application {
 						GetXForm xForm = new GetXForm(localisation, request.getRemoteUser(), tz);
 
 						boolean useNodesets = !type.equals("codebook");		// For codebooks do not create nodesets in the XML
-						String xmlForm = xForm.get(template, false, useNodesets, false, request.getRemoteUser());
+						String xmlForm = xForm.get(template, false, useNodesets, false, request.getRemoteUser(), request);
 
 						// 1. Create the project folder if it does not exist
 						File folder = new File(folderPath);
