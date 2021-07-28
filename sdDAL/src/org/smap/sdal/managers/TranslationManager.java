@@ -30,6 +30,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.smap.sdal.Utilities.GeneralUtilityMethods;
 import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.ManifestValue;
@@ -229,7 +231,8 @@ public class TranslationManager {
 	 * Get the manifest entries for csv files used by pulldata functions (required by enketo)
 	 */
 	public List<ManifestValue> getPulldataManifests(Connection sd, 
-			int surveyId
+			int surveyId,
+			HttpServletRequest request
 			)	throws SQLException {
 		
 		
@@ -284,7 +287,7 @@ public class TranslationManager {
 						String surveyIdent = GeneralUtilityMethods.getSurveyIdent(sd, surveyId);
 						if(m.type.equals("csv")) {
 							int oId = GeneralUtilityMethods.getOrganisationIdForSurvey(sd, surveyId);
-							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, "/smap", oId, surveyId);
+							UtilityMethodsEmail.getFileUrl(m, surveyIdent, m.fileName, GeneralUtilityMethods.getBasePath(request), oId, surveyId);
 						} else {
 							// TODO location depends on user
 							//m.url = "/surveyKPI/file/" + m.fileName + ".csv/survey/" + surveyId + "?linked=true";

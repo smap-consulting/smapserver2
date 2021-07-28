@@ -21,6 +21,7 @@ import java.util.Stack;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -113,7 +114,7 @@ public class GetXForm {
 	 * Get the XForm as a string
 	 */
 	public String get(SurveyTemplate template, boolean isWebForms, boolean useNodesets, 
-			boolean modelInstanceOnly, String user) throws Exception {
+			boolean modelInstanceOnly, String user, HttpServletRequest request) throws Exception {
 
 		// Set Globals
 		this.modelInstanceOnly = modelInstanceOnly;
@@ -148,10 +149,10 @@ public class GetXForm {
 			if (modelInstanceOnly) {
 				parent = outputXML.createElement("model");
 				outputXML.appendChild(parent);
-				populateModel(sd, cResults, outputXML, b, parent, user);
+				populateModel(sd, cResults, outputXML, b, parent, user, request);
 			} else {
 				parent = populateRoot(outputXML);
-				populateHead(sd, cResults, outputXML, b, parent, user);
+				populateHead(sd, cResults, outputXML, b, parent, user, request);
 				populateBody(sd, outputXML, parent);
 			}
 
@@ -201,7 +202,7 @@ public class GetXForm {
 	 * @param outputXML
 	 */
 	public void populateHead(Connection sd, Connection cResults, Document outputDoc, 
-			DocumentBuilder documentBuilder, Element parent, String user)
+			DocumentBuilder documentBuilder, Element parent, String user, HttpServletRequest request)
 			throws Exception {
 
 		Survey s = template.getSurvey();
@@ -217,7 +218,7 @@ public class GetXForm {
 		Element modelElement = outputDoc.createElement("model");
 		headElement.appendChild(modelElement);
 
-		populateModel(sd, cResults, outputDoc, documentBuilder, modelElement, user);
+		populateModel(sd, cResults, outputDoc, documentBuilder, modelElement, user, request);
 
 	}
 
@@ -225,7 +226,7 @@ public class GetXForm {
 	 * Populate the model
 	 */
 	private void populateModel(Connection sd, Connection cResults, Document outputDoc, DocumentBuilder documentBuilder, 
-			Element parent, String user)
+			Element parent, String user, HttpServletRequest request)
 			throws Exception {
 
 		if (!modelInstanceOnly) {
@@ -262,7 +263,7 @@ public class GetXForm {
 		// Add pulldata instances as required by enketo
 		if (isWebForms) {
 			TranslationManager tm = new TranslationManager();
-			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId());
+			List<ManifestValue> manifests = tm.getPulldataManifests(sd, template.getSurvey().getId(), request);
 			for (int i = 0; i < manifests.size(); i++) {
 				ManifestValue mv = manifests.get(i);
 				if (mv.filePath != null || (mv.type != null && mv.type.equals("linked"))) {

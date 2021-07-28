@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.javarosa.core.model.condition.IFunctionHandler;
 import org.javarosa.core.model.data.IAnswerData;
 import org.javarosa.core.model.instance.InstanceInitializationFactory;
@@ -22,7 +24,7 @@ public class JavaRosaUtilities {
      * Validate a survey stored in the database using the javarosa api
      * Will throw an exception on errors
      */
-    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId, String user, String tz) throws Exception {
+    public static void javaRosaSurveyValidation(ResourceBundle localisation, int sId, String user, String tz, HttpServletRequest request) throws Exception {
 		
     		class FakePreloadHandler implements IPreloadHandler {
 
@@ -58,7 +60,7 @@ public class JavaRosaUtilities {
 		template.readDatabase(sId, false);
 		GetXForm xForm = new GetXForm(localisation, user, tz);
 
-		String xmlForm = xForm.get(template, false, true, false, user);
+		String xmlForm = xForm.get(template, false, true, false, user, request);
 		
 		// Remove any actions
 		xmlForm = xmlForm.replaceAll("\\<odk:setgeopoint [a-zA-Z0-9$,\\\\.{}=\\'\\-\"/ ]*\\/\\>", "");	

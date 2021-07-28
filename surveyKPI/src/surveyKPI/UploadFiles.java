@@ -788,7 +788,7 @@ public class UploadFiles extends Application {
 			boolean valid = true;
 			String errMsg = null;
 			try {
-				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz);
+				JavaRosaUtilities.javaRosaSurveyValidation(localisation, s.id, request.getRemoteUser(), tz, request);
 			} catch (Exception e) {
 								
 				// Error! Delete the survey we just created
