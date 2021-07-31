@@ -682,6 +682,7 @@ public class TaskManager {
 				+ "on a.assignee = u.id");
 		
 		sql.append(" where t.p_id in (select id from project where o_id = ?)");
+		sql.append(" and t.p_id in (select p_id from user_project where u_id = ?)");
 		sql.append(" and (a.status is null or a.status = 'new' or assignee < 0) ");
 		sql.append(" and not t.deleted ");
 		sql.append(" and t.assign_auto ");
@@ -704,6 +705,7 @@ public class TaskManager {
 			pstmt.setString(paramIdx++, tz);
 			pstmt.setString(paramIdx++, tz);			
 			pstmt.setInt(paramIdx++, oId);
+			pstmt.setInt(paramIdx++, userId);
 			pstmt.setString(paramIdx++, userName);
 			
 			// Get the data
