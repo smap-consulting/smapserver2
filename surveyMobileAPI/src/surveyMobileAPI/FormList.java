@@ -188,8 +188,8 @@ public class FormList extends Application {
 				Survey s = surveys.get(i);
 				form.formID = String.valueOf(s.getIdent());
 				form.name = s.getDisplayName();
-				form.majorMinorVersion = " ";
 				form.version = String.valueOf(s.version);
+				form.hash = "version:" + form.version;		// If the version changes the form should be re-downloaded
 				form.downloadUrl = protocol + host + port + responsePath + "/formXML?key=" + form.formID;
 				if(s.hasManifest()) {
 					form.manifestUrl = protocol + host + port + responsePath +
