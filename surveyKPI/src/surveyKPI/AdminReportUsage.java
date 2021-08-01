@@ -96,11 +96,14 @@ public class AdminReportUsage extends Application {
 				throw new ApplicationException(localisation.getString("ar_month_gt_0"));
 			}
 			
+			String orgName = "";
 			if(oId <= 0) {
 				oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
+			} else {
+				orgName = GeneralUtilityMethods.getOrganisationName(sd, oId);
 			}
 			
-			String filename = localisation.getString("ar_report_name") + "_" + year + "_" + month;
+			String filename = localisation.getString("ar_report_name") + "_" + (oId > 0 ? orgName + "_" : "") + year + "_" + month;
 			
 			ArrayList<AR> report = null;
 			if(bySurvey) {
