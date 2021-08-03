@@ -1619,7 +1619,7 @@ public class SurveyTemplate {
 		ArrayList<KeyValueSimp> filters = new ArrayList<KeyValueSimp>();
 		for(int i= 0; i < qList.size(); i++) {
 			Question q = qList.get(i);
-			if(q.getListName() != null && q.getListName().equals(listName)) {
+			if(q.getListName() != null && q.getListName().toLowerCase().equals(listName)) {
 					Search search = GeneralUtilityMethods.getSearchFiltersFromAppearance(q.getAppearance(false, questionPaths));
 					filters.addAll(search.filters);
 			}
