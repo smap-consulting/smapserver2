@@ -41,8 +41,6 @@ import java.util.logging.Logger;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.FileFilterUtils;
-import org.smap.sdal.Utilities.GeneralUtilityMethods;
-import org.smap.sdal.Utilities.UtilityMethodsEmail;
 import org.smap.sdal.model.MediaItem;
 
 
@@ -172,7 +170,8 @@ public class MediaInfo {
 			    }
 			} );
 			
-			DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+			//DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ");
+			DateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");	// As per timestamp
 			
 			for(int i = 0; i < files.size(); i++) {
 				
