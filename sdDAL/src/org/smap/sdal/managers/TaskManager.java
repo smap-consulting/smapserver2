@@ -1057,7 +1057,7 @@ public class TaskManager {
 						boolean fires = false;
 						
 						if(as.filter != null && as.filter.advanced != null) {
-							fires = GeneralUtilityMethods.testFilter(sd, cResults, remoteUser, localisation, survey, as.filter.advanced, instanceId, tz);
+							fires = GeneralUtilityMethods.testFilter(sd, cResults, remoteUser, localisation, survey, as.filter.advanced, instanceId, tz, "Tasks");
 							if(!fires) {
 								log.info("Rule not fired as filter criteria not met: " + as.filter.advanced);
 							}

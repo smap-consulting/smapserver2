@@ -306,7 +306,7 @@ public class Admin extends Application {
 					boolean proceed = true;
 					if(filter != null && filter.trim().length() > 0) {
 						try {
-							proceed = GeneralUtilityMethods.testFilter(sd, cResults, userName, localisation, survey, filter, instanceId, "UTC");
+							proceed = GeneralUtilityMethods.testFilter(sd, cResults, userName, localisation, survey, filter, instanceId, "UTC", "Retry unsent notifications");
 						} catch(Exception e) {
 							String msg = e.getMessage();
 							if(msg == null) {
