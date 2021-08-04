@@ -618,7 +618,7 @@ public class NotificationManager {
 				boolean proceed = true;
 				if(filter != null && filter.trim().length() > 0) {
 					try {
-						proceed = GeneralUtilityMethods.testFilter(sd, cResults, submittingUser, localisation, survey, filter, instanceId, tz);
+						proceed = GeneralUtilityMethods.testFilter(sd, cResults, submittingUser, localisation, survey, filter, instanceId, tz, "Notifications");
 					} catch(Exception e) {
 						String msg = e.getMessage();
 						if(msg == null) {

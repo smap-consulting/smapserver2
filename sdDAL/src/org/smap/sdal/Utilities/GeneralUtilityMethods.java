@@ -7078,7 +7078,10 @@ public class GeneralUtilityMethods {
 	/*
 	 * Check to see if the passed in survey response, identified by an instance id, is within the filtered set of responses
 	 */
-	public static boolean testFilter(Connection sd, Connection cResults, String user, ResourceBundle localisation, Survey survey, String filter, String instanceId, String tz) throws Exception {
+	public static boolean testFilter(Connection sd, Connection cResults, String user, ResourceBundle localisation, Survey survey, String filter, 
+			String instanceId, 
+			String tz,
+			String caller) throws Exception {
 
 		boolean testResult = false;
 
@@ -7113,7 +7116,8 @@ public class GeneralUtilityMethods {
 
 		} catch(Exception e) { 
 			String msg = localisation.getString("filter_error");
-			msg = msg.replace("%s1",  pstmt.toString());
+			msg = msg.replace("%s1", caller + ": " + filter);
+			msg = msg.replace("%s2",  e.getMessage());
 			lm.writeLog(sd, survey.id, user, LogManager.ERROR, msg, 0);
 			throw new Exception(e);
 		} finally {
