@@ -139,8 +139,6 @@ public class Users extends Application {
 			Locale locale = new Locale(GeneralUtilityMethods.getUserLanguage(sd, request, request.getRemoteUser()));
 			ResourceBundle localisation = ResourceBundle.getBundle("org.smap.sdal.resources.SmapResources", locale);
 			
-			log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location update: " + latString + " : " + lonString);
-			
 			UserLocationManager ulm = new UserLocationManager(localisation, "UTC");
 			Double lat = 0.0;
 			Double lon = 0.0;
@@ -154,7 +152,7 @@ public class Users extends Application {
 				int oId = GeneralUtilityMethods.getOrganisationId(sd, request.getRemoteUser());
 				ulm.recordRefresh(sd, oId, request.getRemoteUser(), lat, lon, 
 						0L, null, null, false);
-				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location update: " + latString + " : " + lonString);
+				log.info("User Location update: " + latString + " : " + lonString);
 			} else {
 				log.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ User Location 0.0 0.0: ");
 			}
