@@ -571,10 +571,6 @@ public class MyAssignments extends Application {
 				List<MediaFile> mediaFiles = null;
 				
 				boolean hasManifest = false;
-
-				if(survey.ident.equals("s15_114")) {
-					log.info("registration");
-				}
 				
 				/*
 				 * For each form that has a manifest that links to another form

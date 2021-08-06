@@ -5732,20 +5732,43 @@ public class GeneralUtilityMethods {
 		String param = null;
 
 		/*
-		 * The number of parameters are 4 params[0] is the primary function "pulldata"
-		 * params[1] is the data column (Get this one) params[2] is the key column (Get
-		 * this one) params[3] is the key value
+		 * The number of parameters for a pulldata function can vary and be 3,4,5 or 6
+		 * params[0] is always the name of the form or csv file
+		 * params[1] is always the column to retrieve (extract)
+		 * For 3 column requests
+		 *   params[2] is an expression within which reference questions are identified by #{name}  (extract)
+		 * For 4 column requests
+		 *   params[2] is a reference column  (extract)
+		 *   params[3] is a reference value
+		 * For 5 column requests
+		 *   params[2] is an expression within which reference questions are identified by #{name}  (extract)
+		 *   params[3] is an index value
+		 *   params[4] is a function
+		 * For 6 column requests
+		 *   params[2] is a reference column  (extract)
+		 *   params[3] is a reference value
+		 *   params[4] is an index value
+		 *   params[5] is a function
 		 * 
 		 */
+		
+		// Get the column to retrieve
 		if (params.length > 1) {
 			param = params[1].trim();
 			param = param.substring(1, param.length() - 1); // Remove quotes
 			refQuestions.add(param);
 		}
-		if (params.length > 2) {
+		
+		// Get the reference column
+		if (params.length == 4 || params.length == 6) {
 			param = params[2].trim();
 			param = param.substring(1, param.length() - 1); // Remove quotes
 			refQuestions.add(param);
+		}
+		
+		// Get columns from the expression
+		if (params.length == 3 || params.length == 5) {
+			refQuestions.addAll(getCsvNames(params[2]));
 		}
 		return refQuestions;
 	}
@@ -5797,35 +5820,6 @@ public class GeneralUtilityMethods {
 
 		return sList;
 	}
-
-	/*
-	 * Get the question that links to the provided survey/question from the provided
-	 * form
-	 *
-	 * public static int getLinkingQuestion(Connection sd, int formFromId, String
-	 * linkedTarget) {
-	 * 
-	 * int questionId = 0;
-	 * 
-	 * String sql = "select q.q_id " + "from question q, form f " +
-	 * "where q.f_id = f.f_id " + "and f.f_id = ? " + "and q.linked_target = ?";
-	 * PreparedStatement pstmt = null;
-	 * 
-	 * try { pstmt = sd.prepareStatement(sql); pstmt.setInt(1, formFromId);
-	 * pstmt.setString(2, linkedTarget); log.info("Getting linking surveys: " +
-	 * pstmt.toString() );
-	 * 
-	 * ResultSet rs = pstmt.executeQuery(); if(rs.next()) {
-	 * 
-	 * questionId = rs.getInt(1);
-	 * 
-	 * }
-	 * 
-	 * } catch (Exception e) { log.log(Level.SEVERE, "Exception", e); } finally {
-	 * try {if (pstmt != null) {pstmt.close(); }} catch (SQLException e) { } }
-	 * 
-	 * return questionId; }
-	 */
 
 	/*
 	 * Get the surveys and questions that the provided form links to
@@ -7520,6 +7514,29 @@ public class GeneralUtilityMethods {
 
 		if(input != null) {
 			Pattern pattern = Pattern.compile("\\$\\{.+?\\}");
+			java.util.regex.Matcher matcher = pattern.matcher(input);
+
+			while (matcher.find()) {
+
+				String matched = matcher.group();
+				String qname = matched.substring(2, matched.length() - 1);
+				output.add(qname);
+			}
+		}
+
+		return output;
+	}
+	
+	/*
+	 * Get an array of column names from a string that contains references to columns #{name}
+	 */
+	public static ArrayList<String> getCsvNames(
+			String input) {
+
+		ArrayList<String> output = new ArrayList<> (); 
+
+		if(input != null) {
+			Pattern pattern = Pattern.compile("\\#\\{.+?\\}");
 			java.util.regex.Matcher matcher = pattern.matcher(input);
 
 			while (matcher.find()) {
