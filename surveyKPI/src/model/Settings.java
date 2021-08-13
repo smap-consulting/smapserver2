@@ -34,4 +34,5 @@ public class Settings {
 	public String advanced_filter;
 	public boolean inc_ro;
 	public GeomQuestions [] geomFormQuestions;
+	public String selectedGeomQuestion;
 }
