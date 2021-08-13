@@ -107,7 +107,8 @@ public class TableReports extends Application {
 			) throws Exception { 
 		
 		// Authorisation - Access
-		Connection sd = SDDataSource.getConnection("surveyKPI-tables");
+		String connectionString = "surveyKPI-tables";
+		Connection sd = SDDataSource.getConnection(connectionString);
 		boolean superUser = false;
 		try {
 			superUser = GeneralUtilityMethods.isSuperUser(sd, request.getRemoteUser());
@@ -130,7 +131,7 @@ public class TableReports extends Application {
 		if(project == null) {
 			project = "Project";
 		}
-		Connection cResults = ResultsDataSource.getConnection("surveyKPI-tables");
+		Connection cResults = ResultsDataSource.getConnection(connectionString);
 		
 		if(tz == null) {
 			tz = "UTC";
@@ -174,10 +175,12 @@ public class TableReports extends Application {
 			
 			// Convert data to an array
 			ArrayList<ArrayList<KeyValue>> dArray = null;
+			log.info("xxxx memory: expanding data array");
 			if(data != null) {
 				Type type = new TypeToken<ArrayList<ArrayList<KeyValue>>>(){}.getType();		
 				dArray = new Gson().fromJson(data, type);
 			}
+			log.info("xxxx memory: array size: " + dArray.size());
 			
 			// Convert charts to an array
 			ArrayList<Chart> chartArray = null;
@@ -202,6 +205,7 @@ public class TableReports extends Application {
 			
 			String basePath = GeneralUtilityMethods.getBasePath(request);
 			if(isXLS) {
+				log.info("xxxx memory: creating xlsx reports file");
 				XLSReportsManager xm = new XLSReportsManager(format);
 				xm.createXLSReportsFile(response.getOutputStream(), 
 						dArray, 
@@ -212,7 +216,9 @@ public class TableReports extends Application {
 						formName,
 						localisation, 
 						tz);
+				log.info("xxxx memory: xlsx reports file created");
 			} else if(isPdf) {
+				log.info("xxxx memory: creating pdf reports file");
 				PDFTableManager pm = new PDFTableManager();
 				pm.createPdf(
 						sd,
@@ -226,8 +232,9 @@ public class TableReports extends Application {
 						basePath,
 						title,
 						project);
-						
+				log.info("xxxx memory: pdf reports file created");	
 			} else if(isWord) {
+				log.info("xxxx memory: creating word reports file");
 				WordTableManager wm = new WordTableManager();
 				wm.create(
 						sd,
@@ -241,7 +248,7 @@ public class TableReports extends Application {
 						basePath,
 						title,
 						project);
-						
+				log.info("xxxx memory: word reports file created");		
 			} else if(isImage) {
 				if(charts != null && chartArray.size() > 0) {
 					
@@ -298,8 +305,8 @@ public class TableReports extends Application {
 			
 		
 		} finally {
-			SDDataSource.closeConnection("surveyKPI-tables", sd);
-			ResultsDataSource.closeConnection("surveyKPI-tables", cResults);
+			SDDataSource.closeConnection(connectionString, sd);
+			ResultsDataSource.closeConnection(connectionString, cResults);
 		}
 
 
