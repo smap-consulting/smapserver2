@@ -725,6 +725,7 @@ public class RoleManager {
 		
 		
 		try {
+			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			// delete existing

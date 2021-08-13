@@ -246,12 +246,15 @@ public class Survey {
 			// Update the form dependencies so that when new results are received it is simple to identify the impacted forms			
 			GeneralUtilityMethods.updateFormDependencies(sd, id);
 			
-			sd.commit();
+			if(!sd.getAutoCommit()) {	// auto commit may have been reenabled when updating roles
+				sd.commit();
+			}
 			
 		} catch (Exception e) {
 			try {sd.rollback();} catch (Exception ex) {}
 			throw e;
 		} finally {
+			log.info("Set autocommit true");
 			try {sd.setAutoCommit(true);} catch (Exception e) {}
 		}
 	}
