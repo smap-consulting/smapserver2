@@ -661,7 +661,7 @@ public class SurveyManager {
 			}
 			if(sd.getAutoCommit()) {
 				sdAutoCommitSetFalse = true;
-				log.info("Set autocommit sd false");
+				log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 			}			
 
@@ -4056,6 +4056,7 @@ public class SurveyManager {
 			 */			
 			if(newSurveyId > 0) {
 				
+				log.info("Set autocommit false");
 				sd.setAutoCommit(false);
 				
 				// Delete the survey from the group survey table

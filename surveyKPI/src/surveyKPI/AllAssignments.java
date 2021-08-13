@@ -183,6 +183,7 @@ public class AllAssignments extends Application {
 						);	
 			}
 			
+			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			
 			int oId = GeneralUtilityMethods.getOrganisationId(sd, userName);

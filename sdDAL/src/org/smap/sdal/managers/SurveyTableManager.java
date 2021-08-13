@@ -1176,6 +1176,7 @@ public class SurveyTableManager {
 				throw new ApplicationException("Cannot link to external survey: " + linked_sIdent + " as it is in a different organisation");
 			}
 			
+			log.info("Set autocommit false");
 			sd.setAutoCommit(false);
 			// Get data on the link between the two surveys
 			pstmt = sd.prepareStatement(sql);
