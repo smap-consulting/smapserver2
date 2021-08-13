@@ -83,7 +83,7 @@ public class WordTableManager {
 		
 		try {
 			
-			XWPFDocument template = new XWPFDocument(new FileInputStream(new File("/smap_bin/resources/template.docx")));
+			XWPFDocument template = new XWPFDocument(new FileInputStream(new File(basePath + "_bin/resources/template.docx")));
 			XWPFDocument doc = new XWPFDocument();
 			XWPFStyles newStyles = doc.createStyles();
 			newStyles.setStyles(template.getStyle());
