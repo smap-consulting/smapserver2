@@ -116,7 +116,8 @@ public class Lookup extends Application{
 			@PathParam("key_column") String keyColumn,
 			@PathParam("key_value") String keyValue,
 			@QueryParam("index") int index,
-			@QueryParam("searchType") String searchType
+			@QueryParam("searchType") String searchType,
+			@QueryParam("expression") String expression
 			) throws IOException {
 
 		Response response = null;
@@ -203,7 +204,7 @@ public class Lookup extends Application{
 				} else {
 					// Get data from a csv file
 					CsvTableManager ctm = new CsvTableManager(sd, localisation);
-					results = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue);
+					results = ctm.lookup(oId, sId, fileName + ".csv", keyColumn, keyValue, expression, tz);
 				}
 			}
 			if (results == null) {
@@ -239,7 +240,7 @@ public class Lookup extends Application{
 			@QueryParam("q_value") String qValue,
 			@QueryParam("f_column") String fColumn,
 			@QueryParam("f_value") String fValue,
-			@QueryParam("expression") String expression	
+			@QueryParam("expression") String expression
 			) throws IOException {
 
 		Response response = null;
@@ -621,7 +622,6 @@ public class Lookup extends Application{
 			if(expression != null) {
 				// Convert #{qname} syntax to ${qname} syntax
 				expression = expression.replace("#{", "${");
-				// TODO convert expression into a selection
 				frag = new SqlFrag();
 				log.info("Lookup with expression: " + expression);
 				frag.addSqlFragment(expression, false, localisation, 0);
