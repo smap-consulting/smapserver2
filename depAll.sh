@@ -18,3 +18,7 @@ cd ..
 cd myWork
 ./dep.sh
 cd ..
+
+cd dashboard
+./dep.sh
+cd ..
