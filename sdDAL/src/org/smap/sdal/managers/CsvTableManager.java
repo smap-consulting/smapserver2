@@ -407,7 +407,7 @@ public class CsvTableManager {
 	 * Look up a value
 	 */
 	public HashMap<String, String> lookup(int oId, int sId, String fileName, String key_column, 
-			String key_value) throws SQLException, ApplicationException {
+			String key_value, String expression, String tz) throws SQLException, ApplicationException {
 		
 		HashMap<String, String> record = null;
 		
@@ -420,13 +420,13 @@ public class CsvTableManager {
 			log.info("Getting csv file name for lookup value: (survey level) " + pstmtGetCsvTable.toString());
 			ResultSet rs = pstmtGetCsvTable.executeQuery();
 			if(rs.next()) {
-				record = readRecordFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName);				
+				record = readRecordFromTable(rs.getInt(1), rs.getString(2), key_column, key_value, fileName, expression, tz);				
 			} else {
 				pstmtGetCsvTable.setInt(2, 0);		// Try organisational level
 				log.info("Getting csv file name fo lookup value: (organisation level) " + pstmtGetCsvTable.toString());
 				ResultSet rsx = pstmtGetCsvTable.executeQuery();
 				if(rsx.next()) {
-					record = readRecordFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName);	
+					record = readRecordFromTable(rsx.getInt(1), rsx.getString(2), key_column, key_value, fileName, expression, tz);	
 				} else {
 					log.info("record not found");
 				}
@@ -675,7 +675,7 @@ public class CsvTableManager {
 	 * Read the a data record from a csv table
 	 */
 	private HashMap<String, String> readRecordFromTable(int tableId, String sHeaders, String key_column, String key_value,
-			String filename) throws SQLException, ApplicationException {
+			String filename, String expression, String tz) throws SQLException, ApplicationException {
 			
 		HashMap<String, String> record = new HashMap<String, String> ();
 		
@@ -696,19 +696,34 @@ public class CsvTableManager {
 				}
 				first = false;
 				sql.append(item.tName);
-				if(item.fName.equals(key_column)) {
+				if(key_column != null && item.fName.equals(key_column)) {
 					tKeyColumn = item.tName;
 				}
 			}
-			if(tKeyColumn == null) {
-				throw new ApplicationException("Column " + key_column + " not found in table " + table);
-			}
 			
 			sql.append(" from ").append(table);
-			sql.append(" where ").append(tKeyColumn).append(" = ?");
-				
-			pstmt = sd.prepareStatement(sql.toString());		
-			pstmt.setString(1, key_value);
+			
+			SqlFrag expressionFrag = null;
+			if(expression != null) {
+				// Convert #{qname} syntax to ${qname} syntax
+				expression = expression.replace("#{", "${");
+				expressionFrag = new SqlFrag();
+				log.info("Lookup with expression: " + expression);
+				expressionFrag.addSqlFragment(expression, false, localisation, 0);
+				sql.append(" where ( ").append(expressionFrag.sql).append(")");
+			} else if(tKeyColumn == null) {
+				throw new ApplicationException("Column " + key_column + " not found in table " + table);
+			} else {
+				sql.append(" where ").append(tKeyColumn).append(" = ?");
+			}
+			
+			pstmt = sd.prepareStatement(sql.toString());
+			int paramCount = 1;
+			if(expression != null) {
+				paramCount = GeneralUtilityMethods.setFragParams(pstmt, expressionFrag, paramCount, tz);
+			} else {
+				pstmt.setString(1, key_value);
+			}
 			log.info("Get CSV lookup values: " + pstmt.toString());
 			ResultSet rsx = pstmt.executeQuery();
 			
