@@ -705,8 +705,10 @@ public class CsvTableManager {
 			
 			SqlFrag expressionFrag = null;
 			if(expression != null) {
-				// Convert #{qname} syntax to ${qname} syntax
+				// Convert #{qname} syntax to ${qname} syntax - also remove any encollosing single quotes
 				expression = expression.replace("#{", "${");
+				expression = expression.replace("\'${", "${");
+				expression = expression.replace("}\'", "}");
 				expressionFrag = new SqlFrag();
 				log.info("Lookup with expression: " + expression);
 				expressionFrag.addSqlFragment(expression, false, localisation, 0);
