@@ -187,7 +187,7 @@ public class Review extends Application {
 		aView.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Review of text data", 0);
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Review of text data", 0, request.getServerName());
 		
 		try {
 			// Localisation			
@@ -542,7 +542,7 @@ public class Review extends Application {
 		a.isValidSurvey(connectionSD, request.getRemoteUser(), sId, false, superUser);	// Validate that the user can access this survey
 		// End Authorisation
 		
-		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Audit changes to text data", 0);
+		lm.writeLog(connectionSD, sId, request.getRemoteUser(), LogManager.VIEW, "Audit changes to text data", 0, request.getServerName());
 		
 		Connection dConnection = ResultsDataSource.getConnection("surveyKPI-Audit");
 		

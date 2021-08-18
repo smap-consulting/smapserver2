@@ -1669,7 +1669,7 @@ public class PDFSurveyManager {
 				if(msg == null) {
 					msg = "Error in PDF generation. Ignoring.";
 				}
-				lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0);
+				lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0, null);
 				labelCell.addElement(getPara(html.toString(), di, gv, null, null));
 			}
 		}
@@ -2094,7 +2094,7 @@ public class PDFSurveyManager {
 					if(msg == null) {
 						msg = "Error parsing PDF. Ignoring."; 
 					}
-					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0);
+					lm.writeLog(sd, survey.getId(), remoteUser, LogManager.ERROR, msg + " for: " + html.toString(), 0, null);
 					cell.addElement(getPara(html.toString(), di, gv, null, null));
 				}
 				for(Element element : parser.elements) {					

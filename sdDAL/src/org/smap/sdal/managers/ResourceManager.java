@@ -249,7 +249,7 @@ public class ResourceManager {
 		// Write the log entry
 		if(msg != null) {
 			if(sId > 0) {
-				lm.writeLog(sd, sId, user, resource, msg, usage);
+				lm.writeLog(sd, sId, user, resource, msg, usage, null);
 			} else {
 				lm.writeLogOrganisation(sd, oId, user, resource, msg, usage);
 			}
